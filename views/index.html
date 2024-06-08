@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>PUBPAY.me</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="stylesheets/style.css">
+
+    <!--  -->
+    <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
+    <script type="module" src="javascripts/index.js"></script>
+
+  </head>
+  <body>
+
+    <div id="root">
+
+      <div id="nav">
+        <div id="navInner">
+          <a id="logo" href="">
+            PUB<span style="color: #000">PAY</span><span style="color: #cecece">.me</span>
+          </a>
+          <div id="navActions">
+
+            <a id="settings" href="">
+              <span class="material-symbols-outlined">settings</span>
+            </a>
+            <a id="login" href="">
+              <span class="material-symbols-outlined">login</span>
+            </a>
+            <a id="newPayNote" class="cta" href="#">
+              New Paynote
+            </a>
+
+          </div>
+        </div>
+      </div>
+
+      <div id="container">
+
+        <div id="main">
+
+
+
+
+
+
+          <!-- START PAYNOTE 
+          <div class="paynote">
+
+            <div class="noteProfileImg">
+              <img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" />
+            </div>
+
+            <div class="noteData">
+
+              <div class="noteHeader">
+                <div class="noteAuthor">
+                  <div class="noteDisplayName">
+                    Display Name
+                  </div>
+                  <div class="noteNIP05 label">
+                    displayname@domain.com
+                  </div>
+                </div>
+                <div class="noteDate label">
+                  XXm
+                </div>
+              </div>
+
+              <div class="noteContent">
+                This is the note content which can be text and images
+              </div>
+
+              <div class="noteValues">
+                <div class="zapMin">
+                  <span class="zapMinVal">X,XXX</span> <span class="label">sats</span>
+                </div>
+                <div class="zapUses">
+                  <span class="zapUsesCurrent">X</span> <span class="label">of</span> <span class="zapUsesTotal">X</span>
+                </div>
+              </div>
+
+              <div class="noteCTA">
+                <a href="#" class="cta">Pay</a>
+              </div>
+
+              <div class="noteActionsReactions">
+                <div class="noteReactions">
+                  <img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" />
+                  <img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" />
+                  <img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" />
+                  <img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" />
+                </div>
+                <div class="noteActions">
+                  <div class="noteAction">
+                    <span class="material-symbols-outlined">bolt</span>
+                  </div>
+                  <div class="noteAction">
+                    <span class="material-symbols-outlined">favorite</span>
+                  </div>
+                  <div class="noteAction">
+                    <span class="material-symbols-outlined">ios_share</span>
+                  </div>
+                  <div class="noteAction">
+                    <div class="tooltip">
+                      <span class="material-symbols-outlined">more_horiz</span>
+                      <div class="tooltiptext">
+                        <a href="#" class="cta">Crowd Pay</a>
+                        <a href="#" class="">view raw</a></br>
+                        <a href="#" class="">Tooltip text</a></br>
+                        <a href="#" class="">Tooltip text</a></br>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+          END PAYNOTE -->
+
+
+        </div>
+
+      </div>
+
+
+
+
+      <div class="overlayContainer" id="newPayNoteForm">
+        <div class="formContainer">
+            <form action="#" method="post">
+                <div class="formField">
+                    <label for="payNoteContent" class="label">Your Note</label>
+                    <textarea id="payNoteContent" name="payNoteContent" rows="4"></textarea>
+                </div>
+
+                <div class="formFieldGroup">
+                  <div class="formField">
+                      <label for="zapMin" class="label">Minimum Zap</label>
+                      <input type="text" id="zapMin" name="zapMin">
+                  </div>
+                  <div class="formField">
+                      <label for="zapMax" class="label">Maximum zap</label>
+                      <input type="text" id="zapMax" name="zapMax">
+                  </div>
+                </div>
+
+                <div class="formFieldGroup">
+                  <div class="formField">
+                      <label for="zapUses" class="label">Uses</label>
+                      <input type="text" id="zapUses" name="zapUses">
+                  </div>
+                  <div class="formField">
+                      <label for="zapIncrement" class="label">Increment</label>
+                      <input type="text" id="zapIncrement" name="zapIncrement">
+                  </div>
+                </div>
+
+                <div class="formField">
+                    <label for="redirectToNote" class="label">Redirect zap to note id / note1</label>
+                    <input type="text" id="redirectToNote" name="redirectToNote">
+                </div>
+
+                <div class="formField">
+                    <label for="overrideLNURL" class="label">LNURL override</label>
+                    <input type="text" id="overrideLNURL" name="overrideLNURL">
+                </div>
+
+                <button type="submit" class="cta">Post Note</button>
+            </form>
+            <a id="cancelNewNote" href="#" class="label">cancel</a>
+        </div>
+      </div>
+
+
+    </div>
+
+  </body>
+</html>

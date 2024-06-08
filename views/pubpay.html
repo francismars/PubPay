@@ -1,0 +1,101 @@
+<script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
+<script type="module">
+    const pool = new window.NostrTools.SimplePool()
+    let relays = ['wss://relay.damus.io', 'wss://relay.primal.net','wss://relay.snort.social','wss://nostr.mutinywallet.com/', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
+    subscribePubPays()
+
+    async function subscribePubPays(){
+        //const relay = await window.NostrTools.Relay.connect('wss://relay.damus.io')
+        const sub = pool.subscribeMany(
+            [...relays],
+            [
+            {
+                kinds: [1],
+                "#t": ["pubpay"]
+            },
+            ], {
+            async onevent(event) {
+                if(event.tags){
+                    let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
+                    if(filteredEvent.length>0){
+                        await getUser(event)
+                    }
+                }
+            },
+            oneose() {
+                sub.close()
+            }
+        })
+    }
+
+
+    async function getUser(event){
+        let userPK = event.pubkey
+        const sub = pool.subscribeMany(
+            [...relays],
+            [{
+                kinds: [0],
+                authors: [userPK]
+            }]
+        ,{
+        async onevent(eventProfile) {
+            await getZapInvoice(event, eventProfile)
+        },
+        oneose() {
+            sub.close()
+        }
+    })         
+    }
+
+    async function getZapInvoice(eventZap, userProfile){
+        let event = eventZap
+        let eventProfile = userProfile
+        let lud16 = JSON.parse(eventProfile.content).lud16
+        let ludSplit = lud16.split("@")
+        const response = await fetch("http://"+ludSplit[1]+"/.well-known/lnurlp/"+ludSplit[0]);
+        const lnurlinfo = await response.json();
+        if(lnurlinfo.allowsNostr==true){
+            // const privateKey = window.NostrTools.generateSecretKey()
+            const publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
+            let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")  
+            let zapEvent = await window.NostrTools.nip57.makeZapRequest({
+                profile: event.pubkey,
+                event: event.id,
+                amount: Math.floor(filteredEvent[0][1]/1000),
+                comment: "",
+                relays: relays
+            })
+            let zapFinalized = await window.nostr.signEvent(zapEvent)            
+            let callback = lnurlinfo.callback
+            let amount = Math.floor(filteredEvent[0][1])
+            let eventFinal = JSON.stringify(zapFinalized)
+            let lnurl = lud16
+            const responseFinal = await fetch(`${callback}?amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`)
+            const {pr: invoice} = await responseFinal.json();
+            console.log(invoice)
+            subZapEvent(event)
+        }
+    }
+
+    function subZapEvent(event){
+        const sub = pool.subscribeMany(
+            [...relays],
+            [
+            {
+                kinds: [9735],
+                "#p": [event.pubkey]
+            },
+            ], {
+            async onevent(eventPaid) {
+                console.log("zap pago"+Math.random()*100)
+                console.log(eventPaid)
+            }})
+    }
+    
+</script>
+
+<html>
+    <body>
+        <p> yo </p>
+    </body>
+</html>
