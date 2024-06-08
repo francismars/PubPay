@@ -1,0 +1,294 @@
+body{
+  margin: 0;
+  font-family: sans-serif;
+}
+
+.hide{
+  display: none
+}
+
+#nav{
+  width: 100%;
+  background: #fff;
+  border-bottom: 1px solid #ececec;
+  position: fixed;
+  top: 0;
+  z-index: 10;
+}
+
+#navInner, #main{
+  max-width: 580px;
+  width: 100%;
+  margin: auto;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+#navInner{
+  display: flex;
+  justify-content: space-between;
+  padding: 15px 10px;
+  align-items: center;
+}
+
+#navActions{
+  display: flex;
+  align-content: center;
+  align-items: center;
+  column-gap: 15px;
+}
+
+#logo{
+  font-family: "Russo One", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 20px
+}
+
+#container{
+  width: 100%;
+  margin-top: 100px;
+  padding-bottom: 100px;
+}
+
+.paynote{
+  display: flex;
+  padding: 20px 20px 30px 20px;
+  border: 1px solid #ececec;
+  margin-top: 20px;
+  border-radius: 10px;
+  column-gap: 15px;
+  box-shadow: 0px 3px 4px #0000000a;
+}
+
+.noteProfileImg{
+  width: 8%;
+}
+
+.userImg{
+  border: 1px solid #cecece;
+  border-radius: 300px
+}
+
+.noteProfileImg img{
+  width: 100%;
+}
+
+.noteData{
+  width: 90%;
+}
+
+.noteHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.noteDisplayName {
+    font-weight: 900;
+    max-width: 280px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.noteAuthorLink{
+    color: #000;
+}
+.noteAuthorLink:visited{
+    color: #000;
+}
+
+.noteContent {
+  font-size: 24px;
+  margin: 20px 0px;
+  font-weight: 100;
+  word-break: break-word;
+}
+
+.noteContent img {
+    width: 100%;
+    margin-top: 10px;
+    filter: brightness(0.98);
+}
+
+.noteValues{
+  display: flex;
+  justify-content: space-between;
+  margin: 21px 0 10px 0;
+  border-top: 1px solid #ccc;
+  padding: 8px 0;
+}
+
+.noteActionsReactions{
+  display: flex;
+  justify-content: space-between;
+}
+
+.noteReactions{
+  display: flex;
+  column-gap: 5px;
+}
+
+.noteReactions img{
+  width: 20px;
+  height: fit-content;
+}
+
+.noteActionsReactions .noteActions{
+  display: flex;
+  column-gap: 10px;
+  font-size: 10px;
+}
+
+.material-symbols-outlined {
+  font-size: 18px;
+}
+
+
+
+
+a{
+  color: #4A90FF;
+  text-decoration: none
+}
+a:visited{
+  color: #4A90FF;
+}
+
+
+.label {
+  color: #919191;
+  font-size: 14px;
+}
+
+.uppercase{
+  text-transform: uppercase;
+}
+
+a.cta, button.cta{
+  width: 100%;
+  background: #4A90FF;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 100px;
+  box-sizing: border-box;
+  text-decoration: none;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  font-weight: 900;
+  \
+  border: none;
+  border: none;
+}
+
+.paynote .cta{
+  margin-bottom: 20px;
+  display: block;
+  color: #4A90FF;
+  background: #e6f0ff;
+  border: 1px solid #4A90FF;
+  transition: all 0.1s ease;
+  box-shadow: 0 1px 0px #00000000;
+}
+
+.paynote .cta:hover{
+  transform: scale(1.05);
+  box-shadow: 0 5px 15px #00000024;
+}
+
+
+
+
+/* New Note Form */
+
+.overlayContainer{
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 100;
+  background: #247aff8c;
+  align-items: center;
+  justify-content: center;
+}
+#newPayNoteForm{
+  display: none
+}
+
+.formContainer {
+    width: 100%;
+    max-width: 500px;
+    padding: 30px 20px;
+    box-sizing: border-box;
+    background: #fff;
+    border-radius: 10px;
+}
+
+.formField, textarea, input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+
+.formFieldGroup {
+  display: flex;
+  column-gap: 10px;
+}
+
+.formField label{
+  display: block;
+  margin-bottom: 10px;
+}
+
+#cancelNewNote{
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 10px
+}
+
+textarea, input {
+  border: 1px #cecece solid;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+
+
+
+
+
+
+.tooltip {
+  position: relative;
+  display: inline-block;
+  border-bottom: 1px dotted black;
+  border: 0;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 200px;
+  background-color: white;
+  color: #000;
+  text-align: left;
+  border-radius: 6px;
+  padding: 15px;
+
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 1;
+  border: 1px #e9e9e9 solid;
+  margin-left: -200px;
+  box-shadow: 0px 6px 11px #00000029;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  font-size: 13px;
+}
