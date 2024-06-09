@@ -70,7 +70,7 @@ async function payNote(eventZap, userProfile){
       let zapEvent = await window.NostrTools.nip57.makeZapRequest({
           profile: event.pubkey,
           event: event.id,
-          amount: Math.floor(filteredEvent[0][1]/1000),
+          amount: Math.floor(filteredEvent[0][1]),
           comment: "",
           relays: relays
       })
@@ -142,12 +142,14 @@ async function createNote(eventData, authorData){
   var noteNIP05 = document.createElement('div')
   noteNIP05.classList.add("noteNIP05")
   noteNIP05.classList.add("label")
-  noteNIP05.textContent="displayname@domain.com"
+  profileData.nip05 ? noteNIP05.textContent=profileData.nip05 : noteNIP05.textContent="displayname@domain.com"
+
+  let noteTimeAgo = timeAgo(eventData.created_at)
 
   var noteDate = document.createElement('div')
   noteDate.classList.add("noteDate")
   noteDate.classList.add("label")
-  noteDate.textContent="XXm"
+  noteDate.textContent=noteTimeAgo
 
   noteAuthor.appendChild(noteDisplayName)
   noteAuthor.appendChild(noteNIP05)
@@ -168,13 +170,19 @@ async function createNote(eventData, authorData){
   var noteValues = document.createElement('div')
   noteValues.setAttribute('class', 'noteValues')
 
+  // INSERT LOGIC FOR AMOUNT, ZAP-MIN, ZAP-MAX, ETC
+  let filteredZapMin = eventData.tags.filter(tag => tag[0] == "zap-min")  
+
   var zapMin = document.createElement('div')
   zapMin.setAttribute('class', 'zapMin')
-  zapMin.innerHTML = '<span class="zapMinVal">'+(eventData.tags[1][1] / 1000)+'</span> <span class="label">sats</span>'
+  zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[0][1]/1000).toLocaleString()+'</span> <span class="label">sats</span>'
+
+  let filteredZapUses = eventData.tags.filter(tag => tag[0] == "zap-uses")  
 
   var zapUses = document.createElement('div')
   zapUses.setAttribute('class', 'zapUses')
-  zapUses.innerHTML = '<span class="zapUsesCurrent">X</span> <span class="label">of</span> <span class="zapUsesTotal">X</span>'
+  filteredZapUses!=null && filteredZapUses[0]!=null ? zapUses.innerHTML = `<span class='zapUsesCurrent'>0</span> <span class='label'>of</span> <span class='zapUsesTotal'>${filteredZapUses[0][1]}</span>`
+                  : zapUses.innerHTML = ""
 
   noteValues.appendChild(zapMin)
   noteValues.appendChild(zapUses)
@@ -202,12 +210,14 @@ async function createNote(eventData, authorData){
   noteReactions.setAttribute('class', 'noteReactions')
   noteReactions.innerHTML = '<img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" /><img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" /><img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" />'
 
+  let eventDataString = JSON.stringify(eventData).replace(/"/g, '&quot;');
+
   var noteActions = document.createElement('div')
   noteActions.setAttribute('class', 'noteActions')
   let noteActionBtns =  '<div class="noteAction"><span class="material-symbols-outlined">bolt</span></div>'
   noteActionBtns +=     '<div class="noteAction"><span class="material-symbols-outlined">favorite</span></div>'
   noteActionBtns +=     '<div class="noteAction"><span class="material-symbols-outlined">ios_share</span></div>'
-  let toolTip     =     '<div class="tooltiptext"><a href="#" class="cta">Crowd Pay</a><a href="#" class="toolTipLink">view raw</a></br><a href="#" class="toolTipLink">Tooltip text</a></br><a href="#" class="toolTipLink">Tooltip text</a></br></div>'
+  let toolTip     =     `<div class="tooltiptext"><a href="#" class="cta">Crowd Pay</a><a href="#" onclick="console.log(${eventDataString})" class="toolTipLink">view raw</a></br><a href="#" class="toolTipLink">Tooltip text</a></br><a href="#" class="toolTipLink">Tooltip text</a></br></div>`
   noteActionBtns +=     '<div class="tooltip"><div class="noteAction"><span class="material-symbols-outlined">more_horiz</span>'+toolTip+'</div></div>'
 
   noteActions.innerHTML = noteActionBtns
@@ -236,6 +246,23 @@ function formatContent(content){
     content = content.replace(/(http(s*):\/\/[\w\\x80-\\xff\#$%&~\/.\-;:=,?@\[\]+]*).(gif|png|jpg|jpeg)/gi, '<img src="$1.$3" />')
   }
   return content
+}
+
+function timeAgo(timestamp) {
+  const now = Date.now();
+  const timestampMs = timestamp * 1000;
+  const differenceMs = now - timestampMs;
+  const minutesAgo = Math.floor(differenceMs / (1000 * 60)); // Difference in minutes
+  const hoursAgo = Math.floor(differenceMs / (1000 * 60 * 60)); // Difference in hours
+  const daysAgo = Math.floor(differenceMs / (1000 * 60 * 60 * 24)); // Difference in days
+
+  if (minutesAgo < 60) {
+      return `${minutesAgo} minutes ago`;
+  } else if (hoursAgo < 24) {
+      return `${hoursAgo} hours ago`;
+  } else {
+      return `${daysAgo} days ago`;
+  }
 }
 
 
