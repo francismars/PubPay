@@ -182,7 +182,7 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
     await window.webln.sendPayment(invoice);
   }
   else{
-    window.location.href = `lightning:${invoice}`;
+    window.location.href = encodeURIComponent(`lightning:${invoice}`);
   }
   //subZapEvent(event)
 }
