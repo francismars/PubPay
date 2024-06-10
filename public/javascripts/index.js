@@ -7,7 +7,6 @@ let eventsAuthors = {}
 subscribePubPays()
 
 async function subscribePubPays() {
-  const intervalId = setInterval(accessClipboard, 2000)
   let h = pool.subscribeMany(
       [...relays],
       [
@@ -77,57 +76,70 @@ async function payNote(eventZap, userProfile){
   const response = await fetch("https://"+ludSplit[1]+"/.well-known/lnurlp/"+ludSplit[0]);
   const lnurlinfo = await response.json();
   if(lnurlinfo.allowsNostr==true){
-    /*
       // const privateKey = window.NostrTools.generateSecretKey()
       let publicKey
       if(window.nostr!=null){
-        publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
+        createZapEvent(JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":event}))
+        return
+        // publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
       }
       else{
-        sessionStorage.setItem('sentToAmber', 'true');
+        sessionStorage.setItem('AmberPubkey', JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":event}));
         window.location.href = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`
-        const publicKey = await navigator.clipboard.readText();
-        console.log(publicKey)
       }
-    */
-      let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
-      let zapEvent = await window.NostrTools.nip57.makeZapRequest({
-          profile: event.pubkey,
-          event: event.id,
-          amount: Math.floor(filteredEvent[0][1]),
-          comment: "",
-          relays: relays
-      })
-      let zapFinalized
-      if(window.nostr!=null){
-        zapFinalized = await window.nostr.signEvent(zapEvent)
-        await getInvoiceandPay(lnurlinfo.callback, filteredEvent[0][1], zapFinalized, lud16)
-      }
-      else{
-        let eventString = JSON.stringify(zapEvent)
-        setTimeout(() => {
-          sessionStorage.setItem('AmberSign', JSON.stringify({"callback": lnurlinfo.callback, "amount": filteredEvent[0][1], "lud16": lud16, "event":zapEvent}));
-        }, 500);
-        window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`
-      }  
   }
 }
 
+async function createZapEvent(eventStoragePK, pubKey = null){
+  let event = eventStoragePK.event
+  let lnurlinfo = eventStoragePK.lnurlinfo
+  let lud16 = eventStoragePK.lud16
+  let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
+  let zapEvent = await window.NostrTools.nip57.makeZapRequest({
+      profile: event.pubkey,
+      event: event.id,
+      amount: Math.floor(filteredEvent[0][1]),
+      comment: "",
+      relays: relays
+  })
+  pubKey!=null ? zapEvent.pubkey = pubKey : pass
+  let zapFinalized
+  if(window.nostr!=null){
+    zapFinalized = await window.nostr.signEvent(zapEvent)
+    await getInvoiceandPay(lnurlinfo.callback, filteredEvent[0][1], zapFinalized, lud16)
+  }
+  else{
+    let eventString = JSON.stringify(zapEvent)
+    setTimeout(() => {
+      sessionStorage.setItem('AmberSign', JSON.stringify({"callback": lnurlinfo.callback, "amount": filteredEvent[0][1], "lud16": lud16, "event":zapEvent}));
+    }, 500);
+    window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`
+  }  
+}
 
 document.addEventListener("visibilitychange", async function() {
   if (document.visibilityState === 'visible') {
+    let eventStoragePK = sessionStorage.setItem('AmberPubkey', 'true');
+    console.log(eventStoragePK)
+    if(eventStoragePK){
+      sessionStorage.removeItem('AmberPubkey');
+      const publicKey = await navigator.clipboard.readText();
+      console.log(publicKey)
+      createZapEvent(eventStoragePK, publicKey)
+      return
+    }
     const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
     console.log(eventStorage)
     if(eventStorage){
       sessionStorage.removeItem('AmberSign');
-      let eventSigned
+      let eventSignature
       try {
-        eventSigned = await accessClipboard()
+        eventSignature = await accessClipboard()
       } catch (error) {
         console.error("Failed to read clipboard:", error);
       }
-      console.log('eventSigned', eventSigned)
-      zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSigned)
+      console.log('eventSigned', eventSignature)
+      zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSignature)
       console.log('zapFinalized', zapFinalized)
       await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
     }
@@ -140,7 +152,7 @@ async function accessClipboard() {
       let clipcopied = await navigator.clipboard.readText();
       console.log(clipcopied)
       resolve(clipcopied)
-    }, 5000);
+    }, 2500);
   });  
 }
 
