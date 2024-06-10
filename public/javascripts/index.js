@@ -126,7 +126,9 @@ document.addEventListener("visibilitychange", async function() {
       sessionStorage.removeItem('AmberPubkey');
       const publicKey = await accessClipboard()
       console.log(publicKey)
-      createZapEvent(eventStoragePK, publicKey)
+      let decodedPK = NostrTools.nip19.decode(publicKey)
+      console.log(decodedPK)
+      createZapEvent(eventStoragePK, decodedPK)
       return
     }
     const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
