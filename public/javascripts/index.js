@@ -104,9 +104,11 @@ async function createZapEvent(eventStoragePK, pubKey = null){
       comment: "",
       relays: relays
   })
-  if(pubKey!=null) zapEvent.pubkey = pubKey
-  let eventID = NostrTools.getEventHash(zapEvent)
-  if(eventID!=null) zapEvent.id = eventID
+  if(pubKey!=null){
+    zapEvent.pubkey = pubKey
+    let eventID = NostrTools.getEventHash(zapEvent)
+    if(eventID!=null) zapEvent.id = eventID
+  } 
   let zapFinalized
   if(window.nostr!=null){
     zapFinalized = await window.nostr.signEvent(zapEvent)
