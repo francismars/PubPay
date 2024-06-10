@@ -116,7 +116,7 @@ async function onVisibilityChange() {
   if (document.visibilityState === 'visible') {
     const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
     console.log(eventStorage)
-    if(eventStorage!=null){
+    if(eventStorage){
       sessionStorage.removeItem('AmberSign');
       const eventSigned = await navigator.clipboard.readText();
       console.log('eventSigned', eventSigned)
