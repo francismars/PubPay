@@ -103,7 +103,7 @@ async function payNote(eventZap, userProfile){
       }
       else{
         let eventString = JSON.stringify(zapEvent)
-        sessionStorage.setItem('AmberSign', {"callback": lnurlinfo.callback, "amount": filteredEvent[0][1], "lud16": lud16});
+        sessionStorage.setItem('AmberSign', {"callback": lnurlinfo.callback, "amount": filteredEvent[0][1], "lud16": lud16, "event":event});
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`
       }
       await getInvoiceandPay(lnurlinfo.callback, filteredEvent[0][1], zapFinalized, lud16)
@@ -117,7 +117,7 @@ async function onVisibilityChange() {
     const eventStorage = localStorage.getItem("AmberSign");
     if(eventStorage!=null){
       const eventSigned = await navigator.clipboard.readText();
-      zapFinalized = await window.nostr.signEvent(eventSigned)
+      zapFinalized = finalizeEvent(eventStorage.event, eventSigned)
       await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
     }
   }
