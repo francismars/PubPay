@@ -131,6 +131,7 @@ document.addEventListener("visibilitychange", async function() {
 });
 
 async function accessClipboard() {
+  document.getElementById('root').focus();
   return await navigator.clipboard.readText();
 }
 
