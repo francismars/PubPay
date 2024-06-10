@@ -76,16 +76,19 @@ async function payNote(eventZap, userProfile){
   const response = await fetch("https://"+ludSplit[1]+"/.well-known/lnurlp/"+ludSplit[0]);
   const lnurlinfo = await response.json();
   if(lnurlinfo.allowsNostr==true){
+    /*
       // const privateKey = window.NostrTools.generateSecretKey()
       let publicKey
       if(window.nostr!=null){
         publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
       }
       else{
-        window.href = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`
+        sessionStorage.setItem('sentToAmber', 'true');
+        window.location.href = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`
         const publicKey = await navigator.clipboard.readText();
         console.log(publicKey)
       }
+    */
       let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
       let zapEvent = await window.NostrTools.nip57.makeZapRequest({
           profile: event.pubkey,
@@ -99,23 +102,36 @@ async function payNote(eventZap, userProfile){
         zapFinalized = await window.nostr.signEvent(zapEvent)
       }
       else{
-        window.href = `nostrsigner:${zapEvent}?compressionType=none&returnType=signature&type=sign_event`
-        zapFinalized = await navigator.clipboard.readText();
-        console.log(zapFinalized)
+        sessionStorage.setItem('AmberSign', {"callback": lnurlinfo.callback, "amount": filteredEvent[0][1], "lud16": lud16});
+        window.location.href = `nostrsigner:${zapEvent}?compressionType=none&returnType=signature&type=sign_event`
       }
-      let callback = lnurlinfo.callback
-      let amount = Math.floor(filteredEvent[0][1])
-      let eventFinal = JSON.stringify(zapFinalized)
-      let lnurl = lud16
-      let callString = `${callback}?amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`
-      console.log(callString)
-      const responseFinal = await fetch(callString)
-      const {pr: invoice} = await responseFinal.json();
-      console.log(invoice)
-      await window.webln.enable();
-      await window.webln.sendPayment(invoice);
-      //subZapEvent(event)
+      await getInvoiceandPay(lnurlinfo.callback, filteredEvent[0][1], zapFinalized, lud16)
   }
+}
+
+document.addEventListener("visibilitychange", onVisibilityChange);
+
+async function onVisibilityChange() {
+  if (document.visibilityState === "visible") {
+    const eventStorage = localStorage.getItem("AmberSign");
+    if(eventStorage!=null){
+      const eventSigned = await navigator.clipboard.readText();
+      await getInvoiceandPay(eventStorage.callback, eventStorage.amount, eventSigned, eventStorage.lud16)
+    }
+  }
+}
+
+async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
+  let eventFinal = JSON.stringify(zapFinalized)
+  let lnurl = lud16
+  let callString = `${callback}?amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`
+  console.log(callString)
+  const responseFinal = await fetch(callString)
+  const {pr: invoice} = await responseFinal.json();
+  console.log(invoice)
+  await window.webln.enable();
+  await window.webln.sendPayment(invoice);
+  //subZapEvent(event)
 }
 
 
