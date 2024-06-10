@@ -118,7 +118,12 @@ async function onVisibilityChange() {
     console.log(eventStorage)
     if(eventStorage){
       sessionStorage.removeItem('AmberSign');
-      const eventSigned = await navigator.clipboard.readText();
+      let eventSigned
+      try {
+        eventSigned = await navigator.clipboard.readText();
+      } catch (error) {
+        console.error("Failed to read clipboard:", error);
+      }
       console.log('eventSigned', eventSigned)
       zapFinalized = await finalizeEvent(eventStorage.event, eventSigned)
       console.log('zapFinalized', zapFinalized)
