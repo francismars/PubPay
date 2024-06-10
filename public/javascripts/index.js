@@ -122,7 +122,7 @@ document.addEventListener("visibilitychange", async function() {
       sessionStorage.removeItem('AmberSign');
       let eventSigned
       try {
-        const timeoutId = setTimeout(await accessClipboard(), 5000)
+        eventSigned = await accessClipboard()
       } catch (error) {
         console.error("Failed to read clipboard:", error);
       }
@@ -135,9 +135,13 @@ document.addEventListener("visibilitychange", async function() {
 });
 
 async function accessClipboard() {  
-    let clipcopied = await navigator.clipboard.readText();
-    console.log(clipcopied)
-    return clipcopied  
+  return new Promise(resolve => {
+    setTimeout(async () => {
+      let clipcopied = await navigator.clipboard.readText();
+      console.log(clipcopied)
+      resolve(clipcopied)
+    }, 5000);
+  });  
 }
 
 async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
