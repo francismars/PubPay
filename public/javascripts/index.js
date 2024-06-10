@@ -63,7 +63,7 @@ async function getUser(event){
   onclosed() {
     //console.log("Closed")
   }
-})         
+})
 }
 
 async function payNote(eventZap, userProfile){
@@ -78,7 +78,7 @@ async function payNote(eventZap, userProfile){
   if(lnurlinfo.allowsNostr==true){
       // const privateKey = window.NostrTools.generateSecretKey()
       const publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
-      let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")  
+      let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
       let zapEvent = await window.NostrTools.nip57.makeZapRequest({
           profile: event.pubkey,
           event: event.id,
@@ -86,7 +86,7 @@ async function payNote(eventZap, userProfile){
           comment: "",
           relays: relays
       })
-      let zapFinalized = await window.nostr.signEvent(zapEvent)            
+      let zapFinalized = await window.nostr.signEvent(zapEvent)
       let callback = lnurlinfo.callback
       let amount = Math.floor(filteredEvent[0][1])
       let eventFinal = JSON.stringify(zapFinalized)
@@ -148,8 +148,8 @@ async function createNote(eventData, authorData){
   if(profileData.name==null){
     displayName = start_and_end(npub)
   }
-  noteDisplayName.innerHTML = '<a href="https://next.nostrudel.ninja/#/u/'+npub+'" class="noteAuthorLink" target="_blank">'+displayName+'</a>'     
- 
+  noteDisplayName.innerHTML = '<a href="https://next.nostrudel.ninja/#/u/'+npub+'" class="noteAuthorLink" target="_blank">'+displayName+'</a>'
+
 
   var noteNIP05 = document.createElement('div')
   noteNIP05.classList.add("noteNIP05")
@@ -183,13 +183,13 @@ async function createNote(eventData, authorData){
   noteValues.setAttribute('class', 'noteValues')
 
   // INSERT LOGIC FOR AMOUNT, ZAP-MIN, ZAP-MAX, ETC
-  let filteredZapMin = eventData.tags.filter(tag => tag[0] == "zap-min")  
+  let filteredZapMin = eventData.tags.filter(tag => tag[0] == "zap-min")
 
   var zapMin = document.createElement('div')
   zapMin.setAttribute('class', 'zapMin')
   zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[0][1]/1000).toLocaleString()+'</span> <span class="label">sats</span>'
 
-  let filteredZapUses = eventData.tags.filter(tag => tag[0] == "zap-uses")  
+  let filteredZapUses = eventData.tags.filter(tag => tag[0] == "zap-uses")
 
   var zapUses = document.createElement('div')
   zapUses.setAttribute('class', 'zapUses')
@@ -207,7 +207,7 @@ async function createNote(eventData, authorData){
   noteCTA.appendChild(buttonZap);
   noteCTA.setAttribute('class', 'noteCTA')
   buttonZap.setAttribute('class', 'cta');
-  buttonZap.textContent = 'Pay' 
+  buttonZap.textContent = 'Pay'
   buttonZap.addEventListener('click', async () => {
     await payNote(eventData, authorData)
   });
@@ -229,7 +229,13 @@ async function createNote(eventData, authorData){
   let noteActionBtns =  '<div class="noteAction"><span class="material-symbols-outlined">bolt</span></div>'
   noteActionBtns +=     '<div class="noteAction"><span class="material-symbols-outlined">favorite</span></div>'
   noteActionBtns +=     '<div class="noteAction"><span class="material-symbols-outlined">ios_share</span></div>'
-  let toolTip     =     `<div class="tooltiptext"><a href="#" class="cta">Crowd Pay</a><a href="#" onclick="console.log(${eventDataString})" class="toolTipLink">view raw</a></br><a href="#" class="toolTipLink">Tooltip text</a></br><a href="#" class="toolTipLink">Tooltip text</a></br></div>`
+  let toolTip     =     '<div class="tooltiptext">'
+  toolTip        +=     '<a href="#" class="cta">Crowd Pay</a>'
+  toolTip        +=     '<a href="#" class="cta">Forward Pay</a>'
+  toolTip        +=     '<a href="#" onclick="showJSON('+eventDataString+')" class="toolTipLink">View Raw</a>'
+  toolTip        +=     '<a href="#" class="toolTipLink">Broadcast</a>'
+  toolTip        +=     '<a href="#" class="toolTipLink">Share on...</a>'
+  toolTip        +=     '</div>'
   noteActionBtns +=     '<div class="tooltip"><div class="noteAction"><span class="material-symbols-outlined">more_horiz</span>'+toolTip+'</div></div>'
 
   noteActions.innerHTML = noteActionBtns
@@ -307,4 +313,37 @@ window.addEventListener("DOMContentLoaded", (event) => {
         }
       })
 
+
+
+
+
+      document.getElementById('closeJSON').addEventListener("click", function() {
+        var newNoteForm = document.getElementById('viewJSON');
+        if (newNoteForm.style.display === 'none' || newNoteForm.style.display === '') {
+            newNoteForm.style.display = 'flex';
+        } else {
+            newNoteForm.style.display = 'none';
+        }
+      })
+
+
+
+
+
+
 });
+
+
+
+
+function showJSON(json){
+  console.log(json);
+  var viewJSON = document.getElementById('viewJSON');
+  if (viewJSON.style.display === 'none' || viewJSON.style.display === '') {
+      viewJSON.style.display = 'flex'
+      var viewJSON = document.getElementById('noteJSON')
+      noteJSON.innerHTML = JSON.stringify(json, null, 2)
+  } else {
+      viewJSON.style.display = 'none'
+  }
+}
