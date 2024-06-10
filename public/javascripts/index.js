@@ -83,7 +83,8 @@ async function payNote(eventZap, userProfile){
       }
       else{
         window.location.href = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`
-        console.log(window.href)
+        const publicKey = await navigator.clipboard.readText();
+        console.log(publicKey)
       }
       let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
       let zapEvent = await window.NostrTools.nip57.makeZapRequest({
@@ -93,7 +94,15 @@ async function payNote(eventZap, userProfile){
           comment: "",
           relays: relays
       })
-      let zapFinalized = await window.nostr.signEvent(zapEvent)
+      let zapFinalized
+      if(window.nostr!=null){
+        zapFinalized = await window.nostr.signEvent(zapEvent)
+      }
+      else{
+        window.location.href = `nostrsigner:${zapEvent}?compressionType=none&returnType=signature&type=sign_event`
+        zapFinalized = await navigator.clipboard.readText();
+        console.log(zapFinalized)
+      }
       let callback = lnurlinfo.callback
       let amount = Math.floor(filteredEvent[0][1])
       let eventFinal = JSON.stringify(zapFinalized)
