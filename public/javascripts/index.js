@@ -188,6 +188,7 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
       alert('Failed to open wallet:', error);
     }
   //subZapEvent(event)
+  }
 }
 
 
