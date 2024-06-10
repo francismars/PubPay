@@ -128,7 +128,7 @@ document.addEventListener("visibilitychange", async function() {
       console.log(publicKey)
       let decodedPK = NostrTools.nip19.decode(publicKey)
       console.log(decodedPK)
-      createZapEvent(eventStoragePK, decodedPK)
+      createZapEvent(eventStoragePK, decodedPK.data)
       return
     }
     const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
