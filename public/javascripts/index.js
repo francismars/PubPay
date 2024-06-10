@@ -110,18 +110,20 @@ async function payNote(eventZap, userProfile){
   }
 }
 
-document.addEventListener("load", onVisibilityChange);
+document.addEventListener("visibilitychange", onVisibilityChange);
 
 async function onVisibilityChange() {
-  const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
-  console.log(eventStorage)
-  if(eventStorage!=null){
-    sessionStorage.removeItem('AmberSign');
-    const eventSigned = await navigator.clipboard.readText();
-    console.log('eventSigned', eventSigned)
-    zapFinalized = await finalizeEvent(eventStorage.event, eventSigned)
-    console.log('zapFinalized', zapFinalized)
-    await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
+  if (document.visibilityState === 'visible') {
+    const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
+    console.log(eventStorage)
+    if(eventStorage!=null){
+      sessionStorage.removeItem('AmberSign');
+      const eventSigned = await navigator.clipboard.readText();
+      console.log('eventSigned', eventSigned)
+      zapFinalized = await finalizeEvent(eventStorage.event, eventSigned)
+      console.log('zapFinalized', zapFinalized)
+      await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
+    }
   }
 }
 
