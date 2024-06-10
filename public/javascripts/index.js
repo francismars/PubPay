@@ -91,6 +91,7 @@ async function payNote(eventZap, userProfile){
 }
 
 async function createZapEvent(eventStoragePK, pubKey = null){
+  console.log(eventStoragePK)
   let eventZap = eventStoragePK.event
   let lnurlinfo = eventStoragePK.lnurlinfo
   let lud16 = eventStoragePK.lud16
