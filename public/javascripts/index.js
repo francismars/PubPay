@@ -142,9 +142,11 @@ document.addEventListener("visibilitychange", async function() {
         console.error("Failed to read clipboard:", error);
       }
       console.log('eventSigned', eventSignature)
-      zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSignature)
-      console.log('zapFinalized', zapFinalized)
-      await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
+      let eventSigned = eventStorage.event
+      eventSigned["sig"] = eventSignature
+      //zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSignature)
+      console.log('eventSigned', eventSigned)
+      await getInvoiceandPay(eventStorage.callback, eventStorage.amount, eventSigned, eventStorage.lud16)
     }
   }
 });
