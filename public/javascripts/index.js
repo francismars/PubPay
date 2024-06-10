@@ -126,7 +126,7 @@ async function createZapEvent(eventStoragePK, pubKey = null){
 
 document.addEventListener("visibilitychange", async function() {
   if (document.visibilityState === 'visible') {
-    let eventStoragePK = JSON.parse(sessionStorage.getItem("AmberPubkey"));
+    let eventStoragePK = sessionStorage.getItem("AmberPubkey");
     console.log(eventStoragePK)
     if(eventStoragePK){
       sessionStorage.removeItem('AmberPubkey');
