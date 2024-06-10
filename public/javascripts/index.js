@@ -93,6 +93,7 @@ async function payNote(eventZap, userProfile){
 async function createZapEvent(eventStoragePK, pubKey = null){
   eventStoragePK = JSON.parse(eventStoragePK)
   let eventZap = eventStoragePK.event
+  console.log(eventZap)
   let lnurlinfo = eventStoragePK.lnurlinfo
   let lud16 = eventStoragePK.lud16
   let filteredEvent = eventZap.tags.filter(tag => tag[0] == "zap-min")
