@@ -263,6 +263,28 @@ async function createNote(eventData, authorData){
   noteData.appendChild(noteContent)
 
 
+  // Forward
+  let filteredforwardZap = eventData.tags.filter(tag => tag[0] == "zap-forward")
+  if(filteredforwardZap[0]!=null){
+    var forwardZap = document.createElement('div')
+    forwardZap.setAttribute('class', 'forwardZap')
+    let forwardZapNoteProfileImg = '<div class="noteProfileImg"><img class="userImg" src="https://fuegouae.com/wp-content/uploads/2016/11/sedfwe4rfw4r.jpg"></div>'
+    let forwardZapNoteHeader = '<div class="noteHeader"><div class="noteAuthor"><div class="noteDisplayName"><a href="https://next.nostrudel.ninja/#/u/npub1d4m5fqlgzxyvtp0mpes92p3adwr279qaqcqffax8tnhh4z6f7s8qh4t2n4" class="noteAuthorLink" target="_blank">21prestigerelay</a></div><div class="noteNIP05 label">21prestigerelay@vlt.ge</div></div><div class="noteDate label">8 hours ago</div></div>'
+    let forwardZapNoteData = '<div class="noteContent">GM nostr:<a href="https://next.nostrudel.ninja/#/u/npub1nmzww9lw5k6nu0pmusyerz0x2cmg99rnssesf2ztd2kvy6s7lqgqjungrg" class="userMention" npub="npub1nmzww9lw5k6nu0pmusyerz0x2cmg99rnssesf2ztd2kvy6s7lqgqjungrg" target="_blank">npub...ngrg</a>. Welcome to our relay 🧡 Entry fee is 21,000 sats</div>'
+    forwardZap.innerHTML = '<div class="paynote">'+forwardZapNoteProfileImg+'<div class="noteData">'+forwardZapNoteHeader+forwardZapNoteData+'</div></div>'
+    noteContent.appendChild(forwardZap)
+  }
+
+
+  // Payer
+  let filteredZapPayer = eventData.tags.filter(tag => tag[0] == "zap-payer")
+  if(filteredZapPayer[0]!=null){
+    var zapPayer = document.createElement('div')
+    zapPayer.setAttribute('class', 'zapPayer')
+    zapPayer.innerHTML = '<img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"><div class="userName">UserName</div>'
+    noteData.appendChild(zapPayer)
+  }
+
   // Values
   var noteValues = document.createElement('div')
   noteValues.setAttribute('class', 'noteValues')
@@ -319,7 +341,8 @@ async function createNote(eventData, authorData){
   toolTip        +=     '<a href="#" class="cta">Forward Pay</a>'
   toolTip        +=     '<a href="#" onclick="showJSON('+eventDataString+')" class="toolTipLink">View Raw</a>'
   toolTip        +=     '<a href="#" class="toolTipLink">Broadcast</a>'
-  toolTip        +=     '<a href="#" class="toolTipLink">Share on...</a>'
+  toolTip        +=     '<div>View on</div>'
+  toolTip        +=     '<a href="https://next.nostrudel.ninja/#/n/'+NostrTools.nip19.noteEncode(eventData.id)+'" class="toolTipLink" target="_blank">nostrudel</a>'
   toolTip        +=     '</div>'
   noteActionBtns +=     '<div class="tooltip"><div class="noteAction"><span class="material-symbols-outlined">more_horiz</span>'+toolTip+'</div></div>'
 
