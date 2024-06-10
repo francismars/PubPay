@@ -118,9 +118,9 @@ async function onVisibilityChange() {
     //console.log("Object:", eventStorage)
     if(eventStorage.callback){
       const eventSigned = await navigator.clipboard.readText();
-      console.log(eventSigned)
+      console.log('eventSigned', eventSigned)
       zapFinalized = await finalizeEvent(eventStorage.event, eventSigned)
-      console.log(zapFinalized)
+      console.log('zapFinalized', zapFinalized)
       await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
       sessionStorage.removeItem('AmberSign');
     }
