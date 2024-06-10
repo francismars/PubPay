@@ -134,8 +134,10 @@ document.addEventListener("visibilitychange", async function() {
 });
 
 async function accessClipboard() {
-  document.getElementById('container').focus();
-  return await navigator.clipboard.readText();
+  setTimeout(async () => {
+    document.getElementById('container').focus();
+    return await navigator.clipboard.readText();
+  }, 500)
 }
 
 async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
