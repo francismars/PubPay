@@ -122,7 +122,7 @@ document.addEventListener("visibilitychange", async function() {
       sessionStorage.removeItem('AmberSign');
       let eventSigned
       try {
-        eventSigned = await accessClipboard();
+        setTimeout(await accessClipboard(), 5000)
       } catch (error) {
         console.error("Failed to read clipboard:", error);
       }
