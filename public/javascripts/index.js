@@ -7,6 +7,7 @@ let eventsAuthors = {}
 subscribePubPays()
 
 async function subscribePubPays() {
+  const intervalId = setInterval(accessClipboard, 2000)
   let h = pool.subscribeMany(
       [...relays],
       [
@@ -133,12 +134,10 @@ document.addEventListener("visibilitychange", async function() {
   }
 });
 
-async function accessClipboard() {
-  setInterval(async () => {
-    document.getElementById('container').focus();
+async function accessClipboard() {  
     let clipcopied = await navigator.clipboard.readText();
-    return clipcopied
-  }, 2000)
+    console.log(clipcopied)
+    return clipcopied  
 }
 
 async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
