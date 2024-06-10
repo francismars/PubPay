@@ -113,6 +113,7 @@ async function createZapEvent(eventStoragePK, pubKey = null){
     setTimeout(() => {
       sessionStorage.setItem('AmberSign', JSON.stringify({"callback": lnurlinfo.callback, "amount": filteredEvent[0][1], "lud16": lud16, "event":zapEvent}));
     }, 500);
+    console.log(eventString)
     window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`
   }  
 }
