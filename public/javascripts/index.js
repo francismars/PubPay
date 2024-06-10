@@ -110,7 +110,7 @@ async function payNote(eventZap, userProfile){
   }
 }
 
-document.addEventListener("visibilitychange", onVisibilityChange);
+document.addEventListener("load", onVisibilityChange);
 
 async function onVisibilityChange() {
   if (document.visibilityState === "visible") {
