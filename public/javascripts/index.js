@@ -114,14 +114,14 @@ document.addEventListener("visibilitychange", onVisibilityChange);
 
 async function onVisibilityChange() {
   if (document.visibilityState === "visible") {
-    const eventStorage = localStorage.getItem("AmberSign");
+    const eventStorage = sessionStorage.getItem("AmberSign");
     console.log(eventStorage)
     if(eventStorage!=null){
       const eventSigned = await navigator.clipboard.readText();
       zapFinalized = finalizeEvent(eventStorage.event, eventSigned)
       console.log(zapFinalized)
       await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
-      localStorage.removeItem('AmberSign');
+      sessionStorage.removeItem('AmberSign');
     }
   }
 }
