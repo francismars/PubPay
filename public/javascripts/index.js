@@ -110,8 +110,6 @@ async function payNote(eventZap, userProfile){
   }
 }
 
-let clipboardCopy = await accessClipboard()
-console.log(clipboardCopy)
 
 document.addEventListener("visibilitychange", async function() {
   if (document.visibilityState === 'visible') {
