@@ -131,10 +131,10 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
   let eventFinal = JSON.stringify(zapFinalized)
   let lnurl = lud16
   let callString = `${callback}?amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`
-  console.log(callString)
+  console.log('callString', callString)
   const responseFinal = await fetch(callString)
   const {pr: invoice} = await responseFinal.json();
-  console.log(invoice)
+  console.log('invoice', invoice)
   if(window.webln){
     await window.webln.enable();
     await window.webln.sendPayment(invoice);
