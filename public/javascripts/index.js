@@ -77,7 +77,14 @@ async function payNote(eventZap, userProfile){
   const lnurlinfo = await response.json();
   if(lnurlinfo.allowsNostr==true){
       // const privateKey = window.NostrTools.generateSecretKey()
-      const publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
+      let publicKey
+      if(window.nostr){
+        publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
+      }
+      else{
+        window.href = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`
+        console.log(window.href)
+      }
       let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
       let zapEvent = await window.NostrTools.nip57.makeZapRequest({
           profile: event.pubkey,
