@@ -113,17 +113,15 @@ async function payNote(eventZap, userProfile){
 document.addEventListener("load", onVisibilityChange);
 
 async function onVisibilityChange() {
-  if (document.visibilityState === "visible") {
-    const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
-    //console.log("Object:", eventStorage)
-    if(eventStorage.callback){
-      const eventSigned = await navigator.clipboard.readText();
-      console.log('eventSigned', eventSigned)
-      zapFinalized = await finalizeEvent(eventStorage.event, eventSigned)
-      console.log('zapFinalized', zapFinalized)
-      await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
-      sessionStorage.removeItem('AmberSign');
-    }
+  const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
+  if(eventStorage!=null){
+    sessionStorage.removeItem('AmberSign');
+    const eventSigned = await navigator.clipboard.readText();
+    console.log('eventSigned', eventSigned)
+    zapFinalized = await finalizeEvent(eventStorage.event, eventSigned)
+    console.log('zapFinalized', zapFinalized)
+    await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
+    
   }
 }
 
