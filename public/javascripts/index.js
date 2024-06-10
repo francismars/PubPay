@@ -78,7 +78,7 @@ async function payNote(eventZap, userProfile){
   if(lnurlinfo.allowsNostr==true){
       // const privateKey = window.NostrTools.generateSecretKey()
       let publicKey
-      if(window.nostr){
+      if(window.nostr!=null){
         publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
       }
       else{
