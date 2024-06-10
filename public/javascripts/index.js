@@ -119,6 +119,7 @@ async function onVisibilityChange() {
       const eventSigned = await navigator.clipboard.readText();
       zapFinalized = finalizeEvent(eventStorage.event, eventSigned)
       await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
+      localStorage.removeItem('AmberSign');
     }
   }
 }
@@ -131,8 +132,13 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
   const responseFinal = await fetch(callString)
   const {pr: invoice} = await responseFinal.json();
   console.log(invoice)
-  await window.webln.enable();
-  await window.webln.sendPayment(invoice);
+  if(window.webln){
+    await window.webln.enable();
+    await window.webln.sendPayment(invoice);
+  }
+  else{
+    window.location.href = `lightning:${invoice}`
+  }
   //subZapEvent(event)
 }
 
