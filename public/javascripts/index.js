@@ -7,7 +7,7 @@ let eventsAuthors = {}
 subscribePubPays()
 
 async function subscribePubPays() {
-  await navigator.clipboard.readText();
+  console.log(await navigator.clipboard.readText())
   let h = pool.subscribeMany(
       [...relays],
       [
