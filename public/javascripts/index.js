@@ -103,7 +103,7 @@ async function createZapEvent(eventStoragePK, pubKey = null){
       relays: relays
   })
   pubKey!=null ? zapEvent.pubkey = pubKey : pass
-  let eventID = nostrTools.getEventHash(zapEvent)
+  let eventID = NostrTools.getEventHash(zapEvent)
   eventID!=null ? zapEvent.id = eventID : pass
   let zapFinalized
   if(window.nostr!=null){
@@ -148,7 +148,7 @@ document.addEventListener("visibilitychange", async function() {
       eventSigned["sig"] = eventSignature
       //zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSignature)
       console.log('eventSigned', eventSigned)
-      let verifiedEvent = nostrTools.verifyEvent(eventSigned)
+      let verifiedEvent = NostrTools.verifyEvent(eventSigned)
       console.log("Verified", verifiedEvent)
       await getInvoiceandPay(eventStorage.callback, eventStorage.amount, eventSigned, eventStorage.lud16)
     }
