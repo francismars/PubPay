@@ -114,6 +114,7 @@ document.addEventListener("load", onVisibilityChange);
 
 async function onVisibilityChange() {
   const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
+  console.log(eventStorage)
   if(eventStorage!=null){
     sessionStorage.removeItem('AmberSign');
     const eventSigned = await navigator.clipboard.readText();
@@ -121,7 +122,6 @@ async function onVisibilityChange() {
     zapFinalized = await finalizeEvent(eventStorage.event, eventSigned)
     console.log('zapFinalized', zapFinalized)
     await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
-    
   }
 }
 
