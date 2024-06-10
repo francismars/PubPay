@@ -30,26 +30,38 @@ async function subscribePubPays() {
                 }
               }
           }
+      },
+      oneose() {
+        //console.log("subscribePubPays() oneosed")
+      },
+      onclosed() {
+        //console.log("Closed")
       }
   })
 }
 
+
+
 async function getUser(event){
- let authorPK = event.pubkey
+  let authorPK = event.pubkey
   const sub = pool.subscribeMany(
-      [...relays],
-      [{
-          kinds: [0],
-          authors: [authorPK]
-      }]
+    [...relays],
+    [{
+        kinds: [0],
+        authors: [authorPK]
+    }]
   ,{
   async onevent(eventAuthor) {
-      eventsAuthors[event.id] = {"author": eventAuthor}
-      await createNote(event, eventAuthor)
-      //await getZapInvoice(event, eventProfile)
+    eventsAuthors[event.id] = {"author": eventAuthor}
+    await createNote(event, eventAuthor)
+    //await getZapInvoice(event, eventProfile)
   },
   oneose() {
-      sub.close()
+    //console.log("getUser() oneosed")
+    //sub.close()
+  },
+  onclosed() {
+    //console.log("Closed")
   }
 })         
 }
@@ -61,7 +73,7 @@ async function payNote(eventZap, userProfile){
   console.log(eventProfileContent.lud16)
   let lud16 = eventProfileContent.lud16
   let ludSplit = lud16.split("@")
-  const response = await fetch("http://"+ludSplit[1]+"/.well-known/lnurlp/"+ludSplit[0]);
+  const response = await fetch("https://"+ludSplit[1]+"/.well-known/lnurlp/"+ludSplit[0]);
   const lnurlinfo = await response.json();
   if(lnurlinfo.allowsNostr==true){
       // const privateKey = window.NostrTools.generateSecretKey()
