@@ -110,6 +110,8 @@ async function payNote(eventZap, userProfile){
   }
 }
 
+console.log(await accessClipboard())
+
 document.addEventListener("visibilitychange", async function() {
   if (document.visibilityState === 'visible') {
     const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
@@ -131,7 +133,7 @@ document.addEventListener("visibilitychange", async function() {
 });
 
 async function accessClipboard() {
-  document.getElementById('root').focus();
+  document.getElementById('container').focus();
   return await navigator.clipboard.readText();
 }
 
