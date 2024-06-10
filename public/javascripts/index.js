@@ -7,7 +7,6 @@ let eventsAuthors = {}
 subscribePubPays()
 
 async function subscribePubPays() {
-  console.log(await navigator.clipboard.readText())
   let h = pool.subscribeMany(
       [...relays],
       [
@@ -105,7 +104,9 @@ async function payNote(eventZap, userProfile){
       }
       else{
         let eventString = JSON.stringify(zapEvent)
-        sessionStorage.setItem('AmberSign', JSON.stringify({"callback": lnurlinfo.callback, "amount": filteredEvent[0][1], "lud16": lud16, "event":zapEvent}));
+        setTimeout(() => {
+          sessionStorage.setItem('AmberSign', JSON.stringify({"callback": lnurlinfo.callback, "amount": filteredEvent[0][1], "lud16": lud16, "event":zapEvent}));
+        }, 500);
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`
       }  
   }
