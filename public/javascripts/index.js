@@ -123,7 +123,7 @@ document.addEventListener("visibilitychange", async function() {
     console.log(eventStoragePK)
     if(eventStoragePK){
       sessionStorage.removeItem('AmberPubkey');
-      const publicKey = await navigator.clipboard.readText();
+      const publicKey = await accessClipboard()
       console.log(publicKey)
       createZapEvent(eventStoragePK, publicKey)
       return
