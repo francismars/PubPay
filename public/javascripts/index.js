@@ -82,7 +82,7 @@ async function payNote(eventZap, userProfile){
         publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
       }
       else{
-        window.location.href = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`
+        window.href = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`
         const publicKey = await navigator.clipboard.readText();
         console.log(publicKey)
       }
@@ -99,7 +99,7 @@ async function payNote(eventZap, userProfile){
         zapFinalized = await window.nostr.signEvent(zapEvent)
       }
       else{
-        window.location.href = `nostrsigner:${zapEvent}?compressionType=none&returnType=signature&type=sign_event`
+        window.href = `nostrsigner:${zapEvent}?compressionType=none&returnType=signature&type=sign_event`
         zapFinalized = await navigator.clipboard.readText();
         console.log(zapFinalized)
       }
