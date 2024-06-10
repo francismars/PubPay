@@ -116,7 +116,7 @@ async function onVisibilityChange() {
   if (document.visibilityState === "visible") {
     const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
     console.log("Object:", eventStorage)
-    if(eventStorage!=null){
+    if(eventStorage.callback){
       const eventSigned = await navigator.clipboard.readText();
       zapFinalized = await finalizeEvent(eventStorage.event, eventSigned)
       console.log(zapFinalized)
