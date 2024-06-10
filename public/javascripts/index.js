@@ -79,7 +79,7 @@ async function payNote(eventZap, userProfile){
       // const privateKey = window.NostrTools.generateSecretKey()
       let publicKey
       if(window.nostr!=null){
-        createZapEvent(JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":event}))
+        createZapEvent(JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":eventZap}))
         return
         // publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
       }
@@ -91,13 +91,13 @@ async function payNote(eventZap, userProfile){
 }
 
 async function createZapEvent(eventStoragePK, pubKey = null){
-  let event = eventStoragePK.event
+  let eventZap = eventStoragePK.event
   let lnurlinfo = eventStoragePK.lnurlinfo
   let lud16 = eventStoragePK.lud16
-  let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
+  let filteredEvent = eventZap.tags.filter(tag => tag[0] == "zap-min")
   let zapEvent = await window.NostrTools.nip57.makeZapRequest({
-      profile: event.pubkey,
-      event: event.id,
+      profile: eventZap.pubkey,
+      event: eventZap.id,
       amount: Math.floor(filteredEvent[0][1]),
       comment: "",
       relays: relays
