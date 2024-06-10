@@ -110,9 +110,7 @@ async function payNote(eventZap, userProfile){
   }
 }
 
-document.addEventListener("visibilitychange", onVisibilityChange);
-
-async function onVisibilityChange() {
+document.addEventListener("visibilitychange", async function() {
   if (document.visibilityState === 'visible') {
     const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
     console.log(eventStorage)
@@ -120,7 +118,7 @@ async function onVisibilityChange() {
       sessionStorage.removeItem('AmberSign');
       let eventSigned
       try {
-        eventSigned = await navigator.clipboard.readText();
+        eventSigned = await accessClipboard();
       } catch (error) {
         console.error("Failed to read clipboard:", error);
       }
@@ -130,6 +128,10 @@ async function onVisibilityChange() {
       await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
     }
   }
+});
+
+async function accessClipboard() {
+  return await navigator.clipboard.readText();
 }
 
 async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
