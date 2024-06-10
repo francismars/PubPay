@@ -165,7 +165,7 @@ async function accessClipboard() {
       let clipcopied = await navigator.clipboard.readText();
       console.log(clipcopied)
       resolve(clipcopied)
-    }, 5000);
+    }, 500);
   });  
 }
 
