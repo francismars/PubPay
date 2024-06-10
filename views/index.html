@@ -14,7 +14,7 @@
 
     <!--  -->
     <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
-    <script type="module" src="javascripts/index.js"></script>
+    <script type="text/javascript" src="javascripts/index.js"></script>
 
   </head>
   <body>
@@ -47,11 +47,22 @@
         <div id="main">
 
 
+          <div id="feedSelector">
+            <a href="#" class="feedSelectorLink active">
+              Following
+            </a>
+            <a href="#" class="feedSelectorLink">
+              Global
+            </a>
+            <a href="#" class="feedSelectorLink">
+              High Rollers
+            </a>
+          </div>
 
 
 
 
-          <!-- START PAYNOTE 
+          <!-- START PAYNOTE
           <div class="paynote">
 
             <div class="noteProfileImg">
@@ -135,9 +146,19 @@
 
 
 
+      <div class="overlayContainer" id="viewJSON">
+        <div class="overlayInner">
+          <pre id="noteJSON">
+          </pre>
+          <a id="closeJSON" href="#" class="label">close</a>
+        </div>
+      </div>
+
+
+
 
       <div class="overlayContainer" id="newPayNoteForm">
-        <div class="formContainer">
+        <div class="overlayInner">
             <form action="#" method="post">
                 <div class="formField">
                     <label for="payNoteContent" class="label">Your Note</label>
