@@ -103,7 +103,7 @@ async function payNote(eventZap, userProfile){
       }
       else{
         let eventString = JSON.stringify(zapEvent)
-        sessionStorage.setItem('AmberSign', {"callback": lnurlinfo.callback, "amount": filteredEvent[0][1], "lud16": lud16, "event":event});
+        sessionStorage.setItem('AmberSign', JSON.stringify({"callback": lnurlinfo.callback, "amount": filteredEvent[0][1], "lud16": lud16, "event":zapEvent}));
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`
       }
       await getInvoiceandPay(lnurlinfo.callback, filteredEvent[0][1], zapFinalized, lud16)
