@@ -127,7 +127,7 @@ document.addEventListener("visibilitychange", async function() {
         console.error("Failed to read clipboard:", error);
       }
       console.log('eventSigned', eventSigned)
-      zapFinalized = await finalizeEvent(eventStorage.event, eventSigned)
+      zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSigned)
       console.log('zapFinalized', zapFinalized)
       await getInvoiceandPay(eventStorage.callback, eventStorage.amount, zapFinalized, eventStorage.lud16)
     }
