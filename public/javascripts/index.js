@@ -185,12 +185,15 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
     try {
       //window.open(`lightning:${invoice}`, '_blank');
       //window.location.href = `intent://pay/${invoice}#Intent;scheme=lightning;end;`;
+      /*
       const link = document.createElement('a');
       link.href = `lightning:${invoice}`;
       link.style.display = 'none'; // Hide the link
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      */
+      window.location.href = `lightning:${invoice}`;
     } catch (error) {
       alert('Failed to open wallet:', error);
     }
