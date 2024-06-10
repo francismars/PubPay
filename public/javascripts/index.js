@@ -183,7 +183,7 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
   }
   else{    
     try {
-      window.location.href = Uri.parse(`lightning:${invoice}`);
+      window.location.href = `lightning:${invoice}`;
     } catch (error) {
       alert('Failed to open wallet:', error);
     }
