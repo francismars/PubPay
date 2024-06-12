@@ -87,6 +87,10 @@ a.feedSelectorLink.active {
   box-shadow: 0px 3px 4px #0000000a;
 }
 
+.forwardZap .paynote{
+  background: #f5f8fd;
+}
+
 .noteProfileImg{
   width: 8%;
 }
@@ -150,18 +154,38 @@ a.feedSelectorLink.active {
     filter: brightness(0.98);
 }
 
-.zapPayer,
+
 .noteValues{
   display: flex;
   justify-content: space-between;
   margin: 21px 0 10px 0;
   border-top: 1px solid #ccc;
   padding: 8px 0;
+  font-size: 16px;
+}
+
+
+.zapPayer{
+  display: flex;
+  justify-content: space-between;
+  margin: 21px 0 10px 0;
+  border: 1px solid #dadada;
+  padding: 3px;
+  border-radius: 60px;
+  background: #ffe6e6;
+  align-items: center;
 }
 
 .zapPayer img{
   width: 30px;
   height: 30px;
+}
+
+.zapPayer .userName {
+  width: 100%;
+  text-align: center;
+  font-weight: 600;
+  margin-left: -50px;
 }
 
 .noteActionsReactions{
