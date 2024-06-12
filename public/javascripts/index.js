@@ -108,7 +108,7 @@ async function createZapEvent(eventStoragePK, pubKey = null){
     zapEvent.pubkey = pubKey
     let eventID = NostrTools.getEventHash(zapEvent)
     if(eventID!=null) zapEvent.id = eventID
-  } 
+  }
   let zapFinalized
   if(window.nostr!=null){
     zapFinalized = await window.nostr.signEvent(zapEvent)
@@ -121,7 +121,7 @@ async function createZapEvent(eventStoragePK, pubKey = null){
     }, 500);
     console.log(eventString)
     window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`
-  }  
+  }
 }
 
 document.addEventListener("visibilitychange", async function() {
@@ -159,14 +159,14 @@ document.addEventListener("visibilitychange", async function() {
   }
 });
 
-async function accessClipboard() {  
+async function accessClipboard() {
   return new Promise(resolve => {
     setTimeout(async () => {
       let clipcopied = await navigator.clipboard.readText();
       console.log(clipcopied)
       resolve(clipcopied)
     }, 500);
-  });  
+  });
 }
 
 async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
@@ -181,7 +181,7 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
     await window.webln.enable();
     await window.webln.sendPayment(invoice);
   }
-  else{    
+  else{
     try {
       //window.open(`lightning:${invoice}`, '_blank');
       //window.location.href = `intent://pay/${invoice}#Intent;scheme=lightning;end;`;
@@ -211,8 +211,11 @@ async function createNote(eventData, authorData){
 
   let profileData = {}
   profileData.name = authorContent.name
+  //profileData.displayName = authorContent.name
+  authorContent.displayName ? profileData.displayName = authorContent.displayName : profileData.displayName = authorContent.display_name
   profileData.picture = authorContent.picture
   profileData.nip05 = authorContent.nip05
+  profileData.lud16 = authorContent.lud16
 
   //console.log(profileData)
 
@@ -242,7 +245,7 @@ async function createNote(eventData, authorData){
 
   var noteDisplayName = document.createElement('div')
   noteDisplayName.setAttribute('class', 'noteDisplayName')
-  let displayName=profileData.name;
+  let displayName=profileData.displayName;
   let npub = NostrTools.nip19.npubEncode(eventData.pubkey)
   if(profileData.name==null){
     displayName = start_and_end(npub)
@@ -253,7 +256,25 @@ async function createNote(eventData, authorData){
   var noteNIP05 = document.createElement('div')
   noteNIP05.classList.add("noteNIP05")
   noteNIP05.classList.add("label")
-  profileData.nip05 ? noteNIP05.textContent=profileData.nip05 : noteNIP05.textContent="displayname@domain.com"
+  //profileData.nip05 ? noteNIP05.textContent=profileData.nip05 : noteNIP05.textContent="displayname@domain.com"
+  if(profileData.nip05){
+      let noteNIP05String = profileData.nip05.split('@')
+      noteNIP05.innerHTML='<a href="https://'+noteNIP05String[1]+'/.well-known/nostr.json?name='+noteNIP05String[0]+'" target="_blank"><span class="material-symbols-outlined">check_circle</span> '+profileData.nip05+'</a>'
+  }else{
+    noteNIP05.textContent="NOT VERIFIED"
+  }
+
+
+  var noteLNAddress = document.createElement('div')
+  noteLNAddress.classList.add("noteLNAddress")
+  noteLNAddress.classList.add("label")
+
+  if(profileData.lud16){
+      let noteLNAddressString = profileData.lud16.split('@')
+      noteLNAddress.innerHTML='<a href="https://'+noteLNAddressString[1]+'/.well-known/lnurlp/'+noteLNAddressString[0]+'" target="_blank"><span class="material-symbols-outlined">bolt</span> '+profileData.lud16+'</a>'
+  }else{
+    noteLNAddress.textContent="NOT PAYABLE"
+  }
 
   let noteTimeAgo = timeAgo(eventData.created_at)
 
@@ -264,6 +285,7 @@ async function createNote(eventData, authorData){
 
   noteAuthor.appendChild(noteDisplayName)
   noteAuthor.appendChild(noteNIP05)
+  noteAuthor.appendChild(noteLNAddress)
   noteHeader.appendChild(noteAuthor)
   noteHeader.appendChild(noteDate)
   noteData.appendChild(noteHeader)

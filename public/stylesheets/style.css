@@ -108,7 +108,7 @@ a.feedSelectorLink.active {
 .noteHeader {
   display: flex;
   justify-content: space-between;
-  margin-top: 4px;
+  margin-top: 0px;
 }
 
 .noteDisplayName {
@@ -125,6 +125,16 @@ a.feedSelectorLink.active {
 }
 .noteAuthorLink:visited{
     color: #000;
+}
+
+
+.noteAuthor .label a{
+    color: #ccc;
+    font-size: 12px;
+}
+
+.noteAuthor .label a .material-symbols-outlined {
+  font-size: 12px;
 }
 
 .noteContent {
@@ -177,6 +187,7 @@ a.feedSelectorLink.active {
 
 .material-symbols-outlined {
   font-size: 18px;
+  vertical-align: middle;
 }
 
 
