@@ -307,19 +307,12 @@ async function createNote(eventData, authorData){
     let forwardZapNoteProfileImg = '<div class="noteProfileImg"><img class="userImg" src="https://fuegouae.com/wp-content/uploads/2016/11/sedfwe4rfw4r.jpg"></div>'
     let forwardZapNoteHeader = '<div class="noteHeader"><div class="noteAuthor"><div class="noteDisplayName"><a href="https://next.nostrudel.ninja/#/u/npub1d4m5fqlgzxyvtp0mpes92p3adwr279qaqcqffax8tnhh4z6f7s8qh4t2n4" class="noteAuthorLink" target="_blank">21prestigerelay</a></div><div class="noteNIP05 label">21prestigerelay@vlt.ge</div></div><div class="noteDate label">8 hours ago</div></div>'
     let forwardZapNoteData = '<div class="noteContent">GM nostr:<a href="https://next.nostrudel.ninja/#/u/npub1nmzww9lw5k6nu0pmusyerz0x2cmg99rnssesf2ztd2kvy6s7lqgqjungrg" class="userMention" npub="npub1nmzww9lw5k6nu0pmusyerz0x2cmg99rnssesf2ztd2kvy6s7lqgqjungrg" target="_blank">npub...ngrg</a>. Welcome to our relay 🧡 Entry fee is 21,000 sats</div>'
+    forwardZapNoteData += '<div class="noteValues"><div class="zapMin"><span class="zapMinVal">21,000</span> <span class="label">sats</span></div><div class="zapUses"><span class="zapUsesCurrent">0</span> <span class="label">of</span> <span class="zapUsesTotal">1</span></div></div>'
     forwardZap.innerHTML = '<div class="paynote">'+forwardZapNoteProfileImg+'<div class="noteData">'+forwardZapNoteHeader+forwardZapNoteData+'</div></div>'
     noteContent.appendChild(forwardZap)
   }
 
 
-  // Payer
-  let filteredZapPayer = eventData.tags.filter(tag => tag[0] == "zap-payer")
-  if(filteredZapPayer[0]!=null){
-    var zapPayer = document.createElement('div')
-    zapPayer.setAttribute('class', 'zapPayer')
-    zapPayer.innerHTML = '<img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"><div class="userName">UserName</div>'
-    noteData.appendChild(zapPayer)
-  }
 
   // Values
   var noteValues = document.createElement('div')
@@ -339,10 +332,25 @@ async function createNote(eventData, authorData){
   filteredZapUses!=null && filteredZapUses[0]!=null ? zapUses.innerHTML = `<span class='zapUsesCurrent'>0</span> <span class='label'>of</span> <span class='zapUsesTotal'>${filteredZapUses[0][1]}</span>`
                   : zapUses.innerHTML = ""
 
+
+
   noteValues.appendChild(zapMin)
+
+
+
+
   noteValues.appendChild(zapUses)
   noteData.appendChild(noteValues)
 
+
+  // Payer
+  let filteredZapPayer = eventData.tags.filter(tag => tag[0] == "zap-payer")
+  if(filteredZapPayer[0]!=null){
+    var zapPayer = document.createElement('div')
+    zapPayer.setAttribute('class', 'zapPayer')
+    zapPayer.innerHTML = '<img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"><div class="userName">Payer Display Name</div>'
+    noteData.appendChild(zapPayer)
+  }
 
   // Main CTA
   var noteCTA = document.createElement('div')
