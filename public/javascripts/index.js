@@ -383,6 +383,7 @@ async function createNote(eventData, authorData){
   let toolTip     =     '<div class="tooltiptext">'
   toolTip        +=     '<a href="#" class="cta">Crowd Pay</a>'
   toolTip        +=     '<a href="#" class="cta">Forward Pay</a>'
+  toolTip        +=     '<a href="#" class="cta">Pay Anonymously</a>'
   toolTip        +=     '<a href="#" onclick="showJSON('+eventDataString+')" class="toolTipLink">View Raw</a>'
   toolTip        +=     '<a href="#" class="toolTipLink">Broadcast</a>'
   toolTip        +=     '<div>View on</div>'
