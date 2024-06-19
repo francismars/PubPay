@@ -4,14 +4,10 @@ let relays = ['wss://relay.damus.io', 'wss://relay.primal.net','wss://nostr.muti
 let kind1Seen = new Set();
 //let eventsAuthors = {}
 
-let kind1List = []
-let kind0List = []
-let kind9735List = []
-let kind0fromkind9735List = []
-
 subscribePubPays()
 
 async function subscribePubPays() {
+  let kind1List = []
   let h = pool.subscribeMany(
       [...relays],
       [
@@ -49,6 +45,7 @@ async function subscribePubPays() {
 }
 
 async function subscribeKind0sfromKind1s(kind1List){
+  let kind0List = []
   let kind1PubkeyList = []
   for(let kind1 of kind1List){
     kind1PubkeyList.push(kind1.pubkey)
@@ -121,6 +118,7 @@ async function getUser(event){
 
 async function subscribeKind9735(kind1List){
   let kind1IDList = []
+  let kind9735List = []
   for(let kind1 of kind1List){
     kind1IDList.push(kind1.id)
   }
@@ -137,7 +135,7 @@ async function subscribeKind9735(kind1List){
   },
   async oneose() {
     console.log("subscribeKind9735() EOS")
-    await subscribeKind0sfromKind9735s()
+    await subscribeKind0sfromKind9735s(kind9735List)
     //sub.close()
   },
   onclosed() {
@@ -146,8 +144,9 @@ async function subscribeKind9735(kind1List){
 })  
 }
 
-async function subscribeKind0sfromKind9735s(){
+async function subscribeKind0sfromKind9735s(kind9735List){
   let pubkeys9734 = []
+  let kind0fromkind9735List = []
   for(let kind9735 of kind9735List){
     if(kind9735.tags){
       //console.log(kind9735.tags)
@@ -168,7 +167,7 @@ async function subscribeKind0sfromKind9735s(){
   },
   async oneose() {
     console.log("subscribeKind0sfromKind9735s() EOS")
-    await createkinds9735JSON()
+    await createkinds9735JSON(kind9735List, kind0fromkind9735List)
     //sub.close()
   },
   onclosed() {
@@ -177,7 +176,7 @@ async function subscribeKind0sfromKind9735s(){
 })  
 }
 
-async function createkinds9735JSON(){
+async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
   let json9735List = []
   for(let kind9735 of kind9735List){
     let pubkey9735 = kind9735.tags.filter(tag => tag[0] == "p")[0][1]
