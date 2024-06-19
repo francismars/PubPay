@@ -1,8 +1,13 @@
 const pool = new NostrTools.SimplePool()
 let relays = ['wss://relay.damus.io', 'wss://relay.primal.net','wss://nostr.mutinywallet.com/', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
 
-let listedEvents = new Set();
-let eventsAuthors = {}
+let kind1Seen = new Set();
+//let eventsAuthors = {}
+
+let kind1List = []
+let kind0List = []
+let kind9735List = []
+let kind0fromkind9735List = []
 
 subscribePubPays()
 
@@ -19,19 +24,22 @@ async function subscribePubPays() {
           if(event.tags){
               let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
               if(filteredEvent.length>0){
-                if(listedEvents.has(event.id)) {
+                if(kind1Seen.has(event.id)) {
                   return
                 }
                 else{
-                  await getUser(event)
-                  listedEvents.add(event.id);
-                  eventsAuthors[event.id] = {"event": event}
+                  //await getUser(event)                  
+                  //eventsAuthors[event.id] = {"event": event}
                   //console.log(eventsAuthors)
+                  kind1Seen.add(event.id);
+                  kind1List.push(event)
                 }
               }
           }
       },
-      oneose() {
+      async oneose() {
+        let first20kind1 = kind1List.splice(0, 20)
+        await subscribeKind0sfromKind1s(first20kind1)
         //console.log("subscribePubPays() oneosed")
       },
       onclosed() {
@@ -40,8 +48,51 @@ async function subscribePubPays() {
   })
 }
 
+async function subscribeKind0sfromKind1s(kind1List){
+  let kind1PubkeyList = []
+  for(let kind1 of kind1List){
+    kind1PubkeyList.push(kind1.pubkey)
+  }
+  const sub = pool.subscribeMany(
+    [...relays],
+    [{
+        kinds: [0],
+        authors: kind1PubkeyList
+    }]
+  ,{
+  async onevent(kind0) {
+    kind0List.push(kind0)
+    //await createNote(event, kind0)
+    //eventsAuthors[event.id] = {"author": eventAuthor}
+    //await createNote(event, eventAuthor)
+    //await getZapInvoice(event, eventProfile)
+    //await subscribeZaps(event)
+  },
+  async oneose() {
+    console.log("subscribeKind0sfromKind1s() EOS")
+    sub.close()
+    await drawKind1s(kind1List, kind0List)
+    await subscribeKind9735(kind1List)
+  },
+  onclosed() {
+    //console.log("Closed")
+  }
+})
+}
 
+async function drawKind1s(first20kind1, kind0List){
+  for(let kind1 of first20kind1){
+    let kind1Pubkey = kind1.pubkey
+    for(let kind0 of kind0List){
+      let kind0Pubkey = kind0.pubkey
+      if(kind1Pubkey == kind0Pubkey){
+        drawKind1(kind1, kind0)
+      }
+    }
+  }
+}
 
+/*
 async function getUser(event){
   let authorPK = event.pubkey
   const sub = pool.subscribeMany(
@@ -52,9 +103,10 @@ async function getUser(event){
     }]
   ,{
   async onevent(eventAuthor) {
-    eventsAuthors[event.id] = {"author": eventAuthor}
+    //eventsAuthors[event.id] = {"author": eventAuthor}
     await createNote(event, eventAuthor)
     //await getZapInvoice(event, eventProfile)
+    await subscribeZaps(event)
   },
   oneose() {
     //console.log("getUser() oneosed")
@@ -64,6 +116,87 @@ async function getUser(event){
     //console.log("Closed")
   }
 })
+}
+*/
+
+async function subscribeKind9735(kind1List){
+  let kind1IDList = []
+  for(let kind1 of kind1List){
+    kind1IDList.push(kind1.id)
+  }
+  const sub = pool.subscribeMany(
+    [...relays],
+    [{
+        kinds: [9735],
+        "#e": kind1IDList
+    }]
+  ,{
+  async onevent(kind9735) {
+    kind9735List.push(kind9735)
+    //console.log(kind9735)
+  },
+  async oneose() {
+    console.log("subscribeKind9735() EOS")
+    await subscribeKind0sfromKind9735s()
+    //sub.close()
+  },
+  onclosed() {
+    //console.log("Closed")
+  }
+})  
+}
+
+async function subscribeKind0sfromKind9735s(){
+  let pubkeys9734 = []
+  for(let kind9735 of kind9735List){
+    if(kind9735.tags){
+      //console.log(kind9735.tags)
+      let description9735 = kind9735.tags.filter(tag => tag[0] == "description")[0][1]
+      let tags9734 = JSON.parse(description9735)
+      pubkeys9734.push(tags9734.pubkey)
+    }
+  }
+  const sub = pool.subscribeMany(
+    [...relays],
+    [{
+        kinds: [0],
+        authors: pubkeys9734
+    }]
+  ,{
+  async onevent(kind0) {
+    kind0fromkind9735List.push(kind0)
+  },
+  async oneose() {
+    console.log("subscribeKind0sfromKind9735s() EOS")
+    await createkinds9735JSON()
+    //sub.close()
+  },
+  onclosed() {
+    //console.log("Closed")
+  }
+})  
+}
+
+async function createkinds9735JSON(){
+  let json9735List = []
+  for(let kind9735 of kind9735List){
+    let pubkey9735 = kind9735.tags.filter(tag => tag[0] == "p")[0][1]
+    for(let kind0 of kind0fromkind9735List){
+      if(pubkey9735==kind0.pubkey){
+        let bolt119735 = kind9735.tags.filter(tag => tag[0] == "bolt11")[0][1]
+        let amount9735 = lightningPayReq.decode(bolt119735).satoshis
+        let kind1from9735 = kind9735.tags.filter(tag => tag[0] == "e")[0][1]
+        let kind0picture = JSON.parse(kind0.content).picture
+        let json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture}
+        json9735List.push(json9735)
+      }
+    }
+  }
+  await plot9735(json9735List)
+}
+
+async function plot9735(json9735List){
+  console.log(json9735List)
 }
 
 async function payNote(eventZap, userProfile){
@@ -202,7 +335,7 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
 }
 
 
-async function createNote(eventData, authorData){
+async function drawKind1(eventData, authorData){
   var newNote = document.createElement('div')
   newNote.setAttribute('id', eventData.id)
   newNote.setAttribute('class', 'paynote')
