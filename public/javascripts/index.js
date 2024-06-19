@@ -179,13 +179,14 @@ async function subscribeKind0sfromKind9735s(kind9735List){
 async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
   let json9735List = []
   for(let kind9735 of kind9735List){
-    let pubkey9735 = kind9735.tags.filter(tag => tag[0] == "p")[0][1]
-    for(let kind0 of kind0fromkind9735List){
-      if(pubkey9735==kind0.pubkey){
+    let description9735 = JSON.parse(kind9735.tags.filter(tag => tag[0] == "description")[0][1])
+    let pubkey9735 = description9735.pubkey
+    for(let kind0fromkind9735 of kind0fromkind9735List){
+      if(pubkey9735==kind0fromkind9735.pubkey){
         let bolt119735 = kind9735.tags.filter(tag => tag[0] == "bolt11")[0][1]
         let amount9735 = lightningPayReq.decode(bolt119735).satoshis
         let kind1from9735 = kind9735.tags.filter(tag => tag[0] == "e")[0][1]
-        let kind0picture = JSON.parse(kind0.content).picture
+        let kind0picture = JSON.parse(kind0fromkind9735.content).picture
         let json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture}
         json9735List.push(json9735)
       }
