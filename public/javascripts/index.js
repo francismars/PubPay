@@ -2,6 +2,8 @@ const pool = new NostrTools.SimplePool()
 let relays = ['wss://relay.damus.io', 'wss://relay.primal.net','wss://nostr.mutinywallet.com/', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
 
 let kind1Seen = new Set();
+let kind9735Seen = new Set();
+let kind0fromkind9735Seen = new Set();
 //let eventsAuthors = {}
 
 subscribePubPays()
@@ -20,11 +22,11 @@ async function subscribePubPays() {
           if(event.tags){
               let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
               if(filteredEvent.length>0){
-                if(kind1Seen.has(event.id)) {
+                if(kind1Seen.has(event.id)){
                   return
                 }
                 else{
-                  //await getUser(event)                  
+                  //await getUser(event)
                   //eventsAuthors[event.id] = {"event": event}
                   //console.log(eventsAuthors)
                   kind1Seen.add(event.id);
@@ -34,7 +36,7 @@ async function subscribePubPays() {
           }
       },
       async oneose() {
-        let first20kind1 = kind1List.splice(0, 20)
+        let first20kind1 = kind1List.splice(0, 6)
         await subscribeKind0sfromKind1s(first20kind1)
         //console.log("subscribePubPays() oneosed")
       },
@@ -130,7 +132,13 @@ async function subscribeKind9735(kind1List){
     }]
   ,{
   async onevent(kind9735) {
-    kind9735List.push(kind9735)
+    if(kind9735Seen.has(kind9735.id)){
+      return
+    }
+    else{
+      kind9735Seen.add(kind9735.id);
+      kind9735List.push(kind9735)
+    }
     //console.log(kind9735)
   },
   async oneose() {
@@ -141,7 +149,7 @@ async function subscribeKind9735(kind1List){
   onclosed() {
     //console.log("Closed")
   }
-})  
+})
 }
 
 async function subscribeKind0sfromKind9735s(kind9735List){
@@ -163,7 +171,13 @@ async function subscribeKind0sfromKind9735s(kind9735List){
     }]
   ,{
   async onevent(kind0) {
-    kind0fromkind9735List.push(kind0)
+    if(kind0fromkind9735Seen.has(kind0.pubkey)){
+      return
+    }
+    else{
+      kind0fromkind9735Seen.add(kind0.pubkey);
+      kind0fromkind9735List.push(kind0)
+    }
   },
   async oneose() {
     console.log("subscribeKind0sfromKind9735s() EOS")
@@ -173,7 +187,7 @@ async function subscribeKind0sfromKind9735s(kind9735List){
   onclosed() {
     //console.log("Closed")
   }
-})  
+})
 }
 
 async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
@@ -187,7 +201,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
         let amount9735 = lightningPayReq.decode(bolt119735).satoshis
         let kind1from9735 = kind9735.tags.filter(tag => tag[0] == "e")[0][1]
         let kind0picture = JSON.parse(kind0fromkind9735.content).picture
-        let json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture}
+        let json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": NostrTools.nip19.npubEncode(kind0fromkind9735.pubkey), "zapEventID": NostrTools.nip19.noteEncode(kind9735.id)}
         json9735List.push(json9735)
       }
     }
@@ -196,7 +210,27 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
 }
 
 async function plot9735(json9735List){
-  console.log(json9735List)
+  for(let json9735 of json9735List){
+    console.log(json9735)
+    let parentNote = document.getElementById(json9735.e)
+
+    let zapPayerLink = '<a href="https://next.nostrudel.ninja/#/u/'+json9735.npubPayer+'" target="_blank"><img class="userImg" src="'+json9735.picture+'" /></a>'
+    let zapEventLink = '<a href="https://next.nostrudel.ninja/#/n/'+json9735.zapEventID+'" target="_blank" class="zapReactionAmount">'+json9735.amount+'</a>'
+
+
+    if(json9735.amount == 5000){
+      let noteHeroZaps = parentNote.querySelector('.noteHeroZaps')
+      noteHeroZaps.innerHTML += '<div class="zapReaction">'+zapPayerLink+zapEventLink+'</div>'
+
+      let noteMainCTA = parentNote.querySelector('.noteMainCTA')
+      noteMainCTA.classList.add('disabled')
+      noteMainCTA.innerHTML = "Paid"
+    }else{
+      let payNoteReactions = parentNote.querySelector('.noteZaps')
+      payNoteReactions.innerHTML += '<div class="zapReaction">'+zapPayerLink+zapEventLink+'</div>'
+    }
+
+  }
 }
 
 async function payNote(eventZap, userProfile){
@@ -485,12 +519,21 @@ async function drawKind1(eventData, authorData){
     noteData.appendChild(zapPayer)
   }
 
+
+
+  // Hero Payers
+  var noteHeroZaps = document.createElement('div')
+  noteHeroZaps.setAttribute('class', 'noteHeroZaps')
+  noteHeroZaps.classList.add('noteZapReactions')
+  noteData.appendChild(noteHeroZaps)
+
   // Main CTA
   var noteCTA = document.createElement('div')
   const buttonZap = document.createElement('button');
   noteCTA.appendChild(buttonZap);
   noteCTA.setAttribute('class', 'noteCTA')
-  buttonZap.setAttribute('class', 'cta');
+  buttonZap.setAttribute('class', 'noteMainCTA');
+  buttonZap.classList.add("cta");
   buttonZap.textContent = 'Pay'
   buttonZap.addEventListener('click', async () => {
     await payNote(eventData, authorData)
@@ -502,9 +545,10 @@ async function drawKind1(eventData, authorData){
   var noteActionsReactions = document.createElement('div')
   noteActionsReactions.setAttribute('class', 'noteActionsReactions')
 
-  var noteReactions = document.createElement('div')
-  noteReactions.setAttribute('class', 'noteReactions')
-  noteReactions.innerHTML = '<img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" /><img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" /><img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" />'
+  var noteZapReactions = document.createElement('div')
+  noteZapReactions.setAttribute('class', 'noteZaps')
+  noteZapReactions.classList.add('noteZapReactions')
+
 
   let eventDataString = JSON.stringify(eventData).replace(/"/g, '&quot;');
 
@@ -526,7 +570,7 @@ async function drawKind1(eventData, authorData){
 
   noteActions.innerHTML = noteActionBtns
 
-  noteActionsReactions.appendChild(noteReactions)
+  noteActionsReactions.appendChild(noteZapReactions)
   noteActionsReactions.appendChild(noteActions)
   noteData.appendChild(noteActionsReactions)
 
