@@ -84,7 +84,8 @@ a.feedSelectorLink.active {
   margin-top: 20px;
   border-radius: 10px;
   column-gap: 15px;
-  box-shadow: 0px 3px 4px #0000000a;
+  /* box-shadow: 0px 3px 4px #0000000a; */
+  background: #fafafa;
 }
 
 .forwardZap .paynote{
@@ -99,6 +100,45 @@ a.feedSelectorLink.active {
   border: 1px solid #cecece;
   border-radius: 300px
 }
+
+
+.zapReaction {
+  position: relative;
+  transition: all 0.1s ease;
+}
+
+.zapReaction:hover{
+  transform: scale(1.8);
+  z-index: 2;
+}
+
+.zapReaction:hover *{
+  border-color:transparent
+}
+
+.zapReactionAmount {
+    position: absolute;
+    font-size: 6px;
+    background: #4b90ff;
+    color: #fff;
+    padding: 2px;
+    bottom: -2px;
+    left: 5px;
+    z-index: 1;
+    border: #ccc solid 1px;
+    border-radius: 3px;
+    font-weight: 900;
+    letter-spacing: 0.03rem;
+}
+
+.zapReactionAmount:hover{
+  background:#1c73ff
+}
+
+.zapReaction a:visited{
+  color: #fff;
+}
+
 
 .noteProfileImg img{
   width: 100%;
@@ -169,11 +209,12 @@ a.feedSelectorLink.active {
   display: flex;
   justify-content: space-between;
   margin: 21px 0 10px 0;
-  border: 1px solid #dadada;
+  border: 1px solid #4b90ff;
   padding: 3px;
-  border-radius: 60px;
-  background: #ffe6e6;
+  border-radius: 3px;
+  background: #4a75ff;
   align-items: center;
+  color: #ffffff;
 }
 
 .zapPayer img{
@@ -193,14 +234,33 @@ a.feedSelectorLink.active {
   justify-content: space-between;
 }
 
-.noteReactions{
+.noteZapReactions{
   display: flex;
-  column-gap: 5px;
+  column-gap: 3px;
+  max-width: 240px;
+  flex-wrap: wrap;
+  row-gap: 3px;
 }
 
-.noteReactions img{
+
+
+
+.noteZapReactions img{
   width: 20px;
   height: fit-content;
+}
+
+.noteHeroZaps.noteZapReactions img{
+  width: 40px;
+}
+
+.noteHeroZaps{
+  padding-bottom: 10px;
+}
+
+.noteHeroZaps .zapReactionAmount{
+  font-size: 10px;
+  left: 14px;
 }
 
 .noteActionsReactions .noteActions{
@@ -218,11 +278,11 @@ a.feedSelectorLink.active {
 
 
 a{
-  color: #4A90FF;
+  color: #4a75ff;
   text-decoration: none
 }
 a:visited{
-  color: #4A90FF;
+  color: #4a75ff;
 }
 
 
@@ -237,10 +297,10 @@ a:visited{
 
 a.cta, button.cta{
   width: 100%;
-  background: #4A90FF;
+  background: #4a75ff;
   color: #fff;
   padding: 10px 20px;
-  border-radius: 100px;
+  border-radius: 3px;
   box-sizing: border-box;
   text-decoration: none;
   text-align: center;
@@ -248,7 +308,6 @@ a.cta, button.cta{
   font-size: 14px;
   letter-spacing: 0.03em;
   font-weight: 900;
-  \
   border: none;
   border: none;
 }
@@ -256,9 +315,9 @@ a.cta, button.cta{
 .paynote .cta{
   margin-bottom: 20px;
   display: block;
-  color: #4A90FF;
+  color: #4a75ff;
   background: #e6f0ff;
-  border: 1px solid #4A90FF;
+  border: 1px solid #4a75ff;
   transition: all 0.1s ease;
   box-shadow: 0 1px 0px #00000000;
 }
@@ -269,6 +328,18 @@ a.cta, button.cta{
 }
 
 
+
+.noteMainCTA.disabled{
+  border: 1px solid #e3e3e3;
+  color: #afafaf;
+  background: #eaeaea;
+  box-shadow: none;
+}
+
+.paynote .cta.disabled:hover{
+  transform: scale(1);
+  box-shadow: none;
+}
 
 
 /* New Note Form */
