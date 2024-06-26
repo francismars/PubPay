@@ -48,7 +48,7 @@ async function subscribePubPays() {
       },
       async oneose() {
         if(firstStream){
-          //let first20kind1 = kind1List.splice(0, kind1List.length)
+          //let first20kind1 = kind1List.splice(0, 1)
           await subscribeKind0sfromKind1s(kind1List)
           console.log("subscribePubPays() EOS")
         }
@@ -154,13 +154,13 @@ async function subscribeKind9735(kind1List){
     }
     if(!firstStream){
       //console.log(kind9735)
-      await subscribeKind0sfromKind9735s([kind9735])
+      await subscribeKind0sfromKind9735s([kind9735], kind1List)
     }
     //console.log(kind9735)
   },
   async oneose() {
     console.log("subscribeKind9735() EOS")
-    if(kind9735List.length>0) await subscribeKind0sfromKind9735s(kind9735List)
+    if(kind9735List.length>0) await subscribeKind0sfromKind9735s(kind9735List, kind1List)
     firstStream = false
     //sub.close()
   },
@@ -170,7 +170,7 @@ async function subscribeKind9735(kind1List){
 })
 }
 
-async function subscribeKind0sfromKind9735s(kind9735List){
+async function subscribeKind0sfromKind9735s(kind9735List, kind1List){
   let pubkeys9734 = []
   let kind0fromkind9735List = []
   let kind0fromkind9735Seen = new Set();
@@ -200,7 +200,7 @@ async function subscribeKind0sfromKind9735s(kind9735List){
   },
   async oneose() {
     console.log("subscribeKind0sfromKind9735s() EOS")
-    await createkinds9735JSON(kind9735List, kind0fromkind9735List)
+    await createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1List)
     //sub.close()
   },
   onclosed() {
@@ -209,21 +209,41 @@ async function subscribeKind0sfromKind9735s(kind9735List){
 })
 }
 
-async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
+async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1List){
   let json9735List = []
+  //console.log(kind1List)
   for(let kind9735 of kind9735List){
     let description9735 = JSON.parse(kind9735.tags.filter(tag => tag[0] == "description")[0][1])
     let pubkey9735 = description9735.pubkey
-    for(let kind0fromkind9735 of kind0fromkind9735List){
-      if(pubkey9735==kind0fromkind9735.pubkey){
-        let bolt119735 = kind9735.tags.filter(tag => tag[0] == "bolt11")[0][1]
-        let amount9735 = lightningPayReq.decode(bolt119735).satoshis
-        let kind1from9735 = kind9735.tags.filter(tag => tag[0] == "e")[0][1]
-        let kind0picture = JSON.parse(kind0fromkind9735.content).picture
-        let json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": NostrTools.nip19.npubEncode(kind0fromkind9735.pubkey), "zapEventID": NostrTools.nip19.noteEncode(kind9735.id)}
-        json9735List.push(json9735)
+    let bolt119735 = kind9735.tags.filter(tag => tag[0] == "bolt11")[0][1]
+    let amount9735 = lightningPayReq.decode(bolt119735).satoshis
+    let kind1from9735 = kind9735.tags.filter(tag => tag[0] == "e")[0][1]
+    let kind9735id = NostrTools.nip19.noteEncode(kind9735.id)
+    let kind0kind9735found = false
+    let kind0picture
+    let kind0npub
+    let kind1tags
+    for(let kind1 of kind1List){
+      if(kind1.id == kind1from9735){
+        console.log("match")
+        kind1tags = kind1.tags
+        break
       }
     }
+    for(let kind0fromkind9735 of kind0fromkind9735List){
+      if(pubkey9735==kind0fromkind9735.pubkey){
+        kind0picture = JSON.parse(kind0fromkind9735.content).picture
+        kind0npub = NostrTools.nip19.npubEncode(kind0fromkind9735.pubkey)
+        kind0kind9735found = true
+      }
+    }
+    if(kind0kind9735found==false){
+      //console.log("kind 0 not found")
+      kind0picture = ""
+      kind0npub = ""
+    }
+    let json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "zapEventID": kind9735id, "tags": kind1tags}
+    json9735List.push(json9735)
   }
   await plot9735(json9735List)
 }
