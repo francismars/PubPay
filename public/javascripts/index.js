@@ -6,10 +6,13 @@ let kind9735Seen = new Set();
 let kind0fromkind9735Seen = new Set();
 //let eventsAuthors = {}
 
+let firstStream = true
+
 subscribePubPays()
 
 async function subscribePubPays() {
   let kind1List = []
+  
   let h = pool.subscribeMany(
       [...relays],
       [
@@ -19,26 +22,36 @@ async function subscribePubPays() {
       },
       ], {
       async onevent(event) {
+        
           if(event.tags){
-              let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
-              if(filteredEvent.length>0){
-                if(kind1Seen.has(event.id)){
-                  return
+            let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
+            if(filteredEvent.length>0){
+              if(kind1Seen.has(event.id)){
+                return
+              }
+              else{
+                //await getUser(event)
+                //eventsAuthors[event.id] = {"event": event}
+                //console.log(eventsAuthors)
+                kind1Seen.add(event.id);
+                
+                if(!firstStream){
+                  console.log(event)
+                  subscribeKind0sfromKind1s([event])
                 }
                 else{
-                  //await getUser(event)
-                  //eventsAuthors[event.id] = {"event": event}
-                  //console.log(eventsAuthors)
-                  kind1Seen.add(event.id);
                   kind1List.push(event)
                 }
               }
+            }
           }
       },
       async oneose() {
-        let first20kind1 = kind1List.splice(0, 6)
-        await subscribeKind0sfromKind1s(first20kind1)
-        //console.log("subscribePubPays() oneosed")
+        if(firstStream){
+          //let first20kind1 = kind1List.splice(0, kind1List.length)
+          await subscribeKind0sfromKind1s(kind1List)
+          console.log("subscribePubPays() EOS")
+        }
       },
       onclosed() {
         //console.log("Closed")
@@ -71,6 +84,7 @@ async function subscribeKind0sfromKind1s(kind1List){
     console.log("subscribeKind0sfromKind1s() EOS")
     sub.close()
     await drawKind1s(kind1List, kind0List)
+    firstStream = false
     await subscribeKind9735(kind1List)
   },
   onclosed() {
@@ -211,7 +225,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
 
 async function plot9735(json9735List){
   for(let json9735 of json9735List){
-    console.log(json9735)
+    //console.log(json9735)
     let parentNote = document.getElementById(json9735.e)
 
     let zapPayerLink = '<a href="https://next.nostrudel.ninja/#/u/'+json9735.npubPayer+'" target="_blank"><img class="userImg" src="'+json9735.picture+'" /></a>'
@@ -577,7 +591,8 @@ async function drawKind1(eventData, authorData){
 
   newNote.appendChild(noteData);
   const main = document.querySelector('#main')
-  main.appendChild(newNote)
+  //console.log(firstStream)
+  firstStream==true ? main.appendChild(newNote) : main.insertBefore(newNote, main.firstChild)
 }
 
 
