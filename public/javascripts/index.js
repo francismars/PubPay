@@ -3,7 +3,7 @@ let relays = ['wss://relay.damus.io', 'wss://relay.primal.net','wss://nostr.muti
 
 let kind1Seen = new Set();
 let kind9735Seen = new Set();
-let kind0fromkind9735Seen = new Set();
+
 //let eventsAuthors = {}
 
 let firstStream = true
@@ -36,7 +36,7 @@ async function subscribePubPays() {
                 kind1Seen.add(event.id);
                 
                 if(!firstStream){
-                  console.log(event)
+                  //console.log(event)
                   subscribeKind0sfromKind1s([event])
                 }
                 else{
@@ -84,7 +84,6 @@ async function subscribeKind0sfromKind1s(kind1List){
     console.log("subscribeKind0sfromKind1s() EOS")
     sub.close()
     await drawKind1s(kind1List, kind0List)
-    firstStream = false
     await subscribeKind9735(kind1List)
   },
   onclosed() {
@@ -153,11 +152,16 @@ async function subscribeKind9735(kind1List){
       kind9735Seen.add(kind9735.id);
       kind9735List.push(kind9735)
     }
+    if(!firstStream){
+      //console.log(kind9735)
+      await subscribeKind0sfromKind9735s([kind9735])
+    }
     //console.log(kind9735)
   },
   async oneose() {
     console.log("subscribeKind9735() EOS")
-    await subscribeKind0sfromKind9735s(kind9735List)
+    if(kind9735List.length>0) await subscribeKind0sfromKind9735s(kind9735List)
+    firstStream = false
     //sub.close()
   },
   onclosed() {
@@ -169,6 +173,7 @@ async function subscribeKind9735(kind1List){
 async function subscribeKind0sfromKind9735s(kind9735List){
   let pubkeys9734 = []
   let kind0fromkind9735List = []
+  let kind0fromkind9735Seen = new Set();
   for(let kind9735 of kind9735List){
     if(kind9735.tags){
       //console.log(kind9735.tags)
@@ -308,7 +313,7 @@ async function createZapEvent(eventStoragePK, pubKey = null){
 document.addEventListener("visibilitychange", async function() {
   if (document.visibilityState === 'visible') {
     let eventStoragePK = sessionStorage.getItem("AmberPubkey");
-    console.log(eventStoragePK)
+    //console.log(eventStoragePK)
     if(eventStoragePK){
       sessionStorage.removeItem('AmberPubkey');
       const publicKey = await accessClipboard()
@@ -319,7 +324,7 @@ document.addEventListener("visibilitychange", async function() {
       return
     }
     const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
-    console.log(eventStorage)
+    //console.log(eventStorage)
     if(eventStorage){
       sessionStorage.removeItem('AmberSign');
       let eventSignature
