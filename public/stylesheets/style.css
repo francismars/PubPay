@@ -242,14 +242,15 @@ a.feedSelectorLink.active {
 
 .zapPayer{
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   margin: 21px 0 10px 0;
-  border: 1px solid #4b90ff;
+  border: 1px solid #d6e6ff;
   padding: 3px;
-  border-radius: 3px;
-  background: #4a75ff;
+  border-radius: 8px;
+  /* background: #4a75ff; */
   align-items: center;
-  color: #ffffff;
+  color: #636363;
+  font-weight: 100;
 }
 
 .zapPayer img{
@@ -258,10 +259,10 @@ a.feedSelectorLink.active {
 }
 
 .zapPayer .userName {
-  width: 100%;
+  /* width: 100%; */
   text-align: center;
   font-weight: 600;
-  margin-left: -50px;
+  margin-left: 10px;
 }
 
 .noteActionsReactions{
