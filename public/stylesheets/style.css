@@ -47,8 +47,8 @@ body{
 
 #container{
   width: 100%;
-  margin-top: 100px;
-  padding-bottom: 100px;
+  margin-top: 80px;
+  padding-bottom: 120px;
 }
 
 
@@ -57,6 +57,8 @@ body{
 #feedSelector {
     display: flex;
     justify-content: space-between;
+    max-width: 560px;
+    margin: auto;
 }
 
 a.feedSelectorLink:visited, a.feedSelectorLink {
@@ -81,7 +83,7 @@ a.feedSelectorLink.active {
   display: flex;
   padding: 20px 20px 30px 20px;
   border: 1px solid #ececec;
-  margin-top: 20px;
+  margin-top: 30px;
   border-radius: 10px;
   column-gap: 15px;
   /* box-shadow: 0px 3px 4px #0000000a; */
@@ -156,12 +158,13 @@ a.feedSelectorLink.active {
 }
 
 .noteDisplayName {
-    font-weight: 900;
-    max-width: 280px;
+    font-weight: bold;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 16px;
+    font-size: 20px;
+    margin-bottom: 4px;
+    letter-spacing: 0.03rem;
 }
 
 .noteAuthorLink{
@@ -182,10 +185,11 @@ a.feedSelectorLink.active {
 }
 
 .noteContent {
-  font-size: 24px;
+  font-size: 18px;
   margin: 20px 0px;
   font-weight: 300;
   word-break: break-word;
+  letter-spacing: 0.03rem;
 }
 
 .noteContent img {
@@ -201,7 +205,8 @@ a.feedSelectorLink.active {
   margin: 21px 0 10px 0;
   border-top: 1px solid #ccc;
   padding: 8px 0;
-  font-size: 16px;
+  font-size: 20px;
+  line-height: 1;
 }
 
 
@@ -423,7 +428,11 @@ textarea, input {
 
 
 
-
+.noteNIP05.label .unverified{
+  font-size: 10px;
+  font-weight: bold;
+  color: #de0000;
+}
 
 
 .tooltip {
