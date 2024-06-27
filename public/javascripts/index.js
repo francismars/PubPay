@@ -607,16 +607,16 @@ async function drawKind1(eventData, authorData){
   if(filteredZapMin.length>0){
     var zapMin = document.createElement('div')
     zapMin.setAttribute('class', 'zapMin')
-    zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[0][1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Min</span>'  
+    zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[0][1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Min</span>'
     noteValues.appendChild(zapMin)
-  } 
- 
+  }
+
   let filteredZapMax = eventData.tags.filter(tag => tag[0] == "zap-max")
   if(filteredZapMax.length>0){
     var zapMax = document.createElement('div')
     zapMax.setAttribute('class', 'zapMax')
     zapMax.innerHTML = '<span class="zapMaxVal">'+(filteredZapMax[0][1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Max</span>'
-  } 
+  }
 
   let filteredZapUses = eventData.tags.filter(tag => tag[0] == "zap-uses")
 
@@ -733,11 +733,11 @@ function timeAgo(timestamp) {
   const daysAgo = Math.floor(differenceMs / (1000 * 60 * 60 * 24)); // Difference in days
 
   if (minutesAgo < 60) {
-      return `${minutesAgo} minutes ago`;
+      return `${minutesAgo}m`;
   } else if (hoursAgo < 24) {
-      return `${hoursAgo} hours ago`;
+      return `${hoursAgo}h`;
   } else {
-      return `${daysAgo} days ago`;
+      return `${daysAgo}d`;
   }
 }
 
