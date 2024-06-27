@@ -9,7 +9,6 @@ body{
 
 #nav{
   width: 100%;
-
   border-bottom: 1px solid #ffffff;
   position: fixed;
   top: 0;
@@ -26,6 +25,8 @@ body{
   box-shadow: rgb(47 43 67 / 21%) -2px 3px 20px 0px;
   opacity: 1;
   transition: all 0.1s ease;
+  padding: 0 20px 0 20px;
+  box-sizing: border-box;
 }
 
 #navInner, #main{
@@ -116,6 +117,10 @@ a.feedSelectorLink.active {
 .paynote:hover{
   background:#fff;
   transform: scale(1.01);
+}
+
+.label.noteDate {
+    font-size: 12px;
 }
 
 .forwardZap .paynote{
@@ -231,7 +236,7 @@ a.feedSelectorLink.active {
 .noteValues{
   display: flex;
   justify-content: space-between;
-  margin: 21px 0 10px 0;
+  margin: 21px 0 0px 0;
   border-top: 1px solid #ccc;
   padding: 8px 0;
   font-size: 20px;
@@ -313,7 +318,7 @@ a.feedSelectorLink.active {
 .material-symbols-outlined {
   font-size: 18px;
   vertical-align: middle;
-  color: #1c73ff;
+  color: #a3a3a3;
 }
 
 
@@ -551,4 +556,25 @@ textarea, input {
 
 .originZap {
     position: relative;
+}
+
+
+
+
+
+
+
+
+@media screen and (max-width: 480px) {
+  .paynote{
+    padding: 14px 10px 20px 10px;
+    margin-top: 20px;
+  }
+  .noteContent {
+    font-size: 14px;
+  }
+  .noteProfileImg img {
+    width: 30px;
+    height: 30px;
+  }
 }
