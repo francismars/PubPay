@@ -303,6 +303,8 @@ async function plot9735(json9735List){
         noteMainCTA.classList.add('disabled')
         noteMainCTA.innerHTML = "Paid"
         noteMainCTA.removeEventListener('click', payNote)
+        let zapSlider = parentNote.querySelector('.zapSliderContainer')
+        if(zapSlider != null){ zapSlider.removeChild() }
 
       }else if(tagZapUses != -1){
         // Has use target
@@ -321,6 +323,8 @@ async function plot9735(json9735List){
             noteMainCTA.classList.add('disabled')
             noteMainCTA.innerHTML = "Paid"
             noteMainCTA.removeEventListener('click', payNote)
+            let zapSlider = parentNote.querySelector('.zapSliderContainer')
+            if(zapSlider != null){ zapSlider.remove() }
           }
 
         }else{
@@ -541,7 +545,7 @@ async function drawKind1(eventData, authorData){
       let noteNIP05String = profileData.nip05.split('@')
       noteNIP05.innerHTML='<a href="https://'+noteNIP05String[1]+'/.well-known/nostr.json?name='+noteNIP05String[0]+'" target="_blank"><span class="material-symbols-outlined">check_circle</span> '+profileData.nip05+'</a>'
   }else{
-    noteNIP05.innerHTML='<span class="unverified"><span class="material-symbols-outlined">cancel</span> Unverified</span>'
+    noteNIP05.innerHTML='<span class="unverified label"><span class="material-symbols-outlined">block</span> Unverified</span>'
   }
 
 
@@ -665,6 +669,33 @@ async function drawKind1(eventData, authorData){
   buttonZap.addEventListener('click', async () => {
     await payNote(eventData, authorData)
   });
+
+
+
+
+  if(filteredZapMin.length>0 && filteredZapMax.length>0 && filteredZapMin[0][1] != filteredZapMax[0][1] ){
+
+      var zapSliderContainer = document.createElement('div')
+      zapSliderContainer.setAttribute('class', 'zapSliderContainer')
+      zapSliderContainer.innerHTML = '<input type="range" min="'+(filteredZapMin[0][1]/1000)+'" max="'+(filteredZapMax[0][1]/1000)+'" value="'+(filteredZapMin[0][1]/1000)+'" class="zapSlider">'
+      noteData.appendChild(zapSliderContainer)
+
+      var zapSlider = zapSliderContainer.querySelector('.zapSlider')
+
+      var zapSliderVal = document.createElement('div')
+      zapSliderVal.setAttribute('class', 'zapSliderVal')
+      zapSliderContainer.appendChild(zapSliderVal)
+
+      let update = () => {
+        console.log( (zapSlider.value).toLocaleString() )
+        buttonZap.setAttribute('value', parseInt(zapSlider.value))
+        zapSliderVal.innerHTML = (parseInt(zapSlider.value)).toLocaleString() + '<span class="label"> sats</span>';
+      }
+      zapSlider.addEventListener('input', update);
+      update();
+
+  }
+
   noteData.appendChild(noteCTA)
 
 
