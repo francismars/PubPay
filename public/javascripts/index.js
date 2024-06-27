@@ -225,7 +225,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
     let kind1tags
     for(let kind1 of kind1List){
       if(kind1.id == kind1from9735){
-        console.log("match")
+        //console.log("match")
         kind1tags = kind1.tags
         break
       }
@@ -715,5 +715,46 @@ function showJSON(json){
       noteJSON.innerHTML = JSON.stringify(json, null, 2)
   } else {
       viewJSON.style.display = 'none'
+  }
+}
+
+
+document.getElementById('newKind1').addEventListener('submit', submitKind1);
+
+
+async function submitKind1(event){
+  //console.log(event)
+  event.preventDefault();
+  const payNoteContent = document.getElementById('payNoteContent').value;
+  console.log(payNoteContent)
+  if(payNoteContent==""){
+  }
+  let tagsList = []
+  const zapMin = document.getElementById('zapMin').value;
+  if(zapMin!="") tagsList.push(["zap-min",(zapMin*1000).toString()])
+  const zapMax = document.getElementById('zapMax').value;
+  if(zapMax!="") tagsList.push(["zap-max",(zapMax*1000).toString()])
+  else if(zapMin!="" && zapMax=="") tagsList.push(["zap-max",(zapMin*1000).toString()])
+  const zapUses = document.getElementById('zapUses').value;
+  if(zapUses!="") tagsList.push(["zap-uses",zapUses])
+
+  let kind1 = {
+    kind: 1,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ["t", "pubpay"],
+      ...tagsList
+    ],
+    content: payNoteContent,
+  }
+  let kind1Finalized
+  if(window.nostr!=null){
+    kind1Finalized = await window.nostr.signEvent(kind1)
+  }
+  let isGood = NostrTools.verifyEvent(kind1Finalized)
+  console.log("is good?", isGood)
+  if(isGood){
+    await Promise.any(pool.publish(relays, kind1Finalized))
+    console.log('published to at least one relay!')
   }
 }
