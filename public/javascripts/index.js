@@ -533,7 +533,18 @@ async function drawKind1(eventData, authorData){
 
   var zapMin = document.createElement('div')
   zapMin.setAttribute('class', 'zapMin')
-  zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[0][1]/1000).toLocaleString()+'</span> <span class="label">sats</span>'
+  zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[0][1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Min</span>'
+
+
+
+  let filteredZapMax = eventData.tags.filter(tag => tag[0] == "zap-max")
+
+  var zapMax = document.createElement('div')
+  zapMax.setAttribute('class', 'zapMax')
+  zapMax.innerHTML = '<span class="zapMaxVal">'+(filteredZapMax[0][1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Max</span>'
+
+
+
 
   let filteredZapUses = eventData.tags.filter(tag => tag[0] == "zap-uses")
 
