@@ -12,7 +12,6 @@ subscribePubPays()
 
 async function subscribePubPays() {
   let kind1List = []
-
   let h = pool.subscribeMany(
       [...relays],
       [
@@ -22,33 +21,19 @@ async function subscribePubPays() {
       },
       ], {
       async onevent(event) {
-
-          if(event.tags){
-            let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
-            if(filteredEvent.length>0){
-              if(kind1Seen.has(event.id)){
-                return
-              }
-              else{
-                //await getUser(event)
-                //eventsAuthors[event.id] = {"event": event}
-                //console.log(eventsAuthors)
-                kind1Seen.add(event.id);
-
-                if(!firstStream){
-                  //console.log(event)
-                  subscribeKind0sfromKind1s([event])
-                }
-                else{
-                  kind1List.push(event)
-                }
-              }
-            }
+        if(event.tags && !(kind1Seen.has(event.id))){
+          kind1Seen.add(event.id);
+          if(!firstStream){
+            subscribeKind0sfromKind1s([event])
           }
+          else{
+            kind1List.push(event)
+          }
+        }
       },
       async oneose() {
         if(firstStream){
-          //let first20kind1 = kind1List.splice(0, 1)
+          //let first20kind1 = kind1List.splice(0, 2)
           await subscribeKind0sfromKind1s(kind1List)
           console.log("subscribePubPays() EOS")
         }
@@ -99,6 +84,7 @@ async function drawKind1s(first20kind1, kind0List){
       let kind0Pubkey = kind0.pubkey
       if(kind1Pubkey == kind0Pubkey){
         drawKind1(kind1, kind0)
+        break
       }
     }
   }
@@ -618,21 +604,19 @@ async function drawKind1(eventData, authorData){
 
   // INSERT LOGIC FOR AMOUNT, ZAP-MIN, ZAP-MAX, ETC
   let filteredZapMin = eventData.tags.filter(tag => tag[0] == "zap-min")
-
-  var zapMin = document.createElement('div')
-  zapMin.setAttribute('class', 'zapMin')
-  zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[0][1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Min</span>'
-
-
-
+  if(filteredZapMin.length>0){
+    var zapMin = document.createElement('div')
+    zapMin.setAttribute('class', 'zapMin')
+    zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[0][1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Min</span>'  
+    noteValues.appendChild(zapMin)
+  } 
+ 
   let filteredZapMax = eventData.tags.filter(tag => tag[0] == "zap-max")
-
-  var zapMax = document.createElement('div')
-  zapMax.setAttribute('class', 'zapMax')
-  zapMax.innerHTML = '<span class="zapMaxVal">'+(filteredZapMax[0][1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Max</span>'
-
-
-
+  if(filteredZapMax.length>0){
+    var zapMax = document.createElement('div')
+    zapMax.setAttribute('class', 'zapMax')
+    zapMax.innerHTML = '<span class="zapMaxVal">'+(filteredZapMax[0][1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Max</span>'
+  } 
 
   let filteredZapUses = eventData.tags.filter(tag => tag[0] == "zap-uses")
 
@@ -642,10 +626,7 @@ async function drawKind1(eventData, authorData){
                   : zapUses.innerHTML = ""
 
 
-
-  noteValues.appendChild(zapMin)
-
-  if( filteredZapMin[0][1] != filteredZapMax[0][1] ){
+  if(filteredZapMin.length>0 && filteredZapMax.length>0 && filteredZapMin[0][1] != filteredZapMax[0][1] ){
       noteValues.appendChild(zapMax)
   }
 
