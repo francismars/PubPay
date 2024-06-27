@@ -450,6 +450,14 @@ a.cta, button.cta{
 .formField label{
   display: block;
   margin-bottom: 10px;
+  text-transform: uppercase;
+  font-size: 12px;
+  margin-bottom: 3px;
+  letter-spacing: 0.01rem;
+}
+
+.formField.disabled {
+    opacity: 0.3;
 }
 
 #cancelNewNote{

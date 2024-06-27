@@ -202,14 +202,19 @@
                       <label for="zapUses" class="label">Uses</label>
                       <input type="text" id="zapUses" name="zapUses">
                   </div>
-                  <div class="formField">
+                  <div class="formField disabled">
                       <label for="zapIncrement" class="label">Increment</label>
-                      <input type="text" id="zapIncrement" name="zapIncrement">
+                      <input type="text" id="zapIncrement" name="zapIncrement" disabled>
                   </div>
                 </div>
 
                 <div class="formField">
-                    <label for="redirectToNote" class="label">Redirect zap to note id / note1</label>
+                    <label for="zapPayer" class="label">Target npub for zap</label>
+                    <input type="text" id="zapPayer" name="zapPayer">
+                </div>
+
+                <div class="formField">
+                    <label for="redirectToNote" class="label">Redirect zap to another note1</label>
                     <input type="text" id="redirectToNote" name="redirectToNote">
                 </div>
 
