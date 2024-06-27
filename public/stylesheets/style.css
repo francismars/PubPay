@@ -1,6 +1,6 @@
 body{
   margin: 0;
-  font-family: sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 .hide{
@@ -187,13 +187,13 @@ a.feedSelectorLink.active {
 }
 
 .noteDisplayName {
-    font-weight: bold;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 20px;
     margin-bottom: 4px;
-    letter-spacing: 0.03rem;
+    letter-spacing: 0.01rem;
 }
 
 .noteAuthorLink{
@@ -236,7 +236,7 @@ a.feedSelectorLink.active {
   padding: 8px 0;
   font-size: 20px;
   line-height: 1;
-  font-weight: 100;
+  font-weight: 300;
 }
 
 
@@ -313,6 +313,7 @@ a.feedSelectorLink.active {
 .material-symbols-outlined {
   font-size: 18px;
   vertical-align: middle;
+  color: #1c73ff;
 }
 
 
@@ -348,7 +349,7 @@ a.cta, button.cta{
   /* text-transform: uppercase; */
   font-size: 14px;
   letter-spacing: 0.03em;
-  font-weight: 900;
+  font-weight: 500;
   border: none;
   border: none;
 }
@@ -479,6 +480,7 @@ textarea, input {
   display: inline-block;
   border-bottom: 1px dotted black;
   border: 0;
+
 }
 
 .tooltip .tooltiptext {
@@ -496,6 +498,7 @@ textarea, input {
   border: 1px #e9e9e9 solid;
   margin-left: -200px;
   box-shadow: 0px 6px 11px #00000029;
+  transition: all 0.1s ease;
 }
 
 .tooltip:hover .tooltiptext {
