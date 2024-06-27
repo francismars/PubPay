@@ -242,7 +242,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
       kind0picture = ""
       kind0npub = ""
     }
-    let json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "zapEventID": kind9735id, "tags": kind1tags}
+    let json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "pubKey": pubkey9735, "zapEventID": kind9735id, "tags": kind1tags}
     json9735List.push(json9735)
   }
   await plot9735(json9735List)
@@ -253,18 +253,104 @@ async function plot9735(json9735List){
     //console.log(json9735)
     let parentNote = document.getElementById(json9735.e)
 
-    let zapPayerLink = '<a href="https://next.nostrudel.ninja/#/u/'+json9735.npubPayer+'" target="_blank"><img class="userImg" src="'+json9735.picture+'" /></a>'
+    let profileImage
+    json9735.picture == "" ? profileImage = "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" : profileImage = json9735.picture
+
+
+    let zapPayerLink = '<a href="https://next.nostrudel.ninja/#/u/'+json9735.npubPayer+'" target="_blank"><img class="userImg" src="'+profileImage+'" /></a>'
     let zapEventLink = '<a href="https://next.nostrudel.ninja/#/n/'+json9735.zapEventID+'" target="_blank" class="zapReactionAmount">'+json9735.amount+'</a>'
 
+    /*
+    't', 'pubpay'
+    'zap-min', '21000'
+    'zap-max', '21000'
+    'zap-uses', '1'
+    'zap-payer', '9ec4e717eea5b53e3c3be4099189e65636829473843304a84b6aacc26a1ef810'
+    'zap-forward', 'a2f6faac5990a9bfb6e47a3d4b6c204592eb6c642563dbdada6512a84'
+    */
 
-    if(json9735.amount == 5000){
-      let noteHeroZaps = parentNote.querySelector('.noteHeroZaps')
-      noteHeroZaps.innerHTML += '<div class="zapReaction">'+zapPayerLink+zapEventLink+'</div>'
+    let tagZapMin = json9735.tags.filter(tag => tag[0] == "zap-min")
+    if(tagZapMin != null){ tagZapMin = tagZapMin[0][1] }
 
-      let noteMainCTA = parentNote.querySelector('.noteMainCTA')
-      noteMainCTA.classList.add('disabled')
-      noteMainCTA.innerHTML = "Paid"
+    let tagZapMax = json9735.tags.filter(tag => tag[0] == "zap-max")
+    if(tagZapMax != null){ tagZapMax = tagZapMax[0][1] }
+
+    let tagZapUses = json9735.tags.filter(tag => tag[0] == "zap-uses")
+    if(tagZapUses.length > 0){
+      tagZapUses = tagZapUses[0][1]
     }else{
+      tagZapUses = -1
+    }
+
+    let zapTarget = tagZapMin/1000 * tagZapUses
+
+
+    let tagZapPayer = json9735.tags.filter(tag => tag[0] == "zap-payer")
+    if(tagZapPayer.length > 0){ tagZapPayer = tagZapPayer[0][1] }
+
+    let tagZapForward = json9735.tags.filter(tag => tag[0] == "zap-forward")
+    if(tagZapForward.length > 0){ tagZapForward = tagZapForward[0][1] }
+
+    /*
+    console.log("amount: "+json9735.amount)
+    console.log("tagZapMin: "+tagZapMin)
+    console.log("tagZapMax: "+tagZapMax)
+    console.log("tagZapUses: "+tagZapUses)
+    console.log("tagZapPayer: "+tagZapPayer)
+    console.log("tagZapForward: "+tagZapForward)
+    console.log("zapTarget: "+zapTarget)
+    */
+
+    let useIncrement = 0
+
+
+    if(json9735.amount >= tagZapMin/1000 && json9735.amount <= tagZapMax/1000){
+      // Zap above minimum and below the maximum
+
+
+      if(tagZapPayer == json9735.pubKey){
+        // Zap payer match
+        let zapPayer = parentNote.querySelector('.zapPayer')
+        zapPayer.innerHTML = '<div class="zapReaction">'+zapPayerLink+zapEventLink+'</div>'
+        // Reached target, disable button
+        let noteMainCTA = parentNote.querySelector('.noteMainCTA')
+        noteMainCTA.classList.add('disabled')
+        noteMainCTA.innerHTML = "Paid"
+
+      }else if(tagZapUses != -1){
+        // Has use target
+        let zapUsesCurrent = parentNote.querySelector('.zapUsesCurrent')
+        useIncrement = parseInt(zapUsesCurrent.textContent)+1
+
+        if(useIncrement <= tagZapUses){
+          // Still bellow the use target
+          let noteHeroZaps = parentNote.querySelector('.noteHeroZaps')
+          noteHeroZaps.innerHTML += '<div class="zapReaction">'+zapPayerLink+zapEventLink+'</div>'
+          zapUsesCurrent.textContent = parseInt(zapUsesCurrent.textContent)+1
+
+          if(useIncrement == tagZapUses){
+            // Reached target, disable button
+            let noteMainCTA = parentNote.querySelector('.noteMainCTA')
+            noteMainCTA.classList.add('disabled')
+            noteMainCTA.innerHTML = "Paid"
+          }
+
+        }else{
+          // Above minimum, but target already reached
+          let payNoteReactions = parentNote.querySelector('.noteZaps')
+          payNoteReactions.innerHTML += '<div class="zapReaction">'+zapPayerLink+zapEventLink+'</div>'
+        }
+
+      }else{
+        // Above min and no uses. Everyzap is included on hero
+        let noteHeroZaps = parentNote.querySelector('.noteHeroZaps')
+        noteHeroZaps.innerHTML += '<div class="zapReaction">'+zapPayerLink+zapEventLink+'</div>'
+      }
+
+
+
+    }else{
+      // Bellow the minimum,
       let payNoteReactions = parentNote.querySelector('.noteZaps')
       payNoteReactions.innerHTML += '<div class="zapReaction">'+zapPayerLink+zapEventLink+'</div>'
     }
@@ -467,7 +553,7 @@ async function drawKind1(eventData, authorData){
       let noteNIP05String = profileData.nip05.split('@')
       noteNIP05.innerHTML='<a href="https://'+noteNIP05String[1]+'/.well-known/nostr.json?name='+noteNIP05String[0]+'" target="_blank"><span class="material-symbols-outlined">check_circle</span> '+profileData.nip05+'</a>'
   }else{
-    noteNIP05.textContent="NOT VERIFIED"
+    noteNIP05.innerHTML='<span class="unverified"><span class="material-symbols-outlined">cancel</span> Unverified</span>'
   }
 
 
@@ -556,6 +642,10 @@ async function drawKind1(eventData, authorData){
 
 
   noteValues.appendChild(zapMin)
+
+  if( filteredZapMin[0][1] != filteredZapMax[0][1] ){
+      noteValues.appendChild(zapMax)
+  }
 
 
 
