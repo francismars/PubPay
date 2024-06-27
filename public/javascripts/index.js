@@ -350,7 +350,7 @@ async function plot9735(json9735List){
   }
 }
 
-async function payNote(eventZap, userProfile){
+async function payNote(eventZap, userProfile, rangeValue){
   let event = eventZap
   let eventProfile = userProfile
   let eventProfileContent = JSON.parse(eventProfile.content)
@@ -363,7 +363,7 @@ async function payNote(eventZap, userProfile){
       // const privateKey = window.NostrTools.generateSecretKey()
       let publicKey
       if(window.nostr!=null){
-        createZapEvent(JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":eventZap}))
+        createZapEvent(JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":eventZap}), null, rangeValue)
         return
         // publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
       }
@@ -374,17 +374,19 @@ async function payNote(eventZap, userProfile){
   }
 }
 
-async function createZapEvent(eventStoragePK, pubKey = null){
+async function createZapEvent(eventStoragePK, pubKey = null, rangeValue){
   eventStoragePK = JSON.parse(eventStoragePK)
   let eventZap = eventStoragePK.event
   console.log(eventZap)
   let lnurlinfo = eventStoragePK.lnurlinfo
   let lud16 = eventStoragePK.lud16
   let filteredEvent = eventZap.tags.filter(tag => tag[0] == "zap-min")
+  let amountPay
+  rangeValue != -1 ? amountPay = rangeValue : amountPay = Math.floor(filteredEvent[0][1])
   let zapEvent = await window.NostrTools.nip57.makeZapRequest({
       profile: eventZap.pubkey,
       event: eventZap.id,
-      amount: Math.floor(filteredEvent[0][1]),
+      amount: amountPay,
       comment: "",
       relays: relays
   })
@@ -667,7 +669,9 @@ async function drawKind1(eventData, authorData){
   buttonZap.classList.add("cta");
   buttonZap.textContent = 'Pay'
   buttonZap.addEventListener('click', async () => {
-    await payNote(eventData, authorData)
+    let rangeValue
+    buttonZap.getAttribute("value") != null ? rangeValue = buttonZap.getAttribute("value") : rangeValue = -1
+    await payNote(eventData, authorData, rangeValue)
   });
 
 
