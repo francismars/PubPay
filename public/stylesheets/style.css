@@ -214,8 +214,9 @@ a.feedSelectorLink.active {
     font-size: 12px;
 }
 
-.noteAuthor .label a .material-symbols-outlined {
+.noteAuthor .label .material-symbols-outlined {
   font-size: 12px;
+  margin-top: -3px;
 }
 
 .noteContent {
@@ -318,7 +319,7 @@ a.feedSelectorLink.active {
 .material-symbols-outlined {
   font-size: 18px;
   vertical-align: middle;
-  color: #a3a3a3;
+  /* color: #a3a3a3; */
 }
 
 
@@ -560,6 +561,58 @@ textarea, input {
 
 
 
+
+
+
+
+
+.zapSliderVal {
+    width: 100%;
+    text-align: center;
+    font-weight: 300;
+    font-size: 22px;
+    margin-bottom: 10px;
+}
+
+
+.zapSliderContainer {
+  width: 100%;
+}
+
+.zapSlider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 34px;
+  background: #ededed;
+  outline: none;
+  opacity: 1;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+  padding: 4px;
+  border: none;
+}
+
+.zapSlider:hover {
+  opacity: 1;
+}
+
+.zapSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 25px;
+  height: 25px;
+  background: #4a75ff;
+  cursor: pointer;
+  border-radius:4px
+}
+
+.zapSlider::-moz-range-thumb {
+  width: 25px;
+  height: 25px;
+  background: #4a75ff;
+  cursor: pointer;
+  border-radius:4px
+}
 
 
 
