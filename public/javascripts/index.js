@@ -12,7 +12,7 @@ subscribePubPays()
 
 async function subscribePubPays() {
   let kind1List = []
-  
+
   let h = pool.subscribeMany(
       [...relays],
       [
@@ -22,7 +22,7 @@ async function subscribePubPays() {
       },
       ], {
       async onevent(event) {
-        
+
           if(event.tags){
             let filteredEvent = event.tags.filter(tag => tag[0] == "zap-min")
             if(filteredEvent.length>0){
@@ -34,7 +34,7 @@ async function subscribePubPays() {
                 //eventsAuthors[event.id] = {"event": event}
                 //console.log(eventsAuthors)
                 kind1Seen.add(event.id);
-                
+
                 if(!firstStream){
                   //console.log(event)
                   subscribeKind0sfromKind1s([event])
@@ -316,6 +316,7 @@ async function plot9735(json9735List){
         let noteMainCTA = parentNote.querySelector('.noteMainCTA')
         noteMainCTA.classList.add('disabled')
         noteMainCTA.innerHTML = "Paid"
+        noteMainCTA.removeEventListener('click', payNote)
 
       }else if(tagZapUses != -1){
         // Has use target
@@ -333,6 +334,7 @@ async function plot9735(json9735List){
             let noteMainCTA = parentNote.querySelector('.noteMainCTA')
             noteMainCTA.classList.add('disabled')
             noteMainCTA.innerHTML = "Paid"
+            noteMainCTA.removeEventListener('click', payNote)
           }
 
         }else{
