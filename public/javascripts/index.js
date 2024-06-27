@@ -844,5 +844,10 @@ async function submitKind1(event){
   if(isGood){
     await Promise.any(pool.publish(relays, kind1Finalized))
     console.log('published to at least one relay!')
+    setTimeout(function() {
+        var newNoteForm = document.getElementById('newPayNoteForm');
+        newNoteForm.style.display = 'none';
+    }, 1000);
+
   }
 }
