@@ -146,7 +146,7 @@ async function subscribeKind9735(kind1List){
   },
   async oneose() {
     console.log("subscribeKind9735() EOS")
-    if(kind9735List.length>0) await subscribeKind0sfromKind9735s(kind9735List, kind1List)
+    if(kind9735List.length>0) await subscribeKind0sfromKind9735s(kind9735List.reverse(), kind1List)
     firstStream = false
     //sub.close()
   },
