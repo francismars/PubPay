@@ -143,8 +143,9 @@ a.feedSelectorLink.active {
 
 
 .noteProfileImg img{
-  width: 100%;
-  aspect-ratio: 1;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
 }
 
 .noteData{
@@ -247,16 +248,21 @@ a.feedSelectorLink.active {
   row-gap: 3px;
 }
 
-
+.noteHeroZaps.noteZapReactions{
+  max-width: 1240px;
+}
 
 
 .noteZapReactions img{
   width: 20px;
-  height: fit-content;
+  height: 20px;
+  object-fit: cover;
 }
 
 .noteHeroZaps.noteZapReactions img{
   width: 40px;
+  height: 40px;
+  object-fit: cover;
 }
 
 .noteHeroZaps{
@@ -492,6 +498,11 @@ textarea, input {
     width: 5%;
     left: 20px;
     bottom: -6px;
+}
+
+.originZap .noteProfileImg img{
+  height: 20px;
+  width: 20px;
 }
 
 .originZap {
