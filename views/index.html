@@ -34,8 +34,6 @@
     <!--  -->
     <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js"></script>
     <script src="./javascripts/bolt11.min.js"></script>
-    <script type="text/javascript" type="module" src="javascripts/index.js"></script>
-
   </head>
   <body>
 
@@ -179,7 +177,7 @@
 
       <div class="overlayContainer" id="newPayNoteForm">
         <div class="overlayInner">
-            <form action="#" method="post">
+            <form id="newKind1">
                 <div class="formField">
                     <label for="payNoteContent" class="label">Your Note</label>
                     <textarea id="payNoteContent" name="payNoteContent" rows="4"></textarea>
@@ -226,5 +224,7 @@
 
     </div>
 
+
+    <script type="text/javascript" type="module" src="javascripts/index.js"></script>
   </body>
 </html>
