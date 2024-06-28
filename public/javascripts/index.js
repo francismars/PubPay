@@ -352,10 +352,17 @@ async function plot9735(json9735List){
 
 async function payNote(eventZap, userProfile, rangeValue){
   let event = eventZap
+  //console.log(event)
+  let zapLNURL = eventZap.tags.filter(tag => tag[0] == "zap-lnurl")
   let eventProfile = userProfile
   let eventProfileContent = JSON.parse(eventProfile.content)
-  console.log(eventProfileContent.lud16)
-  let lud16 = eventProfileContent.lud16
+  let lud16
+  if(zapLNURL.length>0){
+    lud16 = zapLNURL[0][1]
+  }else{
+    lud16 = eventProfileContent.lud16
+  }
+  //console.log(lud16)
   let ludSplit = lud16.split("@")
   const response = await fetch("https://"+ludSplit[1]+"/.well-known/lnurlp/"+ludSplit[0]);
   const lnurlinfo = await response.json();
@@ -377,12 +384,12 @@ async function payNote(eventZap, userProfile, rangeValue){
 async function createZapEvent(eventStoragePK, pubKey = null, rangeValue){
   eventStoragePK = JSON.parse(eventStoragePK)
   let eventZap = eventStoragePK.event
-  console.log(eventZap)
+  //console.log(eventZap)
   let lnurlinfo = eventStoragePK.lnurlinfo
   let lud16 = eventStoragePK.lud16
   let filteredEvent = eventZap.tags.filter(tag => tag[0] == "zap-min")
   let amountPay
-  rangeValue != -1 ? amountPay = rangeValue : amountPay = Math.floor(filteredEvent[0][1])
+  rangeValue != -1 ? amountPay = parseInt(rangeValue)*1000 : amountPay = Math.floor(filteredEvent[0][1])
   let zapEvent = await window.NostrTools.nip57.makeZapRequest({
       profile: eventZap.pubkey,
       event: eventZap.id,
@@ -398,14 +405,14 @@ async function createZapEvent(eventStoragePK, pubKey = null, rangeValue){
   let zapFinalized
   if(window.nostr!=null){
     zapFinalized = await window.nostr.signEvent(zapEvent)
-    await getInvoiceandPay(lnurlinfo.callback, filteredEvent[0][1], zapFinalized, lud16)
+    await getInvoiceandPay(lnurlinfo.callback, amountPay, zapFinalized, lud16)
   }
   else{
     let eventString = JSON.stringify(zapEvent)
     setTimeout(() => {
-      sessionStorage.setItem('AmberSign', JSON.stringify({"callback": lnurlinfo.callback, "amount": filteredEvent[0][1], "lud16": lud16, "event":zapEvent}));
+      sessionStorage.setItem('AmberSign', JSON.stringify({"callback": lnurlinfo.callback, "amount": amountPay, "lud16": lud16, "event":zapEvent}));
     }, 500);
-    console.log(eventString)
+    //console.log(eventString)
     window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`
   }
 }
@@ -417,10 +424,10 @@ document.addEventListener("visibilitychange", async function() {
     if(eventStoragePK){
       sessionStorage.removeItem('AmberPubkey');
       const publicKey = await accessClipboard()
-      console.log(publicKey)
+      //console.log(publicKey)
       let decodedPK = NostrTools.nip19.decode(publicKey)
-      console.log(decodedPK)
-      createZapEvent(eventStoragePK, decodedPK.data)
+      //console.log(decodedPK)
+      createZapEvent(eventStoragePK, decodedPK.data, -1)
       return
     }
     const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
@@ -433,13 +440,13 @@ document.addEventListener("visibilitychange", async function() {
       } catch (error) {
         console.error("Failed to read clipboard:", error);
       }
-      console.log('eventSigned', eventSignature)
+      //console.log('eventSigned', eventSignature)
       let eventSigned = eventStorage.event
       eventSigned["sig"] = eventSignature
       //zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSignature)
-      console.log('eventSigned', eventSigned)
+      //console.log('eventSigned', eventSigned)
       let verifiedEvent = NostrTools.verifyEvent(eventSigned)
-      console.log("Verified", verifiedEvent)
+      //console.log("Verified", verifiedEvent)
       await getInvoiceandPay(eventStorage.callback, eventStorage.amount, eventSigned, eventStorage.lud16)
     }
   }
@@ -449,7 +456,7 @@ async function accessClipboard() {
   return new Promise(resolve => {
     setTimeout(async () => {
       let clipcopied = await navigator.clipboard.readText();
-      console.log(clipcopied)
+      //console.log(clipcopied)
       resolve(clipcopied)
     }, 500);
   });
@@ -459,10 +466,10 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
   let eventFinal = JSON.stringify(zapFinalized)
   let lnurl = lud16
   let callString = `${callback}?amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`
-  console.log('callString', callString)
+  //console.log('callString', callString)
   const responseFinal = await fetch(callString)
   const {pr: invoice} = await responseFinal.json();
-  console.log('invoice', invoice)
+  //console.log('invoice', invoice)
   if(window.webln){
     await window.webln.enable();
     await window.webln.sendPayment(invoice);
@@ -691,7 +698,7 @@ async function drawKind1(eventData, authorData){
       zapSliderContainer.appendChild(zapSliderVal)
 
       let update = () => {
-        console.log( (zapSlider.value).toLocaleString() )
+        //console.log( (zapSlider.value).toLocaleString() )
         buttonZap.setAttribute('value', parseInt(zapSlider.value))
         zapSliderVal.innerHTML = (parseInt(zapSlider.value)).toLocaleString() + '<span class="label"> sats</span>';
       }
@@ -830,7 +837,7 @@ window.addEventListener("DOMContentLoaded", (event) => {
 
 
 function showJSON(json){
-  console.log(json);
+  //console.log(json);
   var viewJSON = document.getElementById('viewJSON');
   if (viewJSON.style.display === 'none' || viewJSON.style.display === '') {
       viewJSON.style.display = 'flex'
@@ -849,7 +856,7 @@ async function submitKind1(event){
   //console.log(event)
   event.preventDefault();
   const payNoteContent = document.getElementById('payNoteContent').value;
-  console.log(payNoteContent)
+  //console.log(payNoteContent)
   if(payNoteContent==""){
   }
   let tagsList = []
@@ -860,6 +867,8 @@ async function submitKind1(event){
   else if(zapMin!="" && zapMax=="") tagsList.push(["zap-max",(zapMin*1000).toString()])
   const zapUses = document.getElementById('zapUses').value;
   if(zapUses!="") tagsList.push(["zap-uses",zapUses])
+  const zapLNURL = document.getElementById('overrideLNURL').value;
+  if(zapLNURL!="") tagsList.push(["zap-lnurl",zapLNURL])
 
   let kind1 = {
     kind: 1,
@@ -875,10 +884,10 @@ async function submitKind1(event){
     kind1Finalized = await window.nostr.signEvent(kind1)
   }
   let isGood = NostrTools.verifyEvent(kind1Finalized)
-  console.log("is good?", isGood)
+  //console.log("is good?", isGood)
   if(isGood){
     await Promise.any(pool.publish(relays, kind1Finalized))
-    console.log('published to at least one relay!')
+    //console.log('published to at least one relay!')
     setTimeout(function() {
         var newNoteForm = document.getElementById('newPayNoteForm');
         newNoteForm.style.display = 'none';
