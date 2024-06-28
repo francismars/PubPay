@@ -655,8 +655,18 @@ async function drawKind1(eventData, authorData){
   if(filteredZapPayer[0]!=null){
     var zapPayer = document.createElement('div')
     zapPayer.setAttribute('class', 'zapPayer')
-    zapPayer.innerHTML = '<img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"><div class="userName">Payer Display Name</div>'
+    zapPayer.innerHTML = '<span class="material-symbols-outlined">arrow_downward_alt</span><img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"><div class="userName">'+ start_and_end(NostrTools.nip19.npubEncode(filteredZapPayer[0][1])) +'</div>'
     noteData.appendChild(zapPayer)
+  }
+
+
+  // LNURL
+  let filteredZapLNURL = eventData.tags.filter(tag => tag[0] == "zap-lnurl")
+  if(filteredZapLNURL[0]!=null){
+    var zapLNURL = document.createElement('div')
+    zapLNURL.setAttribute('class', 'zapPayer')
+    zapLNURL.innerHTML = '<span class="material-symbols-outlined">more_up</span> '+filteredZapLNURL[0][1]
+    noteData.appendChild(zapLNURL)
   }
 
 
