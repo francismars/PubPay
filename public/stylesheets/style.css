@@ -51,7 +51,7 @@ body{
   column-gap: 15px;
 }
 
-#logo{
+#logo, .brand{
   font-family: "Russo One", sans-serif;
   font-weight: 400;
   font-style: normal;
@@ -59,12 +59,17 @@ body{
 }
 
 
+.brand{
+  color: #e2e2e2;
+  text-align: center;
+  margin-bottom: 20px;
+}
 
 #logo .version {
   color: #acacac96;
   display: block;
   font-size: 10px;
-  margin-bottom: -10px;
+  margin-bottom: -5px;
   margin-top: -4px;
 }
 
