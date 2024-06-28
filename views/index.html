@@ -43,7 +43,7 @@
       <div id="nav">
         <div id="navInner">
           <a id="logo" href="">
-            PUB<span style="color: #000">PAY</span><span style="color: #0000001c">.me</span>
+            PUB<span style="color: #000">PAY</span><span style="color: #0000001c">.me</span><span class="version">beta 0.01</span>
           </a>
           <div id="navActions">
 
@@ -188,39 +188,39 @@
 
                 <div class="formFieldGroup">
                   <div class="formField">
-                      <label for="zapMin" class="label">Minimum Zap</label>
-                      <input type="text" id="zapMin" name="zapMin">
+                      <label for="zapMin" class="label">Minimum amount <span class="tagName">zap-min</span></label>
+                      <input type="text" id="zapMin" placeholder="1" name="zapMin">
                   </div>
                   <div class="formField">
-                      <label for="zapMax" class="label">Maximum zap</label>
-                      <input type="text" id="zapMax" name="zapMax">
+                      <label for="zapMax" class="label">Maximum amount <span class="tagName">zap-max</span></label>
+                      <input type="text" id="zapMax" placeholder="1000000000" name="zapMax">
                   </div>
                 </div>
 
                 <div class="formFieldGroup">
                   <div class="formField">
-                      <label for="zapUses" class="label">Uses</label>
-                      <input type="text" id="zapUses" name="zapUses">
+                      <label for="zapUses" class="label">Number of uses <span class="tagName">zap-uses</span></label>
+                      <input type="text" id="zapUses" placeholder="1" name="zapUses">
                   </div>
                   <div class="formField disabled">
-                      <label for="zapIncrement" class="label">Increment</label>
-                      <input type="text" id="zapIncrement" name="zapIncrement" disabled>
+                      <label for="zapIncrement" class="label">Increment <span class="tagName">coming soon</span></label>
+                      <input type="text" id="zapIncrement" placeholder="0" name="zapIncrement" disabled>
                   </div>
                 </div>
 
                 <div class="formField">
-                    <label for="zapPayer" class="label">Target npub for zap</label>
-                    <input type="text" id="zapPayer" name="zapPayer">
+                    <label for="zapPayer" class="label">Specify who should pay <span class="tagName">zap-payer</span></label>
+                    <input type="text" id="zapPayer" placeholder="npub1..." name="zapPayer">
                 </div>
 
                 <div class="formField">
-                    <label for="redirectToNote" class="label">Redirect zap to another note1</label>
-                    <input type="text" id="redirectToNote" name="redirectToNote">
+                    <label for="redirectToNote" class="label">Redirect payment to another note <span class="tagName">zap-redirect</span></label>
+                    <input type="text" id="redirectToNote" placeholder="note1..." name="redirectToNote">
                 </div>
 
                 <div class="formField">
-                    <label for="overrideLNURL" class="label">LNURL override</label>
-                    <input type="text" id="overrideLNURL" name="overrideLNURL">
+                    <label for="overrideLNURL" class="label">Override LNURL <span class="tagName">zap-lnur</span></label>
+                    <input type="text" id="overrideLNURL" placeholder="address@lnprovider.net" name="overrideLNURL">
                 </div>
 
                 <button type="submit" class="cta">Post Note</button>
