@@ -58,6 +58,16 @@ body{
   font-size: 20px
 }
 
+
+
+#logo .version {
+  color: #acacac96;
+  display: block;
+  font-size: 10px;
+  margin-bottom: -10px;
+  margin-top: -4px;
+}
+
 #container{
   width: 100%;
   margin-top: 80px;
@@ -460,6 +470,8 @@ a.cta, button.cta{
   font-size: 12px;
   margin-bottom: 3px;
   letter-spacing: 0.01rem;
+  color: #000;
+  font-weight:600
 }
 
 .formField.disabled {
@@ -480,6 +492,23 @@ textarea, input {
 }
 
 
+
+.tagName{
+  font-size: 10px;
+    color: #b4b4b4;
+  font-weight:400
+}
+
+
+
+
+input::placeholder {
+  opacity: 0.3;
+}
+
+input:focus::placeholder {
+  color: transparent;
+}
 
 
 .noteNIP05.label .unverified{
