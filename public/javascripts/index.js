@@ -733,15 +733,15 @@ async function drawKind1(eventData, authorData){
 
   var noteActions = document.createElement('div')
   noteActions.setAttribute('class', 'noteActions')
-  let noteActionBtns =  '<div class="noteAction"><span class="material-symbols-outlined">bolt</span></div>'
-  noteActionBtns +=     '<div class="noteAction"><span class="material-symbols-outlined">favorite</span></div>'
-  noteActionBtns +=     '<div class="noteAction"><span class="material-symbols-outlined">ios_share</span></div>'
+  let noteActionBtns =  '<a href="#" class="noteAction disabled" title="coming soon"><span class="material-symbols-outlined">bolt</span></a>'
+  noteActionBtns +=     '<a href="#" class="noteAction disabled" title="coming soon"><span class="material-symbols-outlined">favorite</span></a>'
+  noteActionBtns +=     '<a href="#" class="noteAction disabled" title="coming soon"><span class="material-symbols-outlined">ios_share</span></a>'
   let toolTip     =     '<div class="tooltiptext">'
-  toolTip        +=     '<a href="#" class="cta">Crowd Pay</a>'
-  toolTip        +=     '<a href="#" class="cta">Forward Pay</a>'
-  toolTip        +=     '<a href="#" class="cta">Pay Anonymously</a>'
+  toolTip        +=     '<a href="#" class="cta disabled" title="coming soon">Crowd Pay</a>'
+  toolTip        +=     '<a href="#" class="cta disabled" title="coming soon">Forward Pay</a>'
+  toolTip        +=     '<a href="#" class="cta disabled" title="coming soon">Pay Anonymously</a>'
   toolTip        +=     '<a href="#" onclick="showJSON('+eventDataString+')" class="toolTipLink">View Raw</a>'
-  toolTip        +=     '<a href="#" class="toolTipLink">Broadcast</a>'
+  toolTip        +=     '<a href="#" class="toolTipLink disabled" title="coming soon">Broadcast</a>'
   toolTip        +=     '<div>View on</div>'
   toolTip        +=     '<a href="https://next.nostrudel.ninja/#/n/'+NostrTools.nip19.noteEncode(eventData.id)+'" class="toolTipLink" target="_blank">nostrudel</a>'
   toolTip        +=     '</div>'
