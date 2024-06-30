@@ -1,0 +1,20 @@
+{
+  "names": {
+    "_": "024a1e0ce411f27778fd0e954a24c5368c3edb6a92360231fa8fcb1d503e8371"
+  },
+  "relays": {
+    "024a1e0ce411f27778fd0e954a24c5368c3edb6a92360231fa8fcb1d503e8371": [
+      "wss://relay.damus.io",
+      "wss://relay.primal.net",
+      "wss://nostr.mutinywallet.com",
+      "wss://relay.nostr.band",
+      "wss://relay.nostr.band",
+      "wss://nostr.coinos.io",
+      "wss://rsslay.nostr.net",
+      "wss://relay.current.fyi",
+      "wss://nos.io",
+      "wss://brb.io",
+      "wss://offchain.pub"
+    ]
+  }
+}
