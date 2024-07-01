@@ -189,9 +189,8 @@ async function plot9735(json9735List){
     //console.log(json9735)
     let parentNote = document.getElementById(json9735.e)
 
-    let profileImage
-    json9735.picture == "" ? profileImage = "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" : profileImage = json9735.picture
-
+    if(!json9735.picture) json9735.picture = ""
+    const profileImage = json9735.picture == "" ? "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" : json9735.picture
 
     let zapPayerLink = '<a href="https://next.nostrudel.ninja/#/u/'+json9735.npubPayer+'" target="_blank"><img class="userImg" src="'+profileImage+'" /></a>'
     let zapEventLink = '<a href="https://next.nostrudel.ninja/#/n/'+json9735.zapEventID+'" target="_blank" class="zapReactionAmount">'+json9735.amount+'</a>'
@@ -466,7 +465,8 @@ async function drawKind1(eventData, authorData){
   noteProfileImg.setAttribute('class', 'noteProfileImg')
   var userImg = document.createElement('img')
   userImg.setAttribute('class', 'userImg')
-  userImg.setAttribute('src', profileData.picture);
+  const profileImage = profileData.picture == "" ? "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" : profileData.picture
+  userImg.setAttribute('src', profileImage);
   //userImg.setAttribute('src', 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg')
 
   noteProfileImg.appendChild(userImg)
