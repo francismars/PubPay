@@ -400,6 +400,7 @@ a.cta, button.cta{
   color: #afafaf;
   background: #eaeaea;
   box-shadow: none;
+  opacity: 1;
 }
 
 .paynote .cta.disabled:hover{
