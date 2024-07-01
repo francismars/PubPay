@@ -28,7 +28,7 @@ async function subscribePubPays() {
       },
       async oneose() {
         if(firstStream){
-          //let first20kind1 = kind1List.splice(0, 20)
+          //let first20kind1 = kind1List.splice(0, 2)
           await subscribeKind0sfromKind1s(kind1List)
           console.log("subscribePubPays() EOS")
         }
@@ -712,16 +712,18 @@ async function drawKind1(eventData, authorData){
 
 function formatContent(content){
   //formatedContent = formatedContent.replace(/(nostr:|@)?((npub|note|nprofile|nevent|nrelay|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi, '<a href="$1.$2">@CornerStore</a>')
-
+  console.log("entrou aqui")
   // render npubs
+  console.log(content)
   let npubMention = content.match(/(nostr:|@)?((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi)
   if(npubMention){
     npubMention = npubMention[0].replace('nostr:', '')
     npubMention = start_and_end(npubMention)
     content = content.replace(/(nostr:|@)?((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi, '<a href="https://next.nostrudel.ninja/#/u/$2" class="userMention" npub="$2" target="_blank">'+npubMention+'</a>')
     // render image
-    content = content.replace(/(http(s*):\/\/[\w\\x80-\\xff\#$%&~\/.\-;:=,?@\[\]+]*).(gif|png|jpg|jpeg)/gi, '<img src="$1.$3" />')
+    //content = content.replace(/(http(s*):\/\/[\w\\x80-\\xff\#$%&~\/.\-;:=,?@\[\]+]*).(gif|png|jpg|jpeg)/gi, '<img src="$1.$3" />')
   }
+  content = content.replace(/(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(gif|png|jpg|jpeg)/gi, '<img src="$1.$2" />');
   return content
 }
 
