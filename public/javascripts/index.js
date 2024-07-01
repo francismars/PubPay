@@ -571,22 +571,23 @@ async function drawKind1(eventData, authorData){
 
 
   // Values
-  var noteValues = document.createElement('div')
+  let noteValues = document.createElement('div')
   noteValues.setAttribute('class', 'noteValues')
 
   // INSERT LOGIC FOR AMOUNT, ZAP-MIN, ZAP-MAX, ETC
+  let zapMin = document.createElement('div')
   let filteredZapMin = eventData.tags.find(tag => tag[0] == "zap-min")
   if(filteredZapMin){
     const zapMinParsed = parseInt(filteredZapMin[1])
     if(!(Number.isInteger(zapMinParsed) && zapMinParsed>0)){
       filteredZapMin[1] = 1000
     }
-    var zapMin = document.createElement('div')
     zapMin.setAttribute('class', 'zapMin')
     zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Min</span>'
     noteValues.appendChild(zapMin)
   }
 
+  let zapMax = document.createElement('div')
   let filteredZapMax = eventData.tags.find(tag => tag[0] == "zap-max")
   if(filteredZapMax){
     const zapMaxParsed = parseInt(filteredZapMax[1])
@@ -594,27 +595,24 @@ async function drawKind1(eventData, authorData){
       if(filteredZapMin && filteredZapMin[1]) filteredZapMax[1] = filteredZapMin[1]
       else filteredZapMax[1] = 100000
     }
-    var zapMax = document.createElement('div')
-    zapMax.setAttribute('class', 'zapMax')
-    zapMax.innerHTML = '<span class="zapMaxVal">'+(filteredZapMax[1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Max</span>'
   }
-  //console.log(filteredZapMin[1], filteredZapMax[1])
 
-  let filteredZapUses = eventData.tags.filter(tag => tag[0] == "zap-uses")
-
-  var zapUses = document.createElement('div')
-  zapUses.setAttribute('class', 'zapUses')
-  filteredZapUses!=null && filteredZapUses[0]!=null ? zapUses.innerHTML = `<span class='zapUsesCurrent'>0</span> <span class='label'>of</span> <span class='zapUsesTotal'>${filteredZapUses[0][1]}</span>`
-                  : zapUses.innerHTML = ""
-
-
-  if(filteredZapMin && filteredZapMax && filteredZapMin[1] != filteredZapMax[1] ){
+  if(filteredZapMin && filteredZapMax){
+    if(filteredZapMin[1] != filteredZapMax[1] ){
+      zapMax.setAttribute('class', 'zapMax')
+      zapMax.innerHTML = '<span class="zapMaxVal">'+(filteredZapMax[1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Max</span>'  
       noteValues.appendChild(zapMax)
-  }
+    }
+    else if(filteredZapMin[1] == filteredZapMax[1] ){
+      zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[1]/1000).toLocaleString()+'</span> <span class="label">sats<br></span>'
+    }
+  } 
 
-
-
-
+  const filteredZapUses = eventData.tags.find(tag => tag[0] == "zap-uses")
+  const zapUses = document.createElement('div')
+  zapUses.setAttribute('class', 'zapUses')
+  filteredZapUses ? zapUses.innerHTML = `<span class='zapUsesCurrent'>0</span> <span class='label'>of</span> <span class='zapUsesTotal'>${filteredZapUses[1]}</span>`
+                  : zapUses.innerHTML = ""
   noteValues.appendChild(zapUses)
   noteData.appendChild(noteValues)
 
@@ -630,11 +628,11 @@ async function drawKind1(eventData, authorData){
 
 
   // LNURL
-  let filteredZapLNURL = eventData.tags.find(tag => tag[0] == "zap-lnurl")
+  const filteredZapLNURL = eventData.tags.find(tag => tag[0] == "zap-lnurl")
   if(filteredZapLNURL){
     const ludSplit = filteredZapLNURL[1].split("@")
     if(ludSplit.length==2){
-      var zapLNURL = document.createElement('div')
+      const zapLNURL = document.createElement('div')
       zapLNURL.setAttribute('class', 'zapPayer')
       zapLNURL.innerHTML = `<span class="material-symbols-outlined">more_up</span>`
       zapLNURL.innerHTML += `<a href="https://`+ludSplit[1]+`/.well-known/lnurlp/`+ludSplit[0]+`" target=”_blank”>`+filteredZapLNURL[1]+`</a>`
