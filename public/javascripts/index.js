@@ -205,23 +205,34 @@ async function plot9735(json9735List){
     */
 
     let tagZapMin = json9735.tags.find(tag => tag[0] == "zap-min")
-    if(tagZapMin){ tagZapMin = tagZapMin[1] }
+    if(tagZapMin){
+      const zapMinParsed = parseInt(tagZapMin[1])
+      if(Number.isInteger(zapMinParsed) && zapMinParsed > 0){ tagZapMin = tagZapMin[1] }
+      else(tagZapMin = undefined)
+    }
 
     let tagZapMax = json9735.tags.find(tag => tag[0] == "zap-max")
-    if(tagZapMax){ tagZapMax = tagZapMax[1] }
+    if(tagZapMax){
+      const zapMaxParsed = parseInt(tagZapMax[1])
+      if(Number.isInteger(zapMaxParsed) && zapMaxParsed > 0){ tagZapMax = tagZapMax[1] }
+      else(tagZapMax = undefined)
+    }
 
     let tagZapUses = json9735.tags.find(tag => tag[0] == "zap-uses")
-    if(tagZapUses){ tagZapUses = tagZapUses[1]
+    if(tagZapUses){
+      const zapUsesParsed = parseInt(tagZapUses[1])
+      if(Number.isInteger(zapUsesParsed) && zapUsesParsed > 0){ tagZapUses = tagZapUses[1]
+      }else{ tagZapUses = -1 }
     }else{ tagZapUses = -1 }
 
     let zapTarget = tagZapMin/1000 * tagZapUses
 
 
-    let tagZapPayer = json9735.tags.filter(tag => tag[0] == "zap-payer")
-    if(tagZapPayer.length > 0){ tagZapPayer = tagZapPayer[0][1] }
+    let tagZapPayer = json9735.tags.find(tag => tag[0] == "zap-payer")
+    if(tagZapPayer){ tagZapPayer = tagZapPayer[1] }
 
-    let tagZapForward = json9735.tags.filter(tag => tag[0] == "zap-forward")
-    if(tagZapForward.length > 0){ tagZapForward = tagZapForward[0][1] }
+    let tagZapForward = json9735.tags.find(tag => tag[0] == "zap-forward")
+    if(tagZapForward){ tagZapForward = tagZapForward[1] }
 
     /*
     console.log("amount: "+json9735.amount)
@@ -235,11 +246,10 @@ async function plot9735(json9735List){
 
     let useIncrement = 0
 
-
-    if(json9735.amount >= tagZapMin/1000 && json9735.amount <= tagZapMax/1000){
-      // Zap above minimum and below the maximum
-
-
+    // Zap above minimum and below the maximum
+    if((tagZapMin && !tagZapMax) && json9735.amount >= tagZapMin/1000 ||
+    (!tagZapMin && tagZapMax) && json9735.amount <= tagZapMax/1000 ||
+    (tagZapMin && tagZapMax) && json9735.amount >= tagZapMin/1000 && json9735.amount <= tagZapMax/1000){
       if(tagZapPayer == json9735.pubKey){
         // Zap payer match
         let zapPayer = parentNote.querySelector('.zapPayer')
@@ -565,20 +575,29 @@ async function drawKind1(eventData, authorData){
   noteValues.setAttribute('class', 'noteValues')
 
   // INSERT LOGIC FOR AMOUNT, ZAP-MIN, ZAP-MAX, ETC
-  let filteredZapMin = eventData.tags.filter(tag => tag[0] == "zap-min")
-  if(filteredZapMin.length>0){
+  let filteredZapMin = eventData.tags.find(tag => tag[0] == "zap-min")
+  if(filteredZapMin){
+    const zapMinParsed = parseInt(filteredZapMin[1])
+    if(!(Number.isInteger(zapMinParsed) && zapMinParsed>0)){
+      filteredZapMin[1] = 1000
+    }
     var zapMin = document.createElement('div')
     zapMin.setAttribute('class', 'zapMin')
-    zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[0][1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Min</span>'
+    zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Min</span>'
     noteValues.appendChild(zapMin)
   }
 
-  let filteredZapMax = eventData.tags.filter(tag => tag[0] == "zap-max")
-  if(filteredZapMax.length>0){
+  let filteredZapMax = eventData.tags.find(tag => tag[0] == "zap-max")
+  if(filteredZapMax){
+    const zapMaxParsed = parseInt(filteredZapMax[1])
+    if(!(Number.isInteger(zapMaxParsed) && zapMaxParsed>0)){
+      filteredZapMax[1] = 100000
+    }
     var zapMax = document.createElement('div')
     zapMax.setAttribute('class', 'zapMax')
-    zapMax.innerHTML = '<span class="zapMaxVal">'+(filteredZapMax[0][1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Max</span>'
+    zapMax.innerHTML = '<span class="zapMaxVal">'+(filteredZapMax[1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Max</span>'
   }
+  //console.log(filteredZapMin[1], filteredZapMax[1])
 
   let filteredZapUses = eventData.tags.filter(tag => tag[0] == "zap-uses")
 
@@ -588,7 +607,7 @@ async function drawKind1(eventData, authorData){
                   : zapUses.innerHTML = ""
 
 
-  if(filteredZapMin.length>0 && filteredZapMax.length>0 && filteredZapMin[0][1] != filteredZapMax[0][1] ){
+  if(filteredZapMin && filteredZapMax && filteredZapMin[1] != filteredZapMax[1] ){
       noteValues.appendChild(zapMax)
   }
 
@@ -641,13 +660,11 @@ async function drawKind1(eventData, authorData){
   });
 
 
-
-
-  if(filteredZapMin.length>0 && filteredZapMax.length>0 && filteredZapMin[0][1] != filteredZapMax[0][1] ){
+  if(filteredZapMin && filteredZapMax && filteredZapMin[1] != filteredZapMax[1] ){
 
       var zapSliderContainer = document.createElement('div')
       zapSliderContainer.setAttribute('class', 'zapSliderContainer')
-      zapSliderContainer.innerHTML = '<input type="range" min="'+(filteredZapMin[0][1]/1000)+'" max="'+(filteredZapMax[0][1]/1000)+'" value="'+(filteredZapMin[0][1]/1000)+'" class="zapSlider">'
+      zapSliderContainer.innerHTML = '<input type="range" min="'+(filteredZapMin[1]/1000)+'" max="'+(filteredZapMax[1]/1000)+'" value="'+(filteredZapMin[1]/1000)+'" class="zapSlider">'
       noteData.appendChild(zapSliderContainer)
 
       var zapSlider = zapSliderContainer.querySelector('.zapSlider')
