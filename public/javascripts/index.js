@@ -334,9 +334,11 @@ async function createZapEvent(eventStoragePK, pubKey = null, rangeValue){
   //console.log(eventZap)
   let lnurlinfo = eventStoragePK.lnurlinfo
   let lud16 = eventStoragePK.lud16
-  let filteredEvent = eventZap.tags.filter(tag => tag[0] == "zap-min")
-  let amountPay
-  rangeValue != -1 ? amountPay = parseInt(rangeValue)*1000 : amountPay = Math.floor(filteredEvent[0][1])
+  let zapMintag = eventZap.tags.find(tag => tag[0] == "zap-min")
+  let zapTagAmount
+  if(zapMintag) zapTagAmount = zapMintag[1]
+  else zapTagAmount = 1000
+  const amountPay = rangeValue != -1 ? parseInt(rangeValue)*1000 : Math.floor(zapTagAmount)
   let zapEvent = await window.NostrTools.nip57.makeZapRequest({
       profile: eventZap.pubkey,
       event: eventZap.id,
@@ -453,7 +455,7 @@ async function drawKind1(eventData, authorData){
   profileData.name = authorContent.name
   //profileData.displayName = authorContent.name
   authorContent.displayName ? profileData.displayName = authorContent.displayName : profileData.displayName = authorContent.display_name
-  profileData.picture = authorContent.picture
+  profileData.picture = authorContent.picture ? authorContent.picture : "" 
   profileData.nip05 = authorContent.nip05
   profileData.lud16 = authorContent.lud16
 
@@ -485,7 +487,7 @@ async function drawKind1(eventData, authorData){
 
   var noteDisplayName = document.createElement('div')
   noteDisplayName.setAttribute('class', 'noteDisplayName')
-  let displayName=profileData.displayName;
+  let displayName= profileData.displayName ? profileData.displayName : profileData.name;
   let npub = NostrTools.nip19.npubEncode(eventData.pubkey)
   if(profileData.name==null){
     displayName = start_and_end(npub)
