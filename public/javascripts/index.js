@@ -630,12 +630,17 @@ async function drawKind1(eventData, authorData){
 
 
   // LNURL
-  let filteredZapLNURL = eventData.tags.filter(tag => tag[0] == "zap-lnurl")
-  if(filteredZapLNURL[0]!=null){
-    var zapLNURL = document.createElement('div')
-    zapLNURL.setAttribute('class', 'zapPayer')
-    zapLNURL.innerHTML = '<span class="material-symbols-outlined">more_up</span> '+filteredZapLNURL[0][1]
-    noteData.appendChild(zapLNURL)
+  let filteredZapLNURL = eventData.tags.find(tag => tag[0] == "zap-lnurl")
+  if(filteredZapLNURL){
+    const ludSplit = filteredZapLNURL[1].split("@")
+    console.log(ludSplit)
+    if(ludSplit.length==2){
+      var zapLNURL = document.createElement('div')
+      zapLNURL.setAttribute('class', 'zapPayer')
+      zapLNURL.innerHTML = `<span class="material-symbols-outlined">more_up</span>`
+      zapLNURL.innerHTML += `<a href="https://`+ludSplit[1]+`/.well-known/lnurlp/`+ludSplit[0]+`" target=”_blank”>`+filteredZapLNURL[1]+`</a>`
+      noteData.appendChild(zapLNURL)
+    }
   }
 
 
