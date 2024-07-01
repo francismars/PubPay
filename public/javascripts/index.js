@@ -205,18 +205,15 @@ async function plot9735(json9735List){
     'zap-forward', 'a2f6faac5990a9bfb6e47a3d4b6c204592eb6c642563dbdada6512a84'
     */
 
-    let tagZapMin = json9735.tags.filter(tag => tag[0] == "zap-min")
-    if(tagZapMin != null){ tagZapMin = tagZapMin[0][1] }
+    let tagZapMin = json9735.tags.find(tag => tag[0] == "zap-min")
+    if(tagZapMin){ tagZapMin = tagZapMin[1] }
 
-    let tagZapMax = json9735.tags.filter(tag => tag[0] == "zap-max")
-    if(tagZapMax != null){ tagZapMax = tagZapMax[0][1] }
+    let tagZapMax = json9735.tags.find(tag => tag[0] == "zap-max")
+    if(tagZapMax){ tagZapMax = tagZapMax[1] }
 
-    let tagZapUses = json9735.tags.filter(tag => tag[0] == "zap-uses")
-    if(tagZapUses.length > 0){
-      tagZapUses = tagZapUses[0][1]
-    }else{
-      tagZapUses = -1
-    }
+    let tagZapUses = json9735.tags.find(tag => tag[0] == "zap-uses")
+    if(tagZapUses){ tagZapUses = tagZapUses[1]
+    }else{ tagZapUses = -1 }
 
     let zapTarget = tagZapMin/1000 * tagZapUses
 
