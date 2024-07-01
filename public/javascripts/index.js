@@ -306,7 +306,7 @@ async function plot9735(json9735List){
   }
 }
 
-async function payNote(eventZap, userProfile, rangeValue){
+async function payNote(eventZap, userProfile, rangeValue, anonymousZap = false){
   let event = eventZap
   //console.log(event)
   let zapLNURL = eventZap.tags.filter(tag => tag[0] == "zap-lnurl")
@@ -326,7 +326,7 @@ async function payNote(eventZap, userProfile, rangeValue){
       // const privateKey = window.NostrTools.generateSecretKey()
       let publicKey
       if(window.nostr!=null){
-        createZapEvent(JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":eventZap}), null, rangeValue)
+        await createZapEvent(JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":eventZap}), null, rangeValue, anonymousZap)
         return
         // publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
       }
@@ -337,7 +337,7 @@ async function payNote(eventZap, userProfile, rangeValue){
   }
 }
 
-async function createZapEvent(eventStoragePK, pubKey = null, rangeValue){
+async function createZapEvent(eventStoragePK, pubKey = null, rangeValue, anonymousZap = false){
   eventStoragePK = JSON.parse(eventStoragePK)
   let eventZap = eventStoragePK.event
   //console.log(eventZap)
@@ -361,7 +361,14 @@ async function createZapEvent(eventStoragePK, pubKey = null, rangeValue){
     if(eventID!=null) zapEvent.id = eventID
   }
   let zapFinalized
-  if(window.nostr!=null){
+  if(anonymousZap==true){
+    const privateKey = window.NostrTools.generateSecretKey()
+    const publicKey = window.NostrTools.getPublicKey(privateKey)
+    const signedEvent = window.NostrTools.finalizeEvent(zapEvent, privateKey)
+    const isGood = verifyEvent(signedEvent)
+    console.log("isGood?", isGood)
+  }
+  else if(window.nostr!=null){
     zapFinalized = await window.nostr.signEvent(zapEvent)
     await getInvoiceandPay(lnurlinfo.callback, amountPay, zapFinalized, lud16)
   }
@@ -706,7 +713,10 @@ async function drawKind1(eventData, authorData){
   let toolTip     =     '<div class="tooltiptext">'
   toolTip        +=     '<a href="#" class="cta disabled" title="coming soon">Crowd Pay</a>'
   toolTip        +=     '<a href="#" class="cta disabled" title="coming soon">Forward Pay</a>'
-  toolTip        +=     '<a href="#" class="cta disabled" title="coming soon">Pay Anonymously</a>'
+  toolTip       += '<a href="#" class="cta" onclick="(function() { ';
+  toolTip       += 'const rangeValue = buttonZap.getAttribute(\'value\') !== null ? buttonZap.getAttribute(\'value\') : -1;';
+  toolTip       += 'payNote(\'' + eventData + '\', \'' + authorData + '\', rangeValue, true);';
+  toolTip       += '})()" title="Pay Anonymously">Pay Anonymously</a>';
   toolTip        +=     '<a href="#" onclick="showJSON('+eventDataString+')" class="toolTipLink">View Raw</a>'
   toolTip        +=     '<a href="#" class="toolTipLink disabled" title="coming soon">Broadcast</a>'
   toolTip        +=     '<div>View on</div>'
