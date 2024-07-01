@@ -591,7 +591,8 @@ async function drawKind1(eventData, authorData){
   if(filteredZapMax){
     const zapMaxParsed = parseInt(filteredZapMax[1])
     if(!(Number.isInteger(zapMaxParsed) && zapMaxParsed>0)){
-      filteredZapMax[1] = 100000
+      if(filteredZapMin && filteredZapMin[1]) filteredZapMax[1] = filteredZapMin[1]
+      else filteredZapMax[1] = 100000
     }
     var zapMax = document.createElement('div')
     zapMax.setAttribute('class', 'zapMax')
