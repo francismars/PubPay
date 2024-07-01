@@ -712,9 +712,7 @@ async function drawKind1(eventData, authorData){
 
 function formatContent(content){
   //formatedContent = formatedContent.replace(/(nostr:|@)?((npub|note|nprofile|nevent|nrelay|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi, '<a href="$1.$2">@CornerStore</a>')
-  console.log("entrou aqui")
   // render npubs
-  console.log(content)
   let npubMention = content.match(/(nostr:|@)?((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi)
   if(npubMention){
     npubMention = npubMention[0].replace('nostr:', '')
