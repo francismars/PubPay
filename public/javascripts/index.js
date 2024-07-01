@@ -1,18 +1,14 @@
 const pool = new NostrTools.SimplePool()
-let relays = ['wss://relay.damus.io', 'wss://relay.primal.net','wss://nostr.mutinywallet.com/', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
-
-let kind1Seen = new Set();
-let kind9735Seen = new Set();
-
-//let eventsAuthors = {}
+const relays = ['wss://relay.damus.io', 'wss://relay.primal.net','wss://nostr.mutinywallet.com/', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
 
 let firstStream = true
 
 subscribePubPays()
 
 async function subscribePubPays() {
+  let kind1Seen = new Set();
   let kind1List = []
-  let h = pool.subscribeMany(
+  pool.subscribeMany(
       [...relays],
       [
       {
@@ -20,20 +16,19 @@ async function subscribePubPays() {
           "#t": ["pubpay"]
       },
       ], {
-      async onevent(event) {
-        if(event.tags && !(kind1Seen.has(event.id))){
-          kind1Seen.add(event.id);
+      async onevent(kind1) {
+        if(kind1.tags && !(kind1Seen.has(kind1.id))){
+          kind1Seen.add(kind1.id);
           if(!firstStream){
-            subscribeKind0sfromKind1s([event])
-          }
-          else{
-            kind1List.push(event)
+            await subscribeKind0sfromKind1s([kind1])
+          } else {
+            kind1List.push(kind1)
           }
         }
       },
       async oneose() {
         if(firstStream){
-          //let first20kind1 = kind1List.splice(0, 2)
+          //let first20kind1 = kind1List.splice(0, 20)
           await subscribeKind0sfromKind1s(kind1List)
           console.log("subscribePubPays() EOS")
         }
@@ -59,65 +54,30 @@ async function subscribeKind0sfromKind1s(kind1List){
   ,{
   async onevent(kind0) {
     kind0List.push(kind0)
-    //await createNote(event, kind0)
-    //eventsAuthors[event.id] = {"author": eventAuthor}
-    //await createNote(event, eventAuthor)
-    //await getZapInvoice(event, eventProfile)
-    //await subscribeZaps(event)
   },
   async oneose() {
-    console.log("subscribeKind0sfromKind1s() EOS")
-    sub.close()
+    console.log("subscribeKind0sfromKind1s() EOS") 
     await drawKind1s(kind1List, kind0List)
     await subscribeKind9735(kind1List)
+    sub.close()
   },
   onclosed() {
-    //console.log("Closed")
+    console.log("subscribeKind0sfromKind1s() Closed")
   }
 })
 }
 
 async function drawKind1s(first20kind1, kind0List){
   for(let kind1 of first20kind1){
-    let kind1Pubkey = kind1.pubkey
-    for(let kind0 of kind0List){
-      let kind0Pubkey = kind0.pubkey
-      if(kind1Pubkey == kind0Pubkey){
-        drawKind1(kind1, kind0)
-        break
-      }
+    const kind0 = kind0List.find(({ pubkey }) => pubkey === kind1.pubkey);
+    if (kind0) {
+      drawKind1(kind1, kind0);
     }
   }
 }
 
-/*
-async function getUser(event){
-  let authorPK = event.pubkey
-  const sub = pool.subscribeMany(
-    [...relays],
-    [{
-        kinds: [0],
-        authors: [authorPK]
-    }]
-  ,{
-  async onevent(eventAuthor) {
-    //eventsAuthors[event.id] = {"author": eventAuthor}
-    await createNote(event, eventAuthor)
-    //await getZapInvoice(event, eventProfile)
-    await subscribeZaps(event)
-  },
-  oneose() {
-    //console.log("getUser() oneosed")
-    //sub.close()
-  },
-  onclosed() {
-    //console.log("Closed")
-  }
-})
-}
-*/
-
 async function subscribeKind9735(kind1List){
+  let kind9735Seen = new Set();
   let kind1IDList = []
   let kind9735List = []
   for(let kind1 of kind1List){
@@ -139,10 +99,8 @@ async function subscribeKind9735(kind1List){
       kind9735List.push(kind9735)
     }
     if(!firstStream){
-      //console.log(kind9735)
       await subscribeKind0sfromKind9735s([kind9735], kind1List)
     }
-    //console.log(kind9735)
   },
   async oneose() {
     console.log("subscribeKind9735() EOS")
@@ -162,10 +120,9 @@ async function subscribeKind0sfromKind9735s(kind9735List, kind1List){
   let kind0fromkind9735Seen = new Set();
   for(let kind9735 of kind9735List){
     if(kind9735.tags){
-      //console.log(kind9735.tags)
-      let description9735 = kind9735.tags.filter(tag => tag[0] == "description")[0][1]
-      let tags9734 = JSON.parse(description9735)
-      pubkeys9734.push(tags9734.pubkey)
+      const description9735 = kind9735.tags.find(tag => tag[0] === "description")[1];
+      const kind9734 = JSON.parse(description9735)
+      pubkeys9734.push(kind9734.pubkey)
     }
   }
   const sub = pool.subscribeMany(
@@ -199,36 +156,29 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
   let json9735List = []
   //console.log(kind1List)
   for(let kind9735 of kind9735List){
-    let description9735 = JSON.parse(kind9735.tags.filter(tag => tag[0] == "description")[0][1])
-    let pubkey9735 = description9735.pubkey
-    let bolt119735 = kind9735.tags.filter(tag => tag[0] == "bolt11")[0][1]
-    let amount9735 = lightningPayReq.decode(bolt119735).satoshis
-    let kind1from9735 = kind9735.tags.filter(tag => tag[0] == "e")[0][1]
-    let kind9735id = NostrTools.nip19.noteEncode(kind9735.id)
-    let kind0kind9735found = false
+    const description9735 = JSON.parse(kind9735.tags.find(tag => tag[0] == "description")[1])
+    const pubkey9735 = description9735.pubkey
+    const bolt119735 = kind9735.tags.find(tag => tag[0] == "bolt11")[1]
+    const amount9735 = lightningPayReq.decode(bolt119735).satoshis
+    const kind1from9735 = kind9735.tags.find(tag => tag[0] == "e")[1]
+    const kind9735id = NostrTools.nip19.noteEncode(kind9735.id)
     let kind0picture
     let kind0npub
     let kind1tags
-    for(let kind1 of kind1List){
-      if(kind1.id == kind1from9735){
-        //console.log("match")
-        kind1tags = kind1.tags
-        break
-      }
+    const kind1 = kind1List.find(kind1 => kind1.id === kind1from9735);
+    if(kind1) {
+        kind1tags = kind1.tags;
     }
-    for(let kind0fromkind9735 of kind0fromkind9735List){
-      if(pubkey9735==kind0fromkind9735.pubkey){
-        kind0picture = JSON.parse(kind0fromkind9735.content).picture
-        kind0npub = NostrTools.nip19.npubEncode(kind0fromkind9735.pubkey)
-        kind0kind9735found = true
-      }
+    const kind0fromkind9735 = kind0fromkind9735List.find(kind0 => pubkey9735 === kind0.pubkey);
+    if(kind0fromkind9735){
+      kind0picture = JSON.parse(kind0fromkind9735.content).picture
+      kind0npub = NostrTools.nip19.npubEncode(kind0fromkind9735.pubkey)
     }
-    if(kind0kind9735found==false){
-      //console.log("kind 0 not found")
+    else{
       kind0picture = ""
       kind0npub = ""
     }
-    let json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "pubKey": pubkey9735, "zapEventID": kind9735id, "tags": kind1tags}
+    const json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "pubKey": pubkey9735, "zapEventID": kind9735id, "tags": kind1tags}
     json9735List.push(json9735)
   }
   await plot9735(json9735List)
@@ -902,6 +852,5 @@ async function submitKind1(event){
         var newNoteForm = document.getElementById('newPayNoteForm');
         newNoteForm.style.display = 'none';
     }, 1000);
-
   }
 }
