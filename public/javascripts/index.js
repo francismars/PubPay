@@ -633,7 +633,6 @@ async function drawKind1(eventData, authorData){
   let filteredZapLNURL = eventData.tags.find(tag => tag[0] == "zap-lnurl")
   if(filteredZapLNURL){
     const ludSplit = filteredZapLNURL[1].split("@")
-    console.log(ludSplit)
     if(ludSplit.length==2){
       var zapLNURL = document.createElement('div')
       zapLNURL.setAttribute('class', 'zapPayer')
@@ -642,8 +641,6 @@ async function drawKind1(eventData, authorData){
       noteData.appendChild(zapLNURL)
     }
   }
-
-
 
   // Hero Payers
   var noteHeroZaps = document.createElement('div')
