@@ -28,7 +28,7 @@ async function subscribePubPays() {
       },
       async oneose() {
         if(firstStream){
-          //let first20kind1 = kind1List.splice(0, 2)
+          //let first20kind1 = kind1List.splice(0, 4)
           await subscribeKind0sfromKind1s(kind1List)
           console.log("subscribePubPays() EOS")
         }
@@ -467,14 +467,6 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
     try {
       //window.open(`lightning:${invoice}`, '_blank');
       //window.location.href = `intent://pay/${invoice}#Intent;scheme=lightning;end;`;
-      /*
-      const link = document.createElement('a');
-      link.href = `lightning:${invoice}`;
-      link.style.display = 'none'; // Hide the link
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      */
       window.location.href = `lightning:${invoice}`;
     } catch (error) {
       alert('Failed to open wallet:', error);
@@ -528,9 +520,9 @@ async function drawKind1(eventData, authorData){
 
   let noteDisplayName = document.createElement('div')
   noteDisplayName.setAttribute('class', 'noteDisplayName')
-  let displayName= profileData.displayName ? profileData.displayName : profileData.name;
+  let displayName = profileData.displayName ? profileData.displayName : profileData.name;
   let npub = NostrTools.nip19.npubEncode(eventData.pubkey)
-  if(profileData.name==null){
+  if(profileData.name==null && displayName==null){
     displayName = start_and_end(npub)
   }
   noteDisplayName.innerHTML = '<a href="https://next.nostrudel.ninja/#/u/'+npub+'" class="noteAuthorLink" target="_blank">'+displayName+'</a>'
