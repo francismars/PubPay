@@ -56,7 +56,7 @@ async function subscribeKind0sfromKind1s(kind1List){
     kind0List.push(kind0)
   },
   async oneose() {
-    console.log("subscribeKind0sfromKind1s() EOS") 
+    console.log("subscribeKind0sfromKind1s() EOS")
     await drawKind1s(kind1List, kind0List)
     await subscribeKind9735(kind1List)
     sub.close()
@@ -471,7 +471,7 @@ async function drawKind1(eventData, authorData){
   profileData.name = authorContent.name
   //profileData.displayName = authorContent.name
   authorContent.displayName ? profileData.displayName = authorContent.displayName : profileData.displayName = authorContent.display_name
-  profileData.picture = authorContent.picture ? authorContent.picture : "" 
+  profileData.picture = authorContent.picture ? authorContent.picture : ""
   profileData.nip05 = authorContent.nip05
   profileData.lud16 = authorContent.lud16
 
@@ -607,13 +607,13 @@ async function drawKind1(eventData, authorData){
   if(filteredZapMin && filteredZapMax){
     if(filteredZapMin[1] != filteredZapMax[1] ){
       zapMax.setAttribute('class', 'zapMax')
-      zapMax.innerHTML = '<span class="zapMaxVal">'+(filteredZapMax[1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Max</span>'  
+      zapMax.innerHTML = '<span class="zapMaxVal">'+(filteredZapMax[1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Max</span>'
       noteValues.appendChild(zapMax)
     }
     else if(filteredZapMin[1] == filteredZapMax[1] ){
       zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[1]/1000).toLocaleString()+'</span> <span class="label">sats<br></span>'
     }
-  } 
+  }
 
   const filteredZapUses = eventData.tags.find(tag => tag[0] == "zap-uses")
   const zapUses = document.createElement('div')
@@ -705,26 +705,73 @@ async function drawKind1(eventData, authorData){
 
   let eventDataString = JSON.stringify(eventData).replace(/"/g, '&quot;');
 
-  var noteActions = document.createElement('div')
+  let noteActions = document.createElement('div')
   noteActions.setAttribute('class', 'noteActions')
-  let noteActionBtns =  '<a href="#" class="noteAction disabled" title="coming soon"><span class="material-symbols-outlined">bolt</span></a>'
-  noteActionBtns +=     '<a href="#" class="noteAction disabled" title="coming soon"><span class="material-symbols-outlined">favorite</span></a>'
-  noteActionBtns +=     '<a href="#" class="noteAction disabled" title="coming soon"><span class="material-symbols-outlined">ios_share</span></a>'
-  let toolTip     =     '<div class="tooltiptext">'
-  toolTip        +=     '<a href="#" class="cta disabled" title="coming soon">Crowd Pay</a>'
-  toolTip        +=     '<a href="#" class="cta disabled" title="coming soon">Forward Pay</a>'
-  toolTip       += '<a href="#" class="cta" onclick="(function() { ';
-  toolTip       += 'const rangeValue = buttonZap.getAttribute(\'value\') !== null ? buttonZap.getAttribute(\'value\') : -1;';
-  toolTip       += 'payNote(\'' + eventData + '\', \'' + authorData + '\', rangeValue, true);';
-  toolTip       += '})()" title="Pay Anonymously">Pay Anonymously</a>';
-  toolTip        +=     '<a href="#" onclick="showJSON('+eventDataString+')" class="toolTipLink">View Raw</a>'
-  toolTip        +=     '<a href="#" class="toolTipLink disabled" title="coming soon">Broadcast</a>'
-  toolTip        +=     '<div>View on</div>'
-  toolTip        +=     '<a href="https://next.nostrudel.ninja/#/n/'+NostrTools.nip19.noteEncode(eventData.id)+'" class="toolTipLink" target="_blank">nostrudel</a>'
-  toolTip        +=     '</div>'
-  noteActionBtns +=     '<div class="tooltip"><div class="noteAction"><span class="material-symbols-outlined">more_horiz</span>'+toolTip+'</div></div>'
 
-  noteActions.innerHTML = noteActionBtns
+  let zapBoltIcon = document.createElement('a')
+  zapBoltIcon.setAttribute('class', 'noteAction')
+  zapBoltIcon.classList.add('disabled')
+  zapBoltIcon.innerHTML = '<span class="material-symbols-outlined">bolt</span>'
+  noteActions.appendChild(zapBoltIcon)
+
+  let reactionIcon = document.createElement('a')
+  reactionIcon.setAttribute('class', 'noteAction')
+  reactionIcon.classList.add('disabled')
+  reactionIcon.innerHTML = '<span class="material-symbols-outlined">favorite</span>'
+  noteActions.appendChild(reactionIcon)
+
+  let shareIcon = document.createElement('a')
+  shareIcon.setAttribute('class', 'noteAction')
+  shareIcon.classList.add('disabled')
+  shareIcon.innerHTML = '<span class="material-symbols-outlined">ios_share</span>'
+  noteActions.appendChild(shareIcon)
+
+
+
+  let toolTip = document.createElement('div')
+  toolTip.setAttribute('class', 'tooltip')
+
+
+  let toolTipText = document.createElement('div')
+  toolTipText.setAttribute('class', 'tooltiptext')
+
+
+  let newPayForward = document.createElement('a')
+  newPayForward.setAttribute('class', 'cta')
+  newPayForward.classList.add('disabled')
+  newPayForward.textContent = 'New Pay Forward'
+  toolTipText.appendChild(newPayForward)
+
+  let payAnonymously = document.createElement('a')
+  payAnonymously.setAttribute('class', 'cta')
+  payAnonymously.textContent = 'Pay Anonymously'
+  toolTipText.appendChild(payAnonymously)
+
+  let viewRaw = document.createElement('div')
+  viewRaw.setAttribute('class', 'noteAction')
+  viewRaw.innerHTML = '<a href="#" onclick="showJSON('+eventDataString+')" class="toolTipLink">View Raw</a>'
+  toolTipText.appendChild(viewRaw)
+
+  let viewOn = document.createElement('div')
+  viewOn.setAttribute('class', 'noteAction')
+  viewOn.innerHTML = '<a href="https://next.nostrudel.ninja/#/n/'+NostrTools.nip19.noteEncode(eventData.id)+'" class="toolTipLink" target="_blank">View on nostrudel</a>'
+  toolTipText.appendChild(viewOn)
+
+
+
+
+  let noteAction = document.createElement('div')
+  noteAction.setAttribute('class', 'noteAction')
+  noteAction.innerHTML = '<span class="material-symbols-outlined">more_horiz</span>'
+  noteAction.appendChild(toolTipText)
+
+  toolTip.appendChild(noteAction)
+
+  noteActions.appendChild(toolTip)
+
+
+  // const rangeValue = buttonZap.getAttribute('value') !== null ? buttonZap.getAttribute('value') : -1;
+  // payNote(eventData, authorData, rangeValue, true);';
 
   noteActionsReactions.appendChild(noteZapReactions)
   noteActionsReactions.appendChild(noteActions)
