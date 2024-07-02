@@ -228,12 +228,16 @@ a.feedSelectorLink.active {
 .noteAuthor .label a{
     color: #ccc;
     font-size: 12px;
-    word-break: break-word;
+    word-break: break-all;
 }
 
 .noteAuthor .label .material-symbols-outlined {
   font-size: 12px;
   margin-top: -3px;
+}
+
+.main-icon{
+  font-weight: 900; color: #4a75ff;
 }
 
 .noteContent {
@@ -265,16 +269,22 @@ a.feedSelectorLink.active {
 
 .zapPayer{
   display: flex;
-  justify-content: flex-start;
   margin: 21px 0 10px 0;
   border: 1px solid #d6e6ff;
-  padding: 3px;
+  padding: 5px;
   border-radius: 8px;
   /* background: #4a75ff; */
   align-items: center;
   color: #636363;
   font-weight: 300;
   word-break: break-word;
+  justify-content: center;
+  column-gap: 9px;
+}
+
+.zapPayerInner {
+  display: flex;
+  align-items: center;
 }
 
 .zapPayer img{
