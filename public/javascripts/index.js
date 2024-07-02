@@ -853,38 +853,23 @@ window.addEventListener("DOMContentLoaded", (event) => {
         }
       })
 
-
-
-
-
       document.getElementById('closeJSON').addEventListener("click", function() {
-        let newNoteForm = document.getElementById('viewJSON');
-        if (newNoteForm.style.display === 'none' || newNoteForm.style.display === '') {
-            newNoteForm.style.display = 'flex';
-        } else {
-            newNoteForm.style.display = 'none';
+        let viewJSONelement = document.getElementById('viewJSON');
+        if (viewJSONelement.style.display == 'flex'){
+          viewJSONelement.style.display = 'none';
         }
       })
-
-
-
-
-
-
 });
 
 
-
-
 function showJSON(json){
-  //console.log(json);
-  let viewJSON = document.getElementById('viewJSON');
-  if (viewJSON.style.display === 'none' || viewJSON.style.display === '') {
-      viewJSON.style.display = 'flex'
-      let viewJSON = document.getElementById('noteJSON')
-      noteJSON.innerHTML = JSON.stringify(json, null, 2)
-  } else {
-      viewJSON.style.display = 'none'
+  const viewJSONelement = document.getElementById('viewJSON');
+  if(viewJSONelement){
+    if(viewJSONelement.style.display == 'none' || viewJSONelement.style.display == ''){
+      viewJSONelement.style.display = 'flex'
+      const viewJSON = document.getElementById('noteJSON')
+      viewJSON.innerHTML = JSON.stringify(json, null, 2)
+    }
   }
 }
 
