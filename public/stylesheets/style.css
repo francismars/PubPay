@@ -228,6 +228,7 @@ a.feedSelectorLink.active {
 .noteAuthor .label a{
     color: #ccc;
     font-size: 12px;
+    word-break: break-word;
 }
 
 .noteAuthor .label .material-symbols-outlined {
