@@ -365,8 +365,9 @@ async function createZapEvent(eventStoragePK, pubKey = null, rangeValue, anonymo
     const privateKey = window.NostrTools.generateSecretKey()
     const publicKey = window.NostrTools.getPublicKey(privateKey)
     const signedEvent = window.NostrTools.finalizeEvent(zapEvent, privateKey)
-    const isGood = verifyEvent(signedEvent)
+    const isGood = window.NostrTools.verifyEvent(signedEvent)
     console.log("isGood?", isGood)
+    await getInvoiceandPay(lnurlinfo.callback, amountPay, signedEvent, lud16)
   }
   else if(window.nostr!=null){
     zapFinalized = await window.nostr.signEvent(zapEvent)
@@ -745,6 +746,11 @@ async function drawKind1(eventData, authorData){
   let payAnonymously = document.createElement('a')
   payAnonymously.setAttribute('class', 'cta')
   payAnonymously.textContent = 'Pay Anonymously'
+  payAnonymously.addEventListener('click', async () => {
+    let rangeValue
+    buttonZap.getAttribute("value") != null ? rangeValue = buttonZap.getAttribute("value") : rangeValue = -1
+    await payNote(eventData, authorData, rangeValue, true)
+  });
   toolTipText.appendChild(payAnonymously)
 
   let viewRaw = document.createElement('div')
