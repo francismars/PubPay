@@ -337,8 +337,12 @@ async function payNote(eventZap, userProfile, rangeValue, anonymousZap = false){
   if(lnurlinfo.allowsNostr==true){
       // const privateKey = window.NostrTools.generateSecretKey()
       let publicKey
-      if(window.nostr!=null){
+      if(anonymousZap==true){
         await createZapEvent(JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":eventZap}), null, rangeValue, anonymousZap)
+        return
+      }
+      else if(window.nostr!=null){
+        await createZapEvent(JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":eventZap}), null, rangeValue, false)
         return
         // publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
       }
@@ -386,7 +390,6 @@ async function createZapEvent(eventStoragePK, pubKey = null, rangeValue, anonymo
     const publicKey = window.NostrTools.getPublicKey(privateKey)
     const signedEvent = window.NostrTools.finalizeEvent(zapEvent, privateKey)
     const isGood = window.NostrTools.verifyEvent(signedEvent)
-    console.log("isGood?", isGood)
     await getInvoiceandPay(lnurlinfo.callback, amountPay, signedEvent, lud16)
   }
   else if(window.nostr!=null){
