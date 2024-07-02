@@ -188,16 +188,6 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
 }
 
 
-async function accessClipboard() {
-  return new Promise(resolve => {
-    setTimeout(async () => {
-      let clipcopied = await navigator.clipboard.readText();
-      //console.log(clipcopied)
-      resolve(clipcopied)
-    }, 500);
-  });
-}
-
 window.addEventListener("DOMContentLoaded", (event) => {
       document.getElementById('newPayNote').addEventListener("click", function() {
         let newNoteForm = document.getElementById('newPayNoteForm');
