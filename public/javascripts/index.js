@@ -188,45 +188,32 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
 }
 
 
-window.addEventListener("DOMContentLoaded", (event) => {
-      document.getElementById('newPayNote').addEventListener("click", function() {
-        let newNoteForm = document.getElementById('newPayNoteForm');
-        if (newNoteForm.style.display === 'none' || newNoteForm.style.display === '') {
-            newNoteForm.style.display = 'flex';
-        } else {
-            newNoteForm.style.display = 'none';
-        }
-      })
 
-
-      document.getElementById('cancelNewNote').addEventListener("click", function() {
-        let newNoteForm = document.getElementById('newPayNoteForm');
-        if (newNoteForm.style.display === 'none' || newNoteForm.style.display === '') {
-            newNoteForm.style.display = 'flex';
-        } else {
-            newNoteForm.style.display = 'none';
-        }
-      })
-
-      document.getElementById('closeJSON').addEventListener("click", function() {
-        let viewJSONelement = document.getElementById('viewJSON');
-        if (viewJSONelement.style.display == 'flex'){
-          viewJSONelement.style.display = 'none';
-        }
-      })
-});
-
-
-function showJSON(json){
-  const viewJSONelement = document.getElementById('viewJSON');
-  if(viewJSONelement){
-    if(viewJSONelement.style.display == 'none' || viewJSONelement.style.display == ''){
-      viewJSONelement.style.display = 'flex'
-      const viewJSON = document.getElementById('noteJSON')
-      viewJSON.innerHTML = JSON.stringify(json, null, 2)
+  document.getElementById('newPayNote').addEventListener("click", function() {
+    let newNoteForm = document.getElementById('newPayNoteForm');
+    if (newNoteForm.style.display === 'none' || newNoteForm.style.display === '') {
+        newNoteForm.style.display = 'flex';
+    } else {
+        newNoteForm.style.display = 'none';
     }
-  }
-}
+  })
+
+
+  document.getElementById('cancelNewNote').addEventListener("click", function() {
+    let newNoteForm = document.getElementById('newPayNoteForm');
+    if (newNoteForm.style.display === 'none' || newNoteForm.style.display === '') {
+        newNoteForm.style.display = 'flex';
+    } else {
+        newNoteForm.style.display = 'none';
+    }
+  })
+
+  document.getElementById('closeJSON').addEventListener("click", function() {
+    let viewJSONelement = document.getElementById('viewJSON');
+    if (viewJSONelement.style.display == 'flex'){
+      viewJSONelement.style.display = 'none';
+    }
+  })
 
 
 document.getElementById('newKind1').addEventListener('submit', submitKind1);
