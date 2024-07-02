@@ -320,7 +320,19 @@ async function payNote(eventZap, userProfile, rangeValue, anonymousZap = false){
   }
   //console.log(lud16)
   let ludSplit = lud16.split("@")
-  const response = await fetch("https://"+ludSplit[1]+"/.well-known/lnurlp/"+ludSplit[0]);
+
+  const response = await fetch("https://"+ludSplit[1]+"/.well-known/lnurlp/"+ludSplit[0])
+  .catch(error => {
+    let parentNote = document.getElementById(eventZap.id)
+    let noteMainCTA = parentNote.querySelector('.noteMainCTA')
+    noteMainCTA.classList.add('disabled')
+    noteMainCTA.classList.add('red')
+    noteMainCTA.innerHTML = "CAN'T PAY: Failed to fetch lud16"
+  })
+
+  if(response == undefined){
+    return
+  }
   const lnurlinfo = await response.json();
   if(lnurlinfo.allowsNostr==true){
       // const privateKey = window.NostrTools.generateSecretKey()
@@ -334,6 +346,12 @@ async function payNote(eventZap, userProfile, rangeValue, anonymousZap = false){
         sessionStorage.setItem('AmberPubkey', JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":event}));
         window.location.href = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`
       }
+  }else{
+    let parentNote = document.getElementById(eventZap.id)
+    let noteMainCTA = parentNote.querySelector('.noteMainCTA')
+    noteMainCTA.classList.add('disabled')
+    noteMainCTA.classList.add('red')
+    noteMainCTA.innerHTML = "CAN'T PAY: No nostr support"
   }
 }
 
