@@ -373,6 +373,8 @@ async function createZapEvent(eventStoragePK, pubKey = null, rangeValue, anonymo
       comment: "",
       relays: relays
   })
+  zapEvent.tags.unshift(["t", "pubpay"])
+  zapEvent.tags.unshift(["zap-lnurl", eventStoragePK.lud16])
   if(pubKey!=null){
     zapEvent.pubkey = pubKey
     let eventID = NostrTools.getEventHash(zapEvent)
