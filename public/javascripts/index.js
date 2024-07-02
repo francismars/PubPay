@@ -461,7 +461,7 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
 
 
 async function drawKind1(eventData, authorData){
-  var newNote = document.createElement('div')
+  let newNote = document.createElement('div')
   newNote.setAttribute('id', eventData.id)
   newNote.setAttribute('class', 'paynote')
 
@@ -478,9 +478,9 @@ async function drawKind1(eventData, authorData){
   //console.log(profileData)
 
   // Profile image
-  var noteProfileImg = document.createElement('div')
+  let noteProfileImg = document.createElement('div')
   noteProfileImg.setAttribute('class', 'noteProfileImg')
-  var userImg = document.createElement('img')
+  let userImg = document.createElement('img')
   userImg.setAttribute('class', 'userImg')
   const profileImage = profileData.picture == "" ? "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" : profileData.picture
   userImg.setAttribute('src', profileImage);
@@ -491,18 +491,18 @@ async function drawKind1(eventData, authorData){
 
 
   // Data
-  var noteData = document.createElement('div')
+  let noteData = document.createElement('div')
   noteData.setAttribute('class', 'noteData')
 
   // Header: names and date
-  var noteHeader = document.createElement('div')
+  let noteHeader = document.createElement('div')
   noteHeader.setAttribute('class', 'noteHeader')
 
-  var noteAuthor = document.createElement('div')
+  let noteAuthor = document.createElement('div')
   noteAuthor.setAttribute('class', 'noteAuthor')
 
 
-  var noteDisplayName = document.createElement('div')
+  let noteDisplayName = document.createElement('div')
   noteDisplayName.setAttribute('class', 'noteDisplayName')
   let displayName= profileData.displayName ? profileData.displayName : profileData.name;
   let npub = NostrTools.nip19.npubEncode(eventData.pubkey)
@@ -512,7 +512,7 @@ async function drawKind1(eventData, authorData){
   noteDisplayName.innerHTML = '<a href="https://next.nostrudel.ninja/#/u/'+npub+'" class="noteAuthorLink" target="_blank">'+displayName+'</a>'
 
 
-  var noteNIP05 = document.createElement('div')
+  let noteNIP05 = document.createElement('div')
   noteNIP05.classList.add("noteNIP05")
   noteNIP05.classList.add("label")
   //profileData.nip05 ? noteNIP05.textContent=profileData.nip05 : noteNIP05.textContent="displayname@domain.com"
@@ -524,7 +524,7 @@ async function drawKind1(eventData, authorData){
   }
 
 
-  var noteLNAddress = document.createElement('div')
+  let noteLNAddress = document.createElement('div')
   noteLNAddress.classList.add("noteLNAddress")
   noteLNAddress.classList.add("label")
 
@@ -537,7 +537,7 @@ async function drawKind1(eventData, authorData){
 
   let noteTimeAgo = timeAgo(eventData.created_at)
 
-  var noteDate = document.createElement('div')
+  let noteDate = document.createElement('div')
   noteDate.classList.add("noteDate")
   noteDate.classList.add("label")
   noteDate.textContent=noteTimeAgo
@@ -551,7 +551,7 @@ async function drawKind1(eventData, authorData){
 
 
   // Content
-  var noteContent = document.createElement('div')
+  let noteContent = document.createElement('div')
   noteContent.setAttribute('class', 'noteContent')
   let formatedContent = formatContent(eventData.content)
   noteContent.innerHTML = formatedContent
@@ -561,7 +561,7 @@ async function drawKind1(eventData, authorData){
   // Forward
   let filteredforwardZap = eventData.tags.filter(tag => tag[0] == "zap-forward")
   if(filteredforwardZap[0]!=null){
-    var forwardZap = document.createElement('div')
+    let forwardZap = document.createElement('div')
     forwardZap.setAttribute('class', 'forwardZap')
     let forwardZapNoteProfileImg = '<div class="noteProfileImg"><img class="userImg" src="https://fuegouae.com/wp-content/uploads/2016/11/sedfwe4rfw4r.jpg"></div>'
     let forwardZapNoteHeader = '<div class="noteHeader"><div class="noteAuthor"><div class="noteDisplayName"><a href="https://next.nostrudel.ninja/#/u/npub1d4m5fqlgzxyvtp0mpes92p3adwr279qaqcqffax8tnhh4z6f7s8qh4t2n4" class="noteAuthorLink" target="_blank">21prestigerelay</a></div><div class="noteNIP05 label">21prestigerelay@vlt.ge</div></div><div class="noteDate label">8 hours ago</div></div>'
@@ -627,7 +627,7 @@ async function drawKind1(eventData, authorData){
   // Payer
   let filteredZapPayer = eventData.tags.filter(tag => tag[0] == "zap-payer")
   if(filteredZapPayer[0]!=null){
-    var zapPayer = document.createElement('div')
+    let zapPayer = document.createElement('div')
     zapPayer.setAttribute('class', 'zapPayer')
     zapPayer.innerHTML = '<span class="material-symbols-outlined">arrow_downward_alt</span><img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"><div class="userName">'+ start_and_end(NostrTools.nip19.npubEncode(filteredZapPayer[0][1])) +'</div>'
     noteData.appendChild(zapPayer)
@@ -648,13 +648,13 @@ async function drawKind1(eventData, authorData){
   }
 
   // Hero Payers
-  var noteHeroZaps = document.createElement('div')
+  let noteHeroZaps = document.createElement('div')
   noteHeroZaps.setAttribute('class', 'noteHeroZaps')
   noteHeroZaps.classList.add('noteZapReactions')
   noteData.appendChild(noteHeroZaps)
 
   // Main CTA
-  var noteCTA = document.createElement('div')
+  let noteCTA = document.createElement('div')
   const buttonZap = document.createElement('button');
   noteCTA.appendChild(buttonZap);
   noteCTA.setAttribute('class', 'noteCTA')
@@ -670,14 +670,14 @@ async function drawKind1(eventData, authorData){
 
   if(filteredZapMin && filteredZapMax && filteredZapMin[1] != filteredZapMax[1] ){
 
-      var zapSliderContainer = document.createElement('div')
+      let zapSliderContainer = document.createElement('div')
       zapSliderContainer.setAttribute('class', 'zapSliderContainer')
       zapSliderContainer.innerHTML = '<input type="range" min="'+(filteredZapMin[1]/1000)+'" max="'+(filteredZapMax[1]/1000)+'" value="'+(filteredZapMin[1]/1000)+'" class="zapSlider">'
       noteData.appendChild(zapSliderContainer)
 
-      var zapSlider = zapSliderContainer.querySelector('.zapSlider')
+      let zapSlider = zapSliderContainer.querySelector('.zapSlider')
 
-      var zapSliderVal = document.createElement('div')
+      let zapSliderVal = document.createElement('div')
       zapSliderVal.setAttribute('class', 'zapSliderVal')
       zapSliderContainer.appendChild(zapSliderVal)
 
@@ -695,10 +695,10 @@ async function drawKind1(eventData, authorData){
 
 
   // Actions and Reactions
-  var noteActionsReactions = document.createElement('div')
+  let noteActionsReactions = document.createElement('div')
   noteActionsReactions.setAttribute('class', 'noteActionsReactions')
 
-  var noteZapReactions = document.createElement('div')
+  let noteZapReactions = document.createElement('div')
   noteZapReactions.setAttribute('class', 'noteZaps')
   noteZapReactions.classList.add('noteZapReactions')
 
@@ -829,7 +829,7 @@ function start_and_end(str) {
 window.addEventListener("DOMContentLoaded", (event) => {
 
       document.getElementById('newPayNote').addEventListener("click", function() {
-        var newNoteForm = document.getElementById('newPayNoteForm');
+        let newNoteForm = document.getElementById('newPayNoteForm');
         if (newNoteForm.style.display === 'none' || newNoteForm.style.display === '') {
             newNoteForm.style.display = 'flex';
         } else {
@@ -839,7 +839,7 @@ window.addEventListener("DOMContentLoaded", (event) => {
 
 
       document.getElementById('cancelNewNote').addEventListener("click", function() {
-        var newNoteForm = document.getElementById('newPayNoteForm');
+        let newNoteForm = document.getElementById('newPayNoteForm');
         if (newNoteForm.style.display === 'none' || newNoteForm.style.display === '') {
             newNoteForm.style.display = 'flex';
         } else {
@@ -852,7 +852,7 @@ window.addEventListener("DOMContentLoaded", (event) => {
 
 
       document.getElementById('closeJSON').addEventListener("click", function() {
-        var newNoteForm = document.getElementById('viewJSON');
+        let newNoteForm = document.getElementById('viewJSON');
         if (newNoteForm.style.display === 'none' || newNoteForm.style.display === '') {
             newNoteForm.style.display = 'flex';
         } else {
@@ -872,10 +872,10 @@ window.addEventListener("DOMContentLoaded", (event) => {
 
 function showJSON(json){
   //console.log(json);
-  var viewJSON = document.getElementById('viewJSON');
+  let viewJSON = document.getElementById('viewJSON');
   if (viewJSON.style.display === 'none' || viewJSON.style.display === '') {
       viewJSON.style.display = 'flex'
-      var viewJSON = document.getElementById('noteJSON')
+      let viewJSON = document.getElementById('noteJSON')
       noteJSON.innerHTML = JSON.stringify(json, null, 2)
   } else {
       viewJSON.style.display = 'none'
@@ -923,7 +923,7 @@ async function submitKind1(event){
     await Promise.any(pool.publish(relays, kind1Finalized))
     //console.log('published to at least one relay!')
     setTimeout(function() {
-        var newNoteForm = document.getElementById('newPayNoteForm');
+        let newNoteForm = document.getElementById('newPayNoteForm');
         newNoteForm.style.display = 'none';
     }, 1000);
   }
