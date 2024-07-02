@@ -122,7 +122,6 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
 
 
   document.addEventListener("visibilitychange", async function() {
-    console.log("entras")
     if (document.visibilityState === 'visible') {
       let eventStoragePK = sessionStorage.getItem("AmberPubkey");
       if(eventStoragePK){
@@ -152,3 +151,14 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
       }
     }
   });
+
+  
+async function accessClipboard() {
+    return new Promise(resolve => {
+      setTimeout(async () => {
+        let clipcopied = await navigator.clipboard.readText();
+        //console.log(clipcopied)
+        resolve(clipcopied)
+      }, 500);
+    });
+  }
