@@ -39,8 +39,14 @@ export async function payNote(eventZap, userProfile, rangeValue, anonymousZap = 
           // publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
         }
         else{
-          sessionStorage.setItem('AmberPubkey', JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":event}));
-          window.location.href = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`
+            sessionStorage.setItem('AmberPubkey', JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":event}));
+            const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`
+            try{
+                window.location.href = nostrSignerURL
+            }
+            catch(error){
+                console.log("Couldn't Redirect to Signer")
+            }
         }
     }else{
       let parentNote = document.getElementById(eventZap.id)
@@ -161,4 +167,4 @@ async function accessClipboard() {
         resolve(clipcopied)
       }, 500);
     });
-  }
+}

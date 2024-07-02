@@ -243,7 +243,7 @@ export async function plot(eventData, authorData, firstStream=false){
     noteZapReactions.classList.add('noteZapReactions')
   
   
-    let eventDataString = JSON.stringify(eventData).replace(/"/g, '&quot;');
+    //let eventDataString = JSON.stringify(eventData).replace(/"/g, '&quot;');
   
     let noteActions = document.createElement('div')
     noteActions.setAttribute('class', 'noteActions')
@@ -294,9 +294,17 @@ export async function plot(eventData, authorData, firstStream=false){
   
     let viewRaw = document.createElement('div')
     viewRaw.setAttribute('class', 'noteAction')
-    viewRaw.innerHTML = '<a href="#" onclick="showJSON('+eventDataString+')" class="toolTipLink">View Raw</a>'
     toolTipText.appendChild(viewRaw)
-  
+
+    let rawHref = document.createElement('a')
+    rawHref.setAttribute('class', 'toolTipLink')
+    rawHref.href="#"
+    rawHref.innerText="View Raw"
+    rawHref.addEventListener('click', () => {
+        showJSON(eventData)
+    })
+    viewRaw.appendChild(rawHref)
+
     let viewOn = document.createElement('div')
     viewOn.setAttribute('class', 'noteAction')
     viewOn.innerHTML = '<a href="https://next.nostrudel.ninja/#/n/'+NostrTools.nip19.noteEncode(eventData.id)+'" class="toolTipLink" target="_blank">View on nostrudel</a>'
@@ -368,4 +376,15 @@ function start_and_end(str) {
       return str.substr(0, 4) + '...' + str.substr(str.length-4, str.length);
     }
     return str;
-  }
+}
+
+function showJSON(json){
+    const viewJSONelement = document.getElementById('viewJSON');
+    if(viewJSONelement){
+        if(viewJSONelement.style.display == 'none' || viewJSONelement.style.display == ''){
+            viewJSONelement.style.display = 'flex'
+            const viewJSON = document.getElementById('noteJSON')
+            viewJSON.innerHTML = JSON.stringify(json, null, 2)
+        }
+    }
+}
