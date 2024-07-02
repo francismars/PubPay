@@ -409,6 +409,16 @@ a.cta, button.cta{
 }
 
 
+button.noteMainCTA.cta.disabled.red {
+    background: #c80000;
+    opacity: 1;
+    filter: unset;
+    color: #ffffffba;
+    border: none;
+    cursor: none;
+}
+
+
 /* New Note Form */
 
 .overlayContainer{
