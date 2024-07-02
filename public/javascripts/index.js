@@ -648,7 +648,7 @@ async function drawKind1(eventData, authorData){
   if(filteredZapPayer[0]!=null){
     let zapPayer = document.createElement('div')
     zapPayer.setAttribute('class', 'zapPayer')
-    zapPayer.innerHTML = '<span class="material-symbols-outlined">arrow_downward_alt</span><img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"><div class="userName">'+ start_and_end(NostrTools.nip19.npubEncode(filteredZapPayer[0][1])) +'</div>'
+    zapPayer.innerHTML = 'Payer <span class="material-symbols-outlined main-icon">target</span><div class="zapPayerInner"><img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"><div class="userName">'+ start_and_end(NostrTools.nip19.npubEncode(filteredZapPayer[0][1])) +'</div></div>'
     noteData.appendChild(zapPayer)
   }
 
@@ -660,7 +660,7 @@ async function drawKind1(eventData, authorData){
     if(ludSplit.length==2){
       const zapLNURL = document.createElement('div')
       zapLNURL.setAttribute('class', 'zapPayer')
-      zapLNURL.innerHTML = `<span class="material-symbols-outlined">more_up</span>`
+      zapLNURL.innerHTML = `LN Address<span class="material-symbols-outlined main-icon">double_arrow</span>`
       zapLNURL.innerHTML += `<a href="https://`+ludSplit[1]+`/.well-known/lnurlp/`+ludSplit[0]+`" target=”_blank”>`+filteredZapLNURL[1]+`</a>`
       noteData.appendChild(zapLNURL)
     }
