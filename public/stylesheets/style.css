@@ -400,8 +400,8 @@ a.cta, button.cta{
 
 .noteMainCTA.disabled{
   border: 1px solid #e3e3e3;
-  color: #afafaf;
-  background: #eaeaea;
+  color: #000000;
+  background: #d3d3d3;
   box-shadow: none;
 }
 
@@ -664,7 +664,7 @@ input:focus::placeholder {
 
 .disabled {
     filter: saturate(0);
-    opacity: 0.2;
+    opacity: 0.3;
 }
 
 
