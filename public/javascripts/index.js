@@ -225,7 +225,7 @@ async function submitKind1(event){
   if(payNoteContent==""){ /*Handle This*/ }
   let tagsList = []
   let zapMin = document.getElementById('zapMin').value;
-  if(!(Number.isInteger(zapMin) && zapMin > 0)) zapMin = 1
+  if(!(Number.isInteger(parseInt(zapMin)) && zapMin > 0)) zapMin = 1
   tagsList.push(["zap-min",(zapMin*1000).toString()])
   const zapMax = document.getElementById('zapMax').value;
   if(zapMax!="") tagsList.push(["zap-max",(zapMax*1000).toString()])
