@@ -1,5 +1,5 @@
-let drawKind1 = await import("./drawkind1.js")
-let drawKind9735 = await import("./drawkind9735.js")
+const drawKind1 = await import("./drawkind1.js")
+const drawKind9735 = await import("./drawkind9735.js")
 
 
 const pool = new NostrTools.SimplePool()
@@ -10,7 +10,7 @@ subscribePubPays()
 async function subscribePubPays() {
   let kind1Seen = new Set();
   let kind1List = []
-  let firstStream = true
+  let isFirstStream = true
   pool.subscribeMany(
       [...relays],
       [
@@ -22,7 +22,7 @@ async function subscribePubPays() {
       async onevent(kind1) {
         if(kind1.tags && !(kind1Seen.has(kind1.id))){
           kind1Seen.add(kind1.id);
-          if(!firstStream){
+          if(!isFirstStream){
             await subscribeKind0sfromKind1s([kind1])
           } else {
             kind1List.push(kind1)
@@ -30,9 +30,10 @@ async function subscribePubPays() {
         }
       },
       async oneose() {
-        if(firstStream){
+        if(isFirstStream){
           //let first20kind1 = kind1List.splice(0, 4)
-          await subscribeKind0sfromKind1s(kind1List, firstStream)
+          await subscribeKind0sfromKind1s(kind1List, isFirstStream)
+          isFirstStream = false
           console.log("subscribePubPays() EOS")
         }
       },
@@ -42,7 +43,7 @@ async function subscribePubPays() {
   })
 }
 
-async function subscribeKind0sfromKind1s(kind1List, firstStream = false){
+async function subscribeKind0sfromKind1s(kind1List, isFirstStream = false){
   let kind0List = []
   let kind1PubkeyList = []
   for(let kind1 of kind1List){
@@ -55,13 +56,13 @@ async function subscribeKind0sfromKind1s(kind1List, firstStream = false){
         authors: kind1PubkeyList
     }]
   ,{
-  async onevent(kind0) {
+  onevent(kind0) {
     kind0List.push(kind0)
   },
   async oneose() {
     console.log("subscribeKind0sfromKind1s() EOS")
-    await drawKind1s(kind1List, kind0List, firstStream)
-    await subscribeKind9735(kind1List, firstStream)
+    await drawKind1s(kind1List, kind0List, isFirstStream)
+    await subscribeKind9735(kind1List)
     sub.close()
   },
   onclosed() {
@@ -70,19 +71,18 @@ async function subscribeKind0sfromKind1s(kind1List, firstStream = false){
 })
 }
 
-async function drawKind1s(first20kind1, kind0List, firstStream = false){
+async function drawKind1s(first20kind1, kind0List, isFirstStream){
   for(let kind1 of first20kind1){
     const kind0 = kind0List.find(({ pubkey }) => pubkey === kind1.pubkey);
-    if (kind0) {
-      drawKind1.plot(kind1, kind0, firstStream);
-    }
+    if (kind0) drawKind1.plot(kind1, kind0, isFirstStream);
   }
 }
 
-async function subscribeKind9735(kind1List, firstStream = false){
+async function subscribeKind9735(kind1List){
   let kind9735Seen = new Set();
   let kind1IDList = []
   let kind9735List = []
+  let firstStream = true
   for(let kind1 of kind1List){
     kind1IDList.push(kind1.id)
   }
@@ -128,14 +128,14 @@ async function subscribeKind0sfromKind9735s(kind9735List, kind1List){
       pubkeys9734.push(kind9734.pubkey)
     }
   }
-  const sub = pool.subscribeMany(
+  let h = pool.subscribeMany(
     [...relays],
     [{
         kinds: [0],
         authors: pubkeys9734
     }]
   ,{
-  async onevent(kind0) {
+  onevent(kind0) {
     if(kind0fromkind9735Seen.has(kind0.pubkey)){
       return
     }
@@ -147,10 +147,10 @@ async function subscribeKind0sfromKind9735s(kind9735List, kind1List){
   async oneose() {
     console.log("subscribeKind0sfromKind9735s() EOS")
     await createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1List)
-    //sub.close()
+    h.close()
   },
   onclosed() {
-    //console.log("Closed")
+    console.log("subscribeKind0sfromKind9735s() Closed")
   }
 })
 }
@@ -188,9 +188,9 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
 }
 
 
-
+(function(){
   document.getElementById('newPayNote').addEventListener("click", function() {
-    let newNoteForm = document.getElementById('newPayNoteForm');
+    const newNoteForm = document.getElementById('newPayNoteForm');
     if (newNoteForm.style.display === 'none' || newNoteForm.style.display === '') {
         newNoteForm.style.display = 'flex';
     } else {
@@ -198,9 +198,8 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
     }
   })
 
-
   document.getElementById('cancelNewNote').addEventListener("click", function() {
-    let newNoteForm = document.getElementById('newPayNoteForm');
+    const newNoteForm = document.getElementById('newPayNoteForm');
     if (newNoteForm.style.display === 'none' || newNoteForm.style.display === '') {
         newNoteForm.style.display = 'flex';
     } else {
@@ -209,26 +208,25 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
   })
 
   document.getElementById('closeJSON').addEventListener("click", function() {
-    let viewJSONelement = document.getElementById('viewJSON');
+    const viewJSONelement = document.getElementById('viewJSON');
     if (viewJSONelement.style.display == 'flex'){
       viewJSONelement.style.display = 'none';
     }
   })
 
-
-document.getElementById('newKind1').addEventListener('submit', submitKind1);
-
+  document.getElementById('newKind1').addEventListener('submit', submitKind1);
+})()
 
 async function submitKind1(event){
   //console.log(event)
   event.preventDefault();
   const payNoteContent = document.getElementById('payNoteContent').value;
   //console.log(payNoteContent)
-  if(payNoteContent==""){
-  }
+  if(payNoteContent==""){ /*Handle This*/ }
   let tagsList = []
-  const zapMin = document.getElementById('zapMin').value;
-  if(zapMin!="") tagsList.push(["zap-min",(zapMin*1000).toString()])
+  let zapMin = document.getElementById('zapMin').value;
+  if(!(Number.isInteger(zapMin) && zapMin > 0)) zapMin = 1
+  tagsList.push(["zap-min",(zapMin*1000).toString()])
   const zapMax = document.getElementById('zapMax').value;
   if(zapMax!="") tagsList.push(["zap-max",(zapMax*1000).toString()])
   else if(zapMin!="" && zapMax=="") tagsList.push(["zap-max",(zapMin*1000).toString()])
