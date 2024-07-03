@@ -1,25 +1,21 @@
 export async function payNote(eventZap, userProfile, rangeValue, anonymousZap = false){
-    let event = eventZap
-    //console.log(event)
-    let zapLNURL = eventZap.tags.filter(tag => tag[0] == "zap-lnurl")
-    let eventProfile = userProfile
-    let eventProfileContent = JSON.parse(eventProfile.content)
+    const zapLNURL = eventZap.tags.filter(tag => tag[0] == "zap-lnurl")
+    const eventProfile = userProfile
+    const eventProfileContent = JSON.parse(eventProfile.content)
     let lud16
     if(zapLNURL.length>0){
       lud16 = zapLNURL[0][1]
     }else{
       lud16 = eventProfileContent.lud16
     }
-    //console.log(lud16)
-    let ludSplit = lud16.split("@")
-  
+    const ludSplit = lud16.split("@")  
     const response = await fetch("https://"+ludSplit[1]+"/.well-known/lnurlp/"+ludSplit[0])
     .catch(error => {
-      let parentNote = document.getElementById(eventZap.id)
-      let noteMainCTA = parentNote.querySelector('.noteMainCTA')
-      noteMainCTA.classList.add('disabled')
-      noteMainCTA.classList.add('red')
-      noteMainCTA.innerHTML = "CAN'T PAY: Failed to fetch lud16"
+        const parentNote = document.getElementById(eventZap.id)
+        const noteMainCTA = parentNote.querySelector('.noteMainCTA')
+        noteMainCTA.classList.add('disabled')
+        noteMainCTA.classList.add('red')
+        noteMainCTA.innerHTML = "CAN'T PAY: Failed to fetch lud16"
     })
   
     if(response == undefined){
@@ -27,8 +23,6 @@ export async function payNote(eventZap, userProfile, rangeValue, anonymousZap = 
     }
     const lnurlinfo = await response.json();
     if(lnurlinfo.allowsNostr==true){
-        // const privateKey = window.NostrTools.generateSecretKey()
-        let publicKey
         if(anonymousZap==true){
           await createZapEvent(JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":eventZap}), null, rangeValue, anonymousZap)
           return
@@ -36,10 +30,9 @@ export async function payNote(eventZap, userProfile, rangeValue, anonymousZap = 
         else if(window.nostr!=null){
           await createZapEvent(JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":eventZap}), null, rangeValue, false)
           return
-          // publicKey = await window.nostr.getPublicKey() //window.NostrTools.getPublicKey(privateKey)
         }
         else{
-            sessionStorage.setItem('AmberPubkey', JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":event}));
+            sessionStorage.setItem('AmberPubkey', JSON.stringify({"lnurlinfo": lnurlinfo, "lud16": lud16, "event":eventZap}));
             const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`
             try{
                 window.location.href = nostrSignerURL
@@ -49,11 +42,11 @@ export async function payNote(eventZap, userProfile, rangeValue, anonymousZap = 
             }
         }
     }else{
-      let parentNote = document.getElementById(eventZap.id)
-      let noteMainCTA = parentNote.querySelector('.noteMainCTA')
-      noteMainCTA.classList.add('disabled')
-      noteMainCTA.classList.add('red')
-      noteMainCTA.innerHTML = "CAN'T PAY: No nostr support"
+        const parentNote = document.getElementById(eventZap.id)
+        const noteMainCTA = parentNote.querySelector('.noteMainCTA')
+        noteMainCTA.classList.add('disabled')
+        noteMainCTA.classList.add('red')
+        noteMainCTA.innerHTML = "CAN'T PAY: No nostr support"
     }
   }
 
