@@ -74,7 +74,7 @@ async function subscribeKind0sfromKind1s(kind1List, isFirstStream = false){
 async function drawKind1s(first20kind1, kind0List, isFirstStream){
   for(let kind1 of first20kind1){
     const kind0 = kind0List.find(({ pubkey }) => pubkey === kind1.pubkey);
-    if (kind0) drawKind1.plot(kind1, kind0, isFirstStream);
+    if (kind0) await drawKind1.plot(kind1, kind0, isFirstStream);
   }
 }
 
