@@ -30,7 +30,7 @@ body{
   box-sizing: border-box;
 }
 
-#navInner, #main{
+#navInner, #main, #following{
   max-width: 580px;
   width: 100%;
   margin: auto;
