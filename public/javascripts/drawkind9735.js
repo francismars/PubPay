@@ -1,7 +1,7 @@
-export async function plot(json9735List){
+export async function plot(json9735List, iskind3filter){
     for(let json9735 of json9735List){
-      //console.log(json9735)
-      let parentNote = document.getElementById(json9735.e)
+      const parentDiv = iskind3filter ? document.getElementById("following") : document.getElementById("main")
+      let parentNote = parentDiv.querySelector("#_"+json9735.e);
   
       if(!json9735.picture) json9735.picture = ""
       const profileImage = json9735.picture == "" ? "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" : json9735.picture
