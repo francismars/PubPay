@@ -248,30 +248,65 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
   })
 
   document.getElementById('newKind1').addEventListener('submit', submitKind1);
+
+  document.getElementById('login').addEventListener('click', subscribeKind0); 
 })()
 
-async function subscribeKind3(){
+let UserPK = ""
+async function subscribeKind0(){
   if(window.nostr!=null){
-    const pubKey = await window.nostr.getPublicKey()
+    UserPK = await window.nostr.getPublicKey()
     let h = pool.subscribeMany(
       [...relays],
       [{
-          kinds: [3],
-          authors: [pubKey]
+          kinds: [0],
+          authors: [UserPK]
       }]
       ,{
-      onevent(kind3) {
-        extractPKsfromKind3s(kind3)
+      onevent(kind0) {
+        handleKind0data(kind0)
       },
       async oneose() {
-        console.log("subscribeKind3() EOS")
+        console.log("subscribeKind0() EOS")
         h.close()
       },
       onclosed() {
-        console.log("subscribeKind3() Closed")
+        console.log("subscribeKind0() Closed")
       }
     })
   }
+}
+
+function handleKind0data(kind0){
+  if(kind0.content){    
+    const parsedContent = JSON.parse(kind0.content)
+    if(parsedContent.picture){
+      document.getElementById("login").innerHTML = '<img class="userImg" src="'+parsedContent.picture+'">'
+    }
+  }
+}
+
+async function subscribeKind3(){
+  if(UserPK=="") await subscribeKind0()
+  const pubKey = UserPK
+  let h = pool.subscribeMany(
+    [...relays],
+    [{
+        kinds: [3],
+        authors: [pubKey]
+    }]
+    ,{
+    onevent(kind3) {
+      extractPKsfromKind3s(kind3)
+    },
+    async oneose() {
+      console.log("subscribeKind3() EOS")
+      h.close()
+    },
+    onclosed() {
+      console.log("subscribeKind3() Closed")
+    }
+  })
 }
 
 function extractPKsfromKind3s(kind3){
