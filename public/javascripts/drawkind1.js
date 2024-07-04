@@ -4,9 +4,9 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
     let newNote = document.createElement('div')
     newNote.setAttribute('id', "_"+eventData.id)
     newNote.setAttribute('class', 'paynote')
-  
+
     let authorContent = JSON.parse(authorData.content)
-  
+
     let profileData = {}
     profileData.name = authorContent.name
     //profileData.displayName = authorContent.name
@@ -14,9 +14,9 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
     profileData.picture = authorContent.picture ? authorContent.picture : ""
     profileData.nip05 = authorContent.nip05
     profileData.lud16 = authorContent.lud16
-  
+
     //console.log(profileData)
-  
+
     // Profile image
     let noteProfileImg = document.createElement('div')
     noteProfileImg.setAttribute('class', 'noteProfileImg')
@@ -25,23 +25,23 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
     const profileImage = profileData.picture == "" ? "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" : profileData.picture
     userImg.setAttribute('src', profileImage);
     //userImg.setAttribute('src', 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg')
-  
+
     noteProfileImg.appendChild(userImg)
     newNote.appendChild(noteProfileImg)
-  
-  
+
+
     // Data
     let noteData = document.createElement('div')
     noteData.setAttribute('class', 'noteData')
-  
+
     // Header: names and date
     let noteHeader = document.createElement('div')
     noteHeader.setAttribute('class', 'noteHeader')
-  
+
     let noteAuthor = document.createElement('div')
     noteAuthor.setAttribute('class', 'noteAuthor')
-  
-  
+
+
     let noteDisplayName = document.createElement('div')
     noteDisplayName.setAttribute('class', 'noteDisplayName')
     let displayName = profileData.displayName ? profileData.displayName : profileData.name;
@@ -50,8 +50,8 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
       displayName = start_and_end(npub)
     }
     noteDisplayName.innerHTML = '<a href="https://next.nostrudel.ninja/#/u/'+npub+'" class="noteAuthorLink" target="_blank">'+displayName+'</a>'
-  
-  
+
+
     let noteNIP05 = document.createElement('div')
     noteNIP05.classList.add("noteNIP05")
     noteNIP05.classList.add("label")
@@ -62,42 +62,42 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
     }else{
       noteNIP05.innerHTML='<span class="unverified label"><span class="material-symbols-outlined">block</span> Unverified</span>'
     }
-  
-  
+
+
     let noteLNAddress = document.createElement('div')
     noteLNAddress.classList.add("noteLNAddress")
     noteLNAddress.classList.add("label")
-  
+
     if(profileData.lud16){
         let noteLNAddressString = profileData.lud16.split('@')
         noteLNAddress.innerHTML='<a href="https://'+noteLNAddressString[1]+'/.well-known/lnurlp/'+noteLNAddressString[0]+'" target="_blank"><span class="material-symbols-outlined">bolt</span> '+profileData.lud16+'</a>'
     }else{
       noteLNAddress.textContent="NOT PAYABLE"
     }
-  
+
     let noteTimeAgo = timeAgo(eventData.created_at)
-  
+
     let noteDate = document.createElement('div')
     noteDate.classList.add("noteDate")
     noteDate.classList.add("label")
     noteDate.textContent=noteTimeAgo
-  
+
     noteAuthor.appendChild(noteDisplayName)
     noteAuthor.appendChild(noteNIP05)
     noteAuthor.appendChild(noteLNAddress)
     noteHeader.appendChild(noteAuthor)
     noteHeader.appendChild(noteDate)
     noteData.appendChild(noteHeader)
-  
-  
+
+
     // Content
     let noteContent = document.createElement('div')
     noteContent.setAttribute('class', 'noteContent')
     let formatedContent = formatContent(eventData.content)
     noteContent.innerHTML = formatedContent
     noteData.appendChild(noteContent)
-  
-  
+
+
     // Forward
     let filteredforwardZap = eventData.tags.filter(tag => tag[0] == "zap-forward")
     if(filteredforwardZap[0]!=null){
@@ -106,21 +106,21 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
       let forwardZapNoteProfileImg = '<div class="noteProfileImg"><img class="userImg" src="https://fuegouae.com/wp-content/uploads/2016/11/sedfwe4rfw4r.jpg"></div>'
       let forwardZapNoteHeader = '<div class="noteHeader"><div class="noteAuthor"><div class="noteDisplayName"><a href="https://next.nostrudel.ninja/#/u/npub1d4m5fqlgzxyvtp0mpes92p3adwr279qaqcqffax8tnhh4z6f7s8qh4t2n4" class="noteAuthorLink" target="_blank">21prestigerelay</a></div><div class="noteNIP05 label">21prestigerelay@vlt.ge</div></div><div class="noteDate label">8 hours ago</div></div>'
       let forwardZapNoteData = '<div class="noteContent">GM nostr:<a href="https://next.nostrudel.ninja/#/u/npub1nmzww9lw5k6nu0pmusyerz0x2cmg99rnssesf2ztd2kvy6s7lqgqjungrg" class="userMention" npub="npub1nmzww9lw5k6nu0pmusyerz0x2cmg99rnssesf2ztd2kvy6s7lqgqjungrg" target="_blank">npub...ngrg</a>. Welcome to our relay 🧡 Entry fee is 21,000 sats</div>'
-  
+
       let payerProfile = '<div class="zapReaction"><a href="https://next.nostrudel.ninja/#/u/npub1t5atsakzq63h45asjn3qhlpeg80nlgs6zkkgafmddyvywdufv6dqxfahcl" target="_blank"><img class="userImg" src="https://pbs.twimg.com/profile_images/1613844070207471617/VXUvR27o_400x400.jpg"></a><a href="https://next.nostrudel.ninja/#/n/note14h7zraa3p9syplnj9y3t5gdmswekg9k8ghhn0usv9nvp6hn6dkhqpwpr6x" target="_blank" class="zapReactionAmount">21</a></div>'
       let originZap = ' <div class="originZap">'+payerProfile+'<div class="noteProfileImg"><img class="userImg" src="https://www.plenodelafemp.es/wp-content/uploads/2014/10/speaker-3.jpg"></div></div>'
       forwardZapNoteData += '<div class="noteValues"><div class="zapMin"><span class="zapMinVal">21,000</span> <span class="label">sats</span></div><div class="zap___Uses"><span class="zapUses______Current">0</span> <span class="label">of</span> <span class="zapUsesTotal">1</span></div> </div>'+originZap
-  
+
       forwardZap.innerHTML = '<div class="paynote">'+forwardZapNoteProfileImg+'<div class="noteData">'+forwardZapNoteHeader+forwardZapNoteData+'</div></div>'
       noteContent.appendChild(forwardZap)
     }
-  
-  
-  
+
+
+
     // Values
     let noteValues = document.createElement('div')
     noteValues.setAttribute('class', 'noteValues')
-  
+
     // INSERT LOGIC FOR AMOUNT, ZAP-MIN, ZAP-MAX, ETC
     let zapMin = document.createElement('div')
     let filteredZapMin = eventData.tags.find(tag => tag[0] == "zap-min")
@@ -133,7 +133,7 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
       zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[1]/1000).toLocaleString()+'</span> <span class="label">sats<br>Min</span>'
       noteValues.appendChild(zapMin)
     }
-  
+
     let zapMax = document.createElement('div')
     let filteredZapMax = eventData.tags.find(tag => tag[0] == "zap-max")
     if(filteredZapMax){
@@ -143,7 +143,7 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
         else filteredZapMax[1] = 100000
       }
     }
-  
+
     if(filteredZapMin && filteredZapMax){
       if(filteredZapMin[1] != filteredZapMax[1] ){
         zapMax.setAttribute('class', 'zapMax')
@@ -154,7 +154,7 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
         zapMin.innerHTML = '<span class="zapMinVal">'+(filteredZapMin[1]/1000).toLocaleString()+'</span> <span class="label">sats<br></span>'
       }
     }
-  
+
     const filteredZapUses = eventData.tags.find(tag => tag[0] == "zap-uses")
     const zapUses = document.createElement('div')
     zapUses.setAttribute('class', 'zapUses')
@@ -162,8 +162,8 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
                     : zapUses.innerHTML = ""
     noteValues.appendChild(zapUses)
     noteData.appendChild(noteValues)
-  
-  
+
+
     // Payer
     let filteredZapPayer = eventData.tags.filter(tag => tag[0] == "zap-payer")
     if(filteredZapPayer[0]!=null){
@@ -172,8 +172,8 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
       zapPayer.innerHTML = 'Payer <span class="material-symbols-outlined main-icon">target</span><div class="zapPayerInner"><img class="userImg" src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"><div class="userName">'+ start_and_end(NostrTools.nip19.npubEncode(filteredZapPayer[0][1])) +'</div></div>'
       noteData.appendChild(zapPayer)
     }
-  
-  
+
+
     // LNURL
     const filteredZapLNURL = eventData.tags.find(tag => tag[0] == "zap-lnurl")
     if(filteredZapLNURL){
@@ -181,18 +181,18 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
       if(ludSplit.length==2){
         const zapLNURL = document.createElement('div')
         zapLNURL.setAttribute('class', 'zapPayer')
-        zapLNURL.innerHTML = `LN Address<span class="material-symbols-outlined main-icon">double_arrow</span>`
-        zapLNURL.innerHTML += `<a href="https://`+ludSplit[1]+`/.well-known/lnurlp/`+ludSplit[0]+`" target=”_blank”>`+filteredZapLNURL[1]+`</a>`
+        zapLNURL.innerHTML = `<div><span class="material-symbols-outlined main-icon">double_arrow</span> Redirect to</div>`
+        zapLNURL.innerHTML += `<a href="https://`+ludSplit[1]+`/.well-known/lnurlp/`+ludSplit[0]+`" target=”_blank” class="bold">`+filteredZapLNURL[1]+`</a>`
         noteData.appendChild(zapLNURL)
       }
     }
-  
+
     // Hero Payers
     let noteHeroZaps = document.createElement('div')
     noteHeroZaps.setAttribute('class', 'noteHeroZaps')
     noteHeroZaps.classList.add('noteZapReactions')
     noteData.appendChild(noteHeroZaps)
-  
+
     // Main CTA
     let noteCTA = document.createElement('div')
     const buttonZap = document.createElement('button');
@@ -206,21 +206,21 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
       buttonZap.getAttribute("value") != null ? rangeValue = buttonZap.getAttribute("value") : rangeValue = -1
       await zap.payNote(eventData, authorData, rangeValue)
     });
-  
-  
+
+
     if(filteredZapMin && filteredZapMax && filteredZapMin[1] != filteredZapMax[1] ){
-  
+
         let zapSliderContainer = document.createElement('div')
         zapSliderContainer.setAttribute('class', 'zapSliderContainer')
         zapSliderContainer.innerHTML = '<input type="range" min="'+(filteredZapMin[1]/1000)+'" max="'+(filteredZapMax[1]/1000)+'" value="'+(filteredZapMin[1]/1000)+'" class="zapSlider">'
         noteData.appendChild(zapSliderContainer)
-  
+
         let zapSlider = zapSliderContainer.querySelector('.zapSlider')
-  
+
         let zapSliderVal = document.createElement('div')
         zapSliderVal.setAttribute('class', 'zapSliderVal')
         zapSliderContainer.appendChild(zapSliderVal)
-  
+
         let update = () => {
           //console.log( (zapSlider.value).toLocaleString() )
           buttonZap.setAttribute('value', parseInt(zapSlider.value))
@@ -228,60 +228,60 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
         }
         zapSlider.addEventListener('input', update);
         update();
-  
+
     }
-  
+
     noteData.appendChild(noteCTA)
-  
-  
+
+
     // Actions and Reactions
     let noteActionsReactions = document.createElement('div')
     noteActionsReactions.setAttribute('class', 'noteActionsReactions')
-  
+
     let noteZapReactions = document.createElement('div')
     noteZapReactions.setAttribute('class', 'noteZaps')
     noteZapReactions.classList.add('noteZapReactions')
-  
-  
+
+
     //let eventDataString = JSON.stringify(eventData).replace(/"/g, '&quot;');
-  
+
     let noteActions = document.createElement('div')
     noteActions.setAttribute('class', 'noteActions')
-  
+
     let zapBoltIcon = document.createElement('a')
     zapBoltIcon.setAttribute('class', 'noteAction')
     zapBoltIcon.classList.add('disabled')
     zapBoltIcon.innerHTML = '<span class="material-symbols-outlined">bolt</span>'
     noteActions.appendChild(zapBoltIcon)
-  
+
     let reactionIcon = document.createElement('a')
     reactionIcon.setAttribute('class', 'noteAction')
     reactionIcon.classList.add('disabled')
     reactionIcon.innerHTML = '<span class="material-symbols-outlined">favorite</span>'
     noteActions.appendChild(reactionIcon)
-  
+
     let shareIcon = document.createElement('a')
     shareIcon.setAttribute('class', 'noteAction')
     shareIcon.classList.add('disabled')
     shareIcon.innerHTML = '<span class="material-symbols-outlined">ios_share</span>'
     noteActions.appendChild(shareIcon)
-  
-  
-  
+
+
+
     let toolTip = document.createElement('div')
     toolTip.setAttribute('class', 'tooltip')
-  
-  
+
+
     let toolTipText = document.createElement('div')
     toolTipText.setAttribute('class', 'tooltiptext')
-  
-  
+
+
     let newPayForward = document.createElement('a')
     newPayForward.setAttribute('class', 'cta')
     newPayForward.classList.add('disabled')
     newPayForward.textContent = 'New Pay Forward'
     toolTipText.appendChild(newPayForward)
-  
+
     let payAnonymously = document.createElement('a')
     payAnonymously.setAttribute('class', 'cta')
     payAnonymously.textContent = 'Pay Anonymously'
@@ -291,7 +291,7 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
       await zap.payNote(eventData, authorData, rangeValue, true)
     });
     toolTipText.appendChild(payAnonymously)
-  
+
     let viewRaw = document.createElement('div')
     viewRaw.setAttribute('class', 'noteAction')
     toolTipText.appendChild(viewRaw)
@@ -309,28 +309,28 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
     viewOn.setAttribute('class', 'noteAction')
     viewOn.innerHTML = '<a href="https://next.nostrudel.ninja/#/n/'+NostrTools.nip19.noteEncode(eventData.id)+'" class="toolTipLink" target="_blank">View on nostrudel</a>'
     toolTipText.appendChild(viewOn)
-  
-  
-  
-  
+
+
+
+
     let noteAction = document.createElement('div')
     noteAction.setAttribute('class', 'noteAction')
     noteAction.innerHTML = '<span class="material-symbols-outlined">more_horiz</span>'
     noteAction.appendChild(toolTipText)
-  
+
     toolTip.appendChild(noteAction)
-  
+
     noteActions.appendChild(toolTip)
-  
-  
+
+
     // const rangeValue = buttonZap.getAttribute('value') !== null ? buttonZap.getAttribute('value') : -1;
     // payNote(eventData, authorData, rangeValue, true);';
-  
+
     noteActionsReactions.appendChild(noteZapReactions)
     noteActionsReactions.appendChild(noteActions)
     noteData.appendChild(noteActionsReactions)
-  
-  
+
+
     newNote.appendChild(noteData);
     const main = iskind3filter==true ? document.querySelector('#following') : document.querySelector('#main')
     //console.log(firstStream)
@@ -345,7 +345,7 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
     const minutesAgo = Math.floor(differenceMs / (1000 * 60)); // Difference in minutes
     const hoursAgo = Math.floor(differenceMs / (1000 * 60 * 60)); // Difference in hours
     const daysAgo = Math.floor(differenceMs / (1000 * 60 * 60 * 24)); // Difference in days
-  
+
     if (minutesAgo < 60) {
         return `${minutesAgo}m`;
     } else if (hoursAgo < 24) {
@@ -370,7 +370,7 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
     return content
   }
 
-  
+
 function start_and_end(str) {
     if (str.length > 35) {
       return str.substr(0, 4) + '...' + str.substr(str.length-4, str.length);
