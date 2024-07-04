@@ -1,6 +1,6 @@
 let zap = await import("./zap.js")
 
-export async function plot(eventData, authorData, firstStream=false){
+export async function plot(eventData, authorData, firstStream=false, iskind3filter=false){
     let newNote = document.createElement('div')
     newNote.setAttribute('id', eventData.id)
     newNote.setAttribute('class', 'paynote')
@@ -332,7 +332,7 @@ export async function plot(eventData, authorData, firstStream=false){
   
   
     newNote.appendChild(noteData);
-    const main = document.querySelector('#main')
+    const main = iskind3filter ? document.querySelector('#following') : document.querySelector('#main')
     //console.log(firstStream)
     firstStream==true ? main.appendChild(newNote) : main.insertBefore(newNote, main.firstChild)
   }

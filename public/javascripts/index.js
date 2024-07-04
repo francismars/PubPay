@@ -7,18 +7,20 @@ const relays = ['wss://relay.damus.io', 'wss://relay.primal.net','wss://nostr.mu
 
 subscribePubPays()
 
-async function subscribePubPays() {
+async function subscribePubPays(kind3PKs = []) {
   let kind1Seen = new Set();
   let kind1List = []
   let isFirstStream = true
+  let filter = { kinds: [1], "#t": ["pubpay"]}
+  let iskind3filter = false
+  if(kind3PKs.length>0){
+    filter.authors = kind3PKs
+    iskind3filter = true
+  }
   pool.subscribeMany(
       [...relays],
-      [
+      [filter], 
       {
-          kinds: [1],
-          "#t": ["pubpay"]
-      },
-      ], {
       async onevent(kind1) {
         if(kind1.tags && !(kind1Seen.has(kind1.id))){
           kind1Seen.add(kind1.id);
@@ -32,7 +34,7 @@ async function subscribePubPays() {
       async oneose() {
         if(isFirstStream){
           //let first20kind1 = kind1List.splice(0, 4)
-          await subscribeKind0sfromKind1s(kind1List, isFirstStream)
+          await subscribeKind0sfromKind1s(kind1List, isFirstStream, iskind3filter)
           isFirstStream = false
           console.log("subscribePubPays() EOS")
         }
@@ -43,7 +45,7 @@ async function subscribePubPays() {
   })
 }
 
-async function subscribeKind0sfromKind1s(kind1List, isFirstStream = false){
+async function subscribeKind0sfromKind1s(kind1List, isFirstStream = false, iskind3filter = false){
   let kind0List = []
   let kind1PubkeyList = []
   for(let kind1 of kind1List){
@@ -61,7 +63,7 @@ async function subscribeKind0sfromKind1s(kind1List, isFirstStream = false){
   },
   async oneose() {
     console.log("subscribeKind0sfromKind1s() EOS")
-    await drawKind1s(kind1List, kind0List, isFirstStream)
+    await drawKind1s(kind1List, kind0List, isFirstStream, iskind3filter)
     await subscribeKind9735(kind1List)
     sub.close()
   },
@@ -71,10 +73,10 @@ async function subscribeKind0sfromKind1s(kind1List, isFirstStream = false){
 })
 }
 
-async function drawKind1s(first20kind1, kind0List, isFirstStream){
+async function drawKind1s(first20kind1, kind0List, isFirstStream, iskind3filter){
   for(let kind1 of first20kind1){
     const kind0 = kind0List.find(({ pubkey }) => pubkey === kind1.pubkey);
-    if (kind0) drawKind1.plot(kind1, kind0, isFirstStream);
+    if (kind0) drawKind1.plot(kind1, kind0, isFirstStream, iskind3filter);
   }
 }
 
@@ -214,8 +216,73 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
     }
   })
 
+  
+
+  document.getElementById('feedFollowing').addEventListener("click", async function() {
+    document.getElementById('feedFollowing').classList.add("active");
+    document.getElementById('feedGlobal').classList.remove("active");
+    const mainDiv = document.getElementById('main');
+    if (mainDiv.style.display == 'block'){
+      mainDiv.style.display = 'none';
+      await subscribeKind3()
+    }
+    const followingDiv = document.getElementById('following');
+    if (followingDiv.style.display == 'none'){
+      followingDiv.style.display = 'block';
+    }
+  })
+
+  document.getElementById('feedGlobal').addEventListener("click", function() {
+    document.getElementById('feedFollowing').classList.remove("active");
+    document.getElementById('feedGlobal').classList.add("active");
+    const mainDiv = document.getElementById('main');
+    if (mainDiv.style.display == 'none'){
+      mainDiv.style.display = 'block';
+    }
+    const followingDiv = document.getElementById('following');
+    if (followingDiv.style.display == 'block'){
+      followingDiv.style.display = 'none';
+    }
+  })
+
   document.getElementById('newKind1').addEventListener('submit', submitKind1);
 })()
+
+async function subscribeKind3(){
+  if(window.nostr!=null){
+    const pubKey = await window.nostr.getPublicKey()
+    let h = pool.subscribeMany(
+      [...relays],
+      [{
+          kinds: [3],
+          authors: [pubKey]
+      }]
+      ,{
+      onevent(kind3) {
+        //console.log(kind3)
+        extractPKsfromKind3s(kind3)
+      },
+      async oneose() {
+        console.log("subscribeKind3() EOS")
+        h.close()
+      },
+      onclosed() {
+        console.log("subscribeKind3() Closed")
+      }
+    })
+  }
+}
+
+function extractPKsfromKind3s(kind3){
+  let kind3PKs = [] 
+  if(kind3.tags){
+    for(let kind3tag of kind3.tags){
+      if(kind3tag[0]=='p') kind3PKs.push(kind3tag[1])
+    }
+  }
+  console.log(kind3PKs)
+  subscribePubPays(kind3PKs)
+}
 
 async function submitKind1(event){
   //console.log(event)
