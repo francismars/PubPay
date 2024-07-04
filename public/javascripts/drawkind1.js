@@ -332,7 +332,7 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
   
   
     newNote.appendChild(noteData);
-    const main = iskind3filter ? document.querySelector('#following') : document.querySelector('#main')
+    const main = iskind3filter==true ? document.querySelector('#following') : document.querySelector('#main')
     //console.log(firstStream)
     firstStream==true ? main.appendChild(newNote) : main.insertBefore(newNote, main.firstChild)
   }
