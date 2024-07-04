@@ -25,7 +25,7 @@ async function subscribePubPays(kind3PKs = []) {
         if(kind1.tags && !(kind1Seen.has(kind1.id))){
           kind1Seen.add(kind1.id);
           if(!isFirstStream){
-            await subscribeKind0sfromKind1s([kind1])
+            await subscribeKind0sfromKind1s([kind1], isFirstStream, iskind3filter)
           } else {
             kind1List.push(kind1)
           }
@@ -76,7 +76,7 @@ async function subscribeKind0sfromKind1s(kind1List, isFirstStream = false, iskin
 async function drawKind1s(first20kind1, kind0List, isFirstStream, iskind3filter){
   for(let kind1 of first20kind1){
     const kind0 = kind0List.find(({ pubkey }) => pubkey === kind1.pubkey);
-    if (kind0) await drawKind1.plot(kind1, kind0, isFirstStream);
+    if (kind0) await drawKind1.plot(kind1, kind0, isFirstStream, iskind3filter);
   }
 }
 
@@ -159,7 +159,6 @@ async function subscribeKind0sfromKind9735s(kind9735List, kind1List){
 
 async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1List){
   let json9735List = []
-  //console.log(kind1List)
   for(let kind9735 of kind9735List){
     const description9735 = JSON.parse(kind9735.tags.find(tag => tag[0] == "description")[1])
     const pubkey9735 = description9735.pubkey
@@ -259,7 +258,6 @@ async function subscribeKind3(){
       }]
       ,{
       onevent(kind3) {
-        //console.log(kind3)
         extractPKsfromKind3s(kind3)
       },
       async oneose() {
@@ -280,15 +278,12 @@ function extractPKsfromKind3s(kind3){
       if(kind3tag[0]=='p') kind3PKs.push(kind3tag[1])
     }
   }
-  console.log(kind3PKs)
   subscribePubPays(kind3PKs)
 }
 
 async function submitKind1(event){
-  //console.log(event)
   event.preventDefault();
   const payNoteContent = document.getElementById('payNoteContent').value;
-  //console.log(payNoteContent)
   if(payNoteContent==""){ /*Handle This*/ }
   let tagsList = []
   let zapMin = document.getElementById('zapMin').value;
