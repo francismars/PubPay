@@ -273,13 +273,14 @@ a.feedSelectorLink.active {
   border: 1px solid #d6e6ff;
   padding: 5px;
   border-radius: 8px;
-  /* background: #4a75ff; */
+  background: #d0dbff;
   align-items: center;
   color: #636363;
   font-weight: 300;
   word-break: break-word;
-  justify-content: center;
+  justify-content: space-between;
   column-gap: 9px;
+  color: #4a75ff;
 }
 
 .zapPayerInner {
@@ -348,6 +349,7 @@ a.feedSelectorLink.active {
   font-size: 18px;
   vertical-align: middle;
   /* color: #a3a3a3; */
+  font-weight: 400;
 }
 
 
