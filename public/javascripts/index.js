@@ -19,7 +19,7 @@ async function subscribePubPays(kind3PKs = []) {
   }
   pool.subscribeMany(
       [...relays],
-      [filter], 
+      [filter],
       {
       async onevent(kind1) {
         if(kind1.tags && !(kind1Seen.has(kind1.id))){
@@ -215,7 +215,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
     }
   })
 
-  
+
   let subscribedKind3 = false
   document.getElementById('feedFollowing').addEventListener("click", async function() {
     document.getElementById('feedFollowing').classList.add("active");
@@ -226,7 +226,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
       if(!subscribedKind3){
         await subscribeKind3()
         subscribedKind3 = true
-      } 
+      }
     }
     const followingDiv = document.getElementById('following');
     if (followingDiv.style.display == 'none'){
@@ -249,7 +249,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
 
   document.getElementById('newKind1').addEventListener('submit', submitKind1);
 
-  document.getElementById('login').addEventListener('click', subscribeKind0); 
+  document.getElementById('login').addEventListener('click', subscribeKind0);
 })()
 
 let UserPK = ""
@@ -278,10 +278,10 @@ async function subscribeKind0(){
 }
 
 function handleKind0data(kind0){
-  if(kind0.content){    
+  if(kind0.content){
     const parsedContent = JSON.parse(kind0.content)
     if(parsedContent.picture){
-      document.getElementById("login").innerHTML = '<img class="userImg" src="'+parsedContent.picture+'">'
+      document.getElementById("login").innerHTML = '<img class="userImg currentUserImg" src="'+parsedContent.picture+'">'
     }
   }
 }
@@ -310,7 +310,7 @@ async function subscribeKind3(){
 }
 
 function extractPKsfromKind3s(kind3){
-  let kind3PKs = [] 
+  let kind3PKs = []
   if(kind3.tags){
     for(let kind3tag of kind3.tags){
       if(kind3tag[0]=='p') kind3PKs.push(kind3tag[1])
