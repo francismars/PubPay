@@ -7,6 +7,10 @@ body{
   display: none
 }
 
+.bold{
+  font-weight: 500
+}
+
 #nav{
   width: 100%;
   border-bottom: 1px solid #ffffff;
