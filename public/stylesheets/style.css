@@ -52,6 +52,10 @@ body{
   column-gap: 15px;
 }
 
+.topAction .material-symbols-outlined{
+  font-size: 21px;
+}
+
 #logo, .brand{
   font-family: "Russo One", sans-serif;
   font-weight: 400;
