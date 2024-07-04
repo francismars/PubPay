@@ -8,16 +8,19 @@ export async function payNote(eventZap, userProfile, rangeValue, anonymousZap = 
     }else{
       lud16 = eventProfileContent.lud16
     }
-    const ludSplit = lud16.split("@")  
+    const ludSplit = lud16.split("@")
     const response = await fetch("https://"+ludSplit[1]+"/.well-known/lnurlp/"+ludSplit[0])
     .catch(error => {
-        const parentNote = document.getElementById(eventZap.id)
-        const noteMainCTA = parentNote.querySelector('.noteMainCTA')
-        noteMainCTA.classList.add('disabled')
-        noteMainCTA.classList.add('red')
-        noteMainCTA.innerHTML = "CAN'T PAY: Failed to fetch lud16"
+        for(let feedId of ["main","following"]){
+          const parentFeed = document.getElementById(feedId)
+          const parentNote = parentFeed.querySelector("#_"+eventZap.id)
+          const noteMainCTA = parentNote.querySelector('.noteMainCTA')
+          noteMainCTA.classList.add('disabled')
+          noteMainCTA.classList.add('red')
+          noteMainCTA.innerHTML = "CAN'T PAY: Failed to fetch lud16"
+        }
     })
-  
+
     if(response == undefined){
       return
     }
@@ -42,15 +45,18 @@ export async function payNote(eventZap, userProfile, rangeValue, anonymousZap = 
             }
         }
     }else{
-        const parentNote = document.getElementById(eventZap.id)
+      for(let feedId of ["main","following"]){
+        const parentFeed = document.getElementById(feedId)
+        const parentNote = parentFeed.querySelector("#_"+eventZap.id)
         const noteMainCTA = parentNote.querySelector('.noteMainCTA')
         noteMainCTA.classList.add('disabled')
         noteMainCTA.classList.add('red')
         noteMainCTA.innerHTML = "CAN'T PAY: No nostr support"
+      }
     }
   }
 
-  
+
 async function createZapEvent(eventStoragePK, pubKey = null, rangeValue, anonymousZap = false){
     eventStoragePK = JSON.parse(eventStoragePK)
     let eventZap = eventStoragePK.event
@@ -96,7 +102,7 @@ async function createZapEvent(eventStoragePK, pubKey = null, rangeValue, anonymo
     }
   }
 
-  
+
 async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
     let eventFinal = JSON.stringify(zapFinalized)
     let lnurl = lud16
@@ -151,7 +157,7 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16){
     }
   });
 
-  
+
 async function accessClipboard() {
     return new Promise(resolve => {
       setTimeout(async () => {
