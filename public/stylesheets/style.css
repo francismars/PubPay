@@ -678,6 +678,12 @@ input:focus::placeholder {
 }
 
 
+
+.currentUserImg{
+  width: 30px;
+  margin-bottom: -5px;
+}
+
 .disabled {
     filter: saturate(0);
     opacity: 0.3;
