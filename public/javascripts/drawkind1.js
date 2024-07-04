@@ -2,7 +2,7 @@ let zap = await import("./zap.js")
 
 export async function plot(eventData, authorData, firstStream=false, iskind3filter=false){
     let newNote = document.createElement('div')
-    newNote.setAttribute('id', eventData.id)
+    newNote.setAttribute('id', "_"+eventData.id)
     newNote.setAttribute('class', 'paynote')
   
     let authorContent = JSON.parse(authorData.content)

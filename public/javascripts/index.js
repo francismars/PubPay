@@ -64,7 +64,7 @@ async function subscribeKind0sfromKind1s(kind1List, isFirstStream = false, iskin
   async oneose() {
     console.log("subscribeKind0sfromKind1s() EOS")
     await drawKind1s(kind1List, kind0List, isFirstStream, iskind3filter)
-    await subscribeKind9735(kind1List)
+    await subscribeKind9735(kind1List, iskind3filter)
     sub.close()
   },
   onclosed() {
@@ -80,7 +80,7 @@ async function drawKind1s(first20kind1, kind0List, isFirstStream, iskind3filter)
   }
 }
 
-async function subscribeKind9735(kind1List){
+async function subscribeKind9735(kind1List, iskind3filter){
   let kind9735Seen = new Set();
   let kind1IDList = []
   let kind9735List = []
@@ -104,12 +104,12 @@ async function subscribeKind9735(kind1List){
       kind9735List.push(kind9735)
     }
     if(!firstStream){
-      await subscribeKind0sfromKind9735s([kind9735], kind1List)
+      await subscribeKind0sfromKind9735s([kind9735], kind1List, iskind3filter)
     }
   },
   async oneose() {
     console.log("subscribeKind9735() EOS")
-    if(kind9735List.length>0) await subscribeKind0sfromKind9735s(kind9735List.reverse(), kind1List)
+    if(kind9735List.length>0) await subscribeKind0sfromKind9735s(kind9735List.reverse(), kind1List, iskind3filter)
     firstStream = false
     //sub.close()
   },
@@ -119,7 +119,7 @@ async function subscribeKind9735(kind1List){
 })
 }
 
-async function subscribeKind0sfromKind9735s(kind9735List, kind1List){
+async function subscribeKind0sfromKind9735s(kind9735List, kind1List, iskind3filter){
   let pubkeys9734 = []
   let kind0fromkind9735List = []
   let kind0fromkind9735Seen = new Set();
@@ -148,7 +148,7 @@ async function subscribeKind0sfromKind9735s(kind9735List, kind1List){
   },
   async oneose() {
     console.log("subscribeKind0sfromKind9735s() EOS")
-    await createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1List)
+    await createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1List, iskind3filter)
     h.close()
   },
   onclosed() {
@@ -157,7 +157,7 @@ async function subscribeKind0sfromKind9735s(kind9735List, kind1List){
 })
 }
 
-async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1List){
+async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1List, iskind3filter){
   let json9735List = []
   for(let kind9735 of kind9735List){
     const description9735 = JSON.parse(kind9735.tags.find(tag => tag[0] == "description")[1])
@@ -185,7 +185,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
     const json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "pubKey": pubkey9735, "zapEventID": kind9735id, "tags": kind1tags}
     json9735List.push(json9735)
   }
-  await drawKind9735.plot(json9735List)
+  await drawKind9735.plot(json9735List, iskind3filter)
 }
 
 
@@ -216,14 +216,17 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
   })
 
   
-
+  let subscribedKind3 = false
   document.getElementById('feedFollowing').addEventListener("click", async function() {
     document.getElementById('feedFollowing').classList.add("active");
     document.getElementById('feedGlobal').classList.remove("active");
     const mainDiv = document.getElementById('main');
     if (mainDiv.style.display == 'block'){
       mainDiv.style.display = 'none';
-      await subscribeKind3()
+      if(!subscribedKind3){
+        await subscribeKind3()
+        subscribedKind3 = true
+      } 
     }
     const followingDiv = document.getElementById('following');
     if (followingDiv.style.display == 'none'){
