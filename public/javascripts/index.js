@@ -199,6 +199,21 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
     }
   })
 
+
+  document.getElementById('fixedFlow').addEventListener("click", function() {
+    const fixedInterface = document.getElementById('fixedInterface');
+    fixedInterface.style.display = 'block';
+    const rangeInterface = document.getElementById('rangeInterface');
+    rangeInterface.style.display = 'none';
+  })
+
+  document.getElementById('rangeFlow').addEventListener("click", function() {
+    const rangeInterface = document.getElementById('rangeInterface');
+    rangeInterface.style.display = 'flex';
+    const fixedInterface = document.getElementById('fixedInterface');
+    fixedInterface.style.display = 'none';
+  })
+
   document.getElementById('cancelNewNote').addEventListener("click", function() {
     const newNoteForm = document.getElementById('newPayNoteForm');
     if (newNoteForm.style.display === 'none' || newNoteForm.style.display === '') {

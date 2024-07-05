@@ -368,7 +368,7 @@ a:visited{
 }
 
 
-.label {
+.label, legend {
   color: #919191;
   font-size: 14px;
 }
@@ -497,7 +497,7 @@ button.noteMainCTA.cta.disabled.red {
   column-gap: 10px;
 }
 
-.formField label{
+.formField label, .formField legend{
   display: block;
   margin-bottom: 10px;
   text-transform: uppercase;
@@ -508,8 +508,36 @@ button.noteMainCTA.cta.disabled.red {
   font-weight:600
 }
 
+.formField legend{
+  color: #a3a3a3;
+}
+
 .formField.disabled {
     opacity: 0.3;
+}
+
+
+.formField.formSelector {
+    display: flex;
+    padding: 0;
+    border: 0;
+    margin: 0;
+}
+
+.formField.formSelector div {
+    display: flex;
+    /* width:33.3333%; */
+    padding: 15px 36px 20px 0px;
+}
+
+.formField.formSelector input {
+  width: unset;
+  padding: 0;
+  margin: -3px 4px 1px 0px;
+}
+
+legend {
+    padding: 0;
 }
 
 #cancelNewNote{

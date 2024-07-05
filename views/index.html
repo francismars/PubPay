@@ -102,16 +102,44 @@
                     <textarea id="payNoteContent" name="payNoteContent" rows="4"></textarea>
                 </div>
 
-                <div class="formFieldGroup">
+
+
+                <fieldset class="formField formSelector">
+                  <legend class="uppercase">Select type of payment request</legend>
+                  <div>
+                    <input type="radio" id="fixedFlow" name="paymentType" value="fixed" checked />
+                    <label for="fixedFlow">Fixed</label>
+                  </div>
+                  <div>
+                    <input type="radio" id="rangeFlow" name="paymentType" value="range" />
+                    <label for="rangeFlow">Range</label>
+                  </div>
+                  <div class="disabled">
+                    <input type="radio" id="targetFlow" name="paymentType" value="target" disabled />
+                    <label for="targetFlow">Target (coming soon)</label>
+                  </div>
+                </fieldset>
+
+                <div class="formFieldGroup" id="fixedInterface">
+                  <div class="formField">
+                      <label for="zapFixed" class="label">Fixed Amount <span class="tagName">zap-min = zap-max</span></label>
+                      <input type="number" min=1 id="zapFixed" placeholder="1" name="zapFixed">
+                  </div>
+                </div>
+
+
+                <div class="formFieldGroup" id="rangeInterface" style="display:none">
                   <div class="formField">
                       <label for="zapMin" class="label">Minimum amount <span class="tagName">zap-min</span></label>
-                      <input type="text" id="zapMin" placeholder="1" name="zapMin">
+                      <input type="number" min=1 id="zapMin" placeholder="1" name="zapMin">
                   </div>
                   <div class="formField">
                       <label for="zapMax" class="label">Maximum amount <span class="tagName">zap-max</span></label>
-                      <input type="text" id="zapMax" placeholder="1000000000" name="zapMax">
+                      <input type="number" min=1 id="zapMax" placeholder="1000000000" name="zapMax">
                   </div>
                 </div>
+
+
 
                 <div class="formFieldGroup">
                   <div class="formField">
@@ -130,7 +158,7 @@
                 </div>
 
                 <div class="formField">
-                    <label for="overrideLNURL" class="label">Override LNURL <span class="tagName">zap-lnur</span></label>
+                    <label for="overrideLNURL" class="label">Override LN address (kind 0 lud16)<span class="tagName"> zap-lnurl</span></label>
                     <input type="text" id="overrideLNURL" placeholder="address@lnprovider.net" name="overrideLNURL">
                 </div>
 
