@@ -205,6 +205,11 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
     fixedInterface.style.display = 'block';
     const rangeInterface = document.getElementById('rangeInterface');
     rangeInterface.style.display = 'none';
+    document.getElementById('zapMin').value = ""
+    document.getElementById('zapMax').value = ""
+    document.getElementById('zapMin').removeAttribute("required");
+    document.getElementById('zapMax').removeAttribute("required");
+    document.getElementById('zapFixed').setAttribute("required", "true");
   })
 
   document.getElementById('rangeFlow').addEventListener("click", function() {
@@ -212,6 +217,10 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
     rangeInterface.style.display = 'flex';
     const fixedInterface = document.getElementById('fixedInterface');
     fixedInterface.style.display = 'none';
+    document.getElementById('zapFixed').value = ""
+    document.getElementById('zapMin').setAttribute("required", "true");
+    document.getElementById('zapMax').setAttribute("required", "true");
+    document.getElementById('zapFixed').removeAttribute("required");
   })
 
   document.getElementById('cancelNewNote').addEventListener("click", function() {
@@ -269,26 +278,28 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List, kind1Lis
 
 let UserPK = ""
 async function subscribeKind0(){
-  if(window.nostr!=null){
-    UserPK = await window.nostr.getPublicKey()
-    let h = pool.subscribeMany(
-      [...relays],
-      [{
-          kinds: [0],
-          authors: [UserPK]
-      }]
-      ,{
-      onevent(kind0) {
-        handleKind0data(kind0)
-      },
-      async oneose() {
-        console.log("subscribeKind0() EOS")
-        h.close()
-      },
-      onclosed() {
-        console.log("subscribeKind0() Closed")
-      }
-    })
+  if(UserPK==""){
+    if(window.nostr!=null){
+      UserPK = await window.nostr.getPublicKey()
+      let h = pool.subscribeMany(
+        [...relays],
+        [{
+            kinds: [0],
+            authors: [UserPK]
+        }]
+        ,{
+        onevent(kind0) {
+          handleKind0data(kind0)
+        },
+        async oneose() {
+          console.log("subscribeKind0() EOS")
+          h.close()
+        },
+        onclosed() {
+          console.log("subscribeKind0() Closed")
+        }
+      })
+    }
   }
 }
 
@@ -339,12 +350,26 @@ async function submitKind1(event){
   const payNoteContent = document.getElementById('payNoteContent').value;
   if(payNoteContent==""){ /*Handle This*/ }
   let tagsList = []
-  let zapMin = document.getElementById('zapMin').value;
-  if(!(Number.isInteger(parseInt(zapMin)) && zapMin > 0)) zapMin = 1
+  const isFixedFlow = document.getElementById('fixedFlow').checked
+  const isRangeFlow = document.getElementById('rangeFlow').checked
+  let zapMin, zapMax
+  if(!isFixedFlow && isRangeFlow){
+    let zapMinInput = document.getElementById('zapMin').value;
+    if(!(Number.isInteger(parseInt(zapMinInput)) && zapMinInput > 0)) return console.log("Insert ZAP-MIN.");
+    else zapMin = zapMinInput
+    let zapMaxInput = document.getElementById('zapMax').value;
+    if(!(Number.isInteger(parseInt(zapMaxInput)) && zapMaxInput > 0)) return console.log("Insert ZAP-MAX.");
+    else zapMax = zapMaxInput
+    if(zapMax<zapMin) return console.log("ZAP-MIN > ZAP-MAX.");
+  }
+  else if(isFixedFlow && !isRangeFlow){
+    let zapFixedInput = document.getElementById('zapFixed').value;
+    if(!(Number.isInteger(parseInt(zapFixedInput)) && zapFixedInput > 0)) return console.log("Insert ZAP AMOUNT.");
+    else zapMin = zapFixedInput,zapMax = zapFixedInput
+  }
   tagsList.push(["zap-min",(zapMin*1000).toString()])
-  const zapMax = document.getElementById('zapMax').value;
-  if(zapMax!="") tagsList.push(["zap-max",(zapMax*1000).toString()])
-  else if(zapMin!="" && zapMax=="") tagsList.push(["zap-max",(zapMin*1000).toString()])
+  tagsList.push(["zap-max",(zapMax*1000).toString()])  
+  
   const zapUses = document.getElementById('zapUses').value;
   if(zapUses!="") tagsList.push(["zap-uses",zapUses])
   const zapLNURL = document.getElementById('overrideLNURL').value;

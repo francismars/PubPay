@@ -102,8 +102,6 @@
                     <textarea id="payNoteContent" name="payNoteContent" rows="4"></textarea>
                 </div>
 
-
-
                 <fieldset class="formField formSelector">
                   <legend class="uppercase">Select type of payment request</legend>
                   <div>
@@ -123,7 +121,7 @@
                 <div class="formFieldGroup" id="fixedInterface">
                   <div class="formField">
                       <label for="zapFixed" class="label">Fixed Amount <span class="tagName">zap-min = zap-max</span></label>
-                      <input type="number" min=1 id="zapFixed" placeholder="1" name="zapFixed">
+                      <input type="number" min=1 id="zapFixed" placeholder="1" name="zapFixed" required>
                   </div>
                 </div>
 
@@ -144,7 +142,7 @@
                 <div class="formFieldGroup">
                   <div class="formField">
                       <label for="zapUses" class="label">Number of uses <span class="tagName">zap-uses</span></label>
-                      <input type="text" id="zapUses" placeholder="1" name="zapUses">
+                      <input type="number" min=1 id="zapUses" placeholder="1" name="zapUses">
                   </div>
                   <div class="formField disabled">
                       <label for="zapIncrement" class="label">Increment <span class="tagName">coming soon</span></label>
@@ -159,7 +157,7 @@
 
                 <div class="formField">
                     <label for="overrideLNURL" class="label">Override LN address (kind 0 lud16)<span class="tagName"> zap-lnurl</span></label>
-                    <input type="text" id="overrideLNURL" placeholder="address@lnprovider.net" name="overrideLNURL">
+                    <input type="email" id="overrideLNURL" placeholder="address@lnprovider.net" name="overrideLNURL">
                 </div>
 
                 <div class="formField disabled">
