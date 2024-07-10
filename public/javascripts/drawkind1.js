@@ -268,8 +268,7 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
 
 
 
-    let toolTip = document.createElement('div')
-    toolTip.setAttribute('class', 'tooltip')
+
 
 
     let toolTipText = document.createElement('div')
@@ -278,12 +277,14 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
 
     let newPayForward = document.createElement('a')
     newPayForward.setAttribute('class', 'cta')
+    newPayForward.classList.add('dropdown-element')
     newPayForward.classList.add('disabled')
     newPayForward.textContent = 'New Pay Forward'
     toolTipText.appendChild(newPayForward)
 
     let payAnonymously = document.createElement('a')
     payAnonymously.setAttribute('class', 'cta')
+    payAnonymously.classList.add('dropdown-element')
     payAnonymously.textContent = 'Pay Anonymously'
     payAnonymously.addEventListener('click', async () => {
       let rangeValue
@@ -298,12 +299,13 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
 
     let rawHref = document.createElement('a')
     rawHref.setAttribute('class', 'toolTipLink')
+    rawHref.classList.add('dropdown-element')
     rawHref.href="#"
     rawHref.innerText="View Raw"
     rawHref.addEventListener('click', () => {
         showJSON(eventData)
     })
-    viewRaw.appendChild(rawHref)
+    toolTipText.appendChild(rawHref)
 
     let viewOn = document.createElement('div')
     viewOn.setAttribute('class', 'noteAction')
@@ -311,16 +313,31 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
     toolTipText.appendChild(viewOn)
 
 
-
+    toolTipText.setAttribute('class', 'dropdown-content')
+    toolTipText.classList.add('dropdown-element')
+    toolTipText.setAttribute('id', 'dropdown-'+eventData.id)
 
     let noteAction = document.createElement('div')
     noteAction.setAttribute('class', 'noteAction')
-    noteAction.innerHTML = '<span class="material-symbols-outlined">more_horiz</span>'
+    noteAction.classList.add('dropdown')
+
+    let dropDownButton = document.createElement('button')
+    dropDownButton.setAttribute('class', 'dropbtn')
+    dropDownButton.innerHTML = '<span class="material-symbols-outlined">more_horiz</span>'
+
+    noteAction.appendChild(dropDownButton)
+
     noteAction.appendChild(toolTipText)
+    dropDownButton.addEventListener('click', async () => {
+      hideAllDropDowns()
+      console.log(dropDownButton.nextElementSibling)
+      setTimeout(function(){ dropDownButton.nextElementSibling.classList.toggle("show") }, 100);
+    });
 
-    toolTip.appendChild(noteAction)
 
-    noteActions.appendChild(toolTip)
+    noteActions.appendChild(noteAction)
+
+
 
 
     // const rangeValue = buttonZap.getAttribute('value') !== null ? buttonZap.getAttribute('value') : -1;
@@ -386,5 +403,32 @@ function showJSON(json){
             const viewJSON = document.getElementById('noteJSON')
             viewJSON.innerHTML = JSON.stringify(json, null, 2)
         }
+    }
+}
+// Close the dropdown if the user clicks outside of it
+window.onclick = function(event) {
+  if (!event.target.matches('.dropbtn')) {
+    hideAllDropDowns()
+  }
+}
+
+window.addEventListener(
+  "touchstart",
+    (ev) => {
+      if (!ev.target.matches('.dropbtn') && !ev.target.matches('.dropdown-element')) {
+        hideAllDropDowns()
+    }
+  },
+  false,
+);
+
+function hideAllDropDowns(){
+    var dropdowns = document.getElementsByClassName("dropdown-content");
+    var i;
+    for (i = 0; i < dropdowns.length; i++) {
+      var openDropdown = dropdowns[i];
+      //openDropdown.classList.remove('show');
+      openDropdown.setAttribute('class', 'dropdown-content')
+      openDropdown.classList.add('dropdown-element')
     }
 }
