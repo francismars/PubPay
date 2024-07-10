@@ -152,8 +152,8 @@ a.feedSelectorLink.active {
 }
 
 .userImg{
-  border: 1px solid #cecece;
-  border-radius: 300px
+  border-radius: 300px;
+  box-shadow: #00000014 0px 0px 0px 1px;
 }
 
 
@@ -168,7 +168,11 @@ a.feedSelectorLink.active {
 }
 
 .zapReaction:hover *{
-  border-color:transparent
+  border-color:transparent;
+}
+.zapReaction:hover img{
+  border-color:transparent;
+  box-shadow: #00000014 0px 0px 2px 1px;
 }
 
 .zapReactionAmount {
@@ -311,10 +315,10 @@ a.feedSelectorLink.active {
 
 .noteZapReactions{
   display: flex;
-  column-gap: 3px;
+  column-gap: 6px;
   max-width: 240px;
   flex-wrap: wrap;
-  row-gap: 3px;
+  row-gap: 6px;
 }
 
 .noteHeroZaps.noteZapReactions{
