@@ -384,6 +384,7 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
       //content = content.replace(/(http(s*):\/\/[\w\\x80-\\xff\#$%&~\/.\-;:=,?@\[\]+]*).(gif|png|jpg|jpeg)/gi, '<img src="$1.$3" />')
     }
     content = content.replace(/(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(gif|png|jpg|jpeg)/gi, '<img src="$1.$2" />');
+    content = content.replace(/\n/g, "<br />");
     return content
   }
 
