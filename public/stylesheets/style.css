@@ -245,7 +245,8 @@ a.feedSelectorLink.active {
 }
 
 .main-icon{
-  font-weight: 900; color: #4a75ff;
+  font-weight: 900;
+  color: #afafaf;
 }
 
 .noteContent {
@@ -277,18 +278,18 @@ a.feedSelectorLink.active {
 
 .zapPayer{
   display: flex;
-  margin: 21px 0 10px 0;
-  border: 1px solid #d6e6ff;
-  padding: 5px;
+  margin: 20px 0 20px 0;
+  border: 1px solid #e5e5e5;
+  padding: 15px 10px;
   border-radius: 8px;
-  background: #d0dbff;
+  background: #ffffff;
   align-items: center;
   color: #636363;
   font-weight: 300;
   word-break: break-word;
   justify-content: space-between;
   column-gap: 9px;
-  color: #4a75ff;
+  color: #a9a9a9;
 }
 
 .zapPayerInner {
@@ -409,6 +410,7 @@ a.cta, button.cta{
   font-weight: 100;
   /* letter-spacing: 0.08rem; */
   font-weight: 600;
+  border: #b2c4ff 1px solid;
 }
 
 .paynote .cta:hover{
@@ -700,13 +702,15 @@ input:focus::placeholder {
   -webkit-appearance: none;
   width: 100%;
   height: 34px;
-  background: #ededed;
+  background: #f1f1f1;
   outline: none;
   opacity: 1;
   -webkit-transition: .2s;
   transition: opacity .2s;
   padding: 4px;
-  border: none;
+  border: 1px solid #e5e5e5;
+  border-radius: 100px;
+  box-shadow: inset #00000008 0px 2px 4px 0px;
 }
 
 .zapSlider:hover {
@@ -714,13 +718,15 @@ input:focus::placeholder {
 }
 
 .zapSlider::-webkit-slider-thumb {
+  border: 1px solid #ffffffba;
   -webkit-appearance: none;
   appearance: none;
   width: 25px;
   height: 25px;
   background: #4a75ff;
   cursor: pointer;
-  border-radius:4px
+  border-radius:400px;
+  box-shadow: #0000005c 0px 2px 5px
 }
 
 .zapSlider::-moz-range-thumb {
