@@ -3,7 +3,7 @@ const drawKind9735 = await import("./drawkind9735.js")
 
 
 const pool = new NostrTools.SimplePool()
-const relays = ['wss://relay.damus.io', 'wss://relay.primal.net','wss://nostr.mutinywallet.com/', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
+const relays = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
 
 subscribePubPays()
 
