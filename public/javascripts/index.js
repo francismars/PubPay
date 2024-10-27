@@ -3,7 +3,7 @@ const drawKind9735 = await import("./drawkind9735.js")
 
 
 const pool = new NostrTools.SimplePool()
-const relays = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
+const relays = ['wss://relay.damus.io', 'wss://relay.primal.net','wss://nostr.mutinywallet.com/', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
 
 subscribePubPays()
 
@@ -368,12 +368,23 @@ async function submitKind1(event){
     else zapMin = zapFixedInput,zapMax = zapFixedInput
   }
   tagsList.push(["zap-min",(zapMin*1000).toString()])
-  tagsList.push(["zap-max",(zapMax*1000).toString()])  
-  
+  tagsList.push(["zap-max",(zapMax*1000).toString()])
+
   const zapUses = document.getElementById('zapUses').value;
   if(zapUses!="") tagsList.push(["zap-uses",zapUses])
   const zapLNURL = document.getElementById('overrideLNURL').value;
   if(zapLNURL!="") tagsList.push(["zap-lnurl",zapLNURL])
+
+  // Add mention tags if content has npubs
+  let npubMention = payNoteContent.match(/(nostr:|@)?((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi)
+  if(npubMention){
+    npubMention.forEach(function(value) {
+      console.log(value.replace('nostr:', ''))
+      let hexMention = NostrTools.nip19.decode(value.replace('nostr:', ''))
+      console.log(hexMention.data)
+      tagsList.push(["p",hexMention.data,"","mention"])
+    });
+  }
 
   let kind1 = {
     kind: 1,
