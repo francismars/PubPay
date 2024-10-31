@@ -375,6 +375,9 @@ async function submitKind1(event){
   const zapLNURL = document.getElementById('overrideLNURL').value;
   if(zapLNURL!="") tagsList.push(["zap-lnurl",zapLNURL])
 
+  // Add client tag
+  tagsList.push(["client","PubPay.me"])
+
   // Add mention tags if content has npubs
   let npubMention = payNoteContent.match(/(nostr:|@)?((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi)
   if(npubMention){
