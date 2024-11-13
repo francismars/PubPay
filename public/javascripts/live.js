@@ -12,10 +12,7 @@ async function subscribeKind1() {
         [filter],
         {
         async onevent(kind1) {
-            console.log(kind1)
-
-            document.getElementById("noteContent").innerText = kind1.content;
-
+            drawKind1(kind1)
             await subscribeKind0fromKind1(kind1)
             await subscribeKind9735fromKind1(kind1)
         },
@@ -38,12 +35,7 @@ async function subscribeKind1() {
         }]
     ,{
         onevent(kind0) {
-
-            let authorContent = JSON.parse(kind0.content)
-            console.log(authorContent)
-            document.getElementById("authorName").innerText = authorContent.name;
-            document.getElementById("authorNameProfileImg").src = authorContent.picture;
-
+            drawKind0(kind0)
         },
         oneose() {
             console.log("subscribeKind0sfromKind1s() EOS")
@@ -55,7 +47,10 @@ async function subscribeKind1() {
   }
 
   async function subscribeKind9735fromKind1(kind1) {
-    let kind1id = kind1.id
+    let kinds9735IDs = new Set();
+    let kinds9735 = []
+    const kind1id = kind1.id
+    let isFirstStream = true
 
     const zapsContainer = document.getElementById("zaps");
 
@@ -67,62 +62,18 @@ async function subscribeKind1() {
         }]
     ,{
         onevent(kind9735) {
-            console.log(kind9735)
-
-            const zapDiv = document.createElement("div");
-            zapDiv.className = "zap";
-
-            const description9735 = JSON.parse(kind9735.tags.find(tag => tag[0] == "description")[1])
-            const pubkey9735 = description9735.pubkey
-
-            const bolt119735 = kind9735.tags.find(tag => tag[0] == "bolt11")[1]
-            const amount9735 = lightningPayReq.decode(bolt119735).satoshis
-            const kind1from9735 = kind9735.tags.find(tag => tag[0] == "e")[1]
-            const kind9735id = NostrTools.nip19.noteEncode(kind9735.id)
-            let kind0picture
-            let kind0npub
-            let kind1tags
-            /*
-            const kind1 = kind1List.find(kind1 => kind1.id === kind1from9735);
-            if(kind1) {
-                kind1tags = kind1.tags;
+            if(!(kinds9735IDs.has(kind9735.id))){
+                kinds9735IDs.add(kind9735.id)
+                kinds9735.push(kind9735)
+                if(!isFirstStream){
+                    
+                }
             }
-            const kind0fromkind9735 = kind0fromkind9735List.find(kind0 => pubkey9735 === kind0.pubkey);
-            if(kind0fromkind9735){
-              kind0picture = JSON.parse(kind0fromkind9735.content).picture
-              kind0npub = NostrTools.nip19.npubEncode(kind0fromkind9735.pubkey)
-            }
-            else{
-              kind0picture = ""
-              kind0npub = ""
-            }
-            const json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "pubKey": pubkey9735, "zapEventID": kind9735id, "tags": kind1tags}
-            */
-
-
-
-
-
-            zapDiv.innerHTML = `
-                <div id="zapper">
-                    <img id="zapperProfileImg" src="${kind0picture}" />
-                    <div id="zapperName">
-                        ${description9735}
-                    </div>
-                    <div id="zapperAmount">
-                        <span id="zapperAmountValue">${amount9735}</span> <span>sats</span>
-                    </div>
-                </div>
-            `;
-
-
-
-            zapsContainer.appendChild(zapDiv);
-
-
-
         },
         oneose() {
+            isFirstStream = false
+            drawKinds9735(kinds9735)
+            subscribeKind0fromKinds9735(kinds9735)
             console.log("subscribeKind9735fromKind1() EOS")
         },
         onclosed() {
@@ -130,3 +81,53 @@ async function subscribeKind1() {
         }
     })
   }
+
+function subscribeKind0fromKinds9735(kinds9735){
+    let kind9734PKs = []
+    let kind0fromkind9735List = []
+    let kind0fromkind9735Seen = new Set();
+    for(let kind9735 of kinds9735){
+        if(kind9735.tags){
+            const description9735 = kind9735.tags.find(tag => tag[0] === "description")[1];
+            const kind9734 = JSON.parse(description9735)
+            kind9734PKs.push(kind9734.pubkey)
+        }
+    }
+    let h = pool.subscribeMany(
+        [...relays],
+        [{
+            kinds: [0],
+            authors: kind9734PKs
+        }]
+    ,{
+    onevent(kind0) {
+        if(!(kind0fromkind9735Seen.has(kind0.pubkey))){
+            kind0fromkind9735Seen.add(kind0.pubkey);
+            kind0fromkind9735List.push(kind0)
+        }
+    },
+    async oneose() {
+        drawKinds0fromKinds9735(kind0fromkind9735List)
+        console.log("subscribeKind0fromKinds9735() EOS")
+    },
+    onclosed() {
+        console.log("subscribeKind0fromKinds9735() Closed")
+    }
+  })
+}
+
+function drawKind1(kind1){
+    console.log(kind1)
+}
+
+function drawKind0(kind0){
+    console.log(kind0)
+}
+
+function drawKinds9735(kinds9735){
+    console.log(kinds9735)
+}
+
+function drawKinds0fromKinds9735(kind0fromkind9735List){
+    console.log(kind0fromkind9735List)
+}
