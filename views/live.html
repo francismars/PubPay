@@ -1,44 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>PUBPAY.me</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="apple-touch-icon" sizes="57x57" href="images/icon/apple-icon-57x57.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="images/icon/apple-icon-60x60.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/icon/apple-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="images/icon/apple-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/icon/apple-icon-114x114.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="images/icon/apple-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="images/icon/apple-icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="images/icon/apple-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/icon/apple-icon-180x180.png">
+    <link rel="icon" type="image/png" sizes="192x192"  href="images/icon/android-icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/icon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="images/icon/favicon-96x96.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/icon/favicon-16x16.png">
+    <link rel="manifest" href="images/icon/manifest.json">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="images/icon/ms-icon-144x144.png">
+    <meta name="theme-color" content="#ffffff">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="stylesheets/style.css?v0.02">
+    <link rel="stylesheet" href="fonts/Inter-4.0/inter.css">
+
+    <script src="./javascripts/qrious.min.js"></script>
     <script src="./javascripts/bolt11.min.js"></script>
     <script src="./javascripts/nostrtools.min.js"></script>
   </head>
-  <body>
+  <body class="live black">
     <script type="module" src="./javascripts/live.js"></script>
 
-    <div id="container">
-      <div id="qrCode">
-      </div>
 
 
-      <div>
 
-        <div id="note">
-          <div id="noteContent">
-            XXX XXXXX
+
+    <div id="liveContainer">
+
+      <div class="seedNote">
+        <div class="seedNoteData">
+          <div id="author" class="seedNoteAuthor">
+            <img id="authorNameProfileImg" class="userImg" src="/images/gradient_color.gif"/>
+            <div id="authorName" class="noteDisplayName">
+              XXXX
+            </div>
+          </div>
+          <div id="note">
+            <div id="noteContent">
+              XXX XXXXX
+            </div>
           </div>
         </div>
-
-        <div id="author">
-          <img id="authorNameProfileImg" src="https://static.vecteezy.com/system/resources/previews/008/442/086/original/illustration-of-human-icon-user-symbol-icon-modern-design-on-blank-background-free-vector.jpg"/>
-          <div id="authorName">
-            XXXX
-          </div>
-        </div>
-
+        <image id="qrCode" class="qrCode"></image>
       </div>
-
-
-
 
       <div id="zaps">
       </div>
 
-
-
-
-
     </div>
+
+
+
+
+
+    <script>
+      let qrcodeContainer = document.getElementById("qrCode");
+      qrcodeContainer.innerHTML = "";
+      new QRious({
+        element: qrcodeContainer,
+        size: 800,
+        value: "https://njump.com"
+      });
+    </script>
+
+
+
   </body>
 </html>
