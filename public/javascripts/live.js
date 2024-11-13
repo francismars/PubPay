@@ -66,7 +66,7 @@ async function subscribeKind1() {
                 kinds9735IDs.add(kind9735.id)
                 kinds9735.push(kind9735)
                 if(!isFirstStream){
-                    
+
                 }
             }
         },
@@ -141,14 +141,46 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
     drawKinds9735(json9735List)
   }
 
-function drawKind1(kind1){
-    console.log(kind1)
-}
 
-function drawKind0(kind0){
-    console.log(kind0)
-}
+
+  function drawKind1(kind1){
+      console.log(kind1)
+      document.getElementById("noteContent").innerText = kind1.content;
+  }
+
+  function drawKind0(kind0){
+      console.log(kind0)
+      let authorContent = JSON.parse(kind0.content)
+      console.log(authorContent)
+      document.getElementById("authorName").innerText = authorContent.name;
+      document.getElementById("authorNameProfileImg").src = authorContent.picture;
+  }
+
 
 function drawKinds9735(json9735List){
-    console.log(json9735List)
+    const zapsContainer = document.getElementById("zaps");
+
+    for(let json9735 of json9735List){
+      console.log(json9735)
+      const zapDiv = document.createElement("div");
+      zapDiv.className = "zap";
+      zapDiv.innerHTML = `
+          <div id="zapper">
+              <img class="userImg zapperProfileImg" src="${json9735.picture}" />
+              <div id="zapperName">
+                  ${json9735.amount}
+              </div>
+              <div id="zapperAmount">
+                  <span id="zapperAmountValue">${json9735.amount}</span> <span>sats</span>
+              </div>
+          </div>
+      `;
+      zapsContainer.appendChild(zapDiv);
+      /*
+      if(!json9735.picture) json9735.picture = ""
+      const profileImage = json9735.picture == "" ? "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" : json9735.picture
+      let zapPayerLink = '<a href="https://nostrudel.ninja/#/u/'+json9735.npubPayer+'" target="_blank"><img class="userImg" src="'+profileImage+'" /></a>'
+      let zapEventLink = '<a href="https://nostrudel.ninja/#/n/'+json9735.zapEventID+'" target="_blank" class="zapReactionAmount">'+json9735.amount+'</a>'
+      */
+    }
 }
