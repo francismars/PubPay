@@ -800,3 +800,68 @@ input:focus::placeholder {
     display: none
   }
 }
+
+
+
+/* LIVE */
+
+
+#liveContainer{
+  display: flex;
+  justify-content: center;
+}
+
+.live.color{
+  background: black;
+}
+
+.live.black{
+  background: #000;
+  color: #fff;
+}
+
+.seedNote{
+  display: flex;
+}
+
+.seedNoteData {
+  text-align: right;
+}
+
+.seedNoteAuthor{
+  display: flex;
+  justify-content: flex-end;
+}
+
+.seedNote .qrCode{
+  filter: invert(1);
+  mix-blend-mode: screen;
+  display: flex;
+  width: 16vw;
+  height: 16vw;
+}
+
+.seedNoteAuthor .userImg{
+  width: 10vw
+}
+
+#noteContent {
+  font-size: 5vw;
+  font-weight: 900;
+  white-space: nowrap;
+  width: 30vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+#zaps {
+    width: 30vw;
+    background: red;
+}
+
+
+.zapperProfileImg {
+  width: 3vw;
+  height: 3vw;
+}
