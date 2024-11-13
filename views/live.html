@@ -49,10 +49,10 @@
       <div class="seedNote">
         <div class="seedNoteData">
           <div id="author" class="seedNoteAuthor">
-            <img id="authorNameProfileImg" class="userImg" src="/images/gradient_color.gif"/>
             <div id="authorName" class="noteDisplayName">
               XXXX
             </div>
+            <img id="authorNameProfileImg" class="userImg" src="/images/gradient_color.gif"/>
           </div>
           <div id="note">
             <div id="noteContent">
@@ -60,27 +60,18 @@
             </div>
           </div>
         </div>
-        <image id="qrCode" class="qrCode"></image>
+        <a href="" target="_blank" id="qrcodeLinkNostr">
+          <image id="qrCode" class="qrCode"></image>
+        </a>
       </div>
 
-      <div id="zaps">
+      <div id="zapsContainer">
+        <div id="zaps">
+        </div>
       </div>
 
     </div>
 
-
-
-
-
-    <script>
-      let qrcodeContainer = document.getElementById("qrCode");
-      qrcodeContainer.innerHTML = "";
-      new QRious({
-        element: qrcodeContainer,
-        size: 800,
-        value: "https://njump.com"
-      });
-    </script>
 
 
 

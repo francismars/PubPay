@@ -134,7 +134,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
             kind0picture = JSON.parse(kind0fromkind9735.content).picture
             kind0npub = NostrTools.nip19.npubEncode(kind0fromkind9735.pubkey)
         }
-        const json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "pubKey": pubkey9735, "zapEventID": kind9735id, "9735content": kind9735Content, "kind1Name": kind0name}
+        const json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "pubKey": pubkey9735, "zapEventID": kind9735id, "kind9735content": kind9735Content, "kind1Name": kind0name}
         json9735List.push(json9735)
     }
     drawKinds9735(json9735List)
@@ -143,7 +143,16 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
 
 
   function drawKind1(kind1){
+    console.log(kind1)
       document.getElementById("noteContent").innerText = kind1.content;
+      let qrcodeContainer = document.getElementById("qrCode");
+      qrcodeContainer.innerHTML = "";
+      new QRious({
+        element: qrcodeContainer,
+        size: 800,
+        value: "https://njump.me/"+NostrTools.nip19.noteEncode(kind1.id)
+      });
+      document.getElementById("qrcodeLinkNostr").href = "https://njump.me/"+NostrTools.nip19.noteEncode(kind1.id)
   }
 
   function drawKind0(kind0){
@@ -155,20 +164,33 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
 
 function drawKinds9735(json9735List){
     console.log(json9735List)
+    
     const zapsContainer = document.getElementById("zaps");
 
     for(let json9735 of json9735List){
       const zapDiv = document.createElement("div");
       zapDiv.className = "zap";
+
+      if(!json9735.picture) json9735.picture = ""
+      const profileImage = json9735.picture == "" ? "/images/gradient_color.gif" : json9735.picture
+
       zapDiv.innerHTML = `
           <div id="zapper">
-              <img class="userImg zapperProfileImg" src="${json9735.picture}" />
-              <div id="zapperName">
-                  ${json9735.amount}
+              <div class="zapperProfile">
+                <img class="userImg zapperProfileImg" src="${profileImage}" />
+                <div>
+                  <div id="zapperName">
+                      ${json9735.kind1Name}
+                  </div>
+                  <div id="zapperAmount">
+                      <span id="zapperAmountValue">${json9735.amount}</span> <span>sats</span>
+                  </div>
+                </div>
               </div>
-              <div id="zapperAmount">
-                  <span id="zapperAmountValue">${json9735.amount}</span> <span>sats</span>
+              <div id="zapperContent">
+                  ${json9735.kind9735content}
               </div>
+
           </div>
       `;
       zapsContainer.appendChild(zapDiv);

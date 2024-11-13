@@ -223,6 +223,8 @@ a.feedSelectorLink.active {
     font-size: 20px;
     margin-bottom: 4px;
     letter-spacing: 0.01rem;
+    display: block;
+    margin: 1vw;
 }
 
 .noteAuthorLink{
@@ -809,6 +811,8 @@ input:focus::placeholder {
 #liveContainer{
   display: flex;
   justify-content: center;
+  height: 16vw;
+  overflow: hidden;
 }
 
 .live.color{
@@ -826,11 +830,14 @@ input:focus::placeholder {
 
 .seedNoteData {
   text-align: right;
+  padding: 1.5vw;
+  /* background: red; */
 }
 
 .seedNoteAuthor{
   display: flex;
   justify-content: flex-end;
+  align-items: center;
 }
 
 .seedNote .qrCode{
@@ -842,24 +849,35 @@ input:focus::placeholder {
 }
 
 .seedNoteAuthor .userImg{
-  width: 10vw
+  width: 5vw
 }
 
 #noteContent {
-  font-size: 5vw;
+  font-size: 4vw;
   font-weight: 900;
   white-space: nowrap;
-  width: 30vw;
+  width: 38vw;
   overflow: hidden;
+  height: 16vw;
   text-overflow: ellipsis;
 }
 
-
+#zapsContainer{
+  padding: 1.5vw;
+  /* background: red; */
+}
 #zaps {
-    width: 30vw;
-    background: red;
+    width: 38vw;
+    display: flex;
+    flex-direction: column;
+    gap: 1vw;
 }
 
+.zapperProfile{
+  display: flex;
+  align-items: center;
+  gap: 0.5vw;
+}
 
 .zapperProfileImg {
   width: 3vw;
