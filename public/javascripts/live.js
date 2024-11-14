@@ -139,6 +139,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
         const json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "pubKey": pubkey9735, "zapEventID": kind9735id, "kind9735content": kind9735Content, "kind1Name": kind0name}
         json9735List.push(json9735)
     }
+    json9735List.sort((a, b) => b.amount - a.amount);
     drawKinds9735(json9735List)
   }
 
