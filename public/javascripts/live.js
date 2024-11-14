@@ -3,6 +3,8 @@ const kind1ID = "fe0ec3975412ad3cfe0c9370600e3ea5ab9fa6c414604ef4a2fd4ee66be0edf
 const pool = new NostrTools.SimplePool()
 const relays = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
 
+let json9735List = []
+
 subscribeKind1()
 
 async function subscribeKind1() {
@@ -66,7 +68,8 @@ async function subscribeKind1() {
                 kinds9735IDs.add(kind9735.id)
                 kinds9735.push(kind9735)
                 if(!isFirstStream){
-
+                    console.log(kind9735)
+                    subscribeKind0fromKinds9735(kinds9735)
                 }
             }
         },
@@ -116,7 +119,6 @@ function subscribeKind0fromKinds9735(kinds9735){
 }
 
 async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
-    let json9735List = []
     for(let kind9735 of kind9735List){
         const description9735 = JSON.parse(kind9735.tags.find(tag => tag[0] == "description")[1])
         const pubkey9735 = description9735.pubkey
