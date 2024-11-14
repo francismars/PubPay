@@ -69,7 +69,7 @@ async function subscribeKind1() {
                 kinds9735.push(kind9735)
                 if(!isFirstStream){
                     console.log(kind9735)
-                    subscribeKind0fromKinds9735(kinds9735)
+                    subscribeKind0fromKinds9735([kind9735])
                 }
             }
         },
