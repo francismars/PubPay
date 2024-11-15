@@ -1,4 +1,8 @@
-const kind1ID = "b4728c14cbe74a1008d4ed80817dd412ad276469da1b007e7e00e071368c4c9b"
+let urlToParse = location.search;
+const params = new URLSearchParams(urlToParse);
+const nevent = params.get("note");
+const kind1ID = NostrTools.nip19.decode(nevent).data
+// "b4728c14cbe74a1008d4ed80817dd412ad276469da1b007e7e00e071368c4c9b"
 
 const pool = new NostrTools.SimplePool()
 const relays = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
