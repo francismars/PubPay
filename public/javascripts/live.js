@@ -1,4 +1,4 @@
-const kind1ID = "fe0ec3975412ad3cfe0c9370600e3ea5ab9fa6c414604ef4a2fd4ee66be0edf8"
+const kind1ID = "b4728c14cbe74a1008d4ed80817dd412ad276469da1b007e7e00e071368c4c9b"
 
 const pool = new NostrTools.SimplePool()
 const relays = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
@@ -132,7 +132,8 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
         let kind0name = ""
         const kind0fromkind9735 = kind0fromkind9735List.find(kind0 => pubkey9735 === kind0.pubkey);
         if(kind0fromkind9735){
-            kind0name = JSON.parse(kind0fromkind9735.content).name
+            const displayName = JSON.parse(kind0fromkind9735.content).displayName
+            kind0name = displayName ? JSON.parse(kind0fromkind9735.content).displayName : JSON.parse(kind0fromkind9735.content).display_name
             kind0picture = JSON.parse(kind0fromkind9735.content).picture
             kind0npub = NostrTools.nip19.npubEncode(kind0fromkind9735.pubkey)
         }
@@ -167,10 +168,11 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
 
 function drawKinds9735(json9735List){
     console.log(json9735List)
-    
-    const zapsContainer = document.getElementById("zaps");
 
-    for(let json9735 of json9735List){
+    const zapsContainer = document.getElementById("zaps");
+    zapsContainer.innerHTML = ""
+
+    for(let json9735 of json9735List.slice(0, 6) ){
       const zapDiv = document.createElement("div");
       zapDiv.className = "zap";
 
@@ -182,17 +184,18 @@ function drawKinds9735(json9735List){
               <div class="zapperProfile">
                 <img class="userImg zapperProfileImg" src="${profileImage}" />
                 <div>
-                  <div id="zapperName">
+                  <div class="zapperName">
                       ${json9735.kind1Name}
                   </div>
-                  <div id="zapperAmount">
-                      <span id="zapperAmountValue">${json9735.amount}</span> <span>sats</span>
+                  <div class="zapperAmount">
+                      <span class="zapperAmountValue">${json9735.amount}</span> <span class="zapperAmountSats">sats</span>
+                  </div>
+                  <div class="zapperContent">
+                      ${json9735.kind9735content}
                   </div>
                 </div>
               </div>
-              <div id="zapperContent">
-                  ${json9735.kind9735content}
-              </div>
+
 
           </div>
       `;
