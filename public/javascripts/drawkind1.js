@@ -313,6 +313,16 @@ export async function plot(eventData, authorData, firstStream=false, iskind3filt
     toolTipText.appendChild(viewOn)
 
 
+    viewOn = document.createElement('div')
+    viewOn.setAttribute('class', 'noteAction')
+    viewOn.innerHTML = '<a href="/live?note='+NostrTools.nip19.noteEncode(eventData.id)+'" class="toolTipLink" target="_blank">View on live</a>'
+    toolTipText.appendChild(viewOn)
+
+
+
+
+
+
     toolTipText.setAttribute('class', 'dropdown-content')
     toolTipText.classList.add('dropdown-element')
     toolTipText.setAttribute('id', 'dropdown-'+eventData.id)

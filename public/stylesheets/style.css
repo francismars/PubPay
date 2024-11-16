@@ -217,11 +217,11 @@ a.feedSelectorLink.active {
 }
 
 .noteDisplayName {
-    font-weight: 600;
+    font-weight: 900;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: 20px;
+    font-size: 3vw;
     margin-bottom: 4px;
     letter-spacing: 0.01rem;
     display: block;
@@ -811,7 +811,7 @@ input:focus::placeholder {
 
 #liveContainer{
   display: flex;
-  justify-content: center;
+  /* justify-content: center; */
   /* height: 16vw; */
   overflow: hidden;
 }
@@ -828,29 +828,30 @@ input:focus::placeholder {
 .seedNote{
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  padding: 1vw;
+  /* align-items: center; */
+  padding: 3vw;
+  /* text-align: center; */
 }
 
 .seedNoteData {
   /* text-align: right; */
-  padding-top: 1.5vw;
+  padding-top: 1vw;
   /* background: red; */
 }
 
 .seedNoteAuthor{
   display: flex;
   /* justify-content: flex-end; */
-  align-items: center;
-  margin-bottom: 2vw;
+  /* align-items: center; */
+  margin-bottom: 1vw;
 }
 
 .seedNote .qrCode{
   filter: invert(1);
   mix-blend-mode: screen;
   display: flex;
-  width: 30vw;
-  height: 30vw;
+  width: 35vw;
+  height: 35vw;
   padding: 0vw;
 }
 
@@ -863,21 +864,22 @@ input:focus::placeholder {
 #noteContent {
   font-size: 2vw;
   font-weight: 900;
-  width: 30vw;
+  width: 100vw;
   overflow: hidden;
-  height: 8vw;
+  height: 2.5vw;
   text-overflow: ellipsis;
+  padding: 1vw 3vw;
 }
 
 #zapsContainer{
-  padding: 1.5vw;
+  padding: 3.5vw;
   /* background: red; */
 }
 #zaps {
-    width: 38vw;
+    /* width: 38vw; */
     display: flex;
     flex-direction: column;
-    gap: 1vw;
+    gap: 0;
 }
 
 .zapperProfile{
@@ -889,6 +891,8 @@ input:focus::placeholder {
 .zapperProfileImg {
   width: 3vw;
   height: 3vw;
+  object-fit: cover;
+  aspect-ratio: 1/1;
 }
 
 
@@ -940,4 +944,37 @@ input:focus::placeholder {
 .zap:nth-child(3) .zapperProfileImg{
   width:5vw;
   height:5vw;
+}
+
+
+.liveZapOverlay{
+  width: 100vw;
+  height: 100vh;
+  background: url("/images/lightning.gif");
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-size: cover;
+  z-index: -1;
+  opacity: 0.2;
+}
+
+
+#zapMe {
+ /* width: 100vh; */
+ position: fixed;
+ background: #ffffff;
+ bottom: 0;
+ left: 0;
+ color: #000000;
+}
+
+#poweredBy {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  opacity:0.8
+}
+#poweredBy img {
+  width:16vw;
 }
