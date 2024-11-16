@@ -165,50 +165,68 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
 
   function drawKind0(kind0){
       let authorContent = JSON.parse(kind0.content)
-      document.getElementById("authorName").innerText = authorContent.name;
+      console.log(authorContent);
+      //document.getElementById("authorName").innerText = authorContent.name;
+      const displayName = JSON.parse(kind0.content).displayName
+      let kind0name = displayName ? JSON.parse(kind0.content).displayName : JSON.parse(kind0.content).display_name
+      document.getElementById("authorName").innerText = kind0name;
       document.getElementById("authorNameProfileImg").src = authorContent.picture;
   }
 
 
-function drawKinds9735(json9735List){
-    console.log(json9735List)
+  function drawKinds9735(json9735List){
+      console.log(json9735List)
 
-    const zapsContainer = document.getElementById("zaps");
-    zapsContainer.innerHTML = ""
+      const zapsContainer = document.getElementById("zaps");
+      zapsContainer.innerHTML = ""
 
-    for(let json9735 of json9735List.slice(0, 6) ){
-      const zapDiv = document.createElement("div");
-      zapDiv.className = "zap";
+      let fontSize = 6
+      let gapSize = 1
+      let imgSize = 28
+      let factor = 1.4
+      let zapIndex = 1
 
-      if(!json9735.picture) json9735.picture = ""
-      const profileImage = json9735.picture == "" ? "/images/gradient_color.gif" : json9735.picture
+      for(let json9735 of json9735List.slice(0, 6) ){
+        const zapDiv = document.createElement("div");
+        zapDiv.className = "zap";
 
-      zapDiv.innerHTML = `
-          <div id="zapper">
-              <div class="zapperProfile">
-                <img class="userImg zapperProfileImg" src="${profileImage}" />
-                <div>
-                  <div class="zapperName">
-                      ${json9735.kind1Name}
-                  </div>
-                  <div class="zapperAmount">
-                      <span class="zapperAmountValue">${json9735.amount}</span> <span class="zapperAmountSats">sats</span>
-                  </div>
-                  <div class="zapperContent">
-                      ${json9735.kind9735content}
+        if(!json9735.picture) json9735.picture = ""
+        const profileImage = json9735.picture == "" ? "/images/gradient_color.gif" : json9735.picture
+
+        let fontSizeCalc = (fontSize/(zapIndex*1.1))
+        zapDiv.style.fontSize = fontSizeCalc + "vw"
+        //zapDiv.style.gap = (gapSize - (zapIndex*1.1)) + "vw"
+        let imgSizeCalc = (imgSize/(zapIndex*1.5)) + "vw"
+        let gapCalc = (gapSize/zapIndex/1.5) + "vw"
+        zapIndex = zapIndex+1
+
+
+        zapDiv.innerHTML = `
+            <div class="zapper" style="margin-bottom:${gapCalc*-1}">
+                <div class="zapperProfile" style="gap:${gapCalc}">
+                  <img class="userImg zapperProfileImg" style="width:${imgSizeCalc};height:${imgSizeCalc}" src="${profileImage}" />
+                  <div>
+                    <div class="zapperName">
+                        ${json9735.kind1Name}
+                    </div>
+                    <div class="zapperAmount" style="font-size:${(fontSizeCalc/2) + "vw"};">
+                        <span class="zapperAmountValue">${json9735.amount}</span> <span class="zapperAmountSats">sats</span>
+                    </div>
+                    <div class="zapperContent">
+                        ${json9735.kind9735content}
+                    </div>
                   </div>
                 </div>
-              </div>
 
 
-          </div>
-      `;
-      zapsContainer.appendChild(zapDiv);
-      /*
-      if(!json9735.picture) json9735.picture = ""
-      const profileImage = json9735.picture == "" ? "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" : json9735.picture
-      let zapPayerLink = '<a href="https://nostrudel.ninja/#/u/'+json9735.npubPayer+'" target="_blank"><img class="userImg" src="'+profileImage+'" /></a>'
-      let zapEventLink = '<a href="https://nostrudel.ninja/#/n/'+json9735.zapEventID+'" target="_blank" class="zapReactionAmount">'+json9735.amount+'</a>'
-      */
-    }
-}
+            </div>
+        `;
+        zapsContainer.appendChild(zapDiv);
+        /*
+        if(!json9735.picture) json9735.picture = ""
+        const profileImage = json9735.picture == "" ? "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" : json9735.picture
+        let zapPayerLink = '<a href="https://nostrudel.ninja/#/u/'+json9735.npubPayer+'" target="_blank"><img class="userImg" src="'+profileImage+'" /></a>'
+        let zapEventLink = '<a href="https://nostrudel.ninja/#/n/'+json9735.zapEventID+'" target="_blank" class="zapReactionAmount">'+json9735.amount+'</a>'
+        */
+      }
+  }
