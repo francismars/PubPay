@@ -187,7 +187,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
       let factor = 1.4
       let zapIndex = 1
 
-      for(let json9735 of json9735List.slice(1, 666) ){
+      for(let json9735 of json9735List){
         const zapDiv = document.createElement("div");
         zapDiv.className = "zap";
 
