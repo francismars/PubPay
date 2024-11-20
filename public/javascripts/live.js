@@ -186,6 +186,8 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
       let imgSize = 28
       let factor = 1.4
       let zapIndex = 1
+      const totalAmountZapped = json9735List.reduce((sum, zaps) => sum + zaps.amount, 0);
+      console.log(totalAmountZapped)
 
       for(let json9735 of json9735List){
         const zapDiv = document.createElement("div");
