@@ -1005,9 +1005,11 @@ input:focus::placeholder {
 #zappedTotal{
   position: fixed;
   background: #00000000;
-  bottom: 1.3vw;
+  bottom: 1.7vw;
   right: 12vw;
   font-size: 1vw;
+  line-height: 1vw;
+  text-align: right;
 }
 
 #zappedTotal{
@@ -1017,6 +1019,7 @@ input:focus::placeholder {
 }
 
 #zappedTotalValue{
-  font-weight: 900;
+  font-weight: 600;
   font-size: 3vw;
+  line-height: 1.5vw;
 }
