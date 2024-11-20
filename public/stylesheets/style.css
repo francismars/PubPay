@@ -999,3 +999,24 @@ input:focus::placeholder {
 #poweredBy img {
   width: 10vw;
 }
+
+
+
+#zappedTotal{
+  position: fixed;
+  background: #00000000;
+  bottom: 1.3vw;
+  right: 12vw;
+  font-size: 1vw;
+}
+
+#zappedTotal{
+  display: flex;
+  align-items: center;
+  gap: 1vw;
+}
+
+#zappedTotalValue{
+  font-weight: 900;
+  font-size: 3vw;
+}
