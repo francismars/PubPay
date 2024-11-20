@@ -810,8 +810,6 @@ input:focus::placeholder {
 
 
 #liveContainer{
-  display: flex;
-  /* justify-content: center; */
   /* height: 16vw; */
   overflow: hidden;
 }
@@ -831,12 +829,15 @@ input:focus::placeholder {
   /* align-items: center; */
   padding: 3vw;
   /* text-align: center; */
+  width: 34vw;
+  position: fixed;
 }
 
 .seedNoteData {
   /* text-align: right; */
   padding-top: 1vw;
   /* background: red; */
+  width: 100%;
 }
 
 .seedNoteAuthor{
@@ -850,8 +851,8 @@ input:focus::placeholder {
   filter: invert(1);
   mix-blend-mode: screen;
   display: flex;
-  width: 35vw;
-  height: 35vw;
+  width: 34vw;
+  height: 34vw;
   padding: 0vw;
 }
 
@@ -862,24 +863,44 @@ input:focus::placeholder {
 }
 
 #noteContent {
-  font-size: 2vw;
-  font-weight: 900;
+  font-size: 2.5vw;
+  font-weight: 400;
+  overflow: hidden;
+  height: 32.5vw;
+  text-overflow: ellipsis;
+  /* padding: 1vw 3vw; */
+  overflow-wrap: break-word;
+  line-height: 1.2em;
+  letter-spacing: 0.06rem;
+}
+
+
+#pubPayContent {
+  font-size: 1.3vw;
+  font-weight: 300;
   width: 100vw;
   overflow: hidden;
   height: 2.5vw;
   text-overflow: ellipsis;
   padding: 1vw 3vw;
+  letter-spacing: 0.03rem;
 }
 
 #zapsContainer{
   padding: 3.5vw;
-  /* background: red; */
+  padding-left: 42vw;
 }
 #zaps {
     /* width: 38vw; */
     display: flex;
     flex-direction: column;
     gap: 0;
+}
+
+
+.zapperContent {
+    font-weight: 300;
+    letter-spacing: 0.06vw;
 }
 
 .zapperProfile{
@@ -951,7 +972,7 @@ input:focus::placeholder {
   width: 100vw;
   height: 100vh;
   background: url("/images/lightning.gif");
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   background-size: cover;
@@ -960,21 +981,21 @@ input:focus::placeholder {
 }
 
 
-#zapMe {
+#bar {
  /* width: 100vh; */
  position: fixed;
- background: #ffffff;
+ background: #00000000;
  bottom: 0;
  left: 0;
- color: #000000;
+ color: #ffffff59;
 }
 
 #poweredBy {
   position: fixed;
-  right: 0;
-  bottom: 0;
-  opacity:0.8
+  bottom: 1vw;
+  right: 1vw;
+  /* opacity:0.8; */
 }
 #poweredBy img {
-  width:16vw;
+  width: 10vw;
 }

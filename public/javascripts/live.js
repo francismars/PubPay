@@ -12,7 +12,7 @@ let json9735List = []
 subscribeKind1()
 
 async function subscribeKind1() {
-    let filter = { kinds: [1], ids: [kind1ID]}
+    let filter = { ids: [kind1ID]}
     pool.subscribeMany(
         [...relays],
         [filter],
@@ -130,7 +130,8 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
         const amount9735 = lightningPayReq.decode(bolt119735).satoshis
         const kind1from9735 = kind9735.tags.find(tag => tag[0] == "e")[1]
         const kind9735id = NostrTools.nip19.noteEncode(kind9735.id)
-        const kind9735Content = kind9735.content
+        const kind9735Content = description9735.content
+        console.log(kind9735)
         let kind0picture = ""
         let kind0npub = ""
         let kind0name = ""
@@ -186,7 +187,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
       let factor = 1.4
       let zapIndex = 1
 
-      for(let json9735 of json9735List.slice(0, 6) ){
+      for(let json9735 of json9735List.slice(1, 666) ){
         const zapDiv = document.createElement("div");
         zapDiv.className = "zap";
 
@@ -197,12 +198,12 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
         zapDiv.style.fontSize = fontSizeCalc + "vw"
         //zapDiv.style.gap = (gapSize - (zapIndex*1.1)) + "vw"
         let imgSizeCalc = (imgSize/(zapIndex*1.5)) + "vw"
-        let gapCalc = (gapSize/zapIndex/1.5) + "vw"
+        let gapCalc = (gapSize/zapIndex/0.5) + "vw"
         zapIndex = zapIndex+1
 
 
         zapDiv.innerHTML = `
-            <div class="zapper" style="margin-bottom:${gapCalc*-1}">
+            <div class="zapper" style="margin-bottom:${gapCalc}">
                 <div class="zapperProfile" style="gap:${gapCalc}">
                   <img class="userImg zapperProfileImg" style="width:${imgSizeCalc};height:${imgSizeCalc}" src="${profileImage}" />
                   <div>
