@@ -86,7 +86,13 @@ async function subscribeKind1() {
             console.log("subscribeKind9735fromKind1() Closed")
         }
     })
-  }
+}
+
+function numberWithCommas(x) {
+	  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+
 
 function subscribeKind0fromKinds9735(kinds9735){
     let kind9734PKs = []
@@ -187,7 +193,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
       let factor = 1.4
       let zapIndex = 1
       const totalAmountZapped = json9735List.reduce((sum, zaps) => sum + zaps.amount, 0);
-      document.getElementById("zappedTotalValue").innerText = totalAmountZapped;
+      document.getElementById("zappedTotalValue").innerText = numberWithCommas(totalAmountZapped);
 
       for(let json9735 of json9735List){
         const zapDiv = document.createElement("div");
@@ -213,7 +219,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
                         ${json9735.kind1Name}
                     </div>
                     <div class="zapperAmount" style="font-size:${(fontSizeCalc/2) + "vw"};">
-                        <span class="zapperAmountValue">${json9735.amount}</span> <span class="zapperAmountSats">sats</span>
+                        <span class="zapperAmountValue">${numberWithCommas(json9735.amount)}</span> <span class="zapperAmountSats">sats</span>
                     </div>
                     <div class="zapperContent">
                         ${json9735.kind9735content}
