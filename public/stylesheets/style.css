@@ -217,15 +217,7 @@ a.feedSelectorLink.active {
 }
 
 .noteDisplayName {
-    font-weight: 900;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 3vw;
-    margin-bottom: 4px;
-    letter-spacing: 0.01rem;
-    display: block;
-    margin: 1vw;
+    font-weight: 700;
 }
 
 .noteAuthorLink{
@@ -653,6 +645,10 @@ input:focus::placeholder {
 
 
 
+
+
+
+
 .originZap .originZap {
     max-width: 300px;
     height: 30px;
@@ -814,6 +810,8 @@ input:focus::placeholder {
   overflow: hidden;
 }
 
+
+
 .live.color{
   background: black;
 }
@@ -823,7 +821,7 @@ input:focus::placeholder {
   color: #fff;
 }
 
-.seedNote{
+.live .seedNote{
   display: flex;
   flex-direction: column;
   /* align-items: center; */
@@ -833,21 +831,35 @@ input:focus::placeholder {
   position: fixed;
 }
 
-.seedNoteData {
+.live .seedNoteData {
   /* text-align: right; */
   padding-top: 1vw;
   /* background: red; */
   width: 100%;
 }
 
-.seedNoteAuthor{
+.live .seedNoteAuthor{
   display: flex;
   /* justify-content: flex-end; */
   /* align-items: center; */
   margin-bottom: 1vw;
 }
 
-.seedNote .qrCode{
+
+.live .noteDisplayName {
+    font-weight: 900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 3vw;
+    margin-bottom: 4px;
+    letter-spacing: 0.01rem;
+    display: block;
+    margin: 1vw;
+}
+
+
+.live .seedNote .qrCode{
   filter: invert(1);
   mix-blend-mode: screen;
   display: flex;
@@ -856,13 +868,13 @@ input:focus::placeholder {
   padding: 0vw;
 }
 
-.seedNoteAuthor .userImg{
+.live .seedNoteAuthor .userImg{
   width: 5vw;
   height: 5vw;
   object-fit: cover;
 }
 
-#noteContent {
+.live #noteContent {
   font-size: 2.5vw;
   font-weight: 400;
   overflow: hidden;
@@ -875,7 +887,7 @@ input:focus::placeholder {
 }
 
 
-#pubPayContent {
+.live #pubPayContent {
   font-size: 1.3vw;
   font-weight: 300;
   width: 100vw;
@@ -886,11 +898,12 @@ input:focus::placeholder {
   letter-spacing: 0.03rem;
 }
 
-#zapsContainer{
+.live #zapsContainer{
   padding: 3.5vw;
   padding-left: 42vw;
 }
-#zaps {
+
+.live #zaps {
     /* width: 38vw; */
     display: flex;
     flex-direction: column;
@@ -898,18 +911,18 @@ input:focus::placeholder {
 }
 
 
-.zapperContent {
+.live .zapperContent {
     font-weight: 300;
     letter-spacing: 0.06vw;
 }
 
-.zapperProfile{
+.live .zapperProfile{
   display: flex;
   align-items: center;
   gap: 1vw;
 }
 
-.zapperProfileImg {
+.live .zapperProfileImg {
   width: 3vw;
   height: 3vw;
   object-fit: cover;
@@ -918,37 +931,37 @@ input:focus::placeholder {
 
 
 
-.zap .zapperName{
+.live .zap .zapperName{
   font-weight:800;
   line-height: 0.9em;
 }
 
-.zap:nth-child(1){
+.live .zap:nth-child(1){
   font-size:5vw;
   gap:2vh;
 }
 
-.zap:nth-child(1) .zapperProfile{
+.live .zap:nth-child(1) .zapperProfile{
   gap: 1.5vw;
 }
 
-.zap:nth-child(2) .zapperProfile{
+.live .zap:nth-child(2) .zapperProfile{
   gap: 1vw;
 }
 
-.zap:nth-child(1) .zapperProfileImg{
+.live .zap:nth-child(1) .zapperProfileImg{
   width:20vw;
   height:20vw;
 }
-.zap:nth-child(1) .zapperAmount{
+.live .zap:nth-child(1) .zapperAmount{
   font-size:3vw;
 }
-.zapperAmountSats {
+.live .zapperAmountSats {
   color: #ffffff55;
 }
 
 
-.zap:nth-child(even) .zapperProfile {
+.live .zap:nth-child(even) .zapperProfile {
     justify-content: flex-end;
     flex-direction: row-reverse;
     text-align: right;
@@ -956,19 +969,19 @@ input:focus::placeholder {
 
 
 
-.zap:nth-child(2) .zapperProfileImg{
+.live .zap:nth-child(2) .zapperProfileImg{
   width:10vw;
   height:10vw;
 }
 
 
-.zap:nth-child(3) .zapperProfileImg{
+.live .zap:nth-child(3) .zapperProfileImg{
   width:5vw;
   height:5vw;
 }
 
 
-.liveZapOverlay{
+.live .liveZapOverlay{
   width: 100vw;
   height: 100vh;
   background: url("/images/lightning.gif");
@@ -981,7 +994,7 @@ input:focus::placeholder {
 }
 
 
-#bar {
+.live #bar {
  /* width: 100vh; */
  position: fixed;
  background: #00000000;
@@ -990,19 +1003,19 @@ input:focus::placeholder {
  color: #ffffff59;
 }
 
-#poweredBy {
+.live #poweredBy {
   position: fixed;
   bottom: 1vw;
   right: 1vw;
   /* opacity:0.8; */
 }
-#poweredBy img {
+.live #poweredBy img {
   width: 10vw;
 }
 
 
 
-#zappedTotal{
+.live #zappedTotal{
   position: fixed;
   background: #00000000;
   bottom: 1.7vw;
@@ -1012,13 +1025,13 @@ input:focus::placeholder {
   text-align: right;
 }
 
-#zappedTotal{
+.live #zappedTotal{
   display: flex;
   align-items: center;
   gap: 1vw;
 }
 
-#zappedTotalValue{
+.live #zappedTotalValue{
   font-weight: 600;
   font-size: 3vw;
   line-height: 1.5vw;
