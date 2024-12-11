@@ -7,7 +7,7 @@ export async function plot(json9735List, iskind3filter){
       const profileImage = json9735.picture == "" ? "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" : json9735.picture
 
       let zapPayerLink = '<a href="https://nostrudel.ninja/#/u/'+json9735.npubPayer+'" target="_blank"><img class="userImg" src="'+profileImage+'" /></a>'
-      let zapEventLink = '<a href="https://nostrudel.ninja/#/n/'+json9735.zapEventID+'" target="_blank" class="zapReactionAmount">'+json9735.amount+'</a>'
+      let zapEventLink = '<a href="https://nostrudel.ninja/#/n/'+json9735.zapEventID+'" target="_blank" class="zapReactionAmount">'+json9735.amount.toLocaleString()+'</a>'
 
       /*
       't', 'pubpay'
