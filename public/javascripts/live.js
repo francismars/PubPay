@@ -1,8 +1,7 @@
 let urlToParse = location.search;
 const params = new URLSearchParams(urlToParse);
 console.log(params.get("note"))
-const nevent = params.get("note") ? params.get("note") : "note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7";
-const kind1ID = NostrTools.nip19.decode(nevent).data
+const nevent = params.get("note")  // ? params.get("note") "note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7";
 // "b4728c14cbe74a1008d4ed80817dd412ad276469da1b007e7e00e071368c4c9b"
 
 const pool = new NostrTools.SimplePool()
@@ -10,9 +9,20 @@ const relays = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://relay.n
 
 let json9735List = []
 
-subscribeKind1()
+if(nevent){
+    const kind1ID = NostrTools.nip19.decode(nevent).data
+    subscribeKind1(kind1ID)
+    document.getElementById('noteLoaderContainer').style.display = 'none';
+}
 
-async function subscribeKind1() {
+function note1fromLoader(){
+    const note1 = document.getElementById('note1LoaderInput').value;
+    const kind1ID = NostrTools.nip19.decode(note1).data
+    subscribeKind1(kind1ID)
+    document.getElementById('noteLoaderContainer').style.display = 'none';
+}
+
+async function subscribeKind1(kind1ID) {
     let filter = { ids: [kind1ID]}
     pool.subscribeMany(
         [...relays],
