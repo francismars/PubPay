@@ -15,11 +15,15 @@ if(nevent){
     document.getElementById('noteLoaderContainer').style.display = 'none';
 }
 
+
+document.getElementById('note1LoaderSubmit').addEventListener('click', note1fromLoader);
+
 function note1fromLoader(){
     const note1 = document.getElementById('note1LoaderInput').value;
     const kind1ID = NostrTools.nip19.decode(note1).data
     subscribeKind1(kind1ID)
     document.getElementById('noteLoaderContainer').style.display = 'none';
+    console.log(note1);
 }
 
 async function subscribeKind1(kind1ID) {
