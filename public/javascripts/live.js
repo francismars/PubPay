@@ -142,14 +142,17 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
         let kind0picture = ""
         let kind0npub = ""
         let kind0name = ""
+        let kind0finalName = ""
         const kind0fromkind9735 = kind0fromkind9735List.find(kind0 => pubkey9735 === kind0.pubkey);
         if(kind0fromkind9735){
             const displayName = JSON.parse(kind0fromkind9735.content).displayName
             kind0name = displayName ? JSON.parse(kind0fromkind9735.content).displayName : JSON.parse(kind0fromkind9735.content).display_name
+            kind0finalName = kind0name!="" ? kind0name : JSON.parse(kind0fromkind9735.content).name
+            console.log(kind0finalName)
             kind0picture = JSON.parse(kind0fromkind9735.content).picture
             kind0npub = NostrTools.nip19.npubEncode(kind0fromkind9735.pubkey)
         }
-        const json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "pubKey": pubkey9735, "zapEventID": kind9735id, "kind9735content": kind9735Content, "kind1Name": kind0name}
+        const json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "pubKey": pubkey9735, "zapEventID": kind9735id, "kind9735content": kind9735Content, "kind1Name": kind0finalName}
         json9735List.push(json9735)
     }
     json9735List.sort((a, b) => b.amount - a.amount);
