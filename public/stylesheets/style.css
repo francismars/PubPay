@@ -1036,3 +1036,23 @@ input:focus::placeholder {
   font-size: 3vw;
   line-height: 1.5vw;
 }
+
+.live #noteLoaderContainer {
+  position: fixed;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  justify-content: center;
+  align-items: center;
+}
+
+.live #noteLoader {
+  width: 90%;
+  max-width: 800px;
+  background: white;
+  color: #000;
+  padding: 20px;
+  box-sizing: border-box;
+}
