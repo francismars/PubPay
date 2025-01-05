@@ -374,6 +374,16 @@ async function submitKind1(event){
   if(zapUses!="") tagsList.push(["zap-uses",zapUses])
   const zapLNURL = document.getElementById('overrideLNURL').value;
   if(zapLNURL!="") tagsList.push(["zap-lnurl",zapLNURL])
+  const zapPayer = document.getElementById('zapPayer').value;
+  if(zapPayer!=""){
+    console.log(zapPayer)
+    let payerHEX = NostrTools.nip19.decode(zapPayer)
+    console.log(payerHEX)
+    if(payerHEX.type=="npub" && payerHEX.data){
+      tagsList.push(["zap-payer", payerHEX.data])
+    }
+    else return console.log("Insert Payer NPUB.");
+  }
 
   // Add client tag
   tagsList.push(["client","PubPay.me"])

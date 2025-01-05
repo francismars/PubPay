@@ -66,6 +66,9 @@ export async function plot(json9735List, iskind3filter){
       (tagZapMin && tagZapMax) && json9735.amount >= tagZapMin/1000 && json9735.amount <= tagZapMax/1000){
         if(tagZapPayer == json9735.pubKey){
           // Zap payer match
+          console.log("tagZapPayer", tagZapPayer)
+          console.log("json9735.pubKey", json9735.pubKey)
+          console.log("entras aqui")
           let zapPayer = parentNote.querySelector('.zapPayer')
           zapPayer.innerHTML = '<div class="zapReaction">'+zapPayerLink+zapEventLink+'</div>'
           // Reached target, disable button
