@@ -6,8 +6,6 @@ async function loadDummyKind1s() {
   const html = await response.text(); // Get the HTML content as text
   document.getElementById("main").innerHTML = html + html + html; // Insert the HTML into the container
 }
-
-// Call the function to load the HTML
 loadDummyKind1s();
 
 const pool = new NostrTools.SimplePool();
@@ -17,6 +15,11 @@ const relays = [
   "wss://relay.nostr.band/",
   "wss://relay.nostr.nu/",
 ];
+
+let UserPK = "";
+if (localStorage.getItem("publicKey")) {
+  subscribeKind0();
+}
 
 subscribePubPays();
 
@@ -348,37 +351,102 @@ async function createkinds9735JSON(
 
   document.getElementById("newKind1").addEventListener("submit", submitKind1);
 
-  document.getElementById("login").addEventListener("click", subscribeKind0);
+  document
+    .getElementById("login")
+    .addEventListener("click", (event) => openLoginMenu(event));
 })();
 
-let UserPK = "";
+function openLoginMenu(event) {
+  event.preventDefault();
+  const loginForm = document.getElementById("loginForm");
+  if (loginForm.style.display == "none") {
+    loginForm.style.display = "flex";
+  }
+}
+
+document.getElementById("cancelLogin").addEventListener("click", (event) => {
+  event.preventDefault();
+  document.getElementById("loginForm").style.display = "none";
+  document.getElementById("nsecInputGroup").style.display = "none";
+  document.getElementById("loginFormGroup").style.display = "flex";
+});
+
+document.getElementById("signInNsec").addEventListener("click", async () => {
+  document.getElementById("nsecInputGroup").style.display = "block";
+  document.getElementById("loginFormGroup").style.display = "none";
+});
+
+document
+  .getElementById("continueWithNsec")
+  .addEventListener("click", async (event) => {
+    event.preventDefault();
+    const nsec = document.getElementById("nsecInput").value;
+    let { type, data } = NostrTools.nip19.decode(nsec);
+    console.log(type, data);
+    if (type === "nsec") {
+      localStorage.removeItem("publicKey");
+      const privateKey = data;
+      const publicKey = NostrTools.getPublicKey(privateKey);
+      console.log("Public Key: ", publicKey);
+      const rememberMe = document.getElementById("rememberMe").checked;
+      if (rememberMe) {
+        localStorage.setItem("publicKey", publicKey);
+        localStorage.setItem("privateKey", privateKey);
+        console.log("Public and Private key saved to local storage!");
+      }
+      UserPK = publicKey;
+      await subscribeKind0();
+      document.getElementById("loginForm").style.display = "none";
+      document.getElementById("nsecInputGroup").style.display = "none";
+      document.getElementById("loginFormGroup").style.display = "flex";
+    }
+  });
+
+document
+  .getElementById("signInExtension")
+  .addEventListener("click", async () => {
+    UserPK = "";
+    localStorage.removeItem("publicKey");
+    await subscribeKind0();
+    const rememberMe = document.getElementById("rememberMe").checked;
+    if (rememberMe) {
+      localStorage.setItem("publicKey", UserPK); // Store the public key in local storage
+      console.log("Public key saved to local storage!");
+    } else {
+      console.log("Public key not saved.");
+    }
+    document.getElementById("loginForm").style.display = "none";
+  });
+
 async function subscribeKind0() {
   if (UserPK == "") {
-    if (window.nostr != null) {
+    if (localStorage.getItem("publicKey")) {
+      UserPK = localStorage.getItem("publicKey");
+    } else if (window.nostr != null) {
       UserPK = await window.nostr.getPublicKey();
-      let h = pool.subscribeMany(
-        [...relays],
-        [
-          {
-            kinds: [0],
-            authors: [UserPK],
-          },
-        ],
-        {
-          onevent(kind0) {
-            handleKind0data(kind0);
-          },
-          async oneose() {
-            console.log("subscribeKind0() EOS");
-            h.close();
-          },
-          onclosed() {
-            console.log("subscribeKind0() Closed");
-          },
-        }
-      );
     }
   }
+  let h = pool.subscribeMany(
+    [...relays],
+    [
+      {
+        kinds: [0],
+        authors: [UserPK],
+      },
+    ],
+    {
+      onevent(kind0) {
+        handleKind0data(kind0);
+      },
+      async oneose() {
+        console.log("subscribeKind0() EOS");
+        h.close();
+      },
+      onclosed() {
+        console.log("subscribeKind0() Closed");
+      },
+    }
+  );
 }
 
 function handleKind0data(kind0) {
