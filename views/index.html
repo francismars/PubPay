@@ -87,6 +87,31 @@
         </div>
       </div>
 
+      <div class="overlayContainer" id="loginForm" style="display: none;">
+        <div class="overlayInner">
+          <div class="brand">PUB<span style="color: #cecece;">PAY</span><span style="color: #00000014;">.me</span></div>
+          <div class="formFieldGroup" id="loginFormGroup">
+            <a href="#" id="signInExtension" class="cta">Sign in with Extension</a>
+            <a href="#" id="signInNsec" class="cta">Sign in with NSEC</a>
+            <button id="createAccount" class="cta disabled">Create New Account</button>
+          </div>
+          <div id="nsecInputGroup" style="display: none;">
+            <input
+              type="password"
+              id="nsecInput"
+              placeholder="Enter your nsec"
+              class="inputField"
+            />
+            <button id="continueWithNsec" class="cta">Continue</button>
+          </div>
+            <div class="rememberPK">          
+              <label for="rememberMe" class="label">Remember</label>
+              <input type="checkbox" class="checkBoxRemember" id="rememberMe" />
+            </div>
+          <a id="cancelLogin" href="#" class="label">cancel</a>
+        </div>
+      </div>
+
       <div class="overlayContainer" id="viewJSON">
         <div class="overlayInner">
           <pre id="noteJSON">
