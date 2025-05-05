@@ -18,6 +18,7 @@ export async function signIn(method, rememberMe, nsec = undefined) {
   if (signInMethod === "extension") {
     pubKey = await window.nostr.getPublicKey();
   } else if (signInMethod === "keyManager") {
+    alert("rememberMe", rememberMe);
     localStorage.setItem("signIn", JSON.stringify(rememberMe));
     const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
     window.location.href = nostrSignerURL;
