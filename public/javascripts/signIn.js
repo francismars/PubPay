@@ -19,10 +19,7 @@ export async function signIn(method, rememberMe, nsec = undefined) {
     pubKey = await window.nostr.getPublicKey();
   } else if (signInMethod === "keyManager") {
     const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
-    sessionStorage.setItem(
-      "signIn",
-      JSON.stringify({ rememberMe: rememberMe })
-    );
+    sessionStorage.setItem("signIn", rememberMe);
     window.location.href = nostrSignerURL;
     return;
   } else if (signInMethod === "nsec") {
@@ -66,9 +63,9 @@ export function cleanSignInData() {
 document.addEventListener("visibilitychange", async function () {
   if (document.visibilityState === "visible") {
     alert("Visibility changed to visible.");
-    const signInData = JSON.parse(sessionStorage.getItem("signIn"));
-    alert("signInData: ", signInData);
-    if (!signInData.rememberMe) {
+    const rememberMe = sessionStorage.getItem("signIn");
+    alert("signInData: ", rememberMe);
+    if (!rememberMe) {
       console.error("No sign-in data found in Session Storage.");
       return;
     }
@@ -79,7 +76,7 @@ document.addEventListener("visibilitychange", async function () {
     console.log("publicKey", pubKey);
     console.log("decodedPK", decodedPK);
     console.log("pubKey", pubKey);
-    if (signInData.rememberMe === "true") {
+    if (rememberMe === "true") {
       localStorage.setItem("publicKey", pubKey);
       console.log("Saved to local storage!");
     } else {
