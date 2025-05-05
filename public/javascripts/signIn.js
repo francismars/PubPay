@@ -75,7 +75,7 @@ document.addEventListener("visibilitychange", async function () {
     const npub = await util.accessClipboard();
     alert("npub: " + npub);
     const decodedPK = NostrTools.nip19.decode(npub);
-    alert("decodedPK: " + decodedPK);
+    alert("decodedPK: " + decodedPK.data);
     //const pubKey = decodedPK.data;
     //alert("pubKey", pubKey);
     if (rememberMe === "true") {
