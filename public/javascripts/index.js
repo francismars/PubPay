@@ -369,7 +369,6 @@ function openLoginMenu(event) {
   if (typeof UserPK !== "string" || UserPK.length !== 64) {
     console.log("No valid Public Key found.", UserPK);
     signIn.cleanSignInData();
-    return;
   }
   const loginForm = UserPK
     ? document.getElementById("loggedInForm")
