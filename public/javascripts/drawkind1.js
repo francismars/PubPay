@@ -450,7 +450,7 @@ function timeAgo(timestamp) {
   }
 }
 
-function formatContent(content) {
+export function formatContent(content) {
   //formatedContent = formatedContent.replace(/(nostr:|@)?((npub|note|nprofile|nevent|nrelay|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi, '<a href="$1.$2">@CornerStore</a>')
   // render npubs
   let npubMention = content.match(

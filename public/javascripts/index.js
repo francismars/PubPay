@@ -1,10 +1,12 @@
 const drawKind1 = await import("./drawkind1.js");
 const drawKind9735 = await import("./drawkind9735.js");
+const signIn = await import("./signIn.js");
+const util = await import("./util.js");
 
 async function loadDummyKind1s() {
-  const response = await fetch("../html/dummyKind1.html"); // Path to the external file
-  const html = await response.text(); // Get the HTML content as text
-  document.getElementById("main").innerHTML = html + html + html; // Insert the HTML into the container
+  const response = await fetch("../html/dummyKind1.html");
+  const html = await response.text();
+  document.getElementById("main").innerHTML = html + html + html;
 }
 loadDummyKind1s();
 
@@ -16,8 +18,7 @@ const relays = [
   "wss://relay.nostr.nu/",
 ];
 
-let UserPK = "";
-if (localStorage.getItem("publicKey")) {
+if (localStorage.getItem("publicKey") || sessionStorage.getItem("publicKey")) {
   subscribeKind0();
 }
 
@@ -320,6 +321,13 @@ async function createkinds9735JSON(
   document
     .getElementById("feedFollowing")
     .addEventListener("click", async function () {
+      if (!signIn.getPublicKey()) {
+        const loginForm = document.getElementById("loginForm");
+        if (loginForm.style.display == "none") {
+          loginForm.style.display = "flex";
+        }
+        return;
+      }
       document.getElementById("feedFollowing").classList.add("active");
       document.getElementById("feedGlobal").classList.remove("active");
       const mainDiv = document.getElementById("main");
@@ -358,7 +366,14 @@ async function createkinds9735JSON(
 
 function openLoginMenu(event) {
   event.preventDefault();
-  const loginForm = document.getElementById("loginForm");
+  const UserPK = signIn.getPublicKey();
+  const loginForm = UserPK
+    ? document.getElementById("loggedInForm")
+    : document.getElementById("loginForm");
+  if (UserPK) {
+    document.getElementById("loggedInPublicKey").innerHTML =
+      drawKind1.formatContent(NostrTools.nip19.npubEncode(UserPK));
+  }
   if (loginForm.style.display == "none") {
     loginForm.style.display = "flex";
   }
@@ -371,6 +386,19 @@ document.getElementById("cancelLogin").addEventListener("click", (event) => {
   document.getElementById("loginFormGroup").style.display = "flex";
 });
 
+document.getElementById("logoutButton").addEventListener("click", (event) => {
+  event.preventDefault();
+  signIn.cleanSignInData();
+  document.getElementById("login").innerHTML =
+    '<span class="material-symbols-outlined">account_circle</span>';
+  document.getElementById("loggedInForm").style.display = "none";
+});
+
+document.getElementById("cancelLoggedin").addEventListener("click", (event) => {
+  event.preventDefault();
+  document.getElementById("loggedInForm").style.display = "none";
+});
+
 document.getElementById("signInNsec").addEventListener("click", async () => {
   document.getElementById("nsecInputGroup").style.display = "block";
   document.getElementById("loginFormGroup").style.display = "none";
@@ -381,50 +409,36 @@ document
   .addEventListener("click", async (event) => {
     event.preventDefault();
     const nsec = document.getElementById("nsecInput").value;
-    let { type, data } = NostrTools.nip19.decode(nsec);
-    console.log(type, data);
-    if (type === "nsec") {
-      localStorage.removeItem("publicKey");
-      const privateKey = data;
-      const publicKey = NostrTools.getPublicKey(privateKey);
-      console.log("Public Key: ", publicKey);
-      const rememberMe = document.getElementById("rememberMe").checked;
-      if (rememberMe) {
-        localStorage.setItem("publicKey", publicKey);
-        localStorage.setItem("privateKey", privateKey);
-        console.log("Public and Private key saved to local storage!");
-      }
-      UserPK = publicKey;
-      await subscribeKind0();
-      document.getElementById("loginForm").style.display = "none";
-      document.getElementById("nsecInputGroup").style.display = "none";
-      document.getElementById("loginFormGroup").style.display = "flex";
-    }
+    const rememberMe = document.getElementById("rememberMe").checked;
+    signIn.signIn("nsec", rememberMe ? true : false, nsec);
+    await subscribeKind0();
+    document.getElementById("loginForm").style.display = "none";
+    document.getElementById("nsecInputGroup").style.display = "none";
+    document.getElementById("loginFormGroup").style.display = "flex";
   });
 
 document
   .getElementById("signInExtension")
   .addEventListener("click", async () => {
-    UserPK = "";
-    localStorage.removeItem("publicKey");
-    await subscribeKind0();
     const rememberMe = document.getElementById("rememberMe").checked;
-    if (rememberMe) {
-      localStorage.setItem("publicKey", UserPK); // Store the public key in local storage
-      console.log("Public key saved to local storage!");
-    } else {
-      console.log("Public key not saved.");
-    }
+    await signIn.signIn("extension", rememberMe ? true : false);
+    await subscribeKind0();
+    document.getElementById("loginForm").style.display = "none";
+  });
+
+document
+  .getElementById("signInKeyManager")
+  .addEventListener("click", async () => {
+    const rememberMe = document.getElementById("rememberMe").checked;
+    await signIn.signIn("keyManager", rememberMe ? true : false);
     document.getElementById("loginForm").style.display = "none";
   });
 
 async function subscribeKind0() {
-  if (UserPK == "") {
-    if (localStorage.getItem("publicKey")) {
-      UserPK = localStorage.getItem("publicKey");
-    } else if (window.nostr != null) {
-      UserPK = await window.nostr.getPublicKey();
-    }
+  const UserPK = signIn.getPublicKey();
+  if (UserPK == null) {
+    console.log("No UserPK found.");
+    return;
   }
   let h = pool.subscribeMany(
     [...relays],
@@ -462,8 +476,8 @@ function handleKind0data(kind0) {
 }
 
 async function subscribeKind3() {
-  if (UserPK == "") await subscribeKind0();
-  const pubKey = UserPK;
+  const pubKey = signIn.getPublicKey();
+  if (!pubKey) return console.log("No UserPK found.");
   let h = pool.subscribeMany(
     [...relays],
     [
