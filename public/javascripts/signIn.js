@@ -74,15 +74,15 @@ document.addEventListener("visibilitychange", async function () {
     sessionStorage.removeItem("signIn");
     const publicKey = await util.accessClipboard();
     alert("publicKey", publicKey);
-    let decodedPK = NostrTools.nip19.decode(publicKey);
-    alert("decodedPK", decodedPK);
-    const pubKey = decodedPK.data;
-    alert("pubKey", pubKey);
+    //let decodedPK = NostrTools.nip19.decode(publicKey);
+    //alert("decodedPK", decodedPK);
+    //const pubKey = decodedPK.data;
+    //alert("pubKey", pubKey);
     if (rememberMe === "true") {
-      localStorage.setItem("publicKey", pubKey);
+      localStorage.setItem("publicKey", publicKey);
       console.log("Saved to local storage!");
     } else {
-      sessionStorage.setItem("publicKey", pubKey);
+      sessionStorage.setItem("publicKey", publicKey);
       console.log("Saved to session storage!");
     }
     await subscribeKind0();
