@@ -73,9 +73,9 @@ document.addEventListener("visibilitychange", async function () {
     }
     sessionStorage.removeItem("signIn");
     const npub = await util.accessClipboard();
-    alert("npub" + npub);
-    //const decodedPK = NostrTools.nip19.decode(npub);
-    //alert("decodedPK" + decodedPK);
+    alert("npub: " + npub);
+    const decodedPK = NostrTools.nip19.decode(npub);
+    alert("decodedPK: " + decodedPK);
     //const pubKey = decodedPK.data;
     //alert("pubKey", pubKey);
     if (rememberMe === "true") {
