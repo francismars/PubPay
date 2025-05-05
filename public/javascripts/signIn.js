@@ -73,9 +73,9 @@ document.addEventListener("visibilitychange", async function () {
     }
     sessionStorage.removeItem("signIn");
     const publicKey = await util.accessClipboard();
-    alert("publicKey", JSON.parse(publicKey));
+    alert("publicKey" + JSON.parse(publicKey));
     const decodedPK = NostrTools.nip19.decode(publicKey);
-    alert("decodedPK", decodedPK);
+    alert("decodedPK" + decodedPK);
     //const pubKey = decodedPK.data;
     //alert("pubKey", pubKey);
     if (rememberMe === "true") {
