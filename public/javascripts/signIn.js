@@ -66,7 +66,9 @@ export function cleanSignInData() {
 
 document.addEventListener("visibilitychange", async function () {
   if (document.visibilityState === "visible") {
+    alert("Visibility changed to visible.");
     const signInData = JSON.parse(sessionStorage.getItem("signIn"));
+    alert("signInData: ", signInData);
     if (!signInData.rememberMe) {
       console.error("No sign-in data found in Session Storage.");
       return;
