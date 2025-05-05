@@ -70,7 +70,7 @@ document.addEventListener("visibilitychange", async function () {
       return;
     }
     sessionStorage.removeItem("signIn");
-    const publicKey = await accessClipboard();
+    const publicKey = await util.accessClipboard();
     alert("publicKey", pubKey);
     let decodedPK = NostrTools.nip19.decode(publicKey);
     alert("decodedPK", decodedPK);
