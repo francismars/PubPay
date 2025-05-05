@@ -73,7 +73,7 @@ document.addEventListener("visibilitychange", async function () {
     }
     sessionStorage.removeItem("signIn");
     const publicKey = await util.accessClipboard();
-    alert("publicKey", pubKey);
+    alert("publicKey", publicKey);
     let decodedPK = NostrTools.nip19.decode(publicKey);
     alert("decodedPK", decodedPK);
     const pubKey = decodedPK.data;
