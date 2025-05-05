@@ -24,7 +24,6 @@ export async function signIn(method, rememberMe, nsec = undefined) {
       JSON.stringify({ rememberMe: rememberMe })
     );
     window.location.href = nostrSignerURL;
-    sessionStorage.removeItem("signIn");
     return;
   } else if (signInMethod === "nsec") {
     if (!nsec) {
