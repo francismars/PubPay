@@ -67,15 +67,15 @@ document.addEventListener("visibilitychange", async function () {
     alert("Visibility changed to visible.");
     const rememberMe = sessionStorage.getItem("signIn");
     alert("signInData: ", rememberMe);
-    if (!rememberMe) {
+    if (rememberMe == undefined) {
       alert("No sign-in data found in Session Storage.");
       return;
     }
     sessionStorage.removeItem("signIn");
-    const publicKey = await util.accessClipboard();
-    alert("publicKey" + JSON.parse(publicKey));
-    const decodedPK = NostrTools.nip19.decode(publicKey);
-    alert("decodedPK" + decodedPK);
+    const npub = await util.accessClipboard();
+    alert("npub" + npub);
+    //const decodedPK = NostrTools.nip19.decode(npub);
+    //alert("decodedPK" + decodedPK);
     //const pubKey = decodedPK.data;
     //alert("pubKey", pubKey);
     if (rememberMe === "true") {
