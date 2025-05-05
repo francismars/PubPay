@@ -19,7 +19,7 @@ export async function signIn(method, rememberMe, nsec = undefined) {
     pubKey = await window.nostr.getPublicKey();
   } else if (signInMethod === "keyManager") {
     const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
-    sessionStorage.setItem("signIn", rememberMe);
+    sessionStorage.setItem("signIn", JSON.stringify(rememberMe));
     window.location.href = nostrSignerURL;
     return;
   } else if (signInMethod === "nsec") {
