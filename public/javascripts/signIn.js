@@ -18,8 +18,8 @@ export async function signIn(method, rememberMe, nsec = undefined) {
   if (signInMethod === "extension") {
     pubKey = await window.nostr.getPublicKey();
   } else if (signInMethod === "keyManager") {
-    const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
     sessionStorage.setItem("signIn", JSON.stringify(rememberMe));
+    const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
     window.location.href = nostrSignerURL;
     return;
   } else if (signInMethod === "nsec") {
@@ -63,19 +63,19 @@ export function cleanSignInData() {
 document.addEventListener("visibilitychange", async function () {
   if (document.visibilityState === "visible") {
     alert("Visibility changed to visible.");
-    const rememberMe = sessionStorage.getItem("signIn");
+    const rememberMe = JSON.parse(sessionStorage.getItem("signIn"));
     alert("signInData: ", rememberMe);
     if (!rememberMe) {
-      console.error("No sign-in data found in Session Storage.");
+      alert("No sign-in data found in Session Storage.");
       return;
     }
     sessionStorage.removeItem("signIn");
     const publicKey = await accessClipboard();
     let decodedPK = NostrTools.nip19.decode(publicKey);
     const pubKey = decodedPK.data;
-    console.log("publicKey", pubKey);
-    console.log("decodedPK", decodedPK);
-    console.log("pubKey", pubKey);
+    alert("publicKey", pubKey);
+    alert("decodedPK", decodedPK);
+    alert("pubKey", pubKey);
     if (rememberMe === "true") {
       localStorage.setItem("publicKey", pubKey);
       console.log("Saved to local storage!");
