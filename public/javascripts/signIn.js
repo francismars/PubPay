@@ -1,3 +1,5 @@
+const util = await import("./util.js");
+
 const METHODS = ["extension", "keyManager", "nsec"];
 
 let signInMethod = undefined;

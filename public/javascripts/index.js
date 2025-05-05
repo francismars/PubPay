@@ -1,7 +1,6 @@
 const drawKind1 = await import("./drawkind1.js");
 const drawKind9735 = await import("./drawkind9735.js");
 const signIn = await import("./signIn.js");
-const util = await import("./util.js");
 
 async function loadDummyKind1s() {
   const response = await fetch("../html/dummyKind1.html");
