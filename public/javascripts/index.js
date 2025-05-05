@@ -366,6 +366,11 @@ async function createkinds9735JSON(
 function openLoginMenu(event) {
   event.preventDefault();
   const UserPK = signIn.getPublicKey();
+  if (typeof UserPK !== "string" || UserPK.length !== 64) {
+    console.log("No valid Public Key found.", UserPK);
+    signIn.cleanSignInData();
+    return;
+  }
   const loginForm = UserPK
     ? document.getElementById("loggedInForm")
     : document.getElementById("loginForm");
