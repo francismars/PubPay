@@ -131,17 +131,15 @@ async function createZapEvent(
   } else if (signInMethod == "keyManager") {
     alert("Signing with KeyManager...");
     const eventString = JSON.stringify(zapEvent);
-    setTimeout(() => {
-      sessionStorage.setItem(
-        "SignZapEvent",
-        JSON.stringify({
-          callback: lnurlinfo.callback,
-          amount: amountPay,
-          lud16: lud16,
-          event: zapEvent,
-        })
-      );
-    }, 500);
+    sessionStorage.setItem(
+      "SignZapEvent",
+      JSON.stringify({
+        callback: lnurlinfo.callback,
+        amount: amountPay,
+        lud16: lud16,
+        event: zapEvent,
+      })
+    );
     alert("About to open KeyManager...");
     window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
   } else if (signInMethod == "nsec") {
