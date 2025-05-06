@@ -641,8 +641,6 @@ document.addEventListener("visibilitychange", async function () {
     }
 
     const eventStorage = JSON.parse(sessionStorage.getItem("SignZapEvent"));
-    alert("checking for eventStorage...");
-    alert(eventStorage);
     if (eventStorage) {
       sessionStorage.removeItem("SignZapEvent");
       alert("eventStorage found!");
