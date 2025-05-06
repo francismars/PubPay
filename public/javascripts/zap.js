@@ -129,6 +129,7 @@ async function createZapEvent(
       );
     }
   } else if (signInMethod == "keyManager") {
+    alert("Signing with KeyManager...");
     const eventString = JSON.stringify(zapEvent);
     setTimeout(() => {
       sessionStorage.setItem(
@@ -141,6 +142,7 @@ async function createZapEvent(
         })
       );
     }, 500);
+    alert("About to open KeyManager...");
     window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
   } else if (signInMethod == "nsec") {
     const privateKey = signIn.getPrivateKey();
