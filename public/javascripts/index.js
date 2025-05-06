@@ -374,13 +374,13 @@ async function createkinds9735JSON(
 function openLoginMenu(event) {
   event.preventDefault();
   const UserPK = signIn.getPublicKey();
-  const loginForm = UserPK 
+  const loginForm = UserPK
     ? document.getElementById("loggedInForm")
     : document.getElementById("loginForm");
   if (UserPK) {
     document.getElementById("loggedInPublicKey").innerHTML =
       drawKind1.formatContent(NostrTools.nip19.npubEncode(UserPK));
-      document.getElementById("loggedInMethod").innerHTML =
+    document.getElementById("loggedInMethod").innerHTML =
       signIn.getSignInMethod();
   }
   if (loginForm.style.display == "none") {
@@ -586,59 +586,73 @@ async function submitKind1(event) {
     content: payNoteContent,
   };
   let kind1Finalized;
-  if(!signIn.getPublicKey()){
-    console.log("Trying to sign event but no public key.")
-    return
+  if (!signIn.getPublicKey()) {
+    console.log("Trying to sign event but no public key.");
+    return;
   }
-  const signInMethod = signIn.getSignInMethod()
-  console.log("SignIn Method: ", signInMethod)
-  if(!signInMethod){
-    console.log("Invalid Sign In Method")
-    return 
+  const signInMethod = signIn.getSignInMethod();
+  console.log("SignIn Method: ", signInMethod);
+  if (!signInMethod) {
+    console.log("Invalid Sign In Method");
+    return;
   }
-  if(signInMethod == "extension"){
+  if (signInMethod == "extension") {
     if (window.nostr != null) {
       kind1Finalized = await window.nostr.signEvent(kind1);
     }
-  }
-  else if(signInMethod == "keyManager"){
-
-  }
-  else if(signInMethod == "nsec"){
-    const privateKey = signIn.getPrivateKey()
-    console.log(privateKey)
+  } else if (signInMethod == "keyManager") {
+  } else if (signInMethod == "nsec") {
+    const privateKey = signIn.getPrivateKey();
+    console.log(privateKey);
     let { type, data } = NostrTools.nip19.decode(privateKey);
-    kind1Finalized = NostrTools.finalizeEvent(kind1, data)
+    kind1Finalized = NostrTools.finalizeEvent(kind1, data);
   }
   let isGood = NostrTools.verifyEvent(kind1Finalized);
   if (!isGood) {
-    console.log("Invalid Finalized Event.")
-    return
+    console.log("Invalid Finalized Event.");
+    return;
   }
-    await Promise.any(pool.publish(relays, kind1Finalized));
-    //console.log('published to at least one relay!')
-    setTimeout(function () {
-      let newNoteForm = document.getElementById("newPayNoteForm");
-      newNoteForm.style.display = "none";
-    }, 1000);
+  await Promise.any(pool.publish(relays, kind1Finalized));
+  //console.log('published to at least one relay!')
+  setTimeout(function () {
+    let newNoteForm = document.getElementById("newPayNoteForm");
+    newNoteForm.style.display = "none";
+  }, 1000);
 }
 
 document.addEventListener("visibilitychange", async function () {
   if (document.visibilityState === "visible") {
     const signInData = JSON.parse(sessionStorage.getItem("signIn"));
-    if (signInData == undefined || signInData.rememberMe == undefined) {
+    if (signInData !== undefined && signInData.rememberMe !== undefined) {
+      sessionStorage.removeItem("signIn");
+      const npub = await util.accessClipboard();
+      const decodedNPUB = NostrTools.nip19.decode(npub);
+      const pubKey = decodedNPUB.data;
+      if (signInData.rememberMe === "true") {
+        localStorage.setItem("publicKey", pubKey);
+      } else {
+        sessionStorage.setItem("publicKey", pubKey);
+      }
+      subscribeKind0();
       return;
     }
-    sessionStorage.removeItem("signIn");
-    const npub = await util.accessClipboard();
-    const decodedNPUB = NostrTools.nip19.decode(npub);
-    const pubKey = decodedNPUB.data;
-    if (signInData.rememberMe === "true") {
-      localStorage.setItem("publicKey", pubKey);
-    } else {
-      sessionStorage.setItem("publicKey", pubKey);
+  }
+  const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
+  if (eventStorage) {
+    sessionStorage.removeItem("AmberSign");
+    const eventSignature = await util.accessClipboard();
+    let eventSigned = eventStorage.event;
+    eventSigned["sig"] = eventSignature;
+    //zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSignature)
+    //console.log('eventSigned', eventSigned)
+    let verifiedEvent = NostrTools.verifyEvent(eventSigned);
+    if (verifiedEvent == true) {
+      await getInvoiceandPay(
+        eventStorage.callback,
+        eventStorage.amount,
+        eventSigned,
+        eventStorage.lud16
+      );
     }
-    subscribeKind0();
-    return;
   }
 });

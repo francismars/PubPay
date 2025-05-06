@@ -1,19 +1,29 @@
+const signIn = await import("./signIn.js");
+
 export async function payNote(
   eventZap,
   userProfile,
   rangeValue,
   anonymousZap = false
 ) {
-  const zapLNURL = eventZap.tags.filter((tag) => tag[0] == "zap-lnurl");
+  if (!signIn.getPublicKey()) {
+    console.error("No public key found. Please sign in first.");
+    const loginForm = document.getElementById("loginForm");
+    if (loginForm.style.display == "none") {
+      loginForm.style.display = "flex";
+    }
+    return;
+  }
+  const zapLNURL = eventZap.tags.find((tag) => tag[0] == "zap-lnurl");
   const eventProfile = userProfile;
   const eventProfileContent = JSON.parse(eventProfile.content);
-  let lud16;
-  if (zapLNURL.length > 0) {
-    lud16 = zapLNURL[0][1];
-  } else {
-    lud16 = eventProfileContent.lud16;
-  }
+  const lud16 =
+    zapLNURL && zapLNURL.length > 0 ? zapLNURL[1] : eventProfileContent.lud16;
   const ludSplit = lud16.split("@");
+  if (ludSplit.length != 2) {
+    console.error("Invalid lud16 format.");
+    return;
+  }
   const response = await fetch(
     "https://" + ludSplit[1] + "/.well-known/lnurlp/" + ludSplit[0]
   ).catch((error) => {
@@ -31,36 +41,7 @@ export async function payNote(
     return;
   }
   const lnurlinfo = await response.json();
-  if (lnurlinfo.allowsNostr == true) {
-    if (anonymousZap == true) {
-      await createZapEvent(
-        JSON.stringify({ lnurlinfo: lnurlinfo, lud16: lud16, event: eventZap }),
-        null,
-        rangeValue,
-        anonymousZap
-      );
-      return;
-    } else if (window.nostr != null) {
-      await createZapEvent(
-        JSON.stringify({ lnurlinfo: lnurlinfo, lud16: lud16, event: eventZap }),
-        null,
-        rangeValue,
-        false
-      );
-      return;
-    } else {
-      sessionStorage.setItem(
-        "AmberPubkey",
-        JSON.stringify({ lnurlinfo: lnurlinfo, lud16: lud16, event: eventZap })
-      );
-      const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
-      try {
-        window.location.href = nostrSignerURL;
-      } catch (error) {
-        console.log("Couldn't Redirect to Signer");
-      }
-    }
-  } else {
+  if (!(lnurlinfo.allowsNostr == true)) {
     for (let feedId of ["main", "following"]) {
       const parentFeed = document.getElementById(feedId);
       const parentNote = parentFeed.querySelector("#_" + eventZap.id);
@@ -70,6 +51,45 @@ export async function payNote(
       noteMainCTA.innerHTML = "CAN'T PAY: No nostr support";
     }
   }
+  if (anonymousZap == true) {
+    await createZapEvent(
+      JSON.stringify({ lnurlinfo: lnurlinfo, lud16: lud16, event: eventZap }),
+      null,
+      rangeValue,
+      anonymousZap
+    );
+    return;
+  }
+  const signInMethod = signIn.getSignInMethod();
+  if (!signInMethod) {
+    console.error("No sign-in method found. Please sign in first.");
+    return;
+  }
+  const publicKey = signIn.getPublicKey();
+  if (!publicKey) {
+    console.error("No public key found. Please sign in first.");
+    return;
+  }
+  if (signInMethod == "extension") {
+    if (window.nostr != null) {
+      await createZapEvent(
+        JSON.stringify({ lnurlinfo: lnurlinfo, lud16: lud16, event: eventZap }),
+        publicKey,
+        rangeValue,
+        false
+      );
+      return;
+    }
+  } else if (signInMethod == "keyManager") {
+    const eventStoragePK = JSON.stringify({
+      lnurlinfo: lnurlinfo,
+      lud16: lud16,
+      event: eventZap,
+    });
+    createZapEvent(eventStoragePK, publicKey, -1);
+  } else if (signInMethod == "nsec") {
+    // TODO IMPLEMENT
+  }
 }
 
 async function createZapEvent(
@@ -78,17 +98,16 @@ async function createZapEvent(
   rangeValue,
   anonymousZap = false
 ) {
+  console.log("Creating zap event...");
   eventStoragePK = JSON.parse(eventStoragePK);
-  let eventZap = eventStoragePK.event;
-  let lnurlinfo = eventStoragePK.lnurlinfo;
-  let lud16 = eventStoragePK.lud16;
-  let zapMintag = eventZap.tags.find((tag) => tag[0] == "zap-min");
-  let zapTagAmount;
-  if (zapMintag) zapTagAmount = zapMintag[1];
-  else zapTagAmount = 1000;
+  const eventZap = eventStoragePK.event;
+  const lnurlinfo = eventStoragePK.lnurlinfo;
+  const lud16 = eventStoragePK.lud16;
+  const zapMintag = eventZap.tags.find((tag) => tag[0] == "zap-min");
+  const zapTagAmount = zapMintag ? zapMintag[1] : 1000;
   const amountPay =
     rangeValue != -1 ? parseInt(rangeValue) * 1000 : Math.floor(zapTagAmount);
-  let zapEvent = await window.NostrTools.nip57.makeZapRequest({
+  const zapEvent = await window.NostrTools.nip57.makeZapRequest({
     profile: eventZap.pubkey,
     event: eventZap.id,
     amount: amountPay,
@@ -114,12 +133,26 @@ async function createZapEvent(
     const publicKey = window.NostrTools.getPublicKey(privateKey);
     const signedEvent = window.NostrTools.finalizeEvent(zapEvent, privateKey);
     const isGood = window.NostrTools.verifyEvent(signedEvent);
+    if (isGood == false) {
+      console.error("Failed to verify event.");
+      return;
+    }
     await getInvoiceandPay(lnurlinfo.callback, amountPay, signedEvent, lud16);
-  } else if (window.nostr != null) {
-    zapFinalized = await window.nostr.signEvent(zapEvent);
-    await getInvoiceandPay(lnurlinfo.callback, amountPay, zapFinalized, lud16);
-  } else {
-    let eventString = JSON.stringify(zapEvent);
+    return;
+  }
+  const signInMethod = signIn.getSignInMethod();
+  if (signInMethod == "extension") {
+    if (window.nostr != null) {
+      zapFinalized = await window.nostr.signEvent(zapEvent);
+      await getInvoiceandPay(
+        lnurlinfo.callback,
+        amountPay,
+        zapFinalized,
+        lud16
+      );
+    }
+  } else if (signInMethod == "keyManager") {
+    const eventString = JSON.stringify(zapEvent);
     setTimeout(() => {
       sessionStorage.setItem(
         "AmberSign",
@@ -132,10 +165,13 @@ async function createZapEvent(
       );
     }, 500);
     window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
+  } else if (signInMethod == "nsec") {
+    // TODO IMPLEMENT
   }
 }
 
 async function getInvoiceandPay(callback, amount, zapFinalized, lud16) {
+  console.log("Getting invoice and paying...");
   let eventFinal = JSON.stringify(zapFinalized);
   let lnurl = lud16;
   let callString = `${callback}?amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`;
@@ -158,34 +194,7 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16) {
 
 /*
   document.addEventListener("visibilitychange", async function() {
-    if (document.visibilityState === 'visible') {
-      let eventStoragePK = sessionStorage.getItem("AmberPubkey");
-      if(eventStoragePK){
-        sessionStorage.removeItem('AmberPubkey');
-        const publicKey = await accessClipboard()
-        let decodedPK = NostrTools.nip19.decode(publicKey)
-        createZapEvent(eventStoragePK, decodedPK.data, -1)
-        return
-      }
-      const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
-      if(eventStorage){
-        sessionStorage.removeItem('AmberSign');
-        let eventSignature
-        try {
-          eventSignature = await accessClipboard()
-        } catch (error) {
-          console.error("Failed to read clipboard:", error);
-        }
-        let eventSigned = eventStorage.event
-        eventSigned["sig"] = eventSignature
-        //zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSignature)
-        //console.log('eventSigned', eventSigned)
-        let verifiedEvent = NostrTools.verifyEvent(eventSigned)
-        if(verifiedEvent == true){
-            await getInvoiceandPay(eventStorage.callback, eventStorage.amount, eventSigned, eventStorage.lud16)
-        }
-      }
-    }
+    if (document.visibilityState === 'visible') 
   });
   */
 
