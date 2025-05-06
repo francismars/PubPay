@@ -61,31 +61,13 @@ export async function payNote(
     );
     return;
   }
-  const signInMethod = signIn.getSignInMethod();
-  if (!signInMethod) {
-    console.error("No sign-in method found. Please sign in first.");
-    return;
-  }
-  if (signInMethod == "extension") {
-    if (window.nostr != null) {
-      await createZapEvent(
-        JSON.stringify({ lnurlinfo: lnurlinfo, lud16: lud16, event: eventZap }),
-        publicKey,
-        rangeValue,
-        false
-      );
-      return;
-    }
-  } else if (signInMethod == "keyManager") {
-    const eventStoragePK = JSON.stringify({
-      lnurlinfo: lnurlinfo,
-      lud16: lud16,
-      event: eventZap,
-    });
-    createZapEvent(eventStoragePK, publicKey, -1);
-  } else if (signInMethod == "nsec") {
-    // TODO IMPLEMENT
-  }
+  await createZapEvent(
+    JSON.stringify({ lnurlinfo: lnurlinfo, lud16: lud16, event: eventZap }),
+    publicKey,
+    rangeValue,
+    false
+  );
+  return;
 }
 
 async function createZapEvent(
@@ -123,7 +105,6 @@ async function createZapEvent(
     let eventID = NostrTools.getEventHash(zapEvent);
     if (eventID != null) zapEvent.id = eventID;
   }
-  let zapFinalized;
   if (anonymousZap == true) {
     const privateKey = window.NostrTools.generateSecretKey();
     const publicKey = window.NostrTools.getPublicKey(privateKey);
@@ -139,7 +120,7 @@ async function createZapEvent(
   const signInMethod = signIn.getSignInMethod();
   if (signInMethod == "extension") {
     if (window.nostr != null) {
-      zapFinalized = await window.nostr.signEvent(zapEvent);
+      const zapFinalized = await window.nostr.signEvent(zapEvent);
       await getInvoiceandPay(
         lnurlinfo.callback,
         amountPay,
@@ -162,7 +143,14 @@ async function createZapEvent(
     }, 500);
     window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
   } else if (signInMethod == "nsec") {
-    // TODO IMPLEMENT
+    const privateKey = signIn.getPrivateKey();
+    if (!privateKey) {
+      console.error("No private key found. Please sign in first.");
+      return;
+    }
+    let { type, data } = NostrTools.nip19.decode(privateKey);
+    const zapFinalized = NostrTools.finalizeEvent(zapEvent, data);
+    await getInvoiceandPay(lnurlinfo.callback, amountPay, zapFinalized, lud16);
   }
 }
 
