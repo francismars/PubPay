@@ -639,27 +639,28 @@ document.addEventListener("visibilitychange", async function () {
       subscribeKind0();
       return;
     }
-  }
-  const eventStorage = JSON.parse(sessionStorage.getItem("SignZapEvent"));
-  if (eventStorage) {
-    sessionStorage.removeItem("SignZapEvent");
-    const eventSignature = await util.accessClipboard();
-    alert("eventSignature: " + eventSignature);
-    let eventSigned = eventStorage.event;
-    eventSigned["sig"] = eventSignature;
-    //zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSignature)
-    //console.log('eventSigned', eventSigned)
-    alert("about to verify event...");
-    const verifiedEvent = NostrTools.verifyEvent(eventSigned);
-    if (verifiedEvent == true) {
-      alert("verifiedEvent true");
-      await zap.getInvoiceandPay(
-        eventStorage.callback,
-        eventStorage.amount,
-        eventSigned,
-        eventStorage.lud16
-      );
+
+    const eventStorage = JSON.parse(sessionStorage.getItem("SignZapEvent"));
+    if (eventStorage) {
+      sessionStorage.removeItem("SignZapEvent");
+      const eventSignature = await util.accessClipboard();
+      alert("eventSignature: " + eventSignature);
+      let eventSigned = eventStorage.event;
+      eventSigned["sig"] = eventSignature;
+      //zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSignature)
+      //console.log('eventSigned', eventSigned)
+      alert("about to verify event...");
+      const verifiedEvent = NostrTools.verifyEvent(eventSigned);
+      if (verifiedEvent == true) {
+        alert("verifiedEvent true");
+        await zap.getInvoiceandPay(
+          eventStorage.callback,
+          eventStorage.amount,
+          eventSigned,
+          eventStorage.lud16
+        );
+      }
+      alert("verifiedEvent false");
     }
-    alert("verifiedEvent false");
   }
 });
