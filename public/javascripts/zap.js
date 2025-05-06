@@ -76,7 +76,6 @@ async function createZapEvent(
   rangeValue,
   anonymousZap = false
 ) {
-  alert("Creating zap event...");
   eventStoragePK = JSON.parse(eventStoragePK);
   const eventZap = eventStoragePK.event;
   const lnurlinfo = eventStoragePK.lnurlinfo;
@@ -129,7 +128,6 @@ async function createZapEvent(
       );
     }
   } else if (signInMethod == "keyManager") {
-    alert("Signing with KeyManager...");
     const eventString = JSON.stringify(zapEvent);
     sessionStorage.setItem(
       "SignZapEvent",
@@ -140,7 +138,6 @@ async function createZapEvent(
         event: zapEvent,
       })
     );
-    alert("About to open KeyManager...");
     window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
   } else if (signInMethod == "nsec") {
     const privateKey = signIn.getPrivateKey();
