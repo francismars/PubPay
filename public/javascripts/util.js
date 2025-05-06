@@ -13,7 +13,6 @@ export function showJSON(json) {
 }
 
 export async function accessClipboard() {
-  alert("Please allow clipboard access in your browser settings.");
   return new Promise((resolve) => {
     setTimeout(async () => {
       let clipcopied = await navigator.clipboard.readText();
