@@ -648,8 +648,10 @@ document.addEventListener("visibilitychange", async function () {
     eventSigned["sig"] = eventSignature;
     //zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSignature)
     //console.log('eventSigned', eventSigned)
+    alert("about to verify event...");
     const verifiedEvent = NostrTools.verifyEvent(eventSigned);
     if (verifiedEvent == true) {
+      alert("verifiedEvent true");
       await zap.getInvoiceandPay(
         eventStorage.callback,
         eventStorage.amount,
