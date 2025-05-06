@@ -623,7 +623,7 @@ async function submitKind1(event) {
 document.addEventListener("visibilitychange", async function () {
   if (document.visibilityState === "visible") {
     const signInData = JSON.parse(sessionStorage.getItem("signIn"));
-    if (signInData !== undefined && signInData.rememberMe !== undefined) {
+    if (signInData && signInData.rememberMe !== undefined) {
       sessionStorage.removeItem("signIn");
       const npub = await util.accessClipboard();
       const decodedNPUB = NostrTools.nip19.decode(npub);
