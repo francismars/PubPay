@@ -14,7 +14,11 @@ export function showJSON(json) {
 
 export async function accessClipboard() {
   alert("Please allow clipboard access in your browser settings.");
-  const clipcopied = await navigator.clipboard.readText();
-  alert(clipcopied);
-  return clipcopied;
+  return new Promise((resolve) => {
+    setTimeout(async () => {
+      let clipcopied = await navigator.clipboard.readText();
+      alert(clipcopied);
+      resolve(clipcopied);
+    }, 500);
+  });
 }
