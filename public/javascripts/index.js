@@ -645,7 +645,9 @@ document.addEventListener("visibilitychange", async function () {
     alert(eventStorage);
     if (eventStorage) {
       sessionStorage.removeItem("SignZapEvent");
+      alert("eventStorage found!");
       const eventSignature = await util.accessClipboard();
+      alert("eventSignature found!");
       alert("eventSignature: " + eventSignature);
       let eventSigned = eventStorage.event;
       eventSigned["sig"] = eventSignature;
