@@ -133,7 +133,7 @@ async function createZapEvent(
     const eventString = JSON.stringify(zapEvent);
     setTimeout(() => {
       sessionStorage.setItem(
-        "AmberSign",
+        "SignZapEvent",
         JSON.stringify({
           callback: lnurlinfo.callback,
           amount: amountPay,
@@ -156,7 +156,7 @@ async function createZapEvent(
   }
 }
 
-async function getInvoiceandPay(callback, amount, zapFinalized, lud16) {
+export async function getInvoiceandPay(callback, amount, zapFinalized, lud16) {
   alert("Getting invoice and paying...");
   let eventFinal = JSON.stringify(zapFinalized);
   let lnurl = lud16;

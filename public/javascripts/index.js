@@ -2,6 +2,7 @@ const drawKind1 = await import("./drawkind1.js");
 const drawKind9735 = await import("./drawkind9735.js");
 const signIn = await import("./signIn.js");
 const util = await import("./util.js");
+const zap = await import("./zap.js");
 
 async function loadDummyKind1s() {
   const response = await fetch("../html/dummyKind1.html");
@@ -639,22 +640,23 @@ document.addEventListener("visibilitychange", async function () {
       return;
     }
   }
-  const eventStorage = JSON.parse(sessionStorage.getItem("AmberSign"));
+  const eventStorage = JSON.parse(sessionStorage.getItem("SignZapEvent"));
   if (eventStorage) {
-    sessionStorage.removeItem("AmberSign");
+    sessionStorage.removeItem("SignZapEvent");
     const eventSignature = await util.accessClipboard();
-    let eventSigned = eventStorage.event;
+    const eventSigned = eventStorage.event;
     eventSigned["sig"] = eventSignature;
     //zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSignature)
     //console.log('eventSigned', eventSigned)
-    let verifiedEvent = NostrTools.verifyEvent(eventSigned);
+    const verifiedEvent = NostrTools.verifyEvent(eventSigned);
     if (verifiedEvent == true) {
-      await getInvoiceandPay(
+      await zap.getInvoiceandPay(
         eventStorage.callback,
         eventStorage.amount,
         eventSigned,
         eventStorage.lud16
       );
     }
+    alert("verifiedEvent false");
   }
 });
