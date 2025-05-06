@@ -630,8 +630,10 @@ document.addEventListener("visibilitychange", async function () {
       const pubKey = decodedNPUB.data;
       if (signInData.rememberMe === "true") {
         localStorage.setItem("publicKey", pubKey);
+        localStorage.setItem("signInMethod", "keyManager");
       } else {
         sessionStorage.setItem("publicKey", pubKey);
+        sessionStorage.setItem("signInMethod", "keyManager");
       }
       subscribeKind0();
       return;
