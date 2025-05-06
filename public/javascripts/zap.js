@@ -6,7 +6,8 @@ export async function payNote(
   rangeValue,
   anonymousZap = false
 ) {
-  if (!signIn.getPublicKey()) {
+  const publicKey = signIn.getPublicKey();
+  if (!publicKey) {
     console.error("No public key found. Please sign in first.");
     const loginForm = document.getElementById("loginForm");
     if (loginForm.style.display == "none") {
@@ -65,11 +66,6 @@ export async function payNote(
     console.error("No sign-in method found. Please sign in first.");
     return;
   }
-  const publicKey = signIn.getPublicKey();
-  if (!publicKey) {
-    console.error("No public key found. Please sign in first.");
-    return;
-  }
   if (signInMethod == "extension") {
     if (window.nostr != null) {
       await createZapEvent(
@@ -98,7 +94,7 @@ async function createZapEvent(
   rangeValue,
   anonymousZap = false
 ) {
-  console.log("Creating zap event...");
+  alert("Creating zap event...");
   eventStoragePK = JSON.parse(eventStoragePK);
   const eventZap = eventStoragePK.event;
   const lnurlinfo = eventStoragePK.lnurlinfo;
@@ -171,7 +167,7 @@ async function createZapEvent(
 }
 
 async function getInvoiceandPay(callback, amount, zapFinalized, lud16) {
-  console.log("Getting invoice and paying...");
+  alert("Getting invoice and paying...");
   let eventFinal = JSON.stringify(zapFinalized);
   let lnurl = lud16;
   let callString = `${callback}?amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`;
@@ -190,20 +186,4 @@ async function getInvoiceandPay(callback, amount, zapFinalized, lud16) {
     }
     //subZapEvent(event)
   }
-}
-
-/*
-  document.addEventListener("visibilitychange", async function() {
-    if (document.visibilityState === 'visible') 
-  });
-  */
-
-async function accessClipboard() {
-  return new Promise((resolve) => {
-    setTimeout(async () => {
-      let clipcopied = await navigator.clipboard.readText();
-      //console.log(clipcopied)
-      resolve(clipcopied);
-    }, 500);
-  });
 }
