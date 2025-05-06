@@ -1,6 +1,7 @@
 const drawKind1 = await import("./drawkind1.js");
 const drawKind9735 = await import("./drawkind9735.js");
 const signIn = await import("./signIn.js");
+const util = await import("./util.js");
 
 async function loadDummyKind1s() {
   const response = await fetch("../html/dummyKind1.html");
@@ -261,6 +262,13 @@ async function createkinds9735JSON(
 
 (function () {
   document.getElementById("newPayNote").addEventListener("click", function () {
+    if (!signIn.getPublicKey()) {
+      const loginForm = document.getElementById("loginForm");
+      if (loginForm.style.display == "none") {
+        loginForm.style.display = "flex";
+      }
+      return;
+    }
     const newNoteForm = document.getElementById("newPayNoteForm");
     if (
       newNoteForm.style.display === "none" ||
@@ -366,16 +374,14 @@ async function createkinds9735JSON(
 function openLoginMenu(event) {
   event.preventDefault();
   const UserPK = signIn.getPublicKey();
-  if (typeof UserPK !== "string" || UserPK.length !== 64) {
-    console.log("No valid Public Key found.", UserPK);
-    signIn.cleanSignInData();
-  }
-  const loginForm = UserPK
+  const loginForm = UserPK 
     ? document.getElementById("loggedInForm")
     : document.getElementById("loginForm");
   if (UserPK) {
     document.getElementById("loggedInPublicKey").innerHTML =
       drawKind1.formatContent(NostrTools.nip19.npubEncode(UserPK));
+      document.getElementById("loggedInMethod").innerHTML =
+      signIn.getSignInMethod();
   }
   if (loginForm.style.display == "none") {
     loginForm.style.display = "flex";
@@ -437,7 +443,7 @@ document
     document.getElementById("loginForm").style.display = "none";
   });
 
-async function subscribeKind0() {
+export async function subscribeKind0() {
   const UserPK = signIn.getPublicKey();
   if (UserPK == null) {
     console.log("No UserPK found.");
@@ -580,17 +586,59 @@ async function submitKind1(event) {
     content: payNoteContent,
   };
   let kind1Finalized;
-  if (window.nostr != null) {
-    kind1Finalized = await window.nostr.signEvent(kind1);
+  if(!signIn.getPublicKey()){
+    console.log("Trying to sign event but no public key.")
+    return
+  }
+  const signInMethod = signIn.getSignInMethod()
+  console.log("SignIn Method: ", signInMethod)
+  if(!signInMethod){
+    console.log("Invalid Sign In Method")
+    return 
+  }
+  if(signInMethod == "extension"){
+    if (window.nostr != null) {
+      kind1Finalized = await window.nostr.signEvent(kind1);
+    }
+  }
+  else if(signInMethod == "keyManager"){
+
+  }
+  else if(signInMethod == "nsec"){
+    const privateKey = signIn.getPrivateKey()
+    console.log(privateKey)
+    let { type, data } = NostrTools.nip19.decode(privateKey);
+    kind1Finalized = NostrTools.finalizeEvent(kind1, data)
   }
   let isGood = NostrTools.verifyEvent(kind1Finalized);
-  //console.log("is good?", isGood)
-  if (isGood) {
+  if (!isGood) {
+    console.log("Invalid Finalized Event.")
+    return
+  }
     await Promise.any(pool.publish(relays, kind1Finalized));
     //console.log('published to at least one relay!')
     setTimeout(function () {
       let newNoteForm = document.getElementById("newPayNoteForm");
       newNoteForm.style.display = "none";
     }, 1000);
-  }
 }
+
+document.addEventListener("visibilitychange", async function () {
+  if (document.visibilityState === "visible") {
+    const signInData = JSON.parse(sessionStorage.getItem("signIn"));
+    if (signInData == undefined || signInData.rememberMe == undefined) {
+      return;
+    }
+    sessionStorage.removeItem("signIn");
+    const npub = await util.accessClipboard();
+    const decodedNPUB = NostrTools.nip19.decode(npub);
+    const pubKey = decodedNPUB.data;
+    if (signInData.rememberMe === "true") {
+      localStorage.setItem("publicKey", pubKey);
+    } else {
+      sessionStorage.setItem("publicKey", pubKey);
+    }
+    subscribeKind0();
+    return;
+  }
+});
