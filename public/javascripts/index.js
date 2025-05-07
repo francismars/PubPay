@@ -602,6 +602,7 @@ async function submitKind1(event) {
       kind1Finalized = await window.nostr.signEvent(kind1);
     }
   } else if (signInMethod == "keyManager") {
+    alert(kind1);
     const eventString = JSON.stringify(kind1);
     sessionStorage.setItem(
       "SignKind1",
@@ -678,7 +679,7 @@ document.addEventListener("visibilitychange", async function () {
       const eventSignature = await util.accessClipboard();
       alert("Event Signature: " + eventSignature);
       let eventSigned = Kind1storage.event;
-      alert("Event Signed: " + JSON.stringify(eventSigned));
+      alert("Event Signed: " + eventSigned);
       eventSigned["sig"] = eventSignature;
       const verifiedEvent = NostrTools.verifyEvent(eventSigned);
       alert("Verified Event: " + verifiedEvent);
