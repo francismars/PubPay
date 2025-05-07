@@ -630,7 +630,7 @@ async function submitKind1(event) {
 }
 
 document.addEventListener("visibilitychange", async function () {
-  if (document.visibilityState === "visible") {
+  if (document.visibilityState === "visible" && document.hasFocus()) {
     const signInData = JSON.parse(sessionStorage.getItem("signIn"));
     if (signInData && signInData.rememberMe !== undefined) {
       sessionStorage.removeItem("signIn");
