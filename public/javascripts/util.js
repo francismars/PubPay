@@ -16,7 +16,6 @@ export async function accessClipboard() {
   return new Promise((resolve) => {
     setTimeout(async () => {
       let clipcopied = await navigator.clipboard.readText();
-      alert(clipcopied);
       resolve(clipcopied);
     }, 500);
   });

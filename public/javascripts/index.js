@@ -674,6 +674,10 @@ document.addEventListener("visibilitychange", async function () {
       let eventSigned = Kind1storage.event;
       eventSigned["sig"] = eventSignature;
       const verifiedEvent = NostrTools.verifyEvent(eventSigned);
+      if (verifiedEvent == false) {
+        alert("Invalid Finalized Event.");
+        return;
+      }
       if (verifiedEvent == true) {
         await Promise.any(pool.publish(relays, eventSigned));
         //console.log('published to at least one relay!')
