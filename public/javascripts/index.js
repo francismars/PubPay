@@ -677,6 +677,7 @@ document.addEventListener("visibilitychange", async function () {
       alert("Event Signed: " + JSON.stringify(eventSigned));
       eventSigned["sig"] = eventSignature;
       const verifiedEvent = NostrTools.verifyEvent(eventSigned);
+      alert("Verified Event: " + verifiedEvent);
       if (verifiedEvent == false) {
         alert("Invalid Finalized Event.");
         return;

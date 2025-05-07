@@ -13,22 +13,18 @@ export function showJSON(json) {
 }
 
 export async function accessClipboard() {
-  console.log("Accessing clipboard...");
   if (!navigator.clipboard) {
     alert("Clipboard API is not supported in this browser.");
     return null;
   }
-
   try {
     const clipcopied = await navigator.clipboard.readText();
     if (!clipcopied) {
-      alert("Clipboard is empty. Please copy some text and try again.");
+      alert("Clipboard is empty.");
       return null;
     }
-    console.log("Clipboard content:", clipcopied);
     return clipcopied;
   } catch (error) {
-    console.error("Failed to access clipboard:", error);
     alert("Clipboard access failed. Please check your browser permissions.");
     return null;
   }
