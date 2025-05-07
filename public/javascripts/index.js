@@ -602,6 +602,14 @@ async function submitKind1(event) {
       kind1Finalized = await window.nostr.signEvent(kind1);
     }
   } else if (signInMethod == "keyManager") {
+    const eventString = JSON.stringify(kind1);
+    sessionStorage.setItem(
+      "SignKind1",
+      JSON.stringify({
+        event: kind1,
+      })
+    );
+    window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
   } else if (signInMethod == "nsec") {
     const privateKey = signIn.getPrivateKey();
     console.log(privateKey);
@@ -643,18 +651,13 @@ document.addEventListener("visibilitychange", async function () {
     const eventStorage = JSON.parse(sessionStorage.getItem("SignZapEvent"));
     if (eventStorage) {
       sessionStorage.removeItem("SignZapEvent");
-      alert("eventStorage found!");
       const eventSignature = await util.accessClipboard();
-      alert("eventSignature found!");
-      alert("eventSignature: " + eventSignature);
       let eventSigned = eventStorage.event;
       eventSigned["sig"] = eventSignature;
       //zapFinalized = await window.NostrTools.finalizeEvent(eventStorage.event, eventSignature)
       //console.log('eventSigned', eventSigned)
-      alert("about to verify event...");
       const verifiedEvent = NostrTools.verifyEvent(eventSigned);
       if (verifiedEvent == true) {
-        alert("verifiedEvent true");
         await zap.getInvoiceandPay(
           eventStorage.callback,
           eventStorage.amount,
@@ -662,7 +665,23 @@ document.addEventListener("visibilitychange", async function () {
           eventStorage.lud16
         );
       }
-      alert("verifiedEvent false");
+    }
+
+    const Kind1storage = JSON.parse(sessionStorage.getItem("SignKind1"));
+    if (Kind1storage) {
+      sessionStorage.removeItem("SignKind1");
+      const eventSignature = await util.accessClipboard();
+      let eventSigned = Kind1storage.event;
+      eventSigned["sig"] = eventSignature;
+      const verifiedEvent = NostrTools.verifyEvent(eventSigned);
+      if (verifiedEvent == true) {
+        await Promise.any(pool.publish(relays, eventSigned));
+        //console.log('published to at least one relay!')
+        setTimeout(function () {
+          let newNoteForm = document.getElementById("newPayNoteForm");
+          newNoteForm.style.display = "none";
+        }, 1000);
+      }
     }
   }
 });

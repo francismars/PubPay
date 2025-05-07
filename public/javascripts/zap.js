@@ -152,7 +152,6 @@ async function createZapEvent(
 }
 
 export async function getInvoiceandPay(callback, amount, zapFinalized, lud16) {
-  alert("Getting invoice and paying...");
   let eventFinal = JSON.stringify(zapFinalized);
   let lnurl = lud16;
   let callString = `${callback}?amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`;
