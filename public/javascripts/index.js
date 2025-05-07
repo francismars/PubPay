@@ -602,6 +602,8 @@ async function submitKind1(event) {
       kind1Finalized = await window.nostr.signEvent(kind1);
     }
   } else if (signInMethod == "keyManager") {
+    kind1.pubkey = signIn.getPublicKey();
+    kind1.id = NostrTools.getEventHash(kind1);
     alert(JSON.stringify(kind1));
     const eventString = JSON.stringify(kind1);
     sessionStorage.setItem(
