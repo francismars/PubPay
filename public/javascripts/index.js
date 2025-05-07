@@ -669,9 +669,12 @@ document.addEventListener("visibilitychange", async function () {
 
     const Kind1storage = JSON.parse(sessionStorage.getItem("SignKind1"));
     if (Kind1storage) {
+      alert("Kind1storage found!");
       sessionStorage.removeItem("SignKind1");
       const eventSignature = await util.accessClipboard();
+      alert("Event Signature: " + eventSignature);
       let eventSigned = Kind1storage.event;
+      alert("Event Signed: " + JSON.stringify(eventSigned));
       eventSigned["sig"] = eventSignature;
       const verifiedEvent = NostrTools.verifyEvent(eventSigned);
       if (verifiedEvent == false) {
