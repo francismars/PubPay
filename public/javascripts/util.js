@@ -25,7 +25,7 @@ export async function accessClipboard() {
     }
     return clipcopied;
   } catch (error) {
-    alert("Clipboard access failed. Please check your browser permissions.");
+    alert("Clipboard access failed:" + error);
     return null;
   }
 }
