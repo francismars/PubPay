@@ -682,7 +682,7 @@ document.addEventListener("visibilitychange", async function () {
       alert("Event Signature: " + eventSignature);
       let eventSigned = Kind1storage.event;
       alert("Event Signed: " + JSON.stringify(eventSigned));
-      eventSigned["sig"] = eventSignature;
+      eventSigned.sig = eventSignature;
       const verifiedEvent = NostrTools.verifyEvent(eventSigned);
       alert("Verified Event: " + verifiedEvent);
       if (verifiedEvent == false) {
