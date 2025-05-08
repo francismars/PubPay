@@ -110,6 +110,11 @@ export async function plot(
   noteDate.classList.add("label");
   noteDate.textContent = noteTimeAgo;
 
+  noteDate.addEventListener("click", () => {
+    const nevent = NostrTools.nip19.noteEncode(eventData.id);
+    openSinglePubPay(nevent);
+  });
+
   noteAuthor.appendChild(noteDisplayName);
   noteAuthor.appendChild(noteNIP05);
   noteAuthor.appendChild(noteLNAddress);
@@ -294,15 +299,17 @@ export async function plot(
     zapSliderVal.setAttribute("class", "zapSliderVal");
     zapSliderContainer.appendChild(zapSliderVal);
 
-    let update = () => {
+    let update = (event) => {
       //console.log( (zapSlider.value).toLocaleString() )
+      event.preventDefault();
+      event.stopPropagation();
       buttonZap.setAttribute("value", parseInt(zapSlider.value));
       zapSliderVal.innerHTML =
         parseInt(zapSlider.value).toLocaleString() +
         '<span class="label"> sats</span>';
     };
-    zapSlider.addEventListener("input", update);
-    update();
+    zapSlider.addEventListener("input", (event) => update(event));
+    //update(event);
   }
 
   noteData.appendChild(noteCTA);
@@ -354,7 +361,9 @@ export async function plot(
   payAnonymously.setAttribute("class", "cta");
   payAnonymously.classList.add("dropdown-element");
   payAnonymously.textContent = "Pay Anonymously";
-  payAnonymously.addEventListener("click", async () => {
+  payAnonymously.addEventListener("click", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     let rangeValue;
     buttonZap.getAttribute("value") != null
       ? (rangeValue = buttonZap.getAttribute("value"))
@@ -372,7 +381,9 @@ export async function plot(
   rawHref.classList.add("dropdown-element");
   rawHref.href = "#";
   rawHref.innerText = "View Raw";
-  rawHref.addEventListener("click", () => {
+  rawHref.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     showJSON(eventData);
   });
   toolTipText.appendChild(rawHref);
@@ -409,7 +420,9 @@ export async function plot(
   noteAction.appendChild(dropDownButton);
 
   noteAction.appendChild(toolTipText);
-  dropDownButton.addEventListener("click", async () => {
+  dropDownButton.addEventListener("click", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     hideAllDropDowns();
     console.log(dropDownButton.nextElementSibling);
     setTimeout(function () {
@@ -425,11 +438,6 @@ export async function plot(
   noteActionsReactions.appendChild(noteZapReactions);
   noteActionsReactions.appendChild(noteActions);
   noteData.appendChild(noteActionsReactions);
-
-  newNote.addEventListener("click", () => {
-    const nevent = NostrTools.nip19.noteEncode(eventData.id);
-    openSinglePubPay(nevent);
-  });
 
   newNote.appendChild(noteData);
   const main =
