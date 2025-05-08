@@ -254,10 +254,11 @@ export async function plot(
 
   // Main CTA
   let noteCTA = document.createElement("div");
-  const buttonZap = document.createElement("button");
+  const buttonZap = document.createElement("a");
   noteCTA.appendChild(buttonZap);
   noteCTA.setAttribute("class", "noteCTA");
   buttonZap.setAttribute("class", "noteMainCTA");
+  buttonZap.href = "#";
   buttonZap.classList.add("cta");
   buttonZap.textContent = "Pay";
   buttonZap.addEventListener("click", async () => {
@@ -423,6 +424,11 @@ export async function plot(
   noteActionsReactions.appendChild(noteActions);
   noteData.appendChild(noteActionsReactions);
 
+  newNote.addEventListener("click", () => {
+    const nevent = NostrTools.nip19.noteEncode(eventData.id);
+    openSinglePubPay(nevent);
+  });
+
   newNote.appendChild(noteData);
   const main =
     iskind3filter == true
@@ -525,4 +531,8 @@ function hideAllDropDowns() {
     openDropdown.setAttribute("class", "dropdown-content");
     openDropdown.classList.add("dropdown-element");
   }
+}
+
+export function openSinglePubPay(nevent) {
+  window.location.href = `/?note=${nevent}`;
 }
