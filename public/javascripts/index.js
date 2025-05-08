@@ -23,38 +23,54 @@ if (localStorage.getItem("publicKey") || sessionStorage.getItem("publicKey")) {
   subscribeKind0();
 }
 
-const kind1List = [];
-const kind1Seen = new Set();
+let kind1List = [];
+let kind1Seen = new Set();
+let Kind1ListFollowing = [];
+let Kind1SeenFollowing = new Set();
+
 subscribePubPays();
 
 let isLoadingMore = false;
-async function subscribePubPays(kind3PKs = [], isSubscribeMore = false) {
-  const iskind3filter = kind3PKs.length > 0 ? true : false;
+async function subscribePubPays(kind3PKs = null, isSubscribeMore = false) {
+  const iskind3filter = kind3PKs != null ? true : false;
   const filter = { kinds: [1], "#t": ["pubpay"], limit: 21 };
-  if (kind3PKs.length > 0) filter.authors = kind3PKs;
+  if (kind3PKs != null) filter.authors = kind3PKs;
+  const newkind1List = [];
+  const newkind1Seen = iskind3filter
+    ? new Set([...Kind1SeenFollowing])
+    : new Set([...kind1Seen]);
   if (isSubscribeMore) {
-    console.log(kind1List.length);
     if (kind1List.length < 21) return;
     isLoadingMore = true;
-    console.log("Loading more events...");
-    const oldestEvent = kind1List[kind1List.length - 1];
+    const oldestEvent = iskind3filter
+      ? Kind1ListFollowing[Kind1ListFollowing.length - 1]
+      : kind1List[kind1List.length - 1];
     filter.until = oldestEvent.created_at;
     const subLoadMore = pool.subscribeMany([...relays], [filter], {
       async onevent(kind1) {
-        if (kind1.tags && !kind1Seen.has(kind1.id)) {
-          kind1Seen.add(kind1.id);
-          kind1List.push(kind1);
+        if (kind1.tags && !newkind1Seen.has(kind1.id)) {
+          newkind1Seen.add(kind1.id);
+          newkind1List.push(kind1);
         }
       },
       async oneose() {
         console.log("LoadMore subscription EOS");
-        kind1List.sort((a, b) => b.created_at - a.created_at);
+        newkind1List.sort((a, b) => b.created_at - a.created_at);
         await subscribeKind0sfromKind1s(
-          kind1List.slice(-21),
+          newkind1List,
           "loadMore",
           iskind3filter
         );
         subLoadMore.close();
+        if (iskind3filter) {
+          Kind1ListFollowing.push(...newkind1List);
+          Kind1SeenFollowing.clear();
+          Kind1SeenFollowing = new Set([...newkind1Seen]);
+        } else if (!iskind3filter) {
+          kind1List.push(...newkind1List);
+          kind1Seen.clear();
+          kind1Seen = new Set([...newkind1Seen]);
+        }
         isLoadingMore = false;
       },
       onclosed() {
@@ -66,19 +82,32 @@ async function subscribePubPays(kind3PKs = [], isSubscribeMore = false) {
   let streamType = "firstStream";
   pool.subscribeMany([...relays], [filter], {
     async onevent(kind1) {
-      if (kind1.tags && !kind1Seen.has(kind1.id)) {
-        kind1Seen.add(kind1.id);
+      if (kind1.tags && !newkind1Seen.has(kind1.id)) {
+        newkind1Seen.add(kind1.id);
         if (streamType == "newKind1") {
           await subscribeKind0sfromKind1s([kind1], streamType, iskind3filter);
         } else {
-          kind1List.push(kind1);
+          newkind1List.push(kind1);
         }
       }
     },
     async oneose() {
       if (streamType == "firstStream") {
-        kind1List.sort((a, b) => b.created_at - a.created_at);
-        await subscribeKind0sfromKind1s(kind1List, streamType, iskind3filter);
+        newkind1List.sort((a, b) => b.created_at - a.created_at);
+        await subscribeKind0sfromKind1s(
+          newkind1List,
+          streamType,
+          iskind3filter
+        );
+        if (iskind3filter) {
+          Kind1ListFollowing.push(...newkind1List);
+          Kind1SeenFollowing.clear();
+          Kind1SeenFollowing = new Set([...newkind1Seen]);
+        } else if (!iskind3filter) {
+          kind1List.push(...newkind1List);
+          kind1Seen.clear();
+          kind1Seen = new Set([...newkind1Seen]);
+        }
         streamType = "newKind1";
         console.log("subscribePubPays() EOS");
       }
@@ -126,8 +155,9 @@ async function subscribeKind0sfromKind1s(
 }
 
 async function drawKind1s(first20kind1, kind0List, streamType, iskind3filter) {
+  const divID = iskind3filter ? "following" : "main";
   if (streamType == "firstStream")
-    document.getElementById("main").innerHTML = "";
+    document.getElementById(divID).innerHTML = "";
   for (let kind1 of first20kind1) {
     const kind0 = kind0List.find(({ pubkey }) => pubkey === kind1.pubkey);
     if (kind0) await drawKind1.plot(kind1, kind0, streamType, iskind3filter);
@@ -420,6 +450,8 @@ document.getElementById("cancelLogin").addEventListener("click", (event) => {
 document.getElementById("logoutButton").addEventListener("click", (event) => {
   event.preventDefault();
   signIn.cleanSignInData();
+  kind3PKs = [];
+  document.getElementById("following").innerHTML = "";
   document.getElementById("login").innerHTML =
     '<span class="material-symbols-outlined">account_circle</span>';
   document.getElementById("loggedInForm").style.display = "none";
@@ -532,8 +564,8 @@ async function subscribeKind3() {
   );
 }
 
+let kind3PKs = [];
 function extractPKsfromKind3s(kind3) {
-  let kind3PKs = [];
   if (kind3.tags) {
     for (let kind3tag of kind3.tags) {
       if (kind3tag[0] == "p") kind3PKs.push(kind3tag[1]);
@@ -721,6 +753,13 @@ window.addEventListener("scroll", async () => {
     window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 &&
     !isLoadingMore
   ) {
-    subscribePubPays([], true);
+    const followingDiv = document.getElementById("following");
+    if (followingDiv.style.display == "block") {
+      subscribePubPays(kind3PKs, true);
+      return;
+    } else if (followingDiv.style.display == "none") {
+      subscribePubPays(null, true);
+      return;
+    }
   }
 });
