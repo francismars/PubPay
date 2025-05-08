@@ -143,10 +143,10 @@ async function subscribePubPay(eventID) {
   const subKind1 = pool.subscribeMany([...relays], [filter], {
     async onevent(kind1) {
       newkind1List.push(kind1);
-      console.log(kind1);
     },
     async oneose() {
       await subscribeKind0sfromKind1s(newkind1List, "firstStream", false);
+      await subscribeReplies(eventID);
       console.log("subscribePubPay() EOS");
       subKind1.close();
     },
@@ -155,6 +155,28 @@ async function subscribePubPay(eventID) {
     },
   });
   return;
+}
+
+async function subscribeReplies(parentEventID) {
+  const replyFilter = { kinds: [1], "#e": [parentEventID] };
+  const replyList = [];
+  const replySeen = new Set();
+  const subReplies = pool.subscribeMany([...relays], [replyFilter], {
+    async onevent(reply) {
+      if (!replySeen.has(reply.id)) {
+        replySeen.add(reply.id);
+        replyList.push(reply);
+      }
+    },
+    async oneose() {
+      console.log("subscribeReplies() EOS");
+      await subscribeKind0sfromKind1s(replyList, "loadMore", false);
+      subReplies.close();
+    },
+    async onclosed() {
+      console.log("subscribeReplies() Closed");
+    },
+  });
 }
 
 async function subscribeKind0sfromKind1s(
