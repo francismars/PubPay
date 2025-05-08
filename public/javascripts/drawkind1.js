@@ -469,20 +469,22 @@ function timeAgo(timestamp) {
 export function formatContent(content) {
   //formatedContent = formatedContent.replace(/(nostr:|@)?((npub|note|nprofile|nevent|nrelay|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi, '<a href="$1.$2">@CornerStore</a>')
   // render npubs
-  let npubMention = content.match(
+  let npubMentions = content.match(
     /(nostr:|@)?((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
   );
-  if (npubMention) {
-    npubMention = npubMention[0].replace("nostr:", "");
-    npubMention = start_and_end(npubMention);
-    content = content.replace(
-      /(nostr:|@)?((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-      '<a href="https://nostrudel.ninja/#/u/$2" class="userMention" npub="$2" target="_blank">' +
-        npubMention +
-        "</a>"
-    );
-    // render image
-    //content = content.replace(/(http(s*):\/\/[\w\\x80-\\xff\#$%&~\/.\-;:=,?@\[\]+]*).(gif|png|jpg|jpeg)/gi, '<img src="$1.$3" />')
+  if (npubMentions) {
+    npubMentions.forEach((mention) => {
+      const cleanMention = mention.replace("nostr:", "");
+      const shortenedMention = start_and_end(cleanMention);
+      content = content.replace(
+        mention,
+        `<a href="https://nostrudel.ninja/#/u/${cleanMention}" class="userMention" npub="${cleanMention}" target="_blank">` +
+          shortenedMention +
+          "</a>"
+      );
+      // render image
+      //content = content.replace(/(http(s*):\/\/[\w\\x80-\\xff\#$%&~\/.\-;:=,?@\[\]+]*).(gif|png|jpg|jpeg)/gi, '<img src="$1.$3" />')
+    });
   }
   content = content.replace(
     /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(gif|png|jpg|jpeg)/gi,
