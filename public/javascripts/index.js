@@ -23,51 +23,76 @@ if (localStorage.getItem("publicKey") || sessionStorage.getItem("publicKey")) {
   subscribeKind0();
 }
 
+const kind1List = [];
+const kind1Seen = new Set();
 subscribePubPays();
 
-async function subscribePubPays(kind3PKs = []) {
-  const kind1Seen = new Set();
-  const kind1List = [];
-  let isFirstStream = true;
-  const filter = { kinds: [1], "#t": ["pubpay"] };
+let isLoadingMore = false;
+async function subscribePubPays(kind3PKs = [], isSubscribeMore = false) {
   const iskind3filter = kind3PKs.length > 0 ? true : false;
+  const filter = { kinds: [1], "#t": ["pubpay"], limit: 21 };
   if (kind3PKs.length > 0) filter.authors = kind3PKs;
+  if (isSubscribeMore) {
+    console.log(kind1List.length);
+    if (kind1List.length < 21) return;
+    isLoadingMore = true;
+    console.log("Loading more events...");
+    const oldestEvent = kind1List[kind1List.length - 1];
+    filter.until = oldestEvent.created_at;
+    const subLoadMore = pool.subscribeMany([...relays], [filter], {
+      async onevent(kind1) {
+        if (kind1.tags && !kind1Seen.has(kind1.id)) {
+          kind1Seen.add(kind1.id);
+          kind1List.push(kind1);
+        }
+      },
+      async oneose() {
+        console.log("LoadMore subscription EOS");
+        kind1List.sort((a, b) => b.created_at - a.created_at);
+        await subscribeKind0sfromKind1s(
+          kind1List.slice(-21),
+          "loadMore",
+          iskind3filter
+        );
+        subLoadMore.close();
+        isLoadingMore = false;
+      },
+      onclosed() {
+        console.log("Load More subscription closed.");
+      },
+    });
+    return;
+  }
+  let streamType = "firstStream";
   pool.subscribeMany([...relays], [filter], {
     async onevent(kind1) {
       if (kind1.tags && !kind1Seen.has(kind1.id)) {
         kind1Seen.add(kind1.id);
-        if (!isFirstStream) {
-          await subscribeKind0sfromKind1s(
-            [kind1],
-            isFirstStream,
-            iskind3filter
-          );
+        if (streamType == "newKind1") {
+          await subscribeKind0sfromKind1s([kind1], streamType, iskind3filter);
         } else {
           kind1List.push(kind1);
         }
       }
     },
     async oneose() {
-      if (isFirstStream) {
-        //let first20kind1 = kind1List.splice(0, 4)
-        await subscribeKind0sfromKind1s(
-          kind1List,
-          isFirstStream,
-          iskind3filter
-        );
-        isFirstStream = false;
+      if (streamType == "firstStream") {
+        kind1List.sort((a, b) => b.created_at - a.created_at);
+        await subscribeKind0sfromKind1s(kind1List, streamType, iskind3filter);
+        streamType = "newKind1";
         console.log("subscribePubPays() EOS");
       }
     },
     async onclosed() {
-      //console.log("Closed")
+      console.log("subscribePubPays() Closed");
     },
   });
+  return;
 }
 
 async function subscribeKind0sfromKind1s(
   kind1List,
-  isFirstStream = false,
+  streamType = "newKind1",
   iskind3filter = false
 ) {
   const kind0List = [];
@@ -89,7 +114,7 @@ async function subscribeKind0sfromKind1s(
       },
       async oneose() {
         console.log("subscribeKind0sfromKind1s() EOS");
-        await drawKind1s(kind1List, kind0List, isFirstStream, iskind3filter);
+        await drawKind1s(kind1List, kind0List, streamType, iskind3filter);
         await subscribeKind9735(kind1List, iskind3filter);
         sub.close();
       },
@@ -100,16 +125,12 @@ async function subscribeKind0sfromKind1s(
   );
 }
 
-async function drawKind1s(
-  first20kind1,
-  kind0List,
-  isFirstStream,
-  iskind3filter
-) {
-  if (isFirstStream == true) document.getElementById("main").innerHTML = "";
+async function drawKind1s(first20kind1, kind0List, streamType, iskind3filter) {
+  if (streamType == "firstStream")
+    document.getElementById("main").innerHTML = "";
   for (let kind1 of first20kind1) {
     const kind0 = kind0List.find(({ pubkey }) => pubkey === kind1.pubkey);
-    if (kind0) await drawKind1.plot(kind1, kind0, isFirstStream, iskind3filter);
+    if (kind0) await drawKind1.plot(kind1, kind0, streamType, iskind3filter);
   }
 }
 
@@ -692,5 +713,14 @@ document.addEventListener("visibilitychange", async function () {
         }, 1000);
       }
     }
+  }
+});
+
+window.addEventListener("scroll", async () => {
+  if (
+    window.innerHeight + window.scrollY >= document.body.offsetHeight - 100 &&
+    !isLoadingMore
+  ) {
+    subscribePubPays([], true);
   }
 });
