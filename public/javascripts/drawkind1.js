@@ -3,7 +3,7 @@ let zap = await import("./zap.js");
 export async function plot(
   eventData,
   authorData,
-  firstStream = false,
+  streamType = "newKind1",
   iskind3filter = false
 ) {
   let newNote = document.createElement("div");
@@ -428,7 +428,8 @@ export async function plot(
     iskind3filter == true
       ? document.querySelector("#following")
       : document.querySelector("#main");
-  firstStream == true
+  console.log(streamType);
+  streamType == "firstStream" || streamType == "loadMore"
     ? main.appendChild(newNote)
     : main.insertBefore(newNote, main.firstChild);
 }
