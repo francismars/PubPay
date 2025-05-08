@@ -261,7 +261,9 @@ export async function plot(
   buttonZap.href = "#";
   buttonZap.classList.add("cta");
   buttonZap.textContent = "Pay";
-  buttonZap.addEventListener("click", async () => {
+  buttonZap.addEventListener("click", async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
     let rangeValue;
     buttonZap.getAttribute("value") != null
       ? (rangeValue = buttonZap.getAttribute("value"))
