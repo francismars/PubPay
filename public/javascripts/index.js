@@ -604,7 +604,6 @@ async function submitKind1(event) {
   } else if (signInMethod == "keyManager") {
     kind1.pubkey = signIn.getPublicKey();
     kind1.id = NostrTools.getEventHash(kind1);
-    alert(JSON.stringify(kind1));
     const eventString = JSON.stringify(kind1);
     sessionStorage.setItem(
       "SignKind1",
@@ -676,22 +675,17 @@ document.addEventListener("visibilitychange", async function () {
 
     const Kind1storage = JSON.parse(sessionStorage.getItem("SignKind1"));
     if (Kind1storage) {
-      alert("Kind1storage found!");
       sessionStorage.removeItem("SignKind1");
       const eventSignature = await util.accessClipboard();
-      alert("Event Signature: " + eventSignature);
       let eventSigned = Kind1storage.event;
-      alert("Event Signed: " + JSON.stringify(eventSigned));
       eventSigned.sig = eventSignature;
       const verifiedEvent = NostrTools.verifyEvent(eventSigned);
-      alert("Verified Event: " + verifiedEvent);
       if (verifiedEvent == false) {
         alert("Invalid Finalized Event.");
         return;
       }
       if (verifiedEvent == true) {
         await Promise.any(pool.publish(relays, eventSigned));
-        //console.log('published to at least one relay!')
         setTimeout(function () {
           let newNoteForm = document.getElementById("newPayNoteForm");
           newNoteForm.style.display = "none";
