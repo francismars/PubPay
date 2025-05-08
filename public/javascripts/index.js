@@ -4,12 +4,11 @@ const signIn = await import("./signIn.js");
 const util = await import("./util.js");
 const zap = await import("./zap.js");
 
-async function loadDummyKind1s() {
+async function loadDummyKind1s(dummies = 5) {
   const response = await fetch("../html/dummyKind1.html");
   const html = await response.text();
-  document.getElementById("main").innerHTML = html + html + html;
+  document.getElementById("main").innerHTML = html.repeat(dummies);
 }
-loadDummyKind1s();
 
 const pool = new NostrTools.SimplePool();
 const relays = [
@@ -28,7 +27,25 @@ let kind1Seen = new Set();
 let Kind1ListFollowing = [];
 let Kind1SeenFollowing = new Set();
 
-subscribePubPays();
+const queryParams = new URLSearchParams(window.location.search);
+const queryNote = queryParams.get("note");
+queryNote ? loadDummyKind1s(1) : loadDummyKind1s();
+if (queryNote) {
+  const decoded = NostrTools.nip19.decode(queryNote);
+  if (decoded.type !== "note") {
+    console.error("Invalid type. Expected 'note', got:", decoded.type);
+    pass;
+  }
+  if (!/^[0-9a-f]{64}$/.test(decoded.data)) {
+    console.error("Invalid event ID format:", decoded.data);
+    pass;
+  }
+  const feedSelector = document.getElementById("feedSelector");
+  feedSelector.style.display = "none";
+  subscribePubPay(decoded.data);
+} else {
+  subscribePubPays();
+}
 
 let isLoadingMore = false;
 async function subscribePubPays(kind3PKs = null, isSubscribeMore = false) {
@@ -114,6 +131,27 @@ async function subscribePubPays(kind3PKs = null, isSubscribeMore = false) {
     },
     async onclosed() {
       console.log("subscribePubPays() Closed");
+    },
+  });
+  return;
+}
+
+async function subscribePubPay(eventID) {
+  const filter = { kinds: [1], ids: [eventID] };
+  const newkind1List = [];
+
+  const subKind1 = pool.subscribeMany([...relays], [filter], {
+    async onevent(kind1) {
+      newkind1List.push(kind1);
+      console.log(kind1);
+    },
+    async oneose() {
+      await subscribeKind0sfromKind1s(newkind1List, "firstStream", false);
+      console.log("subscribePubPay() EOS");
+      subKind1.close();
+    },
+    async onclosed() {
+      console.log("subscribePubPay() Closed");
     },
   });
   return;
