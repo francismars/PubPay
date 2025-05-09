@@ -266,15 +266,18 @@ export async function plot(
   noteData.appendChild(noteHeroZaps);
 
   // Main CTA
-  if (filteredZapMax || filteredZapMin) {
+  if (
+    (filteredZapMax || filteredZapMin) &&
+    noteLNAddress.textContent != "NOT PAYABLE"
+  ) {
     let noteCTA = document.createElement("div");
     const buttonZap = document.createElement("a");
     noteCTA.appendChild(buttonZap);
     noteCTA.setAttribute("class", "noteCTA");
     buttonZap.setAttribute("class", "noteMainCTA");
-    buttonZap.href = "#";
     buttonZap.classList.add("cta");
     buttonZap.textContent = "Pay";
+    buttonZap.href = "#";
     buttonZap.addEventListener("click", async (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -338,63 +341,66 @@ export async function plot(
   noteActions.setAttribute("class", "noteActions");
 
   let zapBoltIcon = document.createElement("a");
-  zapBoltIcon.setAttribute("class", "noteAction");
-  zapBoltIcon.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    zapMenu.style.display = zapMenu.style.display === "none" ? "block" : "none";
-  });
   zapBoltIcon.innerHTML = '<span class="material-symbols-outlined">bolt</span>';
+  zapBoltIcon.setAttribute("class", "disabled");
+  if (noteLNAddress.textContent != "NOT PAYABLE") {
+    zapBoltIcon.setAttribute("class", "noteAction");
+    zapBoltIcon.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      zapMenu.style.display =
+        zapMenu.style.display === "none" ? "block" : "none";
+    });
 
-  // Create the zap menu
-  let zapMenu = document.createElement("div");
-  zapMenu.setAttribute("class", "zapMenu");
-  zapMenu.style.display = "none";
-  zapMenu.innerHTML = `
+    // Create the zap menu
+    let zapMenu = document.createElement("div");
+    zapMenu.setAttribute("class", "zapMenu");
+    zapMenu.style.display = "none";
+    zapMenu.innerHTML = `
   <div class="zapMenuOption" data-value="21">21 sats</div>
   <div class="zapMenuOption" data-value="420">420 sats</div>
   <div class="zapMenuOption" data-value="10000">1,000 sats</div>
   <div class="zapMenuCustom">
-    <input type="number" id="customZapInput" placeholder="sats" />
+    <input type="number" id="customZapInput" placeholder="sats" min="1"/>
     <button id="customZapButton">Zap</button>
   </div>
 `;
-  document.addEventListener("click", (event) => {
-    if (
-      !zapMenu.contains(event.target) &&
-      !zapBoltIcon.contains(event.target)
-    ) {
-      zapMenu.style.display = "none"; // Close the menu
-    }
-  });
-  zapMenu.addEventListener("click", (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    const selectedOption = event.target;
-
-    if (selectedOption.classList.contains("zapMenuOption")) {
-      const zapValue = selectedOption.getAttribute("data-value");
-      console.log(`Selected zap amount: ${zapValue} sats`);
-      zap.payNote(eventData, authorData, parseInt(zapValue));
-      zapMenu.style.display = "none"; // Hide the menu after selection
-    }
-
-    if (selectedOption.id === "customZapButton") {
-      const customInput = document.getElementById("customZapInput");
-      const customValue = customInput.value;
-      if (customValue && !isNaN(customValue)) {
-        console.log(`Custom zap amount: ${customValue} sats`);
-        zap.payNote(eventData, authorData, parseInt(customValue));
-        zapMenu.style.display = "none"; // Hide the menu after selection
-      } else {
-        alert("Please enter a valid number for the zap amount.");
+    document.addEventListener("click", (event) => {
+      if (
+        !zapMenu.contains(event.target) &&
+        !zapBoltIcon.contains(event.target)
+      ) {
+        zapMenu.style.display = "none"; // Close the menu
       }
-    }
-  });
-  zapBoltIcon.style.position = "relative";
-  noteActions.appendChild(zapBoltIcon);
-  zapBoltIcon.appendChild(zapMenu);
+    });
+    zapMenu.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const selectedOption = event.target;
 
+      if (selectedOption.classList.contains("zapMenuOption")) {
+        const zapValue = selectedOption.getAttribute("data-value");
+        console.log(`Selected zap amount: ${zapValue} sats`);
+        zap.payNote(eventData, authorData, parseInt(zapValue));
+        zapMenu.style.display = "none"; // Hide the menu after selection
+      }
+
+      if (selectedOption.id === "customZapButton") {
+        const customInput = document.getElementById("customZapInput");
+        const customValue = customInput.value;
+        if (customValue && !isNaN(customValue)) {
+          console.log(`Custom zap amount: ${customValue} sats`);
+          zap.payNote(eventData, authorData, parseInt(customValue));
+          zapMenu.style.display = "none"; // Hide the menu after selection
+        } else {
+          alert("Please enter a valid number for the zap amount.");
+        }
+      }
+    });
+    zapBoltIcon.style.position = "relative";
+    zapBoltIcon.appendChild(zapMenu);
+  }
+  noteActions.appendChild(zapBoltIcon);
   /*
   let reactionIcon = document.createElement("a");
   reactionIcon.setAttribute("class", "noteAction");
