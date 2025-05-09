@@ -383,9 +383,9 @@ export async function plot(
       }
     }
   });
-
-  zapBoltIcon.appendChild(zapMenu);
+  zapBoltIcon.style.position = "relative";
   noteActions.appendChild(zapBoltIcon);
+  zapBoltIcon.appendChild(zapMenu);
 
   let reactionIcon = document.createElement("a");
   reactionIcon.setAttribute("class", "noteAction");
