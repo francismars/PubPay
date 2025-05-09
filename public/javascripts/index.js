@@ -860,10 +860,13 @@ async function handleScannedContent(decodedText) {
     alert(decodedText);
     const decoded = NostrTools.nip19.decode(decodedText);
 
-    if (decoded.type === "note" || decoded.type === "nevent") {
-      console.log("Decoded event:", decoded);
-      const eventID = decoded.type === "note" ? decoded.data : decoded.data.id;
-      await subscribePubPay(eventID);
+    if (decoded.type === "note") {
+      window.location.href = `/?note=${decoded.data}`;
+    } else if (decoded.type === "nevent") {
+      const noteID = decoded.data.id;
+      const note1 = NostrTools.nip19.noteEncode(noteID);
+      console.log("Converted nevent to note:", note1);
+      window.location.href = `/?note=${note1}`;
     } else {
       console.error("Invalid QR code content. Expected 'note' or 'nevent'.");
     }
