@@ -855,9 +855,10 @@ document.getElementById("scanQrCode").addEventListener("click", () => {
 async function handleScannedContent(decodedText) {
   alert(decodedText);
   try {
-    if (decodedText.startsWith("nostr:")) {
-      decodedText = decodedText.replace("nostr:", "");
-    }
+    const regex =
+      /(note1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|nevent1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/i;
+    const match = decodedText.match(regex);
+    decodedText = match[0];
     const decoded = NostrTools.nip19.decode(decodedText);
 
     if (decoded.type === "note") {
