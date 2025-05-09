@@ -339,8 +339,52 @@ export async function plot(
 
   let zapBoltIcon = document.createElement("a");
   zapBoltIcon.setAttribute("class", "noteAction");
-  zapBoltIcon.classList.add("disabled");
+  zapBoltIcon.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    zapMenu.style.display = zapMenu.style.display === "none" ? "block" : "none";
+  });
   zapBoltIcon.innerHTML = '<span class="material-symbols-outlined">bolt</span>';
+
+  // Create the zap menu
+  let zapMenu = document.createElement("div");
+  zapMenu.setAttribute("class", "zapMenu");
+  zapMenu.style.display = "none";
+  zapMenu.innerHTML = `
+  <div class="zapMenuOption" data-value="21">21 sats</div>
+  <div class="zapMenuOption" data-value="420">420 sats</div>
+  <div class="zapMenuOption" data-value="10000">1,000 sats</div>
+  <div class="zapMenuCustom">
+    <input type="number" id="customZapInput" placeholder="sats" />
+    <button id="customZapButton">Zap</button>
+  </div>
+`;
+  zapMenu.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const selectedOption = event.target;
+
+    if (selectedOption.classList.contains("zapMenuOption")) {
+      const zapValue = selectedOption.getAttribute("data-value");
+      console.log(`Selected zap amount: ${zapValue} sats`);
+      zap.payNote(eventData, authorData, parseInt(zapValue));
+      zapMenu.style.display = "none"; // Hide the menu after selection
+    }
+
+    if (selectedOption.id === "customZapButton") {
+      const customInput = document.getElementById("customZapInput");
+      const customValue = customInput.value;
+      if (customValue && !isNaN(customValue)) {
+        console.log(`Custom zap amount: ${customValue} sats`);
+        zap.payNote(eventData, authorData, parseInt(customValue));
+        zapMenu.style.display = "none"; // Hide the menu after selection
+      } else {
+        alert("Please enter a valid number for the zap amount.");
+      }
+    }
+  });
+
+  zapBoltIcon.appendChild(zapMenu);
   noteActions.appendChild(zapBoltIcon);
 
   let reactionIcon = document.createElement("a");
