@@ -853,8 +853,11 @@ document.getElementById("scanQrCode").addEventListener("click", () => {
 });
 
 async function handleScannedContent(decodedText) {
-  alert(decodedText);
   try {
+    if (!decodedText.startsWith("nostr:")) {
+      decodedText.replace("nostr:", "");
+    }
+    alert(decodedText);
     const decoded = NostrTools.nip19.decode(decodedText);
 
     if (decoded.type === "note" || decoded.type === "nevent") {
