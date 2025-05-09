@@ -855,7 +855,7 @@ document.getElementById("scanQrCode").addEventListener("click", () => {
 async function handleScannedContent(decodedText) {
   try {
     alert(decodedText);
-    if (!decodedText.startsWith("nostr:")) {
+    if (decodedText.startsWith("nostr:")) {
       alert("replacing nostr:");
       decodedText.replace("nostr:", "");
     }
