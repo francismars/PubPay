@@ -387,12 +387,14 @@ export async function plot(
   noteActions.appendChild(zapBoltIcon);
   zapBoltIcon.appendChild(zapMenu);
 
+  /*
   let reactionIcon = document.createElement("a");
   reactionIcon.setAttribute("class", "noteAction");
   reactionIcon.classList.add("disabled");
   reactionIcon.innerHTML =
     '<span class="material-symbols-outlined">favorite</span>';
   noteActions.appendChild(reactionIcon);
+  */
 
   let shareIcon = document.createElement("a");
   shareIcon.setAttribute("class", "noteAction");
