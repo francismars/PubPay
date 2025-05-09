@@ -359,6 +359,14 @@ export async function plot(
     <button id="customZapButton">Zap</button>
   </div>
 `;
+  document.addEventListener("click", (event) => {
+    if (
+      !zapMenu.contains(event.target) &&
+      !zapBoltIcon.contains(event.target)
+    ) {
+      zapMenu.style.display = "none"; // Close the menu
+    }
+  });
   zapMenu.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -505,7 +513,6 @@ export async function plot(
     event.preventDefault();
     event.stopPropagation();
     hideAllDropDowns();
-    console.log(dropDownButton.nextElementSibling);
     setTimeout(function () {
       dropDownButton.nextElementSibling.classList.toggle("show");
     }, 100);
