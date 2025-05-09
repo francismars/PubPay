@@ -853,7 +853,6 @@ document.getElementById("scanQrCode").addEventListener("click", () => {
 });
 
 async function handleScannedContent(decodedText) {
-  alert(decodedText);
   try {
     const regex =
       /(note1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|nevent1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/i;
