@@ -512,7 +512,6 @@ async function getMentionUserName(npub) {
   return new Promise((resolve, reject) => {
     try {
       const decoded = NostrTools.nip19.decode(npub);
-      console.log(decoded);
       if (decoded.type !== "npub" && decoded.type !== "nprofile") {
         console.error("Invalid npub format");
         return;
