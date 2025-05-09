@@ -853,6 +853,7 @@ document.getElementById("scanQrCode").addEventListener("click", () => {
 });
 
 async function handleScannedContent(decodedText) {
+  alert(decodedText);
   try {
     const decoded = NostrTools.nip19.decode(decodedText);
 
