@@ -216,7 +216,7 @@ async function subscribeKind0sfromKind1s(
 
 async function drawKind1s(first20kind1, kind0List, streamType, iskind3filter) {
   const divID = iskind3filter ? "following" : "main";
-  if (streamType == "firstStream")
+  if (streamType == "firstStream" || streamType == "singlePubPay")
     document.getElementById(divID).innerHTML = "";
   for (let kind1 of first20kind1) {
     const kind0 = kind0List.find(({ pubkey }) => pubkey === kind1.pubkey);
