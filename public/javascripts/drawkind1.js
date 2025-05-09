@@ -396,10 +396,35 @@ export async function plot(
 
   let shareIcon = document.createElement("a");
   shareIcon.setAttribute("class", "noteAction");
-  shareIcon.classList.add("disabled");
   shareIcon.innerHTML =
     '<span class="material-symbols-outlined">ios_share</span>';
   noteActions.appendChild(shareIcon);
+
+  shareIcon.addEventListener("click", async () => {
+    const noteID = NostrTools.nip19.noteEncode(eventData.id);
+    const shareURL = `${window.location.origin}/?note=${noteID}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Check out this PubPay!",
+          text: "Here's a PubPay I want to share with you:",
+          url: shareURL,
+        });
+        console.log("Link shared successfully!");
+      } catch (error) {
+        console.error("Error sharing the link:", error);
+      }
+    } else {
+      // Fallback: Copy the link to the clipboard
+      try {
+        await navigator.clipboard.writeText(shareURL);
+        alert("Link copied to clipboard!");
+      } catch (error) {
+        console.error("Failed to copy the link:", error);
+      }
+    }
+  });
 
   let toolTipText = document.createElement("div");
   toolTipText.setAttribute("class", "tooltiptext");
