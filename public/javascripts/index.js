@@ -860,7 +860,7 @@ async function handleScannedContent(decodedText) {
     const decoded = NostrTools.nip19.decode(decodedText);
 
     if (decoded.type === "note") {
-      window.location.href = `/?note=${decoded.data}`;
+      window.location.href = `/?note=${decodedText}`;
     } else if (decoded.type === "nevent") {
       const noteID = decoded.data.id;
       const note1 = NostrTools.nip19.noteEncode(noteID);
