@@ -145,7 +145,7 @@ async function subscribePubPay(eventID) {
       newkind1List.push(kind1);
     },
     async oneose() {
-      await subscribeKind0sfromKind1s(newkind1List, "firstStream", false);
+      await subscribeKind0sfromKind1s(newkind1List, "singlePubPay", false);
       await subscribeReplies(eventID);
       console.log("subscribePubPay() EOS");
       subKind1.close();
