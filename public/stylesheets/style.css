@@ -1044,13 +1044,13 @@ input:focus::placeholder {
 .zapMenu {
   position: absolute;
   top: 25px;
-  left: 290px;
+  left: -50px;
   background-color: #ffffff;
   border: 1px solid #cecece;
   border-radius: 5px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   padding: 10px;
-  max-width: 20%;
+  min-width: 90px;
 }
 
 .zapMenuOption {
