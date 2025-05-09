@@ -480,10 +480,10 @@ async function createkinds9735JSON(
 
   document
     .getElementById("login")
-    .addEventListener("click", (event) => openLoginMenu(event));
+    .addEventListener("click", async (event) => await openLoginMenu(event));
 })();
 
-function openLoginMenu(event) {
+async function openLoginMenu(event) {
   event.preventDefault();
   const UserPK = signIn.getPublicKey();
   const loginForm = UserPK
@@ -491,7 +491,7 @@ function openLoginMenu(event) {
     : document.getElementById("loginForm");
   if (UserPK) {
     document.getElementById("loggedInPublicKey").innerHTML =
-      drawKind1.formatContent(NostrTools.nip19.npubEncode(UserPK));
+      await drawKind1.formatContent(NostrTools.nip19.npubEncode(UserPK));
     document.getElementById("loggedInMethod").innerHTML =
       signIn.getSignInMethod();
   }
