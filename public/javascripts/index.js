@@ -550,10 +550,10 @@ document
   });
 
 document
-  .getElementById("signInKeyManager")
+  .getElementById("signInexternalSigner")
   .addEventListener("click", async () => {
     const rememberMe = document.getElementById("rememberMe").checked;
-    await signIn.signIn("keyManager", rememberMe ? true : false);
+    await signIn.signIn("externalSigner", rememberMe ? true : false);
     document.getElementById("loginForm").style.display = "none";
   });
 
@@ -714,7 +714,7 @@ async function submitKind1(event) {
     if (window.nostr != null) {
       kind1Finalized = await window.nostr.signEvent(kind1);
     }
-  } else if (signInMethod == "keyManager") {
+  } else if (signInMethod == "externalSigner") {
     kind1.pubkey = signIn.getPublicKey();
     kind1.id = NostrTools.getEventHash(kind1);
     const eventString = JSON.stringify(kind1);
@@ -758,10 +758,10 @@ document.addEventListener("visibilitychange", async function () {
       const pubKey = decodedNPUB.data;
       if (signInData.rememberMe === "true") {
         localStorage.setItem("publicKey", pubKey);
-        localStorage.setItem("signInMethod", "keyManager");
+        localStorage.setItem("signInMethod", "externalSigner");
       } else {
         sessionStorage.setItem("publicKey", pubKey);
-        sessionStorage.setItem("signInMethod", "keyManager");
+        sessionStorage.setItem("signInMethod", "externalSigner");
       }
       subscribeKind0();
       return;

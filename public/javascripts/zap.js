@@ -127,7 +127,7 @@ async function createZapEvent(
         lud16
       );
     }
-  } else if (signInMethod == "keyManager") {
+  } else if (signInMethod == "externalSigner") {
     const eventString = JSON.stringify(zapEvent);
     sessionStorage.setItem(
       "SignZapEvent",
