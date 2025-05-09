@@ -266,61 +266,63 @@ export async function plot(
   noteData.appendChild(noteHeroZaps);
 
   // Main CTA
-  let noteCTA = document.createElement("div");
-  const buttonZap = document.createElement("a");
-  noteCTA.appendChild(buttonZap);
-  noteCTA.setAttribute("class", "noteCTA");
-  buttonZap.setAttribute("class", "noteMainCTA");
-  buttonZap.href = "#";
-  buttonZap.classList.add("cta");
-  buttonZap.textContent = "Pay";
-  buttonZap.addEventListener("click", async (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    let rangeValue;
-    buttonZap.getAttribute("value") != null
-      ? (rangeValue = buttonZap.getAttribute("value"))
-      : (rangeValue = -1);
-    await zap.payNote(eventData, authorData, rangeValue);
-  });
-
-  if (
-    filteredZapMin &&
-    filteredZapMax &&
-    filteredZapMin[1] != filteredZapMax[1]
-  ) {
-    let zapSliderContainer = document.createElement("div");
-    zapSliderContainer.setAttribute("class", "zapSliderContainer");
-    zapSliderContainer.innerHTML =
-      '<input type="range" min="' +
-      filteredZapMin[1] / 1000 +
-      '" max="' +
-      filteredZapMax[1] / 1000 +
-      '" value="' +
-      filteredZapMin[1] / 1000 +
-      '" class="zapSlider">';
-    noteData.appendChild(zapSliderContainer);
-
-    let zapSlider = zapSliderContainer.querySelector(".zapSlider");
-
-    let zapSliderVal = document.createElement("div");
-    zapSliderVal.setAttribute("class", "zapSliderVal");
-    zapSliderContainer.appendChild(zapSliderVal);
-
-    let update = (event) => {
-      //console.log( (zapSlider.value).toLocaleString() )
+  if (filteredZapMax || filteredZapMin) {
+    let noteCTA = document.createElement("div");
+    const buttonZap = document.createElement("a");
+    noteCTA.appendChild(buttonZap);
+    noteCTA.setAttribute("class", "noteCTA");
+    buttonZap.setAttribute("class", "noteMainCTA");
+    buttonZap.href = "#";
+    buttonZap.classList.add("cta");
+    buttonZap.textContent = "Pay";
+    buttonZap.addEventListener("click", async (event) => {
       event.preventDefault();
       event.stopPropagation();
-      buttonZap.setAttribute("value", parseInt(zapSlider.value));
-      zapSliderVal.innerHTML =
-        parseInt(zapSlider.value).toLocaleString() +
-        '<span class="label"> sats</span>';
-    };
-    zapSlider.addEventListener("input", (event) => update(event));
-    //update(event);
-  }
+      let rangeValue;
+      buttonZap.getAttribute("value") != null
+        ? (rangeValue = buttonZap.getAttribute("value"))
+        : (rangeValue = -1);
+      await zap.payNote(eventData, authorData, rangeValue);
+    });
 
-  noteData.appendChild(noteCTA);
+    if (
+      filteredZapMin &&
+      filteredZapMax &&
+      filteredZapMin[1] != filteredZapMax[1]
+    ) {
+      let zapSliderContainer = document.createElement("div");
+      zapSliderContainer.setAttribute("class", "zapSliderContainer");
+      zapSliderContainer.innerHTML =
+        '<input type="range" min="' +
+        filteredZapMin[1] / 1000 +
+        '" max="' +
+        filteredZapMax[1] / 1000 +
+        '" value="' +
+        filteredZapMin[1] / 1000 +
+        '" class="zapSlider">';
+      noteData.appendChild(zapSliderContainer);
+
+      let zapSlider = zapSliderContainer.querySelector(".zapSlider");
+
+      let zapSliderVal = document.createElement("div");
+      zapSliderVal.setAttribute("class", "zapSliderVal");
+      zapSliderContainer.appendChild(zapSliderVal);
+
+      let update = (event) => {
+        //console.log( (zapSlider.value).toLocaleString() )
+        event.preventDefault();
+        event.stopPropagation();
+        buttonZap.setAttribute("value", parseInt(zapSlider.value));
+        zapSliderVal.innerHTML =
+          parseInt(zapSlider.value).toLocaleString() +
+          '<span class="label"> sats</span>';
+      };
+      zapSlider.addEventListener("input", (event) => update(event));
+      //update(event);
+    }
+
+    noteData.appendChild(noteCTA);
+  }
 
   // Actions and Reactions
   let noteActionsReactions = document.createElement("div");
