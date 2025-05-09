@@ -36,6 +36,7 @@
     <!--  -->
     <script src="./javascripts/nostrtools.min.js"></script>
     <script src="./javascripts/bolt11.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   </head>
   <body>
 
@@ -47,8 +48,10 @@
             PUB<span style="color: #000">PAY</span><span style="color: #0000001c">.me</span><span class="version">alpha 0.02</span>
           </a>
           <div id="navActions">
-
-            <a id="settings" href="#" class="topAction disabled" title="coming soon">
+            <a id="scanQrCode" class="topAction" title="Scan QR Code">
+              <span class="material-symbols-outlined">photo_camera</span>
+            </a>
+            <a id="settings" href="#" style="display:none" class="topAction disabled" title="coming soon">
               <span class="material-symbols-outlined">settings</span>
             </a>
             <a id="login" href="#" class="topAction">
@@ -84,6 +87,16 @@
         </div>
         <div id="following" style="display:none"></div>
         </div>
+        </div>
+      </div>
+
+      <div class="overlayContainer" id="qrScanner" style="display: none;">
+        <div class="overlayInner">
+          <div class="brand">PUB<span style="color: #cecece;">PAY</span><span style="color: #00000014;">.me</span></div>
+          <p class="label" id="titleScanner">Scan QR Code</p>
+          <div id="reader"></div>
+
+          <a id="stopScanner" href="#" class="label">cancel</a>
         </div>
       </div>
 
