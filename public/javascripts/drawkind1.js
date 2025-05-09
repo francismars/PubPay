@@ -1,5 +1,13 @@
 let zap = await import("./zap.js");
 
+const pool = new NostrTools.SimplePool();
+const relays = [
+  "wss://relay.damus.io",
+  "wss://relay.primal.net",
+  "wss://relay.nostr.band/",
+  "wss://relay.nostr.nu/",
+];
+
 export async function plot(
   eventData,
   authorData,
@@ -125,7 +133,7 @@ export async function plot(
   // Content
   let noteContent = document.createElement("div");
   noteContent.setAttribute("class", "noteContent");
-  let formatedContent = formatContent(eventData.content);
+  let formatedContent = await formatContent(eventData.content);
   noteContent.innerHTML = formatedContent;
   noteData.appendChild(noteContent);
 
@@ -466,32 +474,86 @@ function timeAgo(timestamp) {
   }
 }
 
-export function formatContent(content) {
+export async function formatContent(content) {
   //formatedContent = formatedContent.replace(/(nostr:|@)?((npub|note|nprofile|nevent|nrelay|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi, '<a href="$1.$2">@CornerStore</a>')
   // render npubs
   let npubMentions = content.match(
-    /(nostr:|@)?((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
+    /(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
   );
   if (npubMentions) {
-    npubMentions.forEach((mention) => {
+    const replacements = npubMentions.map(async (mention) => {
       const cleanMention = mention.replace("nostr:", "");
-      const shortenedMention = start_and_end(cleanMention);
-      content = content.replace(
+      const shortenedMention = await getMentionUserName(cleanMention);
+      return {
         mention,
-        `<a href="https://nostrudel.ninja/#/u/${cleanMention}" class="userMention" npub="${cleanMention}" target="_blank">` +
+        replacement:
+          `<a href="https://nostrudel.ninja/#/u/${cleanMention}" class="userMention" npub="${cleanMention}" target="_blank">` +
           shortenedMention +
-          "</a>"
-      );
+          "</a>",
+      };
       // render image
       //content = content.replace(/(http(s*):\/\/[\w\\x80-\\xff\#$%&~\/.\-;:=,?@\[\]+]*).(gif|png|jpg|jpeg)/gi, '<img src="$1.$3" />')
     });
+    const resolvedReplacements = await Promise.all(replacements);
+    resolvedReplacements.forEach(({ mention, replacement }) => {
+      content = content.replace(mention, replacement);
+    });
   }
+
   content = content.replace(
     /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(gif|png|jpg|jpeg)/gi,
     '<img src="$1.$2" />'
   );
   content = content.replace(/\n/g, "<br />");
   return content;
+}
+
+async function getMentionUserName(npub) {
+  return new Promise((resolve, reject) => {
+    try {
+      const decoded = NostrTools.nip19.decode(npub);
+      console.log(decoded);
+      if (decoded.type !== "npub" && decoded.type !== "nprofile") {
+        console.error("Invalid npub format");
+        return;
+      }
+      const pubkey =
+        decoded.type == "npub" ? decoded.data : decoded.data.pubkey;
+
+      const filter = {
+        kinds: [0],
+        authors: [pubkey],
+      };
+
+      const sub = pool.subscribeMany([...relays], [filter], {
+        async onevent(event) {
+          try {
+            const userMetadata = JSON.parse(event.content);
+            let userName = userMetadata.displayName
+              ? userMetadata.displayName
+              : userMetadata.name;
+            if (userName == null) {
+              userName = start_and_end(npub);
+            }
+            resolve(userName);
+            sub.close(); // Close the subscription after receiving the event
+          } catch (error) {
+            console.error("Error parsing user metadata:", error);
+          }
+        },
+        async oneose() {
+          console.log(`getMentionUserName() EOS.`);
+          sub.close();
+        },
+        onclosed() {
+          console.log(`getMentionUserName() closed.`);
+        },
+      });
+    } catch (error) {
+      console.error("Error in getMentionUserName:", error);
+      reject(error);
+    }
+  });
 }
 
 function start_and_end(str) {
