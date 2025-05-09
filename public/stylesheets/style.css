@@ -532,11 +532,24 @@ legend {
 #cancelLogin,
 #cancelLoggedin,
 #logoutButton,
-#titleSignin {
+#titleSignin,
+#titleScanner,
+#stopScanner {
   display: block;
   width: 100%;
   text-align: center;
   margin-top: 10px;
+}
+
+#reader {
+  border: 5px solid #cecece; /* Add a border to make it stand out */
+  border-radius: 10px; /* Rounded corners */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
+  background-color: #ffffff; /* White background for contrast */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden; /* Ensure content stays within bounds */
 }
 
 textarea,

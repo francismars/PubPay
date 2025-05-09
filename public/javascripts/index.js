@@ -823,3 +823,47 @@ window.addEventListener("scroll", async () => {
     }
   }
 });
+
+document.getElementById("scanQrCode").addEventListener("click", () => {
+  const qrScanner = document.getElementById("qrScanner");
+  qrScanner.style.display = "flex";
+  const html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    {
+      fps: 10,
+      qrbox: { width: 250, height: 250 },
+    },
+    async (decodedText) => {
+      console.log("QR Code scanned:", decodedText);
+      html5QrCode.stop().then(() => {
+        qrScanner.style.display = "none";
+      });
+      handleScannedContent(decodedText);
+    },
+    (errorMessage) => {
+      console.error("QR Code scanning error:", errorMessage);
+    }
+  );
+  document.getElementById("stopScanner").addEventListener("click", () => {
+    html5QrCode.stop().then(() => {
+      qrScanner.style.display = "none";
+    });
+  });
+});
+
+async function handleScannedContent(decodedText) {
+  try {
+    const decoded = NostrTools.nip19.decode(decodedText);
+
+    if (decoded.type === "note" || decoded.type === "nevent") {
+      console.log("Decoded event:", decoded);
+      const eventID = decoded.type === "note" ? decoded.data : decoded.data.id;
+      await subscribePubPay(eventID);
+    } else {
+      console.error("Invalid QR code content. Expected 'note' or 'nevent'.");
+    }
+  } catch (error) {
+    console.error("Failed to decode QR code content:", error);
+  }
+}
