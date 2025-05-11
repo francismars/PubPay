@@ -533,7 +533,12 @@ document
     event.preventDefault();
     const nsec = document.getElementById("nsecInput").value;
     const rememberMe = document.getElementById("rememberMe").checked;
-    signIn.signIn("nsec", rememberMe ? true : false, nsec);
+    try {
+      await signIn.signIn("nsec", rememberMe ? true : false, nsec);
+    } catch (error) {
+      console.log(error);
+      return;
+    }
     await subscribeKind0();
     document.getElementById("loginForm").style.display = "none";
     document.getElementById("nsecInputGroup").style.display = "none";
@@ -544,7 +549,12 @@ document
   .getElementById("signInExtension")
   .addEventListener("click", async () => {
     const rememberMe = document.getElementById("rememberMe").checked;
-    await signIn.signIn("extension", rememberMe ? true : false);
+    try {
+      await signIn.signIn("extension", rememberMe ? true : false);
+    } catch (error) {
+      console.log(error);
+      return;
+    }
     await subscribeKind0();
     document.getElementById("loginForm").style.display = "none";
   });
@@ -553,7 +563,12 @@ document
   .getElementById("signInexternalSigner")
   .addEventListener("click", async () => {
     const rememberMe = document.getElementById("rememberMe").checked;
-    await signIn.signIn("externalSigner", rememberMe ? true : false);
+    try {
+      await signIn.signIn("externalSigner", rememberMe ? true : false);
+    } catch (error) {
+      console.log(error);
+      return;
+    }
     document.getElementById("loginForm").style.display = "none";
   });
 

@@ -417,7 +417,8 @@ button.cta {
 }
 
 a.noteMainCTA.cta.disabled.red,
-button.noteMainCTA.cta.disabled.red {
+button.noteMainCTA.cta.disabled.red,
+.cta.disabled.red {
   background: #c80000;
   opacity: 1;
   filter: unset;
