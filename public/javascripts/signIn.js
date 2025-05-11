@@ -9,7 +9,12 @@ export async function signIn(method, rememberMe, nsec = undefined) {
   let pubKey;
   let privKey;
   if (method === "extension") {
-    pubKey = await window.nostr.getPublicKey();
+    if (window.nostr) {
+      pubKey = await window.nostr.getPublicKey();
+    } else {
+      handleFailedSignin(method);
+      throw new Error("Can't find window.nostr");
+    }
   } else if (method === "externalSigner") {
     sessionStorage.setItem(
       "signIn",
@@ -17,15 +22,16 @@ export async function signIn(method, rememberMe, nsec = undefined) {
     );
     const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
     window.location.href = nostrSignerURL;
-    return;
+    handleFailedSignin(method);
+    throw new Error("Failed to launch 'nostrsigner:");
   } else if (method === "nsec") {
     if (!nsec) {
-      console.error("No NSEC provided.");
+      throw new Error("No NSEC provided.");
       return;
     }
     let { type, data } = NostrTools.nip19.decode(nsec);
     if (type !== "nsec") {
-      console.log("Invalid Nsec.");
+      throw new Error("Invalid Nsec.");
       return;
     }
     privKey = data;
@@ -86,4 +92,15 @@ export function cleanSignInData() {
   localStorage.removeItem("privateKey");
   sessionStorage.removeItem("publicKey");
   sessionStorage.removeItem("privateKey");
+}
+
+function handleFailedSignin(signInType) {
+  let buttonID;
+  if (signInType == "extension") buttonID = "signInExtension";
+  if (signInType == "externalSigner") buttonID = "signInexternalSigner";
+  if (signInType == "nsec") buttonID = "signInNsec";
+  const button = document.getElementById(buttonID);
+  button.classList.add("disabled");
+  button.classList.add("red");
+  button.innerHTML = "Not supported";
 }
