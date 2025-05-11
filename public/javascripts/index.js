@@ -781,7 +781,8 @@ document.addEventListener("visibilitychange", async function () {
           eventStorage.callback,
           eventStorage.amount,
           eventSigned,
-          eventStorage.lud16
+          eventStorage.lud16,
+          eventStorage.id
         );
       }
     }
