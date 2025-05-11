@@ -37,7 +37,7 @@ export async function signIn(method, rememberMe, nsec = undefined) {
           handleVisibilityChange
         );
         resolve(false);
-      }, 1000);
+      }, 2000);
     });
     if (!navigationAttempted) {
       handleFailedSignin(method);
