@@ -303,9 +303,8 @@ export async function plot(
         eventData,
         authorData
       );
-      console.log(callbackToZap, lud16ToZap);
       if (!callbackToZap) {
-        console.log("failed to fetch callback");
+        console.error("failed to fetch callback");
         return;
       }
       const { zapEvent, amountPay } = await zap.createZapEvent(
