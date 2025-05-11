@@ -21,19 +21,23 @@ export async function signIn(method, rememberMe, nsec = undefined) {
       JSON.stringify({ rememberMe: rememberMe })
     );
     const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
-    try {
-      const response = await fetch(nostrSignerURL, { method: "HEAD" });
-      if (response.ok) {
-        window.location.href = nostrSignerURL;
-      } else {
-        handleFailedSignin(method);
-        throw new Error("Invalid nostrSignerURL: Failed to fetch.");
+    let navigationAttempted = false;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        navigationAttempted = true;
       }
-    } catch (error) {
-      console.error("Error validating nostrSignerURL:", error);
-      handleFailedSignin(method);
-      throw new Error("Failed to validate nostrSignerURL.");
-    }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.location.href = nostrSignerURL;
+    setTimeout(() => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (!navigationAttempted) {
+        handleFailedSignin(method);
+        console.error(
+          "Failed to launch 'nostrsigner': Redirection did not occur."
+        );
+      }
+    }, 2000);
   } else if (method === "nsec") {
     if (!nsec) {
       throw new Error("No NSEC provided.");
