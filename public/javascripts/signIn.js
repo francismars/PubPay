@@ -21,13 +21,19 @@ export async function signIn(method, rememberMe, nsec = undefined) {
       JSON.stringify({ rememberMe: rememberMe })
     );
     const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
-    window.location.href = nostrSignerURL;
-    setTimeout(() => {
-      if (document.visibilityState === "visible") {
+    try {
+      const response = await fetch(nostrSignerURL, { method: "HEAD" });
+      if (response.ok) {
+        window.location.href = nostrSignerURL;
+      } else {
         handleFailedSignin(method);
-        throw new Error("Failed to launch 'nostrsigner:");
+        throw new Error("Invalid nostrSignerURL: Failed to fetch.");
       }
-    }, 500);
+    } catch (error) {
+      console.error("Error validating nostrSignerURL:", error);
+      handleFailedSignin(method);
+      throw new Error("Failed to validate nostrSignerURL.");
+    }
   } else if (method === "nsec") {
     if (!nsec) {
       throw new Error("No NSEC provided.");
