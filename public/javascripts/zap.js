@@ -115,6 +115,7 @@ async function createZapEvent(
         amount: amountPay,
         lud16: lud16,
         event: zapEvent,
+        id: eventZap.id,
       })
     );
     window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
@@ -171,7 +172,7 @@ export async function getInvoiceandPay(
       const noteMainCTA = parentNote.querySelector(".noteMainCTA");
       noteMainCTA.classList.add("disabled");
       noteMainCTA.classList.add("red");
-      noteMainCTA.innerHTML = "CAN'T PAY: Failed to fetch invoice";
+      noteMainCTA.innerHTML = "CAN'T PAY: Failed to get invoice";
     }
   }
   const { pr: invoice } = await responseFinal.json();
