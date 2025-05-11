@@ -124,7 +124,6 @@ export async function signZapEvent(
     let { type, data } = NostrTools.nip19.decode(privateKey);
     zapFinalized = NostrTools.finalizeEvent(zapEvent, data);
   }
-
   await getInvoiceandPay(
     callback,
     amountPay,
@@ -184,7 +183,7 @@ export async function handleFetchedInvoice(invoice, zapEventID) {
     } else {
       payWithExtension.classList.add("disabled");
       payWithExtension.classList.add("red");
-      payWithExtension.innerHTML = "Not found.";
+      payWithExtension.innerHTML = "Not found";
     }
   };
   document.getElementById("payWithWallet").onclick = () => {
