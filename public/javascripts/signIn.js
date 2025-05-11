@@ -41,6 +41,7 @@ export async function signIn(method, rememberMe, nsec = undefined) {
     });
     if (!navigationAttempted) {
       handleFailedSignin(method);
+      sessionStorage.removeItem("signIn");
       throw new Error(
         "Failed to launch 'nostrsigner': Redirection did not occur."
       );

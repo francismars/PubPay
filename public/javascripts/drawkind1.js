@@ -1,4 +1,5 @@
-let zap = await import("./zap.js");
+const zap = await import("./zap.js");
+const signIn = await import("./signIn.js");
 
 const pool = new NostrTools.SimplePool();
 const relays = [
@@ -285,11 +286,42 @@ export async function plot(
       if (disabled) {
         return;
       }
+      const publicKey = signIn.getPublicKey();
+      if (!publicKey) {
+        console.error("No public key found. Please sign in first.");
+        const loginForm = document.getElementById("loginForm");
+        if (loginForm.style.display == "none") {
+          loginForm.style.display = "flex";
+        }
+        return;
+      }
       let rangeValue;
       buttonZap.getAttribute("value") != null
         ? (rangeValue = buttonZap.getAttribute("value"))
         : (rangeValue = -1);
-      await zap.payNote(eventData, authorData, rangeValue);
+      const { callbackToZap, lud16ToZap } = await zap.getInvoiceCallBack(
+        eventData,
+        authorData
+      );
+      console.log(callbackToZap, lud16ToZap);
+      if (!callbackToZap) {
+        console.log("failed to fetch callback");
+        return;
+      }
+      const { zapEvent, amountPay } = await zap.createZapEvent(
+        eventData,
+        rangeValue,
+        lud16ToZap,
+        publicKey
+      );
+      await zap.signZapEvent(
+        zapEvent,
+        callbackToZap,
+        amountPay,
+        lud16ToZap,
+        eventData.id,
+        false
+      );
     });
 
     if (

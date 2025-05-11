@@ -337,6 +337,7 @@ async function createkinds9735JSON(
       kind9735.tags.find((tag) => tag[0] == "description")[1]
     );
     const pubkey9735 = description9735.pubkey;
+    const id9734 = description9735.id;
     const bolt119735 = kind9735.tags.find((tag) => tag[0] == "bolt11")[1];
     const amount9735 = lightningPayReq.decode(bolt119735).satoshis;
     const kind1from9735 = kind9735.tags.find((tag) => tag[0] == "e")[1];
@@ -366,6 +367,7 @@ async function createkinds9735JSON(
       pubKey: pubkey9735,
       zapEventID: kind9735id,
       tags: kind1tags,
+      id9734: id9734,
     };
     json9735List.push(json9735);
   }
@@ -536,7 +538,7 @@ document
     try {
       await signIn.signIn("nsec", rememberMe ? true : false, nsec);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       return;
     }
     await subscribeKind0();
@@ -557,7 +559,7 @@ document
     try {
       await signIn.signIn("extension", rememberMe ? true : false);
     } catch (error) {
-      console.log(error);
+      console.error(error.message);
       return;
     }
     await subscribeKind0();
@@ -576,7 +578,7 @@ document
     try {
       await signIn.signIn("externalSigner", rememberMe ? true : false);
     } catch (error) {
-      console.log(error);
+      console.error(error.message);
       return;
     }
     document.getElementById("loginForm").style.display = "none";
