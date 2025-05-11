@@ -21,23 +21,30 @@ export async function signIn(method, rememberMe, nsec = undefined) {
       JSON.stringify({ rememberMe: rememberMe })
     );
     const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
-    let navigationAttempted = false;
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        navigationAttempted = true;
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.location.href = nostrSignerURL;
-    setTimeout(() => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      if (!navigationAttempted) {
-        handleFailedSignin(method);
-        console.error(
-          "Failed to launch 'nostrsigner': Redirection did not occur."
+    const navigationAttempted = await new Promise((resolve) => {
+      let attempted = false;
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "hidden") {
+          attempted = true;
+          resolve(true);
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      window.location.href = nostrSignerURL;
+      setTimeout(() => {
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange
         );
-      }
-    }, 1000);
+        resolve(false);
+      }, 1000);
+    });
+    if (!navigationAttempted) {
+      handleFailedSignin(method);
+      throw new Error(
+        "Failed to launch 'nostrsigner': Redirection did not occur."
+      );
+    }
   } else if (method === "nsec") {
     if (!nsec) {
       throw new Error("No NSEC provided.");

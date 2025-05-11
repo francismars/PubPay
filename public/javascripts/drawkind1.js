@@ -281,6 +281,10 @@ export async function plot(
     buttonZap.addEventListener("click", async (event) => {
       event.preventDefault();
       event.stopPropagation();
+      const disabled = buttonZap.className.includes("disabled") ? true : false;
+      if (disabled) {
+        return;
+      }
       let rangeValue;
       buttonZap.getAttribute("value") != null
         ? (rangeValue = buttonZap.getAttribute("value"))

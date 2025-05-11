@@ -548,6 +548,11 @@ document
 document
   .getElementById("signInExtension")
   .addEventListener("click", async () => {
+    const button = document.getElementById("signInExtension").className;
+    const disabled = button.includes("disabled") ? true : false;
+    if (disabled) {
+      return;
+    }
     const rememberMe = document.getElementById("rememberMe").checked;
     try {
       await signIn.signIn("extension", rememberMe ? true : false);
@@ -562,6 +567,11 @@ document
 document
   .getElementById("signInexternalSigner")
   .addEventListener("click", async () => {
+    const button = document.getElementById("signInexternalSigner").className;
+    const disabled = button.includes("disabled") ? true : false;
+    if (disabled) {
+      return;
+    }
     const rememberMe = document.getElementById("rememberMe").checked;
     try {
       await signIn.signIn("externalSigner", rememberMe ? true : false);
