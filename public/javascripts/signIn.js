@@ -20,7 +20,7 @@ export async function signIn(method, rememberMe, nsec = undefined) {
       "signIn",
       JSON.stringify({ rememberMe: rememberMe })
     );
-    const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key&appName=PubPay`;
+    const nostrSignerURL = `nostrsigner:?compressionType=none&appName=PubPay&returnType=signature&type=get_public_key`;
     const navigationAttempted = await new Promise((resolve) => {
       let attempted = false;
       const handleVisibilityChange = () => {
