@@ -37,6 +37,7 @@
     <script src="./javascripts/nostrtools.min.js"></script>
     <script src="./javascripts/bolt11.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   </head>
   <body>
 
@@ -136,6 +137,21 @@
           <span id="loggedInMethod">Extension | External Signer | NSEC</span>
           <a href="" id="logoutButton" class="cta">Logout</a>
           <a id="cancelLoggedin" href="#" class="label">cancel</a>
+        </div>
+      </div>
+
+      <div class="overlayContainer" id="invoiceOverlay" style="display: none;">
+        <div class="overlayInner">
+          <div class="brand">PUB<span style="color: #cecece;">PAY</span><span style="color: #00000014;">.me</span></div>
+          <p id="qrcodeTitle" class="label">Scan Invoice to Pay Zap</p>
+          <canvas id="invoiceQR"></canvas>
+          <p id="qrcodeTitle" class="label">Otherwise:</p>
+          <div class="formFieldGroup">
+            <button id="payWithExtension" class="cta">Pay with Extension</button>
+            <button id="payWithWallet" class="cta">Pay with Wallet</button>
+            <button id="copyInvoice" class="cta">Copy Invoice</button>
+          </div>
+          <a id="closeInvoiceOverlay" href="#" class="label">Close</a>
         </div>
       </div>
 

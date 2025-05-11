@@ -427,6 +427,14 @@ button.noteMainCTA.cta.disabled.red,
   cursor: none;
 }
 
+#invoiceQR {
+  display: block;
+  margin: auto;
+  max-width: 95%;
+  max-height: 95%;
+  margin-bottom: 10px;
+}
+
 /* New Note Form */
 
 .overlayContainer {
@@ -537,7 +545,9 @@ legend {
 #logoutButton,
 #titleSignin,
 #titleScanner,
-#stopScanner {
+#stopScanner,
+#closeInvoiceOverlay,
+#qrcodeTitle {
   display: block;
   width: 100%;
   text-align: center;
