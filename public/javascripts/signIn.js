@@ -37,7 +37,7 @@ export async function signIn(method, rememberMe, nsec = undefined) {
           "Failed to launch 'nostrsigner': Redirection did not occur."
         );
       }
-    }, 2000);
+    }, 500);
   } else if (method === "nsec") {
     if (!nsec) {
       throw new Error("No NSEC provided.");
