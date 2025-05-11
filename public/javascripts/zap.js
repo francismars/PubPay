@@ -46,6 +46,7 @@ export async function payNote(
     for (let feedId of ["main", "following"]) {
       const parentFeed = document.getElementById(feedId);
       const parentNote = parentFeed.querySelector("#_" + eventZap.id);
+      if (!parentNote) return;
       const noteMainCTA = parentNote.querySelector(".noteMainCTA");
       noteMainCTA.classList.add("disabled");
       noteMainCTA.classList.add("red");
@@ -85,8 +86,8 @@ async function createZapEvent(
   const amountPay =
     rangeValue != -1 ? parseInt(rangeValue) * 1000 : Math.floor(zapTagAmount);
   const zapEvent = await window.NostrTools.nip57.makeZapRequest({
-    profile: eventZap.pubkey,
     event: eventZap.id,
+    profile: eventZap.pubkey,
     amount: amountPay,
     comment: "",
     relays: [
@@ -97,37 +98,15 @@ async function createZapEvent(
       "wss://relay.nostr.nu/",
     ],
   });
-  zapEvent.tags.unshift(["zap-lnurl", eventStoragePK.lud16]);
-  zapEvent.tags.unshift(["t", "pubpay"]);
+  zapEvent.tags.push(["zap-lnurl", eventStoragePK.lud16]);
+  zapEvent.tags.push(["t", "pubpay"]);
   if (pubKey != null) {
     zapEvent.pubkey = pubKey;
     let eventID = NostrTools.getEventHash(zapEvent);
     if (eventID != null) zapEvent.id = eventID;
   }
-  if (anonymousZap == true) {
-    const privateKey = window.NostrTools.generateSecretKey();
-    const publicKey = window.NostrTools.getPublicKey(privateKey);
-    const signedEvent = window.NostrTools.finalizeEvent(zapEvent, privateKey);
-    const isGood = window.NostrTools.verifyEvent(signedEvent);
-    if (isGood == false) {
-      console.error("Failed to verify event.");
-      return;
-    }
-    await getInvoiceandPay(lnurlinfo.callback, amountPay, signedEvent, lud16);
-    return;
-  }
   const signInMethod = signIn.getSignInMethod();
-  if (signInMethod == "extension") {
-    if (window.nostr != null) {
-      const zapFinalized = await window.nostr.signEvent(zapEvent);
-      await getInvoiceandPay(
-        lnurlinfo.callback,
-        amountPay,
-        zapFinalized,
-        lud16
-      );
-    }
-  } else if (signInMethod == "externalSigner") {
+  if (signInMethod == "externalSigner") {
     const eventString = JSON.stringify(zapEvent);
     sessionStorage.setItem(
       "SignZapEvent",
@@ -139,6 +118,17 @@ async function createZapEvent(
       })
     );
     window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
+    return;
+  }
+  let zapFinalized;
+  if (anonymousZap == true) {
+    const privateKey = window.NostrTools.generateSecretKey();
+    const publicKey = window.NostrTools.getPublicKey(privateKey);
+    zapFinalized = window.NostrTools.finalizeEvent(zapEvent, privateKey);
+  } else if (signInMethod == "extension") {
+    if (window.nostr != null) {
+      zapFinalized = await window.nostr.signEvent(zapEvent);
+    }
   } else if (signInMethod == "nsec") {
     const privateKey = signIn.getPrivateKey();
     if (!privateKey) {
@@ -146,16 +136,44 @@ async function createZapEvent(
       return;
     }
     let { type, data } = NostrTools.nip19.decode(privateKey);
-    const zapFinalized = NostrTools.finalizeEvent(zapEvent, data);
-    await getInvoiceandPay(lnurlinfo.callback, amountPay, zapFinalized, lud16);
+    zapFinalized = NostrTools.finalizeEvent(zapEvent, data);
   }
+  const isGood = window.NostrTools.verifyEvent(zapFinalized);
+  if (isGood == false) {
+    console.error("Failed to verify event.");
+    return;
+  }
+  await getInvoiceandPay(
+    lnurlinfo.callback,
+    amountPay,
+    zapFinalized,
+    lud16,
+    eventZap.id
+  );
 }
 
-export async function getInvoiceandPay(callback, amount, zapFinalized, lud16) {
-  let eventFinal = JSON.stringify(zapFinalized);
-  let lnurl = lud16;
-  let callString = `${callback}?amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`;
+export async function getInvoiceandPay(
+  callback,
+  amount,
+  zapFinalized,
+  lud16,
+  eventID
+) {
+  const eventFinal = JSON.stringify(zapFinalized);
+  const lnurl = lud16;
+  const callString = `${callback}?amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`;
   const responseFinal = await fetch(callString);
+  if (!responseFinal.ok) {
+    for (let feedId of ["main", "following"]) {
+      const parentFeed = document.getElementById(feedId);
+      const parentNote = parentFeed.querySelector("#_" + eventID);
+      if (!parentNote) return;
+      const noteMainCTA = parentNote.querySelector(".noteMainCTA");
+      noteMainCTA.classList.add("disabled");
+      noteMainCTA.classList.add("red");
+      noteMainCTA.innerHTML = "CAN'T PAY: Failed to fetch invoice";
+    }
+  }
   const { pr: invoice } = await responseFinal.json();
   if (window.webln) {
     await window.webln.enable();

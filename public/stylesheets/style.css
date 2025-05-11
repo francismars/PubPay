@@ -416,6 +416,7 @@ button.cta {
   box-shadow: none;
 }
 
+a.noteMainCTA.cta.disabled.red,
 button.noteMainCTA.cta.disabled.red {
   background: #c80000;
   opacity: 1;
