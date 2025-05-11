@@ -22,8 +22,10 @@ export async function signIn(method, rememberMe, nsec = undefined) {
     );
     const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
     window.location.href = nostrSignerURL;
-    handleFailedSignin(method);
-    throw new Error("Failed to launch 'nostrsigner:");
+    setTimeout(() => {
+      handleFailedSignin(method);
+      throw new Error("Failed to launch 'nostrsigner:");
+    }, 500);
   } else if (method === "nsec") {
     if (!nsec) {
       throw new Error("No NSEC provided.");
