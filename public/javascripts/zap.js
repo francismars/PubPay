@@ -197,6 +197,10 @@ export async function handleFetchedInvoice(invoice, zapEventID) {
   document.getElementById("copyInvoice").onclick = async () => {
     try {
       await navigator.clipboard.writeText(invoice);
+      document.getElementById("copyInvoice").innerHTML = "Copied!";
+      setTimeout(() => {
+        document.getElementById("copyInvoice").innerHTML = "Copy Invoice";
+      }, 1000);
     } catch (error) {
       console.error("Failed to copy invoice:", error);
     }

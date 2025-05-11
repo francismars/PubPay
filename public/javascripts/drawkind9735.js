@@ -6,11 +6,10 @@ export async function plot(json9735List, iskind3filter) {
     let parentNote = parentDiv.querySelector("#_" + json9735.e);
     const invoiceOverlay = document.getElementById("invoiceOverlay");
     const overlayEventID = invoiceOverlay.getAttribute("data-event-id");
-    console.log("overlayEventID: " + overlayEventID);
     if (overlayEventID === json9735.id9734) {
       invoiceOverlay.style.display = "none";
       const invoiceQR = document.getElementById("invoiceQR");
-      invoiceQR.innerHTML = ""; // Clear the QR code
+      invoiceQR.innerHTML = "";
       console.log("Overlay closed for event:", json9735.e);
     }
 
