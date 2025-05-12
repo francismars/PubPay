@@ -108,8 +108,10 @@ export async function plot(json9735List, iskind3filter) {
         console.log("json9735.pubKey", json9735.pubKey);
         console.log("entras aqui");
         let zapPayer = parentNote.querySelector(".zapPayer");
-        zapPayer.innerHTML =
-          '<div class="zapReaction">' + zapPayerLink + zapEventLink + "</div>";
+        const zapReaction = document.createElement("div");
+        zapReaction.className = "zapReaction";
+        zapReaction.innerHTML = zapPayerLink + zapEventLink;
+        zapPayer.appendChild(zapReaction);
         // Reached target, disable button
         let noteMainCTA = parentNote.querySelector(".noteMainCTA");
         noteMainCTA.classList.add("disabled");
@@ -126,12 +128,11 @@ export async function plot(json9735List, iskind3filter) {
 
         if (useIncrement <= tagZapUses) {
           // Still bellow the use target
-          let noteHeroZaps = parentNote.querySelector(".noteHeroZaps");
-          noteHeroZaps.innerHTML +=
-            '<div class="zapReaction">' +
-            zapPayerLink +
-            zapEventLink +
-            "</div>";
+          const noteHeroZaps = parentNote.querySelector(".noteHeroZaps");
+          const zapReaction = document.createElement("div");
+          zapReaction.className = "zapReaction";
+          zapReaction.innerHTML = zapPayerLink + zapEventLink;
+          noteHeroZaps.appendChild(zapReaction);
           zapUsesCurrent.textContent = parseInt(zapUsesCurrent.textContent) + 1;
 
           if (useIncrement == tagZapUses) {
@@ -147,24 +148,27 @@ export async function plot(json9735List, iskind3filter) {
           }
         } else {
           // Above minimum, but target already reached
-          let payNoteReactions = parentNote.querySelector(".noteZaps");
-          payNoteReactions.innerHTML +=
-            '<div class="zapReaction">' +
-            zapPayerLink +
-            zapEventLink +
-            "</div>";
+          const payNoteReactions = parentNote.querySelector(".noteZaps");
+          const zapReaction = document.createElement("div");
+          zapReaction.className = "zapReaction";
+          zapReaction.innerHTML = zapPayerLink + zapEventLink;
+          payNoteReactions.appendChild(zapReaction);
         }
       } else {
         // Above min and no uses. Everyzap is included on hero
-        let noteHeroZaps = parentNote.querySelector(".noteHeroZaps");
-        noteHeroZaps.innerHTML +=
-          '<div class="zapReaction">' + zapPayerLink + zapEventLink + "</div>";
+        const noteHeroZaps = parentNote.querySelector(".noteHeroZaps");
+        const zapReaction = document.createElement("div");
+        zapReaction.className = "zapReaction";
+        zapReaction.innerHTML = zapPayerLink + zapEventLink;
+        noteHeroZaps.appendChild(zapReaction);
       }
     } else {
       // Bellow the minimum,
-      let payNoteReactions = parentNote.querySelector(".noteZaps");
-      payNoteReactions.innerHTML +=
-        '<div class="zapReaction">' + zapPayerLink + zapEventLink + "</div>";
+      const payNoteReactions = parentNote.querySelector(".noteZaps");
+      const zapReaction = document.createElement("div");
+      zapReaction.className = "zapReaction";
+      zapReaction.innerHTML = zapPayerLink + zapEventLink;
+      payNoteReactions.appendChild(zapReaction);
     }
   }
 }
