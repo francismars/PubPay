@@ -265,14 +265,14 @@ export async function plot(
   noteHeroZaps.setAttribute("class", "noteHeroZaps");
   noteHeroZaps.classList.add("noteZapReactions");
   noteData.appendChild(noteHeroZaps);
-
+  const buttonZap = document.createElement("a");
   // Main CTA
   if (
     (filteredZapMax || filteredZapMin) &&
     noteLNAddress.textContent != "NOT PAYABLE"
   ) {
     let noteCTA = document.createElement("div");
-    const buttonZap = document.createElement("a");
+
     noteCTA.appendChild(buttonZap);
     noteCTA.setAttribute("class", "noteCTA");
     buttonZap.setAttribute("class", "noteMainCTA");
@@ -295,10 +295,10 @@ export async function plot(
         }
         return;
       }
-      let rangeValue;
-      buttonZap.getAttribute("value") != null
-        ? (rangeValue = buttonZap.getAttribute("value"))
-        : (rangeValue = -1);
+      const rangeValue =
+        buttonZap.getAttribute("value") != null
+          ? buttonZap.getAttribute("value")
+          : (rangeValue = -1);
       const { callbackToZap, lud16ToZap } = await zap.getInvoiceCallBack(
         eventData,
         authorData
@@ -408,29 +408,50 @@ export async function plot(
         zapMenu.style.display = "none"; // Close the menu
       }
     });
-    zapMenu.addEventListener("click", (event) => {
+    zapMenu.addEventListener("click", async (event) => {
       event.preventDefault();
       event.stopPropagation();
       const selectedOption = event.target;
-
+      let zapValue;
       if (selectedOption.classList.contains("zapMenuOption")) {
-        const zapValue = selectedOption.getAttribute("data-value");
+        zapValue = selectedOption.getAttribute("data-value");
         console.log(`Selected zap amount: ${zapValue} sats`);
-        zap.payNote(eventData, authorData, parseInt(zapValue));
-        zapMenu.style.display = "none"; // Hide the menu after selection
+        zapMenu.style.display = "none";
       }
-
       if (selectedOption.id === "customZapButton") {
         const customInput = document.getElementById("customZapInput");
-        const customValue = customInput.value;
+        zapValue = customInput.value;
         if (customValue && !isNaN(customValue)) {
           console.log(`Custom zap amount: ${customValue} sats`);
           zap.payNote(eventData, authorData, parseInt(customValue));
-          zapMenu.style.display = "none"; // Hide the menu after selection
+          zapMenu.style.display = "none";
         } else {
           alert("Please enter a valid number for the zap amount.");
         }
       }
+      const { callbackToZap, lud16ToZap } = await zap.getInvoiceCallBack(
+        eventData,
+        authorData
+      );
+      if (!callbackToZap) {
+        console.error("failed to fetch callback");
+        return;
+      }
+      const publicKey = signIn.getPublicKey();
+      const { zapEvent, amountPay } = await zap.createZapEvent(
+        eventData,
+        parseInt(zapValue),
+        lud16ToZap,
+        publicKey
+      );
+      await zap.signZapEvent(
+        zapEvent,
+        callbackToZap,
+        amountPay,
+        lud16ToZap,
+        eventData.id,
+        false
+      );
     });
     zapBoltIcon.style.position = "relative";
     zapBoltIcon.appendChild(zapMenu);
@@ -494,11 +515,32 @@ export async function plot(
   payAnonymously.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
-    let rangeValue;
-    buttonZap.getAttribute("value") != null
-      ? (rangeValue = buttonZap.getAttribute("value"))
-      : (rangeValue = -1);
-    await zap.payNote(eventData, authorData, rangeValue, true);
+    const rangeValue =
+      buttonZap.getAttribute("value") != null
+        ? buttonZap.getAttribute("value")
+        : -1;
+    const { callbackToZap, lud16ToZap } = await zap.getInvoiceCallBack(
+      eventData,
+      authorData
+    );
+    if (!callbackToZap) {
+      console.error("failed to fetch callback");
+      return;
+    }
+    const publicKey = signIn.getPublicKey();
+    const { zapEvent, amountPay } = await zap.createZapEvent(
+      eventData,
+      rangeValue,
+      lud16ToZap
+    );
+    await zap.signZapEvent(
+      zapEvent,
+      callbackToZap,
+      amountPay,
+      lud16ToZap,
+      eventData.id,
+      true
+    );
   });
   toolTipText.appendChild(payAnonymously);
 
