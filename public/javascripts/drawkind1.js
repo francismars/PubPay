@@ -345,7 +345,10 @@ export async function plot(
       let zapSliderVal = document.createElement("div");
       zapSliderVal.setAttribute("class", "zapSliderVal");
       zapSliderContainer.appendChild(zapSliderVal);
-
+      buttonZap.setAttribute("value", filteredZapMin[1] / 1000);
+      zapSliderVal.innerHTML =
+        parseInt(zapSlider.value).toLocaleString() +
+        '<span class="label"> sats</span>';
       let update = (event) => {
         //console.log( (zapSlider.value).toLocaleString() )
         event.preventDefault();
