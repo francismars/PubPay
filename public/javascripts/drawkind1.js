@@ -379,10 +379,13 @@ export async function plot(
   zapBoltIcon.innerHTML = '<span class="material-symbols-outlined">bolt</span>';
   zapBoltIcon.setAttribute("class", "disabled");
   if (noteLNAddress.textContent != "NOT PAYABLE") {
-    zapBoltIcon.setAttribute("class", "noteAction");
+    zapBoltIcon.setAttribute("class", "noteAction zapMenuAction");
     zapBoltIcon.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
+      if (zapBoltIcon.classList.contains("disabled")) {
+        return;
+      }
       zapMenu.style.display =
         zapMenu.style.display === "none" ? "block" : "none";
     });
@@ -590,7 +593,7 @@ export async function plot(
   dropDownButton.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
-    hideAllDropDowns();
+    //hideAllDropDowns();
     setTimeout(function () {
       dropDownButton.nextElementSibling.classList.toggle("show");
     }, 100);

@@ -34,6 +34,8 @@ export async function getInvoiceCallBack(eventToZap, eventCreatorProfile) {
       noteMainCTA.classList.add("disabled");
       noteMainCTA.classList.add("red");
       noteMainCTA.innerHTML = errorResponse;
+      const zapMenuAction = parentNote.querySelector(".zapMenuAction");
+      zapMenuAction.classList.add("disabled");
     }
   }
   const callBack = lnurlinfo.callback;
@@ -153,6 +155,8 @@ export async function getInvoiceandPay(
       noteMainCTA.classList.add("disabled");
       noteMainCTA.classList.add("red");
       noteMainCTA.innerHTML = "CAN'T PAY: Failed to get invoice";
+      const zapMenuAction = parentNote.querySelector(".zapMenuAction");
+      zapMenuAction.classList.add("disabled");
     }
     return;
   }
