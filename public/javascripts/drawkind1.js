@@ -69,7 +69,7 @@ export async function plot(
     displayName = start_and_end(npub);
   }
   noteDisplayName.innerHTML =
-    '<a href="https://nostrudel.ninja/#/u/' +
+    '<a href="https://next.nostrudel.ninja/#/u/' +
     npub +
     '" class="noteAuthorLink" target="_blank">' +
     displayName +
@@ -561,7 +561,7 @@ export async function plot(
   let viewOn = document.createElement("div");
   viewOn.setAttribute("class", "noteAction");
   viewOn.innerHTML =
-    '<a href="https://nostrudel.ninja/#/n/' +
+    '<a href="https://next.nostrudel.ninja/#/n/' +
     NostrTools.nip19.noteEncode(eventData.id) +
     '" class="toolTipLink" target="_blank">View on nostrudel</a>';
   toolTipText.appendChild(viewOn);
@@ -648,7 +648,7 @@ export async function formatContent(content) {
       return {
         mention,
         replacement:
-          `<a href="https://nostrudel.ninja/#/u/${cleanMention}" class="userMention" npub="${cleanMention}" target="_blank">` +
+          `<a href="https://next.nostrudel.ninja/#/u/${cleanMention}" class="userMention" npub="${cleanMention}" target="_blank">` +
           shortenedMention +
           "</a>",
       };
