@@ -170,7 +170,7 @@ async function subscribeReplies(parentEventID) {
     },
     async oneose() {
       console.log("subscribeReplies() EOS");
-      await subscribeKind0sfromKind1s(replyList, "loadMore", false);
+      await subscribeKind0sfromKind1s(replyList, "replies", false);
       subReplies.close();
     },
     async onclosed() {
@@ -214,11 +214,14 @@ async function subscribeKind0sfromKind1s(
   );
 }
 
-async function drawKind1s(first20kind1, kind0List, streamType, iskind3filter) {
+async function drawKind1s(kind1List, kind0List, streamType, iskind3filter) {
   const divID = iskind3filter ? "following" : "main";
   if (streamType == "firstStream" || streamType == "singlePubPay")
     document.getElementById(divID).innerHTML = "";
-  for (let kind1 of first20kind1) {
+  if (streamType == "replies") {
+    kind1List.sort((a, b) => a.created_at - b.created_at);
+  }
+  for (let kind1 of kind1List) {
     const kind0 = kind0List.find(({ pubkey }) => pubkey === kind1.pubkey);
     if (kind0) await drawKind1.plot(kind1, kind0, streamType, iskind3filter);
   }
