@@ -415,20 +415,16 @@ export async function plot(
       let zapValue;
       if (selectedOption.classList.contains("zapMenuOption")) {
         zapValue = selectedOption.getAttribute("data-value");
-        console.log(`Selected zap amount: ${zapValue} sats`);
-        zapMenu.style.display = "none";
-      }
-      if (selectedOption.id === "customZapButton") {
+      } else if (selectedOption.id === "customZapButton") {
         const customInput = document.getElementById("customZapInput");
         zapValue = customInput.value;
-        if (customValue && !isNaN(customValue)) {
-          console.log(`Custom zap amount: ${customValue} sats`);
-          zap.payNote(eventData, authorData, parseInt(customValue));
-          zapMenu.style.display = "none";
-        } else {
-          alert("Please enter a valid number for the zap amount.");
-        }
+      } else return;
+      if (!zapValue || isNaN(zapValue)) {
+        alert("Please enter a valid number for the zap amount.");
+        return;
       }
+      console.log(`Custom zap amount: ${zapValue} sats`);
+      zapMenu.style.display = "none";
       const { callbackToZap, lud16ToZap } = await zap.getInvoiceCallBack(
         eventData,
         authorData
@@ -527,7 +523,6 @@ export async function plot(
       console.error("failed to fetch callback");
       return;
     }
-    const publicKey = signIn.getPublicKey();
     const { zapEvent, amountPay } = await zap.createZapEvent(
       eventData,
       rangeValue,
