@@ -298,7 +298,7 @@ export async function plot(
       const rangeValue =
         buttonZap.getAttribute("value") != null
           ? buttonZap.getAttribute("value")
-          : (rangeValue = -1);
+          : -1;
       const { callbackToZap, lud16ToZap } = await zap.getInvoiceCallBack(
         eventData,
         authorData
