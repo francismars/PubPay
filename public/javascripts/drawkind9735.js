@@ -138,12 +138,14 @@ export async function plot(json9735List, iskind3filter) {
           if (useIncrement == tagZapUses) {
             // Reached target, disable button
             let noteMainCTA = parentNote.querySelector(".noteMainCTA");
-            noteMainCTA.classList.add("disabled");
-            noteMainCTA.innerHTML = "Paid";
-            //noteMainCTA.removeEventListener('click', payNote)
-            let zapSlider = parentNote.querySelector(".zapSliderContainer");
-            if (zapSlider != null) {
-              zapSlider.remove();
+            if (noteMainCTA) {
+              noteMainCTA.classList.add("disabled");
+              noteMainCTA.innerHTML = "Paid";
+              //noteMainCTA.removeEventListener('click', payNote)
+              let zapSlider = parentNote.querySelector(".zapSliderContainer");
+              if (zapSlider != null) {
+                zapSlider.remove();
+              }
             }
           }
         } else {
