@@ -768,7 +768,7 @@ async function submitKind1(event) {
     return;
   }
   await Promise.any(pool.publish(relays, kind1Finalized));
-  document.getElementById("postNote").innerText = "Publishing Note...";
+  document.getElementById("postNote").innerText = "Publishing...";
   //console.log('published to at least one relay!')
   setTimeout(function () {
     let newNoteForm = document.getElementById("newPayNoteForm");
