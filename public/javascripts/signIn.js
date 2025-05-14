@@ -31,13 +31,14 @@ export async function signIn(method, rememberMe, nsec = undefined) {
       };
       document.addEventListener("visibilitychange", handleVisibilityChange);
       window.location.href = nostrSignerURL;
+      document.getElementById("signInexternalSigner").innerText = "Loading...";
       setTimeout(() => {
         document.removeEventListener(
           "visibilitychange",
           handleVisibilityChange
         );
         resolve(false);
-      }, 2000);
+      }, 3000);
     });
     if (!navigationAttempted) {
       handleFailedSignin(method);
@@ -124,5 +125,5 @@ function handleFailedSignin(signInType) {
   const button = document.getElementById(buttonID);
   button.classList.add("disabled");
   button.classList.add("red");
-  button.innerHTML = "Not supported";
+  button.innerHTML = "Not found";
 }

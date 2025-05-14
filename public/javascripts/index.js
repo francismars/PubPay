@@ -768,10 +768,12 @@ async function submitKind1(event) {
     return;
   }
   await Promise.any(pool.publish(relays, kind1Finalized));
+  document.getElementById("postNote").innerText = "Publishing Note...";
   //console.log('published to at least one relay!')
   setTimeout(function () {
     let newNoteForm = document.getElementById("newPayNoteForm");
     newNoteForm.style.display = "none";
+    document.getElementById("postNote").innerText = "Post Note";
   }, 1000);
 }
 
@@ -794,6 +796,7 @@ document.addEventListener("visibilitychange", async function () {
         sessionStorage.setItem("publicKey", pubKey);
         sessionStorage.setItem("signInMethod", "externalSigner");
       }
+      document.getElementById("signInexternalSigner").innerText = "Signer";
       subscribeKind0();
       return;
     }
