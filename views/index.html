@@ -184,13 +184,13 @@
                   </div>
                   <div class="disabled">
                     <input type="radio" id="targetFlow" name="paymentType" value="target" disabled />
-                    <label for="targetFlow">Target (coming soon)</label>
+                    <label for="targetFlow">Target</label>
                   </div>
                 </fieldset>
 
                 <div class="formFieldGroup" id="fixedInterface">
                   <div class="formField">
-                      <label for="zapFixed" class="label">Fixed Amount <span class="tagName">zap-min = zap-max</span></label>
+                      <label for="zapFixed" class="label">Fixed Amount* <span class="tagName">zap-min = zap-max</span></label>
                       <input type="number" min=1 id="zapFixed" placeholder="1" name="zapFixed" required>
                   </div>
                 </div>
@@ -198,24 +198,25 @@
 
                 <div class="formFieldGroup" id="rangeInterface" style="display:none">
                   <div class="formField">
-                      <label for="zapMin" class="label">Minimum amount <span class="tagName">zap-min</span></label>
+                      <label for="zapMin" class="label">Minimum* <span class="tagName">zap-min</span></label>
                       <input type="number" min=1 id="zapMin" placeholder="1" name="zapMin">
                   </div>
                   <div class="formField">
-                      <label for="zapMax" class="label">Maximum amount <span class="tagName">zap-max</span></label>
+                      <label for="zapMax" class="label">Maximum* <span class="tagName">zap-max</span></label>
                       <input type="number" min=1 id="zapMax" placeholder="1000000000" name="zapMax">
                   </div>
                 </div>
 
-
+                <details class="formField">
+                  <summary class="legend summaryOptions">Advanced Options</summary>
 
                 <div class="formFieldGroup">
                   <div class="formField">
-                      <label for="zapUses" class="label">Number of uses <span class="tagName">zap-uses</span></label>
+                      <label for="zapUses" class="label">Uses <span class="tagName">zap-uses</span></label>
                       <input type="number" min=1 id="zapUses" placeholder="1" name="zapUses">
                   </div>
                   <div class="formField disabled">
-                      <label for="zapIncrement" class="label">Increment <span class="tagName">coming soon</span></label>
+                      <label for="zapIncrement" class="label">Increment <span class="tagName"></span></label>
                       <input type="text" id="zapIncrement" placeholder="0" name="zapIncrement" disabled>
                   </div>
                 </div>
@@ -226,15 +227,15 @@
                 </div>
 
                 <div class="formField">
-                    <label for="overrideLNURL" class="label">Override LN address (kind 0 lud16)<span class="tagName"> zap-lnurl</span></label>
+                    <label for="overrideLNURL" class="label">Override LN address<span class="tagName"> zap-lnurl</span></label>
                     <input type="email" id="overrideLNURL" placeholder="address@lnprovider.net" name="overrideLNURL">
                 </div>
 
                 <div class="formField disabled">
-                    <label for="redirectToNote" class="label">Redirect payment to another note <span class="tagName">zap-redirect</span> <span class="tagName"> - coming soon</span> </label>
-                    <input type="text" id="redirectToNote" placeholder="note1..." name="redirectToNote">
+                    <label for="redirectToNote" class="label">Redirect payment to note <span class="tagName">zap-redirect</span> </label>
+                    <input type="text" id="redirectToNote" placeholder="note1..." name="redirectToNote" disabled>
                 </div>
-
+              </details>
                 <button type="submit" class="cta">Post Note</button>
             </form>
             <a id="cancelNewNote" href="#" class="label">cancel</a>

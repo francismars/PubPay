@@ -422,7 +422,8 @@ async function createkinds9735JSON(
 
   document
     .getElementById("cancelNewNote")
-    .addEventListener("click", function () {
+    .addEventListener("click", function (event) {
+      event.preventDefault();
       const newNoteForm = document.getElementById("newPayNoteForm");
       if (
         newNoteForm.style.display === "none" ||
