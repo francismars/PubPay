@@ -1166,3 +1166,13 @@ input:focus::placeholder {
   height: 100%;
   border: 0;
 }
+
+.reply {
+  margin-left: 15px;
+  border-left: 2px solid #ccc;
+}
+
+.replyOfReply {
+  margin-left: 30px;
+  border-left: 2px solid #ccc;
+}
