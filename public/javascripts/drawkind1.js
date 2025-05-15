@@ -627,11 +627,23 @@ export async function plot(
     iskind3filter == true
       ? document.querySelector("#following")
       : document.querySelector("#main");
-  streamType == "firstStream" ||
-  streamType == "loadMore" ||
-  streamType == "replies"
-    ? main.appendChild(newNote)
-    : main.insertBefore(newNote, main.firstChild);
+  if (streamType == "firstStream" || streamType == "loadMore") {
+    main.appendChild(newNote);
+  } else if (streamType == "replies") {
+    const tagReplyCount = eventData.tags.filter((tag) => tag[0] == "e");
+    const eventTagsReply = eventData.tags.find((tag) => tag[3] == "reply");
+    const eventTagsRoot = eventData.tags.find((tag) => tag[3] == "root");
+    if (tagReplyCount.length > 1 && eventTagsReply && eventTagsRoot) {
+      const parentEvent = document.getElementById("_" + eventTagsReply[1]);
+      parentEvent.parentNode.insertBefore(newNote, parentEvent.nextSibling);
+      newNote.classList.add("replyOfReply");
+    } else {
+      main.appendChild(newNote);
+      newNote.classList.add("reply");
+    }
+  } else {
+    main.insertBefore(newNote, main.firstChild);
+  }
 }
 
 function timeAgo(timestamp) {
