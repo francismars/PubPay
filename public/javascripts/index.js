@@ -223,9 +223,9 @@ async function drawKind1s(kind1List, kind0List, streamType, iskind3filter) {
     const filteredEvents = [];
     const otherEvents = [];
     for (const event of kind1List) {
-      const hasReplyTag = event.tags.some((tag) => tag[3] === "reply");
-      const hasRootTag = event.tags.some((tag) => tag[3] === "root");
-      if (hasReplyTag && hasRootTag) {
+      const replyTag = event.tags.find((tag) => tag[3] === "reply");
+      const rootTag = event.tags.find((tag) => tag[3] === "root");
+      if (replyTag && rootTag && replyTag[1] != rootTag[1]) {
         filteredEvents.push(event);
       } else {
         otherEvents.push(event);
