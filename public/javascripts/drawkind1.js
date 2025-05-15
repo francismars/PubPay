@@ -652,12 +652,29 @@ function timeAgo(timestamp) {
 }
 
 export async function formatContent(content) {
-  //formatedContent = formatedContent.replace(/(nostr:|@)?((npub|note|nprofile|nevent|nrelay|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi, '<a href="$1.$2">@CornerStore</a>')
-  // render npubs
   content = content.replace(
     /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(gif|png|jpg|jpeg)/gi,
     (match) => {
       return `<img src="${match}">`;
+    }
+  );
+  content = content.replace(
+    /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(mp4|webm|ogg|mov)/gi,
+    (match) => {
+      return `<div class="videoWrapper video">
+      <video src="${match}" controls width="100%" type="video/${match
+        .split(".")
+        .pop()}">Your browser does not support the video tag.
+      </video></div>`;
+    }
+  );
+  content = content.replace(
+    /(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([\w\-]+)|https?:\/\/youtu\.be\/([\w\-]+))/gi,
+    (match, p1, p2, p3) => {
+      const videoId = p2 || p3; // Extract video ID from the URL
+      return `<div class="videoWrapper youtube">
+      <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen>
+      </iframe></div>`;
     }
   );
   content = content.replace(
@@ -681,8 +698,6 @@ export async function formatContent(content) {
         mention,
         replacement: `<a href="https://next.nostrudel.ninja/#/u/${cleanMention}" class="userMention" npub="${cleanMention}" target="_blank">${shortenedMention}</a>`,
       };
-      // render image
-      //content = content.replace(/(http(s*):\/\/[\w\\x80-\\xff\#$%&~\/.\-;:=,?@\[\]+]*).(gif|png|jpg|jpeg)/gi, '<img src="$1.$3" />')
     });
     const resolvedReplacements = await Promise.all(replacements);
     resolvedReplacements.forEach(({ mention, replacement }) => {
