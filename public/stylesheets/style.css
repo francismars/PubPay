@@ -1168,11 +1168,6 @@ input:focus::placeholder {
 }
 
 .reply {
-  margin-left: 15px;
-  border-left: 2px solid #ccc;
-}
-
-.replyOfReply {
-  margin-left: 30px;
+  margin-left: 0px;
   border-left: 2px solid #ccc;
 }
