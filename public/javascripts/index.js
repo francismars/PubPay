@@ -220,6 +220,7 @@ async function drawKind1s(kind1List, kind0List, streamType, iskind3filter) {
     document.getElementById(divID).innerHTML = "";
   if (streamType == "replies") {
     kind1List.sort((a, b) => a.created_at - b.created_at);
+    /*
     const filteredEvents = [];
     const otherEvents = [];
     for (const event of kind1List) {
@@ -233,6 +234,7 @@ async function drawKind1s(kind1List, kind0List, streamType, iskind3filter) {
     }
     filteredEvents.sort((a, b) => b.created_at - a.created_at);
     kind1List = [...otherEvents, ...filteredEvents];
+    */
   }
   for (let kind1 of kind1List) {
     const kind0 = kind0List.find(({ pubkey }) => pubkey === kind1.pubkey);

@@ -630,16 +630,22 @@ export async function plot(
   if (streamType == "firstStream" || streamType == "loadMore") {
     main.appendChild(newNote);
   } else if (streamType == "replies") {
+    newNote.classList.add("reply");
     const replyTag = eventData.tags.find((tag) => tag[3] === "reply");
     const rootTag = eventData.tags.find((tag) => tag[3] === "root");
     if (replyTag && rootTag && replyTag[1] != rootTag[1]) {
       const parentEvent = document.getElementById("_" + replyTag[1]);
-      parentEvent.parentNode.insertBefore(newNote, parentEvent.nextSibling);
-      newNote.classList.add("replyOfReply");
+      if (parentEvent) {
+        parentEvent.parentNode.insertBefore(newNote, parentEvent.nextSibling);
+      } else {
+        console.log(eventData);
+      }
     } else {
       main.appendChild(newNote);
-      newNote.classList.add("reply");
     }
+    const previousElement = newNote.previousElementSibling;
+    let currentMargin = parseInt(previousElement.style.marginLeft, 10) || 0;
+    newNote.style.marginLeft = `${currentMargin + 15}px`;
   } else {
     main.insertBefore(newNote, main.firstChild);
   }
