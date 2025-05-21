@@ -402,10 +402,160 @@ function scaleTextByLength(element, content) {
     element.style.fontSize = `${fontSize}vw`;
 }
 
-function drawKind1(kind1){
+async function lookupProfile(pubkey) {
+    return new Promise((resolve) => {
+        const sub = pool.subscribeMany(
+            [...relays],
+            [{
+                kinds: [0],
+                authors: [pubkey]
+            }],
+            {
+                onevent(kind0) {
+                    resolve(kind0);
+                    sub.close();
+                },
+                oneose() {
+                    resolve(null);
+                    sub.close();
+                }
+            }
+        );
+    });
+}
+
+function parseNostrMentions(content) {
+    // Match both nostr: and raw npub/nprofile formats
+    const nostrRegex = /(?:nostr:)?((?:npub|nprofile)[a-zA-Z0-9]+)/g;
+    const mentions = [];
+    let match;
+    
+    while ((match = nostrRegex.exec(content)) !== null) {
+        const [fullMatch, encoded] = match;
+        try {
+            // Use the encoded part without the nostr: prefix for decoding
+            const decoded = NostrTools.nip19.decode(encoded);
+            
+            if (decoded.type === 'npub') {
+                mentions.push({
+                    type: 'npub',
+                    pubkey: decoded.data,
+                    fullMatch,
+                    index: match.index
+                });
+            } else if (decoded.type === 'nprofile') {
+                mentions.push({
+                    type: 'nprofile',
+                    pubkey: decoded.data.pubkey,
+                    fullMatch,
+                    index: match.index
+                });
+            }
+        } catch (e) {
+            console.log("Error decoding nostr mention:", e, "for match:", fullMatch);
+        }
+    }
+    
+    return mentions;
+}
+
+async function replaceNostrMentions(content) {
+    if (!content) return '';
+    
+    const mentions = parseNostrMentions(content);
+    if (mentions.length === 0) return content;
+    
+    // Sort mentions by index in reverse order to avoid index shifting during replacement
+    mentions.sort((a, b) => b.index - a.index);
+    
+    let processedContent = content;
+    const processedMentions = new Map(); // Cache for profile lookups
+    
+    for (const mention of mentions) {
+        let profile;
+        if (!processedMentions.has(mention.pubkey)) {
+            profile = await lookupProfile(mention.pubkey);
+            processedMentions.set(mention.pubkey, profile);
+        } else {
+            profile = processedMentions.get(mention.pubkey);
+        }
+        
+        if (profile) {
+            try {
+                const profileData = JSON.parse(profile.content);
+                const displayName = profileData.displayName || profileData.display_name;
+                const name = displayName || profileData.name || 'Unknown';
+                const npub = NostrTools.nip19.npubEncode(mention.pubkey);
+                const replacement = `<a href="https://njump.me/${npub}" target="_blank" class="nostr-mention">@${name}</a>`;
+                processedContent = processedContent.slice(0, mention.index) + 
+                                 replacement + 
+                                 processedContent.slice(mention.index + mention.fullMatch.length);
+            } catch (e) {
+                console.log("Error processing profile data:", e);
+            }
+        }
+    }
+    
+    return processedContent;
+}
+
+function parseImages(content) {
+    // Match both markdown image syntax and raw URLs
+    const imageRegex = /(?:!\[.*?\]\((.*?)\))|(https?:\/\/\S+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s]*)?)/gi;
+    const images = [];
+    let match;
+    
+    while ((match = imageRegex.exec(content)) !== null) {
+        const [fullMatch, markdownUrl, rawUrl] = match;
+        const imageUrl = markdownUrl || rawUrl;
+        if (imageUrl) {
+            images.push({
+                url: imageUrl,
+                fullMatch,
+                index: match.index
+            });
+        }
+    }
+    
+    return images;
+}
+
+async function replaceImages(content) {
+    if (!content) return '';
+    
+    const images = parseImages(content);
+    if (images.length === 0) return content;
+    
+    // Sort images by index in reverse order to avoid index shifting during replacement
+    images.sort((a, b) => b.index - a.index);
+    
+    let processedContent = content;
+    
+    for (const image of images) {
+        const replacement = `<img src="${image.url}" class="note-image" alt="Note image" loading="lazy" />`;
+        processedContent = processedContent.slice(0, image.index) + 
+                         replacement + 
+                         processedContent.slice(image.index + image.fullMatch.length);
+    }
+    
+    return processedContent;
+}
+
+async function processNoteContent(content) {
+    // First process images
+    let processedContent = await replaceImages(content);
+    // Then process nostr mentions
+    processedContent = await replaceNostrMentions(processedContent);
+    return processedContent;
+}
+
+async function drawKind1(kind1){
     console.log(kind1)
     const noteContent = document.getElementById("noteContent");
-    noteContent.innerText = kind1.content;
+    
+    // Process content for both images and nostr mentions
+    const processedContent = await processNoteContent(kind1.content);
+    noteContent.innerHTML = processedContent;
     scaleTextByLength(noteContent, kind1.content);
     
     let qrcodeContainer = document.getElementById("qrCode");
@@ -636,3 +786,28 @@ hideZapperContentToggle.addEventListener('change', function(e) {
     document.body.classList.toggle('hide-zapper-content', e.target.checked);
     updateStyleURL();
 });
+
+// Add CSS for note images and mentions
+const style = document.createElement('style');
+style.textContent = `
+    .note-image {
+        height: 2vw;
+        width: auto;
+        max-width: 100%;
+        object-fit: contain;
+        vertical-align: middle;
+        margin: 0.2vw;
+        border-radius: 0.3vw;
+    }
+
+    .nostr-mention {
+        font-weight: bold;
+        color: inherit;
+        text-decoration: none;
+    }
+
+    .nostr-mention:hover {
+        text-decoration: underline;
+    }
+`;
+document.head.appendChild(style);
