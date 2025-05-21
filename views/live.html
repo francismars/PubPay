@@ -43,9 +43,9 @@
 
     <div id="noteLoaderContainer">
       <div action="" id="noteLoader">
-        <label for="note1LoaderInput">note1</label><br>
+        <label for="note1LoaderInput">note1 or nevent1</label><br>
         <input type="text" id="note1LoaderInput" name="note1LoaderInput" value="" placeholder="note16a..."><br>
-        <button id="note1LoaderSubmit">Load Note</button>
+        <button id="note1LoaderSubmit" class="button">Load Note</button>
         <div>
           <h3>Examples</h3>
           <a href="https://pubpay.me/live?note=note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7" target="_blank">
@@ -54,12 +54,20 @@
           <a href="https://pubpay.me/live?note=note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu" target="_blank">
             "Bienvenidos a nuestro querido el salvador 🇸🇻"
           </a> — Vicky
+          <a href="https://pubpay.me/live?note=note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv" target="_blank">
+            "The Network School of Rock is Live from Malaysia!"
+          </a> — lucas
+        </div>
+        <br>
+        <br>
+        <div class="styleOptionsModalToggle button">
+          Style Options
         </div>
       </div>
     </div>
 
 
-    <div id="liveContainer">
+    <div id="liveContainer" class="flex-sort">
 
       <div class="seedNote">
 
@@ -69,7 +77,7 @@
         </a>
 
         <div class="seedNoteData">
-          <div id="author" class="seedNoteAuthor">
+          <div id="author" class="seedNoteAuthor flex-sort">
             <img id="authorNameProfileImg" class="userImg" src="/images/gradient_color.gif"/>
             <div id="authorName" class="noteDisplayName">
             </div>
@@ -82,7 +90,7 @@
 
       </div>
 
-      <div id="zapsContainer">
+      <div id="zapsContainer" class="flex-sort">
         <div id="zaps">
         </div>
       </div>
@@ -93,24 +101,115 @@
     <div class="liveZapOverlay">
     </div>
 
-    <div id="bar">
-      <div id="pubPayContent" class="">Scan with camera app to njump note1.</div>
-    </div>
-
-
-    <div id="poweredBy">
-      <img src="/images/powered_by_white_bg.png">
-    </div>
-
-
-    <div id="zappedTotal">
-      <div class="zapperTotalLabel">
-        <span class="zapperAmountSats">Total</span><br>
-        <span class="zapperAmountSats">sats</span>
+    <div id="bar" class="flex-sort">
+      
+      <div id="intructions" class="flex-sort">
+        Scan with camera app to njump note1.
       </div>
-      <span id="zappedTotalValue"></span>
+      
+      <div id="brand-totals" class="flex-sort">
+
+        <div id="zappedTotal" class="flex-sort">
+          <div class="styleOptionsModalToggle">
+            •
+          </div>
+          <div class="zapperTotalLabel">
+            <span class="zapperAmountSats">Total</span><br>
+            <span class="zapperAmountSats">sats</span>
+          </div>
+          <span id="zappedTotalValue"></span>
+        </div>
+
+        <div id="poweredBy">
+          <img src="/images/powered_by_white_bg.png">
+        </div>
+      </div>
+
     </div>
 
+
+
+    <div id="styleOptionsModal">
+      <div class="style-options-content">
+        <div class="style-options-header">
+          <h2>Style Options</h2>
+          <button class="close-button">&times;</button>
+        </div>
+        <div class="style-options-body">
+          <div class="style-option-group">
+            <label for="textColorPicker">Text Color</label>
+            <div class="color-picker-container">
+              <input type="color" id="textColorPicker" value="#ffffff">
+              <input type="text" id="textColorValue" value="#ffffff" placeholder="#ffffff">
+            </div>
+          </div>
+          <div class="style-option-group">
+            <label for="bgColorPicker">Background Color</label>
+            <div class="color-picker-container">
+              <input type="color" id="bgColorPicker" value="#000000">
+              <input type="text" id="bgColorValue" value="#000000" placeholder="#000000">
+            </div>
+          </div>
+          <div class="style-option-group full-width">
+            <label for="bgImageUrl">Background Image URL</label>
+            <div class="bg-image-controls">
+              <div class="url-input-container">
+                <input type="text" id="bgImageUrl" value="/images/lightning.gif" placeholder="Enter image URL">
+                <br><button id="clearBgImage" class="clear-button">Clear</button>
+              </div>
+              <div class="preview-container">
+                <img id="bgImagePreview" src="/images/lightning.gif" alt="Background preview">
+              </div>
+            </div>
+          </div>
+          <div class="style-option-group toggle-group">
+            <label class="toggle-label">
+              <div class="toggle-switch">
+                <input type="checkbox" checked id="qrInvertToggle" value="true">
+                <span class="toggle-slider"></span>
+              </div>
+              <span>Invert QR Code</span>
+            </label>
+          </div>
+          <div class="style-option-group toggle-group">
+            <label class="toggle-label">
+              <div class="toggle-switch">
+                <input type="checkbox" checked id="qrScreenBlendToggle" value="true">
+                <span class="toggle-slider"></span>
+              </div>
+              <span>QR Code Screen Blend</span>
+            </label>
+          </div>
+          <div class="style-option-group toggle-group">
+            <label class="toggle-label">
+              <div class="toggle-switch">
+                <input type="checkbox" id="qrMultiplyBlendToggle">
+                <span class="toggle-slider"></span>
+              </div>
+              <span>QR Code Multiply Blend</span>
+            </label>
+          </div>
+          <div class="style-option-group toggle-group">
+            <label class="toggle-label">
+              <div class="toggle-switch">
+                <input type="checkbox" id="layoutInvertToggle">
+                <span class="toggle-slider"></span>
+              </div>
+              <span>Invert Layout</span>
+            </label>
+          </div>
+          <div class="style-option-group toggle-group">
+            <label class="toggle-label">
+              <div class="toggle-switch">
+                <input type="checkbox" id="hideZapperContentToggle">
+                <span class="toggle-slider"></span>
+              </div>
+              <span>Hide Zapper Content</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
 
 
   </body>

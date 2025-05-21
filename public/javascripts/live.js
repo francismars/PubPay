@@ -1,13 +1,196 @@
 let urlToParse = location.search;
 const params = new URLSearchParams(urlToParse);
 console.log(params.get("note"))
-const nevent = params.get("note")  // ? params.get("note") "note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7";
+let nevent = params.get("note")  // ? params.get("note") "note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7";
 // "b4728c14cbe74a1008d4ed80817dd412ad276469da1b007e7e00e071368c4c9b"
+
+// Decode nevent to note if present in URL
+if (nevent) {
+    try {
+        const decoded = NostrTools.nip19.decode(nevent);
+        if (decoded.type === 'nevent') {
+            // Convert nevent to note format and update URL
+            const note = NostrTools.nip19.noteEncode(decoded.data.id);
+            const currentParams = new URLSearchParams(window.location.search);
+            currentParams.set('note', note);
+            const newUrl = window.location.pathname + '?' + currentParams.toString();
+            window.history.replaceState({}, '', newUrl);
+            nevent = note;
+        }
+    } catch (e) {
+        console.log("Error decoding note parameter:", e);
+    }
+}
 
 const pool = new NostrTools.SimplePool()
 const relays = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
 
 let json9735List = []
+
+// Style options URL parameters
+const DEFAULT_STYLES = {
+    textColor: '#ffffff',
+    bgColor: '#000000',
+    bgImage: '/images/lightning.gif',
+    qrInvert: true,
+    qrScreenBlend: true,
+    qrMultiplyBlend: false,
+    layoutInvert: false,
+    hideZapperContent: false
+};
+
+// DOM Elements for style options
+const liveElement = document.querySelector('.live');
+const qrCode = document.getElementById('qrCode');
+const bgImageUrl = document.getElementById('bgImageUrl');
+const bgImagePreview = document.getElementById('bgImagePreview');
+const clearBgImage = document.getElementById('clearBgImage');
+const liveZapOverlay = document.querySelector('.liveZapOverlay');
+const qrInvertToggle = document.getElementById('qrInvertToggle');
+const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle');
+const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
+const layoutInvertToggle = document.getElementById('layoutInvertToggle');
+const hideZapperContentToggle = document.getElementById('hideZapperContentToggle');
+
+// Helper functions for color handling
+function isValidHexColor(color) {
+    return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
+}
+
+function toHexColor(color) {
+    // If it's already a valid hex, return it
+    if (isValidHexColor(color)) {
+        return color.toLowerCase();
+    }
+    
+    // Try to parse as RGB/RGBA
+    if (color.startsWith('rgb')) {
+        const rgb = color.match(/\d+/g);
+        if (rgb && rgb.length >= 3) {
+            const r = parseInt(rgb[0]).toString(16).padStart(2, '0');
+            const g = parseInt(rgb[1]).toString(16).padStart(2, '0');
+            const b = parseInt(rgb[2]).toString(16).padStart(2, '0');
+            return `#${r}${g}${b}`;
+        }
+    }
+    
+    // If we can't convert, return the default color
+    return DEFAULT_STYLES.textColor;
+}
+
+function updateStyleURL() {
+    const currentParams = new URLSearchParams(window.location.search);
+    
+    // Only add parameters that differ from defaults
+    const currentTextColor = toHexColor(liveElement.style.color);
+    if (currentTextColor !== DEFAULT_STYLES.textColor) {
+        currentParams.set('textColor', currentTextColor);
+    } else {
+        currentParams.delete('textColor');
+    }
+    
+    const currentBgColor = toHexColor(liveElement.style.backgroundColor);
+    if (currentBgColor !== DEFAULT_STYLES.bgColor) {
+        currentParams.set('bgColor', currentBgColor);
+    } else {
+        currentParams.delete('bgColor');
+    }
+    
+    if (bgImageUrl.value !== DEFAULT_STYLES.bgImage) {
+        currentParams.set('bgImage', bgImageUrl.value);
+    } else {
+        currentParams.delete('bgImage');
+    }
+    
+    if (qrCode.style.filter !== (DEFAULT_STYLES.qrInvert ? 'invert(1)' : 'none')) {
+        currentParams.set('qrInvert', qrInvertToggle.checked);
+    } else {
+        currentParams.delete('qrInvert');
+    }
+    
+    if (qrCode.style.mixBlendMode !== (DEFAULT_STYLES.qrScreenBlend ? 'screen' : 
+        DEFAULT_STYLES.qrMultiplyBlend ? 'multiply' : 'normal')) {
+        if (qrScreenBlendToggle.checked) {
+            currentParams.set('qrBlend', 'screen');
+        } else if (qrMultiplyBlendToggle.checked) {
+            currentParams.set('qrBlend', 'multiply');
+        } else {
+            currentParams.delete('qrBlend');
+        }
+    } else {
+        currentParams.delete('qrBlend');
+    }
+    
+    if (document.body.classList.contains('flex-direction-invert') !== DEFAULT_STYLES.layoutInvert) {
+        currentParams.set('layoutInvert', layoutInvertToggle.checked);
+    } else {
+        currentParams.delete('layoutInvert');
+    }
+    
+    if (document.body.classList.contains('hide-zapper-content') !== DEFAULT_STYLES.hideZapperContent) {
+        currentParams.set('hideZapperContent', hideZapperContentToggle.checked);
+    } else {
+        currentParams.delete('hideZapperContent');
+    }
+    
+    // Update URL without reloading the page
+    const newUrl = window.location.pathname + (currentParams.toString() ? '?' + currentParams.toString() : '');
+    window.history.replaceState({}, '', newUrl);
+}
+
+function applyStylesFromURL() {
+    // Apply text color
+    if (params.has('textColor')) {
+        const color = toHexColor(params.get('textColor'));
+        liveElement.style.color = color;
+        document.getElementById('textColorPicker').value = color;
+        document.getElementById('textColorValue').value = color;
+    }
+    
+    // Apply background color
+    if (params.has('bgColor')) {
+        const color = toHexColor(params.get('bgColor'));
+        liveElement.style.backgroundColor = color;
+        document.getElementById('bgColorPicker').value = color;
+        document.getElementById('bgColorValue').value = color;
+    }
+    
+    // Apply background image
+    if (params.has('bgImage')) {
+        const imageUrl = params.get('bgImage');
+        bgImageUrl.value = imageUrl;
+        updateBackgroundImage(imageUrl);
+    }
+    
+    // Apply QR code invert
+    if (params.has('qrInvert')) {
+        const invert = params.get('qrInvert') === 'true';
+        qrInvertToggle.checked = invert;
+        qrCode.style.filter = invert ? 'invert(1)' : 'none';
+    }
+    
+    // Apply QR code blend mode
+    if (params.has('qrBlend')) {
+        const blend = params.get('qrBlend');
+        qrScreenBlendToggle.checked = blend === 'screen';
+        qrMultiplyBlendToggle.checked = blend === 'multiply';
+        qrCode.style.mixBlendMode = blend;
+    }
+    
+    // Apply layout invert
+    if (params.has('layoutInvert')) {
+        const invert = params.get('layoutInvert') === 'true';
+        layoutInvertToggle.checked = invert;
+        document.body.classList.toggle('flex-direction-invert', invert);
+    }
+    
+    // Apply zapper content visibility
+    if (params.has('hideZapperContent')) {
+        const hide = params.get('hideZapperContent') === 'true';
+        hideZapperContentToggle.checked = hide;
+        document.body.classList.toggle('hide-zapper-content', hide);
+    }
+}
 
 if(nevent){
     const kind1ID = NostrTools.nip19.decode(nevent).data
@@ -15,13 +198,37 @@ if(nevent){
     document.getElementById('noteLoaderContainer').style.display = 'none';
 }
 
+// Apply styles from URL after DOM elements are ready
+applyStylesFromURL();
 
 document.getElementById('note1LoaderSubmit').addEventListener('click', note1fromLoader);
 
 function note1fromLoader(){
     const note1 = document.getElementById('note1LoaderInput').value;
-    const kind1ID = NostrTools.nip19.decode(note1).data
-    subscribeKind1(kind1ID)
+    let kind1ID;
+    
+    try {
+        // Try to decode as nevent first
+        const decoded = NostrTools.nip19.decode(note1);
+        if (decoded.type === 'nevent') {
+            kind1ID = decoded.data.id;
+        } else if (decoded.type === 'note') {
+            kind1ID = decoded.data;
+        } else {
+            throw new Error('Invalid format');
+        }
+    } catch (e) {
+        // If decoding fails, try to use the input directly as a note ID
+        kind1ID = note1;
+    }
+    
+    // Update URL with the note parameter
+    const currentParams = new URLSearchParams(window.location.search);
+    currentParams.set('note', note1);
+    const newUrl = window.location.pathname + '?' + currentParams.toString();
+    window.history.replaceState({}, '', newUrl);
+    
+    subscribeKind1(kind1ID);
     document.getElementById('noteLoaderContainer').style.display = 'none';
     console.log(note1);
 }
@@ -173,22 +380,45 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
     drawKinds9735(json9735List)
   }
 
+function scaleTextByLength(element, content) {
+    const maxLength = 180; // Twitter-like character limit
+    const minFontSize = 1; // Minimum font size in vw
+    const maxFontSize = 4; // Maximum font size in vw
+    const baseLength = 80; // Base length for scaling calculation
+    
+    // Calculate font size based on content length
+    let fontSize;
+    if (content.length <= baseLength) {
+        fontSize = maxFontSize;
+    } else if (content.length >= maxLength) {
+        fontSize = minFontSize;
+    } else {
+        // Linear scaling between maxLength and baseLength
+        const scale = (content.length - baseLength) / (maxLength - baseLength);
+        fontSize = maxFontSize - (scale * (maxFontSize - minFontSize));
+    }
+    
+    // Apply the font size
+    element.style.fontSize = `${fontSize}vw`;
+}
 
-
-  function drawKind1(kind1){
+function drawKind1(kind1){
     console.log(kind1)
-      document.getElementById("noteContent").innerText = kind1.content;
-      let qrcodeContainer = document.getElementById("qrCode");
-      qrcodeContainer.innerHTML = "";
-      new QRious({
+    const noteContent = document.getElementById("noteContent");
+    noteContent.innerText = kind1.content;
+    scaleTextByLength(noteContent, kind1.content);
+    
+    let qrcodeContainer = document.getElementById("qrCode");
+    qrcodeContainer.innerHTML = "";
+    new QRious({
         element: qrcodeContainer,
         size: 800,
         value: "https://njump.me/"+NostrTools.nip19.noteEncode(kind1.id)
-      });
-      document.getElementById("qrcodeLinkNostr").href = "https://njump.me/"+NostrTools.nip19.noteEncode(kind1.id)
-  }
+    });
+    document.getElementById("qrcodeLinkNostr").href = "https://njump.me/"+NostrTools.nip19.noteEncode(kind1.id)
+}
 
-  function drawKind0(kind0){
+function drawKind0(kind0){
       let authorContent = JSON.parse(kind0.content)
       console.log(authorContent);
       //document.getElementById("authorName").innerText = authorContent.name;
@@ -230,7 +460,7 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
 
         zapDiv.innerHTML = `
             <div class="zapper" style="margin-bottom:${gapCalc}">
-                <div class="zapperProfile" style="gap:${gapCalc}">
+                <div class="zapperProfile flex-sort" style="gap:${gapCalc}">
                   <img class="userImg zapperProfileImg" style="width:${imgSizeCalc};height:${imgSizeCalc}" src="${profileImage}" />
                   <div>
                     <div class="zapperName">
@@ -257,3 +487,152 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
         */
       }
   }
+
+
+
+
+/*
+
+Style Options
+
+*/
+
+
+function toggleStyleOptionsModal(){
+    const styleOptionsModal = document.getElementById("styleOptionsModal");
+    styleOptionsModal.classList.toggle("active");
+}
+
+
+
+// Add modal toggle functionality
+document.querySelectorAll('.styleOptionsModalToggle').forEach(function(toggle) {
+    toggle.addEventListener('click', function() {
+        document.getElementById('styleOptionsModal').classList.add('show');
+    });
+});
+
+document.querySelector('#styleOptionsModal .close-button').addEventListener('click', function() {
+    document.getElementById('styleOptionsModal').classList.remove('show');
+});
+
+// Close modal when clicking outside
+document.getElementById('styleOptionsModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.classList.remove('show');
+    }
+});
+
+// Color picker functionality
+function setupColorPicker(pickerId, valueId, targetProperty) {
+    const picker = document.getElementById(pickerId);
+    const value = document.getElementById(valueId);
+    const liveElement = document.querySelector('.live');
+
+    // Update text input when color picker changes
+    picker.addEventListener('input', function(e) {
+        const color = toHexColor(e.target.value);
+        value.value = color;
+        liveElement.style[targetProperty] = color;
+        updateStyleURL();
+    });
+
+    // Update color picker when text input changes
+    value.addEventListener('input', function(e) {
+        const color = toHexColor(e.target.value);
+        if (isValidHexColor(color)) {
+            picker.value = color;
+            liveElement.style[targetProperty] = color;
+            updateStyleURL();
+        }
+    });
+}
+
+// Setup both color pickers
+setupColorPicker('textColorPicker', 'textColorValue', 'color');
+setupColorPicker('bgColorPicker', 'bgColorValue', 'backgroundColor');
+
+// Background image functionality
+function updateBackgroundImage(url) {
+    if (url) {
+        liveZapOverlay.style.backgroundImage = `url("${url}")`;
+        bgImagePreview.src = url;
+    } else {
+        liveZapOverlay.style.backgroundImage = 'none';
+        bgImagePreview.src = '';
+    }
+}
+
+// Update background when URL changes
+bgImageUrl.addEventListener('input', function(e) {
+    const url = e.target.value.trim();
+    if (url) {
+        // Test if the image loads
+        const img = new Image();
+        img.onload = function() {
+            updateBackgroundImage(url);
+            updateStyleURL();
+        };
+        img.onerror = function() {
+            // If image fails to load, show error in preview
+            bgImagePreview.src = '';
+            bgImagePreview.alt = 'Failed to load image';
+        };
+        img.src = url;
+    } else {
+        updateBackgroundImage('');
+        updateStyleURL();
+    }
+});
+
+// Clear background image
+clearBgImage.addEventListener('click', function() {
+    bgImageUrl.value = '';
+    updateBackgroundImage('');
+    updateStyleURL();
+});
+
+// QR Code toggles
+qrInvertToggle.addEventListener('change', function(e) {
+    qrCode.style.filter = e.target.checked ? 'invert(1)' : 'none';
+    updateStyleURL();
+});
+
+function updateBlendMode() {
+    if (qrScreenBlendToggle.checked) {
+        qrCode.style.mixBlendMode = 'screen';
+        qrMultiplyBlendToggle.checked = false;
+    } else if (qrMultiplyBlendToggle.checked) {
+        qrCode.style.mixBlendMode = 'multiply';
+        qrScreenBlendToggle.checked = false;
+    } else {
+        qrCode.style.mixBlendMode = 'normal';
+    }
+    updateStyleURL();
+}
+
+qrScreenBlendToggle.addEventListener('change', function(e) {
+    if (e.target.checked) {
+        qrMultiplyBlendToggle.checked = false;
+    }
+    updateBlendMode();
+});
+
+qrMultiplyBlendToggle.addEventListener('change', function(e) {
+    if (e.target.checked) {
+        qrScreenBlendToggle.checked = false;
+    }
+    updateBlendMode();
+});
+
+// Layout inversion toggle
+layoutInvertToggle.addEventListener('change', function(e) {
+    document.body.classList.toggle('flex-direction-invert', e.target.checked);
+    updateStyleURL();
+});
+
+// Add event listener for hide zapper content toggle
+hideZapperContentToggle.addEventListener('change', function(e) {
+    document.body.classList.toggle('hide-zapper-content', e.target.checked);
+    updateStyleURL();
+});

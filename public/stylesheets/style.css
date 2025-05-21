@@ -573,7 +573,7 @@ legend {
 textarea,
 input {
   border: 1px #cecece solid;
-  padding: 10px;
+  /* padding: 10px; */
   border-radius: 5px;
 }
 
@@ -795,6 +795,7 @@ input:focus::placeholder {
 #liveContainer {
   /* height: 16vw; */
   overflow: hidden;
+  display: flex;
 }
 
 .live.color {
@@ -813,7 +814,7 @@ input:focus::placeholder {
   padding: 3vw;
   /* text-align: center; */
   width: 34vw;
-  position: fixed;
+  /* position: fixed; */
 }
 
 .live .seedNoteData {
@@ -869,20 +870,20 @@ input:focus::placeholder {
   letter-spacing: 0.06rem;
 }
 
-.live #pubPayContent {
+.live #intructions {
   font-size: 1.3vw;
   font-weight: 300;
-  width: 100vw;
+  /* width: 100vw; */
   overflow: hidden;
-  height: 2.5vw;
+  /* height: 2.5vw; */
   text-overflow: ellipsis;
-  padding: 1vw 3vw;
   letter-spacing: 0.03rem;
+  /* display: block; */
 }
 
 .live #zapsContainer {
   padding: 3.5vw;
-  padding-left: 42vw;
+  width: 52vw;
 }
 
 .live #zaps {
@@ -936,7 +937,7 @@ input:focus::placeholder {
   font-size: 3vw;
 }
 .live .zapperAmountSats {
-  color: #ffffff55;
+  opacity: 0.6;
 }
 
 .live .zap:nth-child(even) .zapperProfile {
@@ -954,6 +955,35 @@ input:focus::placeholder {
   width: 5vw;
   height: 5vw;
 }
+
+
+
+
+.flex-direction-invert .flex-sort {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.flex-direction-invert .live .zapperProfile {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1vw;
+}
+
+.flex-direction-invert .zap:nth-child(even) .zapperProfile {
+  justify-content: flex-end;
+  flex-direction: row;
+  text-align: left;
+}
+
+
+.flex-direction-invert .zapperTotalLabel {
+  text-align: left;
+}
+
+
+
 
 .live .liveZapOverlay {
   width: 100vw;
@@ -973,24 +1003,40 @@ input:focus::placeholder {
   background: #00000000;
   bottom: 0;
   left: 0;
-  color: #ffffff59;
+  /* opacity: 0.8; */
+  display: flex;
+  justify-content: space-between;
+  width: 100vw;
+  padding: 1vw 3vw;
+  box-sizing: border-box;
+  align-items: center;
+}
+
+#brand-totals {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* width: 100%; */
+  column-gap: 1vw;
 }
 
 .live #poweredBy {
-  position: fixed;
+  /* position: fixed; */
   bottom: 1vw;
   right: 1vw;
   /* opacity:0.8; */
 }
 .live #poweredBy img {
   width: 10vw;
+  box-shadow: 0px 0px 9px #00000066;
+  border-radius: 0.5vw;
 }
 
 .live #zappedTotal {
-  position: fixed;
+  /* position: fixed; */
   background: #00000000;
-  bottom: 1.7vw;
-  right: 12vw;
+  /* bottom: 1.7vw; */
+  /* right: 12vw; */
   font-size: 1vw;
   line-height: 1vw;
   text-align: right;
@@ -1171,3 +1217,269 @@ input:focus::placeholder {
   margin-left: 0px;
   border-left: 2px solid #ccc;
 }
+
+
+
+.styleOptionsModalToggle:hover {
+  cursor: pointer;
+}
+
+#styleOptionsModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 100;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+#styleOptionsModal.show {
+  display: flex;
+}
+
+#styleOptionsModal .style-options-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 600px;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+#styleOptionsModal .style-options-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-right: 20px;
+}
+
+#styleOptionsModal .style-options-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+#styleOptionsModal .close-button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 5px;
+  line-height: 1;
+}
+
+#styleOptionsModal .close-button:hover {
+  color: #333;
+}
+
+#styleOptionsModal .style-options-body {
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+#styleOptionsModal .style-option-group {
+  margin-bottom: 0;
+}
+
+#styleOptionsModal .style-option-group.full-width {
+  grid-column: 1 / -1;
+}
+
+#styleOptionsModal .bg-image-controls {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+  margin-top: 4px;
+}
+
+#styleOptionsModal .url-input-container {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+}
+
+#styleOptionsModal .url-input-container input[type="text"] {
+  flex: 1;
+  min-width: 0; /* Prevents flex item from overflowing */
+}
+
+#styleOptionsModal .preview-container {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border: 2px solid #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+}
+
+#styleOptionsModal .preview-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#styleOptionsModal .toggle-switch {
+  /* width: 40px; */
+  /* height: 20px; */
+}
+
+#styleOptionsModal .toggle-slider:before {
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+}
+
+#styleOptionsModal .toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.button {
+  background-color: #4a75ff;
+  color: #ffffff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 8px 0;
+  display: inline-block;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 28%);
+}
+
+#note1LoaderSubmit:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.hide-zapper-content .zapperContent {
+    display: none;
+}
+
+#styleOptionsModal .style-option-group label {
+    display: flex;
+    margin-bottom: 4px;
+    color: #333;
+    font-weight: 500;
+    font-size: 13px;
+    /* flex-direction: column; */
+    align-items: flex-start;
+    gap: 4px;
+}
+
+#styleOptionsModal .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    width: 100%;
+    flex-direction: row;
+}
+
+#styleOptionsModal .toggle-label .toggle-switch {
+    order: -1; /* This moves the switch to the left */
+    margin-right: 4px;
+}
+
+#styleOptionsModal .toggle-label span {
+    font-size: 13px;
+    color: #333;
+    font-weight: 500;
+}
+
+/* Special handling for color picker labels to keep them above inputs */
+#styleOptionsModal .style-option-group:not(.toggle-group) label {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+/* Add a class to identify toggle groups */
+#styleOptionsModal .style-option-group.toggle-group {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+}
+
+#styleOptionsModal .color-picker-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+#styleOptionsModal input[type="color"] {
+    width: 40px;
+    height: 40px;
+}
+
+#styleOptionsModal input[type="text"] {
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+#styleOptionsModal .style-option-group.full-width {
+    grid-column: 1 / -1;
+}
+
+#styleOptionsModal .bg-image-controls {
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+    margin-top: 4px;
+}
+
+#styleOptionsModal .url-input-container {
+    /* flex: 1; */
+    display: block;
+    /* gap: 8px; */
+}
+
+#styleOptionsModal .url-input-container input[type="text"] {
+    flex: 1;
+    min-width: 0; /* Prevents flex item from overflowing */
+}
+
+#styleOptionsModal .preview-container {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    border: 2px solid #e0e0e0;
+    border-radius: 5px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f5f5f5;
+}
+
+#styleOptionsModal .preview-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+
