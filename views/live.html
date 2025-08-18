@@ -30,20 +30,28 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <link rel="stylesheet" href="stylesheets/style.css?v0.02">
+    <link rel="stylesheet" href="stylesheets/style.css?v0.06">
     <link rel="stylesheet" href="fonts/Inter-4.0/inter.css">
 
     <script src="./javascripts/qrious.min.js"></script>
     <script src="./javascripts/bolt11.min.js"></script>
     <script src="./javascripts/nostrtools.min.js"></script>
   </head>
-  <body class="live black">
+  <body class="live">
     <script type="module" src="./javascripts/live.js"></script>
 
-
+    <!-- Note Loader Container -->
     <div id="noteLoaderContainer">
       <div action="" id="noteLoader">
-        <label for="note1LoaderInput">note1 or nevent1</label><br>
+        <!-- App Header & Description -->
+        <div class="app-header">
+          <h1>PUBPAY.me Live</h1>
+          <p class="app-description">
+            Live Zap Leaderboard for Nostr events
+          </p>
+        </div>
+        
+        <label for="note1LoaderInput">Enter a Nostr post ID:</label><br>
         <input type="text" id="note1LoaderInput" name="note1LoaderInput" value="" placeholder="note16a..."><br>
         <button id="note1LoaderSubmit" class="button">Load Note</button>
         <div>
@@ -66,69 +74,80 @@
       </div>
     </div>
 
-
-    <div id="liveContainer" class="flex-sort">
-
-      <div class="seedNote">
-
-        <a href="" target="_blank" id="qrcodeLinkNostr">
-          <image id="qrCode" class="qrCode">
-          </image>
-        </a>
-
-        <div class="seedNoteData">
-          <div id="author" class="seedNoteAuthor flex-sort">
-            <img id="authorNameProfileImg" class="userImg" src="/images/gradient_color.gif"/>
-            <div id="authorName" class="noteDisplayName">
-            </div>
-          </div>
-          <div id="note">
-            <div id="noteContent">
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div id="zapsContainer" class="flex-sort">
-        <div id="zaps">
-        </div>
-      </div>
-
-    </div>
-
-
-    <div class="liveZapOverlay">
-    </div>
-
-    <div id="bar" class="flex-sort">
+    <!-- Main two-column layout -->
+    <div id="mainLayout" class="main-layout">
       
-      <div id="intructions" class="flex-sort">
-        Scan with camera app to njump note1.
+      <!-- Background image overlay for the entire layout -->
+      <div class="liveZapOverlay">
       </div>
       
-      <div id="brand-totals" class="flex-sort">
+      <!-- LEFT SIDE: Post/kind1 information (fixed, no scroll) -->
+      <div class="left-side">
+        <div class="post-info">
+          <h3 class="section-label">Post Content</h3>
+          
+          <!-- Author Section -->
+          <div class="author-section">
+            <img id="authorNameProfileImg" class="author-image" src="/images/gradient_color.gif"/>
+            <div class="author-info">
+              <div id="authorName" class="author-name">Author</div>
+            </div>
+          </div>
 
-        <div id="zappedTotal" class="flex-sort">
-          <div class="styleOptionsModalToggle">
-            •
+          <!-- Note Content Section -->
+          <div class="note-section">
+            <div id="noteContent" class="note-content">
+              <!-- Note content will be populated here -->
+            </div>
           </div>
-          <div class="zapperTotalLabel">
-            <span class="zapperAmountSats">Total</span><br>
-            <span class="zapperAmountSats">sats</span>
+
+          <!-- QR Code Section -->
+          <div class="qr-section">
+            <a href="" target="_blank" id="qrcodeLinkNostr">
+              <img id="qrCode" class="qr-code">
+            </a>
+            <div class="qr-instructions">
+              Scan with camera app to open post
+            </div>
           </div>
-          <span id="zappedTotalValue"></span>
         </div>
+      </div>
 
-        <div id="poweredBy">
-          <img src="/images/powered_by_white_bg.png">
+      <!-- RIGHT SIDE: Zaps (can overflow/scroll) -->
+      <div class="right-side">
+        <div class="zaps-header">
+          <div class="zaps-header-left">
+            <span class="dashboard-title">
+              Zap Leaderboard
+            </span>
+          </div>
+          
+          <div class="zaps-header-right">
+            <button id="styleToggleBtn" class="style-toggle-btn">
+              ⚙️
+            </button>
+            
+            <div class="powered-by">
+              <img src="/images/powered_by_white_bg.png">
+            </div>
+          </div>
+        </div>
+        
+        <div class="zaps-container">
+          <div class="section-label">
+            <span class="total-label">Total:</span>
+            <span id="zappedTotalValue" class="total-amount">0</span>
+            <span class="total-sats">sats</span>
+          </div>
+          <div id="zaps" class="zaps-list">
+            <!-- Zaps will be populated here -->
+          </div>
         </div>
       </div>
 
     </div>
 
-
-
+    <!-- Style options modal -->
     <div id="styleOptionsModal">
       <div class="style-options-content">
         <div class="style-options-header">
@@ -210,7 +229,6 @@
         </div>
       </div>
     </div>
-
 
   </body>
 </html>
