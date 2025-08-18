@@ -1,56 +1,57 @@
-let urlToParse = location.search;
-const params = new URLSearchParams(urlToParse);
-console.log(params.get("note"))
-let nevent = params.get("note")  // ? params.get("note") "note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7";
-// "b4728c14cbe74a1008d4ed80817dd412ad276469da1b007e7e00e071368c4c9b"
+document.addEventListener('DOMContentLoaded', function() {
+    let urlToParse = location.search;
+    const params = new URLSearchParams(urlToParse);
+    console.log(params.get("note"))
+    let nevent = params.get("note")  // ? params.get("note") "note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ls3hugv7";
+    // "b4728c14cbe74a1008d4ed80817dd412ad276469da1b007e7e00e071368c4c9b"
 
-// Decode nevent to note if present in URL
-if (nevent) {
-    try {
-        const decoded = NostrTools.nip19.decode(nevent);
-        if (decoded.type === 'nevent') {
-            // Convert nevent to note format and update URL
-            const note = NostrTools.nip19.noteEncode(decoded.data.id);
-            const currentParams = new URLSearchParams(window.location.search);
-            currentParams.set('note', note);
-            const newUrl = window.location.pathname + '?' + currentParams.toString();
-            window.history.replaceState({}, '', newUrl);
-            nevent = note;
+    // Decode nevent to note if present in URL
+    if (nevent) {
+        try {
+            const decoded = NostrTools.nip19.decode(nevent);
+            if (decoded.type === 'nevent') {
+                // Convert nevent to note format and update URL
+                const note = NostrTools.nip19.noteEncode(decoded.data.id);
+                const currentParams = new URLSearchParams(window.location.search);
+                currentParams.set('note', note);
+                const newUrl = window.location.pathname + '?' + currentParams.toString();
+                window.history.replaceState({}, '', newUrl);
+                nevent = note;
+            }
+        } catch (e) {
+            console.log("Error decoding note parameter:", e);
         }
-    } catch (e) {
-        console.log("Error decoding note parameter:", e);
     }
-}
 
-const pool = new NostrTools.SimplePool()
-const relays = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
+    const pool = new NostrTools.SimplePool()
+    const relays = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
 
-let json9735List = []
+    let json9735List = []
 
-// Style options URL parameters
-const DEFAULT_STYLES = {
-    textColor: '#ffffff',
-    bgColor: '#000000',
-    bgImage: '/images/lightning.gif',
-    qrInvert: true,
-    qrScreenBlend: true,
-    qrMultiplyBlend: false,
-    layoutInvert: false,
-    hideZapperContent: false
-};
+    // Style options URL parameters
+    const DEFAULT_STYLES = {
+        textColor: '#ffffff',
+        bgColor: '#000000',
+        bgImage: '/images/lightning.gif',
+        qrInvert: true,
+        qrScreenBlend: true,
+        qrMultiplyBlend: false,
+        layoutInvert: false,
+        hideZapperContent: false
+    };
 
-// DOM Elements for style options
-const liveElement = document.querySelector('.live');
-const qrCode = document.getElementById('qrCode');
-const bgImageUrl = document.getElementById('bgImageUrl');
-const bgImagePreview = document.getElementById('bgImagePreview');
-const clearBgImage = document.getElementById('clearBgImage');
-const liveZapOverlay = document.querySelector('.liveZapOverlay');
-const qrInvertToggle = document.getElementById('qrInvertToggle');
-const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle');
-const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
-const layoutInvertToggle = document.getElementById('layoutInvertToggle');
-const hideZapperContentToggle = document.getElementById('hideZapperContentToggle');
+    // DOM Elements for style options
+    const liveElement = document.querySelector('.live');
+    const qrCode = document.getElementById('qrCode');
+    const bgImageUrl = document.getElementById('bgImageUrl');
+    const bgImagePreview = document.getElementById('bgImagePreview');
+    const clearBgImage = document.getElementById('clearBgImage');
+    const liveZapOverlay = document.querySelector('.liveZapOverlay');
+    const qrInvertToggle = document.getElementById('qrInvertToggle');
+    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle');
+    const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
+    const layoutInvertToggle = document.getElementById('layoutInvertToggle');
+    const hideZapperContentToggle = document.getElementById('hideZapperContentToggle');
 
 // Helper functions for color handling
 function isValidHexColor(color) {
@@ -80,16 +81,17 @@ function toHexColor(color) {
 
 function updateStyleURL() {
     const currentParams = new URLSearchParams(window.location.search);
+    const mainLayout = document.querySelector('.main-layout');
     
     // Only add parameters that differ from defaults
-    const currentTextColor = toHexColor(liveElement.style.color);
+    const currentTextColor = toHexColor(mainLayout.style.color);
     if (currentTextColor !== DEFAULT_STYLES.textColor) {
         currentParams.set('textColor', currentTextColor);
     } else {
         currentParams.delete('textColor');
     }
     
-    const currentBgColor = toHexColor(liveElement.style.backgroundColor);
+    const currentBgColor = toHexColor(mainLayout.style.backgroundColor);
     if (currentBgColor !== DEFAULT_STYLES.bgColor) {
         currentParams.set('bgColor', currentBgColor);
     } else {
@@ -102,13 +104,15 @@ function updateStyleURL() {
         currentParams.delete('bgImage');
     }
     
-    if (qrCode.style.filter !== (DEFAULT_STYLES.qrInvert ? 'invert(1)' : 'none')) {
+    const qrCodeContainer = document.getElementById('qrCode');
+    
+    if (qrCodeContainer && qrCodeContainer.style.filter !== (DEFAULT_STYLES.qrInvert ? 'invert(1)' : 'none')) {
         currentParams.set('qrInvert', qrInvertToggle.checked);
     } else {
         currentParams.delete('qrInvert');
     }
     
-    if (qrCode.style.mixBlendMode !== (DEFAULT_STYLES.qrScreenBlend ? 'screen' : 
+    if (qrCodeContainer && qrCodeContainer.style.mixBlendMode !== (DEFAULT_STYLES.qrScreenBlend ? 'screen' : 
         DEFAULT_STYLES.qrMultiplyBlend ? 'multiply' : 'normal')) {
         if (qrScreenBlendToggle.checked) {
             currentParams.set('qrBlend', 'screen');
@@ -139,10 +143,31 @@ function updateStyleURL() {
 }
 
 function applyStylesFromURL() {
+    const mainLayout = document.querySelector('.main-layout');
+    
+    // Apply default background color if no custom color is specified
+    if (!params.has('bgColor')) {
+        const defaultColor = DEFAULT_STYLES.bgColor;
+        const rgbaColor = hexToRgba(defaultColor, 0.5);
+        mainLayout.style.backgroundColor = rgbaColor;
+        document.getElementById('bgColorPicker').value = defaultColor;
+        document.getElementById('bgColorValue').value = defaultColor;
+    }
+    
     // Apply text color
     if (params.has('textColor')) {
         const color = toHexColor(params.get('textColor'));
-        liveElement.style.color = color;
+        mainLayout.style.setProperty('--text-color', color);
+        
+        // Also specifically override zaps header elements that have hardcoded colors
+        const zapsHeaderH2 = mainLayout.querySelector('.zaps-header-left h2');
+        const totalLabel = mainLayout.querySelector('.total-label');
+        const totalSats = mainLayout.querySelector('.total-sats');
+        
+        if (zapsHeaderH2) zapsHeaderH2.style.color = color;
+        if (totalLabel) totalLabel.style.color = color;
+        if (totalSats) totalSats.style.color = color;
+        
         document.getElementById('textColorPicker').value = color;
         document.getElementById('textColorValue').value = color;
     }
@@ -150,7 +175,8 @@ function applyStylesFromURL() {
     // Apply background color
     if (params.has('bgColor')) {
         const color = toHexColor(params.get('bgColor'));
-        liveElement.style.backgroundColor = color;
+        const rgbaColor = hexToRgba(color, 0.5);
+        mainLayout.style.backgroundColor = rgbaColor;
         document.getElementById('bgColorPicker').value = color;
         document.getElementById('bgColorValue').value = color;
     }
@@ -162,11 +188,30 @@ function applyStylesFromURL() {
         updateBackgroundImage(imageUrl);
     }
     
+    // Apply default QR code blend mode if no custom blend is specified
+    if (!params.has('qrBlend')) {
+        const qrCodeContainer = document.getElementById('qrCode');
+        if (qrCodeContainer) {
+            if (DEFAULT_STYLES.qrScreenBlend) {
+                qrCodeContainer.style.mixBlendMode = 'screen';
+                qrScreenBlendToggle.checked = true;
+            } else if (DEFAULT_STYLES.qrMultiplyBlend) {
+                qrCodeContainer.style.mixBlendMode = 'multiply';
+                qrMultiplyBlendToggle.checked = true;
+            } else {
+                qrCodeContainer.style.mixBlendMode = 'normal';
+            }
+        }
+    }
+    
     // Apply QR code invert
     if (params.has('qrInvert')) {
         const invert = params.get('qrInvert') === 'true';
         qrInvertToggle.checked = invert;
-        qrCode.style.filter = invert ? 'invert(1)' : 'none';
+        const qrCodeContainer = document.getElementById('qrCode');
+        if (qrCodeContainer) {
+            qrCodeContainer.style.filter = invert ? 'invert(1)' : 'none';
+        }
     }
     
     // Apply QR code blend mode
@@ -174,7 +219,10 @@ function applyStylesFromURL() {
         const blend = params.get('qrBlend');
         qrScreenBlendToggle.checked = blend === 'screen';
         qrMultiplyBlendToggle.checked = blend === 'multiply';
-        qrCode.style.mixBlendMode = blend;
+        const qrCodeContainer = document.getElementById('qrCode');
+        if (qrCodeContainer) {
+            qrCodeContainer.style.mixBlendMode = blend;
+        }
     }
     
     // Apply layout invert
@@ -556,15 +604,27 @@ async function drawKind1(kind1){
     // Process content for both images and nostr mentions
     const processedContent = await processNoteContent(kind1.content);
     noteContent.innerHTML = processedContent;
-    scaleTextByLength(noteContent, kind1.content);
     
     let qrcodeContainer = document.getElementById("qrCode");
     qrcodeContainer.innerHTML = "";
     new QRious({
         element: qrcodeContainer,
-        size: 800,
+        size: Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7), // Much bigger for far-away scanning
         value: "https://njump.me/"+NostrTools.nip19.noteEncode(kind1.id)
     });
+    
+    // Apply current blend mode settings to the newly created QR code
+    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle');
+    const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
+    
+    if (qrScreenBlendToggle.checked) {
+        qrcodeContainer.style.mixBlendMode = 'screen';
+    } else if (qrMultiplyBlendToggle.checked) {
+        qrcodeContainer.style.mixBlendMode = 'multiply';
+    } else {
+        qrcodeContainer.style.mixBlendMode = 'normal';
+    }
+    
     document.getElementById("qrcodeLinkNostr").href = "https://njump.me/"+NostrTools.nip19.noteEncode(kind1.id)
 }
 
@@ -585,56 +645,35 @@ function drawKind0(kind0){
       const zapsContainer = document.getElementById("zaps");
       zapsContainer.innerHTML = ""
 
-      let fontSize = 6
-      let gapSize = 1
-      let imgSize = 28
-      let factor = 1.4
-      let zapIndex = 1
       const totalAmountZapped = json9735List.reduce((sum, zaps) => sum + zaps.amount, 0);
       document.getElementById("zappedTotalValue").innerText = numberWithCommas(totalAmountZapped);
 
-      for(let json9735 of json9735List){
+      // Sort zaps by amount (highest first) - no limit, let them overflow
+      const sortedZaps = json9735List.sort((a, b) => b.amount - a.amount);
+
+      for(let json9735 of sortedZaps){
         const zapDiv = document.createElement("div");
         zapDiv.className = "zap";
 
         if(!json9735.picture) json9735.picture = ""
         const profileImage = json9735.picture == "" ? "/images/gradient_color.gif" : json9735.picture
 
-        let fontSizeCalc = (fontSize/(zapIndex*1.1))
-        zapDiv.style.fontSize = fontSizeCalc + "vw"
-        //zapDiv.style.gap = (gapSize - (zapIndex*1.1)) + "vw"
-        let imgSizeCalc = (imgSize/(zapIndex*1.5)) + "vw"
-        let gapCalc = (gapSize/zapIndex/0.5) + "vw"
-        zapIndex = zapIndex+1
-
-
         zapDiv.innerHTML = `
-            <div class="zapper" style="margin-bottom:${gapCalc}">
-                <div class="zapperProfile flex-sort" style="gap:${gapCalc}">
-                  <img class="userImg zapperProfileImg" style="width:${imgSizeCalc};height:${imgSizeCalc}" src="${profileImage}" />
-                  <div>
-                    <div class="zapperName">
-                        ${json9735.kind1Name}
-                    </div>
-                    <div class="zapperAmount" style="font-size:${(fontSizeCalc/2) + "vw"};">
-                        <span class="zapperAmountValue">${numberWithCommas(json9735.amount)}</span> <span class="zapperAmountSats">sats</span>
-                    </div>
-                    <div class="zapperContent">
-                        ${json9735.kind9735content}
-                    </div>
-                  </div>
+            <div class="zapperProfile">
+                <img class="zapperProfileImg" src="${profileImage}" />
+                <div class="zapperName">
+                    ${json9735.kind1Name}
                 </div>
-
-
+            </div>
+            <div class="zapperContent">
+                <div class="zapperMessage">${json9735.kind9735content || ''}</div>
+            </div>
+            <div class="zapperAmount">
+                <span class="zapperAmountSats">${numberWithCommas(json9735.amount)}</span>
+                <span class="zapperAmountSats">sats</span>
             </div>
         `;
         zapsContainer.appendChild(zapDiv);
-        /*
-        if(!json9735.picture) json9735.picture = ""
-        const profileImage = json9735.picture == "" ? "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg" : json9735.picture
-        let zapPayerLink = '<a href="https://nostrudel.ninja/#/u/'+json9735.npubPayer+'" target="_blank"><img class="userImg" src="'+profileImage+'" /></a>'
-        let zapEventLink = '<a href="https://nostrudel.ninja/#/n/'+json9735.zapEventID+'" target="_blank" class="zapReactionAmount">'+json9735.amount+'</a>'
-        */
       }
   }
 
@@ -650,7 +689,7 @@ Style Options
 
 function toggleStyleOptionsModal(){
     const styleOptionsModal = document.getElementById("styleOptionsModal");
-    styleOptionsModal.classList.toggle("active");
+    styleOptionsModal.classList.toggle("show");
 }
 
 
@@ -660,6 +699,11 @@ document.querySelectorAll('.styleOptionsModalToggle').forEach(function(toggle) {
     toggle.addEventListener('click', function() {
         document.getElementById('styleOptionsModal').classList.add('show');
     });
+});
+
+// Add event listener for the style toggle button in the bottom bar
+document.getElementById('styleToggleBtn').addEventListener('click', function() {
+    toggleStyleOptionsModal();
 });
 
 document.querySelector('#styleOptionsModal .close-button').addEventListener('click', function() {
@@ -678,12 +722,34 @@ function setupColorPicker(pickerId, valueId, targetProperty) {
     const picker = document.getElementById(pickerId);
     const value = document.getElementById(valueId);
     const liveElement = document.querySelector('.live');
+    const mainLayout = document.querySelector('.main-layout');
 
     // Update text input when color picker changes
     picker.addEventListener('input', function(e) {
         const color = toHexColor(e.target.value);
         value.value = color;
-        liveElement.style[targetProperty] = color;
+        
+        if (targetProperty === 'backgroundColor') {
+            // For background color, update the main-layout with 0.5 transparency
+            const rgbaColor = hexToRgba(color, 0.5);
+            mainLayout.style.backgroundColor = rgbaColor;
+        } else if (targetProperty === 'color') {
+            // For text color, use CSS custom property for consistent inheritance
+            mainLayout.style.setProperty('--text-color', color);
+            
+            // Also specifically override zaps header elements that have hardcoded colors
+            const zapsHeaderH2 = mainLayout.querySelector('.zaps-header-left h2');
+            const totalLabel = mainLayout.querySelector('.total-label');
+            const totalSats = mainLayout.querySelector('.total-sats');
+            
+            if (zapsHeaderH2) zapsHeaderH2.style.color = color;
+            if (totalLabel) totalLabel.style.color = color;
+            if (totalSats) totalSats.style.color = color;
+        } else {
+            // For other properties, update the live element
+            liveElement.style[targetProperty] = color;
+        }
+        
         updateStyleURL();
     });
 
@@ -692,100 +758,40 @@ function setupColorPicker(pickerId, valueId, targetProperty) {
         const color = toHexColor(e.target.value);
         if (isValidHexColor(color)) {
             picker.value = color;
-            liveElement.style[targetProperty] = color;
+            
+            if (targetProperty === 'backgroundColor') {
+                // For background color, update the main-layout with 0.5 transparency
+                const rgbaColor = hexToRgba(color, 0.5);
+                mainLayout.style.backgroundColor = rgbaColor;
+            } else if (targetProperty === 'color') {
+                // For text color, use CSS custom property for consistent inheritance
+                mainLayout.style.setProperty('--text-color', color);
+                
+                // Also specifically override zaps header elements that have hardcoded colors
+                const zapsHeaderH2 = mainLayout.querySelector('.zaps-header-left h2');
+                const totalLabel = mainLayout.querySelector('.total-label');
+                const totalSats = mainLayout.querySelector('.total-sats');
+                
+                if (zapsHeaderH2) zapsHeaderH2.style.color = color;
+                if (totalLabel) totalLabel.style.color = color;
+                if (totalSats) totalSats.style.color = color;
+            } else {
+                // For other properties, update the live element
+                liveElement.style[targetProperty] = color;
+            }
+            
             updateStyleURL();
         }
     });
 }
 
-// Setup both color pickers
-setupColorPicker('textColorPicker', 'textColorValue', 'color');
-setupColorPicker('bgColorPicker', 'bgColorValue', 'backgroundColor');
-
-// Background image functionality
-function updateBackgroundImage(url) {
-    if (url) {
-        liveZapOverlay.style.backgroundImage = `url("${url}")`;
-        bgImagePreview.src = url;
-    } else {
-        liveZapOverlay.style.backgroundImage = 'none';
-        bgImagePreview.src = '';
-    }
+// Helper function to convert hex color to rgba with transparency
+function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
-
-// Update background when URL changes
-bgImageUrl.addEventListener('input', function(e) {
-    const url = e.target.value.trim();
-    if (url) {
-        // Test if the image loads
-        const img = new Image();
-        img.onload = function() {
-            updateBackgroundImage(url);
-            updateStyleURL();
-        };
-        img.onerror = function() {
-            // If image fails to load, show error in preview
-            bgImagePreview.src = '';
-            bgImagePreview.alt = 'Failed to load image';
-        };
-        img.src = url;
-    } else {
-        updateBackgroundImage('');
-        updateStyleURL();
-    }
-});
-
-// Clear background image
-clearBgImage.addEventListener('click', function() {
-    bgImageUrl.value = '';
-    updateBackgroundImage('');
-    updateStyleURL();
-});
-
-// QR Code toggles
-qrInvertToggle.addEventListener('change', function(e) {
-    qrCode.style.filter = e.target.checked ? 'invert(1)' : 'none';
-    updateStyleURL();
-});
-
-function updateBlendMode() {
-    if (qrScreenBlendToggle.checked) {
-        qrCode.style.mixBlendMode = 'screen';
-        qrMultiplyBlendToggle.checked = false;
-    } else if (qrMultiplyBlendToggle.checked) {
-        qrCode.style.mixBlendMode = 'multiply';
-        qrScreenBlendToggle.checked = false;
-    } else {
-        qrCode.style.mixBlendMode = 'normal';
-    }
-    updateStyleURL();
-}
-
-qrScreenBlendToggle.addEventListener('change', function(e) {
-    if (e.target.checked) {
-        qrMultiplyBlendToggle.checked = false;
-    }
-    updateBlendMode();
-});
-
-qrMultiplyBlendToggle.addEventListener('change', function(e) {
-    if (e.target.checked) {
-        qrScreenBlendToggle.checked = false;
-    }
-    updateBlendMode();
-});
-
-// Layout inversion toggle
-layoutInvertToggle.addEventListener('change', function(e) {
-    document.body.classList.toggle('flex-direction-invert', e.target.checked);
-    updateStyleURL();
-});
-
-// Add event listener for hide zapper content toggle
-hideZapperContentToggle.addEventListener('change', function(e) {
-    document.body.classList.toggle('hide-zapper-content', e.target.checked);
-    updateStyleURL();
-});
 
 // Add CSS for note images and mentions
 const style = document.createElement('style');
@@ -809,5 +815,288 @@ style.textContent = `
     .nostr-mention:hover {
         text-decoration: underline;
     }
+    
+    /* Use CSS custom property for text color inheritance */
+    .main-layout {
+        --text-color: #ffffff;
+        color: var(--text-color);
+    }
+    
+    .main-layout * {
+        color: inherit;
+    }
+    
+    /* Zap content styling */
+    .zapperContent {
+        flex: 1;
+        margin-left: 50px;
+        margin-right: 15px;
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    .zapperMessage {
+        font-size: 20px;
+        color: #ccc;
+        line-height: 1.4;
+        word-wrap: break-word;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* Hide zapper content when toggle is active */
+    body.hide-zapper-content .zapperContent {
+        display: none;
+    }
+    
+    /* Adjust layout when content is hidden */
+    body.hide-zapper-content .zap {
+        justify-content: space-between;
+    }
+    
+    body.hide-zapper-content .zapperProfile {
+        margin-right: 0;
+    }
+    
+    /* Fix alternating zapper display - ensure consistent layout */
+    .zap {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .zapperProfile {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 120px;
+        flex-shrink: 0;
+        flex-direction: row;
+    }
+    
+    .zapperProfileImg {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    
+            .zapperName {
+            font-size: 20px;
+            font-weight: bold;
+            color: inherit;
+            flex-shrink: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+    
+    .zapperContent {
+        flex: 1;
+        margin: 0 15px;
+        min-width: 0;
+        overflow: hidden;
+    }
+    
+    .zapperMessage {
+        font-size: 20px;
+        color: #ccc;
+        line-height: 1.4;
+        word-wrap: break-word;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* Make author section bigger and more prominent */
+    .author-section {
+        text-align: left; /* Changed from center to left */
+        margin: 15px 0; /* Reduced from 30px */
+        padding: 10px; /* Reduced from 20px */
+    }
+    
+    .author-image {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 20px 20px 0; /* Changed from 0 0 20px 0 to 0 20px 20px 0 */
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    
+    .author-name {
+        font-size: 2.5vw;
+        font-weight: bold;
+        color: inherit;
+        text-align: left; /* Changed from center to left */
+        margin: 0;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    }
+    
+    /* Ensure note content is visible and properly styled */
+    .note-section {
+        padding: 15px;
+        text-align: left;
+    }
+    
+    .note-content {
+        font-size: 1.2vw;
+        line-height: 1.6;
+        color: inherit;
+        word-wrap: break-word;
+        max-width: 100%;
+        overflow-wrap: break-word;
+    }
+    
+         /* Reduce spacing between QR and author sections */
+     .qr-section {
+         margin-bottom: 0px; /* Changed from 20px to 0px */
+     }
+     
+     /* Section Labels */
+     .section-label {
+         font-size: 1.2vw;
+         font-weight: 600;
+         color: inherit;
+         margin: 0 0 15px 0;
+         padding: 8px 0;
+         border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+         text-transform: uppercase;
+         letter-spacing: 0.05em;
+         opacity: 0.9;
+     }
+     
+     /* Adjust spacing for sections with labels */
+     .qr-section, .note-section {
+         margin-bottom: 25px;
+     }
+     
+     .zaps-container {
+         margin-top: 20px;
+     }
 `;
 document.head.appendChild(style);
+
+// Background image functionality
+function updateBackgroundImage(url) {
+    if (url && url.trim() !== '') {
+        liveZapOverlay.style.backgroundImage = `url("${url}")`;
+        liveZapOverlay.style.backgroundSize = 'cover';
+        liveZapOverlay.style.backgroundPosition = 'center';
+        liveZapOverlay.style.backgroundRepeat = 'no-repeat';
+        document.getElementById('bgImagePreview').src = url;
+    } else {
+        liveZapOverlay.style.backgroundImage = 'none';
+        document.getElementById('bgImagePreview').src = '';
+    }
+}
+
+function updateBlendMode() {
+    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle');
+    const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
+    const qrCodeContainer = document.getElementById('qrCode');
+    
+    if (qrScreenBlendToggle.checked) {
+        qrCodeContainer.style.mixBlendMode = 'screen';
+        qrMultiplyBlendToggle.checked = false;
+    } else if (qrMultiplyBlendToggle.checked) {
+        qrCodeContainer.style.mixBlendMode = 'multiply';
+        qrScreenBlendToggle.checked = false;
+    } else {
+        qrCodeContainer.style.mixBlendMode = 'normal';
+    }
+    updateStyleURL();
+}
+
+// Setup style options after DOM is loaded
+setupStyleOptions();
+
+function setupStyleOptions() {
+    // Setup both color pickers
+    setupColorPicker('textColorPicker', 'textColorValue', 'color');
+    setupColorPicker('bgColorPicker', 'bgColorValue', 'backgroundColor');
+    
+    // Background image functionality
+    const bgImageUrl = document.getElementById('bgImageUrl');
+    const bgImagePreview = document.getElementById('bgImagePreview');
+    const clearBgImage = document.getElementById('clearBgImage');
+    
+    // Update background when URL changes
+    bgImageUrl.addEventListener('input', function(e) {
+        const url = e.target.value.trim();
+        if (url) {
+            // Test if the image loads
+            const img = new Image();
+            img.onload = function() {
+                updateBackgroundImage(url);
+                updateStyleURL();
+            };
+            img.onerror = function() {
+                // If image fails to load, show error in preview
+                bgImagePreview.src = '';
+                bgImagePreview.alt = 'Failed to load image';
+            };
+            img.src = url;
+        } else {
+            updateBackgroundImage('');
+            updateStyleURL();
+        }
+    });
+    
+    // Clear background image
+    clearBgImage.addEventListener('click', function() {
+        bgImageUrl.value = '';
+        updateBackgroundImage('');
+        updateStyleURL();
+    });
+    
+    // QR Code toggles
+    const qrInvertToggle = document.getElementById('qrInvertToggle');
+    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle');
+    const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
+    const layoutInvertToggle = document.getElementById('layoutInvertToggle');
+    const hideZapperContentToggle = document.getElementById('hideZapperContentToggle');
+    
+    qrInvertToggle.addEventListener('change', function(e) {
+        qrCode.style.filter = e.target.checked ? 'invert(1)' : 'none';
+        updateStyleURL();
+    });
+    
+    qrScreenBlendToggle.addEventListener('change', function(e) {
+        if (e.target.checked) {
+            qrMultiplyBlendToggle.checked = false;
+        }
+        updateBlendMode();
+    });
+    
+    qrMultiplyBlendToggle.addEventListener('change', function(e) {
+        if (e.target.checked) {
+            qrScreenBlendToggle.checked = false;
+        }
+        updateBlendMode();
+    });
+    
+    // Layout inversion toggle
+    layoutInvertToggle.addEventListener('change', function(e) {
+        document.body.classList.toggle('flex-direction-invert', e.target.checked);
+        updateStyleURL();
+    });
+    
+    // Add event listener for hide zapper content toggle
+    hideZapperContentToggle.addEventListener('change', function(e) {
+        console.log('Hide zapper content toggle changed:', e.target.checked);
+        document.body.classList.toggle('hide-zapper-content', e.target.checked);
+        console.log('Body classes after toggle:', document.body.classList.toString());
+        updateStyleURL();
+    });
+}
+
+}); // Close DOMContentLoaded function

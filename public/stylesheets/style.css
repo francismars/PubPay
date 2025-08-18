@@ -1,3 +1,4 @@
+/* ===== LIVE DISPLAY STYLES ===== */
 body {
   margin: 0;
   font-family: "Inter", sans-serif;
@@ -930,8 +931,8 @@ input:focus::placeholder {
 }
 
 .live .zap:nth-child(1) .zapperProfileImg {
-  width: 20vw;
-  height: 20vw;
+  width: 15vw;
+  height: 15vw;
 }
 .live .zap:nth-child(1) .zapperAmount {
   font-size: 3vw;
@@ -940,9 +941,8 @@ input:focus::placeholder {
   opacity: 0.6;
 }
 
+
 .live .zap:nth-child(even) .zapperProfile {
-  justify-content: flex-end;
-  flex-direction: row-reverse;
   text-align: right;
 }
 
@@ -985,17 +985,7 @@ input:focus::placeholder {
 
 
 
-.live .liveZapOverlay {
-  width: 100vw;
-  height: 100vh;
-  background: url("/images/lightning.gif");
-  position: fixed;
-  top: 0;
-  left: 0;
-  background-size: cover;
-  z-index: -1;
-  opacity: 0.2;
-}
+
 
 .live #bar {
   /* width: 100vh; */
@@ -1050,29 +1040,13 @@ input:focus::placeholder {
 
 .live #zappedTotalValue {
   font-weight: 600;
-  font-size: 3vw;
+  font-size: 2vw;
   line-height: 1.5vw;
 }
 
-.live #noteLoaderContainer {
-  position: fixed;
-  display: flex;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 100;
-  justify-content: center;
-  align-items: center;
-}
 
-.live #noteLoader {
-  width: 90%;
-  max-width: 800px;
-  background: white;
-  color: #000;
-  padding: 20px;
-  box-sizing: border-box;
-}
+
+
 
 /* Blinking effect for placeholders */
 .blink {
@@ -1224,251 +1198,178 @@ input:focus::placeholder {
   cursor: pointer;
 }
 
+/* Style Options Modal */
 #styleOptionsModal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 100;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: none;
-  justify-content: center;
-  align-items: center;
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
 }
 
 #styleOptionsModal.show {
-  display: flex;
+    display: block;
 }
 
-#styleOptionsModal .style-options-content {
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 10px;
-  width: 90%;
-  max-width: 600px;
-  position: relative;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+.style-options-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 10px;
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
-#styleOptionsModal .style-options-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  padding-right: 20px;
-}
-
-#styleOptionsModal .style-options-header h2 {
-  margin: 0;
-  font-size: 18px;
-  color: #333;
-}
-
-#styleOptionsModal .close-button {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-  padding: 5px;
-  line-height: 1;
-}
-
-#styleOptionsModal .close-button:hover {
-  color: #333;
-}
-
-#styleOptionsModal .style-options-body {
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 15px;
-}
-
-#styleOptionsModal .style-option-group {
-  margin-bottom: 0;
-}
-
-#styleOptionsModal .style-option-group.full-width {
-  grid-column: 1 / -1;
-}
-
-#styleOptionsModal .bg-image-controls {
-  display: flex;
-  gap: 15px;
-  align-items: flex-start;
-  margin-top: 4px;
-}
-
-#styleOptionsModal .url-input-container {
-  flex: 1;
-  display: flex;
-  gap: 8px;
-}
-
-#styleOptionsModal .url-input-container input[type="text"] {
-  flex: 1;
-  min-width: 0; /* Prevents flex item from overflowing */
-}
-
-#styleOptionsModal .preview-container {
-  width: 80px;
-  height: 80px;
-  flex-shrink: 0;
-  border: 2px solid #e0e0e0;
-  border-radius: 5px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #f5f5f5;
-}
-
-#styleOptionsModal .preview-container img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-#styleOptionsModal .toggle-switch {
-  /* width: 40px; */
-  /* height: 20px; */
-}
-
-#styleOptionsModal .toggle-slider:before {
-  height: 14px;
-  width: 14px;
-  left: 3px;
-  bottom: 3px;
-}
-
-#styleOptionsModal .toggle-switch input:checked + .toggle-slider:before {
-  transform: translateX(20px);
-}
-
-.button {
-  background-color: #4a75ff;
-  color: #ffffff;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin: 8px 0;
-  display: inline-block;
-}
-
-.button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgb(0 0 0 / 28%);
-}
-
-#note1LoaderSubmit:active {
-  transform: translateY(0);
-  box-shadow: none;
-}
-
-.hide-zapper-content .zapperContent {
-    display: none;
-}
-
-#styleOptionsModal .style-option-group label {
+.style-options-header {
     display: flex;
-    margin-bottom: 4px;
-    color: #333;
-    font-weight: 500;
-    font-size: 13px;
-    /* flex-direction: column; */
-    align-items: flex-start;
-    gap: 4px;
-}
-
-#styleOptionsModal .toggle-label {
-    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 8px;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.style-options-header h2 {
+    margin: 0;
+    color: #333;
+}
+
+.close-button {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
     cursor: pointer;
-    user-select: none;
-    width: 100%;
-    flex-direction: row;
+    border: none;
+    background: none;
 }
 
-#styleOptionsModal .toggle-label .toggle-switch {
-    order: -1; /* This moves the switch to the left */
-    margin-right: 4px;
+.close-button:hover {
+    color: #000;
 }
 
-#styleOptionsModal .toggle-label span {
-    font-size: 13px;
-    color: #333;
-    font-weight: 500;
+.style-options-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
 }
 
-/* Special handling for color picker labels to keep them above inputs */
-#styleOptionsModal .style-option-group:not(.toggle-group) label {
+.style-option-group {
+    display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-}
-
-/* Add a class to identify toggle groups */
-#styleOptionsModal .style-option-group.toggle-group {
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-}
-
-#styleOptionsModal .color-picker-container {
-    display: flex;
     gap: 8px;
-    align-items: center;
 }
 
-#styleOptionsModal input[type="color"] {
-    width: 40px;
+.style-option-group label {
+    font-weight: 500;
+    color: #333;
+    font-size: 14px;
+}
+
+.style-option-group input[type="text"],
+.style-option-group input[type="color"] {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.style-option-group input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.style-option-group input[type="color"] {
+    width: 60px;
     height: 40px;
+    padding: 0;
+    border: none;
+    cursor: pointer;
 }
 
-#styleOptionsModal input[type="text"] {
-    padding: 6px 10px;
-    font-size: 13px;
-}
-
-#styleOptionsModal .style-option-group.full-width {
+/* Toggle switches */
+.toggle-group {
     grid-column: 1 / -1;
 }
 
-#styleOptionsModal .bg-image-controls {
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: #2196F3;
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+/* Full width options */
+.full-width {
+    grid-column: 1 / -1;
+}
+
+.bg-image-controls {
     display: flex;
     gap: 15px;
     align-items: flex-start;
-    margin-top: 4px;
 }
 
-#styleOptionsModal .url-input-container {
-    /* flex: 1; */
-    display: block;
-    /* gap: 8px; */
-}
-
-#styleOptionsModal .url-input-container input[type="text"] {
+.url-input-container {
     flex: 1;
-    min-width: 0; /* Prevents flex item from overflowing */
 }
 
-#styleOptionsModal .preview-container {
+.preview-container {
     width: 80px;
     height: 80px;
-    flex-shrink: 0;
-    border: 2px solid #e0e0e0;
-    border-radius: 5px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
     overflow: hidden;
     display: flex;
     align-items: center;
@@ -1476,10 +1377,544 @@ input:focus::placeholder {
     background-color: #f5f5f5;
 }
 
-#styleOptionsModal .preview-container img {
+.preview-container img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
+
+.clear-button {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+.clear-button:hover {
+    background: #c82333;
+}
+
+/* ===== TWO-COLUMN LAYOUT ===== */
+
+/* Ensure no scrolling on the body */
+body.live {
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+}
+
+/* Main two-column layout container */
+.main-layout {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Background image overlay for the entire layout */
+.liveZapOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url("/images/lightning.gif");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: -1;
+    opacity: 1;
+}
+
+/* LEFT SIDE: Post/kind1 information (fixed, no scroll) */
+.left-side {
+    width: 40%;
+    height: 100vh;
+    background: rgba(17, 17, 17, 0.1);
+    border-right: 2px solid #333;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    backdrop-filter: blur(5px);
+}
+
+.post-info {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+    box-sizing: border-box;
+}
+
+/* RIGHT SIDE: Zaps (can overflow/scroll) */
+.right-side {
+    width: 60%;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    backdrop-filter: blur(5px);
+}
+
+/* QR Code Section */
+.qr-section {
+    text-align: center;
+}
+
+.qr-code {
+    width: 40vw;
+    height: 40vw;
+    max-width: 400px;
+    max-height: 400px;
+    min-width: 200px;
+    min-height: 200px;
+    margin-bottom: 15px;
+}
+
+.qr-instructions {
+    font-size: 14px;
+    color: #ccc;
+    font-weight: 500;
+}
+
+/* Author Section */
+.author-section {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #333;
+}
+
+.author-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-right: 15px;
+    object-fit: cover;
+}
+
+.author-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* Note Content Section */
+.note-section {
+    flex: 1;
+    overflow: hidden;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #333;
+    min-height: 0;
+    max-height: 40vh;
+}
+
+.note-content {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #e0e0e0;
+    word-wrap: break-word;
+    overflow-y: auto;
+    max-height: 100%;
+    height: auto;
+}
+
+/* Zaps Header */
+.zaps-header {
+    padding: 30px 30px 20px 30px;
+    border-bottom: 1px solid #333;
+    background: rgba(10, 10, 10, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.zaps-header-left h2 {
+    font-size: 28px;
+    margin: 0 0 15px 0;
+    color: #fff;
+    font-weight: 600;
+}
+
+.total-zapped, .dashboard-title {
+    font-size: 2vw;
+    font-weight: 600;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.9;
+}
+
+.total-label {
+    font-size: 16px;
+    color: #ccc;
+}
+
+.total-amount {
+    font-size: 24px;
+    font-weight: bold;
+    color: #00ff88;
+}
+
+.total-sats {
+    font-size: 14px;
+    color: #ccc;
+}
+
+.zaps-header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.style-toggle-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 6px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.style-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.05);
+}
+
+.powered-by {
+    display: flex;
+    align-items: center;
+}
+
+.powered-by img {
+    height: 40px;
+    opacity: 1;
+}
+
+/* Zaps Container */
+.zaps-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 30px;
+}
+
+.zaps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.zap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: slideInUp 0.3s ease-out;
+}
+
+.zapperProfile {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.zapperProfileImg {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 15px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.zapperName {
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    max-width: 300px;
+}
+
+.zapperAmount {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    flex-shrink: 0;
+    margin-left: 20px;
+}
+
+.zapperAmountSats {
+    font-size: 18px;
+    font-weight: 600;
+    color: #00ff88;
+    line-height: 1.2;
+}
+
+/* Animations */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .left-side {
+        width: 45%;
+    }
+    
+    .right-side {
+        width: 55%;
+    }
+    
+    .post-info {
+        padding: 20px;
+    }
+    
+    .zaps-header,
+    .zaps-container {
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    
+    .note-content {
+        font-size: 15px;
+        line-height: 1.5;
+    }
+    
+    .note-section {
+        max-height: 35vh;
+    }
+}
+
+@media (max-width: 900px) {
+    .note-content {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    .note-section {
+        max-height: 30vh;
+    }
+}
+
+/* Aspect ratio adjustments for wide screens */
+@media (min-aspect-ratio: 16/9) {
+    .note-section {
+        max-height: 35vh;
+    }
+    
+    .note-content {
+        font-size: 15px;
+        line-height: 1.5;
+    }
+}
+
+@media (min-aspect-ratio: 19/10) {
+    .note-section {
+        max-height: 30vh;
+    }
+    
+    .note-content {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-layout {
+        flex-direction: column;
+    }
+    
+    .left-side {
+        width: 100%;
+        height: 40vh;
+        border-right: none;
+        border-bottom: 2px solid #333;
+    }
+    
+    .right-side {
+        width: 100%;
+        height: 60vh;
+    }
+    
+    .post-info {
+        padding: 15px;
+    }
+    
+    .zaps-header,
+    .zaps-container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .qr-code {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .author-image {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* App Header Styles */
+.app-header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 15px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.app-header h1 {
+    font-size: 2.5em;
+    margin: 0 0 10px 0;
+    color: #333;
+    font-family: 'Russo One', sans-serif;
+    text-shadow: none;
+}
+
+.app-description {
+    font-size: 1.1em;
+    margin: 0;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* Note Loader Container */
+#noteLoaderContainer {
+    position: fixed;
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+}
+
+#noteLoader {
+    width: 90%;
+    max-width: 800px;
+    background: white;
+    color: #000;
+    padding: 30px;
+    box-sizing: border-box;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+#noteLoader label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+}
+
+#noteLoader input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+#noteLoader .button {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+#noteLoader .button:hover {
+    background: #0056b3;
+}
+
+#noteLoader h3 {
+    margin: 20px 0 15px 0;
+    color: #333;
+    font-size: 18px;
+}
+
+#noteLoader a {
+    color: #007bff;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+#noteLoader a:hover {
+    text-decoration: underline;
+}
+
+/* Ensure the live display takes full viewport */
+.live-display {
+    min-height: 100vh;
+    min-width: 100vw;
+}
+
+/* Ensure proper scrolling for zaps */
+.zaps-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.zaps-container::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+
+.zaps-container::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 4px;
+}
+
+.zaps-container::-webkit-scrollbar-thumb:hover {
+    background: #666;
+}
+
 
 
