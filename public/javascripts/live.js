@@ -923,11 +923,11 @@ style.textContent = `
     }
     
     .author-image {
-        width: 120px;
-        height: 120px;
+        width: 4vw;
+        height: 4vw;
         border-radius: 50%;
         object-fit: cover;
-        margin: 0 20px 20px 0; /* Changed from 0 0 20px 0 to 0 20px 20px 0 */
+        margin: 0 20px 10px 0; /* Changed from 0 0 20px 0 to 0 20px 20px 0 */
         border: 3px solid rgba(255, 255, 255, 0.3);
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     }
@@ -937,7 +937,7 @@ style.textContent = `
         font-weight: bold;
         color: inherit;
         text-align: left; /* Changed from center to left */
-        margin: 0;
+        margin: 0 0 10px 0;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
     }
     

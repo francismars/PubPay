@@ -860,7 +860,7 @@ input:focus::placeholder {
 }
 
 .live #noteContent {
-  font-size: 2.5vw;
+  font-size: 2vw;
   font-weight: 400;
   overflow: hidden;
   height: 32.5vw;
@@ -1495,8 +1495,8 @@ body.live {
 }
 
 .author-image {
-    width: 50px;
-    height: 50px;
+    width: 4vw;
+    height: 4vw;
     border-radius: 50%;
     margin-right: 15px;
     object-fit: cover;
@@ -1787,11 +1787,7 @@ body.live {
         width: 80px;
         height: 80px;
     }
-    
-    .author-image {
-        width: 40px;
-        height: 40px;
-    }
+  
 }
 
 /* App Header Styles */
