@@ -1988,26 +1988,56 @@ body.live {
 /* App Header Styles */
 .app-header {
     text-align: center;
-    margin-bottom: 30px;
+    margin-bottom: 25px;
     padding: 20px;
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 15px;
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.1), rgba(68, 160, 141, 0.1));
+    border-radius: 20px;
+    border: 1px solid rgba(78, 205, 196, 0.2);
+    backdrop-filter: blur(10px);
 }
 
 .app-header h1 {
-    font-size: 2.5em;
+    font-size: 2.2em;
     margin: 0 0 10px 0;
-    color: #333;
+    color: #2c3e50;
     font-family: 'Russo One', sans-serif;
-    text-shadow: none;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(45deg, #2c3e50, #34495e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .app-description {
     font-size: 1.1em;
-    margin: 0;
-    color: #666;
+    margin: 0 0 15px 0;
+    color: #34495e;
     line-height: 1.4;
+    font-weight: 500;
+}
+
+.viral-features {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.feature-badge {
+    background: linear-gradient(45deg, #4ecdc4, #44a08d);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(78, 205, 196, 0.3);
+    transition: all 0.3s ease;
+}
+
+.feature-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(78, 205, 196, 0.4);
 }
 
 /* Note Loader Container */
@@ -2016,70 +2046,118 @@ body.live {
     display: flex;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.8);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     z-index: 100;
     justify-content: center;
     align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 #noteLoader {
-    width: 90%;
-    max-width: 800px;
-    background: white;
-    color: #000;
+    width: 95%;
+    max-width: 600px;
+    max-height: 90vh;
+    background: rgba(255, 255, 255, 0.95);
+    color: #333;
     padding: 30px;
     box-sizing: border-box;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow-y: auto;
+}
+
+/* Custom scrollbar for note loader */
+#noteLoader::-webkit-scrollbar {
+    width: 8px;
+}
+
+#noteLoader::-webkit-scrollbar-track {
+    background: rgba(78, 205, 196, 0.1);
+    border-radius: 4px;
+}
+
+#noteLoader::-webkit-scrollbar-thumb {
+    background: rgba(78, 205, 196, 0.3);
+    border-radius: 4px;
+}
+
+#noteLoader::-webkit-scrollbar-thumb:hover {
+    background: rgba(78, 205, 196, 0.5);
 }
 
 #noteLoader label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     font-weight: 600;
-    color: #333;
+    color: #2c3e50;
+    font-size: 1.1rem;
 }
 
 #noteLoader input {
     width: 100%;
-    padding: 12px;
-    border: 2px solid #ddd;
-    border-radius: 8px;
+    padding: 16px;
+    border: 2px solid #e1e8ed;
+    border-radius: 12px;
     font-size: 16px;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     box-sizing: border-box;
+    background: white;
+    color: #2c3e50;
+    transition: all 0.3s ease;
+}
+
+#noteLoader input:focus {
+    outline: none;
+    border-color: #4ecdc4;
+    box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+    transform: translateY(-1px);
+}
+
+#noteLoader input::placeholder {
+    color: #95a5a6;
 }
 
 #noteLoader .button {
-    background: #007bff;
+    background: linear-gradient(45deg, #4ecdc4, #44a08d);
     color: white;
     border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
+    padding: 16px 32px;
+    border-radius: 12px;
     cursor: pointer;
     font-size: 16px;
-    margin-bottom: 20px;
+    font-weight: 600;
+    margin-bottom: 25px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
 }
 
 #noteLoader .button:hover {
-    background: #0056b3;
+    background: linear-gradient(45deg, #44a08d, #4ecdc4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
 }
 
 #noteLoader h3 {
-    margin: 20px 0 15px 0;
-    color: #333;
-    font-size: 18px;
+    margin: 25px 0 20px 0;
+    color: #2c3e50;
+    font-size: 20px;
+    font-weight: 600;
 }
 
 #noteLoader a {
-    color: #007bff;
+    color: #3498db;
     text-decoration: none;
     display: block;
-    margin-bottom: 8px;
-    line-height: 1.4;
+    margin-bottom: 10px;
+    line-height: 1.5;
+    transition: color 0.3s ease;
 }
 
 #noteLoader a:hover {
+    color: #2980b9;
     text-decoration: underline;
 }
 
@@ -2378,46 +2456,50 @@ body.live {
 /* Note Input Section */
 .note-input-section {
     text-align: center;
-    margin-bottom: 40px;
-    padding: 25px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 15px;
-    border: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 25px;
+    padding: 20px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.15);
+    backdrop-filter: blur(10px);
 }
 
 .note-input-section label {
     display: block;
     font-size: 1.1rem;
-    margin-bottom: 15px;
-    color: #e0e0e0;
+    margin-bottom: 12px;
+    color: #2c3e50;
+    font-weight: 600;
 }
 
 .note-input-section input {
     width: 100%;
-    max-width: 400px;
+    max-width: 450px;
     padding: 15px;
-    border: 2px solid rgba(255,255,255,0.2);
-    border-radius: 10px;
-    background: rgba(255,255,255,0.1);
-    color: white;
+    border: 2px solid rgba(78, 205, 196, 0.3);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #2c3e50;
     font-size: 1rem;
     margin-bottom: 20px;
     transition: all 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .note-input-section input:focus {
     outline: none;
     border-color: #4ecdc4;
-    box-shadow: 0 0 20px rgba(78,205,196,0.3);
+    box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.2), 0 4px 15px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
 }
 
 .note-input-section input::placeholder {
-    color: rgba(255,255,255,0.6);
+    color: #95a5a6;
 }
 
 /* Button Styles */
 .primary-button {
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+    background: linear-gradient(45deg, #4ecdc4, #44a08d);
     color: white;
     border: none;
     padding: 15px 30px;
@@ -2426,12 +2508,13 @@ body.live {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(255,107,107,0.3);
+    box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
 }
 
 .primary-button:hover {
+    background: linear-gradient(45deg, #44a08d, #4ecdc4);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255,107,107,0.4);
+    box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
 }
 
 .secondary-button {
@@ -2452,8 +2535,8 @@ body.live {
 
 /* How It Works Section */
 .how-it-works {
-    margin-bottom: 40px;
-    padding: 25px;
+    margin-bottom: 25px;
+    padding: 20px;
     background: rgba(255,255,255,0.05);
     border-radius: 15px;
     border: 1px solid rgba(255,255,255,0.1);
@@ -2461,8 +2544,8 @@ body.live {
 
 .how-it-works h3 {
     text-align: center;
-    margin-bottom: 25px;
-    font-size: 1.5rem;
+    margin-bottom: 20px;
+    font-size: 1.3rem;
     color: #4ecdc4;
 }
 
@@ -2501,8 +2584,8 @@ body.live {
 
 /* Examples Section */
 .examples-section {
-    margin-bottom: 40px;
-    padding: 25px;
+    margin-bottom: 25px;
+    padding: 20px;
     background: rgba(255,255,255,0.05);
     border-radius: 15px;
     border: 1px solid rgba(255,255,255,0.1);
@@ -2510,8 +2593,8 @@ body.live {
 
 .examples-section h3 {
     text-align: center;
-    margin-bottom: 20px;
-    font-size: 1.5rem;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
     color: #4ecdc4;
 }
 
@@ -2527,16 +2610,28 @@ body.live {
     gap: 10px;
 }
 
-.example-comment {
-    background: rgba(78,205,196,0.1);
-    border: 1px solid rgba(78,205,196,0.3);
-    padding: 12px 20px;
-    border-radius: 8px;
-    color: #4ecdc4;
-    font-family: monospace;
-    font-size: 0.9rem;
-    text-align: center;
-}
+ .example-comment {
+     background: rgba(78,205,196,0.1);
+     border: 1px solid rgba(78,205,196,0.3);
+     padding: 12px 20px;
+     border-radius: 8px;
+     color: #4ecdc4;
+     font-family: monospace;
+     font-size: 0.9rem;
+     text-align: center;
+ }
+ 
+ .example-note {
+     margin-top: 15px;
+     padding: 10px 15px;
+     background: rgba(255, 193, 7, 0.1);
+     border: 1px solid rgba(255, 193, 7, 0.3);
+     border-radius: 8px;
+     color: #ffc107;
+     font-size: 0.9rem;
+     text-align: center;
+     font-style: italic;
+ }
 
 /* Center Side Styles */
 .center-side {
