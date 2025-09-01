@@ -1425,13 +1425,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Only show no-video message if there are truly no songs
             console.log('No songs in queue, showing no-video message');
-            currentVideo.innerHTML = `
-                <div class="no-video-message">
-                    <div class="no-video-icon">🎵</div>
-                    <div class="no-video-text">No song playing yet</div>
-                    <div class="no-video-subtext">Zap to request the first song!</div>
-                </div>
-            `;
+            // HTML already contains the no-video message, so we don't need to set it here
+            // Just ensure the container is visible
+            currentVideo.style.display = 'block';
             currentSongInfo.innerHTML = '';
             
             // Hide progress bar when no video is playing
