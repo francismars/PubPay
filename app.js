@@ -8,6 +8,8 @@ const cors = require('cors');
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var liveRouter = require('./routes/live');
+var jukeboxRouter = require('./routes/jukebox');
+var youtubeRouter = require('./routes/youtube');
 
 var app = express();
 
@@ -26,6 +28,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/live', liveRouter);
+app.use('/jukebox', jukeboxRouter);
+app.use('/youtube', youtubeRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
