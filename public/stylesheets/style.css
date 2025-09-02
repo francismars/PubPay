@@ -889,9 +889,8 @@ input:focus::placeholder {
 }
 
 .live #noteContent {
-  font-size: 2vw;
+  font-size: 1.8vw;
   font-weight: 400;
-  overflow: hidden;
   height: 32.5vw;
   text-overflow: ellipsis;
   /* padding: 1vw 3vw; */
@@ -926,6 +925,61 @@ input:focus::placeholder {
 .live .zapperContent {
   font-weight: 300;
   letter-spacing: 0.06vw;
+  font-size: 1vw;
+}
+
+/* Live noteLoader examples styling */
+.live #noteLoader .example-item {
+  background: rgba(122, 139, 160, 0.1);
+  border: 1px solid rgba(122, 139, 160, 0.2);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+
+.live #noteLoader .example-item:hover {
+  background: rgba(122, 139, 160, 0.15);
+  border-color: rgba(122, 139, 160, 0.3);
+}
+
+.live #noteLoader .example-item a {
+  display: block;
+  font-style: italic;
+  color: #b8c5d1;
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+
+.live #noteLoader .example-item a:hover {
+  color: #d1dae6;
+}
+
+.live #noteLoader .example-item .author-name {
+  text-align: right;
+  font-weight: 600;
+  color: #7a8ba0;
+  font-size: 0.9rem;
+  font-style: normal;
+}
+
+/* Responsive zapperContent font sizes */
+@media (max-width: 768px) {
+  .live .zapperContent {
+    font-size: 1.4vw;
+  }
+}
+
+@media (max-width: 480px) {
+  .live .zapperContent {
+    font-size: 1.6vw;
+  }
+}
+
+@media (min-width: 1200px) {
+  .live .zapperContent {
+    font-size: 0.9vw;
+  }
 }
 
 .live .zapperProfile {
@@ -947,12 +1001,46 @@ input:focus::placeholder {
 }
 
 .live .zap:nth-child(1) {
-  font-size: 5vw;
-  gap: 2vh;
+  gap: 0vh;
 }
 
 .live .zap:nth-child(1) .zapperProfile {
   gap: 1.5vw;
+}
+
+.live .zap:nth-child(1) .zapperName {
+  font-size: 1.9vw;
+}
+
+.live .zap:nth-child(2) .zapperName {
+  font-size: 1.6vw;
+}
+
+.live .zap:nth-child(3) .zapperName {
+  font-size: 1.3vw;
+}
+
+/* Responsive max-width for zapperName */
+.live .zapperName {
+  max-width: 200px;
+}
+
+@media (max-width: 768px) {
+  .live .zapperName {
+    max-width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .live .zapperName {
+    max-width: 120px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .live .zapperName {
+    max-width: 250px;
+  }
 }
 
 .live .zap:nth-child(2) .zapperProfile {
@@ -1557,6 +1645,11 @@ body.live {
     max-height: 40vh;
 }
 
+/* Live view specific padding */
+.live .note-section {
+    padding-top: 20px;
+}
+
 .note-content {
     font-size: 16px;
     line-height: 1.6;
@@ -1565,6 +1658,44 @@ body.live {
     overflow-y: auto;
     max-height: 100%;
     height: auto;
+}
+
+/* Jukebox note content scrollbar - same as song-queue */
+.jukebox .note-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.jukebox .note-content::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+}
+
+.jukebox .note-content::-webkit-scrollbar-thumb {
+    background: rgba(78,205,196,0.5);
+    border-radius: 3px;
+}
+
+.jukebox .note-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(78,205,196,0.7);
+}
+
+/* Live note content scrollbar - same as zaps-container */
+.live .note-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.live .note-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.live .note-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.live .note-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 /* Zaps Header */
@@ -1597,20 +1728,68 @@ body.live {
     opacity: 0.9;
 }
 
+/* Live view specific dashboard title size */
+.live .dashboard-title {
+    font-size: 2vw;
+}
+
 .total-label {
-    font-size: 16px;
+    font-size: 1.2vw;
     color: #ccc;
 }
 
 .total-amount {
-    font-size: 24px;
+    font-size: 1.8vw;
     font-weight: bold;
     color: #00ff88;
 }
 
 .total-sats {
-    font-size: 14px;
+    font-size: 1vw;
     color: #ccc;
+}
+
+/* Responsive adjustments for total elements */
+@media (max-width: 768px) {
+    .total-label {
+        font-size: 1.8vw;
+    }
+    
+    .total-amount {
+        font-size: 2.4vw;
+    }
+    
+    .total-sats {
+        font-size: 1.4vw;
+    }
+}
+
+@media (max-width: 480px) {
+    .total-label {
+        font-size: 2.2vw;
+    }
+    
+    .total-amount {
+        font-size: 2.8vw;
+    }
+    
+    .total-sats {
+        font-size: 1.6vw;
+    }
+}
+
+@media (min-width: 1200px) {
+    .total-label {
+        font-size: 1vw;
+    }
+    
+    .total-amount {
+        font-size: 1.6vw;
+    }
+    
+    .total-sats {
+        font-size: 0.9vw;
+    }
 }
 
 .zaps-header-right {
@@ -1756,11 +1935,12 @@ body.live {
     top: 0;
     bottom: 0;
     width: 2px;
-    background: linear-gradient(to bottom, 
+    /*background: linear-gradient(to bottom, 
         rgba(255, 215, 0, 0.3) 0%, 
         rgba(192, 192, 192, 0.3) 33%, 
         rgba(205, 127, 50, 0.3) 66%, 
-        rgba(255, 255, 255, 0.1) 100%);
+        rgba(255, 255, 255, 0.1) 100%);*/
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 1px;
 }
 
@@ -1811,7 +1991,7 @@ body.live {
 }
 
 .zapperName {
-    font-size: 14px;
+    font-size: 1vw;
     font-weight: 600;
     color: #fff;
     overflow: hidden;
@@ -2142,7 +2322,8 @@ body.live {
 }
 
 /* Note Loader Container */
-#noteLoaderContainer {
+/* Jukebox noteLoaderContainer - keep current style */
+.jukebox #noteLoaderContainer {
     position: fixed;
     display: flex;
     width: 100vw;
@@ -2155,13 +2336,28 @@ body.live {
     box-sizing: border-box;
 }
 
-#noteLoader {
+/* Live noteLoaderContainer - neutral but welcoming theme */
+.live #noteLoaderContainer {
+    position: fixed;
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #2c2e3a 0%, #3a3d4a 100%);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Jukebox noteLoader - keep current light theme */
+.jukebox #noteLoader {
     width: 95%;
     max-width: 600px;
     max-height: 90vh;
     background: rgba(255, 255, 255, 0.95);
     color: #333;
-    padding: 30px;
+    padding: 25px;
     box-sizing: border-box;
     border-radius: 20px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -2170,26 +2366,122 @@ body.live {
     overflow-y: auto;
 }
 
-/* Custom scrollbar for note loader */
-#noteLoader::-webkit-scrollbar {
+/* Jukebox noteLoader content elements */
+.jukebox #noteLoader p {
+    margin: 15px 0;
+    line-height: 1.6;
+    color: #555;
+}
+
+.jukebox #noteLoader div {
+    margin: 10px 0;
+}
+
+.jukebox #noteLoader span {
+    color: inherit;
+}
+
+/* Jukebox noteLoader step divs */
+.jukebox #noteLoader .step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 15px 0;
+    gap: 10px;
+}
+
+.jukebox #noteLoader .step-number {
+    background: #4ecdc4;
+    color: white;
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+    flex-shrink: 0;
+    margin: 0;
+}
+
+.jukebox #noteLoader .step-text {
+    text-align: center;
+    line-height: 1.6;
+    color: #555;
+}
+
+/* Live noteLoader - neutral but welcoming theme */
+.live #noteLoader {
+    width: 95%;
+    max-width: 600px;
+    max-height: 90vh;
+    background: rgba(50, 52, 60, 0.95);
+    color: #e0e2e8;
+    padding: 30px;
+    box-sizing: border-box;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(120, 130, 150, 0.2);
+    overflow-y: auto;
+}
+
+/* Live noteLoader content elements */
+.live #noteLoader p {
+    margin: 15px 0;
+    line-height: 1.6;
+    color: #ccc;
+}
+
+.live #noteLoader div {
+    margin: 10px 0;
+}
+
+.live #noteLoader span {
+    color: inherit;
+}
+
+/* Custom scrollbar for jukebox note loader */
+.jukebox #noteLoader::-webkit-scrollbar {
     width: 8px;
 }
 
-#noteLoader::-webkit-scrollbar-track {
+.jukebox #noteLoader::-webkit-scrollbar-track {
     background: rgba(78, 205, 196, 0.1);
     border-radius: 4px;
 }
 
-#noteLoader::-webkit-scrollbar-thumb {
+.jukebox #noteLoader::-webkit-scrollbar-thumb {
     background: rgba(78, 205, 196, 0.3);
     border-radius: 4px;
 }
 
-#noteLoader::-webkit-scrollbar-thumb:hover {
+.jukebox #noteLoader::-webkit-scrollbar-thumb:hover {
     background: rgba(78, 205, 196, 0.5);
 }
 
-#noteLoader label {
+/* Custom scrollbar for live note loader */
+.live #noteLoader::-webkit-scrollbar {
+    width: 8px;
+}
+
+.live #noteLoader::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.live #noteLoader::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.live #noteLoader::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Jukebox noteLoader form elements */
+.jukebox #noteLoader label {
     display: block;
     margin-bottom: 12px;
     font-weight: 600;
@@ -2197,7 +2489,7 @@ body.live {
     font-size: 1.1rem;
 }
 
-#noteLoader input {
+.jukebox #noteLoader input {
     width: 100%;
     padding: 16px;
     border: 2px solid #e1e8ed;
@@ -2210,18 +2502,52 @@ body.live {
     transition: all 0.3s ease;
 }
 
-#noteLoader input:focus {
+.jukebox #noteLoader input:focus {
     outline: none;
     border-color: #4ecdc4;
     box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
     transform: translateY(-1px);
 }
 
-#noteLoader input::placeholder {
+.jukebox #noteLoader input::placeholder {
     color: #95a5a6;
 }
 
-#noteLoader .button {
+/* Live noteLoader form elements */
+.live #noteLoader label {
+    display: block;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: #e0e0e0;
+    font-size: 1.1rem;
+}
+
+.live #noteLoader input {
+    width: 100%;
+    padding: 16px;
+    border: 2px solid #444;
+    border-radius: 12px;
+    font-size: 16px;
+    margin-bottom: 20px;
+    box-sizing: border-box;
+    background: rgba(50, 50, 50, 0.8);
+    color: #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.live #noteLoader input:focus {
+    outline: none;
+    border-color: #7a8ba0;
+    box-shadow: 0 0 0 3px rgba(122, 139, 160, 0.15);
+    transform: translateY(-1px);
+}
+
+.live #noteLoader input::placeholder {
+    color: #888;
+}
+
+/* Jukebox noteLoader button */
+.jukebox #noteLoader .button {
     background: linear-gradient(45deg, #4ecdc4, #44a08d);
     color: white;
     border: none;
@@ -2235,20 +2561,42 @@ body.live {
     box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
 }
 
-#noteLoader .button:hover {
+.jukebox #noteLoader .button:hover {
     background: linear-gradient(45deg, #44a08d, #4ecdc4);
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
 }
 
-#noteLoader h3 {
+/* Live noteLoader button */
+.live #noteLoader .button {
+    background: linear-gradient(45deg, #7a8ba0, #6b7a8f);
+    color: #f8f9fa;
+    border: none;
+    padding: 16px 32px;
+    border-radius: 12px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 25px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(122, 139, 160, 0.25);
+}
+
+.live #noteLoader .button:hover {
+    background: linear-gradient(45deg, #6b7a8f, #7a8ba0);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(122, 139, 160, 0.35);
+}
+
+/* Jukebox noteLoader headings and links */
+.jukebox #noteLoader h3 {
     margin: 25px 0 20px 0;
     color: #2c3e50;
     font-size: 20px;
     font-weight: 600;
 }
 
-#noteLoader a {
+.jukebox #noteLoader a {
     color: #3498db;
     text-decoration: none;
     display: block;
@@ -2257,8 +2605,30 @@ body.live {
     transition: color 0.3s ease;
 }
 
-#noteLoader a:hover {
+.jukebox #noteLoader a:hover {
     color: #2980b9;
+    text-decoration: underline;
+}
+
+/* Live noteLoader headings and links */
+.live #noteLoader h3 {
+    margin: 25px 0 20px 0;
+    color: #e0e0e0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.live #noteLoader a {
+    color: #b8c5d1;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 10px;
+    line-height: 1.5;
+    transition: color 0.3s ease;
+}
+
+.live #noteLoader a:hover {
+    color: #d1dae6;
     text-decoration: underline;
 }
 
@@ -2324,7 +2694,7 @@ body.live {
 /* Note: Duplicate zap styles removed to prevent conflicts */
 
 /* Make author section bigger and more prominent */
-.jukebox-layout .author-section {
+.jukebox .author-section {
     text-align: left;
     margin: 15px 0;
     padding: 10px;
@@ -2350,7 +2720,7 @@ body.live {
 }
 
 /* Ensure note content is visible and properly styled */
-.jukebox-layout .note-section {
+.jukebox .note-section {
     padding: 15px;
     text-align: left;
 }
@@ -2386,7 +2756,7 @@ body.live {
 }
 
 /* Reduce spacing between QR and author sections */
-.jukebox-layout .qr-section {
+.jukebox .qr-section {
     margin-bottom: 0px;
 }
 
@@ -2401,17 +2771,21 @@ body.live {
     text-transform: uppercase;
     letter-spacing: 0.05em;
     opacity: 0.9;
+}
+
+/* Jukebox specific section label layout */
+.jukebox .section-label {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
 /* Adjust spacing for sections with labels */
-.jukebox-layout .qr-section, .jukebox-layout .note-section {
+.jukebox .qr-section, .jukebox .note-section {
     margin-bottom: 25px;
 }
 
-.jukebox-layout .zaps-container {
+.jukebox .zaps-container {
     margin-top: 20px;
 }
 
@@ -2432,40 +2806,37 @@ body.live {
 }
 
 /* Explicitly define grid areas */
-.jukebox-layout .left-side {
+.jukebox .left-side {
     grid-area: left;
-    min-width: 0;
     width: 100%;
 }
 
-.jukebox-layout .center-side {
+.jukebox .center-side {
     grid-area: center;
     min-width: 0;
-    width: 100%;
 }
 
-.jukebox-layout .right-side {
+.jukebox .right-side {
     grid-area: right;
-    min-width: 0;
     width: 100%;
 }
 
 /* Ensure main layout is visible when displayed */
-#mainLayout.jukebox-layout[style*="display: grid"] {
+#mainLayout.jukebox[style*="display: grid"] {
     display: grid !important;
 }
 
 /* Ensure layout containers take full height */
-.jukebox-layout .left-side,
-.jukebox-layout .center-side,
-.jukebox-layout .right-side {
+.jukebox .left-side,
+.jukebox .center-side,
+.jukebox .right-side {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
 }
 
 /* Specific styling for right-side to ensure it's visible */
-.jukebox-layout .right-side {
+.jukebox .right-side {
     background: rgba(255,255,255,0.02);
     border-left: 1px solid rgba(255,255,255,0.1);
     padding: 20px;
@@ -2478,29 +2849,14 @@ body.live {
 }
 
 /* Ensure right-side content is properly styled */
-.jukebox-layout .right-side .zaps-header,
-.jukebox-layout .right-side .zaps-container,
-.jukebox-layout .right-side .history-section {
+.jukebox .right-side .zaps-header,
+.jukebox .right-side .zaps-container,
+.jukebox .right-side .history-section {
     width: 100%;
     box-sizing: border-box;
 }
 
-/* Debug: add borders to see grid layout */
-.jukebox-layout {
-    border: 2px solid rgba(255,0,0,0.3);
-}
-
-.jukebox-layout .left-side {
-    border: 1px solid rgba(0,255,0,0.3);
-}
-
-.jukebox-layout .center-side {
-    border: 1px solid rgba(0,0,255,0.3);
-}
-
-.jukebox-layout .right-side {
-    border: 1px solid rgba(255,255,0,0.3);
-}
+/* Debug borders removed - jukebox layout should work properly now */
 
 /* App Header Styles */
 .app-header {
@@ -2708,7 +3064,6 @@ body.live {
 .example-comments {
     display: flex;
     flex-direction: column;
-    gap: 10px;
 }
 
  .example-comment {
@@ -2721,9 +3076,29 @@ body.live {
      font-size: 0.9rem;
      text-align: center;
  }
+
+/* Live noteLoader specific example styling */
+.live #noteLoader .example-comment {
+     background: rgba(122, 139, 160, 0.1);
+     border: 1px solid rgba(122, 139, 160, 0.3);
+     color: #b8c5d1;
+     margin-bottom: 8px;
+     position: relative;
+ }
+
+.live #noteLoader .example-comment::after {
+     content: "👤 Posted by Creator";
+     display: block;
+     font-family: sans-serif;
+     font-size: 0.8rem;
+     color: #7a8ba0;
+     margin-top: 8px;
+     font-style: italic;
+     opacity: 0.8;
+ }
  
  .example-note {
-     margin-top: 15px;
+     margin-top: 8px;
      padding: 10px 15px;
      background: rgba(255, 193, 7, 0.1);
      border: 1px solid rgba(255, 193, 7, 0.3);
@@ -3307,7 +3682,7 @@ body.live {
 
 /* Responsive Design */
 @media (max-width: 1200px) {
-    .jukebox-layout {
+    .jukebox {
         grid-template-columns: minmax(200px, 1fr) minmax(300px, 1.5fr) minmax(200px, 1fr);
         gap: 15px;
         padding: 15px;
@@ -3322,7 +3697,7 @@ body.live {
 }
 
 @media (max-width: 768px) {
-    .jukebox-layout {
+    .jukebox {
         grid-template-columns: minmax(150px, 1fr) minmax(200px, 1fr) minmax(150px, 1fr);
         gap: 10px;
         padding: 10px;
