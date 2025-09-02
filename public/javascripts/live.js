@@ -48,7 +48,85 @@ document.addEventListener('DOMContentLoaded', function() {
         qrScreenBlend: true,
         qrMultiplyBlend: false,
         layoutInvert: false,
-        hideZapperContent: false
+        hideZapperContent: false,
+        podium: false,
+        fontSize: 1.0,
+        opacity: 0.5,
+        textOpacity: 1.0
+    };
+
+    // Style presets
+    const STYLE_PRESETS = {
+        default: {
+            textColor: '#ffffff',
+            bgColor: '#000000',
+            bgImage: '/images/lightning.gif',
+            qrInvert: true,
+            qrScreenBlend: true,
+            qrMultiplyBlend: false,
+            layoutInvert: false,
+            hideZapperContent: false,
+            podium: false,
+            fontSize: 1.0,
+            opacity: 0.5,
+            textOpacity: 1.0
+        },
+        dark: {
+            textColor: '#ffffff',
+            bgColor: '#1a1a1a',
+            bgImage: '',
+            qrInvert: true,
+            qrScreenBlend: true,
+            qrMultiplyBlend: false,
+            layoutInvert: false,
+            hideZapperContent: false,
+            podium: false,
+            fontSize: 1.0,
+            opacity: 0.8,
+            textOpacity: 1.0
+        },
+        light: {
+            textColor: '#000000',
+            bgColor: '#ffffff',
+            bgImage: '',
+            qrInvert: false,
+            qrScreenBlend: false,
+            qrMultiplyBlend: true,
+            layoutInvert: false,
+            hideZapperContent: false,
+            podium: false,
+            fontSize: 1.0,
+            opacity: 0.3,
+            textOpacity: 1.0
+        },
+        neon: {
+            textColor: '#00ff00',
+            bgColor: '#000000',
+            bgImage: '',
+            qrInvert: true,
+            qrScreenBlend: true,
+            qrMultiplyBlend: false,
+            layoutInvert: false,
+            hideZapperContent: false,
+            podium: true,
+            fontSize: 1.2,
+            opacity: 0.9,
+            textOpacity: 1.0
+        },
+        minimal: {
+            textColor: '#333333',
+            bgColor: '#f8f9fa',
+            bgImage: '',
+            qrInvert: false,
+            qrScreenBlend: false,
+            qrMultiplyBlend: false,
+            layoutInvert: false,
+            hideZapperContent: true,
+            podium: false,
+            fontSize: 0.9,
+            opacity: 0.2,
+            textOpacity: 0.8
+        }
     };
 
     // DOM Elements for style options
@@ -63,6 +141,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
     const layoutInvertToggle = document.getElementById('layoutInvertToggle');
     const hideZapperContentToggle = document.getElementById('hideZapperContentToggle');
+    const podiumToggle = document.getElementById('podiumToggle');
+    const fontSizeSlider = document.getElementById('fontSizeSlider');
+    const fontSizeValue = document.getElementById('fontSizeValue');
+    const opacitySlider = document.getElementById('opacitySlider');
+    const opacityValue = document.getElementById('opacityValue');
+    const textOpacitySlider = document.getElementById('textOpacitySlider');
+    const textOpacityValue = document.getElementById('textOpacityValue');
+    const resetStylesBtn = document.getElementById('resetStyles');
+    const copyStyleUrlBtn = document.getElementById('copyStyleUrl');
 
 // Helper functions for color handling
 function isValidHexColor(color) {
@@ -95,7 +182,7 @@ function updateStyleURL() {
     const mainLayout = document.querySelector('.main-layout');
     
     // Only add parameters that differ from defaults
-    const currentTextColor = toHexColor(mainLayout.style.color);
+    const currentTextColor = toHexColor(mainLayout.style.getPropertyValue('--text-color') || DEFAULT_STYLES.textColor);
     if (currentTextColor !== DEFAULT_STYLES.textColor) {
         currentParams.set('textColor', currentTextColor);
     } else {
@@ -148,6 +235,34 @@ function updateStyleURL() {
         currentParams.delete('hideZapperContent');
     }
     
+    if (document.body.classList.contains('podium-enabled') !== DEFAULT_STYLES.podium) {
+        currentParams.set('podium', podiumToggle.checked);
+    } else {
+        currentParams.delete('podium');
+    }
+    
+    // Add new parameters
+    const currentFontSize = parseFloat(fontSizeSlider.value);
+    if (currentFontSize !== DEFAULT_STYLES.fontSize) {
+        currentParams.set('fontSize', currentFontSize);
+    } else {
+        currentParams.delete('fontSize');
+    }
+    
+    const currentOpacity = parseFloat(opacitySlider.value);
+    if (currentOpacity !== DEFAULT_STYLES.opacity) {
+        currentParams.set('opacity', currentOpacity);
+    } else {
+        currentParams.delete('opacity');
+    }
+    
+    const currentTextOpacity = parseFloat(textOpacitySlider.value);
+    if (currentTextOpacity !== DEFAULT_STYLES.textOpacity) {
+        currentParams.set('textOpacity', currentTextOpacity);
+    } else {
+        currentParams.delete('textOpacity');
+    }
+    
     // Update URL without reloading the page
     const newUrl = window.location.pathname + (currentParams.toString() ? '?' + currentParams.toString() : '');
     window.history.replaceState({}, '', newUrl);
@@ -197,6 +312,25 @@ function applyStylesFromURL() {
         const imageUrl = params.get('bgImage');
         bgImageUrl.value = imageUrl;
         updateBackgroundImage(imageUrl);
+        
+        // Set the preset dropdown to match the URL
+        const bgImagePreset = document.getElementById('bgImagePreset');
+        const customUrlGroup = document.getElementById('customUrlGroup');
+        const bgPresetPreview = document.getElementById('bgPresetPreview');
+        
+        // Check if the URL matches any preset
+        const matchingOption = bgImagePreset.querySelector(`option[value="${imageUrl}"]`);
+        if (matchingOption) {
+            bgImagePreset.value = imageUrl;
+            customUrlGroup.style.display = 'none';
+            
+            // Update preview directly
+            bgPresetPreview.src = imageUrl;
+            bgPresetPreview.alt = 'Background preview';
+        } else {
+            bgImagePreset.value = 'custom';
+            customUrlGroup.style.display = 'block';
+        }
     }
     
     // Apply default QR code blend mode if no custom blend is specified
@@ -249,6 +383,43 @@ function applyStylesFromURL() {
         hideZapperContentToggle.checked = hide;
         document.body.classList.toggle('hide-zapper-content', hide);
     }
+    
+    // Apply podium toggle
+    if (params.has('podium')) {
+        const podium = params.get('podium') === 'true';
+        podiumToggle.checked = podium;
+        document.body.classList.toggle('podium-enabled', podium);
+    }
+    
+    // Apply font size
+    if (params.has('fontSize')) {
+        const fontSize = parseFloat(params.get('fontSize'));
+        fontSizeSlider.value = fontSize;
+        fontSizeValue.textContent = Math.round(fontSize * 100) + '%';
+        mainLayout.style.fontSize = `${fontSize}em`;
+    }
+    
+    // Apply opacity
+    if (params.has('opacity')) {
+        const opacity = parseFloat(params.get('opacity'));
+        opacitySlider.value = opacity;
+        opacityValue.textContent = Math.round(opacity * 100) + '%';
+        // Reapply background color with new opacity
+        const currentBgColor = toHexColor(mainLayout.style.backgroundColor);
+        const rgbaColor = hexToRgba(currentBgColor, opacity);
+        mainLayout.style.backgroundColor = rgbaColor;
+    }
+    
+    // Apply text opacity
+    if (params.has('textOpacity')) {
+        const textOpacity = parseFloat(params.get('textOpacity'));
+        textOpacitySlider.value = textOpacity;
+        textOpacityValue.textContent = Math.round(textOpacity * 100) + '%';
+        // Apply text opacity to all text elements
+        const currentTextColor = toHexColor(mainLayout.style.getPropertyValue('--text-color') || DEFAULT_STYLES.textColor);
+        const rgbaTextColor = hexToRgba(currentTextColor, textOpacity);
+        mainLayout.style.setProperty('--text-color', rgbaTextColor);
+    }
 }
 
 if(nevent){
@@ -280,6 +451,14 @@ if(nevent){
 
 // Apply styles from URL after DOM elements are ready
 applyStylesFromURL();
+
+// Ensure podium is off by default if not specified in URL
+if (!params.has('podium')) {
+    document.body.classList.remove('podium-enabled');
+    if (podiumToggle) {
+        podiumToggle.checked = false;
+    }
+}
 
 document.getElementById('note1LoaderSubmit').addEventListener('click', note1fromLoader);
 
@@ -733,9 +912,16 @@ function drawKind0(kind0){
       // Sort zaps by amount (highest first) - no limit, let them overflow
       const sortedZaps = json9735List.sort((a, b) => b.amount - a.amount);
 
-      for(let json9735 of sortedZaps){
+      for(let i = 0; i < sortedZaps.length; i++){
+        const json9735 = sortedZaps[i];
         const zapDiv = document.createElement("div");
-        zapDiv.className = "zap";
+        
+        // Add podium class if podium is enabled and this is in top 3
+        let zapClass = "zap";
+        if (document.body.classList.contains('podium-enabled') && i < 3) {
+            zapClass += ` podium-${i + 1}`;
+        }
+        zapDiv.className = zapClass;
 
         if(!json9735.picture) json9735.picture = ""
         const profileImage = json9735.picture == "" ? "/images/gradient_color.gif" : json9735.picture
@@ -849,14 +1035,36 @@ function setupColorPicker(pickerId, valueId, targetProperty) {
                 // For text color, use CSS custom property for consistent inheritance
                 mainLayout.style.setProperty('--text-color', color);
                 
-                // Also specifically override zaps header elements that have hardcoded colors
-                const zapsHeaderH2 = mainLayout.querySelector('.zaps-header-left h2');
-                const totalLabel = mainLayout.querySelector('.total-label');
-                const totalSats = mainLayout.querySelector('.total-sats');
+                // Apply color to all text elements that might have hardcoded colors
+                const textElements = mainLayout.querySelectorAll(`
+                    .zaps-header-left h2,
+                    .total-label,
+                    .total-sats,
+                    .total-amount,
+                    .dashboard-title,
+                    .zapperName,
+                    .zapperAmountSats,
+                    .author-name,
+                    .note-content,
+                    .note-content *,
+                    .section-label,
+                    .qr-instructions,
+                    .zaps-header,
+                    .zaps-container,
+                    .zaps-list,
+                    .zap,
+                    .zapperProfile,
+                    .zapperContent,
+                    .zapperMessage,
+                    .post-info,
+                    .author-section,
+                    .note-section,
+                    .qr-section
+                `);
                 
-                if (zapsHeaderH2) zapsHeaderH2.style.color = color;
-                if (totalLabel) totalLabel.style.color = color;
-                if (totalSats) totalSats.style.color = color;
+                textElements.forEach(element => {
+                    element.style.color = color;
+                });
             } else {
                 // For other properties, update the live element
                 liveElement.style[targetProperty] = color;
@@ -884,10 +1092,12 @@ function updateBackgroundImage(url) {
         liveZapOverlay.style.backgroundSize = 'cover';
         liveZapOverlay.style.backgroundPosition = 'center';
         liveZapOverlay.style.backgroundRepeat = 'no-repeat';
-        document.getElementById('bgImagePreview').src = url;
+        const preview = document.getElementById('bgPresetPreview');
+        if (preview) preview.src = url;
     } else {
         liveZapOverlay.style.backgroundImage = 'none';
-        document.getElementById('bgImagePreview').src = '';
+        const preview = document.getElementById('bgPresetPreview');
+        if (preview) preview.src = '';
     }
 }
 
@@ -908,8 +1118,144 @@ function updateBlendMode() {
     updateStyleURL();
 }
 
+// Preset functions
+function applyPreset(presetName) {
+    const preset = STYLE_PRESETS[presetName];
+    if (!preset) return;
+    
+    // Update all controls
+    document.getElementById('textColorPicker').value = preset.textColor;
+    document.getElementById('textColorValue').value = preset.textColor;
+    document.getElementById('bgColorPicker').value = preset.bgColor;
+    document.getElementById('bgColorValue').value = preset.bgColor;
+    document.getElementById('bgImageUrl').value = preset.bgImage;
+    document.getElementById('qrInvertToggle').checked = preset.qrInvert;
+    document.getElementById('qrScreenBlendToggle').checked = preset.qrScreenBlend;
+    document.getElementById('qrMultiplyBlendToggle').checked = preset.qrMultiplyBlend;
+    document.getElementById('layoutInvertToggle').checked = preset.layoutInvert;
+    document.getElementById('hideZapperContentToggle').checked = preset.hideZapperContent;
+    document.getElementById('podiumToggle').checked = preset.podium;
+    document.getElementById('fontSizeSlider').value = preset.fontSize;
+    document.getElementById('fontSizeValue').textContent = Math.round(preset.fontSize * 100) + '%';
+    document.getElementById('opacitySlider').value = preset.opacity;
+    document.getElementById('opacityValue').textContent = Math.round(preset.opacity * 100) + '%';
+    document.getElementById('textOpacitySlider').value = preset.textOpacity;
+    document.getElementById('textOpacityValue').textContent = Math.round(preset.textOpacity * 100) + '%';
+    
+    // Apply the styles
+    applyAllStyles();
+    
+    // Update active preset button
+    document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`[data-preset="${presetName}"]`).classList.add('active');
+}
+
+function applyAllStyles() {
+    const mainLayout = document.querySelector('.main-layout');
+    const textColor = document.getElementById('textColorValue').value;
+    const bgColor = document.getElementById('bgColorValue').value;
+    const bgImage = document.getElementById('bgImageUrl').value;
+    const fontSize = parseFloat(document.getElementById('fontSizeSlider').value);
+    const opacity = parseFloat(document.getElementById('opacitySlider').value);
+    const textOpacity = parseFloat(document.getElementById('textOpacitySlider').value);
+    
+    // Apply text color with opacity
+    const rgbaTextColor = hexToRgba(textColor, textOpacity);
+    mainLayout.style.setProperty('--text-color', rgbaTextColor);
+    
+    // Apply color to all text elements that might have hardcoded colors
+    const textElements = mainLayout.querySelectorAll(`
+        .zaps-header-left h2,
+        .total-label,
+        .total-sats,
+        .total-amount,
+        .dashboard-title,
+        .zapperName,
+        .zapperAmountSats,
+        .author-name,
+        .note-content,
+        .note-content *,
+        .section-label,
+        .qr-instructions,
+        .zaps-header,
+        .zaps-container,
+        .zaps-list,
+        .zap,
+        .zapperProfile,
+        .zapperContent,
+        .zapperMessage,
+        .post-info,
+        .author-section,
+        .note-section,
+        .qr-section
+    `);
+    
+    textElements.forEach(element => {
+        element.style.color = textColor;
+    });
+    
+    // Apply background color with opacity
+    const rgbaColor = hexToRgba(bgColor, opacity);
+    mainLayout.style.backgroundColor = rgbaColor;
+    
+    // Apply background image
+    updateBackgroundImage(bgImage);
+    
+    // Apply font size
+    mainLayout.style.fontSize = `${fontSize}em`;
+    
+    // Apply QR code effects
+    const qrCodeContainer = document.getElementById('qrCode');
+    if (qrCodeContainer) {
+        qrCodeContainer.style.filter = document.getElementById('qrInvertToggle').checked ? 'invert(1)' : 'none';
+        updateBlendMode();
+    }
+    
+    // Apply layout effects
+    document.body.classList.toggle('flex-direction-invert', document.getElementById('layoutInvertToggle').checked);
+    document.body.classList.toggle('hide-zapper-content', document.getElementById('hideZapperContentToggle').checked);
+    document.body.classList.toggle('podium-enabled', document.getElementById('podiumToggle').checked);
+    
+    updateStyleURL();
+}
+
+function resetToDefaults() {
+    applyPreset('default');
+}
+
+function copyStyleUrl() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+        // Show feedback
+        const btn = document.getElementById('copyStyleUrl');
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.style.background = '#28a745';
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.background = '';
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy URL:', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+    });
+}
+
 // Setup style options after DOM is loaded
-setupStyleOptions();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        setupStyleOptions();
+    });
+} else {
+    // DOM is already loaded
+    setupStyleOptions();
+}
 
 function setupStyleOptions() {
     // Setup both color pickers
@@ -917,9 +1263,42 @@ function setupStyleOptions() {
     setupColorPicker('bgColorPicker', 'bgColorValue', 'backgroundColor');
     
     // Background image functionality
+    const bgImagePreset = document.getElementById('bgImagePreset');
     const bgImageUrl = document.getElementById('bgImageUrl');
-    const bgImagePreview = document.getElementById('bgImagePreview');
+    const bgPresetPreview = document.getElementById('bgPresetPreview');
     const clearBgImage = document.getElementById('clearBgImage');
+    const customUrlGroup = document.getElementById('customUrlGroup');
+    
+    console.log('bgPresetPreview element found:', bgPresetPreview);
+    
+    // Handle background preset selection
+    bgImagePreset.addEventListener('change', function(e) {
+        const selectedValue = e.target.value;
+        console.log('Selected background:', selectedValue);
+        
+        if (selectedValue === 'custom') {
+            // Show custom URL input
+            customUrlGroup.style.display = 'block';
+            bgImageUrl.focus();
+        } else {
+            // Hide custom URL input and apply preset
+            customUrlGroup.style.display = 'none';
+            bgImageUrl.value = selectedValue;
+            updateBackgroundImage(selectedValue);
+            updateStyleURL();
+            
+            // Update preview directly
+            console.log('Updating preview to:', selectedValue);
+            console.log('bgPresetPreview element:', bgPresetPreview);
+            if (bgPresetPreview) {
+                bgPresetPreview.src = selectedValue;
+                bgPresetPreview.alt = 'Background preview';
+                console.log('Preview src set to:', bgPresetPreview.src);
+            } else {
+                console.error('bgPresetPreview element not found!');
+            }
+        }
+    });
     
     // Update background when URL changes
     bgImageUrl.addEventListener('input', function(e) {
@@ -930,24 +1309,32 @@ function setupStyleOptions() {
             img.onload = function() {
                 updateBackgroundImage(url);
                 updateStyleURL();
+                bgPresetPreview.src = url;
+                bgPresetPreview.alt = 'Background preview';
             };
             img.onerror = function() {
                 // If image fails to load, show error in preview
-                bgImagePreview.src = '';
-                bgImagePreview.alt = 'Failed to load image';
+                bgPresetPreview.src = '';
+                bgPresetPreview.alt = 'Failed to load image';
             };
             img.src = url;
         } else {
             updateBackgroundImage('');
             updateStyleURL();
+            bgPresetPreview.src = '';
+            bgPresetPreview.alt = 'No background';
         }
     });
     
     // Clear background image
     clearBgImage.addEventListener('click', function() {
         bgImageUrl.value = '';
-        updateBackgroundImage('');
+        bgImagePreset.value = '/images/lightning.gif';
+        customUrlGroup.style.display = 'none';
+        updateBackgroundImage('/images/lightning.gif');
         updateStyleURL();
+        bgPresetPreview.src = '/images/lightning.gif';
+        bgPresetPreview.alt = 'Background preview';
     });
     
     // QR Code toggles
@@ -989,6 +1376,50 @@ function setupStyleOptions() {
         console.log('Body classes after toggle:', document.body.classList.toString());
         updateStyleURL();
     });
+    
+    // Add event listener for podium toggle
+    podiumToggle.addEventListener('change', function(e) {
+        console.log('Podium toggle changed:', e.target.checked);
+        document.body.classList.toggle('podium-enabled', e.target.checked);
+        // Re-render zaps to apply/remove podium styling
+        if (json9735List.length > 0) {
+            drawKinds9735(json9735List);
+        }
+        updateStyleURL();
+    });
+    
+    // Font size slider
+    fontSizeSlider.addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value);
+        fontSizeValue.textContent = Math.round(value * 100) + '%';
+        applyAllStyles();
+    });
+    
+    // Opacity slider
+    opacitySlider.addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value);
+        opacityValue.textContent = Math.round(value * 100) + '%';
+        applyAllStyles();
+    });
+    
+    // Text opacity slider
+    textOpacitySlider.addEventListener('input', function(e) {
+        const value = parseFloat(e.target.value);
+        textOpacityValue.textContent = Math.round(value * 100) + '%';
+        applyAllStyles();
+    });
+    
+    // Preset buttons
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const presetName = this.getAttribute('data-preset');
+            applyPreset(presetName);
+        });
+    });
+    
+    // Action buttons
+    resetStylesBtn.addEventListener('click', resetToDefaults);
+    copyStyleUrlBtn.addEventListener('click', copyStyleUrl);
 }
 
 }); // Close DOMContentLoaded function
