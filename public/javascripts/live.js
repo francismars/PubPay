@@ -1,7 +1,12 @@
+console.log("Live.js file loaded successfully!");
+console.log("NostrTools available:", typeof NostrTools !== 'undefined');
+console.log("lightningPayReq available:", typeof lightningPayReq !== 'undefined');
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOMContentLoaded event fired!");
     let urlToParse = location.search;
     const params = new URLSearchParams(urlToParse);
-    console.log(params.get("note"))
+    console.log("Note parameter from URL:", params.get("note"))
     let nevent = params.get("note")  // ? params.get("note") "note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ls3hugv7";
     // "b4728c14cbe74a1008d4ed80817dd412ad276469da1b007e7e00e071368c4c9b"
 
@@ -24,7 +29,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const pool = new NostrTools.SimplePool()
-    const relays = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://relay.nostr.band/', 'wss://relay.nostr.nu/']
+    const relays = [
+        'wss://relay.damus.io', 
+        'wss://relay.primal.net', 
+        'wss://nos.lol',
+        'wss://relay.snort.social',
+        'wss://relay.nostr.band'
+    ]
 
     let json9735List = []
 
@@ -241,9 +252,30 @@ function applyStylesFromURL() {
 }
 
 if(nevent){
-    const kind1ID = NostrTools.nip19.decode(nevent).data
-    subscribeKind1(kind1ID)
-    document.getElementById('noteLoaderContainer').style.display = 'none';
+    console.log("Note found in URL, attempting to load:", nevent);
+    try {
+        const decoded = NostrTools.nip19.decode(nevent);
+        console.log("Decoded note:", decoded);
+        let kind1ID;
+        
+        if (decoded.type === 'nevent') {
+            kind1ID = decoded.data.id;
+        } else if (decoded.type === 'note') {
+            kind1ID = decoded.data;
+        } else {
+            throw new Error('Invalid format');
+        }
+        
+        subscribeKind1(kind1ID);
+        document.getElementById('noteLoaderContainer').style.display = 'none';
+    } catch (e) {
+        console.log("Error loading note from URL:", e);
+        // If decoding fails, try to use the input directly as a note ID
+        subscribeKind1(nevent);
+        document.getElementById('noteLoaderContainer').style.display = 'none';
+    }
+} else {
+    console.log("No note parameter found in URL");
 }
 
 // Apply styles from URL after DOM elements are ready
@@ -282,20 +314,32 @@ function note1fromLoader(){
 }
 
 async function subscribeKind1(kind1ID) {
+    console.log("Subscribing to kind1 with ID:", kind1ID);
+    console.log("Using relays:", relays);
     let filter = { ids: [kind1ID]}
+    
+    // Add a timeout to prevent immediate EOS
+    let timeoutId = setTimeout(() => {
+        console.log("Kind1 subscription timeout - no events received after 10 seconds");
+    }, 10000);
+    
     pool.subscribeMany(
         [...relays],
         [filter],
         {
         async onevent(kind1) {
+            clearTimeout(timeoutId);
+            console.log("Received kind1 event:", kind1);
             drawKind1(kind1)
             await subscribeKind0fromKind1(kind1)
             await subscribeKind9735fromKind1(kind1)
         },
         oneose() {
-            console.log("subscribeKind1() EOS")
+            clearTimeout(timeoutId);
+            console.log("subscribeKind1() EOS - no more events expected")
         },
         onclosed() {
+            clearTimeout(timeoutId);
             console.log("subscribeKind1() Closed")
         }
     })
@@ -323,12 +367,21 @@ async function subscribeKind1(kind1ID) {
   }
 
   async function subscribeKind9735fromKind1(kind1) {
+    console.log("Subscribing to zaps for kind1 ID:", kind1.id);
     let kinds9735IDs = new Set();
     let kinds9735 = []
     const kind1id = kind1.id
     let isFirstStream = true
 
     const zapsContainer = document.getElementById("zaps");
+
+    // Add a timeout for zap subscription
+    let zapTimeoutId = setTimeout(() => {
+        console.log("Zap subscription timeout - no zaps received after 15 seconds");
+        if (kinds9735.length === 0) {
+            console.log("No zaps found for this note");
+        }
+    }, 15000);
 
     const sub = pool.subscribeMany(
         [...relays],
@@ -338,21 +391,26 @@ async function subscribeKind1(kind1ID) {
         }]
     ,{
         onevent(kind9735) {
+            clearTimeout(zapTimeoutId);
+            console.log("Received zap event:", kind9735);
             if(!(kinds9735IDs.has(kind9735.id))){
                 kinds9735IDs.add(kind9735.id)
                 kinds9735.push(kind9735)
                 if(!isFirstStream){
-                    console.log(kind9735)
+                    console.log("Processing new zap:", kind9735)
                     subscribeKind0fromKinds9735([kind9735])
                 }
             }
         },
         oneose() {
+            clearTimeout(zapTimeoutId);
             isFirstStream = false
+            console.log("Processing all zaps, count:", kinds9735.length);
             subscribeKind0fromKinds9735(kinds9735)
             console.log("subscribeKind9735fromKind1() EOS")
         },
         onclosed() {
+            clearTimeout(zapTimeoutId);
             console.log("subscribeKind9735fromKind1() Closed")
         }
     })
@@ -508,10 +566,13 @@ function parseNostrMentions(content) {
 }
 
 async function replaceNostrMentions(content) {
-    if (!content) return '';
-    
-    const mentions = parseNostrMentions(content);
-    if (mentions.length === 0) return content;
+    try {
+        console.log("Replacing nostr mentions in content:", content);
+        if (!content) return '';
+        
+        const mentions = parseNostrMentions(content);
+        console.log("Found mentions:", mentions);
+        if (mentions.length === 0) return content;
     
     // Sort mentions by index in reverse order to avoid index shifting during replacement
     mentions.sort((a, b) => b.index - a.index);
@@ -545,6 +606,10 @@ async function replaceNostrMentions(content) {
     }
     
     return processedContent;
+    } catch (e) {
+        console.error("Error replacing nostr mentions:", e);
+        return content;
+    }
 }
 
 function parseImages(content) {
@@ -569,10 +634,13 @@ function parseImages(content) {
 }
 
 async function replaceImages(content) {
-    if (!content) return '';
-    
-    const images = parseImages(content);
-    if (images.length === 0) return content;
+    try {
+        console.log("Replacing images in content:", content);
+        if (!content) return '';
+        
+        const images = parseImages(content);
+        console.log("Found images:", images);
+        if (images.length === 0) return content;
     
     // Sort images by index in reverse order to avoid index shifting during replacement
     images.sort((a, b) => b.index - a.index);
@@ -587,22 +655,36 @@ async function replaceImages(content) {
     }
     
     return processedContent;
+    } catch (e) {
+        console.error("Error replacing images:", e);
+        return content;
+    }
 }
 
 async function processNoteContent(content) {
-    // First process images
-    let processedContent = await replaceImages(content);
-    // Then process nostr mentions
-    processedContent = await replaceNostrMentions(processedContent);
-    return processedContent;
+    try {
+        console.log("Processing note content:", content);
+        // First process images
+        let processedContent = await replaceImages(content);
+        console.log("After image processing:", processedContent);
+        // Then process nostr mentions
+        processedContent = await replaceNostrMentions(processedContent);
+        console.log("After mention processing:", processedContent);
+        return processedContent;
+    } catch (e) {
+        console.error("Error processing note content:", e);
+        return content; // Return original content if processing fails
+    }
 }
 
 async function drawKind1(kind1){
-    console.log(kind1)
+    console.log("Drawing kind1:", kind1)
     const noteContent = document.getElementById("noteContent");
+    console.log("Note content element:", noteContent);
     
     // Process content for both images and nostr mentions
     const processedContent = await processNoteContent(kind1.content);
+    console.log("Processed content:", processedContent);
     noteContent.innerHTML = processedContent;
     
     let qrcodeContainer = document.getElementById("qrCode");
