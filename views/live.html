@@ -32,24 +32,57 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="/stylesheets/style.css?v0.06">
     <link rel="stylesheet" href="/fonts/Inter-4.0/inter.css">
+    
+    <!-- Swiper.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
 
     <script src="/javascripts/qrious.min.js"></script>
     <script src="/javascripts/bolt11.min.js"></script>
     <script src="/javascripts/nostrtools.min.js"></script>
+    <!-- Swiper.js JS -->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   </head>
   <body class="live">
     <script type="module" src="/javascripts/live.js"></script>
 
     <!-- Note Loader Container -->
-    <div id="noteLoaderContainer">
-      <div action="" id="noteLoader">
-        <!-- App Header & Description -->
-        <div class="app-header">
-          <h1><span style="color: #4a75ff">PUB</span><span style="color: #000">PAY</span><span style="color: #0000001c">.me</span> Live</h1>
-          <p class="app-description">
-            Live Zap Leaderboard for Nostr events
-          </p>
-        </div>
+          <div id="noteLoaderContainer">
+        <div action="" id="noteLoader">
+          <!-- Portrait Swiper -->
+          <div class="portrait-swiper">
+            <div class="swiper">
+              <div class="swiper-wrapper">
+                <div class="swiper-slide">
+                  <img src="https://m.primal.net/Majo.jpg" alt="Max Demarco Vicky El Salvador Chain Duel Party PubPay">
+                </div>
+                <div class="swiper-slide">
+                  <img src="https://i.nostr.build/itlLMXlxccOBG06L.jpg" alt="Roger 9000 Adopting Bitcoin After Party PubPay">
+                </div>
+                <div class="swiper-slide">
+                  <img src="https://r2.primal.net/cache/0/c4/57/0c4571c1e9e51ba2dde56dc3af65726adac4e68299f5a5d3adf9bc09efb67e8f.jpg" alt="Network School Flute Piano PubPay">
+                </div>
+                <div class="swiper-slide">
+                  <img src="https://r2.primal.net/cache/6/3e/9f/63e9f4b439c17fd2c88617210cbd91c6c9b1ee2be2d82f47a7085379dd183e3c.jpg" alt="Network School Flute Piano PubPay">
+                </div>
+                <div class="swiper-slide">
+                  <img src="https://r2.primal.net/cache/b/f6/bd/bf6bde3a8c8e5568dd8ce9d2d32b31d6d4287281e9cb5650cd28cb740b9bf932.jpg" alt="PubPay Event">
+                </div>
+                <div class="swiper-slide">
+                  <img src="https://r2a.primal.net/uploads2/8/af/e3/8afe3c42163ee657479c9d151e92e9058f9116cc05dd71829426e567020ec21e.png" alt="PubPay Event">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Content Sections -->
+          <div class="note-loader-content">
+            <!-- App Header & Description -->
+            <div class="app-header">
+              <h1><span style="color: #4a75ff">PUB</span><span style="color: #000">PAY</span><span style="color: #0000001c">.me</span> Live</h1>
+              <p class="app-description">
+                Live Zap Leaderboard for Nostr events
+              </p>
+            </div>
         
         <label for="note1LoaderInput">Enter nostr note id</label>
         <input type="text" id="note1LoaderInput" name="note1LoaderInput" value="" placeholder="note1abc123... or nevent1xyz789...">
@@ -88,7 +121,21 @@
             </div>
           </div>
         </div>
-
+        
+        <!-- Footer -->
+        <div class="note-loader-footer">
+          <div class="footer-links">
+            <a href="https://nostr.com" target="_blank" class="footer-link">
+              <span class="footer-icon">🌐</span>
+              Follow us
+            </a>
+          </div>
+          <div class="footer-text">
+            <a href="/" class="footer-text-link">Powered by PubPay</a>
+          </div>
+        </div>
+          </div>
+        </div>
       </div>
     </div>
 

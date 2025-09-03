@@ -2961,12 +2961,11 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     max-width: 600px;
     background: #fff;
     color: #333;
-    padding: 30px;
     box-sizing: border-box;
     border-radius: 16px;
     box-shadow: rgb(47 43 67 / 21%) -2px 3px 20px 0px;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    overflow: visible;
+    overflow: hidden;
 }
 
 /* Mobile responsive adjustments */
@@ -2998,7 +2997,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
         width: 100vw;
         max-width: 100vw;
         min-height: 100vh;
-        padding: 15px;
+        padding: 0;
         border-radius: 0;
         margin: 0;
         box-sizing: border-box;
@@ -3016,7 +3015,6 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     
     /* Force all content to fit within viewport */
     .live #noteLoader > * {
-        max-width: calc(100vw - 30px);
         width: 100%;
     }
     
@@ -3148,6 +3146,151 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 .live #noteLoader .error-message::before {
     content: "⚠️ ";
     margin-right: 6px;
+}
+
+/* Portrait Swiper Styling */
+.live #noteLoader .portrait-swiper {
+    width: 100%;
+    height: 45vw;
+    max-height: 600px;
+    margin: 0 0 20px 0 !important;
+    border-radius: 0;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    position: relative;
+}
+
+/* Note Loader Content Wrapper */
+.live #noteLoader .note-loader-content {
+    width: 100%;
+    padding: 0px 30px 0 30px;
+    box-sizing: border-box;
+}
+
+/* Note Loader Footer */
+.live #noteLoader .note-loader-footer {
+    margin-top: 30px;
+    padding: 20px 0;
+    text-align: center;
+}
+
+.live #noteLoader .note-loader-footer .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 15px;
+}
+
+.live #noteLoader .note-loader-footer .footer-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #4a75ff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.live #noteLoader .note-loader-footer .footer-link:hover {
+    color: #3a65ef;
+    text-decoration: none;
+}
+
+.live #noteLoader .note-loader-footer .footer-icon {
+    font-size: 16px;
+}
+
+.live #noteLoader .note-loader-footer .footer-text {
+    margin-top: 10px;
+}
+
+.live #noteLoader .note-loader-footer .footer-text-link {
+    color: #666;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 400;
+    transition: color 0.3s ease;
+}
+
+.live #noteLoader .note-loader-footer .footer-text-link:hover {
+    color: #4a75ff;
+    text-decoration: none;
+}
+
+
+
+.live #noteLoader .portrait-swiper .swiper {
+    width: 100%;
+    height: 100%;
+    margin: 0 !important;
+    border-radius: 0;
+}
+
+.live #noteLoader .portrait-swiper .swiper-wrapper {
+    width: 100%;
+    height: 100%;
+    margin: 0 !important;
+    border-radius: 0;
+}
+
+.live #noteLoader .portrait-swiper .swiper-slide {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    border-radius: 0;
+    flex-shrink: 0;
+}
+
+.live #noteLoader .portrait-swiper .swiper-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Gradient overlay for seamless blending */
+.live #noteLoader .portrait-swiper::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: linear-gradient(to bottom, transparent 0%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 1) 100%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Mobile responsive adjustments for portrait swiper */
+@media (max-width: 768px) {
+    .live #noteLoader .portrait-swiper {
+        height: 60vw;
+        max-height: 500px;
+        margin-bottom: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .live #noteLoader .portrait-swiper {
+        height: 90vw;
+        max-height: 450px;
+        margin-bottom: 12px;
+    }
+    
+    .live #noteLoader .note-loader-footer .footer-links {
+        gap: 20px;
+    }
+    
+    .live #noteLoader .note-loader-footer .footer-link {
+        font-size: 13px;
+    }
+    
+    .live #noteLoader .note-loader-footer .footer-text-link {
+        font-size: 11px;
+    }
 }
 
 .live #noteLoader span {

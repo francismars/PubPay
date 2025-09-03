@@ -5,6 +5,9 @@ console.log("lightningPayReq available:", typeof lightningPayReq !== 'undefined'
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOMContentLoaded event fired!");
     
+    // Initialize portrait swiper
+    initializePortraitSwiper();
+    
     // Initialize font sizes for scaling
     setTimeout(() => {
         initializeFontSizes();
@@ -1554,6 +1557,66 @@ function hideNoteLoaderError() {
     if (errorElement) {
         errorElement.style.display = 'none';
     }
+}
+
+function initializePortraitSwiper() {
+    const swiperElement = document.querySelector('.portrait-swiper .swiper');
+    if (!swiperElement) return;
+    
+    // Initialize Swiper.js
+    const swiper = new Swiper(swiperElement, {
+        // Basic settings
+        loop: false,
+        autoplay: {
+            delay: 4000,
+            disableOnInteraction: false,
+        },
+        
+        // Touch/Swipe settings
+        touchRatio: 1,
+        touchAngle: 45,
+        grabCursor: true,
+        
+        // Transition settings
+        speed: 800,
+        effect: 'slide',
+        slidesPerView: 1,
+        spaceBetween: 0,
+        
+        // Responsive breakpoints
+        breakpoints: {
+            320: {
+                slidesPerView: 1,
+                spaceBetween: 0,
+            },
+            768: {
+                slidesPerView: 1,
+                spaceBetween: 0,
+            },
+            1024: {
+                slidesPerView: 1,
+                spaceBetween: 0,
+            }
+        },
+        
+        // Event callbacks
+        on: {
+            init: function () {
+                console.log('Portrait Swiper initialized');
+            },
+            slideChange: function () {
+                console.log('Slide changed to:', this.activeIndex);
+            },
+            reachEnd: function () {
+                // Restart from beginning when reaching the end
+                setTimeout(() => {
+                    this.slideTo(0, 800);
+                }, 1000);
+            }
+        }
+    });
+    
+    return swiper;
 }
 
 function initializeFontSizes() {
