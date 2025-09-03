@@ -1524,6 +1524,7 @@ function setupStyleOptions() {
             bgImageUrl.value = selectedValue;
             updateBackgroundImage(selectedValue);
             updateStyleURL();
+            applyAllStyles(); // Sync all style controls
             
             // Update preview directly
             console.log('Updating preview to:', selectedValue);
@@ -1547,6 +1548,7 @@ function setupStyleOptions() {
             img.onload = function() {
                 updateBackgroundImage(url);
                 updateStyleURL();
+                applyAllStyles(); // Sync all style controls
                 bgPresetPreview.src = url;
                 bgPresetPreview.alt = 'Background preview';
             };
@@ -1559,6 +1561,7 @@ function setupStyleOptions() {
         } else {
             updateBackgroundImage('');
             updateStyleURL();
+            applyAllStyles(); // Sync all style controls
             bgPresetPreview.src = '';
             bgPresetPreview.alt = 'No background';
         }
@@ -1571,6 +1574,7 @@ function setupStyleOptions() {
         customUrlGroup.style.display = 'none';
         updateBackgroundImage('/images/lightning.gif');
         updateStyleURL();
+        applyAllStyles(); // Sync all style controls
         bgPresetPreview.src = '/images/lightning.gif';
         bgPresetPreview.alt = 'Background preview';
     });

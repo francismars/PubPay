@@ -2025,7 +2025,7 @@ body.style-panel-open .main-layout {
 
 .qr-code {
     width: 100%;
-    max-width: 300px;
+    max-width: 20vw;
     height: auto;
     margin-bottom: 15px;
     display: block;
