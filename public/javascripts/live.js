@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const DEFAULT_STYLES = {
         textColor: '#ffffff',
         bgColor: '#000000',
-        bgImage: '/images/lightning.gif',
+        bgImage: '',
         qrInvert: false,
         qrScreenBlend: false,
         qrMultiplyBlend: false,
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         hideZapperContent: false,
         podium: false,
         // fontSize: 1.0, // Disabled - using CSS vw units
-        opacity: 0.5,
+        opacity: 1.0,
         textOpacity: 1.0
     };
 
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', function() {
         default: {
             textColor: '#ffffff',
             bgColor: '#000000',
-            bgImage: '/images/lightning.gif',
+            bgImage: '',
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
             hideZapperContent: false,
             podium: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
-            opacity: 0.5,
+            opacity: 1.0,
             textOpacity: 1.0
         },
         cosmic: {
@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
             hideZapperContent: false,
             podium: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
-            opacity: 0.5,
+            opacity: 1.0,
             textOpacity: 1.0
         },
         minimal: {
@@ -1357,8 +1357,9 @@ function setupColorPicker(pickerId, valueId, targetProperty) {
         value.value = color;
         
         if (targetProperty === 'backgroundColor') {
-            // For background color, update the main-layout with 0.5 transparency
-            const rgbaColor = hexToRgba(color, 0.5);
+            // For background color, update the main-layout with current opacity
+            const currentOpacity = parseFloat(document.getElementById('opacitySlider').value);
+            const rgbaColor = hexToRgba(color, currentOpacity);
             mainLayout.style.backgroundColor = rgbaColor;
         } else if (targetProperty === 'color') {
             // For text color, use CSS custom property for consistent inheritance
@@ -1387,8 +1388,9 @@ function setupColorPicker(pickerId, valueId, targetProperty) {
             picker.value = color;
             
             if (targetProperty === 'backgroundColor') {
-                // For background color, update the main-layout with 0.5 transparency
-                const rgbaColor = hexToRgba(color, 0.5);
+                // For background color, update the main-layout with current opacity
+                const currentOpacity = parseFloat(document.getElementById('opacitySlider').value);
+                const rgbaColor = hexToRgba(color, currentOpacity);
                 mainLayout.style.backgroundColor = rgbaColor;
             } else if (targetProperty === 'color') {
                 // For text color, use CSS custom property for consistent inheritance
@@ -1863,7 +1865,7 @@ function setupStyleOptions() {
             console.log('bgPresetPreview element:', bgPresetPreview);
             if (bgPresetPreview) {
                 bgPresetPreview.src = selectedValue;
-                bgPresetPreview.alt = 'Background preview';
+                bgPresetPreview.alt = selectedValue ? 'Background preview' : 'No background';
                 console.log('Preview src set to:', bgPresetPreview.src);
             } else {
                 console.error('bgPresetPreview element not found!');
@@ -1902,13 +1904,13 @@ function setupStyleOptions() {
     // Clear background image
     clearBgImage.addEventListener('click', function() {
         bgImageUrl.value = '';
-        bgImagePreset.value = '/images/lightning.gif';
+        bgImagePreset.value = '';
         customUrlGroup.style.display = 'none';
-        updateBackgroundImage('/images/lightning.gif');
+        updateBackgroundImage('');
         updateStyleURL();
         applyAllStyles(); // Sync all style controls
-        bgPresetPreview.src = '/images/lightning.gif';
-        bgPresetPreview.alt = 'Background preview';
+        bgPresetPreview.src = '';
+        bgPresetPreview.alt = 'No background';
     });
     
     // QR Code toggles
