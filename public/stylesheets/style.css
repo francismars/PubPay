@@ -1219,7 +1219,7 @@ input:focus::placeholder {
 
 .live #zappedTotalValue {
   font-weight: 600;
-  font-size: 2vw;
+  font-size: 3vw;
   line-height: 1.5vw;
 }
 
@@ -2323,7 +2323,7 @@ body.style-panel-open .main-layout {
 /* Zaps Header */
 .main-layout .zaps-header,
 .live .zaps-header {
-    padding: 20px 30px 20px 30px;
+    padding: 30px 30px 20px 30px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -2600,7 +2600,7 @@ body.style-panel-open .style-toggle-btn {
     align-items: center;
     justify-content: space-between;
     padding: 10px 14px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgb(255 255 255 / 2%);
     border-radius: 8px;
     border: 1px solid rgb(123 123 123 / 20%);
     transition: all 0.2s ease;
