@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cosmic: {
             textColor: '#ffffff',
             bgColor: '#0a0a1a',
-            bgImage: 'https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExdDQxdWlyMnhhZjl2dHYwdmZ3c2pzM3ZldDdhemh3MWtxNnFtZHExaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/k4n9RZ6c9Gc3eOvBKc/giphy.gif',
+            bgImage: '/images/bitcoin-space.gif',
             qrInvert: false,
             qrScreenBlend: true,
             qrMultiplyBlend: false,
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
         vibrant: {
             textColor: '#ffd700',
             bgColor: '#2d1b69',
-            bgImage: 'https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzRqdGF6MnVia3k5cjdpZjRqaWY5NWliYjF4NW9jeGI2aXJ5dGR1MiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/85puET78qkpU5Orh0O/giphy.gif',
+            bgImage: '/images/nostr-ostriches.gif',
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
         electric: {
             textColor: '#00ffff',
             bgColor: '#000033',
-            bgImage: 'https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExY2dkaGl0dTlhb3dncXZwNWw3a2MxbmtmaHhobGN3cnVvNjc3c2hyeSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/qg9cMYw8vMMag62CbE/giphy.gif',
+            bgImage: '/images/send-zaps.gif',
             qrInvert: false,
             qrScreenBlend: true,
             qrMultiplyBlend: false,
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
         warm: {
             textColor: '#ff8c42',
             bgColor: '#2c1810',
-            bgImage: 'https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdHl6YTNrN2l4ZXRnaDVsZmplaWU5c3M2bjYwcTZxN3N0cGVrbmprZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/vYMEkIhgfi7ooOFlkA/giphy.gif',
+            bgImage: '/images/bitcoin-sunset.gif',
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
         minimal: {
             textColor: '#f4a460',
             bgColor: '#2a2a2a',
-            bgImage: 'https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExOWw1NDhqbnk2engwMzBwa2didHJtbnd0NHNjdGRpem8ybTgyZnRhMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Ot7SIhparretCrwRI0/giphy.gif',
+            bgImage: '/images/bitcoin-rotating.gif',
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
