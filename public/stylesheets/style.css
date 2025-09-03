@@ -989,7 +989,7 @@ input:focus::placeholder {
 }
 
 /* Responsive zapperContent font sizes */
-@media (max-width: 768px) {
+@media (max-width: 665px) {
   .live .zapperContent {
     font-size: 1.4vw;
   }
@@ -1050,7 +1050,7 @@ input:focus::placeholder {
   max-width: 200px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 665px) {
   .live .zapperName {
     max-width: 150px;
   }
@@ -2279,7 +2279,7 @@ body.style-panel-open .main-layout {
 }
 
 /* Responsive adjustments for total elements */
-@media (max-width: 768px) {
+@media (max-width: 665px) {
     .total-label {
         font-size: 1.8vw;
     }
@@ -2406,7 +2406,7 @@ body.style-panel-open .style-toggle-btn {
 }
 
 /* Responsive adjustments for zaps-header-right elements */
-@media (max-width: 768px) {
+@media (max-width: 665px) {
     .style-toggle-btn {
         font-size: 1.5vw;
         width: 3vw;
@@ -2646,7 +2646,7 @@ body.podium-enabled .zap:nth-child(3)::before {
 }
 
 /* Responsive medal sizing - Only apply when podium is enabled */
-@media (max-width: 768px) {
+@media (max-width: 665px) {
     body.podium-enabled .zap:nth-child(1)::before {
         font-size: 3vw;
     }
@@ -2785,7 +2785,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 665px) {
     .main-layout,
     .live {
         flex-direction: column;
@@ -2838,6 +2838,38 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
         font-size: 12px;
     }
   
+}
+
+/* 16:9 ratio displays (phones turned sideways) - More specific, comes after */
+@media (max-width: 1000px) and (min-aspect-ratio: 16/10) {
+    .main-layout .left-side,
+    .live .left-side {
+        width: 35%;
+        height: 100vh;
+    }
+    
+    .main-layout .right-side,
+    .live .right-side {
+        width: 65%;
+    }
+    
+    .live #noteContent {
+        height: 25vw;
+        min-height: 4vw;
+    }
+    
+    .author-image {
+        width: 3vw;
+        height: 3vw;
+    }
+    
+    .qr-code {
+        max-width: 12vw;
+    }
+    
+    .qr-instructions {
+        font-size: 0.8vw;
+    }
 }
 
 /* App Header Styles */
@@ -3007,7 +3039,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 }
 
 /* Mobile responsive adjustments */
-@media (max-width: 768px) {
+@media (max-width: 665px) {
     /* Prevent horizontal scrolling on mobile */
     body {
         overflow-x: hidden;
@@ -3310,7 +3342,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 }
 
 /* Mobile responsive adjustments for portrait swiper */
-@media (max-width: 768px) {
+@media (max-width: 665px) {
     .live #noteLoader .portrait-swiper {
         height: 60vw;
         max-height: 500px;
@@ -3721,7 +3753,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 }
 
 /* Responsive loading text */
-@media (max-width: 768px) {
+@media (max-width: 665px) {
     .note-content.loading .loading-text,
     .zaps-list.loading .loading-text {
         font-size: 1.2vw;
