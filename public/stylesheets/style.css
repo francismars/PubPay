@@ -988,10 +988,13 @@ input:focus::placeholder {
   object-fit: cover;
 }
 
-/* Responsive zapperContent font sizes */
+/* Responsive zapperContent and zapperMessage font sizes */
 @media (max-width: 665px) {
   .live .zapperContent {
     font-size: 1.4vw;
+  }
+  .live .zapperMessage {
+    font-size: 1.3vw;
   }
 }
 
@@ -999,11 +1002,17 @@ input:focus::placeholder {
   .live .zapperContent {
     font-size: 1.6vw;
   }
+  .live .zapperMessage {
+    font-size: 1.5vw;
+  }
 }
 
 @media (min-width: 1200px) {
   .live .zapperContent {
     font-size: 0.9vw;
+  }
+  .live .zapperMessage {
+    font-size: 0.8vw;
   }
 }
 
@@ -1034,37 +1043,65 @@ input:focus::placeholder {
 }
 
 .live .zap:nth-child(1) .zapperName {
-  font-size: 1.9vw;
+  font-size: 3.2vw;
 }
 
 .live .zap:nth-child(2) .zapperName {
-  font-size: 1.6vw;
+  font-size: 2.6vw;
 }
 
 .live .zap:nth-child(3) .zapperName {
-  font-size: 1.3vw;
+  font-size: 2.0vw;
 }
 
-/* Responsive max-width for zapperName */
-.live .zapperName {
+.live .zap:nth-child(1) .zapperMessage {
+  font-size: 2.8vw;
+}
+
+.live .zap:nth-child(2) .zapperMessage {
+  font-size: 2.2vw;
+}
+
+.live .zap:nth-child(3) .zapperMessage {
+  font-size: 1.6vw;
+}
+
+.live .zap:nth-child(1) .zapperAmountSats {
+  font-size: 3.0vw;
+}
+
+.live .zap:nth-child(2) .zapperAmountSats {
+  font-size: 2.4vw;
+}
+
+.live .zap:nth-child(3) .zapperAmountSats {
+  font-size: 1.8vw;
+}
+
+/* Responsive max-width for zapperName and zapperMessage */
+.live .zapperName,
+.live .zapperMessage {
   max-width: 200px;
 }
 
 @media (max-width: 665px) {
-  .live .zapperName {
+  .live .zapperName,
+  .live .zapperMessage {
     max-width: 150px;
   }
 }
 
 @media (max-width: 480px) {
-  .live .zapperName {
+  .live .zapperName,
+  .live .zapperMessage {
     max-width: 120px;
   }
 }
 
 @media (min-width: 1200px) {
-  .live .zapperName {
-    max-width: 250px;
+  .live .zapperName,
+  .live .zapperMessage {
+    max-width: 460px;
   }
 }
 
@@ -1080,12 +1117,12 @@ input:focus::placeholder {
   font-size: 3vw;
 }
 .live .zapperAmountSats {
-  opacity: 0.6;
+  opacity: 1;
 }
 
 
 .live .zap:nth-child(even) .zapperProfile {
-  text-align: right;
+  /* text-align: right; */
 }
 
 .live .zap:nth-child(2) .zapperProfileImg {
@@ -2466,7 +2503,7 @@ body.style-panel-open .style-toggle-btn {
 .live .zaps-container {
     flex: 1;
     overflow-y: auto;
-    padding: 20px 30px;
+    padding: 20px 20px 20px 30px;
     border-radius: 12px;
     margin: 0;
 }
@@ -2510,21 +2547,7 @@ body.style-panel-open .style-toggle-btn {
     position: relative;
 }
 
-.zaps-list::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    /*background: linear-gradient(to bottom, 
-        rgba(255, 215, 0, 0.3) 0%, 
-        rgba(192, 192, 192, 0.3) 33%, 
-        rgba(205, 127, 50, 0.3) 66%, 
-        rgba(255, 255, 255, 0.1) 100%);*/
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 1px;
-}
+
 
 .zap {
     display: flex;
@@ -2572,6 +2595,13 @@ body.style-panel-open .style-toggle-btn {
     display: block;
 }
 
+.zapperInfo {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
 .zapperName {
     font-size: 1vw;
     font-weight: 600;
@@ -2583,22 +2613,43 @@ body.style-panel-open .style-toggle-btn {
     max-width: 200px;
 }
 
+.zapperMessage {
+    font-size: 0.9vw;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.8);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    max-width: 200px;
+    margin-top: 2px;
+}
+
 .zapperAmount {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: flex-end;
     text-align: right;
     flex-shrink: 0;
     margin-left: 16px;
     min-width: 80px;
+    gap: 4px;
 }
 
 .zapperAmountSats {
     font-size: 1.2vw;
     font-weight: 700;
-    color: #00ff88;
+    color: #fff;
     line-height: 1.2;
-    text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+    /* text-shadow: 0 0 10px rgba(0, 255, 136, 0.3); */
+}
+
+.zapperAmountLabel {
+    font-size: 1.0vw;
+    font-weight: 500;
+    color: #fff;
+    line-height: 1.2;
 }
 
 /* Zap ranking system - Only apply when podium is enabled */
@@ -3826,7 +3877,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 .main-layout .zaps-list,
 .main-layout .zap,
 .main-layout .zapperProfile,
-.main-layout .zapperContent,
+.main-layout .zapperInfo,
 .main-layout .zapperMessage,
 .main-layout .post-info,
 .main-layout .author-section,
