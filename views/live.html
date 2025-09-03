@@ -51,35 +51,43 @@
           </p>
         </div>
         
-        <label for="note1LoaderInput">Enter a Nostr post ID:</label><br>
-        <input type="text" id="note1LoaderInput" name="note1LoaderInput" value="" placeholder="note16a..."><br>
-        <button id="note1LoaderSubmit" class="button">Load Note</button>
-        <div>
+        <label for="note1LoaderInput">Enter nostr note id</label>
+        <input type="text" id="note1LoaderInput" name="note1LoaderInput" value="" placeholder="note1abc123... or nevent1xyz789..."><br>
+        <div class="button-container">
+          <button id="note1LoaderSubmit" class="button">Load Note</button>
+          <div class="styleOptionsModalToggle button outline">Style Options</div>
+        </div>
+        <div class="examples-section">
           <h3>Examples</h3>
           <div class="example-item">
             <a href="/live/note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7" target="_blank">
-              "Zap my set at at Plan B at Adopting Bitcoin after party ⚡️"
+              Zap my set at at Plan B at Adopting Bitcoin after party ⚡️
             </a>
-            <div class="author-name">— Roger 9000</div>
+            <div class="author-name">
+              <img src="https://primal.b-cdn.net/media-upload?u=https%3A%2F%2Fmedia.primal.net%2Fuploads%2Fd%2F87%2F9f%2Fd879f18ec704fed0700a3c2befae75b0148822d19166feb9293192279864db82.jpg" alt="Roger 9000" class="author-avatar">
+              Roger 9000
+            </div>
           </div>
           <div class="example-item">
             <a href="/live/note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu" target="_blank">
-              "Bienvenidos a nuestro querido el salvador 🇸🇻"
+              Bienvenidos a nuestro querido el salvador 🇸🇻
             </a>
-            <div class="author-name">— Vicky</div>
+            <div class="author-name">
+              <img src="https://cdn.satellite.earth/080a8d6c0664cd39b386a27f095d6dac8e223a26c69357e3e144da2d54dc39a3.png" alt="Vicky" class="author-avatar">
+              Vicky
+            </div>
           </div>
           <div class="example-item">
             <a href="/live/note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv" target="_blank">
-              "The Network School of Rock is Live from Malaysia!"
+              The Network School of Rock is Live from Malaysia!
             </a>
-            <div class="author-name">— lucas</div>
+            <div class="author-name">
+              <img src="https://m.primal.net/QIbm.jpg" alt="lucas" class="author-avatar">
+              lucas
+            </div>
           </div>
         </div>
-        <br>
-        <br>
-        <div class="styleOptionsModalToggle button">
-          Style Options
-        </div>
+
       </div>
     </div>
 
@@ -160,27 +168,26 @@
     <div id="styleOptionsModal">
       <div class="style-options-content">
         <div class="style-options-header">
-          <h2>🎨 Style Options</h2>
+          <h2>STYLE OPTIONS</h2>
           <button class="close-button">&times;</button>
-        </div>
-        
-        <!-- Style Presets Section -->
-        <div class="style-section">
-          <h3 class="section-title">Quick Presets</h3>
-          <div class="presets-container">
-            <button class="preset-btn" data-preset="default">⚡ Default</button>
-            <button class="preset-btn" data-preset="cosmic">🌌 Cosmic</button>
-            <button class="preset-btn" data-preset="vibrant">🎨 Vibrant</button>
-            <button class="preset-btn" data-preset="electric">⚡ Electric</button>
-            <button class="preset-btn" data-preset="warm">🌅 Warm</button>
-            <button class="preset-btn" data-preset="minimal">🎯 Minimal</button>
-          </div>
         </div>
 
         <div class="style-options-body">
+          <!-- Style Presets Section -->
+          <div class="style-section">
+            <h3 class="section-title">QUICK PRESETS</h3>
+            <div class="presets-container">
+              <button class="preset-btn" data-preset="default">⚡ Default</button>
+              <button class="preset-btn" data-preset="cosmic">🌌 Cosmic</button>
+              <button class="preset-btn" data-preset="vibrant">🎨 Vibrant</button>
+              <button class="preset-btn" data-preset="electric">⚡ Electric</button>
+              <button class="preset-btn" data-preset="warm">🌅 Warm</button>
+              <button class="preset-btn" data-preset="minimal">🎯 Minimal</button>
+            </div>
+          </div>
           <!-- Colors Section -->
           <div class="style-section">
-            <h3 class="section-title">🎨 Colors</h3>
+            <h3 class="section-title">COLORS</h3>
             <div class="colors-container">
               <div class="style-option-group">
                 <label for="textColorPicker">Text Color</label>
@@ -217,7 +224,7 @@
 
           <!-- Background Section -->
           <div class="style-section">
-            <h3 class="section-title">🖼️ Background</h3>
+            <h3 class="section-title">BACKGROUND</h3>
             <div class="style-option-group full-width">
               <label for="bgImagePreset">Choose Background</label>
               <div class="bg-preset-controls">
@@ -248,7 +255,7 @@
 
           <!-- QR Code Section -->
           <div class="style-section">
-            <h3 class="section-title">📱 QR Code Effects</h3>
+            <h3 class="section-title">QR CODE EFFECTS</h3>
             <div class="toggles-container">
               <div class="style-option-group toggle-group">
                 <label class="toggle-label">
@@ -282,7 +289,7 @@
 
           <!-- Layout Section -->
           <div class="style-section">
-            <h3 class="section-title">📐 Layout</h3>
+            <h3 class="section-title">LAYOUT</h3>
             <div class="toggles-container">
               <div class="style-option-group toggle-group">
                 <label class="toggle-label">
@@ -316,7 +323,7 @@
 
           <!-- Advanced Section -->
           <div class="style-section">
-            <h3 class="section-title">⚙️ Advanced</h3>
+            <h3 class="section-title">ADVANCED</h3>
             <div class="style-option-group">
               <label for="fontSizeSlider">Font Size</label>
               <div class="slider-container">
@@ -329,7 +336,7 @@
 
         <!-- Action Buttons -->
         <div class="style-actions">
-          <button id="resetStyles" class="action-btn secondary">Reset to Default</button>
+          <button id="resetStyles" class="action-btn secondary">Reset</button>
           <button id="copyStyleUrl" class="action-btn primary">Copy Style URL</button>
         </div>
       </div>

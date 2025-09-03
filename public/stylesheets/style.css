@@ -2,12 +2,21 @@
 body {
   margin: 0;
   font-family: "Inter", sans-serif;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Ensure body can scroll when noteLoader content exceeds viewport */
+.live #noteLoaderContainer {
+  pointer-events: auto;
 }
 
 /* Live view specific styles */
 .live {
-  overflow: hidden;
-  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 100vh;
   width: 100vw;
   margin: 0;
   padding: 0;
@@ -928,37 +937,54 @@ input:focus::placeholder {
 
 /* Live noteLoader examples styling */
 .live #noteLoader .example-item {
-  background: rgba(122, 139, 160, 0.1);
-  border: 1px solid rgba(122, 139, 160, 0.2);
+  background: #f5f8fd;
+  border: 1px solid #e1e8ed;
   border-radius: 8px;
   padding: 12px 16px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   transition: all 0.3s ease;
+  font-family: "Inter", sans-serif;
 }
 
 .live #noteLoader .example-item:hover {
-  background: rgba(122, 139, 160, 0.15);
-  border-color: rgba(122, 139, 160, 0.3);
+  background: #fff;
+  border-color: #4a75ff;
+  transform: scale(1.01);
 }
 
 .live #noteLoader .example-item a {
   display: block;
-  font-style: italic;
-  color: #b8c5d1;
+  font-style: normal;
+  color: #4a75ff;
   text-decoration: none;
   margin-bottom: 8px;
+  font-size: 1.1rem;
+  text-decoration: none !important;
 }
 
 .live #noteLoader .example-item a:hover {
-  color: #d1dae6;
+  color: #3a65ef;
 }
 
 .live #noteLoader .example-item .author-name {
-  text-align: right;
+  text-align: left;
   font-weight: 600;
-  color: #7a8ba0;
+  color: #2c3e50;
   font-size: 0.9rem;
   font-style: normal;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  text-shadow: none;
+  margin: 0;
+}
+
+.live #noteLoader .author-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 /* Responsive zapperContent font sizes */
@@ -1313,6 +1339,33 @@ input:focus::placeholder {
   cursor: pointer;
 }
 
+/* Style Options Modal Toggle Button */
+.live #noteLoader .styleOptionsModalToggle {
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 100%;
+  background: #4a75ff;
+  color: #fff;
+  border: none;
+  padding: 16px 32px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 25px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(74, 117, 255, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.live #noteLoader .styleOptionsModalToggle:hover {
+  background: #3a65ef;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(74, 117, 255, 0.35);
+}
+
 /* Style Options Modal - Converted to Side Panel */
 #styleOptionsModal {
     display: none;
@@ -1334,7 +1387,7 @@ input:focus::placeholder {
 }
 
 .style-options-content {
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
     margin: 0;
     padding: 0;
     border: none;
@@ -1342,12 +1395,12 @@ input:focus::placeholder {
     height: 100vh;
     border-radius: 0;
     overflow: hidden;
-    box-shadow: -15px 0 40px rgba(0, 0, 0, 0.2), -5px 0 15px rgba(0, 0, 0, 0.1);
+    box-shadow: -15px 0 40px rgba(74, 117, 255, 0.2), -5px 0 15px rgba(74, 117, 255, 0.1);
     display: flex;
     flex-direction: column;
     transform: translateX(100%);
     transition: transform 0.3s ease-out;
-    border-left: 1px solid rgba(0, 0, 0, 0.1);
+    border-left: 1px solid rgba(74, 117, 255, 0.2);
 }
 
 #styleOptionsModal.show .style-options-content {
@@ -1359,43 +1412,47 @@ input:focus::placeholder {
     justify-content: space-between;
     align-items: center;
     padding: 20px 25px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: none;
+    color: #495057;
     border-radius: 0;
     flex-shrink: 0;
 }
 
 .style-options-header h2 {
     margin: 0;
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 600;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    text-shadow: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .close-button {
-    color: white;
-    font-size: 32px;
-    font-weight: bold;
+    color: #495057;
+    font-size: 24px;
+    font-weight: 300;
     cursor: pointer;
     border: none;
-    background: rgba(255, 255, 255, 0.2);
-    padding: 8px;
-    width: 40px;
-    height: 40px;
+    background: none;
+    padding: 4px;
+    width: auto;
+    height: auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
+    border-radius: 0;
     transition: all 0.3s ease;
+    opacity: 0.8;
 }
 
 .close-button:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: none;
     transform: scale(1.1);
+    opacity: 1;
 }
 
 .style-options-body {
-    padding: 20px 25px;
+    padding: 0 25px 20px 25px;
     flex: 1;
     overflow-y: auto;
     display: flex;
@@ -1409,18 +1466,53 @@ input:focus::placeholder {
     background: white;
     border-radius: 15px;
     padding: 20px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e9ecef;
+    box-shadow: 0 4px 15px rgba(74, 117, 255, 0.1);
+    border: 1px solid rgba(74, 117, 255, 0.1);
 }
 
 .section-title {
     margin: 0 0 15px 0;
-    font-size: 18px;
+    font-size: 12px;
     font-weight: 600;
-    color: #495057;
+    color: #909295;
     display: flex;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     align-items: center;
     gap: 8px;
+}
+
+.color-picker-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.color-picker-container input[type="color"] {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
+}
+
+.color-picker-container input[type="text"] {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: monospace;
+}
+
+.style-option-group input[type="color"] {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 0;
 }
 
 .style-option-group {
@@ -1627,11 +1719,12 @@ input:checked + .toggle-slider:before {
     flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 10px;
+    justify-content: flex-start;
 }
 
 .preset-btn {
     padding: 8px 16px;
-    border: 2px solid #e9ecef;
+    border: 2px solid rgba(74, 117, 255, 0.2);
     background: white;
     border-radius: 20px;
     cursor: pointer;
@@ -1642,15 +1735,15 @@ input:checked + .toggle-slider:before {
 }
 
 .preset-btn:hover {
-    border-color: #667eea;
-    color: #667eea;
+    border-color: #4a75ff;
+    color: #4a75ff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(74, 117, 255, 0.3);
 }
 
 .preset-btn.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-color: #667eea;
+    background: linear-gradient(135deg, #4a75ff 0%, #3a65ef 100%);
+    border-color: #4a75ff;
     color: white;
 }
 
@@ -1736,7 +1829,7 @@ input:checked + .toggle-slider:before {
     flex: 1;
     height: 6px;
     border-radius: 3px;
-    background: #e9ecef;
+    background: rgba(74, 117, 255, 0.2);
     outline: none;
     -webkit-appearance: none;
     appearance: none;
@@ -1749,19 +1842,19 @@ input:checked + .toggle-slider:before {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4a75ff 0%, #3a65ef 100%);
     cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 6px rgba(74, 117, 255, 0.3);
 }
 
 .slider-container input[type="range"]::-moz-range-thumb {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4a75ff 0%, #3a65ef 100%);
     cursor: pointer;
     border: none;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 6px rgba(74, 117, 255, 0.3);
 }
 
 .slider-container span {
@@ -1785,39 +1878,46 @@ input:checked + .toggle-slider:before {
 }
 
 .action-btn {
-    padding: 10px 16px;
+    padding: 16px 32px;
     border: none;
-    border-radius: 20px;
-    font-size: 13px;
+    border-radius: 12px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
     min-width: 100px;
+    height: 48px;
     flex: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .action-btn.primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #4a75ff 0%, #3a65ef 100%);
     color: white;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px rgba(74, 117, 255, 0.3);
 }
 
 .action-btn.primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 20px rgba(74, 117, 255, 0.4);
 }
 
 .action-btn.secondary {
     background: white;
     color: #6c757d;
-    border: 2px solid #e9ecef;
+    border: 2px solid rgba(74, 117, 255, 0.2);
 }
 
 .action-btn.secondary:hover {
-    border-color: #6c757d;
-    color: #495057;
+    border-color: #4a75ff;
+    color: #4a75ff;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(74, 117, 255, 0.2);
 }
 
 /* Hide Zapper Content */
@@ -1881,7 +1981,7 @@ body.flex-direction-invert .zapperTotalLabel {
     }
     
     .style-options-body {
-        padding: 15px;
+        padding: 0 15px 15px 15px;
         gap: 15px;
     }
     
@@ -1890,7 +1990,7 @@ body.flex-direction-invert .zapperTotalLabel {
     }
     
     .presets-container {
-        justify-content: center;
+        justify-content: flex-start;
     }
     
     .style-actions {
@@ -1913,7 +2013,7 @@ body.flex-direction-invert .zapperTotalLabel {
     }
     
     .style-options-body {
-        padding: 12px;
+        padding: 0 12px 12px 12px;
         gap: 12px;
     }
     
@@ -1923,7 +2023,7 @@ body.flex-direction-invert .zapperTotalLabel {
 }
 
 .clear-button {
-    background: #dc3545;
+    background: #4a75ff;
     color: white;
     border: none;
     padding: 8px 16px;
@@ -1934,15 +2034,16 @@ body.flex-direction-invert .zapperTotalLabel {
 }
 
 .clear-button:hover {
-    background: #c82333;
+    background: #3a65ef;
 }
 
 /* ===== TWO-COLUMN LAYOUT ===== */
 
 /* Ensure no scrolling on the body */
 body.live {
-    overflow: hidden;
-    height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100vh;
     width: 100vw;
     margin: 0;
     padding: 0;
@@ -2706,17 +2807,19 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     text-align: center;
     margin-bottom: 25px;
     padding: 20px;
-    background: linear-gradient(135deg, rgba(78, 205, 196, 0.1), rgba(68, 160, 141, 0.1));
-    border-radius: 20px;
-    border: 1px solid rgba(78, 205, 196, 0.2);
-    backdrop-filter: blur(10px);
+    background: transparent;
+    border-radius: 0;
+    border: none;
+    backdrop-filter: none;
 }
 
 .app-header h1 {
     font-size: 2.2em;
     margin: 0 0 10px 0;
     color: #2c3e50;
-    font-family: 'Russo One', sans-serif;
+    font-family: "Russo One", sans-serif;
+    font-weight: 400;
+    font-style: normal;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     background: linear-gradient(45deg, #2c3e50, #34495e);
     -webkit-background-clip: text;
@@ -2771,18 +2874,24 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     box-sizing: border-box;
 }
 
-/* Live noteLoaderContainer - neutral but welcoming theme */
+/* Live noteLoaderContainer - match index.html branding */
 .live #noteLoaderContainer {
     position: fixed;
+    top: 0;
+    left: 0;
     display: flex;
     width: 100vw;
-    height: 100vh;
-    background: linear-gradient(135deg, #2c2e3a 0%, #3a3d4a 100%);
+    min-height: 100vh;
+    background: #fafafa;
     z-index: 100;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     padding: 20px;
     box-sizing: border-box;
+    font-family: "Inter", sans-serif;
+    overflow-x: hidden;
+    overflow-y: auto;
+    max-height: 100vh;
 }
 
 /* Jukebox noteLoader - keep current light theme */
@@ -2846,31 +2955,168 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     color: #555;
 }
 
-/* Live noteLoader - neutral but welcoming theme */
+/* Live noteLoader - match index.html branding */
 .live #noteLoader {
     width: 95%;
     max-width: 600px;
-    max-height: 90vh;
-    background: rgba(50, 52, 60, 0.95);
-    color: #e0e2e8;
+    background: #fff;
+    color: #333;
     padding: 30px;
     box-sizing: border-box;
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(120, 130, 150, 0.2);
-    overflow-y: auto;
+    border-radius: 16px;
+    box-shadow: rgb(47 43 67 / 21%) -2px 3px 20px 0px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: visible;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    /* Prevent horizontal scrolling on mobile */
+    body {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+    
+    .live #noteLoaderContainer {
+        padding: 0;
+        box-sizing: border-box;
+        overflow-x: hidden;
+        overflow-y: auto;
+        width: 100vw;
+        max-width: 100vw;
+        min-height: 100vh;
+        max-height: 100vh;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+    }
+    
+    .live #noteLoader {
+        width: 100vw;
+        max-width: 100vw;
+        min-height: 100vh;
+        padding: 15px;
+        border-radius: 0;
+        margin: 0;
+        box-sizing: border-box;
+        overflow: visible;
+        position: relative;
+    }
+    
+    /* Ensure no horizontal overflow */
+    .live #noteLoader * {
+        max-width: 100%;
+        box-sizing: border-box;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+    
+    /* Force all content to fit within viewport */
+    .live #noteLoader > * {
+        max-width: calc(100vw - 30px);
+        width: 100%;
+    }
+    
+    /* Fix input elements on mobile */
+    .live #noteLoader input {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+    
+    .live #noteLoader button {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+    
+    /* Fix example items on mobile */
+    .live #noteLoader .example-item {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        max-width: 100%;
+        overflow: hidden;
+    }
+    
+    .live #noteLoader .example-item a {
+        display: block;
+        max-width: 100%;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        white-space: normal;
+        overflow: hidden;
+    }
+    
+    /* Fix all text elements */
+    .live #noteLoader h1,
+    .live #noteLoader h3,
+    .live #noteLoader p,
+    .live #noteLoader label,
+    .live #noteLoader a {
+        max-width: 100%;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+}
+
+/* Live app-header - minimalist styling */
+.live .app-header {
+    text-align: center;
+    margin-bottom: 32px;
+    padding: 20px 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+}
+
+/* Live app-header h1 - match logo styling exactly */
+.live .app-header h1 {
+    font-family: "Russo One", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 24px;
+    color: #2c3e50;
+    margin: 0 0 8px 0;
+    text-shadow: none;
+    background: none;
+    -webkit-background-clip: unset;
+    -webkit-text-fill-color: unset;
+    background-clip: unset;
+    letter-spacing: 0.5px;
+}
+
+/* Live app-header description */
+.live .app-header .app-description {
+    font-size: 14px;
+    color: #7a8ba0;
+    margin: 0;
+    font-weight: 300;
+    letter-spacing: 0.3px;
 }
 
 /* Live noteLoader content elements */
 .live #noteLoader p {
-    margin: 15px 0;
+    margin: 12px 0;
     line-height: 1.6;
-    color: #ccc;
+    color: #555;
 }
 
 .live #noteLoader div {
-    margin: 10px 0;
+    margin: 18px 0;
+}
+
+.live #noteLoader .button-container div {
+    margin: 0;
+}
+
+.live #noteLoader .examples-section {
+    margin-top: 24px;
+    font-family: "Inter", sans-serif;
 }
 
 .live #noteLoader span {
@@ -2896,23 +3142,42 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     background: rgba(78, 205, 196, 0.5);
 }
 
-/* Custom scrollbar for live note loader */
+/* Custom scrollbar for live note loader - hidden on mobile */
+.live #noteLoader {
+    /* Hide scrollbar on mobile and small screens */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+
 .live #noteLoader::-webkit-scrollbar {
-    width: 8px;
+    display: none; /* WebKit browsers (Chrome, Safari, Edge) */
 }
 
-.live #noteLoader::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-}
+/* Show custom scrollbar only on larger screens */
+@media (min-width: 768px) {
+    .live #noteLoader {
+        scrollbar-width: thin; /* Firefox */
+        -ms-overflow-style: auto; /* Internet Explorer 10+ */
+    }
+    
+    .live #noteLoader::-webkit-scrollbar {
+        display: block;
+        width: 6px;
+    }
 
-.live #noteLoader::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-}
+    .live #noteLoader::-webkit-scrollbar-track {
+        background: rgba(74, 117, 255, 0.1);
+        border-radius: 3px;
+    }
 
-.live #noteLoader::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    .live #noteLoader::-webkit-scrollbar-thumb {
+        background: rgba(74, 117, 255, 0.3);
+        border-radius: 3px;
+    }
+
+    .live #noteLoader::-webkit-scrollbar-thumb:hover {
+        background: rgba(74, 117, 255, 0.5);
+    }
 }
 
 /* Jukebox noteLoader form elements */
@@ -2951,34 +3216,36 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 /* Live noteLoader form elements */
 .live #noteLoader label {
     display: block;
-    margin-bottom: 12px;
+    margin-bottom: 18px;
     font-weight: 600;
-    color: #e0e0e0;
-    font-size: 1.1rem;
+    color: #2c3e50;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .live #noteLoader input {
     width: 100%;
     padding: 16px;
-    border: 2px solid #444;
+    border: 2px solid #e1e8ed;
     border-radius: 12px;
     font-size: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
     box-sizing: border-box;
-    background: rgba(50, 50, 50, 0.8);
-    color: #e0e0e0;
+    background: white;
+    color: #2c3e50;
     transition: all 0.3s ease;
 }
 
 .live #noteLoader input:focus {
     outline: none;
-    border-color: #7a8ba0;
-    box-shadow: 0 0 0 3px rgba(122, 139, 160, 0.15);
+    border-color: #4a75ff;
+    box-shadow: 0 0 0 3px rgba(74, 117, 255, 0.1);
     transform: translateY(-1px);
 }
 
 .live #noteLoader input::placeholder {
-    color: #888;
+    color: #95a5a6;
 }
 
 /* Jukebox noteLoader button */
@@ -3003,24 +3270,61 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 }
 
 /* Live noteLoader button */
+/* Button container for side by side buttons */
+.button-container {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.button-container .button {
+    flex: 1;
+}
+
 .live #noteLoader .button {
-    background: linear-gradient(45deg, #7a8ba0, #6b7a8f);
-    color: #f8f9fa;
-    border: none;
+    background: #4a75ff;
+    color: #fff;
+    border: 2px solid transparent;
     padding: 16px 32px;
     border-radius: 12px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
-    margin-bottom: 25px;
+    margin-bottom: 0;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(122, 139, 160, 0.25);
+    box-shadow: 0 4px 15px rgba(74, 117, 255, 0.25);
+    width: 100%;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+    box-sizing: border-box;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Outline button style */
+.live #noteLoader .button.outline {
+    background: transparent;
+    color: #4a75ff;
+    border: 2px solid #4a75ff;
+    box-shadow: none;
+    box-sizing: border-box;
+    height: 48px;
 }
 
 .live #noteLoader .button:hover {
-    background: linear-gradient(45deg, #6b7a8f, #7a8ba0);
+    background: #3a65ef;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(122, 139, 160, 0.35);
+    box-shadow: 0 6px 20px rgba(74, 117, 255, 0.35);
+}
+
+.live #noteLoader .button.outline:hover {
+    background: #4a75ff;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(74, 117, 255, 0.35);
 }
 
 /* Jukebox noteLoader headings and links */
@@ -3047,14 +3351,16 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 
 /* Live noteLoader headings and links */
 .live #noteLoader h3 {
-    margin: 25px 0 20px 0;
-    color: #e0e0e0;
-    font-size: 20px;
+    margin: 20px 0 12px 0;
+    color: #2c3e50;
+    font-size: 0.9rem;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .live #noteLoader a {
-    color: #b8c5d1;
+    color: #3498db;
     text-decoration: none;
     display: block;
     margin-bottom: 10px;
@@ -3063,7 +3369,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 }
 
 .live #noteLoader a:hover {
-    color: #d1dae6;
+    color: #2980b9;
     text-decoration: underline;
 }
 
@@ -3298,7 +3604,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     font-weight: bold;
     color: inherit;
     text-align: left;
-    margin: 0 0 10px 0;
+    margin: 0;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
 
@@ -3625,14 +3931,14 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 /* Examples Section */
 .examples-section {
     margin-bottom: 25px;
-    padding: 20px;
     background: rgba(255,255,255,0.05);
     border-radius: 15px;
     border: 1px solid rgba(255,255,255,0.1);
+    font-family: "Inter", sans-serif;
 }
 
 .examples-section h3 {
-    text-align: center;
+    text-align: left;
     margin-bottom: 15px;
     font-size: 1.3rem;
     color: #4ecdc4;

@@ -383,19 +383,19 @@ function applyStylesFromLocalStorage() {
             const textColorValue = document.getElementById('textColorValue');
             if (textColorInput) textColorInput.value = styles.textColor;
             if (textColorValue) textColorValue.value = styles.textColor;
-        }
-        
-        // Apply background color
+    }
+    
+    // Apply background color
         if (styles.bgColor) {
             const rgbaColor = hexToRgba(styles.bgColor, styles.opacity || DEFAULT_STYLES.opacity);
-            mainLayout.style.backgroundColor = rgbaColor;
+        mainLayout.style.backgroundColor = rgbaColor;
             const bgColorInput = document.getElementById('bgColorPicker');
             const bgColorValue = document.getElementById('bgColorValue');
             if (bgColorInput) bgColorInput.value = styles.bgColor;
             if (bgColorValue) bgColorValue.value = styles.bgColor;
-        }
-        
-        // Apply background image
+    }
+    
+    // Apply background image
         if (styles.bgImage) {
             const bgImageUrl = document.getElementById('bgImageUrl');
             if (bgImageUrl) {
@@ -403,29 +403,29 @@ function applyStylesFromLocalStorage() {
                 updateBackgroundImage(styles.bgImage);
                 
                 // Set the preset dropdown to match
-                const bgImagePreset = document.getElementById('bgImagePreset');
-                const customUrlGroup = document.getElementById('customUrlGroup');
-                const bgPresetPreview = document.getElementById('bgPresetPreview');
-                
+        const bgImagePreset = document.getElementById('bgImagePreset');
+        const customUrlGroup = document.getElementById('customUrlGroup');
+        const bgPresetPreview = document.getElementById('bgPresetPreview');
+        
                 const matchingOption = bgImagePreset.querySelector(`option[value="${styles.bgImage}"]`);
-                if (matchingOption) {
+        if (matchingOption) {
                     bgImagePreset.value = styles.bgImage;
-                    customUrlGroup.style.display = 'none';
+            customUrlGroup.style.display = 'none';
                     bgPresetPreview.src = styles.bgImage;
-                    bgPresetPreview.alt = 'Background preview';
-                } else {
-                    bgImagePreset.value = 'custom';
-                    customUrlGroup.style.display = 'block';
-                }
+            bgPresetPreview.alt = 'Background preview';
+        } else {
+            bgImagePreset.value = 'custom';
+            customUrlGroup.style.display = 'block';
             }
         }
-        
-        // Apply QR code invert
+    }
+    
+    // Apply QR code invert
         if (styles.qrInvert !== undefined) {
             const qrInvertToggle = document.getElementById('qrInvertToggle');
             if (qrInvertToggle) qrInvertToggle.checked = styles.qrInvert;
-            const qrCodeContainer = document.getElementById('qrCode');
-            if (qrCodeContainer) {
+        const qrCodeContainer = document.getElementById('qrCode');
+        if (qrCodeContainer) {
                 qrCodeContainer.style.filter = styles.qrInvert ? 'invert(1)' : 'none';
             }
         }
@@ -438,9 +438,9 @@ function applyStylesFromLocalStorage() {
         if (styles.qrMultiplyBlend !== undefined) {
             const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
             if (qrMultiplyBlendToggle) qrMultiplyBlendToggle.checked = styles.qrMultiplyBlend;
-        }
-        
-        // Apply layout invert
+    }
+    
+    // Apply layout invert
         if (styles.layoutInvert !== undefined) {
             const layoutInvertToggle = document.getElementById('layoutInvertToggle');
             if (layoutInvertToggle) layoutInvertToggle.checked = styles.layoutInvert;
@@ -459,25 +459,25 @@ function applyStylesFromLocalStorage() {
             const podiumToggle = document.getElementById('podiumToggle');
             if (podiumToggle) podiumToggle.checked = styles.podium;
             document.body.classList.toggle('podium-enabled', styles.podium);
-        }
-        
-        // Apply font size
+    }
+    
+    // Apply font size
         if (styles.fontSize !== undefined) {
             const fontSizeSlider = document.getElementById('fontSizeSlider');
             const fontSizeValue = document.getElementById('fontSizeValue');
             if (fontSizeSlider) fontSizeSlider.value = styles.fontSize;
             if (fontSizeValue) fontSizeValue.textContent = Math.round(styles.fontSize * 100) + '%';
-        }
-        
-        // Apply opacity
+    }
+    
+    // Apply opacity
         if (styles.opacity !== undefined) {
             const opacitySlider = document.getElementById('opacitySlider');
             const opacityValue = document.getElementById('opacityValue');
             if (opacitySlider) opacitySlider.value = styles.opacity;
             if (opacityValue) opacityValue.textContent = Math.round(styles.opacity * 100) + '%';
-        }
-        
-        // Apply text opacity
+    }
+    
+    // Apply text opacity
         if (styles.textOpacity !== undefined) {
             const textOpacitySlider = document.getElementById('textOpacitySlider');
             const textOpacityValue = document.getElementById('textOpacityValue');
@@ -662,7 +662,7 @@ if(nevent){
 // Use setTimeout to ensure DOM elements are ready
 setTimeout(() => {
     console.log('Applying styles after DOM ready');
-    applyStylesFromURL();
+applyStylesFromURL();
     applyStylesFromLocalStorage();
 }, 200);
 
