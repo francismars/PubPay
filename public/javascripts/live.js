@@ -1559,6 +1559,26 @@ function hideNoteLoaderError() {
     }
 }
 
+function showLoadingError(message) {
+    const errorElement = document.getElementById('noteLoaderError');
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+    
+    // Ensure noteLoader is visible and main layout is hidden when there's an error
+    const noteLoaderContainer = document.getElementById('noteLoaderContainer');
+    const mainLayout = document.getElementById('mainLayout');
+    
+    if (noteLoaderContainer) {
+        noteLoaderContainer.style.display = 'flex';
+    }
+    
+    if (mainLayout) {
+        mainLayout.style.display = 'none';
+    }
+}
+
 function initializePortraitSwiper() {
     const swiperElement = document.querySelector('.portrait-swiper .swiper');
     if (!swiperElement) return;
