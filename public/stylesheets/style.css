@@ -2886,7 +2886,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     z-index: 100;
     justify-content: center;
     align-items: flex-start;
-    padding: 20px;
+    padding: 40px;
     box-sizing: border-box;
     font-family: "Inter", sans-serif;
     overflow-x: hidden;
@@ -3060,6 +3060,12 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
         word-wrap: break-word;
         overflow-wrap: break-word;
     }
+    
+    /* Make button-container stack vertically on mobile */
+    .live #noteLoader .button-container {
+        flex-direction: column;
+        gap: 10px;
+    }
 }
 
 /* Live app-header - minimalist styling */
@@ -3186,7 +3192,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #4a75ff;
+    color: #888;
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
@@ -3194,7 +3200,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 }
 
 .live #noteLoader .note-loader-footer .footer-link:hover {
-    color: #3a65ef;
+    color: #666;
     text-decoration: none;
 }
 
