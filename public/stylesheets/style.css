@@ -2127,6 +2127,14 @@ body.style-panel-open .main-layout {
     align-items: center;
 }
 
+/* Reduce padding for 16:10 aspect ratio and wider */
+@media (min-aspect-ratio: 16/10) {
+    .main-layout .qr-section,
+    .live .qr-section {
+        padding: 10px;
+    }
+}
+
 .qr-code {
     width: 100%;
     max-width: 20vw;
@@ -2763,7 +2771,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 }
 
 /* Aspect ratio adjustments for wide screens */
-@media (min-aspect-ratio: 16/9) {
+@media (min-aspect-ratio: 16/10) {
     .note-section {
         max-height: 35vh;
     }
@@ -2774,7 +2782,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     }
 }
 
-@media (min-aspect-ratio: 19/10) {
+@media (min-aspect-ratio: 16/10) {
     .note-section {
         max-height: 30vh;
     }
@@ -2841,16 +2849,10 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 }
 
 /* 16:9 ratio displays (phones turned sideways) - More specific, comes after */
-@media (max-width: 1000px) and (min-aspect-ratio: 16/10) {
+@media (min-aspect-ratio: 16/10) {
     .main-layout .left-side,
     .live .left-side {
-        width: 35%;
         height: 100vh;
-    }
-    
-    .main-layout .right-side,
-    .live .right-side {
-        width: 65%;
     }
     
     .live #noteContent {
@@ -2864,7 +2866,11 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     }
     
     .qr-code {
-        max-width: 12vw;
+        max-width: 30vh;
+    }
+    
+    .qr-section {
+        padding: 10px;
     }
     
     .qr-instructions {
