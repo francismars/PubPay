@@ -10,24 +10,29 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeFontSizes();
     }, 100); // Small delay to ensure all elements are rendered
     
+    // Get note ID from URL path instead of query parameters
+    const pathParts = window.location.pathname.split('/');
+    const noteIdFromPath = pathParts[pathParts.length - 1]; // Get the last part of the path
+    console.log("Note ID from URL path:", noteIdFromPath);
+    
+    // Also check for query parameters for backward compatibility
     let urlToParse = location.search;
     const params = new URLSearchParams(urlToParse);
-    console.log("Note parameter from URL:", params.get("note"))
-    let nevent = params.get("note")  // ? params.get("note") "note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ls3hugv7";
-    // "b4728c14cbe74a1008d4ed80817dd412ad276469da1b007e7e00e071368c4c9b"
+    const noteFromQuery = params.get("note");
+    
+    // Use path parameter if available, otherwise fall back to query parameter
+    let nevent = noteIdFromPath && noteIdFromPath !== 'live' ? noteIdFromPath : noteFromQuery;
+    console.log("Using note ID:", nevent);
 
     // Decode nevent to note if present in URL
     if (nevent) {
         try {
             const decoded = NostrTools.nip19.decode(nevent);
             if (decoded.type === 'nevent') {
-                // Convert nevent to note format and update URL
-                const note = NostrTools.nip19.noteEncode(decoded.data.id);
-                const currentParams = new URLSearchParams(window.location.search);
-                currentParams.set('note', note);
-                const newUrl = window.location.pathname + '?' + currentParams.toString();
+                // Preserve original nevent format in URL
+                const newUrl = '/live/' + nevent;
                 window.history.replaceState({}, '', newUrl);
-                nevent = note;
+                // Keep nevent as is, don't convert to note
             }
         } catch (e) {
             console.log("Error decoding note parameter:", e);
@@ -283,13 +288,22 @@ function updateStyleURL() {
         currentParams.delete('textOpacity');
     }
     
-    // Update URL without reloading the page
-    const newUrl = window.location.pathname + (currentParams.toString() ? '?' + currentParams.toString() : '');
+    // Update URL without reloading the page, preserving the note ID in the path
+    const pathParts = window.location.pathname.split('/');
+    const noteId = pathParts[pathParts.length - 1];
+    const basePath = noteId && noteId !== 'live' ? `/live/${noteId}` : '/live';
+    const newUrl = basePath + (currentParams.toString() ? '?' + currentParams.toString() : '');
     window.history.replaceState({}, '', newUrl);
 }
 
 function applyStylesFromURL() {
     const mainLayout = document.querySelector('.main-layout');
+    
+    // Get note ID from URL path (same logic as in main function)
+    const pathParts = window.location.pathname.split('/');
+    const noteIdFromPath = pathParts[pathParts.length - 1];
+    const noteFromQuery = params.get("note");
+    const currentNoteId = noteIdFromPath && noteIdFromPath !== 'live' ? noteIdFromPath : noteFromQuery;
     
     // Apply default background color if no custom color is specified
     if (!params.has('bgColor')) {
@@ -440,10 +454,95 @@ function applyStylesFromURL() {
         const rgbaTextColor = hexToRgba(currentTextColor, textOpacity);
         mainLayout.style.setProperty('--text-color', rgbaTextColor);
     }
+    
+    // Load note if present in URL
+    if (currentNoteId) {
+        console.log("Note found in URL during style application, attempting to load:", currentNoteId);
+        loadNoteContent(currentNoteId);
+    }
+}
+
+function loadNoteContent(noteId) {
+    console.log("Loading note content for:", noteId);
+    try {
+        const decoded = NostrTools.nip19.decode(noteId);
+        console.log("Decoded note:", decoded);
+        let kind1ID;
+        
+        if (decoded.type === 'nevent') {
+            kind1ID = decoded.data.id;
+        } else if (decoded.type === 'note') {
+            kind1ID = decoded.data;
+        } else {
+            throw new Error('Invalid format');
+        }
+        
+        // Show loading animations
+        const noteContent = document.querySelector('.note-content');
+        const zapsList = document.getElementById('zaps');
+        
+        if (noteContent) {
+            noteContent.classList.add('loading');
+            // Add loading text if not already present
+            if (!noteContent.querySelector('.loading-text')) {
+                const loadingText = document.createElement('div');
+                loadingText.className = 'loading-text';
+                loadingText.textContent = 'Loading post content...';
+                noteContent.appendChild(loadingText);
+            }
+        }
+        
+        if (zapsList) {
+            zapsList.classList.add('loading');
+            // Add loading text if not already present
+            if (!zapsList.querySelector('.loading-text')) {
+                const loadingText = document.createElement('div');
+                loadingText.className = 'loading-text';
+                loadingText.textContent = 'Loading zaps...';
+                zapsList.appendChild(loadingText);
+            }
+        }
+        
+        subscribeKind1(kind1ID);
+        document.getElementById('noteLoaderContainer').style.display = 'none';
+    } catch (e) {
+        console.log("Error loading note from URL:", e);
+        // If decoding fails, try to use the input directly as a note ID
+        
+        // Show loading animations
+        const noteContent = document.querySelector('.note-content');
+        const zapsList = document.getElementById('zaps');
+        
+        if (noteContent) {
+            noteContent.classList.add('loading');
+            if (!noteContent.querySelector('.loading-text')) {
+                const loadingText = document.createElement('div');
+                loadingText.className = 'loading-text';
+                loadingText.textContent = 'Loading post content...';
+                noteContent.appendChild(loadingText);
+            }
+        }
+        
+        if (zapsList) {
+            zapsList.classList.add('loading');
+            if (!zapsList.querySelector('.loading-text')) {
+                const loadingText = document.createElement('div');
+                loadingText.className = 'loading-text';
+                loadingText.textContent = 'Loading zaps...';
+                zapsList.appendChild(loadingText);
+            }
+        }
+        
+        subscribeKind1(noteId);
+        document.getElementById('noteLoaderContainer').style.display = 'none';
+    }
 }
 
 if(nevent){
     console.log("Note found in URL, attempting to load:", nevent);
+    loadNoteContent(nevent);
+    // Duplicate code removed - using loadNoteContent function instead
+    /*
     try {
         const decoded = NostrTools.nip19.decode(nevent);
         console.log("Decoded note:", decoded);
@@ -518,6 +617,7 @@ if(nevent){
         subscribeKind1(nevent);
         document.getElementById('noteLoaderContainer').style.display = 'none';
     }
+    */
 } else {
     console.log("No note parameter found in URL");
 }
@@ -554,10 +654,8 @@ function note1fromLoader(){
         kind1ID = note1;
     }
     
-    // Update URL with the note parameter
-    const currentParams = new URLSearchParams(window.location.search);
-    currentParams.set('note', note1);
-    const newUrl = window.location.pathname + '?' + currentParams.toString();
+    // Update URL with the note parameter using path format
+    const newUrl = '/live/' + note1;
     window.history.replaceState({}, '', newUrl);
     
     // Show loading animations on content elements
