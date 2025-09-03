@@ -4403,8 +4403,4 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     margin: 5px 0;
 }
 
-.queue-song-info .queue-song-details:contains("🔍"),
-.played-song-info .played-song-details:contains("🔍") {
-    color: #4ecdc4;
-    font-style: italic;
-}
+/* Removed invalid :contains() pseudo-selector - not valid CSS */
