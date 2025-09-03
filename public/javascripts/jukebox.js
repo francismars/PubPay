@@ -1952,20 +1952,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Style options modal functionality
     document.getElementById('styleOptionsModalToggle').addEventListener('click', function() {
         document.getElementById('styleOptionsModal').classList.add('show');
+        document.body.classList.add('style-panel-open');
     });
 
     document.getElementById('styleToggleBtn').addEventListener('click', function() {
         document.getElementById('styleOptionsModal').classList.add('show');
+        document.body.classList.add('style-panel-open');
     });
 
     document.querySelector('#styleOptionsModal .close-button').addEventListener('click', function() {
         document.getElementById('styleOptionsModal').classList.remove('show');
+        document.body.classList.remove('style-panel-open');
     });
 
     // Close modal when clicking outside
     document.getElementById('styleOptionsModal').addEventListener('click', function(e) {
         if (e.target === this) {
             this.classList.remove('show');
+            document.body.classList.remove('style-panel-open');
         }
     });
 
