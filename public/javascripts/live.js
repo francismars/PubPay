@@ -4,6 +4,12 @@ console.log("lightningPayReq available:", typeof lightningPayReq !== 'undefined'
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOMContentLoaded event fired!");
+    
+    // Initialize font sizes for scaling
+    setTimeout(() => {
+        initializeFontSizes();
+    }, 100); // Small delay to ensure all elements are rendered
+    
     let urlToParse = location.search;
     const params = new URLSearchParams(urlToParse);
     console.log("Note parameter from URL:", params.get("note"))
@@ -44,8 +50,8 @@ document.addEventListener('DOMContentLoaded', function() {
         textColor: '#ffffff',
         bgColor: '#000000',
         bgImage: '/images/lightning.gif',
-        qrInvert: true,
-        qrScreenBlend: true,
+        qrInvert: false,
+        qrScreenBlend: false,
         qrMultiplyBlend: false,
         layoutInvert: false,
         hideZapperContent: false,
@@ -61,8 +67,8 @@ document.addEventListener('DOMContentLoaded', function() {
             textColor: '#ffffff',
             bgColor: '#000000',
             bgImage: '/images/lightning.gif',
-            qrInvert: true,
-            qrScreenBlend: true,
+            qrInvert: false,
+            qrScreenBlend: false,
             qrMultiplyBlend: false,
             layoutInvert: false,
             hideZapperContent: false,
@@ -71,52 +77,66 @@ document.addEventListener('DOMContentLoaded', function() {
             opacity: 0.5,
             textOpacity: 1.0
         },
-        dark: {
+        cosmic: {
             textColor: '#ffffff',
-            bgColor: '#1a1a1a',
-            bgImage: '',
-            qrInvert: true,
-            qrScreenBlend: true,
-            qrMultiplyBlend: false,
-            layoutInvert: false,
-            hideZapperContent: false,
-            podium: false,
-            fontSize: 1.0,
-            opacity: 0.8,
-            textOpacity: 1.0
-        },
-        light: {
-            textColor: '#000000',
-            bgColor: '#ffffff',
-            bgImage: '',
+            bgColor: '#0a0a1a',
+            bgImage: 'https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExdDQxdWlyMnhhZjl2dHYwdmZ3c2pzM3ZldDdhemh3MWtxNnFtZHExaSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/k4n9RZ6c9Gc3eOvBKc/giphy.gif',
             qrInvert: false,
-            qrScreenBlend: false,
-            qrMultiplyBlend: true,
-            layoutInvert: false,
-            hideZapperContent: false,
-            podium: false,
-            fontSize: 1.0,
-            opacity: 0.3,
-            textOpacity: 1.0
-        },
-        neon: {
-            textColor: '#00ff00',
-            bgColor: '#000000',
-            bgImage: '',
-            qrInvert: true,
             qrScreenBlend: true,
             qrMultiplyBlend: false,
             layoutInvert: false,
             hideZapperContent: false,
             podium: true,
-            fontSize: 1.2,
-            opacity: 0.9,
+            fontSize: 1.1,
+            opacity: 0.4,
+            textOpacity: 1.0
+        },
+        vibrant: {
+            textColor: '#ffd700',
+            bgColor: '#2d1b69',
+            bgImage: 'https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzRqdGF6MnVia3k5cjdpZjRqaWY5NWliYjF4NW9jeGI2aXJ5dGR1MiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/85puET78qkpU5Orh0O/giphy.gif',
+            qrInvert: false,
+            qrScreenBlend: false,
+            qrMultiplyBlend: false,
+            layoutInvert: false,
+            hideZapperContent: false,
+            podium: false,
+            fontSize: 1.0,
+            opacity: 0.6,
+            textOpacity: 1.0
+        },
+        electric: {
+            textColor: '#00ffff',
+            bgColor: '#000033',
+            bgImage: 'https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExY2dkaGl0dTlhb3dncXZwNWw3a2MxbmtmaHhobGN3cnVvNjc3c2hyeSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/qg9cMYw8vMMag62CbE/giphy.gif',
+            qrInvert: false,
+            qrScreenBlend: true,
+            qrMultiplyBlend: false,
+            layoutInvert: false,
+            hideZapperContent: false,
+            podium: false,
+            fontSize: 1.0,
+            opacity: 0.7,
+            textOpacity: 1.0
+        },
+        warm: {
+            textColor: '#ff8c42',
+            bgColor: '#2c1810',
+            bgImage: 'https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdHl6YTNrN2l4ZXRnaDVsZmplaWU5c3M2bjYwcTZxN3N0cGVrbmprZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/vYMEkIhgfi7ooOFlkA/giphy.gif',
+            qrInvert: false,
+            qrScreenBlend: false,
+            qrMultiplyBlend: false,
+            layoutInvert: false,
+            hideZapperContent: false,
+            podium: false,
+            fontSize: 1.0,
+            opacity: 0.5,
             textOpacity: 1.0
         },
         minimal: {
-            textColor: '#333333',
-            bgColor: '#f8f9fa',
-            bgImage: '',
+            textColor: '#f4a460',
+            bgColor: '#2a2a2a',
+            bgImage: 'https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExOWw1NDhqbnk2engwMzBwa2didHJtbnd0NHNjdGRpem8ybTgyZnRhMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Ot7SIhparretCrwRI0/giphy.gif',
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
@@ -124,8 +144,8 @@ document.addEventListener('DOMContentLoaded', function() {
             hideZapperContent: true,
             podium: false,
             fontSize: 0.9,
-            opacity: 0.2,
-            textOpacity: 0.8
+            opacity: 0.8,
+            textOpacity: 1.0
         }
     };
 
@@ -437,11 +457,64 @@ if(nevent){
             throw new Error('Invalid format');
         }
         
+        // Show loading animations
+        const noteContent = document.querySelector('.note-content');
+        const zapsList = document.getElementById('zaps');
+        
+        if (noteContent) {
+            noteContent.classList.add('loading');
+            // Add loading text if not already present
+            if (!noteContent.querySelector('.loading-text')) {
+                const loadingText = document.createElement('div');
+                loadingText.className = 'loading-text';
+                loadingText.textContent = 'Loading post content...';
+                noteContent.appendChild(loadingText);
+            }
+        }
+        
+        if (zapsList) {
+            zapsList.classList.add('loading');
+            // Add loading text if not already present
+            if (!zapsList.querySelector('.loading-text')) {
+                const loadingText = document.createElement('div');
+                loadingText.className = 'loading-text';
+                loadingText.textContent = 'Loading zaps...';
+                zapsList.appendChild(loadingText);
+            }
+        }
+        
         subscribeKind1(kind1ID);
         document.getElementById('noteLoaderContainer').style.display = 'none';
     } catch (e) {
         console.log("Error loading note from URL:", e);
         // If decoding fails, try to use the input directly as a note ID
+        
+        // Show loading animations
+        const noteContent = document.querySelector('.note-content');
+        const zapsList = document.getElementById('zaps');
+        
+        if (noteContent) {
+            noteContent.classList.add('loading');
+            // Add loading text if not already present
+            if (!noteContent.querySelector('.loading-text')) {
+                const loadingText = document.createElement('div');
+                loadingText.className = 'loading-text';
+                loadingText.textContent = 'Loading post content...';
+                noteContent.appendChild(loadingText);
+            }
+        }
+        
+        if (zapsList) {
+            zapsList.classList.add('loading');
+            // Add loading text if not already present
+            if (!zapsList.querySelector('.loading-text')) {
+                const loadingText = document.createElement('div');
+                loadingText.className = 'loading-text';
+                loadingText.textContent = 'Loading zaps...';
+                zapsList.appendChild(loadingText);
+            }
+        }
+        
         subscribeKind1(nevent);
         document.getElementById('noteLoaderContainer').style.display = 'none';
     }
@@ -486,6 +559,32 @@ function note1fromLoader(){
     currentParams.set('note', note1);
     const newUrl = window.location.pathname + '?' + currentParams.toString();
     window.history.replaceState({}, '', newUrl);
+    
+    // Show loading animations on content elements
+    const noteContent = document.querySelector('.note-content');
+    const zapsList = document.getElementById('zaps');
+    
+    if (noteContent) {
+        noteContent.classList.add('loading');
+        // Add loading text if not already present
+        if (!noteContent.querySelector('.loading-text')) {
+            const loadingText = document.createElement('div');
+            loadingText.className = 'loading-text';
+            loadingText.textContent = 'Loading post content...';
+            noteContent.appendChild(loadingText);
+        }
+    }
+    
+    if (zapsList) {
+        zapsList.classList.add('loading');
+        // Add loading text if not already present
+        if (!zapsList.querySelector('.loading-text')) {
+            const loadingText = document.createElement('div');
+            loadingText.className = 'loading-text';
+            loadingText.textContent = 'Loading zaps...';
+            zapsList.appendChild(loadingText);
+        }
+    }
     
     subscribeKind1(kind1ID);
     document.getElementById('noteLoaderContainer').style.display = 'none';
@@ -866,6 +965,16 @@ async function drawKind1(kind1){
     console.log("Processed content:", processedContent);
     noteContent.innerHTML = processedContent;
     
+    // Hide note content loading animation
+    noteContent.classList.remove('loading');
+    const loadingText = noteContent.querySelector('.loading-text');
+    if (loadingText) loadingText.remove();
+    
+    // Re-initialize font sizes after new content is loaded
+    setTimeout(() => {
+        initializeFontSizes();
+    }, 50);
+    
     let qrcodeContainer = document.getElementById("qrCode");
     qrcodeContainer.innerHTML = "";
     new QRious({
@@ -906,6 +1015,11 @@ function drawKind0(kind0){
       const zapsContainer = document.getElementById("zaps");
       zapsContainer.innerHTML = ""
 
+      // Hide zaps loading animation
+      zapsContainer.classList.remove('loading');
+      const loadingText = zapsContainer.querySelector('.loading-text');
+      if (loadingText) loadingText.remove();
+
       const totalAmountZapped = json9735List.reduce((sum, zaps) => sum + zaps.amount, 0);
       document.getElementById("zappedTotalValue").innerText = numberWithCommas(totalAmountZapped);
 
@@ -942,6 +1056,27 @@ function drawKind0(kind0){
             </div>
         `;
         zapsContainer.appendChild(zapDiv);
+        
+        // Initialize font sizes for the newly created zapper elements
+        setTimeout(() => {
+            const newElements = [
+                zapDiv.querySelector('.zapperName'),
+                zapDiv.querySelector('.zapperMessage'),
+                ...zapDiv.querySelectorAll('.zapperAmountSats')
+            ].filter(el => el); // Filter out null elements
+            
+            newElements.forEach(element => {
+                const computedStyle = window.getComputedStyle(element);
+                const originalSize = computedStyle.fontSize;
+                window.originalFontSizes.set(element, originalSize);
+                
+                // Apply current font size scaling if slider is not at 100%
+                const currentFontSize = parseFloat(document.getElementById('fontSizeSlider').value);
+                if (currentFontSize !== 1.0) {
+                    element.style.fontSize = `calc(${originalSize} * ${currentFontSize})`;
+                }
+            });
+        }, 10);
       }
   }
 
@@ -957,7 +1092,15 @@ Style Options
 
 function toggleStyleOptionsModal(){
     const styleOptionsModal = document.getElementById("styleOptionsModal");
-    styleOptionsModal.classList.toggle("show");
+    const isOpen = styleOptionsModal.classList.contains("show");
+    
+    if (isOpen) {
+        styleOptionsModal.classList.remove("show");
+        document.body.classList.remove("style-panel-open");
+    } else {
+        styleOptionsModal.classList.add("show");
+        document.body.classList.add("style-panel-open");
+    }
 }
 
 
@@ -966,6 +1109,7 @@ function toggleStyleOptionsModal(){
 document.querySelectorAll('.styleOptionsModalToggle').forEach(function(toggle) {
     toggle.addEventListener('click', function() {
         document.getElementById('styleOptionsModal').classList.add('show');
+        document.body.classList.add('style-panel-open');
     });
 });
 
@@ -976,12 +1120,14 @@ document.getElementById('styleToggleBtn').addEventListener('click', function() {
 
 document.querySelector('#styleOptionsModal .close-button').addEventListener('click', function() {
     document.getElementById('styleOptionsModal').classList.remove('show');
+    document.body.classList.remove('style-panel-open');
 });
 
 // Close modal when clicking outside
 document.getElementById('styleOptionsModal').addEventListener('click', function(e) {
     if (e.target === this) {
         this.classList.remove('show');
+        document.body.classList.remove('style-panel-open');
     }
 });
 
@@ -1120,8 +1266,13 @@ function updateBlendMode() {
 
 // Preset functions
 function applyPreset(presetName) {
+    console.log('applyPreset called with:', presetName);
     const preset = STYLE_PRESETS[presetName];
-    if (!preset) return;
+    if (!preset) {
+        console.error('Preset not found:', presetName);
+        return;
+    }
+    console.log('Applying preset:', preset);
     
     // Update all controls
     document.getElementById('textColorPicker').value = preset.textColor;
@@ -1150,11 +1301,42 @@ function applyPreset(presetName) {
     document.querySelector(`[data-preset="${presetName}"]`).classList.add('active');
 }
 
+function initializeFontSizes() {
+    const mainLayout = document.querySelector('.main-layout');
+    if (!mainLayout) return;
+    
+    const elementsToScale = [
+        '.author-name',
+        '.note-content', 
+        '.zapperName',
+        '.dashboard-title',
+        '.total-label',
+        '.total-amount',
+        '.total-sats',
+        '.section-label',
+        '.qr-instructions',
+        '.zapperAmountSats',
+        '.zapperMessage'
+    ];
+    
+    window.originalFontSizes = new Map();
+    elementsToScale.forEach(selector => {
+        const elements = mainLayout.querySelectorAll(selector);
+        elements.forEach(element => {
+            const computedStyle = window.getComputedStyle(element);
+            const originalSize = computedStyle.fontSize;
+            window.originalFontSizes.set(element, originalSize);
+        });
+    });
+}
+
 function applyAllStyles() {
+    console.log('applyAllStyles called');
     const mainLayout = document.querySelector('.main-layout');
     const textColor = document.getElementById('textColorValue').value;
     const bgColor = document.getElementById('bgColorValue').value;
     const bgImage = document.getElementById('bgImageUrl').value;
+    console.log('Style values:', { textColor, bgColor, bgImage });
     const fontSize = parseFloat(document.getElementById('fontSizeSlider').value);
     const opacity = parseFloat(document.getElementById('opacitySlider').value);
     const textOpacity = parseFloat(document.getElementById('textOpacitySlider').value);
@@ -1201,8 +1383,64 @@ function applyAllStyles() {
     // Apply background image
     updateBackgroundImage(bgImage);
     
-    // Apply font size
-    mainLayout.style.fontSize = `${fontSize}em`;
+    // Apply font size to specific elements that have fixed font-sizes
+    const elementsToScale = [
+        '.author-name',
+        '.note-content', 
+        '.zapperName',
+        '.dashboard-title',
+        '.total-label',
+        '.total-amount',
+        '.total-sats',
+        '.section-label',
+        '.qr-instructions',
+        '.zapperAmountSats',
+        '.zapperMessage'
+    ];
+    
+    // Store original font sizes if not already stored
+    if (!window.originalFontSizes) {
+        window.originalFontSizes = new Map();
+        elementsToScale.forEach(selector => {
+            const elements = mainLayout.querySelectorAll(selector);
+            elements.forEach(element => {
+                // Temporarily reset any inline styles to get original size
+                const currentInlineStyle = element.style.fontSize;
+                element.style.fontSize = '';
+                const computedStyle = window.getComputedStyle(element);
+                const originalSize = computedStyle.fontSize;
+                window.originalFontSizes.set(element, originalSize);
+                // Restore inline style if it existed
+                if (currentInlineStyle) {
+                    element.style.fontSize = currentInlineStyle;
+                }
+            });
+        });
+    }
+    
+    // Apply scaled font sizes
+    elementsToScale.forEach(selector => {
+        const elements = mainLayout.querySelectorAll(selector);
+        elements.forEach(element => {
+            let originalSize = window.originalFontSizes.get(element);
+            
+            // If element not in map, capture its original size now
+            if (!originalSize) {
+                const currentInlineStyle = element.style.fontSize;
+                element.style.fontSize = '';
+                const computedStyle = window.getComputedStyle(element);
+                originalSize = computedStyle.fontSize;
+                window.originalFontSizes.set(element, originalSize);
+                if (currentInlineStyle) {
+                    element.style.fontSize = currentInlineStyle;
+                }
+            }
+            
+            if (originalSize) {
+                element.style.fontSize = `calc(${originalSize} * ${fontSize})`;
+            }
+        });
+    });
     
     // Apply QR code effects
     const qrCodeContainer = document.getElementById('qrCode');
@@ -1413,6 +1651,7 @@ function setupStyleOptions() {
     document.querySelectorAll('.preset-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const presetName = this.getAttribute('data-preset');
+            console.log('Preset button clicked:', presetName);
             applyPreset(presetName);
         });
     });
