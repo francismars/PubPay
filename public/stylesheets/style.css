@@ -2140,8 +2140,8 @@ body.live {
     display: flex;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
-    color: white;
+    background: rgba(255, 255, 255, 1.0);
+    color: black;
     overflow: hidden;
     position: relative;
     transition: width 0.3s ease-out;
@@ -2573,17 +2573,17 @@ body.style-panel-open .style-toggle-btn {
 }
 
 .zaps-container::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--scrollbar-track);
     border-radius: 3px;
 }
 
 .zaps-container::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--scrollbar-thumb);
     border-radius: 3px;
 }
 
 .zaps-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--scrollbar-thumb-hover);
 }
 
 .zaps-list {
@@ -2651,7 +2651,7 @@ body.style-panel-open .style-toggle-btn {
 .zapperName {
     font-size: 1vw;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-color);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2662,7 +2662,8 @@ body.style-panel-open .style-toggle-btn {
 .zapperMessage {
     font-size: 0.9vw;
     font-weight: 300;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-color);
+    opacity: 0.8;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2686,7 +2687,7 @@ body.style-panel-open .style-toggle-btn {
 .zapperAmountSats {
     font-size: 1.2vw;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-color);
     line-height: 1.2;
     /* text-shadow: 0 0 10px rgba(0, 255, 136, 0.3); */
 }
@@ -2694,7 +2695,7 @@ body.style-panel-open .style-toggle-btn {
 .zapperAmountLabel {
     font-size: 1.0vw;
     font-weight: 500;
-    color: #fff;
+    color: var(--text-color);
     line-height: 1.2;
 }
 
@@ -3897,7 +3898,10 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 
 /* Use CSS custom property for text color inheritance */
 .main-layout {
-    --text-color: #ffffff;
+    --text-color: #000000;
+    --scrollbar-track: rgba(0, 0, 0, 0.05);
+    --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+    --scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
     color: var(--text-color);
 }
 

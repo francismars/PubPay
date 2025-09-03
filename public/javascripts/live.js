@@ -59,8 +59,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Style options URL parameters
     const DEFAULT_STYLES = {
-        textColor: '#ffffff',
-        bgColor: '#000000',
+        textColor: '#000000',
+        bgColor: '#ffffff',
         bgImage: '',
         qrInvert: false,
         qrScreenBlend: false,
@@ -76,7 +76,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Style presets
     const STYLE_PRESETS = {
-        default: {
+        lightMode: {
+            textColor: '#000000',
+            bgColor: '#ffffff',
+            bgImage: '',
+            qrInvert: false,
+            qrScreenBlend: false,
+            qrMultiplyBlend: false,
+            layoutInvert: false,
+            hideZapperContent: false,
+            podium: false,
+            // fontSize: 1.0, // Disabled - using CSS vw units
+            opacity: 1.0,
+            textOpacity: 1.0,
+            partnerLogo: ''
+        },
+        darkMode: {
             textColor: '#ffffff',
             bgColor: '#000000',
             bgImage: '',
@@ -88,7 +103,8 @@ document.addEventListener('DOMContentLoaded', function() {
             podium: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
             opacity: 1.0,
-            textOpacity: 1.0
+            textOpacity: 1.0,
+            partnerLogo: ''
         },
         cosmic: {
             textColor: '#ffffff',
@@ -217,6 +233,18 @@ function updateStyleURL() {
     
     // Get current style values
     const partnerLogoSelect = document.getElementById('partnerLogoSelect');
+    const partnerLogoUrl = document.getElementById('partnerLogoUrl');
+    
+    // Get the actual partner logo URL
+    let currentPartnerLogo = '';
+    if (partnerLogoSelect) {
+        if (partnerLogoSelect.value === 'custom' && partnerLogoUrl) {
+            currentPartnerLogo = partnerLogoUrl.value;
+        } else {
+            currentPartnerLogo = partnerLogoSelect.value;
+        }
+    }
+    
     const styles = {
         textColor: toHexColor(mainLayout.style.getPropertyValue('--text-color') || DEFAULT_STYLES.textColor),
         bgColor: toHexColor(mainLayout.style.backgroundColor),
@@ -230,7 +258,7 @@ function updateStyleURL() {
         // fontSize: parseFloat(fontSizeSlider.value), // Disabled - using CSS vw units
         opacity: parseFloat(opacitySlider.value),
         textOpacity: parseFloat(textOpacitySlider.value),
-        partnerLogo: partnerLogoSelect ? partnerLogoSelect.value : ''
+        partnerLogo: currentPartnerLogo
     };
     
     // Store styles in localStorage instead of URL
@@ -362,14 +390,46 @@ function applyStylesFromURL() {
         const partnerLogoUrl = decodeURIComponent(params.get('partnerLogo'));
         const partnerLogoSelect = document.getElementById('partnerLogoSelect');
         const partnerLogoImg = document.getElementById('partnerLogo');
-        if (partnerLogoSelect) partnerLogoSelect.value = partnerLogoUrl;
-        if (partnerLogoImg) {
-            if (partnerLogoUrl) {
+        const partnerLogoUrlInput = document.getElementById('partnerLogoUrl');
+        const customPartnerLogoGroup = document.getElementById('customPartnerLogoGroup');
+        const partnerLogoPreview = document.getElementById('partnerLogoPreview');
+        
+        if (partnerLogoUrl) {
+            // Check if it's one of the predefined options
+            const matchingOption = Array.from(partnerLogoSelect.options).find(option => option.value === partnerLogoUrl);
+            if (matchingOption) {
+                // It's a predefined logo
+                if (partnerLogoSelect) partnerLogoSelect.value = partnerLogoUrl;
+                if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+            } else {
+                // It's a custom URL
+                if (partnerLogoSelect) partnerLogoSelect.value = 'custom';
+                if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'block';
+                if (partnerLogoUrlInput) partnerLogoUrlInput.value = partnerLogoUrl;
+            }
+            
+            // Set the actual logo
+            if (partnerLogoImg) {
                 partnerLogoImg.src = partnerLogoUrl;
                 partnerLogoImg.style.display = 'inline-block';
-            } else {
+            }
+            
+            // Update preview
+            if (partnerLogoPreview) {
+                partnerLogoPreview.src = partnerLogoUrl;
+                partnerLogoPreview.alt = 'Partner logo preview';
+            }
+        } else {
+            // No logo
+            if (partnerLogoSelect) partnerLogoSelect.value = '';
+            if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+            if (partnerLogoImg) {
                 partnerLogoImg.style.display = 'none';
                 partnerLogoImg.src = '';
+            }
+            if (partnerLogoPreview) {
+                partnerLogoPreview.src = '';
+                partnerLogoPreview.alt = 'No partner logo';
             }
         }
     }
@@ -520,14 +580,47 @@ function applyStylesFromLocalStorage() {
         if (styles.partnerLogo !== undefined) {
             const partnerLogoSelect = document.getElementById('partnerLogoSelect');
             const partnerLogoImg = document.getElementById('partnerLogo');
-            if (partnerLogoSelect) partnerLogoSelect.value = styles.partnerLogo;
-            if (partnerLogoImg) {
-                if (styles.partnerLogo) {
+            const partnerLogoUrl = document.getElementById('partnerLogoUrl');
+            const customPartnerLogoGroup = document.getElementById('customPartnerLogoGroup');
+            const partnerLogoPreview = document.getElementById('partnerLogoPreview');
+            
+            if (styles.partnerLogo) {
+                // Check if it's one of the predefined options
+                const matchingOption = Array.from(partnerLogoSelect.options).find(option => option.value === styles.partnerLogo);
+                if (matchingOption) {
+                    // It's a predefined logo
+                    if (partnerLogoSelect) partnerLogoSelect.value = styles.partnerLogo;
+                    if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+                } else {
+                    // It's a custom URL
+                    if (partnerLogoSelect) partnerLogoSelect.value = 'custom';
+                    if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'block';
+                    if (partnerLogoUrl) partnerLogoUrl.value = styles.partnerLogo;
+                }
+                
+                // Set the actual logo
+                if (partnerLogoImg) {
                     partnerLogoImg.src = styles.partnerLogo;
                     partnerLogoImg.style.display = 'inline-block';
-                } else {
+                }
+                
+                // Update preview
+                if (partnerLogoPreview) {
+                    partnerLogoPreview.src = styles.partnerLogo;
+                    partnerLogoPreview.alt = 'Partner logo preview';
+                }
+            } else {
+                // No logo
+                if (partnerLogoSelect) partnerLogoSelect.value = '';
+                if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+                if (partnerLogoUrl) partnerLogoUrl.value = '';
+                if (partnerLogoImg) {
                     partnerLogoImg.style.display = 'none';
                     partnerLogoImg.src = '';
+                }
+                if (partnerLogoPreview) {
+                    partnerLogoPreview.src = '';
+                    partnerLogoPreview.alt = 'No partner logo';
                 }
             }
         }
@@ -1491,6 +1584,14 @@ function hexToRgba(hex, alpha) {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
+// Helper function to convert hex color to rgb object
+function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return { r, g, b };
+}
+
 // CSS has been moved to style.css
 
 // Background image functionality
@@ -1545,6 +1646,23 @@ function applyPreset(presetName) {
     document.getElementById('bgColorPicker').value = preset.bgColor;
     document.getElementById('bgColorValue').value = preset.bgColor;
     document.getElementById('bgImageUrl').value = preset.bgImage;
+    
+    // Reset background image preset dropdown
+    const bgImagePreset = document.getElementById('bgImagePreset');
+    if (bgImagePreset) {
+        if (preset.bgImage === '') {
+            bgImagePreset.value = '';
+        } else {
+            // Find the option that matches the preset's bgImage
+            const matchingOption = Array.from(bgImagePreset.options).find(option => option.value === preset.bgImage);
+            if (matchingOption) {
+                bgImagePreset.value = preset.bgImage;
+            } else {
+                // If it's a custom URL, set to "custom"
+                bgImagePreset.value = 'custom';
+            }
+        }
+    }
     document.getElementById('qrInvertToggle').checked = preset.qrInvert;
     document.getElementById('qrScreenBlendToggle').checked = preset.qrScreenBlend;
     document.getElementById('qrMultiplyBlendToggle').checked = preset.qrMultiplyBlend;
@@ -1558,6 +1676,57 @@ function applyPreset(presetName) {
     document.getElementById('opacityValue').textContent = Math.round(preset.opacity * 100) + '%';
     document.getElementById('textOpacitySlider').value = preset.textOpacity;
     document.getElementById('textOpacityValue').textContent = Math.round(preset.textOpacity * 100) + '%';
+    
+    // Reset partner logo
+    const partnerLogoSelect = document.getElementById('partnerLogoSelect');
+    const partnerLogoImg = document.getElementById('partnerLogo');
+    const partnerLogoUrl = document.getElementById('partnerLogoUrl');
+    const customPartnerLogoGroup = document.getElementById('customPartnerLogoGroup');
+    const partnerLogoPreview = document.getElementById('partnerLogoPreview');
+    
+    if (partnerLogoSelect) {
+        const logoValue = preset.partnerLogo || '';
+        
+        // Check if it's a predefined option
+        const matchingOption = Array.from(partnerLogoSelect.options).find(option => option.value === logoValue);
+        if (matchingOption) {
+            partnerLogoSelect.value = logoValue;
+            if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+        } else if (logoValue) {
+            // It's a custom URL
+            partnerLogoSelect.value = 'custom';
+            if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'block';
+            if (partnerLogoUrl) partnerLogoUrl.value = logoValue;
+        } else {
+            // No logo
+            partnerLogoSelect.value = '';
+            if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+            if (partnerLogoUrl) partnerLogoUrl.value = '';
+        }
+    }
+    
+    if (partnerLogoImg) {
+        const logoValue = preset.partnerLogo || '';
+        if (logoValue) {
+            partnerLogoImg.src = logoValue;
+            partnerLogoImg.style.display = 'inline-block';
+        } else {
+            partnerLogoImg.style.display = 'none';
+            partnerLogoImg.src = '';
+        }
+    }
+    
+    // Update partner logo preview
+    if (partnerLogoPreview) {
+        const logoValue = preset.partnerLogo || '';
+        if (logoValue) {
+            partnerLogoPreview.src = logoValue;
+            partnerLogoPreview.alt = 'Partner logo preview';
+        } else {
+            partnerLogoPreview.src = '';
+            partnerLogoPreview.alt = 'No partner logo';
+        }
+    }
     
     // Apply the styles
     applyAllStyles();
@@ -1778,6 +1947,12 @@ function applyAllStyles() {
     document.body.classList.toggle('hide-zapper-content', document.getElementById('hideZapperContentToggle').checked);
     document.body.classList.toggle('podium-enabled', document.getElementById('podiumToggle').checked);
     
+    // Update scrollbar colors based on text color
+    const textColorRgb = hexToRgb(textColor);
+    mainLayout.style.setProperty('--scrollbar-track', `rgba(${textColorRgb.r}, ${textColorRgb.g}, ${textColorRgb.b}, 0.05)`);
+    mainLayout.style.setProperty('--scrollbar-thumb', `rgba(${textColorRgb.r}, ${textColorRgb.g}, ${textColorRgb.b}, 0.2)`);
+    mainLayout.style.setProperty('--scrollbar-thumb-hover', `rgba(${textColorRgb.r}, ${textColorRgb.g}, ${textColorRgb.b}, 0.3)`);
+    
     updateStyleURL();
 }
 
@@ -1786,8 +1961,8 @@ function resetToDefaults() {
     localStorage.removeItem('nostrpay-styles');
     console.log('Cleared localStorage - resetting to defaults');
     
-    // Apply default preset
-    applyPreset('default');
+    // Apply light mode preset
+    applyPreset('lightMode');
 }
 
 function copyStyleUrl() {
@@ -1970,32 +2145,109 @@ function setupStyleOptions() {
     // Partner logo functionality
     const partnerLogoSelect = document.getElementById('partnerLogoSelect');
     const partnerLogoImg = document.getElementById('partnerLogo');
+    const partnerLogoUrl = document.getElementById('partnerLogoUrl');
+    const customPartnerLogoGroup = document.getElementById('customPartnerLogoGroup');
+    const clearPartnerLogo = document.getElementById('clearPartnerLogo');
+    const partnerLogoPreview = document.getElementById('partnerLogoPreview');
     
     if (partnerLogoSelect && partnerLogoImg) {
         partnerLogoSelect.addEventListener('change', function(e) {
-            const selectedLogo = e.target.value;
-            console.log('Selected partner logo:', selectedLogo);
+            const selectedValue = e.target.value;
+            console.log('Selected partner logo:', selectedValue);
             
-            if (selectedLogo) {
-                partnerLogoImg.src = selectedLogo;
-                partnerLogoImg.style.display = 'inline-block';
-            } else {
+            if (selectedValue === 'custom') {
+                // Show custom URL input
+                customPartnerLogoGroup.style.display = 'block';
                 partnerLogoImg.style.display = 'none';
                 partnerLogoImg.src = '';
+                
+                // Clear preview
+                if (partnerLogoPreview) {
+                    partnerLogoPreview.src = '';
+                    partnerLogoPreview.alt = 'Enter custom URL';
+                }
+            } else if (selectedValue) {
+                // Use predefined logo
+                customPartnerLogoGroup.style.display = 'none';
+                partnerLogoImg.src = selectedValue;
+                partnerLogoImg.style.display = 'inline-block';
+                
+                // Update preview
+                if (partnerLogoPreview) {
+                    partnerLogoPreview.src = selectedValue;
+                    partnerLogoPreview.alt = 'Partner logo preview';
+                }
+                
+                // Update styles (updateStyleURL handles localStorage)
+                updateStyleURL();
+            } else {
+                // No logo
+                customPartnerLogoGroup.style.display = 'none';
+                partnerLogoImg.style.display = 'none';
+                partnerLogoImg.src = '';
+                
+                // Clear preview
+                if (partnerLogoPreview) {
+                    partnerLogoPreview.src = '';
+                    partnerLogoPreview.alt = 'No partner logo';
+                }
+                
+                // Update styles (updateStyleURL handles localStorage)
+                updateStyleURL();
             }
-            
-            // Save to localStorage
-            localStorage.setItem('pubpay_partner_logo', selectedLogo);
-            updateStyleURL();
         });
         
-        // Load saved partner logo on page load
-        const savedPartnerLogo = localStorage.getItem('pubpay_partner_logo') || '';
-        if (savedPartnerLogo) {
-            partnerLogoSelect.value = savedPartnerLogo;
-            partnerLogoImg.src = savedPartnerLogo;
-            partnerLogoImg.style.display = 'inline-block';
+        // Custom URL input handler
+        if (partnerLogoUrl) {
+            partnerLogoUrl.addEventListener('input', function(e) {
+                const url = e.target.value.trim();
+                if (url) {
+                    partnerLogoImg.src = url;
+                    partnerLogoImg.style.display = 'inline-block';
+                    
+                    // Update preview
+                    if (partnerLogoPreview) {
+                        partnerLogoPreview.src = url;
+                        partnerLogoPreview.alt = 'Partner logo preview';
+                    }
+                    
+                    // Update styles (updateStyleURL handles localStorage)
+                    updateStyleURL();
+                } else {
+                    partnerLogoImg.style.display = 'none';
+                    partnerLogoImg.src = '';
+                    
+                    // Clear preview
+                    if (partnerLogoPreview) {
+                        partnerLogoPreview.src = '';
+                        partnerLogoPreview.alt = 'Enter custom URL';
+                    }
+                }
+            });
         }
+        
+        // Clear partner logo button
+        if (clearPartnerLogo) {
+            clearPartnerLogo.addEventListener('click', function() {
+                partnerLogoUrl.value = '';
+                partnerLogoSelect.value = '';
+                customPartnerLogoGroup.style.display = 'none';
+                partnerLogoImg.style.display = 'none';
+                partnerLogoImg.src = '';
+                
+                // Clear preview
+                if (partnerLogoPreview) {
+                    partnerLogoPreview.src = '';
+                    partnerLogoPreview.alt = 'No partner logo';
+                }
+                
+                // Update styles (updateStyleURL handles localStorage)
+                updateStyleURL();
+            });
+        }
+        
+        // Partner logo initialization is now handled by applyStylesFromLocalStorage()
+        // which reads from the combined 'nostrpay-styles' localStorage key
     }
     
     // QR Code toggles

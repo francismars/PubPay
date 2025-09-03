@@ -220,7 +220,8 @@
           <div class="style-section">
             <h3 class="section-title">QUICK PRESETS</h3>
             <div class="presets-container">
-              <button class="preset-btn" data-preset="default">⚡ Default</button>
+              <button class="preset-btn" data-preset="lightMode">☀️ Light Mode</button>
+              <button class="preset-btn" data-preset="darkMode">🌙 Dark Mode</button>
               <button class="preset-btn" data-preset="cosmic">🌌 Cosmic</button>
               <button class="preset-btn" data-preset="vibrant">🎨 Vibrant</button>
               <button class="preset-btn" data-preset="electric">⚡ Electric</button>
@@ -235,15 +236,15 @@
               <div class="style-option-group">
                 <label for="textColorPicker">Text Color</label>
                 <div class="color-picker-container">
-                  <input type="color" id="textColorPicker" value="#ffffff">
-                  <input type="text" id="textColorValue" value="#ffffff" placeholder="#ffffff">
+                  <input type="color" id="textColorPicker" value="#000000">
+                  <input type="text" id="textColorValue" value="#000000" placeholder="#000000">
                 </div>
               </div>
               <div class="style-option-group">
                 <label for="bgColorPicker">Background Color</label>
                 <div class="color-picker-container">
-                  <input type="color" id="bgColorPicker" value="#000000">
-                  <input type="text" id="bgColorValue" value="#000000" placeholder="#000000">
+                  <input type="color" id="bgColorPicker" value="#ffffff">
+                  <input type="text" id="bgColorValue" value="#ffffff" placeholder="#ffffff">
                 </div>
               </div>
             </div>
@@ -258,7 +259,7 @@
               <div class="style-option-group">
                 <label for="opacitySlider">Background Opacity</label>
                 <div class="slider-container">
-                  <input type="range" id="opacitySlider" min="0.1" max="1.0" step="0.1" value="1.0">
+                  <input type="range" id="opacitySlider" min="0.0" max="1.0" step="0.1" value="1.0">
                   <span id="opacityValue">100%</span>
                 </div>
               </div>
@@ -369,12 +370,24 @@
           <div class="style-section">
             <h3 class="section-title">PARTNER LOGO</h3>
             <div class="style-option-group full-width">
-              <label for="partnerLogoSelect">Custom Partner Logo</label>
-              <select id="partnerLogoSelect" class="partner-logo-select">
-                <option value="">🚫 None (Default)</option>
-                <option value="https://adoptingbitcoin.org/images/AB-logo.svg">🪙 Adopting Bitcoin</option>
-                <option value="https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg">⚡ Bitcoin Conference</option>
-              </select>
+              <label for="partnerLogoSelect">Partner Logo</label>
+              <div class="partner-logo-controls">
+                <div class="preset-inputs">
+                  <select id="partnerLogoSelect" class="partner-logo-select">
+                    <option value="">🚫 None (Default)</option>
+                    <option value="https://adoptingbitcoin.org/images/AB-logo.svg">🪙 Adopting Bitcoin</option>
+                    <option value="https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg">⚡ Bitcoin Conference</option>
+                    <option value="custom">🔗 Custom URL</option>
+                  </select>
+                  <div class="url-input-container" id="customPartnerLogoGroup" style="display: none;">
+                    <input type="text" id="partnerLogoUrl" value="" placeholder="Enter logo URL">
+                    <button id="clearPartnerLogo" class="clear-button">Clear</button>
+                  </div>
+                </div>
+                <div class="preset-preview-container">
+                  <img id="partnerLogoPreview" src="" alt="No partner logo" style="height: 30px; max-width: 100px; object-fit: contain;">
+                </div>
+              </div>
             </div>
           </div>
 
