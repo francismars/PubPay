@@ -8,10 +8,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize portrait swiper
     initializePortraitSwiper();
     
-    // Initialize font sizes for scaling
-    setTimeout(() => {
-        initializeFontSizes();
-    }, 100); // Small delay to ensure all elements are rendered
+    // Font sizes are now controlled by CSS using vw units
+    // No JavaScript font size initialization needed
     
     // Get note ID from URL path instead of query parameters
     const pathParts = window.location.pathname.split('/');
@@ -70,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         layoutInvert: false,
         hideZapperContent: false,
         podium: false,
-        fontSize: 1.0,
+        // fontSize: 1.0, // Disabled - using CSS vw units
         opacity: 0.5,
         textOpacity: 1.0
     };
@@ -87,7 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
-            fontSize: 1.0,
+            // fontSize: 1.0, // Disabled - using CSS vw units
             opacity: 0.5,
             textOpacity: 1.0
         },
@@ -101,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: true,
-            fontSize: 1.1,
+            // fontSize: 1.1, // Disabled - using CSS vw units
             opacity: 0.4,
             textOpacity: 1.0
         },
@@ -115,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
-            fontSize: 1.0,
+            // fontSize: 1.0, // Disabled - using CSS vw units
             opacity: 0.6,
             textOpacity: 1.0
         },
@@ -129,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
-            fontSize: 1.0,
+            // fontSize: 1.0, // Disabled - using CSS vw units
             opacity: 0.7,
             textOpacity: 1.0
         },
@@ -143,7 +141,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
-            fontSize: 1.0,
+            // fontSize: 1.0, // Disabled - using CSS vw units
             opacity: 0.5,
             textOpacity: 1.0
         },
@@ -157,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: true,
             podium: false,
-            fontSize: 0.9,
+            // fontSize: 0.9, // Disabled - using CSS vw units
             opacity: 0.8,
             textOpacity: 1.0
         }
@@ -227,7 +225,7 @@ function updateStyleURL() {
         layoutInvert: layoutInvertToggle.checked,
         hideZapperContent: hideZapperContentToggle.checked,
         podium: podiumToggle.checked,
-        fontSize: parseFloat(fontSizeSlider.value),
+        // fontSize: parseFloat(fontSizeSlider.value), // Disabled - using CSS vw units
         opacity: parseFloat(opacitySlider.value),
         textOpacity: parseFloat(textOpacitySlider.value)
     };
@@ -324,14 +322,14 @@ function applyStylesFromURL() {
         document.body.classList.toggle('podium-enabled', podium);
     }
     
-    // Apply font size
-    if (params.has('fontSize')) {
-        const fontSize = parseFloat(params.get('fontSize'));
-        const fontSizeSlider = document.getElementById('fontSizeSlider');
-        const fontSizeValue = document.getElementById('fontSizeValue');
-        if (fontSizeSlider) fontSizeSlider.value = fontSize;
-        if (fontSizeValue) fontSizeValue.textContent = Math.round(fontSize * 100) + '%';
-    }
+    // Font size disabled - using CSS vw units
+    // if (params.has('fontSize')) {
+    //     const fontSize = parseFloat(params.get('fontSize'));
+    //     const fontSizeSlider = document.getElementById('fontSizeSlider');
+    //     const fontSizeValue = document.getElementById('fontSizeValue');
+    //     if (fontSizeSlider) fontSizeSlider.value = fontSize;
+    //     if (fontSizeValue) fontSizeValue.textContent = Math.round(fontSize * 100) + '%';
+    // }
     
     // Apply opacity
     if (params.has('opacity')) {
@@ -464,13 +462,13 @@ function applyStylesFromLocalStorage() {
             document.body.classList.toggle('podium-enabled', styles.podium);
     }
     
-    // Apply font size
-        if (styles.fontSize !== undefined) {
-            const fontSizeSlider = document.getElementById('fontSizeSlider');
-            const fontSizeValue = document.getElementById('fontSizeValue');
-            if (fontSizeSlider) fontSizeSlider.value = styles.fontSize;
-            if (fontSizeValue) fontSizeValue.textContent = Math.round(styles.fontSize * 100) + '%';
-    }
+    // Font size disabled - using CSS vw units
+    // if (styles.fontSize !== undefined) {
+    //     const fontSizeSlider = document.getElementById('fontSizeSlider');
+    //     const fontSizeValue = document.getElementById('fontSizeValue');
+    //     if (fontSizeSlider) fontSizeSlider.value = styles.fontSize;
+    //     if (fontSizeValue) fontSizeValue.textContent = Math.round(styles.fontSize * 100) + '%';
+    // }
     
     // Apply opacity
         if (styles.opacity !== undefined) {
@@ -1205,10 +1203,8 @@ async function drawKind1(kind1){
     const loadingText = noteContent.querySelector('.loading-text');
     if (loadingText) loadingText.remove();
     
-    // Re-initialize font sizes after new content is loaded
-    setTimeout(() => {
-        initializeFontSizes();
-    }, 50);
+    // Font sizes are now controlled by CSS using vw units
+    // No JavaScript font size re-initialization needed
     
     let qrcodeContainer = document.getElementById("qrCode");
     qrcodeContainer.innerHTML = "";
@@ -1292,26 +1288,8 @@ function drawKind0(kind0){
         `;
         zapsContainer.appendChild(zapDiv);
         
-        // Initialize font sizes for the newly created zapper elements
-        setTimeout(() => {
-            const newElements = [
-                zapDiv.querySelector('.zapperName'),
-                zapDiv.querySelector('.zapperMessage'),
-                ...zapDiv.querySelectorAll('.zapperAmountSats')
-            ].filter(el => el); // Filter out null elements
-            
-            newElements.forEach(element => {
-                const computedStyle = window.getComputedStyle(element);
-                const originalSize = computedStyle.fontSize;
-                window.originalFontSizes.set(element, originalSize);
-                
-                // Apply current font size scaling if slider is not at 100%
-                const currentFontSize = parseFloat(document.getElementById('fontSizeSlider').value);
-                if (currentFontSize !== 1.0) {
-                    element.style.fontSize = `calc(${originalSize} * ${currentFontSize})`;
-                }
-            });
-        }, 10);
+        // Font sizes are now controlled by CSS using vw units
+        // No JavaScript font size initialization needed for new elements
       }
   }
 
@@ -1521,8 +1499,9 @@ function applyPreset(presetName) {
     document.getElementById('layoutInvertToggle').checked = preset.layoutInvert;
     document.getElementById('hideZapperContentToggle').checked = preset.hideZapperContent;
     document.getElementById('podiumToggle').checked = preset.podium;
-    document.getElementById('fontSizeSlider').value = preset.fontSize;
-    document.getElementById('fontSizeValue').textContent = Math.round(preset.fontSize * 100) + '%';
+    // Font size slider disabled - using CSS vw units
+    // document.getElementById('fontSizeSlider').value = preset.fontSize;
+    // document.getElementById('fontSizeValue').textContent = Math.round(preset.fontSize * 100) + '%';
     document.getElementById('opacitySlider').value = preset.opacity;
     document.getElementById('opacityValue').textContent = Math.round(preset.opacity * 100) + '%';
     document.getElementById('textOpacitySlider').value = preset.textOpacity;
@@ -1586,7 +1565,7 @@ function initializePortraitSwiper() {
     // Initialize Swiper.js
     const swiper = new Swiper(swiperElement, {
         // Basic settings
-        loop: false,
+        loop: true,
         autoplay: {
             delay: 4000,
             disableOnInteraction: false,
@@ -1626,12 +1605,6 @@ function initializePortraitSwiper() {
             },
             slideChange: function () {
                 console.log('Slide changed to:', this.activeIndex);
-            },
-            reachEnd: function () {
-                // Restart from beginning when reaching the end
-                setTimeout(() => {
-                    this.slideTo(0, 800);
-                }, 1000);
             }
         }
     });
@@ -1690,7 +1663,8 @@ function applyAllStyles() {
     const bgColor = bgColorElement.value;
     const bgImage = bgImageElement.value;
     console.log('Style values:', { textColor, bgColor, bgImage });
-    const fontSize = parseFloat(document.getElementById('fontSizeSlider').value);
+    // Font size no longer controlled by JavaScript - using CSS vw units
+    // const fontSize = parseFloat(document.getElementById('fontSizeSlider').value);
     const opacity = parseFloat(document.getElementById('opacitySlider').value);
     const textOpacity = parseFloat(document.getElementById('textOpacitySlider').value);
     
@@ -1736,64 +1710,8 @@ function applyAllStyles() {
     // Apply background image
     updateBackgroundImage(bgImage);
     
-    // Apply font size to specific elements that have fixed font-sizes
-    const elementsToScale = [
-        '.author-name',
-        '.note-content', 
-        '.zapperName',
-        '.dashboard-title',
-        '.total-label',
-        '.total-amount',
-        '.total-sats',
-        '.section-label',
-        '.qr-instructions',
-        '.zapperAmountSats',
-        '.zapperMessage'
-    ];
-    
-    // Store original font sizes if not already stored
-    if (!window.originalFontSizes) {
-        window.originalFontSizes = new Map();
-        elementsToScale.forEach(selector => {
-            const elements = mainLayout.querySelectorAll(selector);
-            elements.forEach(element => {
-                // Temporarily reset any inline styles to get original size
-                const currentInlineStyle = element.style.fontSize;
-                element.style.fontSize = '';
-                const computedStyle = window.getComputedStyle(element);
-                const originalSize = computedStyle.fontSize;
-                window.originalFontSizes.set(element, originalSize);
-                // Restore inline style if it existed
-                if (currentInlineStyle) {
-                    element.style.fontSize = currentInlineStyle;
-                }
-            });
-        });
-    }
-    
-    // Apply scaled font sizes
-    elementsToScale.forEach(selector => {
-        const elements = mainLayout.querySelectorAll(selector);
-        elements.forEach(element => {
-            let originalSize = window.originalFontSizes.get(element);
-            
-            // If element not in map, capture its original size now
-            if (!originalSize) {
-                const currentInlineStyle = element.style.fontSize;
-                element.style.fontSize = '';
-                const computedStyle = window.getComputedStyle(element);
-                originalSize = computedStyle.fontSize;
-                window.originalFontSizes.set(element, originalSize);
-                if (currentInlineStyle) {
-                    element.style.fontSize = currentInlineStyle;
-                }
-            }
-            
-            if (originalSize) {
-                element.style.fontSize = `calc(${originalSize} * ${fontSize})`;
-            }
-        });
-    });
+    // Font sizes are now controlled by CSS using vw units
+    // No JavaScript font scaling needed
     
     // Apply QR code effects
     const qrCodeContainer = document.getElementById('qrCode');
@@ -1857,9 +1775,10 @@ function copyStyleUrl() {
             if (styles.podium !== DEFAULT_STYLES.podium) {
                 params.set('podium', styles.podium);
             }
-            if (styles.fontSize !== DEFAULT_STYLES.fontSize) {
-                params.set('fontSize', styles.fontSize);
-            }
+            // Font size disabled - using CSS vw units
+            // if (styles.fontSize !== DEFAULT_STYLES.fontSize) {
+            //     params.set('fontSize', styles.fontSize);
+            // }
             if (styles.opacity !== DEFAULT_STYLES.opacity) {
                 params.set('opacity', styles.opacity);
             }
@@ -2043,12 +1962,12 @@ function setupStyleOptions() {
         updateStyleURL();
     });
     
-    // Font size slider
-    fontSizeSlider.addEventListener('input', function(e) {
-        const value = parseFloat(e.target.value);
-        fontSizeValue.textContent = Math.round(value * 100) + '%';
-        applyAllStyles();
-    });
+    // Font size slider disabled - font sizes now controlled by CSS using vw units
+    // fontSizeSlider.addEventListener('input', function(e) {
+    //     const value = parseFloat(e.target.value);
+    //     fontSizeValue.textContent = Math.round(value * 100) + '%';
+    //     applyAllStyles();
+    // });
     
     // Opacity slider
     opacitySlider.addEventListener('input', function(e) {
