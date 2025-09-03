@@ -3095,6 +3095,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     margin: 0;
     font-weight: 300;
     letter-spacing: 0.3px;
+    text-transform: capitalize;
 }
 
 /* Live noteLoader content elements */
