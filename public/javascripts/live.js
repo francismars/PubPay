@@ -24,6 +24,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let nevent = noteIdFromPath && noteIdFromPath !== 'live' ? noteIdFromPath : noteFromQuery;
     console.log("Using note ID:", nevent);
 
+    // Strip nostr: protocol prefix if present
+    nevent = stripNostrPrefix(nevent);
+    if (nevent !== noteIdFromPath && nevent !== noteFromQuery) {
+        console.log("Stripped nostr: prefix, now:", nevent);
+    }
+
     // Decode nevent to note if present in URL
     if (nevent) {
         try {
@@ -203,262 +209,292 @@ function toHexColor(color) {
 }
 
 function updateStyleURL() {
-    const currentParams = new URLSearchParams(window.location.search);
     const mainLayout = document.querySelector('.main-layout');
     
-    // Only add parameters that differ from defaults
-    const currentTextColor = toHexColor(mainLayout.style.getPropertyValue('--text-color') || DEFAULT_STYLES.textColor);
-    if (currentTextColor !== DEFAULT_STYLES.textColor) {
-        currentParams.set('textColor', currentTextColor);
-    } else {
-        currentParams.delete('textColor');
-    }
+    if (!mainLayout) return;
     
-    const currentBgColor = toHexColor(mainLayout.style.backgroundColor);
-    if (currentBgColor !== DEFAULT_STYLES.bgColor) {
-        currentParams.set('bgColor', currentBgColor);
-    } else {
-        currentParams.delete('bgColor');
-    }
+    // Get current style values
+    const styles = {
+        textColor: toHexColor(mainLayout.style.getPropertyValue('--text-color') || DEFAULT_STYLES.textColor),
+        bgColor: toHexColor(mainLayout.style.backgroundColor),
+        bgImage: bgImageUrl.value,
+        qrInvert: qrInvertToggle.checked,
+        qrScreenBlend: qrScreenBlendToggle.checked,
+        qrMultiplyBlend: qrMultiplyBlendToggle.checked,
+        layoutInvert: layoutInvertToggle.checked,
+        hideZapperContent: hideZapperContentToggle.checked,
+        podium: podiumToggle.checked,
+        fontSize: parseFloat(fontSizeSlider.value),
+        opacity: parseFloat(opacitySlider.value),
+        textOpacity: parseFloat(textOpacitySlider.value)
+    };
     
-    if (bgImageUrl.value !== DEFAULT_STYLES.bgImage) {
-        currentParams.set('bgImage', bgImageUrl.value);
-    } else {
-        currentParams.delete('bgImage');
-    }
+    // Store styles in localStorage instead of URL
+    localStorage.setItem('nostrpay-styles', JSON.stringify(styles));
+    console.log('Saving styles to localStorage:', styles);
     
-    const qrCodeContainer = document.getElementById('qrCode');
-    
-    if (qrCodeContainer && qrCodeContainer.style.filter !== (DEFAULT_STYLES.qrInvert ? 'invert(1)' : 'none')) {
-        currentParams.set('qrInvert', qrInvertToggle.checked);
-    } else {
-        currentParams.delete('qrInvert');
-    }
-    
-    if (qrCodeContainer && qrCodeContainer.style.mixBlendMode !== (DEFAULT_STYLES.qrScreenBlend ? 'screen' : 
-        DEFAULT_STYLES.qrMultiplyBlend ? 'multiply' : 'normal')) {
-        if (qrScreenBlendToggle.checked) {
-            currentParams.set('qrBlend', 'screen');
-        } else if (qrMultiplyBlendToggle.checked) {
-            currentParams.set('qrBlend', 'multiply');
-        } else {
-            currentParams.delete('qrBlend');
-        }
-    } else {
-        currentParams.delete('qrBlend');
-    }
-    
-    if (document.body.classList.contains('flex-direction-invert') !== DEFAULT_STYLES.layoutInvert) {
-        currentParams.set('layoutInvert', layoutInvertToggle.checked);
-    } else {
-        currentParams.delete('layoutInvert');
-    }
-    
-    if (document.body.classList.contains('hide-zapper-content') !== DEFAULT_STYLES.hideZapperContent) {
-        currentParams.set('hideZapperContent', hideZapperContentToggle.checked);
-    } else {
-        currentParams.delete('hideZapperContent');
-    }
-    
-    if (document.body.classList.contains('podium-enabled') !== DEFAULT_STYLES.podium) {
-        currentParams.set('podium', podiumToggle.checked);
-    } else {
-        currentParams.delete('podium');
-    }
-    
-    // Add new parameters
-    const currentFontSize = parseFloat(fontSizeSlider.value);
-    if (currentFontSize !== DEFAULT_STYLES.fontSize) {
-        currentParams.set('fontSize', currentFontSize);
-    } else {
-        currentParams.delete('fontSize');
-    }
-    
-    const currentOpacity = parseFloat(opacitySlider.value);
-    if (currentOpacity !== DEFAULT_STYLES.opacity) {
-        currentParams.set('opacity', currentOpacity);
-    } else {
-        currentParams.delete('opacity');
-    }
-    
-    const currentTextOpacity = parseFloat(textOpacitySlider.value);
-    if (currentTextOpacity !== DEFAULT_STYLES.textOpacity) {
-        currentParams.set('textOpacity', currentTextOpacity);
-    } else {
-        currentParams.delete('textOpacity');
-    }
-    
-    // Update URL without reloading the page, preserving the note ID in the path
+    // Keep URL clean - no style parameters
     const pathParts = window.location.pathname.split('/');
     const noteId = pathParts[pathParts.length - 1];
-    const basePath = noteId && noteId !== 'live' ? `/live/${noteId}` : '/live';
-    const newUrl = basePath + (currentParams.toString() ? '?' + currentParams.toString() : '');
-    window.history.replaceState({}, '', newUrl);
+    const cleanUrl = noteId && noteId !== 'live' ? `/live/${noteId}` : '/live';
+    
+    if (window.location.href !== window.location.origin + cleanUrl) {
+        window.history.replaceState({}, '', cleanUrl);
+    }
 }
 
 function applyStylesFromURL() {
     const mainLayout = document.querySelector('.main-layout');
+    if (!mainLayout) return;
     
-    // Get note ID from URL path (same logic as in main function)
-    const pathParts = window.location.pathname.split('/');
-    const noteIdFromPath = pathParts[pathParts.length - 1];
-    const noteFromQuery = params.get("note");
-    const currentNoteId = noteIdFromPath && noteIdFromPath !== 'live' ? noteIdFromPath : noteFromQuery;
-    
-    // Apply default background color if no custom color is specified
-    if (!params.has('bgColor')) {
-        const defaultColor = DEFAULT_STYLES.bgColor;
-        const rgbaColor = hexToRgba(defaultColor, 0.5);
-        mainLayout.style.backgroundColor = rgbaColor;
-        document.getElementById('bgColorPicker').value = defaultColor;
-        document.getElementById('bgColorValue').value = defaultColor;
-    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.toString() === '') return; // No URL parameters
     
     // Apply text color
     if (params.has('textColor')) {
-        const color = toHexColor(params.get('textColor'));
+        const color = params.get('textColor');
         mainLayout.style.setProperty('--text-color', color);
-        
-        // Also specifically override zaps header elements that have hardcoded colors
-        const zapsHeaderH2 = mainLayout.querySelector('.zaps-header-left h2');
-        const totalLabel = mainLayout.querySelector('.total-label');
-        const totalSats = mainLayout.querySelector('.total-sats');
-        
-        if (zapsHeaderH2) zapsHeaderH2.style.color = color;
-        if (totalLabel) totalLabel.style.color = color;
-        if (totalSats) totalSats.style.color = color;
-        
-        document.getElementById('textColorPicker').value = color;
-        document.getElementById('textColorValue').value = color;
+        const textColorInput = document.getElementById('textColorPicker');
+        if (textColorInput) textColorInput.value = color;
     }
     
     // Apply background color
     if (params.has('bgColor')) {
-        const color = toHexColor(params.get('bgColor'));
-        const rgbaColor = hexToRgba(color, 0.5);
+        const color = params.get('bgColor');
+        const opacity = params.has('opacity') ? parseFloat(params.get('opacity')) : DEFAULT_STYLES.opacity;
+        const rgbaColor = hexToRgba(color, opacity);
         mainLayout.style.backgroundColor = rgbaColor;
-        document.getElementById('bgColorPicker').value = color;
-        document.getElementById('bgColorValue').value = color;
+        const bgColorInput = document.getElementById('bgColorPicker');
+        if (bgColorInput) bgColorInput.value = color;
     }
     
     // Apply background image
     if (params.has('bgImage')) {
         const imageUrl = params.get('bgImage');
-        bgImageUrl.value = imageUrl;
-        updateBackgroundImage(imageUrl);
-        
-        // Set the preset dropdown to match the URL
-        const bgImagePreset = document.getElementById('bgImagePreset');
-        const customUrlGroup = document.getElementById('customUrlGroup');
-        const bgPresetPreview = document.getElementById('bgPresetPreview');
-        
-        // Check if the URL matches any preset
-        const matchingOption = bgImagePreset.querySelector(`option[value="${imageUrl}"]`);
-        if (matchingOption) {
-            bgImagePreset.value = imageUrl;
-            customUrlGroup.style.display = 'none';
-            
-            // Update preview directly
-            bgPresetPreview.src = imageUrl;
-            bgPresetPreview.alt = 'Background preview';
-        } else {
-            bgImagePreset.value = 'custom';
-            customUrlGroup.style.display = 'block';
-        }
-    }
-    
-    // Apply default QR code blend mode if no custom blend is specified
-    if (!params.has('qrBlend')) {
-        const qrCodeContainer = document.getElementById('qrCode');
-        if (qrCodeContainer) {
-            if (DEFAULT_STYLES.qrScreenBlend) {
-                qrCodeContainer.style.mixBlendMode = 'screen';
-                qrScreenBlendToggle.checked = true;
-            } else if (DEFAULT_STYLES.qrMultiplyBlend) {
-                qrCodeContainer.style.mixBlendMode = 'multiply';
-                qrMultiplyBlendToggle.checked = true;
-            } else {
-                qrCodeContainer.style.mixBlendMode = 'normal';
-            }
+        const bgImageUrl = document.getElementById('bgImageUrl');
+        if (bgImageUrl) {
+            bgImageUrl.value = imageUrl;
+            updateBackgroundImage(imageUrl);
         }
     }
     
     // Apply QR code invert
     if (params.has('qrInvert')) {
         const invert = params.get('qrInvert') === 'true';
-        qrInvertToggle.checked = invert;
-        const qrCodeContainer = document.getElementById('qrCode');
-        if (qrCodeContainer) {
-            qrCodeContainer.style.filter = invert ? 'invert(1)' : 'none';
-        }
+        const qrInvertToggle = document.getElementById('qrInvertToggle');
+        if (qrInvertToggle) qrInvertToggle.checked = invert;
+        const qrCode = document.getElementById('qrCode');
+        if (qrCode) qrCode.style.filter = invert ? 'invert(1)' : 'none';
     }
     
-    // Apply QR code blend mode
-    if (params.has('qrBlend')) {
-        const blend = params.get('qrBlend');
-        qrScreenBlendToggle.checked = blend === 'screen';
-        qrMultiplyBlendToggle.checked = blend === 'multiply';
-        const qrCodeContainer = document.getElementById('qrCode');
-        if (qrCodeContainer) {
-            qrCodeContainer.style.mixBlendMode = blend;
-        }
+    // Apply QR code blend modes
+    if (params.has('qrScreenBlend')) {
+        const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle');
+        if (qrScreenBlendToggle) qrScreenBlendToggle.checked = params.get('qrScreenBlend') === 'true';
+    }
+    if (params.has('qrMultiplyBlend')) {
+        const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
+        if (qrMultiplyBlendToggle) qrMultiplyBlendToggle.checked = params.get('qrMultiplyBlend') === 'true';
     }
     
     // Apply layout invert
     if (params.has('layoutInvert')) {
         const invert = params.get('layoutInvert') === 'true';
-        layoutInvertToggle.checked = invert;
+        const layoutInvertToggle = document.getElementById('layoutInvertToggle');
+        if (layoutInvertToggle) layoutInvertToggle.checked = invert;
         document.body.classList.toggle('flex-direction-invert', invert);
     }
     
-    // Apply zapper content visibility
+    // Apply hide zapper content
     if (params.has('hideZapperContent')) {
         const hide = params.get('hideZapperContent') === 'true';
-        hideZapperContentToggle.checked = hide;
+        const hideZapperContentToggle = document.getElementById('hideZapperContentToggle');
+        if (hideZapperContentToggle) hideZapperContentToggle.checked = hide;
         document.body.classList.toggle('hide-zapper-content', hide);
     }
     
-    // Apply podium toggle
+    // Apply podium
     if (params.has('podium')) {
         const podium = params.get('podium') === 'true';
-        podiumToggle.checked = podium;
+        const podiumToggle = document.getElementById('podiumToggle');
+        if (podiumToggle) podiumToggle.checked = podium;
         document.body.classList.toggle('podium-enabled', podium);
     }
     
     // Apply font size
     if (params.has('fontSize')) {
         const fontSize = parseFloat(params.get('fontSize'));
-        fontSizeSlider.value = fontSize;
-        fontSizeValue.textContent = Math.round(fontSize * 100) + '%';
-        mainLayout.style.fontSize = `${fontSize}em`;
+        const fontSizeSlider = document.getElementById('fontSizeSlider');
+        const fontSizeValue = document.getElementById('fontSizeValue');
+        if (fontSizeSlider) fontSizeSlider.value = fontSize;
+        if (fontSizeValue) fontSizeValue.textContent = Math.round(fontSize * 100) + '%';
     }
     
     // Apply opacity
     if (params.has('opacity')) {
         const opacity = parseFloat(params.get('opacity'));
-        opacitySlider.value = opacity;
-        opacityValue.textContent = Math.round(opacity * 100) + '%';
-        // Reapply background color with new opacity
-        const currentBgColor = toHexColor(mainLayout.style.backgroundColor);
-        const rgbaColor = hexToRgba(currentBgColor, opacity);
-        mainLayout.style.backgroundColor = rgbaColor;
+        const opacitySlider = document.getElementById('opacitySlider');
+        const opacityValue = document.getElementById('opacityValue');
+        if (opacitySlider) opacitySlider.value = opacity;
+        if (opacityValue) opacityValue.textContent = Math.round(opacity * 100) + '%';
     }
     
     // Apply text opacity
     if (params.has('textOpacity')) {
         const textOpacity = parseFloat(params.get('textOpacity'));
-        textOpacitySlider.value = textOpacity;
-        textOpacityValue.textContent = Math.round(textOpacity * 100) + '%';
-        // Apply text opacity to all text elements
-        const currentTextColor = toHexColor(mainLayout.style.getPropertyValue('--text-color') || DEFAULT_STYLES.textColor);
-        const rgbaTextColor = hexToRgba(currentTextColor, textOpacity);
-        mainLayout.style.setProperty('--text-color', rgbaTextColor);
+        const textOpacitySlider = document.getElementById('textOpacitySlider');
+        const textOpacityValue = document.getElementById('textOpacityValue');
+        if (textOpacitySlider) textOpacitySlider.value = textOpacity;
+        if (textOpacityValue) textOpacityValue.textContent = Math.round(textOpacity * 100) + '%';
     }
     
-    // Load note if present in URL
-    if (currentNoteId) {
-        console.log("Note found in URL during style application, attempting to load:", currentNoteId);
-        loadNoteContent(currentNoteId);
+    // Apply all styles to ensure everything is synchronized
+    applyAllStyles();
+}
+
+function applyStylesFromLocalStorage() {
+    const mainLayout = document.querySelector('.main-layout');
+    
+    if (!mainLayout) return;
+    
+    // Only apply localStorage styles if there are no URL parameters
+    const params = new URLSearchParams(window.location.search);
+    if (params.toString() !== '') {
+        // URL parameters take precedence, skip localStorage
+        return;
+    }
+    
+    // Load styles from localStorage
+    const savedStyles = localStorage.getItem('nostrpay-styles');
+    if (!savedStyles) {
+        // Apply default styles if no saved styles
+        applyAllStyles();
+        return;
+    }
+    
+    try {
+        const styles = JSON.parse(savedStyles);
+        console.log('Loading styles from localStorage:', styles);
+        
+        // Apply text color
+        if (styles.textColor) {
+            mainLayout.style.setProperty('--text-color', styles.textColor);
+            const textColorInput = document.getElementById('textColorPicker');
+            const textColorValue = document.getElementById('textColorValue');
+            if (textColorInput) textColorInput.value = styles.textColor;
+            if (textColorValue) textColorValue.value = styles.textColor;
+        }
+        
+        // Apply background color
+        if (styles.bgColor) {
+            const rgbaColor = hexToRgba(styles.bgColor, styles.opacity || DEFAULT_STYLES.opacity);
+            mainLayout.style.backgroundColor = rgbaColor;
+            const bgColorInput = document.getElementById('bgColorPicker');
+            const bgColorValue = document.getElementById('bgColorValue');
+            if (bgColorInput) bgColorInput.value = styles.bgColor;
+            if (bgColorValue) bgColorValue.value = styles.bgColor;
+        }
+        
+        // Apply background image
+        if (styles.bgImage) {
+            const bgImageUrl = document.getElementById('bgImageUrl');
+            if (bgImageUrl) {
+                bgImageUrl.value = styles.bgImage;
+                updateBackgroundImage(styles.bgImage);
+                
+                // Set the preset dropdown to match
+                const bgImagePreset = document.getElementById('bgImagePreset');
+                const customUrlGroup = document.getElementById('customUrlGroup');
+                const bgPresetPreview = document.getElementById('bgPresetPreview');
+                
+                const matchingOption = bgImagePreset.querySelector(`option[value="${styles.bgImage}"]`);
+                if (matchingOption) {
+                    bgImagePreset.value = styles.bgImage;
+                    customUrlGroup.style.display = 'none';
+                    bgPresetPreview.src = styles.bgImage;
+                    bgPresetPreview.alt = 'Background preview';
+                } else {
+                    bgImagePreset.value = 'custom';
+                    customUrlGroup.style.display = 'block';
+                }
+            }
+        }
+        
+        // Apply QR code invert
+        if (styles.qrInvert !== undefined) {
+            const qrInvertToggle = document.getElementById('qrInvertToggle');
+            if (qrInvertToggle) qrInvertToggle.checked = styles.qrInvert;
+            const qrCodeContainer = document.getElementById('qrCode');
+            if (qrCodeContainer) {
+                qrCodeContainer.style.filter = styles.qrInvert ? 'invert(1)' : 'none';
+            }
+        }
+        
+        // Apply QR code blend modes
+        if (styles.qrScreenBlend !== undefined) {
+            const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle');
+            if (qrScreenBlendToggle) qrScreenBlendToggle.checked = styles.qrScreenBlend;
+        }
+        if (styles.qrMultiplyBlend !== undefined) {
+            const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
+            if (qrMultiplyBlendToggle) qrMultiplyBlendToggle.checked = styles.qrMultiplyBlend;
+        }
+        
+        // Apply layout invert
+        if (styles.layoutInvert !== undefined) {
+            const layoutInvertToggle = document.getElementById('layoutInvertToggle');
+            if (layoutInvertToggle) layoutInvertToggle.checked = styles.layoutInvert;
+            document.body.classList.toggle('flex-direction-invert', styles.layoutInvert);
+        }
+        
+        // Apply hide zapper content
+        if (styles.hideZapperContent !== undefined) {
+            const hideZapperContentToggle = document.getElementById('hideZapperContentToggle');
+            if (hideZapperContentToggle) hideZapperContentToggle.checked = styles.hideZapperContent;
+            document.body.classList.toggle('hide-zapper-content', styles.hideZapperContent);
+        }
+        
+        // Apply podium
+        if (styles.podium !== undefined) {
+            const podiumToggle = document.getElementById('podiumToggle');
+            if (podiumToggle) podiumToggle.checked = styles.podium;
+            document.body.classList.toggle('podium-enabled', styles.podium);
+        }
+        
+        // Apply font size
+        if (styles.fontSize !== undefined) {
+            const fontSizeSlider = document.getElementById('fontSizeSlider');
+            const fontSizeValue = document.getElementById('fontSizeValue');
+            if (fontSizeSlider) fontSizeSlider.value = styles.fontSize;
+            if (fontSizeValue) fontSizeValue.textContent = Math.round(styles.fontSize * 100) + '%';
+        }
+        
+        // Apply opacity
+        if (styles.opacity !== undefined) {
+            const opacitySlider = document.getElementById('opacitySlider');
+            const opacityValue = document.getElementById('opacityValue');
+            if (opacitySlider) opacitySlider.value = styles.opacity;
+            if (opacityValue) opacityValue.textContent = Math.round(styles.opacity * 100) + '%';
+        }
+        
+        // Apply text opacity
+        if (styles.textOpacity !== undefined) {
+            const textOpacitySlider = document.getElementById('textOpacitySlider');
+            const textOpacityValue = document.getElementById('textOpacityValue');
+            if (textOpacitySlider) textOpacitySlider.value = styles.textOpacity;
+            if (textOpacityValue) textOpacityValue.textContent = Math.round(styles.textOpacity * 100) + '%';
+        }
+        
+        // Apply all styles to ensure everything is synchronized
+        // Use a small delay to ensure all DOM elements are properly updated
+        setTimeout(() => {
+            applyAllStyles();
+        }, 50);
+        
+    } catch (e) {
+        console.error('Error loading styles from localStorage:', e);
+        // Fall back to default styles
+        applyAllStyles();
     }
 }
 
@@ -622,22 +658,32 @@ if(nevent){
     console.log("No note parameter found in URL");
 }
 
-// Apply styles from URL after DOM elements are ready
-applyStylesFromURL();
+// Apply styles from URL parameters first, then localStorage
+// Use setTimeout to ensure DOM elements are ready
+setTimeout(() => {
+    console.log('Applying styles after DOM ready');
+    applyStylesFromURL();
+    applyStylesFromLocalStorage();
+}, 200);
 
-// Ensure podium is off by default if not specified in URL
-if (!params.has('podium')) {
+// Ensure podium is off by default (will be overridden by localStorage if set)
     document.body.classList.remove('podium-enabled');
     if (podiumToggle) {
         podiumToggle.checked = false;
-    }
 }
 
 document.getElementById('note1LoaderSubmit').addEventListener('click', note1fromLoader);
 
 function note1fromLoader(){
-    const note1 = document.getElementById('note1LoaderInput').value;
+    let note1 = document.getElementById('note1LoaderInput').value;
     let kind1ID;
+    
+    // Strip nostr: protocol prefix if present
+    const originalNote1 = note1;
+    note1 = stripNostrPrefix(note1);
+    if (note1 !== originalNote1) {
+        console.log("Stripped nostr: prefix from input, now:", note1);
+    }
     
     try {
         // Try to decode as nevent first
@@ -1399,6 +1445,14 @@ function applyPreset(presetName) {
     document.querySelector(`[data-preset="${presetName}"]`).classList.add('active');
 }
 
+// Helper function to strip nostr: protocol prefix
+function stripNostrPrefix(input) {
+    if (input && input.startsWith('nostr:')) {
+        return input.substring(6); // Remove 'nostr:' prefix
+    }
+    return input;
+}
+
 function initializeFontSizes() {
     const mainLayout = document.querySelector('.main-layout');
     if (!mainLayout) return;
@@ -1431,9 +1485,24 @@ function initializeFontSizes() {
 function applyAllStyles() {
     console.log('applyAllStyles called');
     const mainLayout = document.querySelector('.main-layout');
-    const textColor = document.getElementById('textColorValue').value;
-    const bgColor = document.getElementById('bgColorValue').value;
-    const bgImage = document.getElementById('bgImageUrl').value;
+    
+    if (!mainLayout) {
+        console.error('mainLayout not found in applyAllStyles');
+        return;
+    }
+    
+    const textColorElement = document.getElementById('textColorValue');
+    const bgColorElement = document.getElementById('bgColorValue');
+    const bgImageElement = document.getElementById('bgImageUrl');
+    
+    if (!textColorElement || !bgColorElement || !bgImageElement) {
+        console.error('Style input elements not found:', { textColorElement, bgColorElement, bgImageElement });
+        return;
+    }
+    
+    const textColor = textColorElement.value;
+    const bgColor = bgColorElement.value;
+    const bgImage = bgImageElement.value;
     console.log('Style values:', { textColor, bgColor, bgImage });
     const fontSize = parseFloat(document.getElementById('fontSizeSlider').value);
     const opacity = parseFloat(document.getElementById('opacitySlider').value);
@@ -1556,12 +1625,72 @@ function applyAllStyles() {
 }
 
 function resetToDefaults() {
+    // Clear localStorage to remove saved customizations
+    localStorage.removeItem('nostrpay-styles');
+    console.log('Cleared localStorage - resetting to defaults');
+    
+    // Apply default preset
     applyPreset('default');
 }
 
 function copyStyleUrl() {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
+    // Get current styles from localStorage
+    const savedStyles = localStorage.getItem('nostrpay-styles');
+    let urlToCopy = window.location.origin + window.location.pathname;
+    
+    if (savedStyles) {
+        try {
+            const styles = JSON.parse(savedStyles);
+            const params = new URLSearchParams();
+            
+            // Add style parameters that differ from defaults
+            if (styles.textColor && styles.textColor !== DEFAULT_STYLES.textColor) {
+                params.set('textColor', styles.textColor);
+            }
+            if (styles.bgColor && styles.bgColor !== DEFAULT_STYLES.bgColor) {
+                params.set('bgColor', styles.bgColor);
+            }
+            if (styles.bgImage && styles.bgImage !== DEFAULT_STYLES.bgImage) {
+                params.set('bgImage', styles.bgImage);
+            }
+            if (styles.qrInvert !== DEFAULT_STYLES.qrInvert) {
+                params.set('qrInvert', styles.qrInvert);
+            }
+            if (styles.qrScreenBlend !== DEFAULT_STYLES.qrScreenBlend) {
+                params.set('qrScreenBlend', styles.qrScreenBlend);
+            }
+            if (styles.qrMultiplyBlend !== DEFAULT_STYLES.qrMultiplyBlend) {
+                params.set('qrMultiplyBlend', styles.qrMultiplyBlend);
+            }
+            if (styles.layoutInvert !== DEFAULT_STYLES.layoutInvert) {
+                params.set('layoutInvert', styles.layoutInvert);
+            }
+            if (styles.hideZapperContent !== DEFAULT_STYLES.hideZapperContent) {
+                params.set('hideZapperContent', styles.hideZapperContent);
+            }
+            if (styles.podium !== DEFAULT_STYLES.podium) {
+                params.set('podium', styles.podium);
+            }
+            if (styles.fontSize !== DEFAULT_STYLES.fontSize) {
+                params.set('fontSize', styles.fontSize);
+            }
+            if (styles.opacity !== DEFAULT_STYLES.opacity) {
+                params.set('opacity', styles.opacity);
+            }
+            if (styles.textOpacity !== DEFAULT_STYLES.textOpacity) {
+                params.set('textOpacity', styles.textOpacity);
+            }
+            
+            // Add parameters to URL if any exist
+            if (params.toString()) {
+                urlToCopy += '?' + params.toString();
+            }
+        } catch (e) {
+            console.error('Error parsing saved styles:', e);
+        }
+    }
+    
+    navigator.clipboard.writeText(urlToCopy).then(() => {
         // Show feedback
         const btn = document.getElementById('copyStyleUrl');
         const originalText = btn.textContent;
