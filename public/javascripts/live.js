@@ -498,8 +498,66 @@ function applyStylesFromLocalStorage() {
     }
 }
 
+function validateNoteId(noteId) {
+    // Check if noteId is empty or just whitespace
+    if (!noteId || noteId.trim() === '') {
+        throw new Error('Please enter a note ID');
+    }
+    
+    // Trim whitespace
+    noteId = noteId.trim();
+    
+    // Check if it's a valid NIP-19 format (starts with note1 or nevent1)
+    if (!noteId.startsWith('note1') && !noteId.startsWith('nevent1')) {
+        throw new Error('Invalid format. Please enter a valid nostr note ID (note1...) or event ID (nevent1...)');
+    }
+    
+    // Validate Bech32 format according to NIP-19
+    try {
+        const decoded = NostrTools.nip19.decode(noteId);
+        
+        // Validate decoded structure
+        if (decoded.type === 'note') {
+            // For note1: should have a 32-byte hex string
+            if (!decoded.data || typeof decoded.data !== 'string' || decoded.data.length !== 64) {
+                throw new Error('Invalid note ID format');
+            }
+        } else if (decoded.type === 'nevent') {
+            // For nevent1: should have an id field with 32-byte hex string
+            if (!decoded.data || !decoded.data.id || typeof decoded.data.id !== 'string' || decoded.data.id.length !== 64) {
+                throw new Error('Invalid event ID format');
+            }
+        } else {
+            throw new Error('Unsupported identifier type');
+        }
+        
+        return true;
+    } catch (error) {
+        if (error.message.includes('Invalid') || error.message.includes('Unsupported')) {
+            throw new Error('Invalid nostr identifier format. Please check the note ID and try again.');;
+        }
+        throw new Error('Invalid nostr identifier format. Please check the note ID and try again.');
+    }
+}
+
 function loadNoteContent(noteId) {
     console.log("Loading note content for:", noteId);
+    
+    // Strip nostr: protocol prefix if present before validation
+    const originalNoteId = noteId;
+    noteId = stripNostrPrefix(noteId);
+    if (noteId !== originalNoteId) {
+        console.log("Stripped nostr: prefix in loadNoteContent, now:", noteId);
+    }
+    
+    // Validate the note ID after stripping prefix
+    try {
+        validateNoteId(noteId);
+    } catch (error) {
+        showLoadingError(error.message);
+        return;
+    }
+    
     try {
         const decoded = NostrTools.nip19.decode(noteId);
         console.log("Decoded note:", decoded);
@@ -510,7 +568,7 @@ function loadNoteContent(noteId) {
         } else if (decoded.type === 'note') {
             kind1ID = decoded.data;
         } else {
-            throw new Error('Invalid format');
+            throw new Error('Invalid nostr identifier format.');
         }
         
         // Show loading animations
@@ -576,7 +634,14 @@ function loadNoteContent(noteId) {
 
 if(nevent){
     console.log("Note found in URL, attempting to load:", nevent);
-    loadNoteContent(nevent);
+    // Validate note ID before loading
+    try {
+        validateNoteId(nevent);
+        loadNoteContent(nevent);
+    } catch (error) {
+        console.log("Invalid note ID in URL:", error.message);
+        showLoadingError(error.message);
+    }
     // Duplicate code removed - using loadNoteContent function instead
     /*
     try {
@@ -674,6 +739,18 @@ applyStylesFromURL();
 
 document.getElementById('note1LoaderSubmit').addEventListener('click', note1fromLoader);
 
+// Add Enter key support for the input field
+document.getElementById('note1LoaderInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        note1fromLoader();
+    }
+});
+
+// Clear error message when user starts typing
+document.getElementById('note1LoaderInput').addEventListener('input', function() {
+    hideNoteLoaderError();
+});
+
 function note1fromLoader(){
     let note1 = document.getElementById('note1LoaderInput').value;
     let kind1ID;
@@ -685,6 +762,16 @@ function note1fromLoader(){
         console.log("Stripped nostr: prefix from input, now:", note1);
     }
     
+    // Validate the note ID after stripping prefix
+    try {
+        validateNoteId(note1);
+        // Clear any previous error message
+        hideNoteLoaderError();
+    } catch (error) {
+        showNoteLoaderError(error.message);
+        return;
+    }
+    
     try {
         // Try to decode as nevent first
         const decoded = NostrTools.nip19.decode(note1);
@@ -693,11 +780,12 @@ function note1fromLoader(){
         } else if (decoded.type === 'note') {
             kind1ID = decoded.data;
         } else {
-            throw new Error('Invalid format');
+            throw new Error('Invalid note format. Please enter a valid nostr note ID.');
         }
     } catch (e) {
-        // If decoding fails, try to use the input directly as a note ID
-        kind1ID = note1;
+        // If decoding fails, show error instead of trying to use invalid input
+        alert('Invalid nostr identifier. Please enter a valid note ID (note1...) or event ID (nevent1...).');
+        return;
     }
     
     // Update URL with the note parameter using path format
@@ -1451,6 +1539,21 @@ function stripNostrPrefix(input) {
         return input.substring(6); // Remove 'nostr:' prefix
     }
     return input;
+}
+
+function showNoteLoaderError(message) {
+    const errorElement = document.getElementById('noteLoaderError');
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+    }
+}
+
+function hideNoteLoaderError() {
+    const errorElement = document.getElementById('noteLoaderError');
+    if (errorElement) {
+        errorElement.style.display = 'none';
+    }
 }
 
 function initializeFontSizes() {
