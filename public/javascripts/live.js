@@ -1274,16 +1274,16 @@ function drawKind0(kind0){
         zapDiv.innerHTML = `
             <div class="zapperProfile">
                 <img class="zapperProfileImg" src="${profileImage}" />
-                <div class="zapperName">
-                    ${json9735.kind1Name}
+                <div class="zapperInfo">
+                    <div class="zapperName">
+                        ${json9735.kind1Name}
+                    </div>
+                    <div class="zapperMessage">${json9735.kind9735content || ''}</div>
                 </div>
-            </div>
-            <div class="zapperContent">
-                <div class="zapperMessage">${json9735.kind9735content || ''}</div>
             </div>
             <div class="zapperAmount">
                 <span class="zapperAmountSats">${numberWithCommas(json9735.amount)}</span>
-                <span class="zapperAmountSats">sats</span>
+                <span class="zapperAmountLabel">sats</span>
             </div>
         `;
         zapsContainer.appendChild(zapDiv);
@@ -1405,6 +1405,7 @@ function setupColorPicker(pickerId, valueId, targetProperty) {
                     .dashboard-title,
                     .zapperName,
                     .zapperAmountSats,
+                    .zapperAmountLabel,
                     .author-name,
                     .note-content,
                     .note-content *,
@@ -1415,7 +1416,7 @@ function setupColorPicker(pickerId, valueId, targetProperty) {
                     .zaps-list,
                     .zap,
                     .zapperProfile,
-                    .zapperContent,
+                    .zapperInfo,
                     .zapperMessage,
                     .post-info,
                     .author-section,
@@ -1683,6 +1684,7 @@ function applyAllStyles() {
         .dashboard-title,
         .zapperName,
         .zapperAmountSats,
+        .zapperAmountLabel,
         .author-name,
         .note-content,
         .note-content *,
@@ -1693,7 +1695,7 @@ function applyAllStyles() {
         .zaps-list,
         .zap,
         .zapperProfile,
-        .zapperContent,
+        .zapperInfo,
         .zapperMessage,
         .post-info,
         .author-section,
