@@ -6071,3 +6071,197 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
         overflow-y: auto;
     }
 }
+
+/* ===== LIVE EVENT STYLES ===== */
+
+.live-event-content {
+    padding: 10px 0;
+}
+
+.live-event-title {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.live-event-summary {
+    font-size: 1em;
+    margin-bottom: 15px;
+    line-height: 1.4;
+    color: var(--text-color);
+    opacity: 0.9;
+}
+
+.live-event-status {
+    margin-bottom: 15px;
+}
+
+.status-indicator {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-live {
+    background-color: rgba(255, 0, 0, 0.2);
+    color: #ff0000;
+    border: 1px solid #ff0000;
+}
+
+.status-planned {
+    background-color: rgba(255, 165, 0, 0.2);
+    color: #ff8c00;
+    border: 1px solid #ff8c00;
+}
+
+.status-ended {
+    background-color: rgba(0, 128, 0, 0.2);
+    color: #008000;
+    border: 1px solid #008000;
+}
+
+.live-event-time {
+    margin-bottom: 8px;
+    font-size: 0.9em;
+    color: var(--text-color);
+    opacity: 0.8;
+}
+
+.live-event-participants {
+    margin-bottom: 15px;
+}
+
+.participants-count {
+    font-size: 0.9em;
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.participants-list {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    border-radius: 4px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.participant {
+    margin-bottom: 4px;
+    font-size: 0.8em;
+    color: var(--text-color);
+    opacity: 0.8;
+}
+
+.participant-role {
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+.participant-pubkey {
+    font-family: monospace;
+}
+
+.participants-more {
+    font-style: italic;
+    color: var(--text-color);
+    opacity: 0.6;
+    margin-top: 5px;
+}
+
+.live-event-actions {
+    margin-bottom: 10px;
+}
+
+.streaming-link,
+.recording-link {
+    display: inline-block;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+}
+
+.streaming-link:hover,
+.recording-link:hover {
+    background: linear-gradient(135deg, #44a08d, #4ecdc4);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(78, 205, 196, 0.3);
+}
+
+/* ===== LIVE CHAT STYLES ===== */
+
+.live-chat-message {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    border-left: 3px solid #4ecdc4;
+}
+
+.chat-message-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.chat-author-img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    margin-right: 8px;
+    object-fit: cover;
+}
+
+.chat-message-info {
+    flex: 1;
+}
+
+.chat-author-name {
+    font-weight: bold;
+    font-size: 0.8em;
+    color: var(--text-color);
+    margin-bottom: 2px;
+}
+
+.chat-message-time {
+    font-size: 0.7em;
+    color: var(--text-color);
+    opacity: 0.6;
+}
+
+.chat-message-content {
+    font-size: 0.9em;
+    line-height: 1.4;
+    color: var(--text-color);
+    word-wrap: break-word;
+}
+
+/* Responsive adjustments for live events */
+@media (max-width: 768px) {
+    .live-event-title {
+        font-size: 1.2em;
+    }
+    
+    .participants-list {
+        max-height: 100px;
+    }
+    
+    .live-chat-message {
+        padding: 8px;
+        margin-bottom: 10px;
+    }
+    
+    .chat-author-img {
+        width: 20px;
+        height: 20px;
+    }
+}
