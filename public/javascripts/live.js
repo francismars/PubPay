@@ -31,18 +31,18 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Stripped nostr: prefix, now:", nevent);
     }
 
-    // Decode nevent to note if present in URL
+    // Decode nevent/naddr to preserve format in URL if present
     if (nevent) {
         try {
             const decoded = NostrTools.nip19.decode(nevent);
-            if (decoded.type === 'nevent') {
-                // Preserve original nevent format in URL
+            if (decoded.type === 'nevent' || decoded.type === 'naddr') {
+                // Preserve original format in URL
                 const newUrl = '/live/' + nevent;
                 window.history.replaceState({}, '', newUrl);
-                // Keep nevent as is, don't convert to note
+                // Keep original format as is
             }
         } catch (e) {
-            console.log("Error decoding note parameter:", e);
+            console.log("Error decoding identifier parameter:", e);
         }
     }
 
@@ -778,9 +778,9 @@ function validateNoteId(noteId) {
     // Trim whitespace
     noteId = noteId.trim();
     
-    // Check if it's a valid NIP-19 format (starts with note1 or nevent1)
-    if (!noteId.startsWith('note1') && !noteId.startsWith('nevent1')) {
-        throw new Error('Invalid format. Please enter a valid nostr note ID (note1...) or event ID (nevent1...)');
+    // Check if it's a valid NIP-19 format (starts with note1, nevent1, or naddr1)
+    if (!noteId.startsWith('note1') && !noteId.startsWith('nevent1') && !noteId.startsWith('naddr1')) {
+        throw new Error('Invalid format. Please enter a valid nostr note ID (note1...), event ID (nevent1...), or addressable event (naddr1...)');
     }
     
     // Validate Bech32 format according to NIP-19
@@ -797,6 +797,15 @@ function validateNoteId(noteId) {
             // For nevent1: should have an id field with 32-byte hex string
             if (!decoded.data || !decoded.data.id || typeof decoded.data.id !== 'string' || decoded.data.id.length !== 64) {
                 throw new Error('Invalid event ID format');
+            }
+        } else if (decoded.type === 'naddr') {
+            // For naddr1: should have identifier, pubkey, and kind fields
+            if (!decoded.data || !decoded.data.identifier || !decoded.data.pubkey || typeof decoded.data.kind !== 'number') {
+                throw new Error('Invalid addressable event format');
+            }
+            // Validate it's a live event kind
+            if (decoded.data.kind !== 30311) {
+                throw new Error('Only live events (kind 30311) are supported');
             }
         } else {
             throw new Error('Unsupported identifier type');
@@ -903,14 +912,84 @@ function loadNoteContent(noteId) {
     }
 }
 
+function loadLiveEvent(naddr) {
+    console.log("Loading live event for:", naddr);
+    
+    // Strip nostr: protocol prefix if present before validation
+    const originalNaddr = naddr;
+    naddr = stripNostrPrefix(naddr);
+    if (naddr !== originalNaddr) {
+        console.log("Stripped nostr: prefix in loadLiveEvent, now:", naddr);
+    }
+    
+    // Validate the naddr after stripping prefix
+    try {
+        validateNoteId(naddr);
+    } catch (error) {
+        showLoadingError(error.message);
+        return;
+    }
+    
+    try {
+        const decoded = NostrTools.nip19.decode(naddr);
+        console.log("Decoded live event:", decoded);
+        
+        if (decoded.type !== 'naddr') {
+            throw new Error('Invalid live event identifier format.');
+        }
+        
+        const { identifier, pubkey, kind } = decoded.data;
+        
+        // Show loading animations
+        const noteContent = document.querySelector('.note-content');
+        const zapsList = document.getElementById('zaps');
+        
+        if (noteContent) {
+            noteContent.classList.add('loading');
+            if (!noteContent.querySelector('.loading-text')) {
+                const loadingText = document.createElement('div');
+                loadingText.className = 'loading-text';
+                loadingText.textContent = 'Loading live event...';
+                noteContent.appendChild(loadingText);
+            }
+        }
+        
+        if (zapsList) {
+            zapsList.classList.add('loading');
+            if (!zapsList.querySelector('.loading-text')) {
+                const loadingText = document.createElement('div');
+                loadingText.className = 'loading-text';
+                loadingText.textContent = 'Loading live activity...';
+                zapsList.appendChild(loadingText);
+            }
+        }
+        
+        // Subscribe to the live event and chat
+        subscribeLiveEvent(pubkey, identifier, kind);
+        subscribeLiveChat(pubkey, identifier);
+        
+        document.getElementById('noteLoaderContainer').style.display = 'none';
+    } catch (e) {
+        console.log("Error loading live event from URL:", e);
+        showLoadingError("Failed to load live event. Please check the identifier and try again.");
+    }
+}
+
 if(nevent){
-    console.log("Note found in URL, attempting to load:", nevent);
-    // Validate note ID before loading
+    console.log("Identifier found in URL, attempting to load:", nevent);
+    // Validate identifier before loading
     try {
         validateNoteId(nevent);
-        loadNoteContent(nevent);
+        
+        // Determine the type and route to appropriate loader
+        const decoded = NostrTools.nip19.decode(nevent);
+        if (decoded.type === 'naddr') {
+            loadLiveEvent(nevent);
+        } else {
+            loadNoteContent(nevent);
+        }
     } catch (error) {
-        console.log("Invalid note ID in URL:", error.message);
+        console.log("Invalid identifier in URL:", error.message);
         showLoadingError(error.message);
     }
     // Duplicate code removed - using loadNoteContent function instead
@@ -1044,53 +1123,114 @@ function note1fromLoader(){
     }
     
     try {
-        // Try to decode as nevent first
+        // Decode and route to appropriate handler
         const decoded = NostrTools.nip19.decode(note1);
-        if (decoded.type === 'nevent') {
+        
+        // Update URL with the identifier using path format
+        const newUrl = '/live/' + note1;
+        window.history.replaceState({}, '', newUrl);
+        
+        if (decoded.type === 'naddr') {
+            // Handle live events
+            const { identifier, pubkey, kind } = decoded.data;
+            
+            // Show loading animations
+            const noteContent = document.querySelector('.note-content');
+            const zapsList = document.getElementById('zaps');
+            
+            if (noteContent) {
+                noteContent.classList.add('loading');
+                if (!noteContent.querySelector('.loading-text')) {
+                    const loadingText = document.createElement('div');
+                    loadingText.className = 'loading-text';
+                    loadingText.textContent = 'Loading live event...';
+                    noteContent.appendChild(loadingText);
+                }
+            }
+            
+            if (zapsList) {
+                zapsList.classList.add('loading');
+                if (!zapsList.querySelector('.loading-text')) {
+                    const loadingText = document.createElement('div');
+                    loadingText.className = 'loading-text';
+                    loadingText.textContent = 'Loading live activity...';
+                    zapsList.appendChild(loadingText);
+                }
+            }
+            
+            // Subscribe to live event and chat
+            subscribeLiveEvent(pubkey, identifier, kind);
+            subscribeLiveChat(pubkey, identifier);
+            
+        } else if (decoded.type === 'nevent') {
             kind1ID = decoded.data.id;
+            
+            // Show loading animations
+            const noteContent = document.querySelector('.note-content');
+            const zapsList = document.getElementById('zaps');
+            
+            if (noteContent) {
+                noteContent.classList.add('loading');
+                if (!noteContent.querySelector('.loading-text')) {
+                    const loadingText = document.createElement('div');
+                    loadingText.className = 'loading-text';
+                    loadingText.textContent = 'Loading note content...';
+                    noteContent.appendChild(loadingText);
+                }
+            }
+            
+            if (zapsList) {
+                zapsList.classList.add('loading');
+                if (!zapsList.querySelector('.loading-text')) {
+                    const loadingText = document.createElement('div');
+                    loadingText.className = 'loading-text';
+                    loadingText.textContent = 'Loading zaps...';
+                    zapsList.appendChild(loadingText);
+                }
+            }
+            
+            subscribeKind1(kind1ID);
+            
         } else if (decoded.type === 'note') {
             kind1ID = decoded.data;
+            
+            // Show loading animations
+            const noteContent = document.querySelector('.note-content');
+            const zapsList = document.getElementById('zaps');
+            
+            if (noteContent) {
+                noteContent.classList.add('loading');
+                if (!noteContent.querySelector('.loading-text')) {
+                    const loadingText = document.createElement('div');
+                    loadingText.className = 'loading-text';
+                    loadingText.textContent = 'Loading note content...';
+                    noteContent.appendChild(loadingText);
+                }
+            }
+            
+            if (zapsList) {
+                zapsList.classList.add('loading');
+                if (!zapsList.querySelector('.loading-text')) {
+                    const loadingText = document.createElement('div');
+                    loadingText.className = 'loading-text';
+                    loadingText.textContent = 'Loading zaps...';
+                    zapsList.appendChild(loadingText);
+                }
+            }
+            
+            subscribeKind1(kind1ID);
+            
         } else {
-            throw new Error('Invalid note format. Please enter a valid nostr note ID.');
+            throw new Error('Invalid identifier format. Please enter a valid nostr identifier.');
         }
+        
+        document.getElementById('noteLoaderContainer').style.display = 'none';
+        
     } catch (e) {
         // If decoding fails, show error instead of trying to use invalid input
-        alert('Invalid nostr identifier. Please enter a valid note ID (note1...) or event ID (nevent1...).');
+        alert('Invalid nostr identifier. Please enter a valid note ID (note1...), event ID (nevent1...), or live event (naddr1...).');
         return;
     }
-    
-    // Update URL with the note parameter using path format
-    const newUrl = '/live/' + note1;
-    window.history.replaceState({}, '', newUrl);
-    
-    // Show loading animations on content elements
-    const noteContent = document.querySelector('.note-content');
-    const zapsList = document.getElementById('zaps');
-    
-    if (noteContent) {
-        noteContent.classList.add('loading');
-        // Add loading text if not already present
-        if (!noteContent.querySelector('.loading-text')) {
-            const loadingText = document.createElement('div');
-            loadingText.className = 'loading-text';
-            loadingText.textContent = 'Loading note content...';
-            noteContent.appendChild(loadingText);
-        }
-    }
-    
-    if (zapsList) {
-        zapsList.classList.add('loading');
-        // Add loading text if not already present
-        if (!zapsList.querySelector('.loading-text')) {
-            const loadingText = document.createElement('div');
-            loadingText.className = 'loading-text';
-            loadingText.textContent = 'Loading zaps...';
-            zapsList.appendChild(loadingText);
-        }
-    }
-    
-    subscribeKind1(kind1ID);
-    document.getElementById('noteLoaderContainer').style.display = 'none';
     console.log(note1);
 }
 
@@ -1266,6 +1406,111 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
     json9735List.sort((a, b) => b.amount - a.amount);
     drawKinds9735(json9735List)
   }
+
+// Live Event subscription functions
+async function subscribeLiveEvent(pubkey, identifier, kind) {
+    console.log("Subscribing to live event:", { pubkey, identifier, kind });
+    
+    let filter = {
+        authors: [pubkey],
+        kinds: [30311], // Live Event kind
+        "#d": [identifier]
+    };
+    
+    const sub = pool.subscribeMany(relays, [filter], {
+        onevent(liveEvent) {
+            console.log("Received live event:", liveEvent);
+            displayLiveEvent(liveEvent);
+            // Also subscribe to participants' profiles
+            subscribeLiveEventParticipants(liveEvent);
+        },
+        oneose() {
+            console.log("subscribeLiveEvent() EOS");
+        },
+        onclosed() {
+            console.log("subscribeLiveEvent() Closed");
+        }
+    });
+}
+
+async function subscribeLiveChat(pubkey, identifier) {
+    console.log("Subscribing to live chat for:", { pubkey, identifier });
+    
+    const aTag = `30311:${pubkey}:${identifier}`;
+    
+    let filter = {
+        kinds: [1311], // Live Chat Message kind
+        "#a": [aTag]
+    };
+    
+    const sub = pool.subscribeMany(relays, [filter], {
+        onevent(chatMessage) {
+            console.log("Received live chat message:", chatMessage);
+            displayLiveChatMessage(chatMessage);
+            // Subscribe to chat author profile if not already cached
+            subscribeChatAuthorProfile(chatMessage.pubkey);
+        },
+        oneose() {
+            console.log("subscribeLiveChat() EOS");
+        },
+        onclosed() {
+            console.log("subscribeLiveChat() Closed");
+        }
+    });
+}
+
+async function subscribeLiveEventParticipants(liveEvent) {
+    console.log("Subscribing to live event participants");
+    
+    // Extract participant pubkeys from p tags
+    const participants = liveEvent.tags
+        .filter(tag => tag[0] === "p")
+        .map(tag => tag[1]);
+    
+    if (participants.length === 0) return;
+    
+    let filter = {
+        kinds: [0], // Profile kind
+        authors: participants
+    };
+    
+    const sub = pool.subscribeMany(relays, [filter], {
+        onevent(profile) {
+            console.log("Received participant profile:", profile);
+            // Update participant display with profile info
+            updateParticipantProfile(profile);
+        },
+        oneose() {
+            console.log("subscribeLiveEventParticipants() EOS");
+        },
+        onclosed() {
+            console.log("subscribeLiveEventParticipants() Closed");
+        }
+    });
+}
+
+async function subscribeChatAuthorProfile(pubkey) {
+    console.log("Subscribing to chat author profile:", pubkey);
+    
+    let filter = {
+        kinds: [0], // Profile kind
+        authors: [pubkey]
+    };
+    
+    const sub = pool.subscribeMany(relays, [filter], {
+        onevent(profile) {
+            console.log("Received chat author profile:", profile);
+            // Update chat message display with profile info
+            updateChatAuthorProfile(profile);
+        },
+        oneose() {
+            console.log("subscribeChatAuthorProfile() EOS");
+        },
+        onclosed() {
+            console.log("subscribeChatAuthorProfile() Closed");
+        }
+    });
+}
 
 function scaleTextByLength(element, content) {
     const maxLength = 180; // Twitter-like character limit
@@ -1664,8 +1909,240 @@ function drawKind0(kind0){
       }
   }
 
+// Live Event display functions
+function displayLiveEvent(liveEvent) {
+    console.log("Displaying live event:", liveEvent);
+    
+    // Hide note content loading animation
+    const noteContent = document.querySelector('.note-content');
+    noteContent.classList.remove('loading');
+    const loadingText = noteContent.querySelector('.loading-text');
+    if (loadingText) loadingText.remove();
+    
+    // Extract event information from tags
+    const title = liveEvent.tags.find(tag => tag[0] === "title")?.[1] || "Live Event";
+    const summary = liveEvent.tags.find(tag => tag[0] === "summary")?.[1] || "";
+    const status = liveEvent.tags.find(tag => tag[0] === "status")?.[1] || "unknown";
+    const streaming = liveEvent.tags.find(tag => tag[0] === "streaming")?.[1];
+    const recording = liveEvent.tags.find(tag => tag[0] === "recording")?.[1];
+    const starts = liveEvent.tags.find(tag => tag[0] === "starts")?.[1];
+    const ends = liveEvent.tags.find(tag => tag[0] === "ends")?.[1];
+    const currentParticipants = liveEvent.tags.find(tag => tag[0] === "current_participants")?.[1] || "0";
+    const totalParticipants = liveEvent.tags.find(tag => tag[0] === "total_participants")?.[1] || "0";
+    const participants = liveEvent.tags.filter(tag => tag[0] === "p");
+    
+    // Format timestamps
+    const formatTime = (timestamp) => {
+        if (!timestamp) return "";
+        const date = new Date(parseInt(timestamp) * 1000);
+        return date.toLocaleString();
+    };
+    
+    // Update the note content area with live event info
+    noteContent.innerHTML = `
+        <div class="live-event-content">
+            <h2 class="live-event-title">${title}</h2>
+            ${summary ? `<p class="live-event-summary">${summary}</p>` : ''}
+            
+            <div class="live-event-status">
+                <span class="status-indicator status-${status}">
+                    ${status === 'live' ? '🔴 LIVE' : status === 'planned' ? '📅 PLANNED' : status === 'ended' ? '✅ ENDED' : status.toUpperCase()}
+                </span>
+            </div>
+            
+            ${starts ? `<div class="live-event-time">
+                <strong>Starts:</strong> ${formatTime(starts)}
+            </div>` : ''}
+            
+            ${ends ? `<div class="live-event-time">
+                <strong>Ends:</strong> ${formatTime(ends)}
+            </div>` : ''}
+            
+            <div class="live-event-participants">
+                <div class="participants-count">
+                    <strong>Participants:</strong> ${currentParticipants}/${totalParticipants}
+                </div>
+                ${participants.length > 0 ? `
+                    <div class="participants-list">
+                        ${participants.slice(0, 10).map(p => `
+                            <div class="participant" data-pubkey="${p[1]}">
+                                <span class="participant-role">${p[3] || 'Participant'}</span>: 
+                                <span class="participant-pubkey">${p[1].slice(0,8)}...</span>
+                            </div>
+                        `).join('')}
+                        ${participants.length > 10 ? `<div class="participants-more">... and ${participants.length - 10} more</div>` : ''}
+                    </div>
+                ` : ''}
+            </div>
+            
+            ${streaming ? `
+                <div class="live-event-actions">
+                    <a href="${streaming}" target="_blank" class="streaming-link">
+                        📺 Watch Stream
+                    </a>
+                </div>
+            ` : ''}
+            
+            ${recording ? `
+                <div class="live-event-actions">
+                    <a href="${recording}" target="_blank" class="recording-link">
+                        🎥 Watch Recording
+                    </a>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    // Update author info with event host
+    const hostPubkey = liveEvent.pubkey;
+    document.getElementById("authorName").innerText = "Event Host";
+    
+    // Store event info globally for QR generation
+    window.currentLiveEvent = liveEvent;
+    window.currentEventType = 'live-event';
+    
+    // Generate QR codes for the live event
+    generateLiveEventQRCodes(liveEvent);
+}
 
+function displayLiveChatMessage(chatMessage) {
+    console.log("Displaying live chat message:", chatMessage);
+    
+    const zapsContainer = document.getElementById("zaps");
+    
+    // Hide loading animation on first message
+    zapsContainer.classList.remove('loading');
+    const loadingText = zapsContainer.querySelector('.loading-text');
+    if (loadingText) loadingText.remove();
+    
+    // Create chat message element
+    const chatDiv = document.createElement("div");
+    chatDiv.className = "live-chat-message";
+    chatDiv.dataset.pubkey = chatMessage.pubkey;
+    chatDiv.dataset.timestamp = chatMessage.created_at;
+    
+    const timeStr = new Date(chatMessage.created_at * 1000).toLocaleTimeString();
+    
+    chatDiv.innerHTML = `
+        <div class="chat-message-header">
+            <img class="chat-author-img" src="/images/gradient_color.gif" data-pubkey="${chatMessage.pubkey}" />
+            <div class="chat-message-info">
+                <div class="chat-author-name" data-pubkey="${chatMessage.pubkey}">
+                    ${chatMessage.pubkey.slice(0,8)}...
+                </div>
+                <div class="chat-message-time">${timeStr}</div>
+            </div>
+        </div>
+        <div class="chat-message-content">
+            ${chatMessage.content}
+        </div>
+    `;
+    
+    // Insert message in chronological order
+    const existingMessages = Array.from(zapsContainer.querySelectorAll('.live-chat-message'));
+    const insertPosition = existingMessages.findIndex(msg => 
+        parseInt(msg.dataset.timestamp) > chatMessage.created_at
+    );
+    
+    if (insertPosition === -1) {
+        // Add to end
+        zapsContainer.appendChild(chatDiv);
+    } else {
+        // Insert before the found position
+        zapsContainer.insertBefore(chatDiv, existingMessages[insertPosition]);
+    }
+    
+    // Scroll to bottom to show latest messages
+    zapsContainer.scrollTop = zapsContainer.scrollHeight;
+}
 
+function updateParticipantProfile(profile) {
+    console.log("Updating participant profile:", profile);
+    
+    const profileData = JSON.parse(profile.content || '{}');
+    const name = profileData.display_name || profileData.displayName || profileData.name || profile.pubkey.slice(0,8) + '...';
+    const picture = profileData.picture || "/images/gradient_color.gif";
+    
+    // Update participant display in live event content
+    const participantElement = document.querySelector(`.participant[data-pubkey="${profile.pubkey}"]`);
+    if (participantElement) {
+        const pubkeySpan = participantElement.querySelector('.participant-pubkey');
+        if (pubkeySpan) {
+            pubkeySpan.textContent = name;
+        }
+    }
+}
+
+function updateChatAuthorProfile(profile) {
+    console.log("Updating chat author profile:", profile);
+    
+    const profileData = JSON.parse(profile.content || '{}');
+    const name = profileData.display_name || profileData.displayName || profileData.name || profile.pubkey.slice(0,8) + '...';
+    const picture = profileData.picture || "/images/gradient_color.gif";
+    
+    // Update all chat messages from this author
+    const authorElements = document.querySelectorAll(`[data-pubkey="${profile.pubkey}"]`);
+    authorElements.forEach(element => {
+        if (element.classList.contains('chat-author-img')) {
+            element.src = picture;
+        } else if (element.classList.contains('chat-author-name')) {
+            element.textContent = name;
+        }
+    });
+}
+
+function generateLiveEventQRCodes(liveEvent) {
+    console.log("Generating QR codes for live event:", liveEvent);
+    
+    const identifier = liveEvent.tags.find(tag => tag[0] === "d")?.[1];
+    const pubkey = liveEvent.pubkey;
+    const kind = 30311;
+    
+    if (!identifier || !pubkey) {
+        console.error("Missing identifier or pubkey for QR generation");
+        return;
+    }
+    
+    // Generate naddr
+    const naddrId = NostrTools.nip19.naddrEncode({
+        identifier: identifier,
+        pubkey: pubkey,
+        kind: kind,
+        relays: []
+    });
+    
+    const njumpUrl = "https://njump.me/" + naddrId;
+    const nostrNaddr = "nostr:" + naddrId;
+    
+    // Generate QR codes
+    const qrCode = new QRious({
+        element: document.getElementById('qrCode'),
+        value: njumpUrl,
+        size: 200
+    });
+    
+    const qrCodeNevent = new QRious({
+        element: document.getElementById('qrCodeNevent'),
+        value: nostrNaddr,
+        size: 200
+    });
+    
+    const qrCodeNote = new QRious({
+        element: document.getElementById('qrCodeNote'),
+        value: naddrId,
+        size: 200
+    });
+    
+    // Update QR code links
+    document.getElementById('qrcodeLinkNostr').href = njumpUrl;
+    document.getElementById('qrcodeNeventLink').href = nostrNaddr;
+    document.getElementById('qrcodeNoteLink').href = naddrId;
+    
+    // Update QR data previews
+    document.getElementById('qrDataPreview1').textContent = njumpUrl.slice(0, 20) + '...';
+    document.getElementById('qrDataPreview2').textContent = nostrNaddr.slice(0, 20) + '...';
+    document.getElementById('qrDataPreview3').textContent = naddrId.slice(0, 20) + '...';
+}
 
 /*
 
