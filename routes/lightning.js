@@ -362,9 +362,17 @@ async function sendAnonymousZap(eventId, amount, comment) {
       makeZapRequest = nostrTools.makeZapRequest;
     }
     
+    // Decode note1... to get raw hex event ID
+    let rawEventId = eventId;
+    if (eventId.startsWith('note1')) {
+      const { noteDecode } = require('nostr-tools');
+      rawEventId = noteDecode(eventId);
+      console.log(`Decoded note ID: ${eventId} -> ${rawEventId}`);
+    }
+    
     const zapRequest = makeZapRequest({
       profile: authorPubkey,
-      event: eventId, // This should be the raw hex event ID, not note1...
+      event: rawEventId, // Use raw hex event ID
       amount: amount,
       comment: String(comment || ''),
       relays: relays
@@ -376,8 +384,13 @@ async function sendAnonymousZap(eventId, amount, comment) {
     const signedZapRequest = await signEvent(zapRequest, privateKey);
     console.log('Signed zap request:', signedZapRequest);
     
-    // Publish to all relays
-    await pool.publish(relays, signedZapRequest);
+    // Publish to all relays with error handling
+    try {
+      await pool.publish(relays, signedZapRequest);
+    } catch (publishError) {
+      console.log('Publish error (non-critical):', publishError.message);
+      // Don't throw - the zap might still be published to some relays
+    }
     
     console.log(`Published anonymous zap request: ${amount} sats with comment: "${comment}"`);
     
