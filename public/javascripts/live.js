@@ -2606,9 +2606,11 @@ function setupStyleOptions() {
                             <div class="qr-slide-label">${config.label} <span class="qr-data-preview" id="${config.previewId}"></span></div>
                         `;
                     } else {
-                        // Lightning QR without link
+                        // Lightning QR with link
                         slide.innerHTML = `
-                            <img id="${config.id}" class="qr-code lightning-qr">
+                            <a href="" target="_blank" id="lightningQRLink">
+                                <img id="${config.id}" class="qr-code lightning-qr">
+                            </a>
                             <div class="qr-slide-label">${config.label} <span class="qr-data-preview" id="${config.previewId}"></span></div>
                         `;
                     }
@@ -2677,7 +2679,7 @@ function setupStyleOptions() {
             qrConfigs.push({
                 id: 'lightningQRCode',
                 value: window.lightningLNURL,
-                linkId: null,
+                linkId: 'lightningQRLink',
                 previewId: 'qrDataPreview4'
             });
             console.log('Added Lightning QR to qrConfigs:', window.lightningLNURL);
@@ -2701,7 +2703,12 @@ function setupStyleOptions() {
                 console.log(`Generated QR for ${id}:`, element.innerHTML);
                 
                 if (link) {
-                    link.href = value;
+                    // For Lightning QR, use lightning: URI format
+                    if (id === 'lightningQRCode') {
+                        link.href = `lightning:${value}`;
+                    } else {
+                        link.href = value;
+                    }
                 }
                 
                 if (preview) {
