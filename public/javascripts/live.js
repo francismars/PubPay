@@ -159,22 +159,38 @@ document.addEventListener('DOMContentLoaded', function() {
             hideZapperContent: false,
             podium: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
-            opacity: 1.0,
+            opacity: 0.8,
             textOpacity: 1.0
         },
-        minimal: {
-            textColor: '#f4a460',
-            bgColor: '#2a2a2a',
-            bgImage: '/images/bitcoin-rotating.gif',
+        adopting: {
+            textColor: '#eedb5f',
+            bgColor: '#05051f',
+            bgImage: '/images/adopting.webp',
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
             layoutInvert: false,
-            hideZapperContent: true,
+            hideZapperContent: false,
             podium: false,
-            // fontSize: 0.9, // Disabled - using CSS vw units
-            opacity: 0.8,
-            textOpacity: 1.0
+            // fontSize: 1.0, // Disabled - using CSS vw units
+            opacity: 0.7,
+            textOpacity: 1.0,
+            partnerLogo: 'https://adoptingbitcoin.org/images/AB-logo.svg'
+        },
+        bitcoinConf: {
+            textColor: '#ffffff',
+            bgColor: '#000000',
+            bgImage: '/images/sky.jpg',
+            qrInvert: false,
+            qrScreenBlend: false,
+            qrMultiplyBlend: false,
+            layoutInvert: false,
+            hideZapperContent: false,
+            podium: false,
+            // fontSize: 1.0, // Disabled - using CSS vw units
+            opacity: 0.7,
+            textOpacity: 1.0,
+            partnerLogo: 'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg'
         }
     };
 
@@ -1535,37 +1551,26 @@ function setupColorPicker(pickerId, valueId, targetProperty) {
                 // For text color, use CSS custom property for consistent inheritance
                 mainLayout.style.setProperty('--text-color', color);
                 
-                // Apply color to all text elements that might have hardcoded colors
-                const textElements = mainLayout.querySelectorAll(`
+                // Apply color to specific elements that need hardcoded color overrides
+                // Elements that use var(--text-color) in CSS should not get inline styles
+                const hardcodedElements = mainLayout.querySelectorAll(`
                     .zaps-header-left h2,
                     .total-label,
                     .total-sats,
                     .total-amount,
                     .dashboard-title,
-                    .zapperName,
-                    .zapperAmountSats,
-                    .zapperAmountLabel,
                     .author-name,
                     .note-content,
                     .note-content *,
                     .section-label,
-                    .qr-instructions,
-                    .zaps-header,
-                    .zaps-container,
-                    .zaps-list,
-                    .zap,
-                    .zapperProfile,
-                    .zapperInfo,
-                    .zapperMessage,
-                    .post-info,
-                    .author-section,
-                    .note-section,
-                    .qr-section
+                    .qr-instructions
                 `);
                 
-                textElements.forEach(element => {
+                hardcodedElements.forEach(element => {
                     element.style.color = color;
                 });
+                
+                // Elements using var(--text-color) will automatically update via CSS
             } else {
                 // For other properties, update the live element
                 liveElement.style[targetProperty] = color;
@@ -1893,37 +1898,27 @@ function applyAllStyles() {
     const rgbaTextColor = hexToRgba(textColor, textOpacity);
     mainLayout.style.setProperty('--text-color', rgbaTextColor);
     
-    // Apply color to all text elements that might have hardcoded colors
-    const textElements = mainLayout.querySelectorAll(`
+    // Apply color to specific elements that need hardcoded color overrides
+    // Elements that use var(--text-color) in CSS should not get inline styles
+    const hardcodedElements = mainLayout.querySelectorAll(`
         .zaps-header-left h2,
         .total-label,
         .total-sats,
         .total-amount,
         .dashboard-title,
-        .zapperName,
-        .zapperAmountSats,
-        .zapperAmountLabel,
         .author-name,
         .note-content,
         .note-content *,
         .section-label,
-        .qr-instructions,
-        .zaps-header,
-        .zaps-container,
-        .zaps-list,
-        .zap,
-        .zapperProfile,
-        .zapperInfo,
-        .zapperMessage,
-        .post-info,
-        .author-section,
-        .note-section,
-        .qr-section
+        .qr-instructions
     `);
     
-    textElements.forEach(element => {
+    hardcodedElements.forEach(element => {
         element.style.color = textColor;
     });
+    
+    // Elements using var(--text-color) will automatically update via CSS:
+    // .zapperName, .zapperAmountSats, .zapperAmountLabel, .zapperMessage
     
     // Apply background color with opacity
     const rgbaColor = hexToRgba(bgColor, opacity);
@@ -1947,11 +1942,7 @@ function applyAllStyles() {
     document.body.classList.toggle('hide-zapper-content', document.getElementById('hideZapperContentToggle').checked);
     document.body.classList.toggle('podium-enabled', document.getElementById('podiumToggle').checked);
     
-    // Update scrollbar colors based on text color
-    const textColorRgb = hexToRgb(textColor);
-    mainLayout.style.setProperty('--scrollbar-track', `rgba(${textColorRgb.r}, ${textColorRgb.g}, ${textColorRgb.b}, 0.05)`);
-    mainLayout.style.setProperty('--scrollbar-thumb', `rgba(${textColorRgb.r}, ${textColorRgb.g}, ${textColorRgb.b}, 0.2)`);
-    mainLayout.style.setProperty('--scrollbar-thumb-hover', `rgba(${textColorRgb.r}, ${textColorRgb.g}, ${textColorRgb.b}, 0.3)`);
+    // Scrollbar colors now derived directly from --text-color variable in CSS using color-mix()
     
     updateStyleURL();
 }
