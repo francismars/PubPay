@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
         layoutInvert: false,
         hideZapperContent: false,
         podium: false,
+        zapGrid: false,
         // fontSize: 1.0, // Disabled - using CSS vw units
         opacity: 1.0,
         textOpacity: 1.0,
@@ -86,6 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
+            zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
             opacity: 1.0,
             textOpacity: 1.0,
@@ -101,6 +103,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
+            zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
             opacity: 1.0,
             textOpacity: 1.0,
@@ -116,6 +119,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: true,
+            zapGrid: false,
             // fontSize: 1.1, // Disabled - using CSS vw units
             opacity: 0.4,
             textOpacity: 1.0
@@ -130,6 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
+            zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
             opacity: 0.6,
             textOpacity: 1.0
@@ -144,6 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
+            zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
             opacity: 0.7,
             textOpacity: 1.0
@@ -158,6 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
+            zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
             opacity: 0.8,
             textOpacity: 1.0
@@ -172,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
+            zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
             opacity: 0.7,
             textOpacity: 1.0,
@@ -187,6 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
+            zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
             opacity: 0.7,
             textOpacity: 1.0,
@@ -207,6 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const layoutInvertToggle = document.getElementById('layoutInvertToggle');
     const hideZapperContentToggle = document.getElementById('hideZapperContentToggle');
     const podiumToggle = document.getElementById('podiumToggle');
+    const zapGridToggle = document.getElementById('zapGridToggle');
     const fontSizeSlider = document.getElementById('fontSizeSlider');
     const fontSizeValue = document.getElementById('fontSizeValue');
     const opacitySlider = document.getElementById('opacitySlider');
@@ -271,6 +281,7 @@ function updateStyleURL() {
         layoutInvert: layoutInvertToggle.checked,
         hideZapperContent: hideZapperContentToggle.checked,
         podium: podiumToggle.checked,
+        zapGrid: zapGridToggle.checked,
         // fontSize: parseFloat(fontSizeSlider.value), // Disabled - using CSS vw units
         opacity: parseFloat(opacitySlider.value),
         textOpacity: parseFloat(textOpacitySlider.value),
@@ -372,6 +383,22 @@ function applyStylesFromURL() {
         const podiumToggle = document.getElementById('podiumToggle');
         if (podiumToggle) podiumToggle.checked = podium;
         document.body.classList.toggle('podium-enabled', podium);
+    }
+    
+    // Apply zap grid
+    if (params.has('zapGrid')) {
+        const zapGrid = params.get('zapGrid') === 'true';
+        const zapGridToggle = document.getElementById('zapGridToggle');
+        if (zapGridToggle) zapGridToggle.checked = zapGrid;
+        const zapsList = document.getElementById('zaps');
+        if (zapsList) {
+            zapsList.classList.toggle('grid-layout', zapGrid);
+            if (zapGrid) {
+                organizeZapsHierarchically();
+            } else {
+                cleanupHierarchicalOrganization();
+            }
+        }
     }
     
     // Font size disabled - using CSS vw units
@@ -566,7 +593,22 @@ function applyStylesFromLocalStorage() {
             const podiumToggle = document.getElementById('podiumToggle');
             if (podiumToggle) podiumToggle.checked = styles.podium;
             document.body.classList.toggle('podium-enabled', styles.podium);
-    }
+        }
+        
+        // Apply zap grid
+        if (styles.zapGrid !== undefined) {
+            const zapGridToggle = document.getElementById('zapGridToggle');
+            if (zapGridToggle) zapGridToggle.checked = styles.zapGrid;
+            const zapsList = document.getElementById('zaps');
+            if (zapsList) {
+                zapsList.classList.toggle('grid-layout', styles.zapGrid);
+                if (styles.zapGrid) {
+                    organizeZapsHierarchically();
+                } else {
+                    cleanupHierarchicalOrganization();
+                }
+            }
+        }
     
     // Font size disabled - using CSS vw units
     // if (styles.fontSize !== undefined) {
@@ -1459,6 +1501,17 @@ function drawKind0(kind0){
         // Font sizes are now controlled by CSS using vw units
         // No JavaScript font size initialization needed for new elements
       }
+      
+      // Reorganize zaps hierarchically if grid mode is enabled
+      const zapGridToggle = document.getElementById('zapGridToggle');
+      if (zapGridToggle && zapGridToggle.checked) {
+          // Ensure the grid-layout class is applied
+          zapsContainer.classList.add('grid-layout');
+          // Add a small delay to ensure DOM is updated
+          setTimeout(() => {
+              organizeZapsHierarchically();
+          }, 10);
+      }
   }
 
 
@@ -1687,6 +1740,7 @@ function applyPreset(presetName) {
     document.getElementById('layoutInvertToggle').checked = preset.layoutInvert;
     document.getElementById('hideZapperContentToggle').checked = preset.hideZapperContent;
     document.getElementById('podiumToggle').checked = preset.podium;
+    document.getElementById('zapGridToggle').checked = preset.zapGrid;
     // Font size slider disabled - using CSS vw units
     // document.getElementById('fontSizeSlider').value = preset.fontSize;
     // document.getElementById('fontSizeValue').textContent = Math.round(preset.fontSize * 100) + '%';
@@ -1955,6 +2009,18 @@ function applyAllStyles() {
     document.body.classList.toggle('hide-zapper-content', document.getElementById('hideZapperContentToggle').checked);
     document.body.classList.toggle('podium-enabled', document.getElementById('podiumToggle').checked);
     
+    // Apply zap grid layout
+    const zapsList = document.getElementById('zaps');
+    if (zapsList) {
+        const isGridLayout = document.getElementById('zapGridToggle').checked;
+        zapsList.classList.toggle('grid-layout', isGridLayout);
+        if (isGridLayout) {
+            organizeZapsHierarchically();
+        } else {
+            cleanupHierarchicalOrganization();
+        }
+    }
+    
     // Scrollbar colors now derived directly from --text-color variable in CSS using color-mix()
     
     updateStyleURL();
@@ -2006,6 +2072,9 @@ function copyStyleUrl() {
             }
             if (styles.podium !== DEFAULT_STYLES.podium) {
                 params.set('podium', styles.podium);
+            }
+            if (styles.zapGrid !== DEFAULT_STYLES.zapGrid) {
+                params.set('zapGrid', styles.zapGrid);
             }
             // Font size disabled - using CSS vw units
             // if (styles.fontSize !== DEFAULT_STYLES.fontSize) {
@@ -2305,6 +2374,23 @@ function setupStyleOptions() {
         updateStyleURL();
     });
     
+
+    // Add event listener for zap grid toggle
+    zapGridToggle.addEventListener('change', function(e) {
+        console.log('Zap grid toggle changed:', e.target.checked);
+        const zapsList = document.getElementById('zaps');
+        if (zapsList) {
+            zapsList.classList.toggle('grid-layout', e.target.checked);
+            if (e.target.checked) {
+                organizeZapsHierarchically();
+            } else {
+                // Clean up hierarchical organization when grid mode is disabled
+                cleanupHierarchicalOrganization();
+            }
+        }
+        updateStyleURL();
+    });
+    
     // Font size slider disabled - font sizes now controlled by CSS using vw units
     // fontSizeSlider.addEventListener('input', function(e) {
     //     const value = parseFloat(e.target.value);
@@ -2341,3 +2427,78 @@ function setupStyleOptions() {
 }
 
 }); // Close DOMContentLoaded function
+
+// Function to organize zaps in hierarchical grid layout
+function organizeZapsHierarchically() {
+    const zapsList = document.getElementById('zaps');
+    if (!zapsList) return;
+    
+    const zaps = Array.from(zapsList.querySelectorAll('.zap'));
+    if (zaps.length === 0) return;
+    
+    // Clear existing row classes
+    zaps.forEach(zap => {
+        zap.className = zap.className.replace(/row-\d+/g, '');
+    });
+    
+    // Remove existing row containers
+    const existingRows = zapsList.querySelectorAll('.zap-row');
+    existingRows.forEach(row => row.remove());
+    
+    let currentIndex = 0;
+    let rowNumber = 1;
+    let zapsPerRow = 1;
+    
+    while (currentIndex < zaps.length) {
+        // Create row container
+        const rowContainer = document.createElement('div');
+        rowContainer.className = `zap-row row-${rowNumber}`;
+        
+        // Add zaps to this row
+        for (let i = 0; i < zapsPerRow && currentIndex < zaps.length; i++) {
+            const zap = zaps[currentIndex];
+            zap.classList.add(`row-${rowNumber}`);
+            rowContainer.appendChild(zap);
+            currentIndex++;
+        }
+        
+        zapsList.appendChild(rowContainer);
+        
+        // Double the zaps per row for next row
+        zapsPerRow *= 2;
+        rowNumber++;
+        
+        // Limit to row-5 for very large numbers
+        if (rowNumber > 5) {
+            // For remaining zaps, put them in row-5
+            while (currentIndex < zaps.length) {
+                const zap = zaps[currentIndex];
+                zap.classList.add('row-5');
+                rowContainer.appendChild(zap);
+                currentIndex++;
+            }
+            break;
+        }
+    }
+}
+
+// Function to clean up hierarchical organization when grid mode is disabled
+function cleanupHierarchicalOrganization() {
+    const zapsList = document.getElementById('zaps');
+    if (!zapsList) return;
+    
+    // Remove all row containers and move zaps back to the main container
+    const existingRows = zapsList.querySelectorAll('.zap-row');
+    existingRows.forEach(row => {
+        // Move all zaps from this row back to the main container
+        const zapsInRow = Array.from(row.children);
+        zapsInRow.forEach(zap => {
+            // Remove row classes from individual zaps
+            zap.className = zap.className.replace(/row-\d+/g, '');
+            // Move zap back to main container
+            zapsList.appendChild(zap);
+        });
+        // Remove the empty row container
+        row.remove();
+    });
+}
