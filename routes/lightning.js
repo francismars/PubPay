@@ -341,17 +341,40 @@ async function sendAnonymousZap(eventId, amount, comment) {
   const privateKey = crypto.randomBytes(32);
   const publicKey = crypto.createHash('sha256').update(privateKey).digest('hex');
   
+  // First, fetch the event to get the author's pubkey
+  let authorPubkey = null;
+  try {
+    const event = await pool.get(relays, {
+      ids: [eventId]
+    });
+    
+    if (event) {
+      authorPubkey = event.pubkey;
+      console.log(`Found event author pubkey: ${authorPubkey}`);
+    } else {
+      console.log(`Event not found: ${eventId}`);
+      // For testing, we'll use a dummy pubkey
+      authorPubkey = '0000000000000000000000000000000000000000000000000000000000000000';
+    }
+  } catch (error) {
+    console.log(`Error fetching event: ${error.message}`);
+    // For testing, we'll use a dummy pubkey
+    authorPubkey = '0000000000000000000000000000000000000000000000000000000000000000';
+  }
+  
   // Create zap request (kind 9734)
   const zapRequest = {
     kind: 9734,
     created_at: Math.floor(Date.now() / 1000),
-    content: String(comment || ''), // Ensure content is always a string
+    content: String(comment || ''),
     tags: [
-      ['p', eventId],
+      ['p', authorPubkey], // Author's pubkey, not event ID
       ['amount', amount.toString()],
       ['relays', ...relays]
     ]
   };
+  
+  console.log('Zap request:', JSON.stringify(zapRequest, null, 2));
   
   // Sign and publish
   const signedZapRequest = await signEvent(zapRequest, privateKey);
