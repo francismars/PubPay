@@ -341,18 +341,28 @@ async function sendAnonymousZap(eventId, amount, comment) {
   const privateKey = crypto.randomBytes(32);
   const publicKey = crypto.createHash('sha256').update(privateKey).digest('hex');
   
-  // First, fetch the event to get the author's pubkey
+  // First, decode the note ID to get the raw hex event ID
+  let rawEventId = eventId;
   let authorPubkey = null;
+  
   try {
+    // If it's a note1... encoded ID, decode it
+    if (eventId.startsWith('note1')) {
+      const { noteDecode } = require('nostr-tools');
+      rawEventId = noteDecode(eventId);
+      console.log(`Decoded note ID: ${eventId} -> ${rawEventId}`);
+    }
+    
+    // Fetch the event to get the author's pubkey
     const event = await pool.get(relays, {
-      ids: [eventId]
+      ids: [rawEventId]
     });
     
     if (event) {
       authorPubkey = event.pubkey;
       console.log(`Found event author pubkey: ${authorPubkey}`);
     } else {
-      console.log(`Event not found: ${eventId}`);
+      console.log(`Event not found: ${rawEventId}`);
       // For testing, we'll use a dummy pubkey
       authorPubkey = '0000000000000000000000000000000000000000000000000000000000000000';
     }
