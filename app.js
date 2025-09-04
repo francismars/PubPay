@@ -1,3 +1,6 @@
+// Load environment variables first
+require('dotenv').config();
+
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -10,6 +13,7 @@ var usersRouter = require('./routes/users');
 var liveRouter = require('./routes/live');
 var jukeboxRouter = require('./routes/jukebox');
 var youtubeRouter = require('./routes/youtube');
+var lightningRouter = require('./routes/lightning');
 
 var app = express();
 
@@ -30,6 +34,7 @@ app.use('/users', usersRouter);
 app.use('/live', liveRouter);
 app.use('/jukebox', jukeboxRouter);
 app.use('/youtube', youtubeRouter);
+app.use('/lightning', lightningRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
