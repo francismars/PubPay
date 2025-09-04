@@ -2226,19 +2226,17 @@ body.style-panel-open .main-layout {
     width: 100%;
     max-width: 20vw;
     height: auto;
-    margin-bottom: 15px;
+    margin-bottom: 8px;
     display: block;
     margin-left: auto;
     margin-right: auto;
-    /* Ensure blend modes work by preventing stacking context isolation */
-    position: relative;
-    z-index: 1;
 }
 
 .qr-instructions {
     font-size: max(1vw, 12px);
     color: #ccc;
     font-weight: 500;
+    margin-top: 8px;
 }
 
 /* Author Section */
@@ -2260,6 +2258,76 @@ body.style-panel-open .main-layout {
 
 #partnerLogo {
     margin-right: 10px;
+}
+
+/* QR Code Swiper Styles */
+.qr-swiper {
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.qr-swiper .swiper-slide {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-slide-label {
+    font-size: max(0.8vw, 10px);
+    color: var(--text-color);
+    opacity: 0.7;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.qr-data-preview {
+    font-size: inherit;
+    color: inherit;
+    opacity: inherit;
+    font-family: inherit;
+    font-weight: inherit;
+}
+
+.qr-swiper .swiper-pagination {
+    position: relative;
+    margin-top: 8px;
+}
+
+.qr-swiper .swiper-pagination-bullet {
+    background-color: var(--text-color);
+    opacity: 0.3;
+    width: 4px;
+    height: 4px;
+    margin: 0 1px;
+}
+
+.qr-swiper .swiper-pagination-bullet-active {
+    opacity: 0.8;
+}
+
+/* Ensure swiper doesn't interfere with blend modes */
+.qr-swiper {
+    position: static;
+}
+
+.qr-swiper .swiper-wrapper,
+.qr-swiper .swiper-slide {
+    isolation: auto;
+    transform-style: flat;
+    position: static;
+}
+
+/* Apply blend mode to swiper container instead of individual images */
+body.qr-blend-active .qr-swiper {
+    mix-blend-mode: screen;
+}
+
+body.qr-blend-active.qr-multiply-active .qr-swiper {
+    mix-blend-mode: multiply;
 }
 
 .author-name {
@@ -2297,6 +2365,15 @@ body.style-panel-open .main-layout {
     overflow-y: auto;
     max-height: 100%;
     height: auto;
+}
+
+/* Live view specific link styling */
+.live .note-content a {
+    text-decoration-color: inherit;
+}
+
+.live .note-content a:hover {
+    text-decoration-color: inherit;
 }
 
 /* Jukebox note content scrollbar - same as song-queue */
