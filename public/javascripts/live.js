@@ -964,9 +964,10 @@ function loadLiveEvent(naddr) {
             }
         }
         
-        // Subscribe to the live event and chat
+        // Subscribe to the live event, chat, and zaps
         subscribeLiveEvent(pubkey, identifier, kind);
         subscribeLiveChat(pubkey, identifier);
+        subscribeLiveEventZaps(pubkey, identifier);
         
         document.getElementById('noteLoaderContainer').style.display = 'none';
     } catch (e) {
@@ -1158,9 +1159,10 @@ function note1fromLoader(){
                 }
             }
             
-            // Subscribe to live event and chat
+            // Subscribe to live event, chat, and zaps
             subscribeLiveEvent(pubkey, identifier, kind);
             subscribeLiveChat(pubkey, identifier);
+            subscribeLiveEventZaps(pubkey, identifier);
             
         } else if (decoded.type === 'nevent') {
             kind1ID = decoded.data.id;
@@ -1508,6 +1510,30 @@ async function subscribeChatAuthorProfile(pubkey) {
         },
         onclosed() {
             console.log("subscribeChatAuthorProfile() Closed");
+        }
+    });
+}
+
+async function subscribeLiveEventZaps(pubkey, identifier) {
+    console.log("Subscribing to live event zaps for:", { pubkey, identifier });
+    
+    const aTag = `30311:${pubkey}:${identifier}`;
+    
+    let filter = {
+        kinds: [9735], // Zap receipt kind
+        "#a": [aTag]
+    };
+    
+    const sub = pool.subscribeMany(relays, [filter], {
+        onevent(zapReceipt) {
+            console.log("Received live event zap receipt:", zapReceipt);
+            processLiveEventZap(zapReceipt, pubkey, identifier);
+        },
+        oneose() {
+            console.log("subscribeLiveEventZaps() EOS");
+        },
+        onclosed() {
+            console.log("subscribeLiveEventZaps() Closed");
         }
     });
 }
@@ -2021,7 +2047,7 @@ function displayLiveChatMessage(chatMessage) {
     chatDiv.dataset.pubkey = chatMessage.pubkey;
     chatDiv.dataset.timestamp = chatMessage.created_at;
     
-    const timeStr = new Date(chatMessage.created_at * 1000).toLocaleTimeString();
+    const timeStr = new Date(chatMessage.created_at * 1000).toLocaleString();
     
     chatDiv.innerHTML = `
         <div class="chat-message-header">
@@ -2080,12 +2106,12 @@ function updateChatAuthorProfile(profile) {
     const name = profileData.display_name || profileData.displayName || profileData.name || profile.pubkey.slice(0,8) + '...';
     const picture = profileData.picture || "/images/gradient_color.gif";
     
-    // Update all chat messages from this author
+    // Update all chat messages and zaps from this author
     const authorElements = document.querySelectorAll(`[data-pubkey="${profile.pubkey}"]`);
     authorElements.forEach(element => {
-        if (element.classList.contains('chat-author-img')) {
+        if (element.classList.contains('chat-author-img') || element.classList.contains('zap-author-img')) {
             element.src = picture;
-        } else if (element.classList.contains('chat-author-name')) {
+        } else if (element.classList.contains('chat-author-name') || element.classList.contains('zap-author-name')) {
             element.textContent = name;
         }
     });
@@ -2142,6 +2168,110 @@ function generateLiveEventQRCodes(liveEvent) {
     document.getElementById('qrDataPreview1').textContent = njumpUrl.slice(0, 20) + '...';
     document.getElementById('qrDataPreview2').textContent = nostrNaddr.slice(0, 20) + '...';
     document.getElementById('qrDataPreview3').textContent = naddrId.slice(0, 20) + '...';
+}
+
+async function processLiveEventZap(zapReceipt, eventPubkey, eventIdentifier) {
+    console.log("Processing live event zap:", zapReceipt);
+    
+    try {
+        // Extract zap information from the receipt
+        const description9735 = zapReceipt.tags.find(tag => tag[0] === "description")[1];
+        const zapRequest = JSON.parse(description9735);
+        const bolt11 = zapReceipt.tags.find(tag => tag[0] === "bolt11")[1];
+        const amount = lightningPayReq.decode(bolt11).satoshis;
+        const zapperPubkey = zapRequest.pubkey;
+        const zapContent = zapRequest.content || '';
+        
+        // Create zap display object similar to regular notes
+        const zapData = {
+            id: zapReceipt.id,
+            amount: amount,
+            content: zapContent,
+            pubkey: zapperPubkey,
+            timestamp: zapReceipt.created_at,
+            bolt11: bolt11,
+            zapEventID: NostrTools.nip19.noteEncode(zapReceipt.id)
+        };
+        
+        // Subscribe to zapper's profile if we don't have it
+        subscribeChatAuthorProfile(zapperPubkey);
+        
+        // Display the zap
+        displayLiveEventZap(zapData);
+        
+    } catch (error) {
+        console.error("Error processing live event zap:", error);
+    }
+}
+
+function displayLiveEventZap(zapData) {
+    console.log("Displaying live event zap:", zapData);
+    
+    const zapsContainer = document.getElementById("zaps");
+    
+    // Hide loading animation on first zap
+    zapsContainer.classList.remove('loading');
+    const loadingText = zapsContainer.querySelector('.loading-text');
+    if (loadingText) loadingText.remove();
+    
+    // Create zap element
+    const zapDiv = document.createElement("div");
+    zapDiv.className = "live-event-zap";
+    zapDiv.dataset.pubkey = zapData.pubkey;
+    zapDiv.dataset.timestamp = zapData.timestamp;
+    zapDiv.dataset.amount = zapData.amount;
+    
+    const timeStr = new Date(zapData.timestamp * 1000).toLocaleString();
+    
+    zapDiv.innerHTML = `
+        <div class="zap-header">
+            <img class="zap-author-img" src="/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
+            <div class="zap-info">
+                <div class="zap-author-name" data-pubkey="${zapData.pubkey}">
+                    ${zapData.pubkey.slice(0,8)}...
+                </div>
+                <div class="zap-time">${timeStr}</div>
+            </div>
+            <div class="zap-amount">
+                <span class="zap-amount-sats">${numberWithCommas(zapData.amount)}</span>
+                <span class="zap-amount-label">sats</span>
+            </div>
+        </div>
+        ${zapData.content ? `
+            <div class="zap-content">
+                ${zapData.content}
+            </div>
+        ` : ''}
+    `;
+    
+    // Insert zap in chronological order (mixed with chat messages)
+    const existingItems = Array.from(zapsContainer.querySelectorAll('.live-chat-message, .live-event-zap'));
+    const insertPosition = existingItems.findIndex(item => 
+        parseInt(item.dataset.timestamp) > zapData.timestamp
+    );
+    
+    if (insertPosition === -1) {
+        // Add to end
+        zapsContainer.appendChild(zapDiv);
+    } else {
+        // Insert before the found position
+        zapsContainer.insertBefore(zapDiv, existingItems[insertPosition]);
+    }
+    
+    // Update total zapped amount
+    updateLiveEventZapTotal();
+    
+    // Scroll to bottom to show latest activity
+    zapsContainer.scrollTop = zapsContainer.scrollHeight;
+}
+
+function updateLiveEventZapTotal() {
+    const zaps = Array.from(document.querySelectorAll('.live-event-zap'));
+    const totalAmount = zaps.reduce((sum, zap) => {
+        return sum + parseInt(zap.dataset.amount || 0);
+    }, 0);
+    
+    document.getElementById("zappedTotalValue").innerText = numberWithCommas(totalAmount);
 }
 
 /*
