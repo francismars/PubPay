@@ -2063,22 +2063,19 @@ function displayLiveChatMessage(chatMessage) {
         </div>
     `;
     
-    // Insert message in chronological order (oldest first, newest last)
+    // Insert message in reverse chronological order (newest first, at top)
     const existingMessages = Array.from(zapsContainer.querySelectorAll('.live-chat-message, .live-event-zap'));
     const insertPosition = existingMessages.findIndex(msg => 
-        parseInt(msg.dataset.timestamp) > chatMessage.created_at
+        parseInt(msg.dataset.timestamp) < chatMessage.created_at
     );
     
     if (insertPosition === -1) {
-        // Add to end (newest messages at bottom)
+        // Add to end (oldest messages at bottom)
         zapsContainer.appendChild(chatDiv);
     } else {
-        // Insert before the found position
+        // Insert before the found position (newer messages towards top)
         zapsContainer.insertBefore(chatDiv, existingMessages[insertPosition]);
     }
-    
-    // Scroll to bottom to show latest messages
-    zapsContainer.scrollTop = zapsContainer.scrollHeight;
 }
 
 function updateParticipantProfile(profile) {
@@ -2243,25 +2240,22 @@ function displayLiveEventZap(zapData) {
         ` : ''}
     `;
     
-    // Insert zap in chronological order (oldest first, newest last)
+    // Insert zap in reverse chronological order (newest first, at top)
     const existingItems = Array.from(zapsContainer.querySelectorAll('.live-chat-message, .live-event-zap'));
     const insertPosition = existingItems.findIndex(item => 
-        parseInt(item.dataset.timestamp) > zapData.timestamp
+        parseInt(item.dataset.timestamp) < zapData.timestamp
     );
     
     if (insertPosition === -1) {
-        // Add to end (newest items at bottom)
+        // Add to end (oldest items at bottom)
         zapsContainer.appendChild(zapDiv);
     } else {
-        // Insert before the found position
+        // Insert before the found position (newer items towards top)
         zapsContainer.insertBefore(zapDiv, existingItems[insertPosition]);
     }
     
     // Update total zapped amount
     updateLiveEventZapTotal();
-    
-    // Scroll to bottom to show latest activity
-    zapsContainer.scrollTop = zapsContainer.scrollHeight;
 }
 
 function updateLiveEventZapTotal() {
