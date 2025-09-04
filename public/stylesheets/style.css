@@ -2014,6 +2014,13 @@ body.hide-zapper-content .zapperMessage {
     display: none;
 }
 
+/* Hide Zapper Content in Grid Layout */
+body.hide-zapper-content .zaps-list.grid-layout .zapperMessage {
+    display: none;
+}
+
+/* Hide zapper content - no scaling compensation */
+
 /* Fix blend mode issues - disable backdrop filter when QR blend is active */
 body.qr-blend-active .left-side {
     backdrop-filter: none !important;
@@ -2025,7 +2032,7 @@ body.flex-direction-invert .main-layout {
 }
 
 body.flex-direction-invert .left-side {
-    border-left: 2px solid rgb(123 123 123 / 20%);
+    border-left: 2px solid color-mix(in srgb, var(--text-color) 20%, transparent);
 }
 
 body.flex-direction-invert .right-side {
@@ -2047,6 +2054,11 @@ body.flex-direction-invert .zap:nth-child(even) .zapperProfile {
     justify-content: flex-start !important;
     flex-direction: row !important;
     text-align: left !important;
+}
+
+/* Only apply column direction when grid layout is active */
+body.flex-direction-invert .zaps-list.grid-layout .zap:nth-child(even) .zapperProfile {
+    flex-direction: column !important;
 }
 
 body.flex-direction-invert .zapperTotalLabel {
@@ -2178,7 +2190,7 @@ body.style-panel-open .main-layout {
 .live .left-side {
     width: 30%;
     height: 100vh;
-    border-right: 2px solid rgb(123 123 123 / 20%);
+    border-right: 2px solid color-mix(in srgb, var(--text-color) 20%, transparent);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -2331,13 +2343,13 @@ body.qr-blend-active.qr-multiply-active .qr-swiper {
 }
 
 .author-name {
-    font-size: max(1.4vw, 16px);
+    font-size: max(2.5vw, 16px);
     font-weight: 600;
     color: #fff;
 }
 
 .author-info .author-name {
-    font-size: max(1.4vw, 16px);
+    font-size: max(2vw, 16px);
 }
 
 /* Note Content Section */
@@ -2347,7 +2359,7 @@ body.qr-blend-active.qr-multiply-active .qr-swiper {
     overflow: hidden;
     margin-bottom: 30px;
     padding-bottom: 20px;
-    border-bottom: 2px solid rgb(123 123 123 / 20%);
+    border-bottom: 2px solid color-mix(in srgb, var(--text-color) 20%, transparent);
     min-height: 0;
     max-height: 40vh;
 }
@@ -3115,6 +3127,12 @@ body.style-panel-open .style-toggle-btn {
     width: 6vw;
     height: 6vw;
     margin-bottom: 12px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: block;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .zaps-list.grid-layout .zap.row-1 .zapperName {
@@ -3149,6 +3167,12 @@ body.style-panel-open .style-toggle-btn {
     width: 3vw;
     height: 3vw;
     margin-bottom: 8px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: block;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .zaps-list.grid-layout .zap.row-2 .zapperName {
@@ -3183,6 +3207,12 @@ body.style-panel-open .style-toggle-btn {
     width: 2.5vw;
     height: 2.5vw;
     margin-bottom: 6px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: block;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .zaps-list.grid-layout .zap.row-3 .zapperName {
@@ -3217,6 +3247,12 @@ body.style-panel-open .style-toggle-btn {
     width: 2vw;
     height: 2vw;
     margin-bottom: 5px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: block;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .zaps-list.grid-layout .zap.row-4 .zapperName {
@@ -3251,6 +3287,12 @@ body.style-panel-open .style-toggle-btn {
     width: 1.5vw;
     height: 1.5vw;
     margin-bottom: 4px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    display: block;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .zaps-list.grid-layout .zap.row-5 .zapperName {
@@ -3328,7 +3370,7 @@ body.style-panel-open .style-toggle-btn {
     padding: 10px 14px;
     background: rgb(255 255 255 / 2%);
     border-radius: 8px;
-    border: 1px solid rgb(123 123 123 / 20%);
+    border: 1px solid color-mix(in srgb, var(--text-color) 20%, transparent);
     transition: all 0.2s ease;
 }
 
@@ -3365,6 +3407,17 @@ body.style-panel-open .style-toggle-btn {
     object-fit: cover;
     border-radius: 50%;
     display: block;
+}
+
+/* Grid layout specific image styling */
+.zaps-list.grid-layout .zapperProfileImg img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+    position: relative;
+    z-index: 1;
 }
 
 .zapperInfo {
@@ -3520,23 +3573,98 @@ body.podium-enabled .zap:nth-child(3)::before {
     }
 }
 
-/* Top 3 zap amounts get special styling - Only apply when podium is enabled */
-body.podium-enabled .zap:nth-child(1) .zapperAmountSats {
-    color: #ffd700;
-    text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-    font-size: 1.4vw;
+/* Top 3 zap amounts styling removed - zapperAmountSats will use default styling */
+
+/* Disable podium styling in grid layout since nth-child is scoped to parent rows */
+body.podium-enabled .zaps-list.grid-layout .zap:nth-child(1),
+body.podium-enabled .zaps-list.grid-layout .zap:nth-child(2),
+body.podium-enabled .zaps-list.grid-layout .zap:nth-child(3) {
+    background: unset !important;
+    border-color: unset !important;
+    position: unset !important;
 }
 
-body.podium-enabled .zap:nth-child(2) .zapperAmountSats {
-    color: #c0c0c0;
-    text-shadow: 0 0 12px rgba(192, 192, 192, 0.5);
-    font-size: 1.3vw;
+body.podium-enabled .zaps-list.grid-layout .zap:nth-child(1)::before,
+body.podium-enabled .zaps-list.grid-layout .zap:nth-child(2)::before,
+body.podium-enabled .zaps-list.grid-layout .zap:nth-child(3)::before {
+    content: none !important;
 }
 
-body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
-    color: #cd7f32;
-    text-shadow: 0 0 10px rgba(205, 127, 50, 0.5);
-    font-size: 1.2vw;
+/* Global podium styling for grid layout - applied via JavaScript classes */
+body.podium-enabled .zaps-list.grid-layout .zap.podium-global-1 {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05)) !important;
+    border-color: rgba(255, 215, 0, 0.3) !important;
+    position: relative !important;
+}
+
+body.podium-enabled .zaps-list.grid-layout .zap.podium-global-1::before {
+    content: "🥇" !important;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    transform: translateY(-20%);
+    font-size: 2vw;
+    filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+    z-index: 10;
+}
+
+body.podium-enabled .zaps-list.grid-layout .zap.podium-global-2 {
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.15), rgba(192, 192, 192, 0.05)) !important;
+    border-color: rgba(192, 192, 192, 0.3) !important;
+    position: relative !important;
+}
+
+body.podium-enabled .zaps-list.grid-layout .zap.podium-global-2::before {
+    content: "🥈" !important;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    transform: translateY(-20%);
+    font-size: 2vw;
+    filter: drop-shadow(0 0 5px rgba(192, 192, 192, 0.5));
+    z-index: 10;
+}
+
+body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3 {
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05)) !important;
+    border-color: rgba(205, 127, 50, 0.3) !important;
+    position: relative !important;
+}
+
+body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
+    content: "🥉" !important;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    transform: translateY(-20%);
+    font-size: 2vw;
+    filter: drop-shadow(0 0 5px rgba(205, 127, 50, 0.5));
+    z-index: 10;
+}
+
+/* Responsive font sizes for global podium styling */
+@media (max-width: 768px) {
+    body.podium-enabled .zaps-list.grid-layout .zap.podium-global-1::before,
+    body.podium-enabled .zaps-list.grid-layout .zap.podium-global-2::before,
+    body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
+        font-size: 3vw;
+    }
+}
+
+@media (max-width: 480px) {
+    body.podium-enabled .zaps-list.grid-layout .zap.podium-global-1::before,
+    body.podium-enabled .zaps-list.grid-layout .zap.podium-global-2::before,
+    body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
+        font-size: 4vw;
+    }
+}
+
+@media (min-width: 1200px) {
+    body.podium-enabled .zaps-list.grid-layout .zap.podium-global-1::before,
+    body.podium-enabled .zaps-list.grid-layout .zap.podium-global-2::before,
+    body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
+        font-size: 2.2vw;
+    }
 }
 
 /* Animations */
@@ -3628,7 +3756,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
         width: 100%;
         height: 40vh;
         border-right: none;
-        border-bottom: 2px solid rgb(123 123 123 / 20%);
+        border-bottom: 2px solid color-mix(in srgb, var(--text-color) 20%, transparent);
     }
     
     .main-layout .right-side,
@@ -4676,7 +4804,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 }
 
 .author-name {
-    font-size: 2.5vw;
+    font-size: max(2.5vw, 16px);
     font-weight: bold;
     color: inherit;
     text-align: left;
@@ -4731,7 +4859,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     color: inherit;
     margin: 0 0 15px 0;
     padding: 8px 0;
-    border-bottom: 2px solid rgb(123 123 123 / 20%);
+    border-bottom: 2px solid color-mix(in srgb, var(--text-color) 20%, transparent);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     opacity: 0.9;
