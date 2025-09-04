@@ -345,7 +345,7 @@ async function sendAnonymousZap(eventId, amount, comment) {
   const zapRequest = {
     kind: 9734,
     created_at: Math.floor(Date.now() / 1000),
-    content: comment, // This becomes the zapperMessage
+    content: String(comment || ''), // Ensure content is always a string
     tags: [
       ['p', eventId],
       ['amount', amount.toString()],
