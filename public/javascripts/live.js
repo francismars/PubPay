@@ -2019,9 +2019,9 @@ function displayLiveEvent(liveEvent) {
         </div>
     `;
     
-    // Update author info with event host
+    // Update author info with event title
     const hostPubkey = liveEvent.pubkey;
-    document.getElementById("authorName").innerText = "Event Host";
+    document.getElementById("authorName").innerText = title;
     
     // Store event info globally for QR generation
     window.currentLiveEvent = liveEvent;
