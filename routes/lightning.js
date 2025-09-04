@@ -342,9 +342,8 @@ async function sendAnonymousZap(eventId, amount, comment) {
   ];
   
   try {
-    // Generate anonymous key pair
+    // Generate anonymous key pair (same as frontend)
     const privateKey = crypto.randomBytes(32);
-    const publicKey = crypto.createHash('sha256').update(privateKey).digest('hex');
     
     // For now, we'll use a dummy pubkey since we can't easily fetch the event
     // In a real implementation, you'd need to store the author's pubkey when the event is first seen
@@ -352,33 +351,25 @@ async function sendAnonymousZap(eventId, amount, comment) {
     
     console.log(`Creating zap request for event ${eventId} with amount ${amount} sats`);
     
-    // Create zap request (kind 9734) - this is what gets published to relays
-    const zapRequest = {
-      kind: 9734,
-      created_at: Math.floor(Date.now() / 1000),
-      content: String(comment || ''),
-      tags: [
-        ['p', authorPubkey], // Author's pubkey
-        ['amount', amount.toString()],
-        ['relays', ...relays]
-      ]
-    };
+    // Use the same approach as frontend - makeZapRequest from nip57
+    const { makeZapRequest } = require('nostr-tools');
+    
+    const zapRequest = makeZapRequest({
+      profile: authorPubkey,
+      event: eventId, // This should be the raw hex event ID, not note1...
+      amount: amount,
+      comment: String(comment || ''),
+      relays: relays
+    });
     
     console.log('Zap request:', JSON.stringify(zapRequest, null, 2));
     
-    // Sign the zap request
+    // Sign the zap request (same as frontend anonymous zap)
     const signedZapRequest = await signEvent(zapRequest, privateKey);
     console.log('Signed zap request:', signedZapRequest);
     
-    // Publish with timeout and error handling
-    const publishPromises = relays.map(relay => {
-      return pool.publish(relay, signedZapRequest).catch(error => {
-        console.log(`Failed to publish to ${relay}:`, error.message);
-        return null; // Don't fail the entire operation if one relay fails
-      });
-    });
-    
-    await Promise.allSettled(publishPromises);
+    // Publish to all relays
+    await pool.publish(relays, signedZapRequest);
     
     console.log(`Published anonymous zap request: ${amount} sats with comment: "${comment}"`);
     
