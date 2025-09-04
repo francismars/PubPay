@@ -737,7 +737,7 @@ function loadNoteContent(noteId) {
             if (!noteContent.querySelector('.loading-text')) {
                 const loadingText = document.createElement('div');
                 loadingText.className = 'loading-text';
-                loadingText.textContent = 'Loading post content...';
+                loadingText.textContent = 'Loading note content...';
                 noteContent.appendChild(loadingText);
             }
         }
@@ -768,7 +768,7 @@ function loadNoteContent(noteId) {
             if (!noteContent.querySelector('.loading-text')) {
                 const loadingText = document.createElement('div');
                 loadingText.className = 'loading-text';
-                loadingText.textContent = 'Loading post content...';
+                loadingText.textContent = 'Loading note content...';
                 noteContent.appendChild(loadingText);
             }
         }
@@ -823,7 +823,7 @@ if(nevent){
             if (!noteContent.querySelector('.loading-text')) {
                 const loadingText = document.createElement('div');
                 loadingText.className = 'loading-text';
-                loadingText.textContent = 'Loading post content...';
+                loadingText.textContent = 'Loading note content...';
                 noteContent.appendChild(loadingText);
             }
         }
@@ -855,7 +855,7 @@ if(nevent){
             if (!noteContent.querySelector('.loading-text')) {
                 const loadingText = document.createElement('div');
                 loadingText.className = 'loading-text';
-                loadingText.textContent = 'Loading post content...';
+                loadingText.textContent = 'Loading note content...';
                 noteContent.appendChild(loadingText);
             }
         }
@@ -958,7 +958,7 @@ function note1fromLoader(){
         if (!noteContent.querySelector('.loading-text')) {
             const loadingText = document.createElement('div');
             loadingText.className = 'loading-text';
-            loadingText.textContent = 'Loading post content...';
+            loadingText.textContent = 'Loading note content...';
             noteContent.appendChild(loadingText);
         }
     }
@@ -1408,6 +1408,19 @@ function drawKind0(kind0){
 
       const totalAmountZapped = json9735List.reduce((sum, zaps) => sum + zaps.amount, 0);
       document.getElementById("zappedTotalValue").innerText = numberWithCommas(totalAmountZapped);
+
+      // Check if there are no zaps
+      if (json9735List.length === 0) {
+          const emptyStateDiv = document.createElement("div");
+          emptyStateDiv.className = "empty-zaps-state";
+          emptyStateDiv.innerHTML = `
+              <div class="empty-zaps-message">
+                  Be the first to support
+              </div>
+          `;
+          zapsContainer.appendChild(emptyStateDiv);
+          return;
+      }
 
       // Sort zaps by amount (highest first) - no limit, let them overflow
       const sortedZaps = json9735List.sort((a, b) => b.amount - a.amount);

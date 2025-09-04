@@ -3747,10 +3747,12 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 .note-content.loading {
     position: relative;
     min-height: 100px;
+    padding: 0;
+    margin: 0;
 }
 
 .note-content.loading > * {
-    opacity: 0.3;
+    opacity: 1;
 }
 
 .note-content.loading::before {
@@ -3760,20 +3762,20 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.2);
+    background: transparent;
     z-index: 10;
 }
 
 .note-content.loading::after {
     content: "";
     position: absolute;
-    top: 50%;
-    left: 45%;
-    transform: translate(-50%, -50%);
-    width: 32px;
-    height: 32px;
-    border: 3px solid rgba(122, 139, 160, 0.3);
-    border-top: 3px solid #7a8ba0;
+    top: 0px;
+    left: 0px;
+    transform: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(122, 139, 160, 0.3);
+    border-top: 2px solid #7a8ba0;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     z-index: 11;
@@ -3781,25 +3783,29 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 
 .note-content.loading .loading-text {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 1.2vw;
-    color: #ffffff;
-    font-weight: 700;
+    top: 0px;
+    left: 30px;
+    transform: none;
+    font-size: 18px;
+    line-height: 20px;
+    color: var(--text-color);
+    font-weight: 400;
     z-index: 11;
-    margin-top: 60px;
+    margin: 0;
+    padding: 0;
     white-space: nowrap;
-    text-shadow: 0 0 10px rgba(0, 0, 0, 1), 0 0 20px rgba(0, 0, 0, 0.8), 2px 2px 4px rgba(0, 0, 0, 0.9);
+    text-shadow: none;
 }
 
 .zaps-list.loading {
     position: relative;
     min-height: 100px;
+    padding: 0;
+    margin: 0;
 }
 
 .zaps-list.loading > * {
-    opacity: 0.3;
+    opacity: 1;
 }
 
 .zaps-list.loading::before {
@@ -3809,20 +3815,20 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.2);
+    background: transparent;
     z-index: 10;
 }
 
 .zaps-list.loading::after {
     content: "";
     position: absolute;
-    top: 50%;
-    left: 48%;
-    transform: translate(-50%, -50%);
-    width: 32px;
-    height: 32px;
-    border: 3px solid rgba(122, 139, 160, 0.3);
-    border-top: 3px solid #7a8ba0;
+    top: 0px;
+    left: 0px;
+    transform: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(122, 139, 160, 0.3);
+    border-top: 2px solid #7a8ba0;
     border-radius: 50%;
     animation: spin 1s linear infinite;
     z-index: 11;
@@ -3830,16 +3836,18 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 
 .zaps-list.loading .loading-text {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 1.2vw;
-    color: #ffffff;
-    font-weight: 700;
+    top: 0px;
+    left: 30px;
+    transform: none;
+    font-size: 18px;
+    line-height: 20px;
+    color: var(--text-color);
+    font-weight: 400;
     z-index: 11;
-    margin-top: 60px;
+    margin: 0;
+    padding: 0;
     white-space: nowrap;
-    text-shadow: 0 0 10px rgba(0, 0, 0, 1), 0 0 20px rgba(0, 0, 0, 0.8), 2px 2px 4px rgba(0, 0, 0, 0.9);
+    text-shadow: none;
 }
 
 @keyframes spin {
@@ -5058,3 +5066,25 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 }
 
 /* Removed invalid :contains() pseudo-selector - not valid CSS */
+
+/* Empty Zaps State */
+.empty-zaps-state {
+    position: relative;
+    min-height: 100px;
+    padding: 0;
+    margin: 0;
+}
+
+.empty-zaps-message {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    font-size: 18px;
+    line-height: 20px;
+    color: var(--text-color);
+    font-weight: 400;
+    opacity: 0.7;
+    margin: 0;
+    padding: 0;
+    white-space: nowrap;
+}
