@@ -1,6 +1,11 @@
 var express = require('express');
 var router = express.Router();
 const crypto = require('crypto');
+
+// WebSocket polyfill for Node.js
+const WebSocket = require('ws');
+global.WebSocket = WebSocket;
+
 const { SimplePool } = require('nostr-tools');
 
 // LNBits configuration
