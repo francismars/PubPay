@@ -1967,7 +1967,6 @@ function displayLiveEvent(liveEvent) {
     // Update the note content area with live event info
     noteContent.innerHTML = `
         <div class="live-event-content">
-            <h2 class="live-event-title">${title}</h2>
             ${summary ? `<p class="live-event-summary">${summary}</p>` : ''}
             
             <div class="live-event-status">
@@ -2064,14 +2063,14 @@ function displayLiveChatMessage(chatMessage) {
         </div>
     `;
     
-    // Insert message in chronological order
-    const existingMessages = Array.from(zapsContainer.querySelectorAll('.live-chat-message'));
+    // Insert message in chronological order (oldest first, newest last)
+    const existingMessages = Array.from(zapsContainer.querySelectorAll('.live-chat-message, .live-event-zap'));
     const insertPosition = existingMessages.findIndex(msg => 
         parseInt(msg.dataset.timestamp) > chatMessage.created_at
     );
     
     if (insertPosition === -1) {
-        // Add to end
+        // Add to end (newest messages at bottom)
         zapsContainer.appendChild(chatDiv);
     } else {
         // Insert before the found position
@@ -2244,14 +2243,14 @@ function displayLiveEventZap(zapData) {
         ` : ''}
     `;
     
-    // Insert zap in chronological order (mixed with chat messages)
+    // Insert zap in chronological order (oldest first, newest last)
     const existingItems = Array.from(zapsContainer.querySelectorAll('.live-chat-message, .live-event-zap'));
     const insertPosition = existingItems.findIndex(item => 
         parseInt(item.dataset.timestamp) > zapData.timestamp
     );
     
     if (insertPosition === -1) {
-        // Add to end
+        // Add to end (newest items at bottom)
         zapsContainer.appendChild(zapDiv);
     } else {
         // Insert before the found position
