@@ -133,6 +133,7 @@
           </div>
         </div>
         
+        
         <!-- Footer -->
         <div class="note-loader-footer">
           <div class="footer-links">
@@ -198,6 +199,16 @@
                     <img id="qrCodeNote" class="qr-code">
                   </a>
                   <div class="qr-slide-label">Note ID <span class="qr-data-preview" id="qrDataPreview3"></span></div>
+                </div>
+                <!-- Lightning Payment QR Slide -->
+                <div class="swiper-slide lightning-qr-slide" id="lightningQRSlide" style="display: none;">
+                  <div class="lightning-qr-container">
+                    <div id="lightningQRCode" class="qr-code lightning-qr"></div>
+                    <div class="lightning-qr-overlay">
+                      <div class="lightning-icon">⚡</div>
+                    </div>
+                  </div>
+                  <div class="qr-slide-label">Lightning Payment <span class="qr-data-preview" id="qrDataPreview4"></span></div>
                 </div>
               </div>
               <div class="swiper-pagination"></div>
@@ -467,6 +478,21 @@
                   </div>
                   <span>Show Note ID</span>
                 </label>
+              </div>
+              <div class="style-option-group toggle-group">
+                <label class="toggle-label">
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="lightningToggle">
+                    <span class="toggle-slider"></span>
+                  </div>
+                  <span>Enable Lightning Payments</span>
+                </label>
+              </div>
+            </div>
+            <!-- Lightning Payment Status -->
+            <div class="lightning-status-container" id="lightningStatusContainer" style="display: none;">
+              <div class="payment-status" id="paymentStatus">
+                <!-- Status messages will appear here -->
               </div>
             </div>
           </div>

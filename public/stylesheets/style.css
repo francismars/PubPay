@@ -1,4 +1,92 @@
 /* ===== LIVE DISPLAY STYLES ===== */
+
+/* Lightning Status Container in Style Options */
+.lightning-status-container {
+  margin-top: 15px;
+  padding: 15px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid #ffd700;
+  border-radius: 8px;
+}
+
+/* Status Messages */
+.payment-status {
+  text-align: center;
+  margin-top: 0;
+}
+
+.status-waiting {
+  color: #b8860b;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.status-info {
+  color: #17a2b8;
+  font-weight: bold;
+  font-size: 12px;
+  background: rgba(23, 162, 184, 0.1);
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid #17a2b8;
+}
+
+.status-disabled {
+  color: #6c757d;
+  font-weight: bold;
+  font-size: 12px;
+  background: rgba(108, 117, 125, 0.1);
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid #6c757d;
+}
+
+/* Lightning QR Slide */
+.lightning-qr-slide {
+  position: relative;
+}
+
+.lightning-qr-container {
+  position: relative;
+  display: inline-block;
+}
+
+.lightning-qr {
+  border-radius: 8px;
+  background: white;
+}
+
+.lightning-qr-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 215, 0, 0.9);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.lightning-icon {
+  font-size: 20px;
+  color: #b8860b;
+  font-weight: bold;
+}
+
+.lightning-qr-slide .qr-slide-label {
+  color: #b8860b;
+  font-weight: bold;
+}
+
+.lightning-qr-slide .qr-code {
+  max-width: 200px;
+  max-height: 200px;
+  width: auto;
+  height: auto;
+}
 body {
   margin: 0;
   font-family: "Inter", sans-serif;
