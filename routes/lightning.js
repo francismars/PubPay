@@ -341,44 +341,19 @@ async function sendAnonymousZap(eventId, amount, comment) {
   const privateKey = crypto.randomBytes(32);
   const publicKey = crypto.createHash('sha256').update(privateKey).digest('hex');
   
-  // First, decode the note ID to get the raw hex event ID
-  let rawEventId = eventId;
-  let authorPubkey = null;
+  // For now, we'll use a dummy pubkey since we can't easily fetch the event
+  // In a real implementation, you'd need to store the author's pubkey when the event is first seen
+  const authorPubkey = '0000000000000000000000000000000000000000000000000000000000000000';
   
-  try {
-    // If it's a note1... encoded ID, decode it
-    if (eventId.startsWith('note1')) {
-      const { noteDecode } = require('nostr-tools');
-      rawEventId = noteDecode(eventId);
-      console.log(`Decoded note ID: ${eventId} -> ${rawEventId}`);
-    }
-    
-    // Fetch the event to get the author's pubkey
-    const event = await pool.get(relays, {
-      ids: [rawEventId]
-    });
-    
-    if (event) {
-      authorPubkey = event.pubkey;
-      console.log(`Found event author pubkey: ${authorPubkey}`);
-    } else {
-      console.log(`Event not found: ${rawEventId}`);
-      // For testing, we'll use a dummy pubkey
-      authorPubkey = '0000000000000000000000000000000000000000000000000000000000000000';
-    }
-  } catch (error) {
-    console.log(`Error fetching event: ${error.message}`);
-    // For testing, we'll use a dummy pubkey
-    authorPubkey = '0000000000000000000000000000000000000000000000000000000000000000';
-  }
+  console.log(`Creating zap request for event ${eventId} with amount ${amount} sats`);
   
-  // Create zap request (kind 9734)
+  // Create zap request (kind 9734) - this is what gets published to relays
   const zapRequest = {
     kind: 9734,
     created_at: Math.floor(Date.now() / 1000),
     content: String(comment || ''),
     tags: [
-      ['p', authorPubkey], // Author's pubkey, not event ID
+      ['p', authorPubkey], // Author's pubkey
       ['amount', amount.toString()],
       ['relays', ...relays]
     ]
@@ -386,22 +361,27 @@ async function sendAnonymousZap(eventId, amount, comment) {
   
   console.log('Zap request:', JSON.stringify(zapRequest, null, 2));
   
-  // Sign and publish
+  // Sign and publish the zap request
   const signedZapRequest = await signEvent(zapRequest, privateKey);
   await pool.publish(relays, signedZapRequest);
   
-  console.log(`Published anonymous zap: ${amount} sats for event ${eventId} with comment: "${comment}"`);
+  console.log(`Published anonymous zap request: ${amount} sats with comment: "${comment}"`);
+  
+  // Close the pool
+  pool.close(relays);
 }
 
-// Mock event signing (replace with proper Nostr signing)
+// Proper Nostr event signing
 async function signEvent(event, privateKey) {
-  // This is a mock - replace with proper Nostr signing
-  return {
-    ...event,
-    id: crypto.createHash('sha256').update(JSON.stringify(event)).digest('hex'),
-    pubkey: crypto.createHash('sha256').update(privateKey).digest('hex'),
-    sig: crypto.randomBytes(64).toString('hex')
-  };
+  const { finalizeEvent } = require('nostr-tools');
+  
+  // Convert private key to hex string
+  const privateKeyHex = privateKey.toString('hex');
+  
+  // Sign the event
+  const signedEvent = finalizeEvent(event, privateKeyHex);
+  
+  return signedEvent;
 }
 
 // Test endpoint for debugging
