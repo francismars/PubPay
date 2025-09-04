@@ -2278,6 +2278,7 @@ body.style-panel-open .main-layout {
     height: auto;
     margin: 0;
     padding: 0;
+    min-height: 250px;
 }
 
 .qr-swiper .swiper-slide {
@@ -2286,6 +2287,7 @@ body.style-panel-open .main-layout {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    min-height: 250px;
 }
 
 .qr-slide-label {
@@ -2386,6 +2388,27 @@ body.qr-blend-active.qr-multiply-active .qr-swiper {
 
 .live .note-content a:hover {
     text-decoration-color: inherit;
+}
+
+/* QR slide visibility CSS */
+.qr-swiper .swiper-slide.hidden {
+    display: none !important;
+}
+
+/* Ensure swiper maintains proper height */
+.qr-swiper .swiper-wrapper {
+    height: auto;
+    min-height: 250px;
+}
+
+.subsection-title {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-color);
+    opacity: 0.6;
+    margin: 15px 0 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 /* Jukebox note content scrollbar - same as song-queue */

@@ -65,6 +65,9 @@ document.addEventListener('DOMContentLoaded', function() {
         qrInvert: false,
         qrScreenBlend: false,
         qrMultiplyBlend: false,
+        qrShowWebLink: true,
+        qrShowNevent: true,
+        qrShowNote: true,
         layoutInvert: false,
         hideZapperContent: false,
         podium: false,
@@ -84,6 +87,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
+            qrShowWebLink: true,
+            qrShowNevent: true,
+            qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
@@ -100,6 +106,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
+            qrShowWebLink: true,
+            qrShowNevent: true,
+            qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
@@ -116,6 +125,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: true,
             qrMultiplyBlend: false,
+            qrShowWebLink: true,
+            qrShowNevent: true,
+            qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
             podium: true,
@@ -131,6 +143,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
+            qrShowWebLink: true,
+            qrShowNevent: true,
+            qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
@@ -146,6 +161,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: true,
             qrMultiplyBlend: false,
+            qrShowWebLink: true,
+            qrShowNevent: true,
+            qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
@@ -161,6 +179,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
+            qrShowWebLink: true,
+            qrShowNevent: true,
+            qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
@@ -176,6 +197,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
+            qrShowWebLink: true,
+            qrShowNevent: true,
+            qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
@@ -192,6 +216,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
+            qrShowWebLink: true,
+            qrShowNevent: true,
+            qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
             podium: false,
@@ -278,6 +305,9 @@ function updateStyleURL() {
         qrInvert: qrInvertToggle.checked,
         qrScreenBlend: qrScreenBlendToggle.checked,
         qrMultiplyBlend: qrMultiplyBlendToggle.checked,
+        qrShowWebLink: document.getElementById('qrShowWebLinkToggle')?.checked ?? true,
+        qrShowNevent: document.getElementById('qrShowNeventToggle')?.checked ?? true,
+        qrShowNote: document.getElementById('qrShowNoteToggle')?.checked ?? true,
         layoutInvert: layoutInvertToggle.checked,
         hideZapperContent: hideZapperContentToggle.checked,
         podium: podiumToggle.checked,
@@ -365,6 +395,23 @@ function applyStylesFromURL() {
     // Update blend mode after setting toggles
     if (params.has('qrScreenBlend') || params.has('qrMultiplyBlend')) {
         updateBlendMode();
+    }
+    
+    // Apply QR slide visibility
+    if (params.has('qrShowWebLink')) {
+        const show = params.get('qrShowWebLink') === 'true';
+        const toggle = document.getElementById('qrShowWebLinkToggle');
+        if (toggle) toggle.checked = show;
+    }
+    if (params.has('qrShowNevent')) {
+        const show = params.get('qrShowNevent') === 'true';
+        const toggle = document.getElementById('qrShowNeventToggle');
+        if (toggle) toggle.checked = show;
+    }
+    if (params.has('qrShowNote')) {
+        const show = params.get('qrShowNote') === 'true';
+        const toggle = document.getElementById('qrShowNoteToggle');
+        if (toggle) toggle.checked = show;
     }
     
     // Apply layout invert
@@ -578,6 +625,26 @@ function applyStylesFromLocalStorage() {
         // Update blend mode after setting toggles
         if (styles.qrScreenBlend !== undefined || styles.qrMultiplyBlend !== undefined) {
             updateBlendMode();
+        }
+        
+        // Apply QR slide visibility
+        if (styles.qrShowWebLink !== undefined) {
+            const toggle = document.getElementById('qrShowWebLinkToggle');
+            if (toggle) toggle.checked = styles.qrShowWebLink;
+        }
+        if (styles.qrShowNevent !== undefined) {
+            const toggle = document.getElementById('qrShowNeventToggle');
+            if (toggle) toggle.checked = styles.qrShowNevent;
+        }
+        if (styles.qrShowNote !== undefined) {
+            const toggle = document.getElementById('qrShowNoteToggle');
+            if (toggle) toggle.checked = styles.qrShowNote;
+        }
+        
+        // Update QR slide visibility after loading settings
+        const updateQRSlideVisibilityFunc = window.updateQRSlideVisibility;
+        if (updateQRSlideVisibilityFunc && typeof updateQRSlideVisibilityFunc === 'function') {
+            updateQRSlideVisibilityFunc(true); // Skip URL update during initialization
         }
     
     // Apply layout invert
@@ -1393,6 +1460,10 @@ async function processNoteContent(content) {
 
 async function drawKind1(kind1){
     console.log("Drawing kind1:", kind1)
+    
+    // Store note ID globally for QR regeneration
+    window.currentNoteId = kind1.id;
+    
     const noteContent = document.getElementById("noteContent");
     console.log("Note content element:", noteContent);
     
@@ -1438,15 +1509,19 @@ async function drawKind1(kind1){
             // Set link href
             if (link) link.href = value;
             
-            // Set data preview (first 10 characters, strip protocols)
+            // Set data preview (more characters for web links)
             if (preview) {
                 let cleanValue = value;
+                let maxLength = 10; // Default for nostr formats
+                
                 if (value.startsWith('https://')) {
                     cleanValue = value.substring(8); // Remove 'https://'
+                    maxLength = 20; // Show more for web links
                 } else if (value.startsWith('nostr:')) {
                     cleanValue = value.substring(6); // Remove 'nostr:'
                 }
-                const previewText = cleanValue.length > 10 ? cleanValue.substring(0, 10) + '...' : cleanValue;
+                // Always add ellipsis to show truncation
+                const previewText = cleanValue.substring(0, maxLength) + '...';
                 preview.textContent = previewText;
             }
         }
@@ -1462,14 +1537,23 @@ async function drawKind1(kind1){
                 clickable: true,
                 dynamicBullets: false
             },
-            loop: true,
+            loop: false, // Disable loop to avoid issues with hidden slides
             autoplay: {
                 delay: 3000,
                 disableOnInteraction: false,
                 pauseOnMouseEnter: true
             },
-            autoHeight: true
+            autoHeight: false, // Use fixed height to avoid layout issues
+            height: 250,
+            watchOverflow: true, // Handle case where all slides might be hidden
+            observer: true, // Watch for DOM changes
+            observeParents: true
         });
+    }
+    
+    // Apply current slide visibility settings
+    if (window.updateQRSlideVisibility) {
+        window.updateQRSlideVisibility(true); // Skip URL update during QR generation
     }
 }
 
@@ -2134,6 +2218,15 @@ function copyStyleUrl() {
             if (styles.qrMultiplyBlend !== DEFAULT_STYLES.qrMultiplyBlend) {
                 params.set('qrMultiplyBlend', styles.qrMultiplyBlend);
             }
+            if (styles.qrShowWebLink !== DEFAULT_STYLES.qrShowWebLink) {
+                params.set('qrShowWebLink', styles.qrShowWebLink);
+            }
+            if (styles.qrShowNevent !== DEFAULT_STYLES.qrShowNevent) {
+                params.set('qrShowNevent', styles.qrShowNevent);
+            }
+            if (styles.qrShowNote !== DEFAULT_STYLES.qrShowNote) {
+                params.set('qrShowNote', styles.qrShowNote);
+            }
             if (styles.layoutInvert !== DEFAULT_STYLES.layoutInvert) {
                 params.set('layoutInvert', styles.layoutInvert);
             }
@@ -2425,6 +2518,193 @@ function setupStyleOptions() {
         }
         updateBlendMode();
     });
+    
+    // QR slide visibility toggles
+    const qrShowWebLinkToggle = document.getElementById('qrShowWebLinkToggle');
+    const qrShowNeventToggle = document.getElementById('qrShowNeventToggle');
+    const qrShowNoteToggle = document.getElementById('qrShowNoteToggle');
+    
+    function updateQRSlideVisibility(skipURLUpdate = false) {
+        const webLinkToggle = document.getElementById('qrShowWebLinkToggle');
+        const neventToggle = document.getElementById('qrShowNeventToggle');
+        const noteToggle = document.getElementById('qrShowNoteToggle');
+        
+        const showWebLink = webLinkToggle?.checked ?? true;
+        const showNevent = neventToggle?.checked ?? true;
+        const showNote = noteToggle?.checked ?? true;
+        
+        console.log('updateQRSlideVisibility called:', {
+            showWebLink, showNevent, showNote
+        });
+        
+        // Rebuild swiper with only visible slides
+        if (window.qrSwiper) {
+            window.qrSwiper.destroy(true, true);
+            window.qrSwiper = null;
+        }
+        
+        // Get the swiper wrapper and clear it
+        const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
+        if (swiperWrapper) {
+            swiperWrapper.innerHTML = '';
+            
+            // Add slides based on visibility settings
+            const slideConfigs = [
+                { 
+                    show: showWebLink, 
+                    id: 'qrCode', 
+                    linkId: 'qrcodeLinkNostr',
+                    previewId: 'qrDataPreview1',
+                    label: 'Web Link'
+                },
+                { 
+                    show: showNevent, 
+                    id: 'qrCodeNevent', 
+                    linkId: 'qrcodeNeventLink',
+                    previewId: 'qrDataPreview2',
+                    label: 'Nostr Event'
+                },
+                { 
+                    show: showNote, 
+                    id: 'qrCodeNote', 
+                    linkId: 'qrcodeNoteLink',
+                    previewId: 'qrDataPreview3',
+                    label: 'Note ID'
+                }
+            ];
+            
+            slideConfigs.forEach(config => {
+                if (config.show) {
+                    const slide = document.createElement('div');
+                    slide.className = 'swiper-slide';
+                    slide.innerHTML = `
+                        <a href="" target="_blank" id="${config.linkId}">
+                            <img id="${config.id}" class="qr-code">
+                        </a>
+                        <div class="qr-slide-label">${config.label} <span class="qr-data-preview" id="${config.previewId}"></span></div>
+                    `;
+                    swiperWrapper.appendChild(slide);
+                }
+            });
+            
+            // Reinitialize swiper
+            window.qrSwiper = new Swiper('.qr-swiper', {
+                slidesPerView: 1,
+                spaceBetween: 0,
+                pagination: {
+                    el: '.swiper-pagination',
+                    clickable: true,
+                    dynamicBullets: false
+                },
+                loop: swiperWrapper.children.length > 1, // Only loop if more than 1 slide
+                autoplay: swiperWrapper.children.length > 1 ? {
+                    delay: 3000,
+                    disableOnInteraction: false,
+                    pauseOnMouseEnter: true
+                } : false,
+                autoHeight: false,
+                height: 250,
+                watchOverflow: true,
+                observer: true,
+                observeParents: true
+            });
+            
+            // Re-generate QR codes for visible slides
+            regenerateQRCodes();
+        }
+        
+        if (!skipURLUpdate) {
+            updateStyleURL();
+        }
+    }
+    
+    // Function to regenerate QR codes for visible slides
+    function regenerateQRCodes() {
+        // Get current note ID
+        const noteId = window.currentNoteId;
+        
+        if (!noteId) return;
+        
+        // Generate QR code data
+        const neventId = NostrTools.nip19.neventEncode({ id: noteId, relays: [] });
+        const note1Id = NostrTools.nip19.noteEncode(noteId);
+        const njumpUrl = "https://njump.me/" + note1Id;
+        const nostrNevent = "nostr:" + neventId;
+        const nostrNote = "nostr:" + note1Id;
+        
+        const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
+        
+        // Generate QR codes for visible slides
+        const qrConfigs = [
+            { id: 'qrCode', value: njumpUrl, linkId: 'qrcodeLinkNostr', previewId: 'qrDataPreview1' },
+            { id: 'qrCodeNevent', value: nostrNevent, linkId: 'qrcodeNeventLink', previewId: 'qrDataPreview2' },
+            { id: 'qrCodeNote', value: nostrNote, linkId: 'qrcodeNoteLink', previewId: 'qrDataPreview3' }
+        ];
+        
+        qrConfigs.forEach(({ id, value, linkId, previewId }) => {
+            const element = document.getElementById(id);
+            const link = document.getElementById(linkId);
+            const preview = document.getElementById(previewId);
+            
+            if (element) {
+                element.innerHTML = "";
+                new QRious({
+                    element: element,
+                    size: qrSize,
+                    value: value
+                });
+                
+                if (link) {
+                    link.href = value;
+                }
+                
+                if (preview) {
+                    let previewText = value;
+                    let maxLength = 10; // Default for nostr formats
+                    
+                    if (previewText.startsWith('https://')) {
+                        previewText = previewText.substring(8);
+                        maxLength = 20; // Show more for web links
+                    } else if (previewText.startsWith('nostr:')) {
+                        previewText = previewText.substring(6);
+                    }
+                    // Always add ellipsis to show truncation
+                    previewText = previewText.substring(0, maxLength) + '...';
+                    preview.textContent = previewText;
+                }
+            }
+        });
+        
+        // Apply current QR effects
+        const qrInvertToggle = document.getElementById('qrInvertToggle');
+        if (qrInvertToggle?.checked) {
+            const qrCodes = [
+                document.getElementById('qrCode'),
+                document.getElementById('qrCodeNevent'),
+                document.getElementById('qrCodeNote')
+            ];
+            qrCodes.forEach(qrCode => {
+                if (qrCode) qrCode.style.filter = 'invert(1)';
+            });
+        }
+        
+        // Apply blend mode
+        updateBlendMode();
+    }
+    
+    // Make functions globally accessible
+    window.updateQRSlideVisibility = updateQRSlideVisibility;
+    window.regenerateQRCodes = regenerateQRCodes;
+    
+    if (qrShowWebLinkToggle) {
+        qrShowWebLinkToggle.addEventListener('change', updateQRSlideVisibility);
+    }
+    if (qrShowNeventToggle) {
+        qrShowNeventToggle.addEventListener('change', updateQRSlideVisibility);
+    }
+    if (qrShowNoteToggle) {
+        qrShowNoteToggle.addEventListener('change', updateQRSlideVisibility);
+    }
     
     // Layout inversion toggle
     layoutInvertToggle.addEventListener('change', function(e) {
