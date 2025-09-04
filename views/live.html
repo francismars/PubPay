@@ -220,13 +220,14 @@
           <div class="style-section">
             <h3 class="section-title">QUICK PRESETS</h3>
             <div class="presets-container">
-              <button class="preset-btn" data-preset="lightMode">☀️ Light Mode</button>
-              <button class="preset-btn" data-preset="darkMode">🌙 Dark Mode</button>
-              <button class="preset-btn" data-preset="cosmic">🌌 Cosmic</button>
-              <button class="preset-btn" data-preset="vibrant">🎨 Vibrant</button>
-              <button class="preset-btn" data-preset="electric">⚡ Electric</button>
-              <button class="preset-btn" data-preset="warm">🌅 Warm</button>
-              <button class="preset-btn" data-preset="minimal">🎯 Minimal</button>
+                          <button class="preset-btn" data-preset="lightMode">Light Mode</button>
+            <button class="preset-btn" data-preset="darkMode">Dark Mode</button>
+            <button class="preset-btn" data-preset="cosmic">Cosmic</button>
+            <button class="preset-btn" data-preset="vibrant">Vibrant</button>
+            <button class="preset-btn" data-preset="electric">Electric</button>
+            <button class="preset-btn" data-preset="warm">Warm</button>
+            <button class="preset-btn" data-preset="adopting">Adopting</button>
+            <button class="preset-btn" data-preset="bitcoinConf">Bitcoin Conf</button>
             </div>
           </div>
           <!-- Colors Section -->
@@ -274,17 +275,19 @@
               <div class="bg-preset-controls">
                 <div class="preset-inputs">
                   <select id="bgImagePreset" class="bg-preset-select">
-                    <option value="">🚫 No Background (Default)</option>
-                    <option value="/images/lightning.gif">⚡ Lightning</option>
-                    <option value="/images/bitcoin-rocket.gif">🚀 Bitcoin Rocket</option>
-                    <option value="/images/bitcoin-astronaut.gif">🌻 Bitcoin Astronaut</option>
-                    <option value="/images/bitcoin-space.gif">🌌 Bitcoin Space</option>
-                    <option value="/images/bitcoin-sunset.gif">🌅 Bitcoin Sunset</option>
-                    <option value="/images/bitcoin-rotating.gif">🪙 Bitcoin Rotating</option>
-                    <option value="/images/nostr-ostriches.gif">🦆 Nostr Ostriches</option>
-                    <option value="/images/send-zaps.gif">⚡ Send Zaps</option>
-                    <option value="/images/gm-nostr.gif">🌅 GM Nostr</option>
-                    <option value="custom">🔗 Custom URL</option>
+                    <option value="">No Background (Default)</option>
+                    <option value="/images/adopting.webp">Adopting Bitcoin</option>
+                    <option value="/images/sky.jpg">Sky</option>
+                    <option value="/images/lightning.gif">Lightning</option>
+                    <option value="/images/bitcoin-rocket.gif">Bitcoin Rocket</option>
+                    <option value="/images/bitcoin-astronaut.gif">Bitcoin Astronaut</option>
+                    <option value="/images/bitcoin-space.gif">Bitcoin Space</option>
+                    <option value="/images/bitcoin-sunset.gif">Bitcoin Sunset</option>
+                    <option value="/images/bitcoin-rotating.gif">Bitcoin Rotating</option>
+                    <option value="/images/nostr-ostriches.gif">Nostr Ostriches</option>
+                    <option value="/images/send-zaps.gif">Send Zaps</option>
+                    <option value="/images/gm-nostr.gif">GM Nostr</option>
+                    <option value="custom">Custom URL</option>
                   </select>
                   <div class="url-input-container" id="customUrlGroup" style="display: none;">
                     <input type="text" id="bgImageUrl" value="" placeholder="Enter image URL">
@@ -298,36 +301,27 @@
             </div>
           </div>
 
-          <!-- QR Code Section -->
+          <!-- Partner Logo Section -->
           <div class="style-section">
-            <h3 class="section-title">QR CODE EFFECTS</h3>
-            <div class="toggles-container">
-              <div class="style-option-group toggle-group">
-                <label class="toggle-label">
-                  <div class="toggle-switch">
-                    <input type="checkbox" id="qrInvertToggle" value="true">
-                    <span class="toggle-slider"></span>
+            <h3 class="section-title">PARTNER LOGO</h3>
+            <div class="style-option-group full-width">
+              <label for="partnerLogoSelect">Partner Logo</label>
+              <div class="partner-logo-controls">
+                <div class="preset-inputs">
+                  <select id="partnerLogoSelect" class="partner-logo-select">
+                    <option value="">None (Default)</option>
+                    <option value="https://adoptingbitcoin.org/images/AB-logo.svg">Adopting Bitcoin</option>
+                    <option value="https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg">Bitcoin Conference</option>
+                    <option value="custom">Custom URL</option>
+                  </select>
+                  <div class="url-input-container" id="customPartnerLogoGroup" style="display: none;">
+                    <input type="text" id="partnerLogoUrl" value="" placeholder="Enter logo URL">
+                    <button id="clearPartnerLogo" class="clear-button">Clear</button>
                   </div>
-                  <span>Invert QR Code</span>
-                </label>
-              </div>
-              <div class="style-option-group toggle-group">
-                <label class="toggle-label">
-                  <div class="toggle-switch">
-                    <input type="checkbox" id="qrScreenBlendToggle" value="true">
-                    <span class="toggle-slider"></span>
-                  </div>
-                  <span>Screen Blend Mode</span>
-                </label>
-              </div>
-              <div class="style-option-group toggle-group">
-                <label class="toggle-label">
-                  <div class="toggle-switch">
-                    <input type="checkbox" id="qrMultiplyBlendToggle">
-                    <span class="toggle-slider"></span>
-                  </div>
-                  <span>Multiply Blend Mode</span>
-                </label>
+                </div>
+                <div class="preset-preview-container">
+                  <img id="partnerLogoPreview" src="" alt="No partner logo" style="height: 30px; max-width: 100px; object-fit: contain;">
+                </div>
               </div>
             </div>
           </div>
@@ -366,31 +360,6 @@
             </div>
           </div>
 
-          <!-- Partner Logo Section -->
-          <div class="style-section">
-            <h3 class="section-title">PARTNER LOGO</h3>
-            <div class="style-option-group full-width">
-              <label for="partnerLogoSelect">Partner Logo</label>
-              <div class="partner-logo-controls">
-                <div class="preset-inputs">
-                  <select id="partnerLogoSelect" class="partner-logo-select">
-                    <option value="">🚫 None (Default)</option>
-                    <option value="https://adoptingbitcoin.org/images/AB-logo.svg">🪙 Adopting Bitcoin</option>
-                    <option value="https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg">⚡ Bitcoin Conference</option>
-                    <option value="custom">🔗 Custom URL</option>
-                  </select>
-                  <div class="url-input-container" id="customPartnerLogoGroup" style="display: none;">
-                    <input type="text" id="partnerLogoUrl" value="" placeholder="Enter logo URL">
-                    <button id="clearPartnerLogo" class="clear-button">Clear</button>
-                  </div>
-                </div>
-                <div class="preset-preview-container">
-                  <img id="partnerLogoPreview" src="" alt="No partner logo" style="height: 30px; max-width: 100px; object-fit: contain;">
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- Advanced Section -->
           <div class="style-section">
             <h3 class="section-title">ADVANCED</h3>
@@ -399,6 +368,40 @@
               <div class="slider-container">
                 <input type="range" id="fontSizeSlider" min="0.8" max="1.5" step="0.1" value="1.0">
                 <span id="fontSizeValue">100%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- QR Code Section -->
+          <div class="style-section">
+            <h3 class="section-title">QR CODE EFFECTS</h3>
+            <div class="toggles-container">
+              <div class="style-option-group toggle-group">
+                <label class="toggle-label">
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="qrInvertToggle" value="true">
+                    <span class="toggle-slider"></span>
+                  </div>
+                  <span>Invert QR Code</span>
+                </label>
+              </div>
+              <div class="style-option-group toggle-group">
+                <label class="toggle-label">
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="qrScreenBlendToggle" value="true">
+                    <span class="toggle-slider"></span>
+                  </div>
+                  <span>Screen Blend Mode</span>
+                </label>
+              </div>
+              <div class="style-option-group toggle-group">
+                <label class="toggle-label">
+                  <div class="toggle-switch">
+                    <input type="checkbox" id="qrMultiplyBlendToggle">
+                    <span class="toggle-slider"></span>
+                  </div>
+                  <span>Multiply Blend Mode</span>
+                </label>
               </div>
             </div>
           </div>
