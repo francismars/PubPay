@@ -6078,12 +6078,6 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     padding: 10px 0;
 }
 
-.live-event-title {
-    font-size: 1.5em;
-    font-weight: bold;
-    margin-bottom: 10px;
-    color: var(--text-color);
-}
 
 .live-event-summary {
     font-size: 1em;
@@ -6247,10 +6241,6 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 
 /* Responsive adjustments for live events */
 @media (max-width: 768px) {
-    .live-event-title {
-        font-size: 1.2em;
-    }
-    
     .participants-list {
         max-height: 100px;
     }
