@@ -352,7 +352,15 @@ async function sendAnonymousZap(eventId, amount, comment) {
     console.log(`Creating zap request for event ${eventId} with amount ${amount} sats`);
     
     // Use the same approach as frontend - makeZapRequest from nip57
-    const { makeZapRequest } = require('nostr-tools');
+    let makeZapRequest;
+    try {
+      const nip57 = require('nostr-tools/nip57');
+      makeZapRequest = nip57.makeZapRequest;
+    } catch (error) {
+      // Fallback to main export
+      const nostrTools = require('nostr-tools');
+      makeZapRequest = nostrTools.makeZapRequest;
+    }
     
     const zapRequest = makeZapRequest({
       profile: authorPubkey,
