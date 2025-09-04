@@ -1518,11 +1518,8 @@ function drawKind0(kind0){
         const json9735 = sortedZaps[i];
         const zapDiv = document.createElement("div");
         
-        // Add podium class if podium is enabled and this is in top 3
+        // Podium classes will be applied after DOM organization
         let zapClass = "zap";
-        if (document.body.classList.contains('podium-enabled') && i < 3) {
-            zapClass += ` podium-${i + 1}`;
-        }
         zapDiv.className = zapClass;
 
         if(!json9735.picture) json9735.picture = ""
@@ -1558,6 +1555,27 @@ function drawKind0(kind0){
           setTimeout(() => {
               organizeZapsHierarchically();
           }, 10);
+      } else {
+          // Apply podium classes for list layout
+          if (document.body.classList.contains('podium-enabled')) {
+              const zaps = Array.from(zapsContainer.querySelectorAll('.zap'));
+              const sortedZaps = [...zaps].sort((a, b) => {
+                  const amountA = parseInt(a.querySelector('.zapperAmountSats')?.textContent?.replace(/[^\d]/g, '') || '0');
+                  const amountB = parseInt(b.querySelector('.zapperAmountSats')?.textContent?.replace(/[^\d]/g, '') || '0');
+                  return amountB - amountA;
+              });
+              
+              console.log('Applying podium classes in list layout. Top 3 zaps:', sortedZaps.slice(0, 3).map(zap => ({
+                  amount: zap.querySelector('.zapperAmountSats')?.textContent,
+                  name: zap.querySelector('.zapperName')?.textContent
+              })));
+              
+              for (let i = 0; i < Math.min(3, sortedZaps.length); i++) {
+                  const zap = sortedZaps[i];
+                  zap.classList.add(`podium-${i + 1}`);
+                  console.log(`Applied podium-${i + 1} to zap with amount:`, zap.querySelector('.zapperAmountSats')?.textContent);
+              }
+          }
       }
   }
 
@@ -2495,14 +2513,36 @@ function organizeZapsHierarchically() {
     const zaps = Array.from(zapsList.querySelectorAll('.zap'));
     if (zaps.length === 0) return;
     
-    // Clear existing row classes
+    // Clear existing row classes and podium classes
     zaps.forEach(zap => {
         zap.className = zap.className.replace(/row-\d+/g, '');
+        zap.className = zap.className.replace(/podium-\d+/g, '');
+        zap.className = zap.className.replace(/podium-global-\d+/g, '');
     });
     
     // Remove existing row containers
     const existingRows = zapsList.querySelectorAll('.zap-row');
     existingRows.forEach(row => row.remove());
+    
+    // Sort zaps by amount (highest first) for podium application
+    const sortedZaps = [...zaps].sort((a, b) => {
+        const amountA = parseInt(a.querySelector('.zapperAmountSats')?.textContent?.replace(/[^\d]/g, '') || '0');
+        const amountB = parseInt(b.querySelector('.zapperAmountSats')?.textContent?.replace(/[^\d]/g, '') || '0');
+        return amountB - amountA;
+    });
+    
+    // Apply podium classes to top 3 zaps
+    if (document.body.classList.contains('podium-enabled')) {
+        console.log('Applying podium classes in grid layout. Top 3 zaps:', sortedZaps.slice(0, 3).map(zap => ({
+            amount: zap.querySelector('.zapperAmountSats')?.textContent,
+            name: zap.querySelector('.zapperName')?.textContent
+        })));
+        for (let i = 0; i < Math.min(3, sortedZaps.length); i++) {
+            const zap = sortedZaps[i];
+            zap.classList.add(`podium-global-${i + 1}`);
+            console.log(`Applied podium-global-${i + 1} to zap with amount:`, zap.querySelector('.zapperAmountSats')?.textContent);
+        }
+    }
     
     let currentIndex = 0;
     let rowNumber = 1;
@@ -2552,12 +2592,28 @@ function cleanupHierarchicalOrganization() {
         // Move all zaps from this row back to the main container
         const zapsInRow = Array.from(row.children);
         zapsInRow.forEach(zap => {
-            // Remove row classes from individual zaps
+            // Remove row classes and global podium classes from individual zaps
             zap.className = zap.className.replace(/row-\d+/g, '');
+            zap.className = zap.className.replace(/podium-global-\d+/g, '');
             // Move zap back to main container
             zapsList.appendChild(zap);
         });
         // Remove the empty row container
         row.remove();
     });
+    
+    // Re-apply regular podium classes for list layout
+    if (document.body.classList.contains('podium-enabled')) {
+        const zaps = Array.from(zapsList.querySelectorAll('.zap'));
+        const sortedZaps = [...zaps].sort((a, b) => {
+            const amountA = parseInt(a.querySelector('.zapperAmountSats')?.textContent?.replace(/[^\d]/g, '') || '0');
+            const amountB = parseInt(b.querySelector('.zapperAmountSats')?.textContent?.replace(/[^\d]/g, '') || '0');
+            return amountB - amountA;
+        });
+        
+        for (let i = 0; i < Math.min(3, sortedZaps.length); i++) {
+            const zap = sortedZaps[i];
+            zap.classList.add(`podium-${i + 1}`);
+        }
+    }
 }
