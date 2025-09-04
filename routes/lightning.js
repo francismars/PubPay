@@ -288,9 +288,13 @@ router.post('/webhook', async (req, res) => {
     
     console.log(`⚡ Processing Lightning payment: ${amount} sats for event ${eventId} with comment: "${comment}"`);
     
-    await sendAnonymousZap(eventId, amount, comment);
-    
-    console.log(`✅ Successfully published anonymous zap: ${amount} sats for event ${eventId}`);
+    try {
+      await sendAnonymousZap(eventId, amount, comment);
+      console.log(`✅ Successfully published anonymous zap: ${amount} sats for event ${eventId}`);
+    } catch (error) {
+      console.error(`❌ Failed to publish zap: ${error.message}`);
+      // Don't fail the webhook response, just log the error
+    }
     
     res.json({ 
       success: true,
@@ -337,38 +341,58 @@ async function sendAnonymousZap(eventId, amount, comment) {
     'wss://relay.nostr.band'
   ];
   
-  // Generate anonymous key pair
-  const privateKey = crypto.randomBytes(32);
-  const publicKey = crypto.createHash('sha256').update(privateKey).digest('hex');
-  
-  // For now, we'll use a dummy pubkey since we can't easily fetch the event
-  // In a real implementation, you'd need to store the author's pubkey when the event is first seen
-  const authorPubkey = '0000000000000000000000000000000000000000000000000000000000000000';
-  
-  console.log(`Creating zap request for event ${eventId} with amount ${amount} sats`);
-  
-  // Create zap request (kind 9734) - this is what gets published to relays
-  const zapRequest = {
-    kind: 9734,
-    created_at: Math.floor(Date.now() / 1000),
-    content: String(comment || ''),
-    tags: [
-      ['p', authorPubkey], // Author's pubkey
-      ['amount', amount.toString()],
-      ['relays', ...relays]
-    ]
-  };
-  
-  console.log('Zap request:', JSON.stringify(zapRequest, null, 2));
-  
-  // Sign and publish the zap request
-  const signedZapRequest = await signEvent(zapRequest, privateKey);
-  await pool.publish(relays, signedZapRequest);
-  
-  console.log(`Published anonymous zap request: ${amount} sats with comment: "${comment}"`);
-  
-  // Close the pool
-  pool.close(relays);
+  try {
+    // Generate anonymous key pair
+    const privateKey = crypto.randomBytes(32);
+    const publicKey = crypto.createHash('sha256').update(privateKey).digest('hex');
+    
+    // For now, we'll use a dummy pubkey since we can't easily fetch the event
+    // In a real implementation, you'd need to store the author's pubkey when the event is first seen
+    const authorPubkey = '0000000000000000000000000000000000000000000000000000000000000000';
+    
+    console.log(`Creating zap request for event ${eventId} with amount ${amount} sats`);
+    
+    // Create zap request (kind 9734) - this is what gets published to relays
+    const zapRequest = {
+      kind: 9734,
+      created_at: Math.floor(Date.now() / 1000),
+      content: String(comment || ''),
+      tags: [
+        ['p', authorPubkey], // Author's pubkey
+        ['amount', amount.toString()],
+        ['relays', ...relays]
+      ]
+    };
+    
+    console.log('Zap request:', JSON.stringify(zapRequest, null, 2));
+    
+    // Sign the zap request
+    const signedZapRequest = await signEvent(zapRequest, privateKey);
+    console.log('Signed zap request:', signedZapRequest);
+    
+    // Publish with timeout and error handling
+    const publishPromises = relays.map(relay => {
+      return pool.publish(relay, signedZapRequest).catch(error => {
+        console.log(`Failed to publish to ${relay}:`, error.message);
+        return null; // Don't fail the entire operation if one relay fails
+      });
+    });
+    
+    await Promise.allSettled(publishPromises);
+    
+    console.log(`Published anonymous zap request: ${amount} sats with comment: "${comment}"`);
+    
+  } catch (error) {
+    console.error('Error in sendAnonymousZap:', error.message);
+    throw error; // Re-throw to be caught by the calling function
+  } finally {
+    // Always close the pool
+    try {
+      pool.close(relays);
+    } catch (closeError) {
+      console.log('Error closing pool:', closeError.message);
+    }
+  }
 }
 
 // Proper Nostr event signing
