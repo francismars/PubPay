@@ -896,7 +896,7 @@ input:focus::placeholder {
 }
 
 .live #noteContent {
-  font-size: 1.8vw;
+  font-size: max(1.8vw, 16px);
   font-weight: 400;
   height: 32.5vw;
   min-height: 5vw;
@@ -1043,39 +1043,39 @@ input:focus::placeholder {
 }
 
 .live .zap:nth-child(1) .zapperName {
-  font-size: 3.2vw;
+  font-size: max(3.2vw, 24px);
 }
 
 .live .zap:nth-child(2) .zapperName {
-  font-size: 2.6vw;
+  font-size: max(2.6vw, 20px);
 }
 
 .live .zap:nth-child(3) .zapperName {
-  font-size: 2.0vw;
+  font-size: max(2.0vw, 18px);
 }
 
 .live .zap:nth-child(1) .zapperMessage {
-  font-size: 2.8vw;
+  font-size: max(2.8vw, 20px);
 }
 
 .live .zap:nth-child(2) .zapperMessage {
-  font-size: 2.2vw;
+  font-size: max(2.2vw, 18px);
 }
 
 .live .zap:nth-child(3) .zapperMessage {
-  font-size: 1.6vw;
+  font-size: max(1.6vw, 16px);
 }
 
 .live .zap:nth-child(1) .zapperAmountSats {
-  font-size: 3.0vw;
+  font-size: max(3.0vw, 22px);
 }
 
 .live .zap:nth-child(2) .zapperAmountSats {
-  font-size: 2.4vw;
+  font-size: max(2.4vw, 18px);
 }
 
 .live .zap:nth-child(3) .zapperAmountSats {
-  font-size: 1.8vw;
+  font-size: max(1.8vw, 16px);
 }
 
 /* Responsive max-width for zapperName and zapperMessage */
@@ -2236,7 +2236,7 @@ body.style-panel-open .main-layout {
 }
 
 .qr-instructions {
-    font-size: 1vw;
+    font-size: max(1vw, 12px);
     color: #ccc;
     font-weight: 500;
 }
@@ -2249,17 +2249,27 @@ body.style-panel-open .main-layout {
 }
 
 .author-image {
-    width: 4vw;
-    height: 4vw;
+    width: max(4vw, 40px);
+    height: max(4vw, 40px);
+    min-width: 30px;
+    min-height: 30px;
     border-radius: 50%;
     margin-right: 15px;
     object-fit: cover;
 }
 
+#partnerLogo {
+    margin-right: 10px;
+}
+
 .author-name {
-    font-size: 1.4vw;
+    font-size: max(1.4vw, 16px);
     font-weight: 600;
     color: #fff;
+}
+
+.author-info .author-name {
+    font-size: max(1.4vw, 16px);
 }
 
 /* Note Content Section */
@@ -2280,7 +2290,7 @@ body.style-panel-open .main-layout {
 }
 
 .note-content {
-    font-size: 1.2vw;
+    font-size: max(1.2vw, 14px);
     line-height: 1.6;
     color: #e0e0e0;
     word-wrap: break-word;
@@ -2361,18 +2371,18 @@ body.style-panel-open .main-layout {
 }
 
 .total-label {
-    font-size: 1.2vw;
+    font-size: max(1.2vw, 14px);
     color: #ccc;
 }
 
 .total-amount {
-    font-size: 1.8vw;
+    font-size: max(1.8vw, 18px);
     font-weight: bold;
     color: #00ff88;
 }
 
 .total-sats {
-    font-size: 1vw;
+    font-size: max(1vw, 12px);
     color: #ccc;
 }
 
@@ -2656,7 +2666,7 @@ body.style-panel-open .style-toggle-btn {
 }
 
 .zapperName {
-    font-size: 1vw;
+    font-size: max(1vw, 14px);
     font-weight: 600;
     color: var(--text-color);
     overflow: hidden;
@@ -2667,7 +2677,7 @@ body.style-panel-open .style-toggle-btn {
 }
 
 .zapperMessage {
-    font-size: 0.9vw;
+    font-size: max(0.9vw, 12px);
     font-weight: 300;
     color: var(--text-color);
     opacity: 0.8;
@@ -2692,7 +2702,7 @@ body.style-panel-open .style-toggle-btn {
 }
 
 .zapperAmountSats {
-    font-size: 1.2vw;
+    font-size: max(1.2vw, 16px);
     font-weight: 700;
     color: var(--text-color);
     line-height: 1.2;
@@ -2700,7 +2710,7 @@ body.style-panel-open .style-toggle-btn {
 }
 
 .zapperAmountLabel {
-    font-size: 1.0vw;
+    font-size: max(1.0vw, 12px);
     font-weight: 500;
     color: var(--text-color);
     line-height: 1.2;
@@ -2855,7 +2865,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     }
     
     .note-content {
-        font-size: 1.1vw;
+        font-size: max(1.1vw, 13px);
         line-height: 1.5;
     }
     
@@ -2866,7 +2876,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 
 @media (max-width: 900px) {
     .note-content {
-        font-size: 1.0vw;
+        font-size: max(1.0vw, 12px);
         line-height: 1.4;
     }
     
@@ -2882,7 +2892,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     }
     
     .note-content {
-        font-size: 1.1vw;
+        font-size: max(1.1vw, 13px);
         line-height: 1.5;
     }
 }
@@ -2893,7 +2903,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     }
     
     .note-content {
-        font-size: 1.0vw;
+        font-size: max(1.0vw, 12px);
         line-height: 1.4;
     }
 }
@@ -2966,8 +2976,8 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     }
     
     .author-image {
-        width: 3vw;
-        height: 3vw;
+        width: max(3vw, 30px);
+        height: max(3vw, 30px);
     }
     
     .qr-code {
@@ -3859,16 +3869,16 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 @media (max-width: 665px) {
     .note-content.loading .loading-text,
     .zaps-list.loading .loading-text {
-        font-size: 1.2vw;
-        margin-top: 40px;
+        font-size: max(1.2vw, 16px);
+        margin-top: 0;
     }
 }
 
 @media (max-width: 480px) {
     .note-content.loading .loading-text,
     .zaps-list.loading .loading-text {
-        font-size: 1.0vw;
-        margin-top: 35px;
+        font-size: max(1.0vw, 14px);
+        margin-top: 0;
     }
 }
 
@@ -4007,7 +4017,7 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
 
 /* Section Labels */
 .section-label {
-    font-size: 1.2vw;
+    font-size: max(1.2vw, 14px);
     font-weight: 600;
     color: inherit;
     margin: 0 0 15px 0;
@@ -5087,4 +5097,29 @@ body.podium-enabled .zap:nth-child(3) .zapperAmountSats {
     margin: 0;
     padding: 0;
     white-space: nowrap;
+}
+
+@media (max-width: 665px) {
+    .main-layout .left-side, .live .left-side {
+        min-height: 50vh;
+    }
+    
+    .main-layout .note-section, .live .note-section {
+        margin-bottom: 0px;
+    }
+    
+    .main-layout .zaps-container, .live .zaps-container {
+        padding-bottom: 30px;
+    }
+    
+    body.flex-direction-invert .main-layout {
+        flex-direction: column-reverse;
+    }
+    
+    body.flex-direction-invert .main-layout .right-side,
+    body.flex-direction-invert .live .right-side {
+        height: auto;
+        min-height: 50vh;
+        overflow-y: auto;
+    }
 }
