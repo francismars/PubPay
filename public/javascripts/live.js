@@ -342,8 +342,14 @@ function applyStylesFromURL() {
         const invert = params.get('qrInvert') === 'true';
         const qrInvertToggle = document.getElementById('qrInvertToggle');
         if (qrInvertToggle) qrInvertToggle.checked = invert;
-        const qrCode = document.getElementById('qrCode');
-        if (qrCode) qrCode.style.filter = invert ? 'invert(1)' : 'none';
+        const qrCodes = [
+            document.getElementById('qrCode'),
+            document.getElementById('qrCodeNevent'),
+            document.getElementById('qrCodeNote')
+        ];
+        qrCodes.forEach(qrCode => {
+            if (qrCode) qrCode.style.filter = invert ? 'invert(1)' : 'none';
+        });
     }
     
     // Apply QR code blend modes
@@ -1403,27 +1409,68 @@ async function drawKind1(kind1){
     // Font sizes are now controlled by CSS using vw units
     // No JavaScript font size re-initialization needed
     
-    let qrcodeContainer = document.getElementById("qrCode");
-    qrcodeContainer.innerHTML = "";
-    new QRious({
-        element: qrcodeContainer,
-        size: Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7), // Much bigger for far-away scanning
-        value: "https://njump.me/"+NostrTools.nip19.noteEncode(kind1.id)
+    // Generate multiple QR code formats
+    const noteId = kind1.id;
+    const neventId = NostrTools.nip19.neventEncode({ id: noteId, relays: [] });
+    const note1Id = NostrTools.nip19.noteEncode(noteId);
+    const njumpUrl = "https://njump.me/" + note1Id;
+    const nostrNevent = "nostr:" + neventId;
+    const nostrNote = "nostr:" + note1Id;
+    
+    const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
+    
+    // Generate QR codes for all formats
+    const qrcodeContainers = [
+        { element: document.getElementById("qrCode"), value: njumpUrl, link: document.getElementById("qrcodeLinkNostr"), preview: document.getElementById("qrDataPreview1") },
+        { element: document.getElementById("qrCodeNevent"), value: nostrNevent, link: document.getElementById("qrcodeNeventLink"), preview: document.getElementById("qrDataPreview2") },
+        { element: document.getElementById("qrCodeNote"), value: nostrNote, link: document.getElementById("qrcodeNoteLink"), preview: document.getElementById("qrDataPreview3") }
+    ];
+    
+    qrcodeContainers.forEach(({ element, value, link, preview }) => {
+        if (element) {
+            element.innerHTML = "";
+            new QRious({
+                element: element,
+                size: qrSize,
+                value: value
+            });
+            
+            // Set link href
+            if (link) link.href = value;
+            
+            // Set data preview (first 10 characters, strip protocols)
+            if (preview) {
+                let cleanValue = value;
+                if (value.startsWith('https://')) {
+                    cleanValue = value.substring(8); // Remove 'https://'
+                } else if (value.startsWith('nostr:')) {
+                    cleanValue = value.substring(6); // Remove 'nostr:'
+                }
+                const previewText = cleanValue.length > 10 ? cleanValue.substring(0, 10) + '...' : cleanValue;
+                preview.textContent = previewText;
+            }
+        }
     });
     
-    // Apply current blend mode settings to the newly created QR code
-    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle');
-    const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
-    
-    if (qrScreenBlendToggle.checked) {
-        qrcodeContainer.style.mixBlendMode = 'screen';
-    } else if (qrMultiplyBlendToggle.checked) {
-        qrcodeContainer.style.mixBlendMode = 'multiply';
-    } else {
-        qrcodeContainer.style.mixBlendMode = 'normal';
+    // Initialize swiper if not already initialized
+    if (!window.qrSwiper) {
+        window.qrSwiper = new Swiper('.qr-swiper', {
+            slidesPerView: 1,
+            spaceBetween: 0,
+            pagination: {
+                el: '.swiper-pagination',
+                clickable: true,
+                dynamicBullets: false
+            },
+            loop: true,
+            autoplay: {
+                delay: 3000,
+                disableOnInteraction: false,
+                pauseOnMouseEnter: true
+            },
+            autoHeight: true
+        });
     }
-    
-    document.getElementById("qrcodeLinkNostr").href = "https://njump.me/"+NostrTools.nip19.noteEncode(kind1.id)
 }
 
 function drawKind0(kind0){
@@ -1684,19 +1731,18 @@ function updateBackgroundImage(url) {
 function updateBlendMode() {
     const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle');
     const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
-    const qrCodeContainer = document.getElementById('qrCode');
     
     if (qrScreenBlendToggle.checked) {
-        qrCodeContainer.style.mixBlendMode = 'screen';
         qrMultiplyBlendToggle.checked = false;
         document.body.classList.add('qr-blend-active');
+        document.body.classList.remove('qr-multiply-active');
     } else if (qrMultiplyBlendToggle.checked) {
-        qrCodeContainer.style.mixBlendMode = 'multiply';
         qrScreenBlendToggle.checked = false;
         document.body.classList.add('qr-blend-active');
+        document.body.classList.add('qr-multiply-active');
     } else {
-        qrCodeContainer.style.mixBlendMode = 'normal';
         document.body.classList.remove('qr-blend-active');
+        document.body.classList.remove('qr-multiply-active');
     }
     updateStyleURL();
 }
@@ -1998,11 +2044,17 @@ function applyAllStyles() {
     // No JavaScript font scaling needed
     
     // Apply QR code effects
-    const qrCodeContainer = document.getElementById('qrCode');
-    if (qrCodeContainer) {
-        qrCodeContainer.style.filter = document.getElementById('qrInvertToggle').checked ? 'invert(1)' : 'none';
-        updateBlendMode();
-    }
+    const qrCodeContainers = [
+        document.getElementById('qrCode'),
+        document.getElementById('qrCodeNevent'),
+        document.getElementById('qrCodeNote')
+    ];
+    qrCodeContainers.forEach(qrCodeContainer => {
+        if (qrCodeContainer) {
+            qrCodeContainer.style.filter = document.getElementById('qrInvertToggle').checked ? 'invert(1)' : 'none';
+        }
+    });
+    updateBlendMode();
     
     // Apply layout effects
     document.body.classList.toggle('flex-direction-invert', document.getElementById('layoutInvertToggle').checked);
@@ -2331,7 +2383,14 @@ function setupStyleOptions() {
     const hideZapperContentToggle = document.getElementById('hideZapperContentToggle');
     
     qrInvertToggle.addEventListener('change', function(e) {
-        qrCode.style.filter = e.target.checked ? 'invert(1)' : 'none';
+        const qrCodes = [
+            document.getElementById('qrCode'),
+            document.getElementById('qrCodeNevent'),
+            document.getElementById('qrCodeNote')
+        ];
+        qrCodes.forEach(qrCode => {
+            if (qrCode) qrCode.style.filter = e.target.checked ? 'invert(1)' : 'none';
+        });
         updateStyleURL();
     });
     

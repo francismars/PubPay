@@ -39,7 +39,9 @@
     <script src="/javascripts/qrious.min.js"></script>
     <script src="/javascripts/bolt11.min.js"></script>
     <script src="/javascripts/nostrtools.min.js"></script>
-    <!-- Swiper.js JS -->
+    
+    <!-- Swiper.js for QR code slideshow -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   </head>
   <body class="live">
@@ -176,9 +178,30 @@
 
           <!-- QR Code Section -->
           <div class="qr-section">
-            <a href="" target="_blank" id="qrcodeLinkNostr">
-              <img id="qrCode" class="qr-code">
-            </a>
+            <!-- Swiper for QR Code slideshow -->
+            <div class="swiper qr-swiper">
+              <div class="swiper-wrapper">
+                <div class="swiper-slide">
+                  <a href="" target="_blank" id="qrcodeLinkNostr">
+                    <img id="qrCode" class="qr-code">
+                  </a>
+                  <div class="qr-slide-label">Web Link <span class="qr-data-preview" id="qrDataPreview1"></span></div>
+                </div>
+                <div class="swiper-slide">
+                  <a href="" target="_blank" id="qrcodeNeventLink">
+                    <img id="qrCodeNevent" class="qr-code">
+                  </a>
+                  <div class="qr-slide-label">Nostr Event <span class="qr-data-preview" id="qrDataPreview2"></span></div>
+                </div>
+                <div class="swiper-slide">
+                  <a href="" target="_blank" id="qrcodeNoteLink">
+                    <img id="qrCodeNote" class="qr-code">
+                  </a>
+                  <div class="qr-slide-label">Note ID <span class="qr-data-preview" id="qrDataPreview3"></span></div>
+                </div>
+              </div>
+              <div class="swiper-pagination"></div>
+            </div>
             <div class="qr-instructions">
               Scan with camera app to open post
             </div>
