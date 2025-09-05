@@ -2312,6 +2312,24 @@ function displayLiveEvent(liveEvent) {
     
     // Update the note content area with live event info
     noteContent.innerHTML = `
+        ${streaming ? `
+            <div class="live-event-video">
+                <div id="live-video-player" class="video-player-container">
+                    <video id="live-video" controls autoplay muted playsinline class="live-video">
+                        <source src="${streaming}" type="application/x-mpegURL">
+                        <source src="${streaming}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-error" id="video-error" style="display: none;">
+                        <p>Unable to load video stream</p>
+                        <a href="${streaming}" target="_blank" class="streaming-link">
+                            📺 Watch in External Player
+                        </a>
+                    </div>
+                </div>
+            </div>
+        ` : ''}
+        
         <div class="live-event-content">
             ${summary ? `<p class="live-event-summary">${summary}</p>` : ''}
             
@@ -2345,24 +2363,6 @@ function displayLiveEvent(liveEvent) {
                     </div>
                 ` : ''}
             </div>
-            
-            ${streaming ? `
-                <div class="live-event-video">
-                    <div id="live-video-player" class="video-player-container">
-                        <video id="live-video" controls autoplay muted playsinline class="live-video">
-                            <source src="${streaming}" type="application/x-mpegURL">
-                            <source src="${streaming}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                        <div class="video-error" id="video-error" style="display: none;">
-                            <p>Unable to load video stream</p>
-                            <a href="${streaming}" target="_blank" class="streaming-link">
-                                📺 Watch in External Player
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            ` : ''}
             
             ${recording ? `
                 <div class="live-event-actions">
