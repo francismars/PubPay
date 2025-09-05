@@ -6532,3 +6532,25 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
         margin: 10px 0;
     }
 }
+
+/* ===== EXAMPLE ITEM STYLES ===== */
+
+.live-event-example a {
+    color: #ff4757 !important;
+    border-left: 3px solid #ff4757;
+    padding-left: 8px;
+}
+
+.live-event-example a:hover {
+    color: #ff3838 !important;
+}
+
+.profile-example a {
+    color: #5352ed !important;
+    border-left: 3px solid #5352ed;
+    padding-left: 8px;
+}
+
+.profile-example a:hover {
+    color: #3742fa !important;
+}
