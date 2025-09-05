@@ -6577,3 +6577,15 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     opacity: 0.8;
     margin-left: 4px;
 }
+
+/* Make zap authors larger in activity column to differentiate from chat */
+.live-event-zap .zap-author-img {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50%;
+}
+
+.live-event-zap .zap-author-name {
+    font-size: 1.1em !important;
+    font-weight: 600 !important;
+}
