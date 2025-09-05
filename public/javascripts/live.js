@@ -2855,6 +2855,26 @@ let frontendSessionId = null;
 let lightningQRSlide = null;
 let lightningEnabled = false;
 
+// Load Lightning toggle state from localStorage
+function loadLightningToggleState() {
+  const savedState = localStorage.getItem('nostrpay-lightning-enabled');
+  if (savedState === 'true') {
+    lightningEnabled = true;
+    window.lightningEnabled = true;
+    console.log('Loaded Lightning toggle state from localStorage: enabled');
+  } else {
+    lightningEnabled = false;
+    window.lightningEnabled = false;
+    console.log('Loaded Lightning toggle state from localStorage: disabled');
+  }
+}
+
+// Save Lightning toggle state to localStorage
+function saveLightningToggleState() {
+  localStorage.setItem('nostrpay-lightning-enabled', lightningEnabled.toString());
+  console.log('Saved Lightning toggle state to localStorage:', lightningEnabled);
+}
+
 // Generate unique frontend session ID
 function generateFrontendSessionId() {
   return 'frontend_' + crypto.randomUUID();
@@ -2911,6 +2931,7 @@ async function enableLightningPayments() {
       
       // Update toggle state
       lightningEnabled = true;
+      saveLightningToggleState();
       updateLightningToggle();
       
       // Update swiper to include Lightning QR
@@ -2968,6 +2989,7 @@ async function disableLightningPayments() {
       
       // Update toggle state
       lightningEnabled = false;
+      saveLightningToggleState();
       updateLightningToggle();
       
       // Update swiper to remove Lightning QR
@@ -3134,7 +3156,8 @@ function updateLightningToggle() {
   
   if (lightningEnabled) {
     toggle.checked = true;
-    statusContainer.style.display = 'block';
+    // Don't show status container when toggling - only show when there are actual status messages
+    statusContainer.style.display = 'none';
   } else {
     toggle.checked = false;
     statusContainer.style.display = 'none';
@@ -3419,6 +3442,22 @@ function getCurrentEventId() {
 function initializeLightningToggle() {
   const toggle = document.getElementById('lightningToggle');
   if (toggle) {
+    // Load saved state from localStorage
+    loadLightningToggleState();
+    
+    // Update toggle appearance based on loaded state
+    updateLightningToggle();
+    
+    // If Lightning was previously enabled, try to re-enable it
+    if (lightningEnabled) {
+      console.log('Lightning was previously enabled, attempting to re-enable...');
+      // Use setTimeout to ensure DOM is fully loaded
+      setTimeout(() => {
+        enableLightningPayments();
+      }, 100);
+    }
+    
+    // Add event listener
     toggle.addEventListener('change', toggleLightningPayments);
   }
 }
