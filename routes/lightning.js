@@ -345,11 +345,38 @@ async function sendAnonymousZap(eventId, amount, comment) {
     // Generate anonymous key pair (same as frontend)
     const privateKey = crypto.randomBytes(32);
     
-    // For now, we'll use a dummy pubkey since we can't easily fetch the event
-    // In a real implementation, you'd need to store the author's pubkey when the event is first seen
-    const authorPubkey = '0000000000000000000000000000000000000000000000000000000000000000';
-    
     console.log(`Creating zap request for event ${eventId} with amount ${amount} sats`);
+    
+    // Decode note1... to get raw hex event ID
+    let rawEventId = eventId;
+    if (eventId.startsWith('note1')) {
+      try {
+        const { noteDecode } = require('nostr-tools/nip19');
+        rawEventId = noteDecode(eventId);
+        console.log(`Decoded note ID: ${eventId} -> ${rawEventId}`);
+      } catch (error) {
+        console.log('Could not decode note ID, using as-is:', error.message);
+        // If decoding fails, we'll use the note1... format and let makeZapRequest handle it
+      }
+    }
+    
+    // Fetch the event to get the author's pubkey
+    let authorPubkey = '0000000000000000000000000000000000000000000000000000000000000000';
+    try {
+      console.log(`Fetching event ${rawEventId} to get author's pubkey...`);
+      const event = await pool.get(relays, {
+        ids: [rawEventId]
+      });
+      
+      if (event && event.pubkey) {
+        authorPubkey = event.pubkey;
+        console.log(`Found event author pubkey: ${authorPubkey}`);
+      } else {
+        console.log(`Event not found or no pubkey, using dummy: ${rawEventId}`);
+      }
+    } catch (error) {
+      console.log(`Error fetching event: ${error.message}, using dummy pubkey`);
+    }
     
     // Use the same approach as frontend - makeZapRequest from nip57
     let makeZapRequest;
@@ -360,14 +387,6 @@ async function sendAnonymousZap(eventId, amount, comment) {
       // Fallback to main export
       const nostrTools = require('nostr-tools');
       makeZapRequest = nostrTools.makeZapRequest;
-    }
-    
-    // Decode note1... to get raw hex event ID
-    let rawEventId = eventId;
-    if (eventId.startsWith('note1')) {
-      const { noteDecode } = require('nostr-tools');
-      rawEventId = noteDecode(eventId);
-      console.log(`Decoded note ID: ${eventId} -> ${rawEventId}`);
     }
     
     const zapRequest = makeZapRequest({
