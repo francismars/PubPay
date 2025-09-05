@@ -117,6 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
         qrShowNote: true,
         layoutInvert: false,
         hideZapperContent: false,
+        showTopZappers: false,  // Default to hidden
         podium: false,
         zapGrid: false,
         // fontSize: 1.0, // Disabled - using CSS vw units
@@ -169,6 +170,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayTopZappers() {
         const topZappersBar = document.getElementById('top-zappers-bar');
         if (!topZappersBar || topZappers.length === 0) {
+            hideTopZappersBar();
+            return;
+        }
+
+        // Check if show top zappers is enabled
+        const showTopZappersToggle = document.getElementById('showTopZappersToggle');
+        if (!showTopZappersToggle || !showTopZappersToggle.checked) {
             hideTopZappersBar();
             return;
         }
@@ -227,6 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
             qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
+            showTopZappers: false,
             podium: false,
             zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
@@ -246,6 +255,7 @@ document.addEventListener('DOMContentLoaded', function() {
             qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
+            showTopZappers: false,
             podium: false,
             zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
@@ -265,6 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
             qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
+            showTopZappers: false,
             podium: true,
             zapGrid: false,
             // fontSize: 1.1, // Disabled - using CSS vw units
@@ -283,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
             qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
+            showTopZappers: false,
             podium: false,
             zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
@@ -301,6 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
             qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
+            showTopZappers: false,
             podium: false,
             zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
@@ -319,6 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
             qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
+            showTopZappers: false,
             podium: false,
             zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
@@ -337,6 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
             qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
+            showTopZappers: false,
             podium: false,
             zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
@@ -356,6 +371,7 @@ document.addEventListener('DOMContentLoaded', function() {
             qrShowNote: true,
             layoutInvert: false,
             hideZapperContent: false,
+            showTopZappers: false,
             podium: false,
             zapGrid: false,
             // fontSize: 1.0, // Disabled - using CSS vw units
@@ -377,6 +393,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle');
     const layoutInvertToggle = document.getElementById('layoutInvertToggle');
     const hideZapperContentToggle = document.getElementById('hideZapperContentToggle');
+    const showTopZappersToggle = document.getElementById('showTopZappersToggle');
     const podiumToggle = document.getElementById('podiumToggle');
     const zapGridToggle = document.getElementById('zapGridToggle');
     const fontSizeSlider = document.getElementById('fontSizeSlider');
@@ -445,6 +462,7 @@ function updateStyleURL() {
         qrShowNote: document.getElementById('qrShowNoteToggle')?.checked ?? true,
         layoutInvert: layoutInvertToggle.checked,
         hideZapperContent: hideZapperContentToggle.checked,
+        showTopZappers: showTopZappersToggle.checked,
         podium: podiumToggle.checked,
         zapGrid: zapGridToggle.checked,
         // fontSize: parseFloat(fontSizeSlider.value), // Disabled - using CSS vw units
@@ -563,6 +581,14 @@ function applyStylesFromURL() {
         const hideZapperContentToggle = document.getElementById('hideZapperContentToggle');
         if (hideZapperContentToggle) hideZapperContentToggle.checked = hide;
         document.body.classList.toggle('hide-zapper-content', hide);
+    }
+    
+    // Apply show top zappers
+    if (params.has('showTopZappers')) {
+        const show = params.get('showTopZappers') === 'true';
+        const showTopZappersToggle = document.getElementById('showTopZappersToggle');
+        if (showTopZappersToggle) showTopZappersToggle.checked = show;
+        document.body.classList.toggle('show-top-zappers', show);
     }
     
     // Apply podium
@@ -794,6 +820,13 @@ function applyStylesFromLocalStorage() {
             const hideZapperContentToggle = document.getElementById('hideZapperContentToggle');
             if (hideZapperContentToggle) hideZapperContentToggle.checked = styles.hideZapperContent;
             document.body.classList.toggle('hide-zapper-content', styles.hideZapperContent);
+        }
+        
+        // Apply show top zappers
+        if (styles.showTopZappers !== undefined) {
+            const showTopZappersToggle = document.getElementById('showTopZappersToggle');
+            if (showTopZappersToggle) showTopZappersToggle.checked = styles.showTopZappers;
+            document.body.classList.toggle('show-top-zappers', styles.showTopZappers);
         }
         
         // Apply podium
@@ -3270,6 +3303,7 @@ function applyPreset(presetName) {
     document.getElementById('qrMultiplyBlendToggle').checked = preset.qrMultiplyBlend;
     document.getElementById('layoutInvertToggle').checked = preset.layoutInvert;
     document.getElementById('hideZapperContentToggle').checked = preset.hideZapperContent;
+    document.getElementById('showTopZappersToggle').checked = preset.showTopZappers;
     document.getElementById('podiumToggle').checked = preset.podium;
     document.getElementById('zapGridToggle').checked = preset.zapGrid;
     // Font size slider disabled - using CSS vw units
@@ -3615,6 +3649,9 @@ function copyStyleUrl() {
             }
             if (styles.hideZapperContent !== DEFAULT_STYLES.hideZapperContent) {
                 params.set('hideZapperContent', styles.hideZapperContent);
+            }
+            if (styles.showTopZappers !== DEFAULT_STYLES.showTopZappers) {
+                params.set('showTopZappers', styles.showTopZappers);
             }
             if (styles.podium !== DEFAULT_STYLES.podium) {
                 params.set('podium', styles.podium);
@@ -4163,6 +4200,24 @@ function setupStyleOptions() {
         console.log('Hide zapper content toggle changed:', e.target.checked);
         document.body.classList.toggle('hide-zapper-content', e.target.checked);
         console.log('Body classes after toggle:', document.body.classList.toString());
+        updateStyleURL();
+    });
+    
+    // Add event listener for show top zappers toggle
+    showTopZappersToggle.addEventListener('change', function(e) {
+        console.log('Show top zappers toggle changed:', e.target.checked);
+        document.body.classList.toggle('show-top-zappers', e.target.checked);
+        
+        // Update top zappers bar visibility immediately
+        const topZappersBar = document.getElementById('top-zappers-bar');
+        if (topZappersBar) {
+            if (e.target.checked && topZappers.length > 0) {
+                displayTopZappers();
+            } else {
+                hideTopZappersBar();
+            }
+        }
+        
         updateStyleURL();
     });
     
