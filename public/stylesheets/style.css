@@ -2354,6 +2354,8 @@ body.style-panel-open .main-layout {
     border-radius: 50%;
     margin-right: 15px;
     object-fit: cover;
+    flex-shrink: 0; /* Prevent shrinking */
+    aspect-ratio: 1 / 1; /* Maintain square aspect ratio */
 }
 
 #partnerLogo {
@@ -3926,6 +3928,8 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     .author-image {
         width: max(3vw, 30px);
         height: max(3vw, 30px);
+        flex-shrink: 0; /* Prevent shrinking */
+        aspect-ratio: 1 / 1; /* Maintain square aspect ratio */
     }
     
     .qr-code {
@@ -4912,6 +4916,8 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     margin: 0 20px 10px 0;
     border: 3px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    flex-shrink: 0; /* Prevent shrinking */
+    aspect-ratio: 1 / 1; /* Maintain square aspect ratio */
 }
 
 .author-name {
@@ -6671,7 +6677,7 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 
 /* Grid toggle disabled state */
 .grid-toggle-disabled {
-    opacity: 0.4 !important;
+    opacity: 0.8 !important;
     pointer-events: none !important;
     cursor: not-allowed !important;
 }
