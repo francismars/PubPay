@@ -6348,3 +6348,72 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
         font-size: 0.8em;
     }
 }
+
+/* ===== LIVE EVENT TWO-COLUMN LAYOUT ===== */
+
+.live-event-two-column {
+    height: 100%;
+    overflow: hidden;
+}
+
+.live-event-columns {
+    display: flex;
+    height: 100%;
+    gap: 15px;
+}
+
+.live-event-zaps-only {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.live-event-activity {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.column-header {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: var(--text-color);
+    margin: 0 0 10px 0;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+    text-align: center;
+}
+
+.zaps-only-list,
+.activity-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    margin: 0;
+}
+
+/* Zap-only column styling */
+.zap-only-item {
+    margin-bottom: 10px;
+}
+
+/* Responsive adjustments for two-column layout */
+@media (max-width: 768px) {
+    .live-event-columns {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .live-event-zaps-only,
+    .live-event-activity {
+        flex: none;
+        height: 50%;
+    }
+    
+    .column-header {
+        font-size: 0.8em;
+        padding: 6px 0;
+    }
+}
