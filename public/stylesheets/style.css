@@ -2558,7 +2558,7 @@ body.qr-blend-active.qr-multiply-active .qr-swiper {
 .top-zappers-title {
     font-size: 1.1vw;
     font-weight: 600;
-    color: var(--text-color);
+    color: #000000;
     margin-bottom: 15px;
     text-align: center;
     opacity: 0.9;
@@ -2612,7 +2612,7 @@ body.qr-blend-active.qr-multiply-active .qr-swiper {
 .zapper-name {
     font-size: 0.9em;
     font-weight: 600;
-    color: var(--text-color);
+    color: #000000;
     margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
