@@ -224,13 +224,12 @@ async function createLNBitsLNURL(eventId, frontendSessionId) {
   });
   
   const requestBody = {
-    description: `Payment for event ${eventId}`,
+    description: `PubPay Live - Real-time Tip Tracker`,
     min: 1000, // 1 sat minimum
     max: 100000000, // 1M sats maximum
     comment_chars: 200,
     webhook_url: `${LNBITS_CONFIG.webhookUrl}?frontendSessionId=${frontendSessionId}&eventId=${eventId}`,
-    success_text: 'Payment received! Thank you for your support.',
-    success_url: `${LNBITS_CONFIG.baseUrl}/lightning/success/${frontendSessionId}`,
+    success_text: 'You just experienced the future of live payments!',
     currency: 'sat'
   };
   
