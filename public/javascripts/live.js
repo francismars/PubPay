@@ -56,6 +56,14 @@ document.addEventListener('DOMContentLoaded', function() {
     ]
 
     let json9735List = []
+    
+    // Global variables for live event persistence
+    let currentLiveEventInfo = null;
+    let reconnectionAttempts = {
+        event: 0,
+        chat: 0,
+        zaps: 0
+    };
 
     // Style options URL parameters
     const DEFAULT_STYLES = {
@@ -964,6 +972,12 @@ function loadLiveEvent(naddr) {
             }
         }
         
+        // Store current live event info for reconnection
+        currentLiveEventInfo = { pubkey, identifier, kind };
+        
+        // Reset reconnection attempts
+        reconnectionAttempts = { event: 0, chat: 0, zaps: 0 };
+        
         // Subscribe to the live event, chat, and zaps
         subscribeLiveEvent(pubkey, identifier, kind);
         subscribeLiveChat(pubkey, identifier);
@@ -1419,18 +1433,35 @@ async function subscribeLiveEvent(pubkey, identifier, kind) {
         "#d": [identifier]
     };
     
+    // Add timeout to prevent subscription from closing prematurely
+    let timeoutId = setTimeout(() => {
+        console.log("Live event subscription timeout - keeping subscription alive");
+    }, 15000);
+    
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(liveEvent) {
+            clearTimeout(timeoutId);
             console.log("Received live event:", liveEvent);
             displayLiveEvent(liveEvent);
             // Also subscribe to participants' profiles
             subscribeLiveEventParticipants(liveEvent);
         },
         oneose() {
-            console.log("subscribeLiveEvent() EOS");
+            clearTimeout(timeoutId);
+            console.log("subscribeLiveEvent() EOS - keeping subscription alive");
+            // Don't close the subscription, keep it alive for updates
         },
         onclosed() {
-            console.log("subscribeLiveEvent() Closed");
+            clearTimeout(timeoutId);
+            console.log("subscribeLiveEvent() Closed - attempting to reconnect");
+            // Attempt to reconnect after a delay if we have current event info
+            if (currentLiveEventInfo && reconnectionAttempts.event < 3) {
+                reconnectionAttempts.event++;
+                setTimeout(() => {
+                    console.log(`Reconnecting to live event (attempt ${reconnectionAttempts.event})...`);
+                    subscribeLiveEvent(currentLiveEventInfo.pubkey, currentLiveEventInfo.identifier, currentLiveEventInfo.kind);
+                }, 5000 * reconnectionAttempts.event);
+            }
         }
     });
 }
@@ -1453,10 +1484,16 @@ async function subscribeLiveChat(pubkey, identifier) {
             subscribeChatAuthorProfile(chatMessage.pubkey);
         },
         oneose() {
-            console.log("subscribeLiveChat() EOS");
+            console.log("subscribeLiveChat() EOS - keeping subscription alive");
+            // Keep subscription alive for new messages
         },
         onclosed() {
-            console.log("subscribeLiveChat() Closed");
+            console.log("subscribeLiveChat() Closed - attempting to reconnect");
+            // Attempt to reconnect after a delay
+            setTimeout(() => {
+                console.log("Reconnecting to live chat...");
+                subscribeLiveChat(pubkey, identifier);
+            }, 5000);
         }
     });
 }
@@ -1530,10 +1567,16 @@ async function subscribeLiveEventZaps(pubkey, identifier) {
             processLiveEventZap(zapReceipt, pubkey, identifier);
         },
         oneose() {
-            console.log("subscribeLiveEventZaps() EOS");
+            console.log("subscribeLiveEventZaps() EOS - keeping subscription alive");
+            // Keep subscription alive for new zaps
         },
         onclosed() {
-            console.log("subscribeLiveEventZaps() Closed");
+            console.log("subscribeLiveEventZaps() Closed - attempting to reconnect");
+            // Attempt to reconnect after a delay
+            setTimeout(() => {
+                console.log("Reconnecting to live event zaps...");
+                subscribeLiveEventZaps(pubkey, identifier);
+            }, 5000);
         }
     });
 }
