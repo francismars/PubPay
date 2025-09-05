@@ -1592,7 +1592,8 @@ function drawKind0(kind0){
       console.log(authorContent);
       //document.getElementById("authorName").innerText = authorContent.name;
       const displayName = JSON.parse(kind0.content).displayName
-      let kind0name = displayName ? JSON.parse(kind0.content).displayName : JSON.parse(kind0.content).display_name
+      const display_Name = JSON.parse(kind0.content).display_name
+      let kind0name = displayName ? JSON.parse(kind0.content).displayName : display_Name ? JSON.parse(kind0.content).display_name : JSON.parse(kind0.content).name 
       document.getElementById("authorName").innerText = kind0name;
       document.getElementById("authorNameProfileImg").src = authorContent.picture;
   }
