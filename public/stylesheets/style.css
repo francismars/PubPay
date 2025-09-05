@@ -5011,7 +5011,10 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 .main-layout .post-info,
 .main-layout .author-section,
 .main-layout .note-section,
-.main-layout .qr-section {
+.main-layout .qr-section,
+.main-layout .top-zappers-bar,
+.main-layout .top-zappers-title,
+.main-layout .zapper-name {
     color: var(--text-color) !important;
 }
 
