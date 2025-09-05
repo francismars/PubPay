@@ -870,6 +870,9 @@ function validateNoteId(noteId) {
 function loadNoteContent(noteId) {
     console.log("Loading note content for:", noteId);
     
+    // Re-enable grid toggle for regular notes (not live events)
+    enableGridToggle();
+    
     // Strip nostr: protocol prefix if present before validation
     const originalNoteId = noteId;
     noteId = stripNostrPrefix(noteId);
@@ -2287,6 +2290,37 @@ function setupLiveEventTwoColumnLayout() {
     
     // Add the two-column class to the container
     zapsContainer.classList.add('live-event-two-column');
+    
+    // Disable and grey out the grid toggle for live events
+    const zapGridToggle = document.getElementById('zapGridToggle');
+    if (zapGridToggle) {
+        zapGridToggle.disabled = true;
+        zapGridToggle.style.opacity = '0.4';
+        zapGridToggle.style.cursor = 'not-allowed';
+        
+        // Also style the label if it exists
+        const gridLabel = document.querySelector('label[for="zapGridToggle"]');
+        if (gridLabel) {
+            gridLabel.style.opacity = '0.4';
+            gridLabel.style.cursor = 'not-allowed';
+        }
+    }
+}
+
+function enableGridToggle() {
+    const zapGridToggle = document.getElementById('zapGridToggle');
+    if (zapGridToggle) {
+        zapGridToggle.disabled = false;
+        zapGridToggle.style.opacity = '';
+        zapGridToggle.style.cursor = '';
+        
+        // Also reset the label styling
+        const gridLabel = document.querySelector('label[for="zapGridToggle"]');
+        if (gridLabel) {
+            gridLabel.style.opacity = '';
+            gridLabel.style.cursor = '';
+        }
+    }
 }
 
 function displayLiveEvent(liveEvent) {
