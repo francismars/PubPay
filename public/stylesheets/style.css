@@ -6650,6 +6650,11 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     font-style: normal !important;
 }
 
+.activity-list .live-chat-message, 
+.activity-list .live-event-zap {
+    margin-bottom: 0px !important;
+}
+
 .live-chat-message *,
 .live-event-zap * {
     font-style: normal !important;
