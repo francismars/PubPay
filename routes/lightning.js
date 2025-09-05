@@ -280,16 +280,9 @@ async function createLNBitsLNURL(eventId, frontendSessionId) {
 router.post('/webhook', async (req, res) => {
   const paymentData = req.body;
   
-  console.log('💰 LNBits webhook received:', {
-    fullPayload: paymentData,
-    lnurlpId: paymentData.lnurlp_id,
-    paymentAmount: paymentData.amount,
-    paymentComment: paymentData.comment,
-    timestamp: new Date().toISOString()
-  });
-  
+ 
   // Try different possible field names for LNURL-pay ID
-  const lnurlpId = paymentData.lnurlp_id || paymentData.id || paymentData.link_id || paymentData.payment_id;
+  const lnurlpId = paymentData.lnurlp;
   
   if (!lnurlpId) {
     console.log('❌ No LNURL-pay ID found in webhook payload. Available fields:', Object.keys(paymentData));
