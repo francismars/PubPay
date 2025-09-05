@@ -1965,11 +1965,9 @@ function setupLiveEventTwoColumnLayout() {
     zapsContainer.innerHTML = `
         <div class="live-event-columns">
             <div class="live-event-zaps-only">
-                <h3 class="column-header">Zaps</h3>
                 <div id="zaps-only-list" class="zaps-only-list"></div>
             </div>
             <div class="live-event-activity">
-                <h3 class="column-header">Activity</h3>
                 <div id="activity-list" class="activity-list"></div>
             </div>
         </div>
