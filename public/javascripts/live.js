@@ -157,10 +157,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateTopZappers() {
-        // Sort zappers by total amount (highest first) and take top 3
+        // Sort zappers by total amount (highest first) and take top 5
         topZappers = Array.from(zapperTotals.values())
             .sort((a, b) => b.amount - a.amount)
-            .slice(0, 3);
+            .slice(0, 5);
         
         console.log('Updated top zappers:', topZappers);
         displayTopZappers();
@@ -177,7 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
         topZappersBar.style.display = 'block';
 
         // Update each zapper slot
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 5; i++) {
             const zapperElement = document.getElementById(`top-zapper-${i + 1}`);
             if (!zapperElement) continue;
 
