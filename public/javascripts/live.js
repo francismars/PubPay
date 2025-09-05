@@ -2295,14 +2295,17 @@ function setupLiveEventTwoColumnLayout() {
     const zapGridToggle = document.getElementById('zapGridToggle');
     if (zapGridToggle) {
         zapGridToggle.disabled = true;
-        zapGridToggle.style.opacity = '0.4';
-        zapGridToggle.style.cursor = 'not-allowed';
         
-        // Also style the label if it exists
-        const gridLabel = document.querySelector('label[for="zapGridToggle"]');
+        // Add disabled class to the parent toggle group
+        const toggleGroup = zapGridToggle.closest('.toggle-group');
+        if (toggleGroup) {
+            toggleGroup.classList.add('grid-toggle-disabled');
+        }
+        
+        // Also add to the label as fallback
+        const gridLabel = zapGridToggle.closest('label');
         if (gridLabel) {
-            gridLabel.style.opacity = '0.4';
-            gridLabel.style.cursor = 'not-allowed';
+            gridLabel.classList.add('grid-toggle-disabled');
         }
     }
 }
@@ -2311,14 +2314,17 @@ function enableGridToggle() {
     const zapGridToggle = document.getElementById('zapGridToggle');
     if (zapGridToggle) {
         zapGridToggle.disabled = false;
-        zapGridToggle.style.opacity = '';
-        zapGridToggle.style.cursor = '';
         
-        // Also reset the label styling
-        const gridLabel = document.querySelector('label[for="zapGridToggle"]');
+        // Remove disabled class from the parent toggle group
+        const toggleGroup = zapGridToggle.closest('.toggle-group');
+        if (toggleGroup) {
+            toggleGroup.classList.remove('grid-toggle-disabled');
+        }
+        
+        // Also remove from the label
+        const gridLabel = zapGridToggle.closest('label');
         if (gridLabel) {
-            gridLabel.style.opacity = '';
-            gridLabel.style.cursor = '';
+            gridLabel.classList.remove('grid-toggle-disabled');
         }
     }
 }
