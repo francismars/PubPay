@@ -347,41 +347,41 @@ async function sendAnonymousZap(eventId, amount, comment) {
     
     console.log(`Creating zap request for event ${eventId} with amount ${amount} sats`);
     
-    // Decode note1... to get raw hex event ID
+    // Decode note1... or nevent1... to get raw hex event ID
     let rawEventId = eventId;
-    if (eventId.startsWith('note1')) {
+    if (eventId.startsWith('note1') || eventId.startsWith('nevent1')) {
       try {
         const { decode } = require('nostr-tools/nip19');
         const decoded = decode(eventId);
         rawEventId = decoded.data;
-        console.log(`Decoded note ID: ${eventId} -> ${rawEventId}`);
+        console.log(`Decoded event ID: ${eventId} -> ${rawEventId}`);
       } catch (error) {
-        console.log('Could not decode note ID, using as-is:', error.message);
-        // If decoding fails, we'll use the note1... format and let makeZapRequest handle it
+        console.log('Could not decode event ID, using as-is:', error.message);
+        // If decoding fails, we'll use the original format and let makeZapRequest handle it
       }
     }
     
     // Fetch the event to get the author's pubkey
-    let authorPubkey = '0000000000000000000000000000000000000000000000000000000000000000';
+    let authorPubkey;
     try {
       console.log(`Fetching event ${rawEventId} to get author's pubkey...`);
       const event = await pool.get(relays, {
         ids: [rawEventId]
       });
       
-      if (event && event.pubkey) {
-        authorPubkey = event.pubkey;
-        console.log(`Found event author pubkey: ${authorPubkey}`);
-      } else {
-        console.log(`Event not found or no pubkey, using dummy: ${rawEventId}`);
+      if (!event || !event.pubkey) {
+        throw new Error(`Event not found or has no pubkey: ${rawEventId}`);
       }
+      
+      authorPubkey = event.pubkey;
+      console.log(`Found event author pubkey: ${authorPubkey}`);
     } catch (error) {
-      console.log(`Error fetching event: ${error.message}, using dummy pubkey`);
+      throw new Error(`Failed to fetch event: ${error.message}`);
     }
     
     // Fetch the author's profile to get Lightning address
-    let lightningAddress = null;
-    let lnurlCallback = null;
+    let lightningAddress;
+    let lnurlCallback;
     try {
       console.log(`Fetching profile for author ${authorPubkey}...`);
       const profile = await pool.get(relays, {
@@ -389,41 +389,43 @@ async function sendAnonymousZap(eventId, amount, comment) {
         authors: [authorPubkey]
       });
       
-      if (profile && profile.content) {
-        const profileData = JSON.parse(profile.content);
-        lightningAddress = profileData.lud16 || profileData.lud06;
-        console.log(`Found Lightning address: ${lightningAddress}`);
-        
-        if (lightningAddress) {
-          // Parse Lightning address to get LNURL discovery endpoint
-          const ludSplit = lightningAddress.split('@');
-          if (ludSplit.length === 2) {
-            const lnurlDiscoveryUrl = `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`;
-            console.log(`LNURL discovery URL: ${lnurlDiscoveryUrl}`);
-            
-            // Fetch LNURL discovery to get the callback URL
-            try {
-              const discoveryResponse = await fetch(lnurlDiscoveryUrl);
-              const discoveryData = await discoveryResponse.json();
-              
-              if (discoveryData.status === 'OK' && discoveryData.callback) {
-                lnurlCallback = discoveryData.callback;
-                console.log(`LNURL callback URL: ${lnurlCallback}`);
-                console.log(`LNURL supports Nostr: ${discoveryData.allowsNostr}`);
-                console.log(`Min sendable: ${discoveryData.minSendable}, Max sendable: ${discoveryData.maxSendable}`);
-              } else {
-                console.log(`LNURL discovery failed: ${discoveryData.reason || 'Unknown error'}`);
-              }
-            } catch (discoveryError) {
-              console.log(`Error fetching LNURL discovery: ${discoveryError.message}`);
-            }
-          }
-        }
-      } else {
-        console.log(`Profile not found for author ${authorPubkey}`);
+      if (!profile || !profile.content) {
+        throw new Error(`Profile not found for author ${authorPubkey}`);
       }
+      
+      const profileData = JSON.parse(profile.content);
+      lightningAddress = profileData.lud16 || profileData.lud06;
+      
+      if (!lightningAddress) {
+        throw new Error(`No Lightning address found in profile for author ${authorPubkey}. Author needs to set lud16 or lud06 field.`);
+      }
+      
+      console.log(`Found Lightning address: ${lightningAddress}`);
+      
+      // Parse Lightning address to get LNURL discovery endpoint
+      const ludSplit = lightningAddress.split('@');
+      if (ludSplit.length !== 2) {
+        throw new Error(`Invalid Lightning address format: ${lightningAddress}`);
+      }
+      
+      const lnurlDiscoveryUrl = `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`;
+      console.log(`LNURL discovery URL: ${lnurlDiscoveryUrl}`);
+      
+      // Fetch LNURL discovery to get the callback URL
+      const discoveryResponse = await fetch(lnurlDiscoveryUrl);
+      const discoveryData = await discoveryResponse.json();
+      
+      if (discoveryData.status !== 'OK' || !discoveryData.callback) {
+        throw new Error(`LNURL discovery failed: ${discoveryData.reason || 'Unknown error'}`);
+      }
+      
+      lnurlCallback = discoveryData.callback;
+      console.log(`LNURL callback URL: ${lnurlCallback}`);
+      console.log(`LNURL supports Nostr: ${discoveryData.allowsNostr}`);
+      console.log(`Min sendable: ${discoveryData.minSendable}, Max sendable: ${discoveryData.maxSendable}`);
+      
     } catch (error) {
-      console.log(`Error fetching profile: ${error.message}`);
+      throw new Error(`Failed to get Lightning address: ${error.message}`);
     }
     
     // Use the same approach as frontend - makeZapRequest from nip57
@@ -456,69 +458,56 @@ async function sendAnonymousZap(eventId, amount, comment) {
     // The LNURL server will validate it and return an invoice
     // Once paid, the server will publish the zap receipt (kind 9735) to relays
     
-    if (lnurlCallback) {
-      try {
-        console.log(`Sending zap request to LNURL callback: ${lnurlCallback}`);
-        
-        // Send zap request to LNURL callback
-        const zapRequestUrl = `${lnurlCallback}?nostr=${encodeURIComponent(JSON.stringify(signedZapRequest))}&amount=${amount}`;
-        
-        const response = await fetch(zapRequestUrl);
-        
-        // Check if response is JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          const textResponse = await response.text();
-          console.log(`LNURL callback returned non-JSON response (${response.status}):`, textResponse.substring(0, 200));
-          console.log(`This usually means the Lightning address doesn't exist or LNURL isn't configured`);
-          return;
-        }
-        
-        const responseData = await response.json();
-        
-        if (response.ok && responseData.pr) {
-          console.log(`Received Lightning invoice: ${responseData.pr}`);
-          console.log(`Zap request sent successfully to ${lnurlCallback}`);
-          
-          // Pay the invoice using LNBits API
-          try {
-            console.log('Paying Lightning invoice using LNBits...');
-            const paymentResponse = await fetch(`${LNBITS_CONFIG.baseUrl}/api/v1/payments`, {
-              method: 'POST',
-              headers: {
-                'X-Api-Key': LNBITS_CONFIG.apiKey,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                out: true,
-                bolt11: responseData.pr
-              })
-            });
-            
-            if (paymentResponse.ok) {
-              const paymentData = await paymentResponse.json();
-              console.log(`✅ Lightning invoice paid successfully!`);
-              console.log(`Payment details:`, paymentData);
-              console.log(`The recipient's Lightning service will now create and publish the zap receipt (kind 9735)`);
-              
-            } else {
-              const errorData = await paymentResponse.json();
-              console.log(`❌ Failed to pay invoice: ${errorData.detail || 'Unknown error'}`);
-            }
-          } catch (paymentError) {
-            console.log(`❌ Error paying invoice: ${paymentError.message}`);
-          }
-          
-        } else {
-          console.log(`LNURL callback error: ${responseData.reason || 'Unknown error'}`);
-        }
-      } catch (error) {
-        console.log(`Error sending zap request to LNURL callback: ${error.message}`);
+    try {
+      console.log(`Sending zap request to LNURL callback: ${lnurlCallback}`);
+      
+      // Send zap request to LNURL callback
+      const zapRequestUrl = `${lnurlCallback}?nostr=${encodeURIComponent(JSON.stringify(signedZapRequest))}&amount=${amount}`;
+      
+      const response = await fetch(zapRequestUrl);
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const textResponse = await response.text();
+        throw new Error(`LNURL callback returned non-JSON response (${response.status}): ${textResponse.substring(0, 200)}`);
       }
-    } else {
-      console.log('No Lightning address found for author, cannot send zap request');
-      console.log('Zap request created but not sent (no LNURL callback available)');
-      console.log('Note: The author needs to set a lud16 or lud06 field in their profile to receive zaps');
+      
+      const responseData = await response.json();
+      
+      if (!response.ok || !responseData.pr) {
+        throw new Error(`LNURL callback error: ${responseData.reason || 'Unknown error'}`);
+      }
+      
+      console.log(`Received Lightning invoice: ${responseData.pr}`);
+      console.log(`Zap request sent successfully to ${lnurlCallback}`);
+      
+      // Pay the invoice using LNBits API
+      console.log('Paying Lightning invoice using LNBits...');
+      const paymentResponse = await fetch(`${LNBITS_CONFIG.baseUrl}/api/v1/payments`, {
+        method: 'POST',
+        headers: {
+          'X-Api-Key': LNBITS_CONFIG.apiKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          out: true,
+          bolt11: responseData.pr
+        })
+      });
+      
+      if (!paymentResponse.ok) {
+        const errorData = await paymentResponse.json();
+        throw new Error(`Failed to pay invoice: ${errorData.detail || 'Unknown error'}`);
+      }
+      
+      const paymentData = await paymentResponse.json();
+      console.log(`✅ Lightning invoice paid successfully!`);
+      console.log(`Payment details:`, paymentData);
+      console.log(`The recipient's Lightning service will now create and publish the zap receipt (kind 9735)`);
+      
+    } catch (error) {
+      throw new Error(`Failed to send zap request: ${error.message}`);
     }
     
   } catch (error) {
