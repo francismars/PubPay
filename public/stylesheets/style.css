@@ -6409,3 +6409,63 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     }
     
 }
+
+/* ===== PROFILE STYLES ===== */
+
+.profile-content {
+    padding: 10px 0;
+}
+
+.profile-about {
+    font-size: 1em;
+    margin-bottom: 15px;
+    line-height: 1.4;
+    color: var(--text-color);
+}
+
+.profile-nip05 {
+    font-size: 0.9em;
+    color: #4ecdc4;
+    margin-bottom: 15px;
+}
+
+.profile-stats {
+    margin-top: 15px;
+}
+
+.profile-pubkey {
+    font-size: 0.8em;
+    color: var(--text-color);
+    opacity: 0.8;
+    word-break: break-all;
+}
+
+.profile-pubkey code {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.profile-note {
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+.note-timestamp {
+    font-size: 0.7em;
+    color: var(--text-color);
+    opacity: 0.6;
+    margin-bottom: 5px;
+}
+
+.note-content-text {
+    font-size: 0.9em;
+    line-height: 1.4;
+    color: var(--text-color);
+}

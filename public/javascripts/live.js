@@ -31,11 +31,11 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log("Stripped nostr: prefix, now:", nevent);
     }
 
-    // Decode nevent/naddr to preserve format in URL if present
+    // Decode nevent/naddr/nprofile to preserve format in URL if present
     if (nevent) {
         try {
             const decoded = NostrTools.nip19.decode(nevent);
-            if (decoded.type === 'nevent' || decoded.type === 'naddr') {
+            if (decoded.type === 'nevent' || decoded.type === 'naddr' || decoded.type === 'nprofile') {
                 // Preserve original format in URL
                 const newUrl = '/live/' + nevent;
                 window.history.replaceState({}, '', newUrl);
@@ -786,9 +786,9 @@ function validateNoteId(noteId) {
     // Trim whitespace
     noteId = noteId.trim();
     
-    // Check if it's a valid NIP-19 format (starts with note1, nevent1, or naddr1)
-    if (!noteId.startsWith('note1') && !noteId.startsWith('nevent1') && !noteId.startsWith('naddr1')) {
-        throw new Error('Invalid format. Please enter a valid nostr note ID (note1...), event ID (nevent1...), or addressable event (naddr1...)');
+    // Check if it's a valid NIP-19 format (starts with note1, nevent1, naddr1, or nprofile1)
+    if (!noteId.startsWith('note1') && !noteId.startsWith('nevent1') && !noteId.startsWith('naddr1') && !noteId.startsWith('nprofile1')) {
+        throw new Error('Invalid format. Please enter a valid nostr note ID (note1...), event ID (nevent1...), addressable event (naddr1...), or profile (nprofile1...)');
     }
     
     // Validate Bech32 format according to NIP-19
@@ -814,6 +814,11 @@ function validateNoteId(noteId) {
             // Validate it's a live event kind
             if (decoded.data.kind !== 30311) {
                 throw new Error('Only live events (kind 30311) are supported');
+            }
+        } else if (decoded.type === 'nprofile') {
+            // For nprofile1: should have pubkey field
+            if (!decoded.data || !decoded.data.pubkey) {
+                throw new Error('Invalid profile format');
             }
         } else {
             throw new Error('Unsupported identifier type');
@@ -990,6 +995,193 @@ function loadLiveEvent(naddr) {
     }
 }
 
+function loadProfile(nprofile) {
+    console.log("Loading profile for:", nprofile);
+    
+    // Strip nostr: protocol prefix if present before validation
+    const originalNprofile = nprofile;
+    nprofile = stripNostrPrefix(nprofile);
+    if (nprofile !== originalNprofile) {
+        console.log("Stripped nostr: prefix in loadProfile, now:", nprofile);
+    }
+    
+    // Validate the nprofile after stripping prefix
+    try {
+        validateNoteId(nprofile);
+    } catch (error) {
+        showLoadingError(error.message);
+        return;
+    }
+    
+    try {
+        const decoded = NostrTools.nip19.decode(nprofile);
+        console.log("Decoded profile:", decoded);
+        
+        if (decoded.type !== 'nprofile') {
+            throw new Error('Invalid profile identifier format.');
+        }
+        
+        const { pubkey } = decoded.data;
+        
+        // Show loading animations
+        const noteContent = document.querySelector('.note-content');
+        const zapsList = document.getElementById('zaps');
+        
+        if (noteContent) {
+            noteContent.classList.add('loading');
+            if (!noteContent.querySelector('.loading-text')) {
+                const loadingText = document.createElement('div');
+                loadingText.className = 'loading-text';
+                loadingText.textContent = 'Loading profile...';
+                noteContent.appendChild(loadingText);
+            }
+        }
+        
+        if (zapsList) {
+            zapsList.classList.add('loading');
+            if (!zapsList.querySelector('.loading-text')) {
+                const loadingText = document.createElement('div');
+                loadingText.className = 'loading-text';
+                loadingText.textContent = 'Loading profile activity...';
+                zapsList.appendChild(loadingText);
+            }
+        }
+        
+        // Load profile content
+        loadProfileContent(pubkey);
+        
+        document.getElementById('noteLoaderContainer').style.display = 'none';
+    } catch (e) {
+        console.log("Error loading profile from URL:", e);
+        showLoadingError("Failed to load profile. Please check the identifier and try again.");
+    }
+}
+
+function loadProfileContent(pubkey) {
+    console.log("Loading profile content for pubkey:", pubkey);
+    
+    // Subscribe to user's profile (kind 0)
+    subscribeProfileInfo(pubkey);
+    
+    // Subscribe to user's recent notes (kind 1)
+    subscribeProfileNotes(pubkey);
+}
+
+async function subscribeProfileInfo(pubkey) {
+    console.log("Subscribing to profile info for:", pubkey);
+    
+    let filter = {
+        kinds: [0], // Profile kind
+        authors: [pubkey]
+    };
+    
+    const sub = pool.subscribeMany(relays, [filter], {
+        onevent(profile) {
+            console.log("Received profile info:", profile);
+            displayProfileInfo(profile);
+        },
+        oneose() {
+            console.log("subscribeProfileInfo() EOS");
+        },
+        onclosed() {
+            console.log("subscribeProfileInfo() Closed");
+        }
+    });
+}
+
+async function subscribeProfileNotes(pubkey) {
+    console.log("Subscribing to profile notes for:", pubkey);
+    
+    let filter = {
+        kinds: [1], // Text note kind
+        authors: [pubkey],
+        limit: 20 // Get recent 20 notes
+    };
+    
+    const sub = pool.subscribeMany(relays, [filter], {
+        onevent(note) {
+            console.log("Received profile note:", note);
+            displayProfileNote(note);
+        },
+        oneose() {
+            console.log("subscribeProfileNotes() EOS");
+        },
+        onclosed() {
+            console.log("subscribeProfileNotes() Closed");
+        }
+    });
+}
+
+function displayProfileInfo(profile) {
+    console.log("Displaying profile info:", profile);
+    
+    const noteContent = document.querySelector('.note-content');
+    noteContent.classList.remove('loading');
+    const loadingText = noteContent.querySelector('.loading-text');
+    if (loadingText) loadingText.remove();
+    
+    const profileData = JSON.parse(profile.content || '{}');
+    const name = profileData.display_name || profileData.displayName || profileData.name || 'Anonymous';
+    const about = profileData.about || '';
+    const picture = profileData.picture || "/images/gradient_color.gif";
+    const nip05 = profileData.nip05 || '';
+    
+    // Update author info
+    document.getElementById("authorName").innerText = name;
+    document.getElementById("authorNameProfileImg").src = picture;
+    
+    // Update note content area with profile info
+    noteContent.innerHTML = `
+        <div class="profile-content">
+            ${about ? `<p class="profile-about">${about}</p>` : ''}
+            ${nip05 ? `<div class="profile-nip05">✓ ${nip05}</div>` : ''}
+            <div class="profile-stats">
+                <div class="profile-pubkey">
+                    <strong>Public Key:</strong><br>
+                    <code>${profile.pubkey}</code>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Store profile info globally
+    window.currentProfile = profile;
+    window.currentEventType = 'profile';
+}
+
+function displayProfileNote(note) {
+    console.log("Displaying profile note:", note);
+    
+    const zapsList = document.getElementById('zaps');
+    zapsList.classList.remove('loading');
+    const loadingText = zapsList.querySelector('.loading-text');
+    if (loadingText) loadingText.remove();
+    
+    // Create note element
+    const noteDiv = document.createElement("div");
+    noteDiv.className = "profile-note";
+    noteDiv.dataset.timestamp = note.created_at;
+    
+    const timeStr = new Date(note.created_at * 1000).toLocaleString();
+    
+    noteDiv.innerHTML = `
+        <div class="note-timestamp">${timeStr}</div>
+        <div class="note-content-text">${note.content}</div>
+    `;
+    
+    // Insert note in chronological order (newest first)
+    const existingNotes = Array.from(zapsList.querySelectorAll('.profile-note'));
+    const insertPosition = existingNotes.findIndex(n => 
+        parseInt(n.dataset.timestamp) < note.created_at
+    );
+    
+    if (insertPosition === -1) {
+        zapsList.appendChild(noteDiv);
+    } else {
+        zapsList.insertBefore(noteDiv, existingNotes[insertPosition]);
+    }
+}
+
 if(nevent){
     console.log("Identifier found in URL, attempting to load:", nevent);
     // Validate identifier before loading
@@ -1000,8 +1192,10 @@ if(nevent){
         const decoded = NostrTools.nip19.decode(nevent);
         if (decoded.type === 'naddr') {
             loadLiveEvent(nevent);
+        } else if (decoded.type === 'nprofile') {
+            loadProfile(nevent);
         } else {
-        loadNoteContent(nevent);
+            loadNoteContent(nevent);
         }
     } catch (error) {
         console.log("Invalid identifier in URL:", error.message);
@@ -1178,6 +1372,37 @@ function note1fromLoader(){
             subscribeLiveChat(pubkey, identifier);
             subscribeLiveEventZaps(pubkey, identifier);
             
+        } else if (decoded.type === 'nprofile') {
+            // Handle profiles
+            const { pubkey } = decoded.data;
+            
+            // Show loading animations
+            const noteContent = document.querySelector('.note-content');
+            const zapsList = document.getElementById('zaps');
+            
+            if (noteContent) {
+                noteContent.classList.add('loading');
+                if (!noteContent.querySelector('.loading-text')) {
+                    const loadingText = document.createElement('div');
+                    loadingText.className = 'loading-text';
+                    loadingText.textContent = 'Loading profile...';
+                    noteContent.appendChild(loadingText);
+                }
+            }
+            
+            if (zapsList) {
+                zapsList.classList.add('loading');
+                if (!zapsList.querySelector('.loading-text')) {
+                    const loadingText = document.createElement('div');
+                    loadingText.className = 'loading-text';
+                    loadingText.textContent = 'Loading profile activity...';
+                    zapsList.appendChild(loadingText);
+                }
+            }
+            
+            // Load profile
+            loadProfileContent(pubkey);
+            
         } else if (decoded.type === 'nevent') {
             kind1ID = decoded.data.id;
             
@@ -1244,7 +1469,7 @@ function note1fromLoader(){
         
     } catch (e) {
         // If decoding fails, show error instead of trying to use invalid input
-        alert('Invalid nostr identifier. Please enter a valid note ID (note1...), event ID (nevent1...), or live event (naddr1...).');
+        alert('Invalid nostr identifier. Please enter a valid note ID (note1...), event ID (nevent1...), live event (naddr1...), or profile (nprofile1...).');
         return;
     }
     console.log(note1);
