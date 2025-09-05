@@ -6473,7 +6473,7 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 /* ===== LIVE VIDEO PLAYER STYLES ===== */
 
 .live-event-video {
-    margin: 15px 0;
+    margin: 0 0 15px 0;
     border-radius: 8px;
     overflow: hidden;
     background: #000;
@@ -6553,4 +6553,10 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 
 .profile-example a:hover {
     color: #3742fa !important;
+}
+
+/* ===== LIVE PAGE LAYOUT ADJUSTMENTS ===== */
+
+.live #noteContent {
+    padding: 0 1vw 1vw 0;
 }
