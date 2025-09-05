@@ -281,16 +281,30 @@ router.post('/webhook', async (req, res) => {
   const paymentData = req.body;
   
   console.log('💰 LNBits webhook received:', {
+    fullPayload: paymentData,
     lnurlpId: paymentData.lnurlp_id,
     paymentAmount: paymentData.amount,
     paymentComment: paymentData.comment,
     timestamp: new Date().toISOString()
   });
   
+  // Try different possible field names for LNURL-pay ID
+  const lnurlpId = paymentData.lnurlp_id || paymentData.id || paymentData.link_id || paymentData.payment_id;
+  
+  if (!lnurlpId) {
+    console.log('❌ No LNURL-pay ID found in webhook payload. Available fields:', Object.keys(paymentData));
+    return res.status(400).json({ 
+      success: false,
+      error: 'Missing LNURL-pay ID',
+      details: 'The webhook payload does not contain a valid LNURL-pay ID'
+    });
+  }
+  
   // Look up session and event from LNURL-pay ID
-  const mapping = lnurlpMappings.get(paymentData.lnurlp_id);
+  const mapping = lnurlpMappings.get(lnurlpId);
   if (!mapping) {
-    console.log('❌ LNURL-pay ID not found in mappings:', paymentData.lnurlp_id);
+    console.log('❌ LNURL-pay ID not found in mappings:', lnurlpId);
+    console.log('Available mappings:', Array.from(lnurlpMappings.keys()));
     return res.status(404).json({ 
       success: false,
       error: 'Payment session not found',
@@ -299,7 +313,7 @@ router.post('/webhook', async (req, res) => {
   }
   
   const { frontendSessionId, eventId } = mapping;
-  console.log(`Found mapping: ${paymentData.lnurlp_id} -> ${frontendSessionId}/${eventId}`);
+  console.log(`Found mapping: ${lnurlpId} -> ${frontendSessionId}/${eventId}`);
   
   // Verify frontend session exists and event is active
   const session = frontendSessions.get(frontendSessionId);
