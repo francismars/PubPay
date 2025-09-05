@@ -3980,6 +3980,15 @@ function setupStyleOptions() {
         console.log('Zap grid toggle changed:', e.target.checked);
         const zapsList = document.getElementById('zaps');
         if (zapsList) {
+            // Check if we're in live event mode (has two-column layout)
+            const isLiveEvent = zapsList.classList.contains('live-event-two-column');
+            if (isLiveEvent) {
+                console.log('Grid layout not supported for live events - skipping');
+                // Reset the toggle since we're not applying the change
+                e.target.checked = !e.target.checked;
+                return;
+            }
+            
             zapsList.classList.toggle('grid-layout', e.target.checked);
             if (e.target.checked) {
                 organizeZapsHierarchically();
@@ -4596,6 +4605,12 @@ function organizeZapsHierarchically() {
     const zapsList = document.getElementById('zaps');
     if (!zapsList) return;
     
+    // Skip if this is a live event (has two-column layout)
+    if (zapsList.classList.contains('live-event-two-column')) {
+        console.log('Skipping grid organization for live events');
+        return;
+    }
+    
     const zaps = Array.from(zapsList.querySelectorAll('.zap'));
     if (zaps.length === 0) return;
     
@@ -4671,6 +4686,12 @@ function organizeZapsHierarchically() {
 function cleanupHierarchicalOrganization() {
     const zapsList = document.getElementById('zaps');
     if (!zapsList) return;
+    
+    // Skip if this is a live event (has two-column layout)
+    if (zapsList.classList.contains('live-event-two-column')) {
+        console.log('Skipping grid cleanup for live events');
+        return;
+    }
     
     // Remove all row containers and move zaps back to the main container
     const existingRows = zapsList.querySelectorAll('.zap-row');
