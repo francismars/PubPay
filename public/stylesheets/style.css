@@ -6560,3 +6560,20 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 .live #noteContent {
     padding: 0 1vw 1vw 0;
 }
+
+.zap-count-separator {
+    margin: 0 8px;
+    opacity: 0.6;
+    color: var(--text-color);
+}
+
+.total-count {
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+.total-zaps {
+    color: var(--text-color);
+    opacity: 0.8;
+    margin-left: 4px;
+}
