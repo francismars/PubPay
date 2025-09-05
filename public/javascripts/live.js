@@ -2378,8 +2378,10 @@ function displayLiveEvent(liveEvent) {
     window.currentLiveEvent = liveEvent;
     window.currentEventType = 'live-event';
     
-    // Generate QR codes for the live event
-    generateLiveEventQRCodes(liveEvent);
+    // Generate QR codes for the live event (with small delay to ensure DOM is ready)
+    setTimeout(() => {
+        generateLiveEventQRCodes(liveEvent);
+    }, 100);
 }
 
 function displayLiveChatMessage(chatMessage) {
@@ -2529,9 +2531,32 @@ function generateLiveEventQRCodes(liveEvent) {
     document.getElementById('qrcodeNoteLink').href = naddrId;
     
     // Update QR data previews
-    document.getElementById('qrDataPreview1').textContent = njumpUrl.slice(0, 20) + '...';
-    document.getElementById('qrDataPreview2').textContent = nostrNaddr.slice(0, 20) + '...';
-    document.getElementById('qrDataPreview3').textContent = naddrId.slice(0, 20) + '...';
+    const preview1 = document.getElementById('qrDataPreview1');
+    const preview2 = document.getElementById('qrDataPreview2');
+    const preview3 = document.getElementById('qrDataPreview3');
+    
+    console.log("QR preview elements found:", { preview1: !!preview1, preview2: !!preview2, preview3: !!preview3 });
+    
+    if (preview1) {
+        preview1.textContent = njumpUrl.slice(0, 20) + '...';
+        console.log("Set preview1 to:", preview1.textContent);
+    } else {
+        console.error("qrDataPreview1 element not found");
+    }
+    
+    if (preview2) {
+        preview2.textContent = nostrNaddr.slice(0, 20) + '...';
+        console.log("Set preview2 to:", preview2.textContent);
+    } else {
+        console.error("qrDataPreview2 element not found");
+    }
+    
+    if (preview3) {
+        preview3.textContent = naddrId.slice(0, 20) + '...';
+        console.log("Set preview3 to:", preview3.textContent);
+    } else {
+        console.error("qrDataPreview3 element not found");
+    }
 }
 
 async function processLiveEventZap(zapReceipt, eventPubkey, eventIdentifier) {
