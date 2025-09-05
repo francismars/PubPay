@@ -2160,9 +2160,9 @@ function updateChatAuthorProfile(profile) {
     // Update all chat messages and zaps from this author
     const authorElements = document.querySelectorAll(`[data-pubkey="${profile.pubkey}"]`);
     authorElements.forEach(element => {
-        if (element.classList.contains('chat-author-img') || element.classList.contains('zapperProfileImg')) {
+        if (element.classList.contains('chat-author-img') || element.classList.contains('zap-author-img') || element.classList.contains('zapperProfileImg')) {
             element.src = picture;
-        } else if (element.classList.contains('chat-author-name') || element.classList.contains('zapperName')) {
+        } else if (element.classList.contains('chat-author-name') || element.classList.contains('zap-author-name') || element.classList.contains('zapperName')) {
             element.textContent = name;
         }
     });
@@ -2282,9 +2282,9 @@ function displayLiveEventZap(zapData) {
     const activityContainer = document.getElementById("activity-list") || zapsContainer;
     const zapsOnlyContainer = document.getElementById("zaps-only-list");
     
-    // Create zap element with classic styling
+    // Create zap element with chat-style layout for activity column
     const zapDiv = document.createElement("div");
-    zapDiv.className = "zap live-event-zap";
+    zapDiv.className = "live-event-zap";
     zapDiv.dataset.pubkey = zapData.pubkey;
     zapDiv.dataset.timestamp = zapData.timestamp;
     zapDiv.dataset.amount = zapData.amount;
@@ -2292,19 +2292,24 @@ function displayLiveEventZap(zapData) {
     const timeStr = new Date(zapData.timestamp * 1000).toLocaleString();
     
     zapDiv.innerHTML = `
-        <div class="zapperProfile">
-            <img class="zapperProfileImg" src="/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
-            <div class="zapperInfo">
-                <div class="zapperName" data-pubkey="${zapData.pubkey}">
+        <div class="zap-header">
+            <img class="zap-author-img" src="/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
+            <div class="zap-info">
+                <div class="zap-author-name" data-pubkey="${zapData.pubkey}">
                     ${zapData.pubkey.slice(0,8)}...
                 </div>
-                <div class="zapperMessage">${zapData.content || ''}</div>
+                <div class="zap-time">${timeStr}</div>
+            </div>
+            <div class="zap-amount">
+                <span class="zap-amount-sats">${numberWithCommas(zapData.amount)}</span>
+                <span class="zap-amount-label">sats</span>
             </div>
         </div>
-        <div class="zapperAmount">
-            <span class="zapperAmountSats">${numberWithCommas(zapData.amount)}</span>
-            <span class="zapperAmountLabel">sats</span>
-        </div>
+        ${zapData.content ? `
+            <div class="zap-content">
+                ${zapData.content}
+            </div>
+        ` : ''}
     `;
     
     // Insert zap in activity column (mixed with chat messages)
@@ -2322,9 +2327,30 @@ function displayLiveEventZap(zapData) {
     }
     
     // Also add to zaps-only column if it exists (for live events) - sorted by amount (highest first)
+    // Use classic layout for left column
     if (zapsOnlyContainer) {
-        const zapOnlyDiv = zapDiv.cloneNode(true);
-        zapOnlyDiv.classList.add('zap-only-item');
+        const zapOnlyDiv = document.createElement("div");
+        zapOnlyDiv.className = "zap live-event-zap zap-only-item";
+        zapOnlyDiv.dataset.pubkey = zapData.pubkey;
+        zapOnlyDiv.dataset.timestamp = zapData.timestamp;
+        zapOnlyDiv.dataset.amount = zapData.amount;
+        
+        // Classic zap layout for left column
+        zapOnlyDiv.innerHTML = `
+            <div class="zapperProfile">
+                <img class="zapperProfileImg" src="/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
+                <div class="zapperInfo">
+                    <div class="zapperName" data-pubkey="${zapData.pubkey}">
+                        ${zapData.pubkey.slice(0,8)}...
+                    </div>
+                    <div class="zapperMessage">${zapData.content || ''}</div>
+                </div>
+            </div>
+            <div class="zapperAmount">
+                <span class="zapperAmountSats">${numberWithCommas(zapData.amount)}</span>
+                <span class="zapperAmountLabel">sats</span>
+            </div>
+        `;
         
         const existingZapItems = Array.from(zapsOnlyContainer.querySelectorAll('.live-event-zap'));
         const zapInsertPosition = existingZapItems.findIndex(item => 
