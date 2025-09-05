@@ -6669,6 +6669,24 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     padding: 4px 8px !important; /* Reduced from 10px */
 }
 
+/* Grey out grid toggle when disabled for live events */
+.live-event-two-column ~ * #zapGridToggle,
+.live-event-two-column ~ * .grid-toggle-label {
+    opacity: 0.4 !important;
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+}
+
+/* Alternative selector for when zaps container has the live-event class */
+.live-event-two-column #zapGridToggle,
+.live-event-two-column .grid-toggle-label,
+body:has(.live-event-two-column) #zapGridToggle,
+body:has(.live-event-two-column) .grid-toggle-label {
+    opacity: 0.4 !important;
+    pointer-events: none !important;
+    cursor: not-allowed !important;
+}
+
 .live-chat-message *,
 .live-event-zap * {
     font-style: normal !important;
