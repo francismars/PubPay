@@ -2783,23 +2783,26 @@ function generateLiveEventQRCodes(liveEvent) {
     const njumpUrl = "https://njump.me/" + naddrId;
     const nostrNaddr = "nostr:" + naddrId;
     
+    // Calculate QR size dynamically (same as note1/nevent pages)
+    const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
+    
     // Generate QR codes
     const qrCode = new QRious({
         element: document.getElementById('qrCode'),
         value: njumpUrl,
-        size: 200
+        size: qrSize
     });
     
     const qrCodeNevent = new QRious({
         element: document.getElementById('qrCodeNevent'),
         value: nostrNaddr,
-        size: 200
+        size: qrSize
     });
     
     const qrCodeNote = new QRious({
         element: document.getElementById('qrCodeNote'),
         value: naddrId,
-        size: 200
+        size: qrSize
     });
     
     // Update QR code links

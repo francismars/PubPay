@@ -2116,6 +2116,11 @@
       display: block !important;
   }
   
+  /* Add margin bottom to zaps for note1 and nevent pages */
+  .zap {
+      margin-bottom: 4px;
+  }
+  
   /* Hide zapper content - no scaling compensation */
   
   /* Fix blend mode issues - disable backdrop filter when QR blend is active */
@@ -2323,17 +2328,15 @@
       align-items: center;
   }
   
-  /* Reduce padding for 16:10 aspect ratio and wider */
-  @media (min-aspect-ratio: 16/10) {
-      .main-layout .qr-section,
-      .live .qr-section {
-          padding: 10px;
-      }
+  /* Remove padding from QR sections */
+  .main-layout .qr-section,
+  .live .qr-section {
+      padding: 0px;
   }
   
   .qr-code {
       width: 100%;
-      max-width: 20vw;
+      max-width: 50vw;
       height: auto;
       margin-bottom: 8px;
       display: block;
