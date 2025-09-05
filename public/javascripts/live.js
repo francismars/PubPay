@@ -1936,6 +1936,27 @@ function drawKind0(kind0){
   }
 
 // Live Event display functions
+function setupLiveEventTwoColumnLayout() {
+    const zapsContainer = document.getElementById("zaps");
+    
+    // Clear existing content and set up two-column structure
+    zapsContainer.innerHTML = `
+        <div class="live-event-columns">
+            <div class="live-event-zaps-only">
+                <h3 class="column-header">⚡ Zaps</h3>
+                <div id="zaps-only-list" class="zaps-only-list"></div>
+            </div>
+            <div class="live-event-activity">
+                <h3 class="column-header">💬 Activity</h3>
+                <div id="activity-list" class="activity-list"></div>
+            </div>
+        </div>
+    `;
+    
+    // Add the two-column class to the container
+    zapsContainer.classList.add('live-event-two-column');
+}
+
 function displayLiveEvent(liveEvent) {
     console.log("Displaying live event:", liveEvent);
     
@@ -1944,6 +1965,9 @@ function displayLiveEvent(liveEvent) {
     noteContent.classList.remove('loading');
     const loadingText = noteContent.querySelector('.loading-text');
     if (loadingText) loadingText.remove();
+    
+    // Set up two-column layout for live events
+    setupLiveEventTwoColumnLayout();
     
     // Extract event information from tags
     const title = liveEvent.tags.find(tag => tag[0] === "title")?.[1] || "Live Event";
@@ -2040,6 +2064,9 @@ function displayLiveChatMessage(chatMessage) {
     const loadingText = zapsContainer.querySelector('.loading-text');
     if (loadingText) loadingText.remove();
     
+    // Use activity column for live events, main container for regular notes
+    const targetContainer = document.getElementById("activity-list") || zapsContainer;
+    
     // Create chat message element
     const chatDiv = document.createElement("div");
     chatDiv.className = "live-chat-message";
@@ -2064,17 +2091,17 @@ function displayLiveChatMessage(chatMessage) {
     `;
     
     // Insert message in reverse chronological order (newest first, at top)
-    const existingMessages = Array.from(zapsContainer.querySelectorAll('.live-chat-message, .live-event-zap'));
+    const existingMessages = Array.from(targetContainer.querySelectorAll('.live-chat-message, .live-event-zap'));
     const insertPosition = existingMessages.findIndex(msg => 
         parseInt(msg.dataset.timestamp) < chatMessage.created_at
     );
     
     if (insertPosition === -1) {
         // Add to end (oldest messages at bottom)
-        zapsContainer.appendChild(chatDiv);
+        targetContainer.appendChild(chatDiv);
     } else {
         // Insert before the found position (newer messages towards top)
-        zapsContainer.insertBefore(chatDiv, existingMessages[insertPosition]);
+        targetContainer.insertBefore(chatDiv, existingMessages[insertPosition]);
     }
 }
 
@@ -2210,6 +2237,10 @@ function displayLiveEventZap(zapData) {
     const loadingText = zapsContainer.querySelector('.loading-text');
     if (loadingText) loadingText.remove();
     
+    // Get target containers - use columns for live events, main container for regular notes
+    const activityContainer = document.getElementById("activity-list") || zapsContainer;
+    const zapsOnlyContainer = document.getElementById("zaps-only-list");
+    
     // Create zap element
     const zapDiv = document.createElement("div");
     zapDiv.className = "live-event-zap";
@@ -2240,18 +2271,35 @@ function displayLiveEventZap(zapData) {
         ` : ''}
     `;
     
-    // Insert zap in reverse chronological order (newest first, at top)
-    const existingItems = Array.from(zapsContainer.querySelectorAll('.live-chat-message, .live-event-zap'));
-    const insertPosition = existingItems.findIndex(item => 
+    // Insert zap in activity column (mixed with chat messages)
+    const existingActivityItems = Array.from(activityContainer.querySelectorAll('.live-chat-message, .live-event-zap'));
+    const activityInsertPosition = existingActivityItems.findIndex(item => 
         parseInt(item.dataset.timestamp) < zapData.timestamp
     );
     
-    if (insertPosition === -1) {
+    if (activityInsertPosition === -1) {
         // Add to end (oldest items at bottom)
-        zapsContainer.appendChild(zapDiv);
+        activityContainer.appendChild(zapDiv);
     } else {
         // Insert before the found position (newer items towards top)
-        zapsContainer.insertBefore(zapDiv, existingItems[insertPosition]);
+        activityContainer.insertBefore(zapDiv, existingActivityItems[activityInsertPosition]);
+    }
+    
+    // Also add to zaps-only column if it exists (for live events)
+    if (zapsOnlyContainer) {
+        const zapOnlyDiv = zapDiv.cloneNode(true);
+        zapOnlyDiv.classList.add('zap-only-item');
+        
+        const existingZapItems = Array.from(zapsOnlyContainer.querySelectorAll('.live-event-zap'));
+        const zapInsertPosition = existingZapItems.findIndex(item => 
+            parseInt(item.dataset.timestamp) < zapData.timestamp
+        );
+        
+        if (zapInsertPosition === -1) {
+            zapsOnlyContainer.appendChild(zapOnlyDiv);
+        } else {
+            zapsOnlyContainer.insertBefore(zapOnlyDiv, existingZapItems[zapInsertPosition]);
+        }
     }
     
     // Update total zapped amount
