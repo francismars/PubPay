@@ -2370,6 +2370,9 @@ function drawKind0(kind0){
               }
           }
       }
+      
+      // Update zap count total (works for both live events and regular notes)
+      updateZapTotal();
   }
 
 // Live Event display functions
@@ -3005,6 +3008,45 @@ function updateLiveEventZapTotal() {
     
     document.getElementById("zappedTotalValue").innerText = numberWithCommas(totalAmount);
     document.getElementById("zappedTotalCount").innerText = numberWithCommas(totalCount);
+}
+
+function updateRegularNoteZapTotal() {
+    const zaps = Array.from(document.querySelectorAll('.zap'));
+    let totalAmount = 0;
+    let totalCount = 0;
+    
+    zaps.forEach(zap => {
+        const amountElement = zap.querySelector('.zapperAmountSats');
+        if (amountElement) {
+            // Extract numeric value from the text content (remove commas and 'sats')
+            const amountText = amountElement.textContent.replace(/[^\d]/g, '');
+            const amount = parseInt(amountText) || 0;
+            totalAmount += amount;
+            totalCount++;
+        }
+    });
+    
+    const totalValueElement = document.getElementById("zappedTotalValue");
+    const totalCountElement = document.getElementById("zappedTotalCount");
+    
+    if (totalValueElement) {
+        totalValueElement.innerText = numberWithCommas(totalAmount);
+    }
+    if (totalCountElement) {
+        totalCountElement.innerText = numberWithCommas(totalCount);
+    }
+}
+
+// Universal function that works for both live events and regular notes
+function updateZapTotal() {
+    // Check if we have live event zaps
+    const liveEventZaps = document.querySelectorAll('.live-event-zap');
+    if (liveEventZaps.length > 0) {
+        updateLiveEventZapTotal();
+    } else {
+        // Use regular note zap counting
+        updateRegularNoteZapTotal();
+    }
 }
 
 /*
