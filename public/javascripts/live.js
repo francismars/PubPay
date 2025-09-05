@@ -2840,8 +2840,10 @@ function updateLiveEventZapTotal() {
     const totalAmount = zaps.reduce((sum, zap) => {
         return sum + parseInt(zap.dataset.amount || 0);
     }, 0);
+    const totalCount = zaps.length;
     
     document.getElementById("zappedTotalValue").innerText = numberWithCommas(totalAmount);
+    document.getElementById("zappedTotalCount").innerText = numberWithCommas(totalCount);
 }
 
 /*
