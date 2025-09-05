@@ -6662,6 +6662,12 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     padding-left: 8px !important;
 }
 
+/* Remove background and reduce padding for chat messages in activity column */
+.activity-list .live-chat-message {
+    background: transparent !important;
+    padding: 4px 8px !important; /* Reduced from 10px */
+}
+
 .live-chat-message *,
 .live-event-zap * {
     font-style: normal !important;
