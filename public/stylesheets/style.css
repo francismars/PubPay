@@ -6199,6 +6199,9 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     background: rgba(0, 0, 0, 0.05);
     border-radius: 8px;
     border-left: 3px solid #4ecdc4;
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
 }
 
 .chat-message-header {
@@ -6264,6 +6267,9 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     background: rgba(255, 215, 0, 0.1);
     border-radius: 8px;
     border-left: 3px solid #ffd700;
+    min-width: 0;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
 }
 
 .zap-header {
@@ -6359,23 +6365,27 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 .live-event-columns {
     display: flex;
     height: 100%;
-    gap: 15px;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .live-event-zaps-only {
-    flex: 0 0 50%;
+    flex: 0 0 calc(50% - 5px);
     display: flex;
     flex-direction: column;
     min-height: 0;
-    width: 50%;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .live-event-activity {
-    flex: 0 0 50%;
+    flex: 0 0 calc(50% - 5px);
     display: flex;
     flex-direction: column;
     min-height: 0;
-    width: 50%;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .column-header {
@@ -6392,8 +6402,10 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 .activity-list {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 0;
     margin: 0;
+    min-width: 0;
 }
 
 /* Zap-only column styling */
