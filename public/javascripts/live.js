@@ -1695,7 +1695,8 @@ async function subscribeLiveEvent(pubkey, identifier, kind) {
     // Add timeout to prevent subscription from closing prematurely
     let timeoutId = setTimeout(() => {
         console.log("Live event subscription timeout - keeping subscription alive");
-    }, 15000);
+        // Don't close the subscription, just log that we're keeping it alive
+    }, 30000); // Increased timeout to 30 seconds
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(liveEvent) {
@@ -2263,6 +2264,15 @@ function drawKind0(kind0){
 function setupLiveEventTwoColumnLayout() {
     const zapsContainer = document.getElementById("zaps");
     
+    // Check if layout is already set up to avoid clearing existing content
+    if (zapsContainer.classList.contains('live-event-two-column') && 
+        zapsContainer.querySelector('.live-event-columns')) {
+        console.log("Two-column layout already exists, skipping setup to preserve content");
+        return;
+    }
+    
+    console.log("Setting up two-column layout");
+    
     // Clear existing content and set up two-column structure
     zapsContainer.innerHTML = `
         <div class="live-event-columns">
@@ -2281,6 +2291,12 @@ function setupLiveEventTwoColumnLayout() {
 
 function displayLiveEvent(liveEvent) {
     console.log("Displaying live event:", liveEvent);
+    
+    // Check if this live event is already displayed to avoid clearing content
+    if (window.currentLiveEvent && window.currentLiveEvent.id === liveEvent.id) {
+        console.log("Live event already displayed, skipping to avoid clearing content");
+        return;
+    }
     
     // Hide note content loading animation
     const noteContent = document.querySelector('.note-content');
@@ -2399,6 +2415,40 @@ function displayLiveEvent(liveEvent) {
             initializeLiveVideoPlayer(streaming);
         }, 200);
     }
+    
+    // Start monitoring content to detect if it disappears
+    startContentMonitoring();
+}
+
+// Monitor live event content to detect if it disappears
+function startContentMonitoring() {
+    // Clear any existing monitoring
+    if (window.contentMonitorInterval) {
+        clearInterval(window.contentMonitorInterval);
+    }
+    
+    window.contentMonitorInterval = setInterval(() => {
+        const noteContent = document.querySelector('.note-content');
+        const zapsContainer = document.getElementById('zaps');
+        const liveEventContent = noteContent?.querySelector('.live-event-content');
+        const twoColumnLayout = zapsContainer?.querySelector('.live-event-columns');
+        
+        if (window.currentEventType === 'live-event') {
+            if (!liveEventContent) {
+                console.warn("Live event content disappeared! Attempting to restore...");
+                // Try to restore if we have the current live event info
+                if (window.currentLiveEvent && currentLiveEventInfo) {
+                    console.log("Restoring live event content");
+                    displayLiveEvent(window.currentLiveEvent);
+                }
+            }
+            
+            if (!twoColumnLayout && zapsContainer && !zapsContainer.classList.contains('loading')) {
+                console.warn("Two-column layout disappeared! Attempting to restore...");
+                setupLiveEventTwoColumnLayout();
+            }
+        }
+    }, 10000); // Check every 10 seconds
 }
 
 function displayLiveChatMessage(chatMessage) {
