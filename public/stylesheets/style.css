@@ -6660,6 +6660,7 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     background: rgba(255, 193, 7, 0.1) !important;
     border: 1px solid rgb(164 164 164 / 30%) !important;
     padding-left: 8px !important;
+    margin-bottom: 2px !important;
 }
 
 /* Remove background and reduce padding for chat messages in activity column */
