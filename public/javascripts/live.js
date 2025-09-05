@@ -1536,7 +1536,29 @@ async function subscribeLiveEventZaps(pubkey, identifier) {
             console.log("subscribeLiveEventZaps() Closed");
         }
     });
-  }
+}
+
+async function subscribeLiveEventHostProfile(hostPubkey) {
+    console.log("Subscribing to live event host profile:", hostPubkey);
+    
+    let filter = {
+        kinds: [0], // Profile kind
+        authors: [hostPubkey]
+    };
+    
+    const sub = pool.subscribeMany(relays, [filter], {
+        onevent(profile) {
+            console.log("Received live event host profile:", profile);
+            updateLiveEventHostProfile(profile);
+        },
+        oneose() {
+            console.log("subscribeLiveEventHostProfile() EOS");
+        },
+        onclosed() {
+            console.log("subscribeLiveEventHostProfile() Closed");
+        }
+    });
+}
 
 function scaleTextByLength(element, content) {
     const maxLength = 180; // Twitter-like character limit
@@ -1943,11 +1965,11 @@ function setupLiveEventTwoColumnLayout() {
     zapsContainer.innerHTML = `
         <div class="live-event-columns">
             <div class="live-event-zaps-only">
-                <h3 class="column-header">⚡ Zaps</h3>
+                <h3 class="column-header">Zaps</h3>
                 <div id="zaps-only-list" class="zaps-only-list"></div>
             </div>
             <div class="live-event-activity">
-                <h3 class="column-header">💬 Activity</h3>
+                <h3 class="column-header">Activity</h3>
                 <div id="activity-list" class="activity-list"></div>
             </div>
         </div>
@@ -2042,9 +2064,12 @@ function displayLiveEvent(liveEvent) {
         </div>
     `;
     
-    // Update author info with event title
+    // Update author info with event title and fetch host profile
     const hostPubkey = liveEvent.pubkey;
     document.getElementById("authorName").innerText = title;
+    
+    // Subscribe to host profile to get their image
+    subscribeLiveEventHostProfile(hostPubkey);
     
     // Store event info globally for QR generation
     window.currentLiveEvent = liveEvent;
@@ -2138,6 +2163,19 @@ function updateChatAuthorProfile(profile) {
             element.textContent = name;
         }
     });
+}
+
+function updateLiveEventHostProfile(profile) {
+    console.log("Updating live event host profile:", profile);
+    
+    const profileData = JSON.parse(profile.content || '{}');
+    const picture = profileData.picture || "/images/gradient_color.gif";
+    
+    // Update the author profile image
+    const authorImg = document.getElementById("authorNameProfileImg");
+    if (authorImg) {
+        authorImg.src = picture;
+    }
 }
 
 function generateLiveEventQRCodes(liveEvent) {
