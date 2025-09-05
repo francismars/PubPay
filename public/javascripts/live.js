@@ -2860,6 +2860,22 @@ function generateFrontendSessionId() {
   return 'frontend_' + crypto.randomUUID();
 }
 
+// Get or create persistent frontend session ID
+function getFrontendSessionId() {
+  if (!frontendSessionId) {
+    // Try to get from localStorage first
+    frontendSessionId = localStorage.getItem('pubpay_frontend_session_id');
+    
+    if (!frontendSessionId) {
+      // Generate new one if none exists
+      frontendSessionId = generateFrontendSessionId();
+      localStorage.setItem('pubpay_frontend_session_id', frontendSessionId);
+    }
+  }
+  
+  return frontendSessionId;
+}
+
 // Enable Lightning payments
 async function enableLightningPayments() {
   const eventId = getCurrentEventId();
@@ -2869,9 +2885,7 @@ async function enableLightningPayments() {
     return;
   }
   
-  if (!frontendSessionId) {
-    frontendSessionId = generateFrontendSessionId();
-  }
+  frontendSessionId = getFrontendSessionId();
   
   try {
     const response = await fetch('/lightning/enable', {
@@ -2929,9 +2943,11 @@ async function enableLightningPayments() {
 async function disableLightningPayments() {
   const eventId = getCurrentEventId();
   
-  if (!eventId || !frontendSessionId) {
+  if (!eventId) {
     return;
   }
+  
+  frontendSessionId = getFrontendSessionId();
   
   try {
     const response = await fetch('/lightning/disable', {
