@@ -6658,7 +6658,7 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 /* Add subtle styling to zaps in activity column */
 .activity-list .live-event-zap {
     background: rgba(255, 193, 7, 0.1) !important;
-    border-left: 2px solid rgba(255, 193, 7, 0.3) !important;
+    border: 1px solid rgb(164 164 164 / 30%) !important;
     padding-left: 8px !important;
 }
 
