@@ -6363,17 +6363,19 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 }
 
 .live-event-zaps-only {
-    flex: 1;
+    flex: 0 0 50%;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    width: 50%;
 }
 
 .live-event-activity {
-    flex: 1;
+    flex: 0 0 50%;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    width: 50%;
 }
 
 .column-header {
