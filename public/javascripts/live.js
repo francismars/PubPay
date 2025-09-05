@@ -98,6 +98,11 @@ document.addEventListener('DOMContentLoaded', function() {
         chat: 0,
         zaps: 0
     };
+    
+    // Top zappers accounting system
+    let zapperTotals = new Map(); // pubkey -> { amount: number, profile: object, name: string, picture: string }
+    let topZappers = []; // Array of top 3 zappers sorted by amount
+    let zapperProfiles = new Map(); // Cache for zapper profiles
 
     // Style options URL parameters
     const DEFAULT_STYLES = {
@@ -119,6 +124,94 @@ document.addEventListener('DOMContentLoaded', function() {
         textOpacity: 1.0,
         partnerLogo: ''
     };
+
+    // Top zappers management functions
+    function resetZapperTotals() {
+        zapperTotals.clear();
+        topZappers = [];
+        hideTopZappersBar();
+    }
+
+    function addZapToTotals(pubkey, amount, profile = null) {
+        console.log(`Adding zap to totals: ${pubkey}, ${amount} sats`);
+        
+        if (zapperTotals.has(pubkey)) {
+            const existing = zapperTotals.get(pubkey);
+            existing.amount += amount;
+            if (profile) {
+                existing.profile = profile;
+                existing.name = getDisplayName(profile);
+                existing.picture = profile.picture || '/images/gradient_color.gif';
+            }
+        } else {
+            zapperTotals.set(pubkey, {
+                amount: amount,
+                profile: profile,
+                name: profile ? getDisplayName(profile) : 'Anonymous',
+                picture: profile ? (profile.picture || '/images/gradient_color.gif') : '/images/gradient_color.gif',
+                pubkey: pubkey
+            });
+        }
+        
+        updateTopZappers();
+    }
+
+    function updateTopZappers() {
+        // Sort zappers by total amount (highest first) and take top 3
+        topZappers = Array.from(zapperTotals.values())
+            .sort((a, b) => b.amount - a.amount)
+            .slice(0, 3);
+        
+        console.log('Updated top zappers:', topZappers);
+        displayTopZappers();
+    }
+
+    function displayTopZappers() {
+        const topZappersBar = document.getElementById('top-zappers-bar');
+        if (!topZappersBar || topZappers.length === 0) {
+            hideTopZappersBar();
+            return;
+        }
+
+        // Show the bar
+        topZappersBar.style.display = 'block';
+
+        // Update each zapper slot
+        for (let i = 0; i < 3; i++) {
+            const zapperElement = document.getElementById(`top-zapper-${i + 1}`);
+            if (!zapperElement) continue;
+
+            if (i < topZappers.length) {
+                const zapper = topZappers[i];
+                const avatar = zapperElement.querySelector('.zapper-avatar');
+                const name = zapperElement.querySelector('.zapper-name');
+                const total = zapperElement.querySelector('.zapper-total');
+
+                avatar.src = zapper.picture;
+                avatar.alt = zapper.name;
+                name.textContent = zapper.name;
+                total.textContent = `${numberWithCommas(zapper.amount)} sats`;
+
+                zapperElement.style.opacity = '1';
+                zapperElement.style.display = 'flex';
+            } else {
+                // Hide unused slots
+                zapperElement.style.display = 'none';
+            }
+        }
+    }
+
+    function hideTopZappersBar() {
+        const topZappersBar = document.getElementById('top-zappers-bar');
+        if (topZappersBar) {
+            topZappersBar.style.display = 'none';
+        }
+    }
+
+    function getDisplayName(profile) {
+        if (!profile) return 'Anonymous';
+        return profile.displayName || profile.display_name || profile.name || 'Anonymous';
+    }
 
     // Style presets
     const STYLE_PRESETS = {
@@ -873,6 +966,9 @@ function loadNoteContent(noteId) {
     // Re-enable grid toggle for regular notes (not live events)
     enableGridToggle();
     
+    // Reset zapper totals for new content
+    resetZapperTotals();
+    
     // Strip nostr: protocol prefix if present before validation
     const originalNoteId = noteId;
     noteId = stripNostrPrefix(noteId);
@@ -964,6 +1060,9 @@ function loadNoteContent(noteId) {
 
 function loadLiveEvent(naddr) {
     console.log("Loading live event for:", naddr);
+    
+    // Reset zapper totals for new live event
+    resetZapperTotals();
     
     // Strip nostr: protocol prefix if present before validation
     const originalNaddr = naddr;
@@ -1656,6 +1755,9 @@ function subscribeKind0fromKinds9735(kinds9735){
 }
 
 async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
+    // Reset zapper totals for new note
+    resetZapperTotals();
+    
     for(let kind9735 of kind9735List){
         const description9735 = JSON.parse(kind9735.tags.find(tag => tag[0] == "description")[1])
         const pubkey9735 = description9735.pubkey
@@ -1669,15 +1771,22 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
         let kind0npub = ""
         let kind0name = ""
         let kind0finalName = ""
+        let profileData = null
         const kind0fromkind9735 = kind0fromkind9735List.find(kind0 => pubkey9735 === kind0.pubkey);
         if(kind0fromkind9735){
-            const displayName = JSON.parse(kind0fromkind9735.content).displayName
-            kind0name = displayName ? JSON.parse(kind0fromkind9735.content).displayName : JSON.parse(kind0fromkind9735.content).display_name
-            kind0finalName = kind0name!="" ? kind0name : JSON.parse(kind0fromkind9735.content).name
+            const content = JSON.parse(kind0fromkind9735.content)
+            const displayName = content.displayName
+            kind0name = displayName ? content.displayName : content.display_name
+            kind0finalName = kind0name!="" ? kind0name : content.name
             console.log(kind0finalName)
-            kind0picture = JSON.parse(kind0fromkind9735.content).picture
+            kind0picture = content.picture
             kind0npub = NostrTools.nip19.npubEncode(kind0fromkind9735.pubkey)
+            profileData = content
         }
+        
+        // Add to zapper totals accounting
+        addZapToTotals(pubkey9735, amount9735, profileData);
+        
         const json9735 = {"e": kind1from9735, "amount": amount9735, "picture": kind0picture, "npubPayer": kind0npub, "pubKey": pubkey9735, "zapEventID": kind9735id, "kind9735content": kind9735Content, "kind1Name": kind0finalName}
         json9735List.push(json9735)
     }
@@ -2566,6 +2675,15 @@ function updateChatAuthorProfile(profile) {
     const name = profileData.display_name || profileData.displayName || profileData.name || profile.pubkey.slice(0,8) + '...';
     const picture = profileData.picture || "/images/gradient_color.gif";
     
+    // Update zapper totals with profile info if this user has zapped
+    if (zapperTotals.has(profile.pubkey)) {
+        const zapperData = zapperTotals.get(profile.pubkey);
+        zapperData.profile = profileData;
+        zapperData.name = name;
+        zapperData.picture = picture;
+        updateTopZappers(); // Refresh display with updated profile info
+    }
+    
     // Update all chat messages and zaps from this author
     const authorElements = document.querySelectorAll(`[data-pubkey="${profile.pubkey}"]`);
     authorElements.forEach(element => {
@@ -2764,6 +2882,9 @@ async function processLiveEventZap(zapReceipt, eventPubkey, eventIdentifier) {
         
         // Subscribe to zapper's profile if we don't have it
         subscribeChatAuthorProfile(zapperPubkey);
+        
+        // Add to zapper totals accounting (profile will be updated when it arrives)
+        addZapToTotals(zapperPubkey, amount);
         
         // Display the zap
         displayLiveEventZap(zapData);
