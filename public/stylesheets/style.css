@@ -6589,3 +6589,46 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     font-size: 1.1em !important;
     font-weight: 600 !important;
 }
+
+/* Hide timestamps in activity column and restructure layout */
+.live-event-zap .zap-time,
+.live-chat-message .chat-message-time {
+    display: none !important;
+}
+
+/* Restructure zap header to be vertical */
+.live-event-zap .zap-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.live-event-zap .zap-info {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.live-event-zap .zap-amount {
+    margin-left: auto;
+    margin-top: -32px; /* Align with author image */
+}
+
+/* Restructure chat header to be vertical */
+.chat-message-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    margin-bottom: 8px !important;
+}
+
+.chat-message-info {
+    display: flex !important;
+    align-items: center !important;
+    margin-bottom: 0 !important;
+}
+
+.chat-author-img {
+    margin-right: 8px !important;
+    margin-bottom: 0 !important;
+}
