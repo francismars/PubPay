@@ -13,21 +13,55 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Get note ID from URL path instead of query parameters
     const pathParts = window.location.pathname.split('/');
-    const noteIdFromPath = pathParts[pathParts.length - 1]; // Get the last part of the path
-    console.log("Note ID from URL path:", noteIdFromPath);
+    console.log("Path parts:", pathParts);
     
-    // Also check for query parameters for backward compatibility
-    let urlToParse = location.search;
-    const params = new URLSearchParams(urlToParse);
-    const noteFromQuery = params.get("note");
+    let nevent = null;
     
-    // Use path parameter if available, otherwise fall back to query parameter
-    let nevent = noteIdFromPath && noteIdFromPath !== 'live' ? noteIdFromPath : noteFromQuery;
+    // Check for compound URL structures like nprofile.../live/event-id
+    if (pathParts.length >= 3 && pathParts[pathParts.length - 2] === 'live') {
+        // This is a compound structure: /nprofile.../live/event-id
+        const nprofileId = pathParts[pathParts.length - 3];
+        const eventId = pathParts[pathParts.length - 1];
+        console.log("Detected compound structure - nprofile:", nprofileId, "event:", eventId);
+        
+        try {
+            const decoded = NostrTools.nip19.decode(nprofileId);
+            if (decoded.type === 'nprofile') {
+                const { pubkey } = decoded.data;
+                // Construct naddr1 for live event (kind 30311)
+                const naddrData = {
+                    identifier: eventId,
+                    pubkey: pubkey,
+                    kind: 30311
+                };
+                nevent = NostrTools.nip19.naddrEncode(naddrData);
+                console.log("Constructed naddr from compound URL:", nevent);
+            }
+        } catch (e) {
+            console.log("Error processing compound URL:", e);
+        }
+    }
+    
+    // Fallback to standard parsing if no compound structure detected
+    if (!nevent) {
+        const noteIdFromPath = pathParts[pathParts.length - 1]; // Get the last part of the path
+        console.log("Note ID from URL path:", noteIdFromPath);
+        
+        // Also check for query parameters for backward compatibility
+        let urlToParse = location.search;
+        const params = new URLSearchParams(urlToParse);
+        const noteFromQuery = params.get("note");
+        
+        // Use path parameter if available, otherwise fall back to query parameter
+        nevent = noteIdFromPath && noteIdFromPath !== 'live' ? noteIdFromPath : noteFromQuery;
+    }
+    
     console.log("Using note ID:", nevent);
 
     // Strip nostr: protocol prefix if present
+    const originalNevent = nevent;
     nevent = stripNostrPrefix(nevent);
-    if (nevent !== noteIdFromPath && nevent !== noteFromQuery) {
+    if (nevent !== originalNevent) {
         console.log("Stripped nostr: prefix, now:", nevent);
     }
 
@@ -36,10 +70,10 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const decoded = NostrTools.nip19.decode(nevent);
             if (decoded.type === 'nevent' || decoded.type === 'naddr' || decoded.type === 'nprofile') {
-                // Preserve original format in URL
+                // For constructed naddr from compound URL, preserve the clean naddr format
                 const newUrl = '/live/' + nevent;
                 window.history.replaceState({}, '', newUrl);
-                // Keep original format as is
+                console.log("Updated URL to:", newUrl);
             }
         } catch (e) {
             console.log("Error decoding identifier parameter:", e);
