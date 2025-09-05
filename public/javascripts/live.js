@@ -690,12 +690,17 @@ function applyStylesFromLocalStorage() {
             window.lightningEnabled = styles.lightningEnabled;
             updateLightningToggle();
             
-            // If Lightning was enabled, try to re-enable it
+            // If Lightning was enabled, try to re-enable it (only if there's an event ID)
             if (lightningEnabled) {
-                console.log('Lightning was previously enabled, attempting to re-enable...');
-                setTimeout(() => {
-                    enableLightningPayments();
-                }, 100);
+                const eventId = getCurrentEventId();
+                if (eventId) {
+                    console.log('Lightning was previously enabled, attempting to re-enable...');
+                    setTimeout(() => {
+                        enableLightningPayments();
+                    }, 100);
+                } else {
+                    console.log('Lightning was previously enabled but no event ID found, keeping toggle state only');
+                }
             }
         }
     
@@ -1492,6 +1497,14 @@ async function drawKind1(kind1){
     noteContent.classList.remove('loading');
     const loadingText = noteContent.querySelector('.loading-text');
     if (loadingText) loadingText.remove();
+    
+    // Update Lightning state now that we have an event ID
+    if (lightningEnabled) {
+        console.log('Note loaded, attempting to enable Lightning payments...');
+        setTimeout(() => {
+            enableLightningPayments();
+        }, 100);
+    }
     
     // Font sizes are now controlled by CSS using vw units
     // No JavaScript font size re-initialization needed
@@ -2899,7 +2912,7 @@ async function enableLightningPayments() {
   const eventId = getCurrentEventId();
   
   if (!eventId) {
-    alert('No event ID found');
+    console.log('No event ID found - Lightning payments require a valid event');
     return;
   }
   
@@ -2932,7 +2945,11 @@ async function enableLightningPayments() {
       updateLightningToggle();
       
       // Save to main styles system
-      updateStyleURL();
+      try {
+        updateStyleURL();
+      } catch (error) {
+        console.log('Could not call updateStyleURL:', error.message);
+      }
       
       // Update swiper to include Lightning QR
       if (window.updateQRSlideVisibility) {
@@ -2992,7 +3009,11 @@ async function disableLightningPayments() {
       updateLightningToggle();
       
       // Save to main styles system
-      updateStyleURL();
+      try {
+        updateStyleURL();
+      } catch (error) {
+        console.log('Could not call updateStyleURL:', error.message);
+      }
       
       // Update swiper to remove Lightning QR
       if (window.updateQRSlideVisibility) {
