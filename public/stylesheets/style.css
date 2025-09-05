@@ -6075,12 +6075,13 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 /* ===== LIVE EVENT STYLES ===== */
 
 .live-event-content {
-    padding: 10px 0;
+    padding: 0px 0 10px 0;
 }
 
 
 .live-event-summary {
     font-size: 1em;
+    margin-top: 0;
     margin-bottom: 15px;
     line-height: 1.4;
     color: var(--text-color);
@@ -6263,7 +6264,6 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 .live-event-zap {
     margin-bottom: 15px;
     padding: 10px;
-    background: rgba(255, 215, 0, 0.1);
     border-radius: 8px;
     min-width: 0;
     overflow-wrap: break-word;
