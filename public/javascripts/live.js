@@ -44,15 +44,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Fallback to standard parsing if no compound structure detected
     if (!nevent) {
-        const noteIdFromPath = pathParts[pathParts.length - 1]; // Get the last part of the path
-        console.log("Note ID from URL path:", noteIdFromPath);
-        
-        // Also check for query parameters for backward compatibility
-        let urlToParse = location.search;
-        const params = new URLSearchParams(urlToParse);
-        const noteFromQuery = params.get("note");
-        
-        // Use path parameter if available, otherwise fall back to query parameter
+    const noteIdFromPath = pathParts[pathParts.length - 1]; // Get the last part of the path
+    console.log("Note ID from URL path:", noteIdFromPath);
+    
+    // Also check for query parameters for backward compatibility
+    let urlToParse = location.search;
+    const params = new URLSearchParams(urlToParse);
+    const noteFromQuery = params.get("note");
+    
+    // Use path parameter if available, otherwise fall back to query parameter
         nevent = noteIdFromPath && noteIdFromPath !== 'live' ? noteIdFromPath : noteFromQuery;
     }
     
@@ -1229,7 +1229,7 @@ if(nevent){
         } else if (decoded.type === 'nprofile') {
             loadProfile(nevent);
         } else {
-            loadNoteContent(nevent);
+        loadNoteContent(nevent);
         }
     } catch (error) {
         console.log("Invalid identifier in URL:", error.message);
@@ -1860,7 +1860,7 @@ async function subscribeLiveEventHostProfile(hostPubkey) {
             console.log("subscribeLiveEventHostProfile() Closed");
         }
     });
-}
+  }
 
 function scaleTextByLength(element, content) {
     const maxLength = 180; // Twitter-like character limit
@@ -2347,10 +2347,20 @@ function displayLiveEvent(liveEvent) {
             </div>
             
             ${streaming ? `
-                <div class="live-event-actions">
-                    <a href="${streaming}" target="_blank" class="streaming-link">
-                        📺 Watch Stream
-                    </a>
+                <div class="live-event-video">
+                    <div id="live-video-player" class="video-player-container">
+                        <video id="live-video" controls autoplay muted playsinline class="live-video">
+                            <source src="${streaming}" type="application/x-mpegURL">
+                            <source src="${streaming}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="video-error" id="video-error" style="display: none;">
+                            <p>Unable to load video stream</p>
+                            <a href="${streaming}" target="_blank" class="streaming-link">
+                                📺 Watch in External Player
+                            </a>
+                        </div>
+                    </div>
                 </div>
             ` : ''}
             
@@ -2382,6 +2392,13 @@ function displayLiveEvent(liveEvent) {
     setTimeout(() => {
         generateLiveEventQRCodes(liveEvent);
     }, 100);
+    
+    // Initialize video player if streaming URL is available
+    if (streaming) {
+        setTimeout(() => {
+            initializeLiveVideoPlayer(streaming);
+        }, 200);
+    }
 }
 
 function displayLiveChatMessage(chatMessage) {
@@ -2556,6 +2573,79 @@ function generateLiveEventQRCodes(liveEvent) {
         console.log("Set preview3 to:", preview3.textContent);
     } else {
         console.error("qrDataPreview3 element not found");
+    }
+}
+
+function initializeLiveVideoPlayer(streamingUrl) {
+    console.log("Initializing live video player with URL:", streamingUrl);
+    
+    const video = document.getElementById('live-video');
+    const videoError = document.getElementById('video-error');
+    
+    if (!video) {
+        console.error("Video element not found");
+        return;
+    }
+    
+    // Handle video errors
+    video.addEventListener('error', function(e) {
+        console.error("Video error:", e);
+        showVideoError();
+    });
+    
+    video.addEventListener('loadstart', function() {
+        console.log("Video loading started");
+        hideVideoError();
+    });
+    
+    video.addEventListener('canplay', function() {
+        console.log("Video can start playing");
+        hideVideoError();
+    });
+    
+    video.addEventListener('loadeddata', function() {
+        console.log("Video data loaded");
+    });
+    
+    // Handle different streaming formats
+    if (streamingUrl.includes('.m3u8') || streamingUrl.includes('hls')) {
+        // HLS stream - try to use HLS.js if available, otherwise rely on native support
+        if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(streamingUrl);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                console.log("HLS manifest parsed, starting playback");
+                video.play().catch(e => console.log("Autoplay prevented:", e));
+            });
+            hls.on(Hls.Events.ERROR, function(event, data) {
+                console.error("HLS error:", data);
+                if (data.fatal) {
+                    showVideoError();
+                }
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Native HLS support (Safari)
+            video.src = streamingUrl;
+            video.play().catch(e => console.log("Autoplay prevented:", e));
+        } else {
+            console.warn("HLS not supported, showing error");
+            showVideoError();
+        }
+    } else {
+        // Regular video formats (MP4, WebM, etc.)
+        video.src = streamingUrl;
+        video.play().catch(e => console.log("Autoplay prevented:", e));
+    }
+    
+    function showVideoError() {
+        if (video) video.style.display = 'none';
+        if (videoError) videoError.style.display = 'block';
+    }
+    
+    function hideVideoError() {
+        if (video) video.style.display = 'block';
+        if (videoError) videoError.style.display = 'none';
     }
 }
 
