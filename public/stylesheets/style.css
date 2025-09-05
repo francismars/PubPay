@@ -6362,7 +6362,7 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 }
 
 .live-event-zaps-only {
-    flex: 0 0 calc(50% - 5px);
+    flex: 0 0 calc(70% - 7px);
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -6371,7 +6371,7 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 }
 
 .live-event-activity {
-    flex: 0 0 calc(50% - 5px);
+    flex: 0 0 calc(30% - 3px);
     display: flex;
     flex-direction: column;
     min-height: 0;
