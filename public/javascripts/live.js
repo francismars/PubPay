@@ -1,10 +1,5 @@
-console.log("Live.js file loaded successfully!");
-console.log("NostrTools available:", typeof NostrTools !== 'undefined');
-console.log("lightningPayReq available:", typeof lightningPayReq !== 'undefined');
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOMContentLoaded event fired!");
-    
     // Initialize portrait swiper
     initializePortraitSwiper();
     
@@ -13,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Get note ID from URL path instead of query parameters
     const pathParts = window.location.pathname.split('/');
-    console.log("Path parts:", pathParts);
     
     let nevent = null;
     
@@ -22,7 +16,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // This is a compound structure: /nprofile.../live/event-id
         const nprofileId = pathParts[pathParts.length - 3];
         const eventId = pathParts[pathParts.length - 1];
-        console.log("Detected compound structure - nprofile:", nprofileId, "event:", eventId);
         
         try {
             const decoded = NostrTools.nip19.decode(nprofileId);
@@ -35,17 +28,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     kind: 30311
                 };
                 nevent = NostrTools.nip19.naddrEncode(naddrData);
-                console.log("Constructed naddr from compound URL:", nevent);
             }
         } catch (e) {
-            console.log("Error processing compound URL:", e);
+            // Error processing compound URL
         }
     }
     
     // Fallback to standard parsing if no compound structure detected
     if (!nevent) {
     const noteIdFromPath = pathParts[pathParts.length - 1]; // Get the last part of the path
-    console.log("Note ID from URL path:", noteIdFromPath);
     
     // Also check for query parameters for backward compatibility
     let urlToParse = location.search;
@@ -55,15 +46,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Use path parameter if available, otherwise fall back to query parameter
         nevent = noteIdFromPath && noteIdFromPath !== 'live' ? noteIdFromPath : noteFromQuery;
     }
-    
-    console.log("Using note ID:", nevent);
 
     // Strip nostr: protocol prefix if present
     const originalNevent = nevent;
     nevent = stripNostrPrefix(nevent);
-    if (nevent !== originalNevent) {
-        console.log("Stripped nostr: prefix, now:", nevent);
-    }
 
     // Decode nevent/naddr/nprofile to preserve format in URL if present
     if (nevent) {
@@ -73,10 +59,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 // For constructed naddr from compound URL, preserve the clean naddr format
                 const newUrl = '/live/' + nevent;
                 window.history.replaceState({}, '', newUrl);
-                console.log("Updated URL to:", newUrl);
             }
         } catch (e) {
-            console.log("Error decoding identifier parameter:", e);
+            // Error decoding identifier parameter
         }
     }
 
@@ -134,8 +119,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function addZapToTotals(pubkey, amount, profile = null) {
-        console.log(`Adding zap to totals: ${pubkey}, ${amount} sats`);
-        
         if (zapperTotals.has(pubkey)) {
             const existing = zapperTotals.get(pubkey);
             existing.amount += amount;
@@ -163,7 +146,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .sort((a, b) => b.amount - a.amount)
             .slice(0, 5);
         
-        console.log('Updated top zappers:', topZappers);
         displayTopZappers();
     }
 
@@ -474,7 +456,6 @@ function updateStyleURL() {
     
     // Store styles in localStorage instead of URL
     localStorage.setItem('pubpay-styles', JSON.stringify(styles));
-    console.log('Saving styles to localStorage:', styles);
     
     // Keep URL clean - no style parameters
     const pathParts = window.location.pathname.split('/');
@@ -712,13 +693,27 @@ function applyStylesFromLocalStorage() {
     const savedStyles = localStorage.getItem('pubpay-styles');
     if (!savedStyles) {
         // Apply default styles if no saved styles
+        
+        // Set QR visibility toggles to default values
+        const qrShowWebLinkToggle = document.getElementById('qrShowWebLinkToggle');
+        const qrShowNeventToggle = document.getElementById('qrShowNeventToggle');
+        const qrShowNoteToggle = document.getElementById('qrShowNoteToggle');
+        
+        if (qrShowWebLinkToggle) qrShowWebLinkToggle.checked = DEFAULT_STYLES.qrShowWebLink;
+        if (qrShowNeventToggle) qrShowNeventToggle.checked = DEFAULT_STYLES.qrShowNevent;
+        if (qrShowNoteToggle) qrShowNoteToggle.checked = DEFAULT_STYLES.qrShowNote;
+        
         applyAllStyles();
+        
+        // Update QR slide visibility after setting defaults
+        if (window.updateQRSlideVisibility && typeof window.updateQRSlideVisibility === 'function') {
+            window.updateQRSlideVisibility(true); // Skip URL update during initialization
+        }
         return;
     }
     
     try {
         const styles = JSON.parse(savedStyles);
-        console.log('Loading styles from localStorage:', styles);
         
         // Apply text color
         if (styles.textColor) {
@@ -792,15 +787,21 @@ function applyStylesFromLocalStorage() {
         // Apply QR slide visibility
         if (styles.qrShowWebLink !== undefined) {
             const toggle = document.getElementById('qrShowWebLinkToggle');
-            if (toggle) toggle.checked = styles.qrShowWebLink;
+            if (toggle) {
+                toggle.checked = styles.qrShowWebLink;
+            }
         }
         if (styles.qrShowNevent !== undefined) {
             const toggle = document.getElementById('qrShowNeventToggle');
-            if (toggle) toggle.checked = styles.qrShowNevent;
+            if (toggle) {
+                toggle.checked = styles.qrShowNevent;
+            }
         }
         if (styles.qrShowNote !== undefined) {
             const toggle = document.getElementById('qrShowNoteToggle');
-            if (toggle) toggle.checked = styles.qrShowNote;
+            if (toggle) {
+                toggle.checked = styles.qrShowNote;
+            }
         }
         
         // Update QR slide visibility after loading settings
@@ -860,7 +861,6 @@ function applyStylesFromLocalStorage() {
             
             // If Lightning was enabled, try to re-enable it
             if (lightningEnabled) {
-                console.log('Lightning was previously enabled, attempting to re-enable...');
                 setTimeout(() => {
                     enableLightningPayments();
                 }, 100);
@@ -944,10 +944,14 @@ function applyStylesFromLocalStorage() {
         // Use a small delay to ensure all DOM elements are properly updated
         setTimeout(() => {
             applyAllStyles();
+            // Update QR slide visibility after all styles are applied
+            if (window.updateQRSlideVisibility && typeof window.updateQRSlideVisibility === 'function') {
+                window.updateQRSlideVisibility(true); // Skip URL update during initialization
+            }
         }, 50);
         
     } catch (e) {
-        console.error('Error loading styles from localStorage:', e);
+        // Error loading styles from localStorage
         // Fall back to default styles
         applyAllStyles();
     }
@@ -1010,7 +1014,6 @@ function validateNoteId(noteId) {
 }
 
 function loadNoteContent(noteId) {
-    console.log("Loading note content for:", noteId);
     
     // Re-enable grid toggle for regular notes (not live events)
     enableGridToggle();
@@ -1021,9 +1024,6 @@ function loadNoteContent(noteId) {
     // Strip nostr: protocol prefix if present before validation
     const originalNoteId = noteId;
     noteId = stripNostrPrefix(noteId);
-    if (noteId !== originalNoteId) {
-        console.log("Stripped nostr: prefix in loadNoteContent, now:", noteId);
-    }
     
     // Validate the note ID after stripping prefix
     try {
@@ -1035,7 +1035,6 @@ function loadNoteContent(noteId) {
     
     try {
         const decoded = NostrTools.nip19.decode(noteId);
-        console.log("Decoded note:", decoded);
         let kind1ID;
         
         if (decoded.type === 'nevent') {
@@ -1075,7 +1074,6 @@ function loadNoteContent(noteId) {
         subscribeKind1(kind1ID);
         document.getElementById('noteLoaderContainer').style.display = 'none';
     } catch (e) {
-        console.log("Error loading note from URL:", e);
         // If decoding fails, try to use the input directly as a note ID
         
         // Show loading animations
@@ -1108,7 +1106,6 @@ function loadNoteContent(noteId) {
 }
 
 function loadLiveEvent(naddr) {
-    console.log("Loading live event for:", naddr);
     
     // Reset zapper totals for new live event
     resetZapperTotals();
@@ -1116,9 +1113,6 @@ function loadLiveEvent(naddr) {
     // Strip nostr: protocol prefix if present before validation
     const originalNaddr = naddr;
     naddr = stripNostrPrefix(naddr);
-    if (naddr !== originalNaddr) {
-        console.log("Stripped nostr: prefix in loadLiveEvent, now:", naddr);
-    }
     
     // Validate the naddr after stripping prefix
     try {
@@ -1130,7 +1124,6 @@ function loadLiveEvent(naddr) {
     
     try {
         const decoded = NostrTools.nip19.decode(naddr);
-        console.log("Decoded live event:", decoded);
         
         if (decoded.type !== 'naddr') {
             throw new Error('Invalid live event identifier format.');
@@ -1175,20 +1168,15 @@ function loadLiveEvent(naddr) {
         
         document.getElementById('noteLoaderContainer').style.display = 'none';
     } catch (e) {
-        console.log("Error loading live event from URL:", e);
         showLoadingError("Failed to load live event. Please check the identifier and try again.");
     }
 }
 
 function loadProfile(nprofile) {
-    console.log("Loading profile for:", nprofile);
     
     // Strip nostr: protocol prefix if present before validation
     const originalNprofile = nprofile;
     nprofile = stripNostrPrefix(nprofile);
-    if (nprofile !== originalNprofile) {
-        console.log("Stripped nostr: prefix in loadProfile, now:", nprofile);
-    }
     
     // Validate the nprofile after stripping prefix
     try {
@@ -1200,7 +1188,6 @@ function loadProfile(nprofile) {
     
     try {
         const decoded = NostrTools.nip19.decode(nprofile);
-        console.log("Decoded profile:", decoded);
         
         if (decoded.type !== 'nprofile') {
             throw new Error('Invalid profile identifier format.');
@@ -1237,13 +1224,11 @@ function loadProfile(nprofile) {
         
         document.getElementById('noteLoaderContainer').style.display = 'none';
     } catch (e) {
-        console.log("Error loading profile from URL:", e);
         showLoadingError("Failed to load profile. Please check the identifier and try again.");
     }
 }
 
 function loadProfileContent(pubkey) {
-    console.log("Loading profile content for pubkey:", pubkey);
     
     // Subscribe to user's profile (kind 0)
     subscribeProfileInfo(pubkey);
@@ -1253,7 +1238,6 @@ function loadProfileContent(pubkey) {
 }
 
 async function subscribeProfileInfo(pubkey) {
-    console.log("Subscribing to profile info for:", pubkey);
     
     let filter = {
         kinds: [0], // Profile kind
@@ -1262,20 +1246,16 @@ async function subscribeProfileInfo(pubkey) {
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(profile) {
-            console.log("Received profile info:", profile);
             displayProfileInfo(profile);
         },
         oneose() {
-            console.log("subscribeProfileInfo() EOS");
         },
         onclosed() {
-            console.log("subscribeProfileInfo() Closed");
         }
     });
 }
 
 async function subscribeProfileNotes(pubkey) {
-    console.log("Subscribing to profile notes for:", pubkey);
     
     let filter = {
         kinds: [1], // Text note kind
@@ -1285,20 +1265,16 @@ async function subscribeProfileNotes(pubkey) {
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(note) {
-            console.log("Received profile note:", note);
             displayProfileNote(note);
         },
         oneose() {
-            console.log("subscribeProfileNotes() EOS");
         },
         onclosed() {
-            console.log("subscribeProfileNotes() Closed");
         }
     });
 }
 
 function displayProfileInfo(profile) {
-    console.log("Displaying profile info:", profile);
     
     const noteContent = document.querySelector('.note-content');
     noteContent.classList.remove('loading');
@@ -1335,7 +1311,6 @@ function displayProfileInfo(profile) {
 }
 
 function displayProfileNote(note) {
-    console.log("Displaying profile note:", note);
     
     const zapsList = document.getElementById('zaps');
     zapsList.classList.remove('loading');
@@ -1368,7 +1343,6 @@ function displayProfileNote(note) {
 }
 
 if(nevent){
-    console.log("Identifier found in URL, attempting to load:", nevent);
     // Validate identifier before loading
     try {
         validateNoteId(nevent);
@@ -1383,14 +1357,12 @@ if(nevent){
         loadNoteContent(nevent);
         }
     } catch (error) {
-        console.log("Invalid identifier in URL:", error.message);
         showLoadingError(error.message);
     }
     // Duplicate code removed - using loadNoteContent function instead
     /*
     try {
         const decoded = NostrTools.nip19.decode(nevent);
-        console.log("Decoded note:", decoded);
         let kind1ID;
         
         if (decoded.type === 'nevent') {
@@ -1430,7 +1402,6 @@ if(nevent){
         subscribeKind1(kind1ID);
         document.getElementById('noteLoaderContainer').style.display = 'none';
     } catch (e) {
-        console.log("Error loading note from URL:", e);
         // If decoding fails, try to use the input directly as a note ID
         
         // Show loading animations
@@ -1464,14 +1435,17 @@ if(nevent){
     }
     */
 } else {
-    console.log("No note parameter found in URL");
+    // No note parameter found in URL
 }
 
 // Apply styles from URL parameters first, then localStorage
 // Use setTimeout to ensure DOM elements are ready
 setTimeout(() => {
-    console.log('Applying styles after DOM ready');
-applyStylesFromURL();
+    // Ensure setupStyleOptions is called first to define updateQRSlideVisibility
+    if (typeof window.updateQRSlideVisibility !== 'function') {
+        setupStyleOptions();
+    }
+    applyStylesFromURL();
     applyStylesFromLocalStorage();
 }, 200);
 
@@ -1502,9 +1476,6 @@ function note1fromLoader(){
     // Strip nostr: protocol prefix if present
     const originalNote1 = note1;
     note1 = stripNostrPrefix(note1);
-    if (note1 !== originalNote1) {
-        console.log("Stripped nostr: prefix from input, now:", note1);
-    }
     
     // Validate the note ID after stripping prefix
     try {
@@ -1657,17 +1628,14 @@ function note1fromLoader(){
         alert('Invalid nostr identifier. Please enter a valid note ID (note1...), event ID (nevent1...), live event (naddr1...), or profile (nprofile1...).');
         return;
     }
-    console.log(note1);
 }
 
 async function subscribeKind1(kind1ID) {
-    console.log("Subscribing to kind1 with ID:", kind1ID);
-    console.log("Using relays:", relays);
     let filter = { ids: [kind1ID]}
     
     // Add a timeout to prevent immediate EOS
     let timeoutId = setTimeout(() => {
-        console.log("Kind1 subscription timeout - no events received after 10 seconds");
+        // Kind1 subscription timeout - no events received after 10 seconds
     }, 10000);
     
     pool.subscribeMany(
@@ -1676,18 +1644,15 @@ async function subscribeKind1(kind1ID) {
         {
         async onevent(kind1) {
             clearTimeout(timeoutId);
-            console.log("Received kind1 event:", kind1);
             drawKind1(kind1)
             await subscribeKind0fromKind1(kind1)
             await subscribeKind9735fromKind1(kind1)
         },
         oneose() {
             clearTimeout(timeoutId);
-            console.log("subscribeKind1() EOS - no more events expected")
         },
         onclosed() {
             clearTimeout(timeoutId);
-            console.log("subscribeKind1() Closed")
         }
     })
   }
@@ -1705,16 +1670,13 @@ async function subscribeKind1(kind1ID) {
             drawKind0(kind0)
         },
         oneose() {
-            console.log("subscribeKind0sfromKind1s() EOS")
         },
         onclosed() {
-            console.log("subscribeKind0sfromKind1s() Closed")
         }
     })
   }
 
   async function subscribeKind9735fromKind1(kind1) {
-    console.log("Subscribing to zaps for kind1 ID:", kind1.id);
     let kinds9735IDs = new Set();
     let kinds9735 = []
     const kind1id = kind1.id
@@ -1724,9 +1686,9 @@ async function subscribeKind1(kind1ID) {
 
     // Add a timeout for zap subscription
     let zapTimeoutId = setTimeout(() => {
-        console.log("Zap subscription timeout - no zaps received after 15 seconds");
+        // Zap subscription timeout - no zaps received after 15 seconds
         if (kinds9735.length === 0) {
-            console.log("No zaps found for this note");
+            // No zaps found for this note
         }
     }, 15000);
 
@@ -1739,12 +1701,10 @@ async function subscribeKind1(kind1ID) {
     ,{
         onevent(kind9735) {
             clearTimeout(zapTimeoutId);
-            console.log("Received zap event:", kind9735);
             if(!(kinds9735IDs.has(kind9735.id))){
                 kinds9735IDs.add(kind9735.id)
                 kinds9735.push(kind9735)
                 if(!isFirstStream){
-                    console.log("Processing new zap:", kind9735)
                     subscribeKind0fromKinds9735([kind9735])
                 }
             }
@@ -1752,13 +1712,10 @@ async function subscribeKind1(kind1ID) {
         oneose() {
             clearTimeout(zapTimeoutId);
             isFirstStream = false
-            console.log("Processing all zaps, count:", kinds9735.length);
             subscribeKind0fromKinds9735(kinds9735)
-            console.log("subscribeKind9735fromKind1() EOS")
         },
         onclosed() {
             clearTimeout(zapTimeoutId);
-            console.log("subscribeKind9735fromKind1() Closed")
         }
     })
 }
@@ -1795,10 +1752,8 @@ function subscribeKind0fromKinds9735(kinds9735){
     },
     async oneose() {
         createkinds9735JSON(kinds9735, kind0fromkind9735List)
-        console.log("subscribeKind0fromKinds9735() EOS")
     },
     onclosed() {
-        console.log("subscribeKind0fromKinds9735() Closed")
     }
   })
 }
@@ -1815,7 +1770,6 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
         const kind1from9735 = kind9735.tags.find(tag => tag[0] == "e")[1]
         const kind9735id = NostrTools.nip19.noteEncode(kind9735.id)
         const kind9735Content = description9735.content
-        console.log(kind9735)
         let kind0picture = ""
         let kind0npub = ""
         let kind0name = ""
@@ -1827,7 +1781,6 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
             const displayName = content.displayName
             kind0name = displayName ? content.displayName : content.display_name
             kind0finalName = kind0name!="" ? kind0name : content.name
-            console.log(kind0finalName)
             kind0picture = content.picture
             kind0npub = NostrTools.nip19.npubEncode(kind0fromkind9735.pubkey)
             profileData = content
@@ -1845,7 +1798,6 @@ async function createkinds9735JSON(kind9735List, kind0fromkind9735List){
 
 // Live Event subscription functions
 async function subscribeLiveEvent(pubkey, identifier, kind) {
-    console.log("Subscribing to live event:", { pubkey, identifier, kind });
     
     let filter = {
         authors: [pubkey],
@@ -1855,31 +1807,27 @@ async function subscribeLiveEvent(pubkey, identifier, kind) {
     
     // Add timeout to prevent subscription from closing prematurely
     let timeoutId = setTimeout(() => {
-        console.log("Live event subscription timeout - keeping subscription alive");
+        // Live event subscription timeout - keeping subscription alive
         // Don't close the subscription, just log that we're keeping it alive
     }, 30000); // Increased timeout to 30 seconds
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(liveEvent) {
             clearTimeout(timeoutId);
-            console.log("Received live event:", liveEvent);
             displayLiveEvent(liveEvent);
             // Also subscribe to participants' profiles
             subscribeLiveEventParticipants(liveEvent);
         },
         oneose() {
             clearTimeout(timeoutId);
-            console.log("subscribeLiveEvent() EOS - keeping subscription alive");
             // Don't close the subscription, keep it alive for updates
         },
         onclosed() {
             clearTimeout(timeoutId);
-            console.log("subscribeLiveEvent() Closed - attempting to reconnect");
             // Attempt to reconnect after a delay if we have current event info
             if (currentLiveEventInfo && reconnectionAttempts.event < 3) {
                 reconnectionAttempts.event++;
                 setTimeout(() => {
-                    console.log(`Reconnecting to live event (attempt ${reconnectionAttempts.event})...`);
                     subscribeLiveEvent(currentLiveEventInfo.pubkey, currentLiveEventInfo.identifier, currentLiveEventInfo.kind);
                 }, 5000 * reconnectionAttempts.event);
             }
@@ -1888,7 +1836,6 @@ async function subscribeLiveEvent(pubkey, identifier, kind) {
 }
 
 async function subscribeLiveChat(pubkey, identifier) {
-    console.log("Subscribing to live chat for:", { pubkey, identifier });
     
     const aTag = `30311:${pubkey}:${identifier}`;
     
@@ -1899,20 +1846,16 @@ async function subscribeLiveChat(pubkey, identifier) {
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(chatMessage) {
-            console.log("Received live chat message:", chatMessage);
             displayLiveChatMessage(chatMessage);
             // Subscribe to chat author profile if not already cached
             subscribeChatAuthorProfile(chatMessage.pubkey);
         },
         oneose() {
-            console.log("subscribeLiveChat() EOS - keeping subscription alive");
             // Keep subscription alive for new messages
         },
         onclosed() {
-            console.log("subscribeLiveChat() Closed - attempting to reconnect");
             // Attempt to reconnect after a delay
             setTimeout(() => {
-                console.log("Reconnecting to live chat...");
                 subscribeLiveChat(pubkey, identifier);
             }, 5000);
         }
@@ -2309,10 +2252,13 @@ async function drawKind1(kind1){
         });
     }
     
-    // Apply current slide visibility settings
-    if (window.updateQRSlideVisibility) {
-        window.updateQRSlideVisibility(true); // Skip URL update during QR generation
-    }
+    // Apply current slide visibility settings with delay to ensure localStorage is loaded
+    setTimeout(() => {
+        if (window.updateQRSlideVisibility) {
+            console.log('Calling updateQRSlideVisibility from QR generation with delay');
+            window.updateQRSlideVisibility(true); // Skip URL update during QR generation
+        }
+    }, 300); // Longer delay to ensure localStorage is loaded (after the 200ms delay)
 }
 
 function drawKind0(kind0){
@@ -2816,27 +2762,39 @@ function generateLiveEventQRCodes(liveEvent) {
     const preview3 = document.getElementById('qrDataPreview3');
     
     console.log("QR preview elements found:", { preview1: !!preview1, preview2: !!preview2, preview3: !!preview3 });
+    console.log("Preview data to set:", { njumpUrl, nostrNaddr, naddrId });
     
     if (preview1) {
-        preview1.textContent = njumpUrl.slice(0, 20) + '...';
-        console.log("Set preview1 to:", preview1.textContent);
+        const previewText = njumpUrl.slice(0, 20) + '...';
+        preview1.textContent = previewText;
+        console.log("Set preview1 to:", previewText, "- actual element content:", preview1.textContent);
     } else {
         console.error("qrDataPreview1 element not found");
     }
     
     if (preview2) {
-        preview2.textContent = nostrNaddr.slice(0, 20) + '...';
-        console.log("Set preview2 to:", preview2.textContent);
+        const previewText = nostrNaddr.slice(0, 20) + '...';
+        preview2.textContent = previewText;
+        console.log("Set preview2 to:", previewText, "- actual element content:", preview2.textContent);
     } else {
         console.error("qrDataPreview2 element not found");
     }
     
     if (preview3) {
-        preview3.textContent = naddrId.slice(0, 20) + '...';
-        console.log("Set preview3 to:", preview3.textContent);
+        const previewText = naddrId.slice(0, 20) + '...';
+        preview3.textContent = previewText;
+        console.log("Set preview3 to:", previewText, "- actual element content:", preview3.textContent);
     } else {
         console.error("qrDataPreview3 element not found");
     }
+    
+    // Apply slide visibility settings for live events after QR generation
+    console.log("Calling updateQRSlideVisibility for live event after QR generation");
+    setTimeout(() => {
+        if (window.updateQRSlideVisibility) {
+            window.updateQRSlideVisibility(true); // Skip URL update during initialization
+        }
+    }, 100);
 }
 
 function initializeLiveVideoPlayer(streamingUrl) {
@@ -3963,7 +3921,30 @@ function setupStyleOptions() {
     const qrShowNeventToggle = document.getElementById('qrShowNeventToggle');
     const qrShowNoteToggle = document.getElementById('qrShowNoteToggle');
     
+    // Debounce mechanism to prevent rapid successive calls
+    let qrVisibilityUpdateTimeout = null;
+    
     function updateQRSlideVisibility(skipURLUpdate = false) {
+        // Clear any existing timeout to debounce rapid calls
+        if (qrVisibilityUpdateTimeout) {
+            console.log('Debouncing QR visibility update - clearing previous timeout');
+            clearTimeout(qrVisibilityUpdateTimeout);
+        }
+        
+        // For user interactions (not skipURLUpdate), add a small debounce
+        if (!skipURLUpdate) {
+            console.log('Adding debounce for user interaction');
+            qrVisibilityUpdateTimeout = setTimeout(() => {
+                updateQRSlideVisibilityImmediate(skipURLUpdate);
+            }, 50);
+            return;
+        }
+        
+        // For initialization calls (skipURLUpdate = true), execute immediately
+        updateQRSlideVisibilityImmediate(skipURLUpdate);
+    }
+    
+    function updateQRSlideVisibilityImmediate(skipURLUpdate = false) {
         const webLinkToggle = document.getElementById('qrShowWebLinkToggle');
         const neventToggle = document.getElementById('qrShowNeventToggle');
         const noteToggle = document.getElementById('qrShowNoteToggle');
@@ -3972,18 +3953,110 @@ function setupStyleOptions() {
         const showNevent = neventToggle?.checked ?? true;
         const showNote = noteToggle?.checked ?? true;
         
-        console.log('updateQRSlideVisibility called:', {
-            showWebLink, showNevent, showNote
+        console.log('=== updateQRSlideVisibilityImmediate DEBUG ===');
+        console.log('Function called with skipURLUpdate:', skipURLUpdate);
+        console.log('Stack trace:', new Error().stack.split('\n').slice(1, 5).join('\n'));
+        
+        console.log('updateQRSlideVisibilityImmediate called:', {
+            showWebLink, showNevent, showNote,
+            skipURLUpdate,
+            webLinkToggleChecked: webLinkToggle?.checked,
+            neventToggleChecked: neventToggle?.checked,
+            noteToggleChecked: noteToggle?.checked
         });
         
-        // Rebuild swiper with only visible slides
-        if (window.qrSwiper) {
-            window.qrSwiper.destroy(true, true);
-            window.qrSwiper = null;
+        // Check if we can avoid rebuilding by just showing/hiding existing slides
+        const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
+        if (swiperWrapper) {
+            const existingSlides = swiperWrapper.children;
+            const hasAllSlides = existingSlides.length >= 3; // At least 3 basic slides
+            
+            // If we have all slides and swiper exists, try to show/hide instead of rebuilding
+            if (window.qrSwiper && hasAllSlides) {
+                console.log('Attempting to show/hide slides without rebuilding');
+                
+                // Store references to slides that should be hidden
+                const slidesToHide = [];
+                const slidesToShow = [];
+                
+                // Check each slide
+                const slides = Array.from(existingSlides);
+                slides.forEach((slide, index) => {
+                    const slideId = slide.querySelector('img')?.id;
+                    let shouldShow = true;
+                    
+                    if (slideId === 'qrCode') shouldShow = showWebLink;
+                    else if (slideId === 'qrCodeNevent') shouldShow = showNevent;
+                    else if (slideId === 'qrCodeNote') shouldShow = showNote;
+                    else if (slideId === 'lightningQRCode') shouldShow = window.lightningEnabled;
+                    
+                    if (shouldShow) {
+                        slidesToShow.push(slide);
+                        slide.style.display = 'block';
+                    } else {
+                        slidesToHide.push(slide);
+                        slide.style.display = 'none';
+                    }
+                    console.log(`Slide ${index} (${slideId}): ${shouldShow ? 'shown' : 'hidden'}`);
+                });
+                
+                // Show/hide the swiper container based on visible slides
+                const qrSwiperContainer = document.querySelector('.qr-swiper');
+                if (slidesToShow.length > 0) {
+                    // Show swiper container
+                    if (qrSwiperContainer) {
+                        qrSwiperContainer.style.display = 'block';
+                    }
+                    
+                    // Update swiper without destroying it
+                    setTimeout(() => {
+                        if (window.qrSwiper) {
+                            window.qrSwiper.update();
+                            // If only one slide, disable loop and touch
+                            if (slidesToShow.length === 1) {
+                                window.qrSwiper.allowTouchMove = false;
+                                if (window.qrSwiper.params) {
+                                    window.qrSwiper.params.loop = false;
+                                    window.qrSwiper.params.autoplay = false;
+                                }
+                            } else {
+                                window.qrSwiper.allowTouchMove = true;
+                                if (window.qrSwiper.params) {
+                                    window.qrSwiper.params.loop = true;
+                                    window.qrSwiper.params.autoplay = {
+                                        delay: 3000,
+                                        disableOnInteraction: false,
+                                        pauseOnMouseEnter: true
+                                    };
+                                }
+                            }
+                        }
+                    }, 10);
+                } else {
+                    // No slides to show, hide the entire swiper
+                    if (qrSwiperContainer) {
+                        qrSwiperContainer.style.display = 'none';
+                    }
+                }
+                
+                // Skip URL update if requested
+                if (!skipURLUpdate) {
+                    updateStyleURL();
+                }
+                return;
+            }
+            
+            console.log('Need to rebuild swiper - destroying existing instance');
+            // Fallback to rebuilding if we don't have all slides or no swiper exists
+            if (window.qrSwiper) {
+                window.qrSwiper.destroy(true, true);
+                window.qrSwiper = null;
+            }
+            
+            // Clear and rebuild
+            swiperWrapper.innerHTML = '';
         }
         
-        // Get the swiper wrapper and clear it
-        const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
         if (swiperWrapper) {
             // Store Lightning QR slide if it exists and is enabled
             const lightningSlide = document.getElementById('lightningQRSlide');
@@ -4091,10 +4164,30 @@ function setupStyleOptions() {
     
     // Function to regenerate QR codes for visible slides
     function regenerateQRCodes() {
-        // Get current note ID
+        console.log('regenerateQRCodes called', { 
+            currentLiveEvent: !!window.currentLiveEvent, 
+            currentNoteId: !!window.currentNoteId 
+        });
+        
+        // Check if we have live event data first
+        if (window.currentLiveEvent) {
+            console.log('Regenerating QR codes for live event');
+            // Add delay to ensure swiper slides are fully created
+            setTimeout(() => {
+                generateLiveEventQRCodes(window.currentLiveEvent);
+            }, 50);
+            return;
+        }
+        
+        // Get current note ID for regular notes
         const noteId = window.currentNoteId;
         
-        if (!noteId) return;
+        if (!noteId) {
+            console.log('No noteId or liveEvent found for QR regeneration');
+            return;
+        }
+        
+        console.log('Regenerating QR codes for regular note:', noteId);
         
         // Generate QR code data
         const neventId = NostrTools.nip19.neventEncode({ id: noteId, relays: [] });
@@ -4196,16 +4289,26 @@ function setupStyleOptions() {
     
     // Make functions globally accessible
     window.updateQRSlideVisibility = updateQRSlideVisibility;
+    window.updateQRSlideVisibilityImmediate = updateQRSlideVisibilityImmediate;
     window.regenerateQRCodes = regenerateQRCodes;
     
     if (qrShowWebLinkToggle) {
-        qrShowWebLinkToggle.addEventListener('change', updateQRSlideVisibility);
+        qrShowWebLinkToggle.addEventListener('change', function(e) {
+            console.log('QR Show Web Link toggle changed:', e.target.checked);
+            updateQRSlideVisibility(); // This will call updateStyleURL() to save state
+        });
     }
     if (qrShowNeventToggle) {
-        qrShowNeventToggle.addEventListener('change', updateQRSlideVisibility);
+        qrShowNeventToggle.addEventListener('change', function(e) {
+            console.log('QR Show Nevent toggle changed:', e.target.checked);
+            updateQRSlideVisibility(); // This will call updateStyleURL() to save state
+        });
     }
     if (qrShowNoteToggle) {
-        qrShowNoteToggle.addEventListener('change', updateQRSlideVisibility);
+        qrShowNoteToggle.addEventListener('change', function(e) {
+            console.log('QR Show Note toggle changed:', e.target.checked);
+            updateQRSlideVisibility(); // This will call updateStyleURL() to save state
+        });
     }
     
     // Layout inversion toggle
