@@ -2106,6 +2106,15 @@
   body.hide-zapper-content .zaps-list.grid-layout .zapperMessage {
       display: none;
   }
+
+  /* Show Top Zappers - Default is hidden, only show when class is present */
+  #top-zappers-bar {
+      display: none !important;
+  }
+  
+  body.show-top-zappers #top-zappers-bar {
+      display: block !important;
+  }
   
   /* Hide zapper content - no scaling compensation */
   
