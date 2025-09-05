@@ -395,11 +395,28 @@ async function sendAnonymousZap(eventId, amount, comment) {
         console.log(`Found Lightning address: ${lightningAddress}`);
         
         if (lightningAddress) {
-          // Parse Lightning address to get LNURL callback
+          // Parse Lightning address to get LNURL discovery endpoint
           const ludSplit = lightningAddress.split('@');
           if (ludSplit.length === 2) {
-            lnurlCallback = `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`;
-            console.log(`LNURL callback URL: ${lnurlCallback}`);
+            const lnurlDiscoveryUrl = `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`;
+            console.log(`LNURL discovery URL: ${lnurlDiscoveryUrl}`);
+            
+            // Fetch LNURL discovery to get the callback URL
+            try {
+              const discoveryResponse = await fetch(lnurlDiscoveryUrl);
+              const discoveryData = await discoveryResponse.json();
+              
+              if (discoveryData.status === 'OK' && discoveryData.callback) {
+                lnurlCallback = discoveryData.callback;
+                console.log(`LNURL callback URL: ${lnurlCallback}`);
+                console.log(`LNURL supports Nostr: ${discoveryData.allowsNostr}`);
+                console.log(`Min sendable: ${discoveryData.minSendable}, Max sendable: ${discoveryData.maxSendable}`);
+              } else {
+                console.log(`LNURL discovery failed: ${discoveryData.reason || 'Unknown error'}`);
+              }
+            } catch (discoveryError) {
+              console.log(`Error fetching LNURL discovery: ${discoveryError.message}`);
+            }
           }
         }
       } else {
