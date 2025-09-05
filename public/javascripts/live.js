@@ -987,7 +987,7 @@ if(nevent){
         if (decoded.type === 'naddr') {
             loadLiveEvent(nevent);
         } else {
-            loadNoteContent(nevent);
+        loadNoteContent(nevent);
         }
     } catch (error) {
         console.log("Invalid identifier in URL:", error.message);
@@ -1197,36 +1197,36 @@ function note1fromLoader(){
             kind1ID = decoded.data;
             
             // Show loading animations
-            const noteContent = document.querySelector('.note-content');
-            const zapsList = document.getElementById('zaps');
-            
-            if (noteContent) {
-                noteContent.classList.add('loading');
-                if (!noteContent.querySelector('.loading-text')) {
-                    const loadingText = document.createElement('div');
-                    loadingText.className = 'loading-text';
-                    loadingText.textContent = 'Loading note content...';
-                    noteContent.appendChild(loadingText);
-                }
-            }
-            
-            if (zapsList) {
-                zapsList.classList.add('loading');
-                if (!zapsList.querySelector('.loading-text')) {
-                    const loadingText = document.createElement('div');
-                    loadingText.className = 'loading-text';
-                    loadingText.textContent = 'Loading zaps...';
-                    zapsList.appendChild(loadingText);
-                }
-            }
-            
-            subscribeKind1(kind1ID);
+    const noteContent = document.querySelector('.note-content');
+    const zapsList = document.getElementById('zaps');
+    
+    if (noteContent) {
+        noteContent.classList.add('loading');
+        if (!noteContent.querySelector('.loading-text')) {
+            const loadingText = document.createElement('div');
+            loadingText.className = 'loading-text';
+            loadingText.textContent = 'Loading note content...';
+            noteContent.appendChild(loadingText);
+        }
+    }
+    
+    if (zapsList) {
+        zapsList.classList.add('loading');
+        if (!zapsList.querySelector('.loading-text')) {
+            const loadingText = document.createElement('div');
+            loadingText.className = 'loading-text';
+            loadingText.textContent = 'Loading zaps...';
+            zapsList.appendChild(loadingText);
+        }
+    }
+    
+    subscribeKind1(kind1ID);
             
         } else {
             throw new Error('Invalid identifier format. Please enter a valid nostr identifier.');
         }
         
-        document.getElementById('noteLoaderContainer').style.display = 'none';
+    document.getElementById('noteLoaderContainer').style.display = 'none';
         
     } catch (e) {
         // If decoding fails, show error instead of trying to use invalid input
@@ -1536,7 +1536,7 @@ async function subscribeLiveEventZaps(pubkey, identifier) {
             console.log("subscribeLiveEventZaps() Closed");
         }
     });
-}
+  }
 
 function scaleTextByLength(element, content) {
     const maxLength = 180; // Twitter-like character limit
@@ -2285,19 +2285,21 @@ function displayLiveEventZap(zapData) {
         activityContainer.insertBefore(zapDiv, existingActivityItems[activityInsertPosition]);
     }
     
-    // Also add to zaps-only column if it exists (for live events)
+    // Also add to zaps-only column if it exists (for live events) - sorted by amount (highest first)
     if (zapsOnlyContainer) {
         const zapOnlyDiv = zapDiv.cloneNode(true);
         zapOnlyDiv.classList.add('zap-only-item');
         
         const existingZapItems = Array.from(zapsOnlyContainer.querySelectorAll('.live-event-zap'));
         const zapInsertPosition = existingZapItems.findIndex(item => 
-            parseInt(item.dataset.timestamp) < zapData.timestamp
+            parseInt(item.dataset.amount || 0) < zapData.amount
         );
         
         if (zapInsertPosition === -1) {
+            // Add to end (lowest amounts at bottom)
             zapsOnlyContainer.appendChild(zapOnlyDiv);
         } else {
+            // Insert before the found position (higher amounts towards top)
             zapsOnlyContainer.insertBefore(zapOnlyDiv, existingZapItems[zapInsertPosition]);
         }
     }
