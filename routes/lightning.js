@@ -29,6 +29,9 @@ if (!process.env.WEBHOOK_URL) {
 // Frontend session tracking: frontendSessionId -> { events: { eventId: { lnurl, lastSeen, active } } }
 const frontendSessions = new Map();
 
+// LNURL-pay ID tracking: lnurlpId -> { frontendSessionId, eventId }
+const lnurlpMappings = new Map();
+
 // Cleanup inactive sessions every 5 minutes
 setInterval(() => {
   const now = Date.now();
@@ -49,6 +52,15 @@ setInterval(() => {
     if (Object.keys(session.events).length === 0) {
       frontendSessions.delete(frontendSessionId);
       console.log(`Cleaned up entire frontend session: ${frontendSessionId}`);
+    }
+  }
+  
+  // Clean up orphaned LNURL-pay mappings (sessions that no longer exist)
+  for (const [lnurlpId, mapping] of lnurlpMappings.entries()) {
+    const session = frontendSessions.get(mapping.frontendSessionId);
+    if (!session || !session.events[mapping.eventId]) {
+      lnurlpMappings.delete(lnurlpId);
+      console.log(`Cleaned up orphaned LNURL-pay mapping: ${lnurlpId}`);
     }
   }
 }, 300000);
@@ -228,7 +240,7 @@ async function createLNBitsLNURL(eventId, frontendSessionId) {
     min: 1000, // 1 sat minimum
     max: 100000000, // 1M sats maximum
     comment_chars: 200,
-    webhook_url: `${LNBITS_CONFIG.webhookUrl}?frontendSessionId=${frontendSessionId}&eventId=${eventId}`,
+    webhook_url: LNBITS_CONFIG.webhookUrl, // Clean webhook URL without parameters
     success_text: 'You just experienced the future of live payments!',
     currency: 'sat'
   };
@@ -254,30 +266,40 @@ async function createLNBitsLNURL(eventId, frontendSessionId) {
   
   const data = await response.json();
   console.log('LNBits response data:', data);
+  
+  // Store the LNURL-pay ID mapping for webhook lookup
+  if (data.id) {
+    lnurlpMappings.set(data.id, { frontendSessionId, eventId });
+    console.log(`Stored LNURL-pay mapping: ${data.id} -> ${frontendSessionId}/${eventId}`);
+  }
+  
   return data.lnurl;
 }
 
 // LNBits webhook endpoint for payment notifications
 router.post('/webhook', async (req, res) => {
-  const { frontendSessionId, eventId } = req.query;
   const paymentData = req.body;
   
   console.log('💰 LNBits webhook received:', {
-    frontendSessionId,
-    eventId,
+    lnurlpId: paymentData.lnurlp_id,
     paymentAmount: paymentData.amount,
     paymentComment: paymentData.comment,
     timestamp: new Date().toISOString()
   });
   
-  if (!frontendSessionId || !eventId) {
-    console.log('❌ Missing required webhook parameters:', { frontendSessionId, eventId });
-    return res.status(400).json({ 
+  // Look up session and event from LNURL-pay ID
+  const mapping = lnurlpMappings.get(paymentData.lnurlp_id);
+  if (!mapping) {
+    console.log('❌ LNURL-pay ID not found in mappings:', paymentData.lnurlp_id);
+    return res.status(404).json({ 
       success: false,
-      error: 'Missing required parameters',
-      details: 'Frontend session ID and event ID are required in query parameters'
+      error: 'Payment session not found',
+      details: 'The LNURL-pay ID does not match any active session'
     });
   }
+  
+  const { frontendSessionId, eventId } = mapping;
+  console.log(`Found mapping: ${paymentData.lnurlp_id} -> ${frontendSessionId}/${eventId}`);
   
   // Verify frontend session exists and event is active
   const session = frontendSessions.get(frontendSessionId);
@@ -627,13 +649,21 @@ router.get('/debug/sessions', (req, res) => {
     activeEvents: Object.values(session.events).filter(e => e.active).length
   }));
   
+  const lnurlpMappingsArray = Array.from(lnurlpMappings.entries()).map(([lnurlpId, mapping]) => ({
+    lnurlpId,
+    frontendSessionId: mapping.frontendSessionId,
+    eventId: mapping.eventId
+  }));
+  
   res.json({
     success: true,
     message: 'Current Lightning payment sessions',
     totalSessions: sessions.length,
     totalEvents: sessions.reduce((sum, s) => sum + s.totalEvents, 0),
     activeEvents: sessions.reduce((sum, s) => sum + s.activeEvents, 0),
+    totalLnurlpMappings: lnurlpMappingsArray.length,
     frontendSessions: sessions,
+    lnurlpMappings: lnurlpMappingsArray,
     cleanupInfo: {
       inactiveTimeoutMinutes: 60,
       nextCleanup: 'Every 5 minutes',
