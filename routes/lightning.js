@@ -351,8 +351,9 @@ async function sendAnonymousZap(eventId, amount, comment) {
     let rawEventId = eventId;
     if (eventId.startsWith('note1')) {
       try {
-        const { noteDecode } = require('nostr-tools/nip19');
-        rawEventId = noteDecode(eventId);
+        const { decode } = require('nostr-tools/nip19');
+        const decoded = decode(eventId);
+        rawEventId = decoded.data;
         console.log(`Decoded note ID: ${eventId} -> ${rawEventId}`);
       } catch (error) {
         console.log('Could not decode note ID, using as-is:', error.message);
