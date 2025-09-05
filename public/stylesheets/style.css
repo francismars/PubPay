@@ -6262,97 +6262,10 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 /* ===== LIVE EVENT ZAP STYLES ===== */
 
 .live-event-zap {
-    margin-bottom: 15px;
-    padding: 10px;
-    background: rgba(255, 215, 0, 0.1);
-    border-radius: 8px;
-    border-left: 3px solid #ffd700;
+    /* Use classic zap styling - inherits from .zap class */
     min-width: 0;
     overflow-wrap: break-word;
     word-wrap: break-word;
-}
-
-.zap-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.zap-author-img {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    margin-right: 8px;
-    object-fit: cover;
-}
-
-.zap-info {
-    flex: 1;
-}
-
-.zap-author-name {
-    font-weight: bold;
-    font-size: 0.8em;
-    color: var(--text-color);
-    margin-bottom: 2px;
-}
-
-.zap-time {
-    font-size: 0.7em;
-    color: var(--text-color);
-    opacity: 0.6;
-}
-
-.zap-amount {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    background: rgba(255, 215, 0, 0.2);
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid #ffd700;
-}
-
-.zap-amount-sats {
-    font-weight: bold;
-    font-size: 0.9em;
-    color: #b8860b;
-}
-
-.zap-amount-label {
-    font-size: 0.6em;
-    color: #b8860b;
-    opacity: 0.8;
-}
-
-.zap-content {
-    font-size: 0.9em;
-    line-height: 1.4;
-    color: var(--text-color);
-    word-wrap: break-word;
-    margin-top: 5px;
-    font-style: italic;
-}
-
-/* Responsive adjustments for live event zaps */
-@media (max-width: 768px) {
-    .live-event-zap {
-        padding: 8px;
-        margin-bottom: 10px;
-    }
-    
-    .zap-author-img {
-        width: 20px;
-        height: 20px;
-    }
-    
-    .zap-amount {
-        padding: 3px 6px;
-    }
-    
-    .zap-amount-sats {
-        font-size: 0.8em;
-    }
 }
 
 /* ===== LIVE EVENT TWO-COLUMN LAYOUT ===== */
