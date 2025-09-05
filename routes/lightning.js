@@ -26,7 +26,7 @@ if (!process.env.WEBHOOK_URL) {
   console.warn('This will not work for production. Please set WEBHOOK_URL in your .env file.');
 }
 
-// Frontend session tracking: frontendSessionId -> { eventId, lnurl, lastSeen, active }
+// Frontend session tracking: frontendSessionId -> { events: { eventId: { lnurl, lastSeen, active } } }
 const frontendSessions = new Map();
 
 // Cleanup inactive sessions every 5 minutes
@@ -34,9 +34,21 @@ setInterval(() => {
   const now = Date.now();
   
   for (const [frontendSessionId, session] of frontendSessions.entries()) {
-    if (now - session.lastSeen > 3600000) { // 1 hour
+    // Check if any events in this session are still active
+    let hasActiveEvents = false;
+    for (const [eventId, eventData] of Object.entries(session.events)) {
+      if (now - eventData.lastSeen > 3600000) { // 1 hour
+        delete session.events[eventId];
+        console.log(`Cleaned up event ${eventId} from session: ${frontendSessionId}`);
+      } else if (eventData.active) {
+        hasActiveEvents = true;
+      }
+    }
+    
+    // If no events left in session, delete the entire session
+    if (Object.keys(session.events).length === 0) {
       frontendSessions.delete(frontendSessionId);
-      console.log(`Cleaned up frontend session: ${frontendSessionId}`);
+      console.log(`Cleaned up entire frontend session: ${frontendSessionId}`);
     }
   }
 }, 300000);
@@ -62,24 +74,30 @@ router.post('/enable', async (req, res) => {
   }
   
   try {
-    // Check if frontend session already has an LNURL for this event
+    // Get or create session
     let session = frontendSessions.get(frontendSessionId);
+    if (!session) {
+      session = { events: {} };
+      frontendSessions.set(frontendSessionId, session);
+    }
     
-    if (session && session.eventId === eventId && session.lnurl && session.active) {
+    // Check if this specific event already has an active LNURL
+    if (session.events[eventId] && session.events[eventId].lnurl && session.events[eventId].active) {
       // Update last seen and return existing LNURL
-      session.lastSeen = Date.now();
+      session.events[eventId].lastSeen = Date.now();
       console.log(`♻️  Reusing existing active LNURL for session: ${frontendSessionId}, event: ${eventId}`);
       
       return res.json({
         success: true,
         message: 'Lightning payments enabled using existing payment link',
-        lnurl: session.lnurl,
+        lnurl: session.events[eventId].lnurl,
         existing: true,
         sessionInfo: {
           frontendSessionId,
           eventId,
-          lastSeen: new Date(session.lastSeen).toISOString(),
-          status: 'active'
+          lastSeen: new Date(session.events[eventId].lastSeen).toISOString(),
+          status: 'active',
+          totalEvents: Object.keys(session.events).length
         }
       });
     }
@@ -88,13 +106,12 @@ router.post('/enable', async (req, res) => {
     console.log(`🆕 Creating new LNURL for session: ${frontendSessionId}, event: ${eventId}`);
     const lnurl = await createLNBitsLNURL(eventId, frontendSessionId);
     
-    // Store or update frontend session
-    frontendSessions.set(frontendSessionId, {
-      eventId,
+    // Store event data in session
+    session.events[eventId] = {
       lnurl,
       lastSeen: Date.now(),
       active: true
-    });
+    };
     
     console.log(`✅ Successfully created new LNURL for session: ${frontendSessionId}, event: ${eventId}`);
     
@@ -107,7 +124,8 @@ router.post('/enable', async (req, res) => {
         frontendSessionId,
         eventId,
         lastSeen: new Date().toISOString(),
-        status: 'active'
+        status: 'active',
+        totalEvents: Object.keys(session.events).length
       },
       instructions: {
         qrCode: 'Display the LNURL as a QR code for users to scan',
@@ -157,15 +175,15 @@ router.post('/disable', (req, res) => {
     });
   }
   
-  // Find and deactivate frontend session
+  // Find and deactivate specific event in session
   const session = frontendSessions.get(frontendSessionId);
   
-  if (session && session.eventId === eventId) {
-    // Mark as inactive instead of deleting immediately
+  if (session && session.events[eventId]) {
+    // Mark specific event as inactive instead of deleting immediately
     // This allows for potential re-enabling without creating new LNURL
-    const wasActive = session.active;
-    session.active = false;
-    session.lastSeen = Date.now();
+    const wasActive = session.events[eventId].active;
+    session.events[eventId].active = false;
+    session.events[eventId].lastSeen = Date.now();
     
     console.log(`🔌 Disabled Lightning payments for session: ${frontendSessionId}, event: ${eventId} (was active: ${wasActive})`);
     
@@ -175,14 +193,15 @@ router.post('/disable', (req, res) => {
       sessionInfo: {
         frontendSessionId,
         eventId,
-        lastSeen: new Date(session.lastSeen).toISOString(),
+        lastSeen: new Date(session.events[eventId].lastSeen).toISOString(),
         status: 'inactive',
-        wasActive
+        wasActive,
+        totalEvents: Object.keys(session.events).length
       },
-      note: 'Session is preserved for potential re-enabling without creating new LNURL'
+      note: 'Event is preserved for potential re-enabling without creating new LNURL'
     });
   } else {
-    console.log(`❌ Session not found for disable request:`, { frontendSessionId, eventId });
+    console.log(`❌ Session or event not found for disable request:`, { frontendSessionId, eventId });
     res.status(404).json({ 
       success: false,
       error: 'Lightning payment session not found',
@@ -261,15 +280,15 @@ router.post('/webhook', async (req, res) => {
     });
   }
   
-  // Verify frontend session exists and is active
+  // Verify frontend session exists and event is active
   const session = frontendSessions.get(frontendSessionId);
-  if (!session || session.eventId !== eventId || !session.active) {
+  if (!session || !session.events[eventId] || !session.events[eventId].active) {
     console.log('❌ Invalid or inactive session for webhook:', { 
       frontendSessionId, 
       eventId,
       sessionExists: !!session,
-      sessionEventId: session?.eventId,
-      sessionActive: session?.active
+      eventExists: session?.events?.[eventId] ? true : false,
+      eventActive: session?.events?.[eventId]?.active
     });
     return res.status(404).json({ 
       success: false,
@@ -278,8 +297,8 @@ router.post('/webhook', async (req, res) => {
     });
   }
   
-  // Update last seen
-  session.lastSeen = Date.now();
+  // Update last seen for this specific event
+  session.events[eventId].lastSeen = Date.now();
   
   // Send anonymous zap to Nostr with comment as zapperMessage
   try {
@@ -598,24 +617,28 @@ router.get('/debug/sessions', (req, res) => {
   
   const sessions = Array.from(frontendSessions.entries()).map(([id, session]) => ({
     frontendSessionId: id,
-    eventId: session.eventId,
-    lnurl: session.lnurl,
-    active: session.active,
-    lastSeen: new Date(session.lastSeen).toISOString(),
-    ageMinutes: Math.round((Date.now() - session.lastSeen) / 60000)
+    events: Object.entries(session.events).map(([eventId, eventData]) => ({
+      eventId,
+      lnurl: eventData.lnurl,
+      active: eventData.active,
+      lastSeen: new Date(eventData.lastSeen).toISOString(),
+      ageMinutes: Math.round((Date.now() - eventData.lastSeen) / 60000)
+    })),
+    totalEvents: Object.keys(session.events).length,
+    activeEvents: Object.values(session.events).filter(e => e.active).length
   }));
   
   res.json({
     success: true,
     message: 'Current Lightning payment sessions',
     totalSessions: sessions.length,
-    activeSessions: sessions.filter(s => s.active).length,
-    inactiveSessions: sessions.filter(s => !s.active).length,
+    totalEvents: sessions.reduce((sum, s) => sum + s.totalEvents, 0),
+    activeEvents: sessions.reduce((sum, s) => sum + s.activeEvents, 0),
     frontendSessions: sessions,
     cleanupInfo: {
       inactiveTimeoutMinutes: 60,
       nextCleanup: 'Every 5 minutes',
-      note: 'Inactive sessions are automatically cleaned up after 1 hour'
+      note: 'Inactive events are automatically cleaned up after 1 hour'
     }
   });
 });
