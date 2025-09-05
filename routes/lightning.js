@@ -447,6 +447,16 @@ async function sendAnonymousZap(eventId, amount, comment) {
         const zapRequestUrl = `${lnurlCallback}?nostr=${encodeURIComponent(JSON.stringify(signedZapRequest))}&amount=${amount}`;
         
         const response = await fetch(zapRequestUrl);
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          const textResponse = await response.text();
+          console.log(`LNURL callback returned non-JSON response (${response.status}):`, textResponse.substring(0, 200));
+          console.log(`This usually means the Lightning address doesn't exist or LNURL isn't configured`);
+          return;
+        }
+        
         const responseData = await response.json();
         
         if (response.ok && responseData.pr) {
@@ -491,6 +501,7 @@ async function sendAnonymousZap(eventId, amount, comment) {
     } else {
       console.log('No Lightning address found for author, cannot send zap request');
       console.log('Zap request created but not sent (no LNURL callback available)');
+      console.log('Note: The author needs to set a lud16 or lud06 field in their profile to receive zaps');
     }
     
   } catch (error) {
