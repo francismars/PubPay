@@ -43,6 +43,9 @@
     <!-- Swiper.js for QR code slideshow -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    
+    <!-- HLS.js for live streaming support -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   </head>
   <body class="live">
     <script type="module" src="/javascripts/live.js"></script>
@@ -86,15 +89,15 @@
               </p>
             </div>
         
-        <label for="note1LoaderInput">Enter note id</label>
-        <input type="text" id="note1LoaderInput" name="note1LoaderInput" value="" placeholder="note1abc123... or nevent1xyz789...">
+        <label for="note1LoaderInput">Enter note, event, or profile</label>
+        <input type="text" id="note1LoaderInput" name="note1LoaderInput" value="" placeholder="note1abc123... or nevent1xyz789... or naddr1def456... or nprofile1ghi789...">
         <div id="noteLoaderError" class="error-message" style="display: none;"></div>
         <div class="button-container">
-          <button id="note1LoaderSubmit" class="button">Load Note</button>
+          <button id="note1LoaderSubmit" class="button">Load</button>
           <div class="styleOptionsModalToggle button outline">Style Options</div>
         </div>
         <div class="examples-section">
-          <h3>Examples</h3>
+          <h3>Examples - Notes, Live Events & Profiles</h3>
           <div class="example-item">
             <a href="/live/note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7" target="_blank">
               Zap my set at at Plan B at Adopting Bitcoin after party ⚡️
@@ -129,6 +132,17 @@
             <div class="author-name">
               <img src="https://i.nostr.build/itlLMXlxccOBG06L.jpg" alt="Roger 9000" class="author-avatar">
               Roger 9000
+            </div>
+          </div>
+          
+                   
+          <div class="example-item">
+            <a href="/live/naddr1qqjr2vehvyenvdtr94nrzetr956rgctr94skvvfs95eryep3x3snwve389nxyqg3waehxw309ahx7um5wgh8w6twv5hsygx0gknt5ymr44ldyyaq0rn3p5jpzkh8y8ymg773a06ytr4wldxz55psgqqqwensuq723w" target="_blank">
+              NoGood Radio is a 24/7 pirate radio station running on scrap parts and broadcasting from a basement somewhere.
+            </a>
+            <div class="author-name">
+              <img src="https://blossom.nogood.studio/458fee0afeba08618c9b9bea4f77b73d62f480c00dffe60d14b4b6a51045d122.jpg" alt="NoGood Radio" class="author-avatar">
+              NoGood Radio
             </div>
           </div>
         </div>
@@ -227,6 +241,9 @@
             <span class="total-label">Total:</span>
             <span id="zappedTotalValue" class="total-amount">0</span>
             <span class="total-sats">sats</span>
+            <span class="zap-count-separator">•</span>
+            <span id="zappedTotalCount" class="total-count">0</span>
+            <span class="total-zaps">zaps</span>
           </div>
           
           <div class="zaps-header-right">
@@ -239,6 +256,52 @@
               <a href="https://pubpay.me" target="_blank">
                 <img src="/images/powered_by_white_bg.png">
               </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Zappers Bar -->
+        <div id="top-zappers-bar" class="top-zappers-bar" style="display: none;">
+          <div class="top-zappers-list">
+            <div class="top-zapper" id="top-zapper-1">
+              <div class="zapper-rank">1</div>
+              <img class="zapper-avatar" src="/images/gradient_color.gif" alt="Top Zapper">
+              <div class="zapper-info">
+                <div class="zapper-name">Loading...</div>
+                <div class="zapper-total">0 sats</div>
+              </div>
+            </div>
+            <div class="top-zapper" id="top-zapper-2">
+              <div class="zapper-rank">2</div>
+              <img class="zapper-avatar" src="/images/gradient_color.gif" alt="Top Zapper">
+              <div class="zapper-info">
+                <div class="zapper-name">Loading...</div>
+                <div class="zapper-total">0 sats</div>
+              </div>
+            </div>
+            <div class="top-zapper" id="top-zapper-3">
+              <div class="zapper-rank">3</div>
+              <img class="zapper-avatar" src="/images/gradient_color.gif" alt="Top Zapper">
+              <div class="zapper-info">
+                <div class="zapper-name">Loading...</div>
+                <div class="zapper-total">0 sats</div>
+              </div>
+            </div>
+            <div class="top-zapper" id="top-zapper-4">
+              <div class="zapper-rank">4</div>
+              <img class="zapper-avatar" src="/images/gradient_color.gif" alt="Top Zapper">
+              <div class="zapper-info">
+                <div class="zapper-name">Loading...</div>
+                <div class="zapper-total">0 sats</div>
+              </div>
+            </div>
+            <div class="top-zapper" id="top-zapper-5">
+              <div class="zapper-rank">5</div>
+              <img class="zapper-avatar" src="/images/gradient_color.gif" alt="Top Zapper">
+              <div class="zapper-info">
+                <div class="zapper-name">Loading...</div>
+                <div class="zapper-total">0 sats</div>
+              </div>
             </div>
           </div>
         </div>
@@ -396,6 +459,15 @@
               <div class="style-option-group toggle-group">
                 <label class="toggle-label">
                   <div class="toggle-switch">
+                    <input type="checkbox" id="showTopZappersToggle">
+                    <span class="toggle-slider"></span>
+                  </div>
+                  <span>Show All Time Zappers</span>
+                </label>
+              </div>
+              <div class="style-option-group toggle-group">
+                <label class="toggle-label">
+                  <div class="toggle-switch">
                     <input type="checkbox" id="podiumToggle">
                     <span class="toggle-slider"></span>
                   </div>
@@ -455,7 +527,7 @@
               <div class="style-option-group toggle-group">
                 <label class="toggle-label">
                   <div class="toggle-switch">
-                    <input type="checkbox" id="qrShowWebLinkToggle" checked>
+                    <input type="checkbox" id="qrShowWebLinkToggle">
                     <span class="toggle-slider"></span>
                   </div>
                   <span>Show Web Link</span>
@@ -464,7 +536,7 @@
               <div class="style-option-group toggle-group">
                 <label class="toggle-label">
                   <div class="toggle-switch">
-                    <input type="checkbox" id="qrShowNeventToggle" checked>
+                    <input type="checkbox" id="qrShowNeventToggle">
                     <span class="toggle-slider"></span>
                   </div>
                   <span>Show Nostr Event</span>
@@ -473,7 +545,7 @@
               <div class="style-option-group toggle-group">
                 <label class="toggle-label">
                   <div class="toggle-switch">
-                    <input type="checkbox" id="qrShowNoteToggle" checked>
+                    <input type="checkbox" id="qrShowNoteToggle">
                     <span class="toggle-slider"></span>
                   </div>
                   <span>Show Note ID</span>
