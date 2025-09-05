@@ -2065,8 +2065,11 @@ function displayLiveEvent(liveEvent) {
     `;
     
     // Update author info with event title and fetch host profile
-    const hostPubkey = liveEvent.pubkey;
     document.getElementById("authorName").innerText = title;
+    
+    // Find the actual host from participants (look for "Host" role in p tags)
+    const hostParticipant = participants.find(p => p[3] && p[3].toLowerCase() === 'host');
+    const hostPubkey = hostParticipant ? hostParticipant[1] : liveEvent.pubkey;
     
     // Subscribe to host profile to get their image
     subscribeLiveEventHostProfile(hostPubkey);
