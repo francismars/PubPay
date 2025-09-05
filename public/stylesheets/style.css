@@ -6642,3 +6642,15 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     margin-top: 0 !important;
     margin-left: 32px; /* Align with text after smaller chat image */
 }
+
+/* Remove italics and reduce vertical spacing */
+.live-chat-message,
+.live-event-zap {
+    margin-bottom: 8px !important; /* Reduced from 15px */
+    font-style: normal !important;
+}
+
+.live-chat-message *,
+.live-event-zap * {
+    font-style: normal !important;
+}
