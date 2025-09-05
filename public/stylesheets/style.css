@@ -6198,7 +6198,6 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     padding: 10px;
     background: rgba(0, 0, 0, 0.05);
     border-radius: 8px;
-    border-left: 3px solid #4ecdc4;
     min-width: 0;
     overflow-wrap: break-word;
     word-wrap: break-word;
@@ -6266,7 +6265,6 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     padding: 10px;
     background: rgba(255, 215, 0, 0.1);
     border-radius: 8px;
-    border-left: 3px solid #ffd700;
     min-width: 0;
     overflow-wrap: break-word;
     word-wrap: break-word;
@@ -6307,7 +6305,6 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    background: rgba(255, 215, 0, 0.2);
 }
 
 .zap-amount-sats {
@@ -6382,15 +6379,6 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     overflow: hidden;
 }
 
-.column-header {
-    font-size: 0.9em;
-    font-weight: bold;
-    color: var(--text-color);
-    margin: 0 0 10px 0;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.3);
-    text-align: center;
-}
 
 .zaps-only-list,
 .activity-list {
@@ -6420,8 +6408,4 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
         height: 50%;
     }
     
-    .column-header {
-        font-size: 0.8em;
-        padding: 6px 0;
-    }
 }
