@@ -465,6 +465,7 @@ function updateStyleURL() {
         showTopZappers: showTopZappersToggle.checked,
         podium: podiumToggle.checked,
         zapGrid: zapGridToggle.checked,
+        lightningEnabled: lightningEnabled, // Add Lightning toggle to styles
         // fontSize: parseFloat(fontSizeSlider.value), // Disabled - using CSS vw units
         opacity: parseFloat(opacitySlider.value),
         textOpacity: parseFloat(textOpacitySlider.value),
@@ -472,7 +473,7 @@ function updateStyleURL() {
     };
     
     // Store styles in localStorage instead of URL
-    localStorage.setItem('nostrpay-styles', JSON.stringify(styles));
+    localStorage.setItem('pubpay-styles', JSON.stringify(styles));
     console.log('Saving styles to localStorage:', styles);
     
     // Keep URL clean - no style parameters
@@ -708,7 +709,7 @@ function applyStylesFromLocalStorage() {
     }
     
     // Load styles from localStorage
-    const savedStyles = localStorage.getItem('nostrpay-styles');
+    const savedStyles = localStorage.getItem('pubpay-styles');
     if (!savedStyles) {
         // Apply default styles if no saved styles
         applyAllStyles();
@@ -848,6 +849,21 @@ function applyStylesFromLocalStorage() {
                 } else {
                     cleanupHierarchicalOrganization();
                 }
+            }
+        }
+        
+        // Apply Lightning toggle
+        if (styles.lightningEnabled !== undefined) {
+            lightningEnabled = styles.lightningEnabled;
+            window.lightningEnabled = styles.lightningEnabled;
+            updateLightningToggle();
+            
+            // If Lightning was enabled, try to re-enable it
+            if (lightningEnabled) {
+                console.log('Lightning was previously enabled, attempting to re-enable...');
+                setTimeout(() => {
+                    enableLightningPayments();
+                }, 100);
             }
         }
     
@@ -3599,7 +3615,7 @@ function applyAllStyles() {
 
 function resetToDefaults() {
     // Clear localStorage to remove saved customizations
-    localStorage.removeItem('nostrpay-styles');
+    localStorage.removeItem('pubpay-styles');
     console.log('Cleared localStorage - resetting to defaults');
     
     // Apply light mode preset
@@ -3608,7 +3624,7 @@ function resetToDefaults() {
 
 function copyStyleUrl() {
     // Get current styles from localStorage
-    const savedStyles = localStorage.getItem('nostrpay-styles');
+    const savedStyles = localStorage.getItem('pubpay-styles');
     let urlToCopy = window.location.origin + window.location.pathname;
     
     if (savedStyles) {
@@ -3903,7 +3919,7 @@ function setupStyleOptions() {
         }
         
         // Partner logo initialization is now handled by applyStylesFromLocalStorage()
-        // which reads from the combined 'nostrpay-styles' localStorage key
+        // which reads from the combined 'pubpay-styles' localStorage key
     }
     
     // QR Code toggles
@@ -4301,9 +4317,27 @@ let frontendSessionId = null;
 let lightningQRSlide = null;
 let lightningEnabled = false;
 
+// Lightning toggle state is now managed by the main styles system
+
 // Generate unique frontend session ID
 function generateFrontendSessionId() {
   return 'frontend_' + crypto.randomUUID();
+}
+
+// Get or create persistent frontend session ID
+function getFrontendSessionId() {
+  if (!frontendSessionId) {
+    // Try to get from localStorage first
+    frontendSessionId = localStorage.getItem('pubpay_frontend_session_id');
+    
+    if (!frontendSessionId) {
+      // Generate new one if none exists
+      frontendSessionId = generateFrontendSessionId();
+      localStorage.setItem('pubpay_frontend_session_id', frontendSessionId);
+    }
+  }
+  
+  return frontendSessionId;
 }
 
 // Enable Lightning payments
@@ -4315,9 +4349,7 @@ async function enableLightningPayments() {
     return;
   }
   
-  if (!frontendSessionId) {
-    frontendSessionId = generateFrontendSessionId();
-  }
+  frontendSessionId = getFrontendSessionId();
   
   try {
     const response = await fetch('/lightning/enable', {
@@ -4344,6 +4376,9 @@ async function enableLightningPayments() {
       // Update toggle state
       lightningEnabled = true;
       updateLightningToggle();
+      
+      // Save to main styles system
+      updateStyleURL();
       
       // Update swiper to include Lightning QR
       if (window.updateQRSlideVisibility) {
@@ -4375,9 +4410,11 @@ async function enableLightningPayments() {
 async function disableLightningPayments() {
   const eventId = getCurrentEventId();
   
-  if (!eventId || !frontendSessionId) {
+  if (!eventId) {
     return;
   }
+  
+  frontendSessionId = getFrontendSessionId();
   
   try {
     const response = await fetch('/lightning/disable', {
@@ -4399,6 +4436,9 @@ async function disableLightningPayments() {
       // Update toggle state
       lightningEnabled = false;
       updateLightningToggle();
+      
+      // Save to main styles system
+      updateStyleURL();
       
       // Update swiper to remove Lightning QR
       if (window.updateQRSlideVisibility) {
@@ -4564,7 +4604,8 @@ function updateLightningToggle() {
   
   if (lightningEnabled) {
     toggle.checked = true;
-    statusContainer.style.display = 'block';
+    // Don't show status container when toggling - only show when there are actual status messages
+    statusContainer.style.display = 'none';
   } else {
     toggle.checked = false;
     statusContainer.style.display = 'none';
@@ -4849,6 +4890,8 @@ function getCurrentEventId() {
 function initializeLightningToggle() {
   const toggle = document.getElementById('lightningToggle');
   if (toggle) {
+    // Lightning state is now loaded by the main styles system
+    // Just add the event listener
     toggle.addEventListener('change', toggleLightningPayments);
   }
 }
