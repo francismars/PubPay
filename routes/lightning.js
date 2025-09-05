@@ -459,19 +459,39 @@ async function sendAnonymousZap(eventId, amount, comment) {
       
       // Parse Lightning address to get LNURL discovery endpoint
       const ludSplit = lightningAddress.split('@');
+      console.log(`Lightning address split result:`, ludSplit);
+      
       if (ludSplit.length !== 2) {
-        throw new Error(`Invalid Lightning address format: ${lightningAddress}`);
+        throw new Error(`Invalid Lightning address format: ${lightningAddress}. Expected format: username@domain.com`);
       }
       
       const lnurlDiscoveryUrl = `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`;
       console.log(`LNURL discovery URL: ${lnurlDiscoveryUrl}`);
       
       // Fetch LNURL discovery to get the callback URL
+      console.log(`Making LNURL discovery request to: ${lnurlDiscoveryUrl}`);
       const discoveryResponse = await fetch(lnurlDiscoveryUrl);
-      const discoveryData = await discoveryResponse.json();
       
-      if (discoveryData.status !== 'OK' || !discoveryData.callback) {
-        throw new Error(`LNURL discovery failed: ${discoveryData.reason || 'Unknown error'}`);
+      console.log(`LNURL discovery response status: ${discoveryResponse.status}`);
+      console.log(`LNURL discovery response headers:`, Object.fromEntries(discoveryResponse.headers.entries()));
+      
+      if (!discoveryResponse.ok) {
+        const errorText = await discoveryResponse.text();
+        console.log(`LNURL discovery error response: ${errorText}`);
+        throw new Error(`LNURL discovery HTTP error: ${discoveryResponse.status} - ${errorText}`);
+      }
+      
+      const discoveryData = await discoveryResponse.json();
+      console.log(`LNURL discovery response data:`, discoveryData);
+      
+      // Check for different response formats
+      if (discoveryData.status !== 'OK') {
+        // Some services might not return status: 'OK' but still work
+        console.log(`Warning: LNURL discovery returned status: ${discoveryData.status}`);
+      }
+      
+      if (!discoveryData.callback) {
+        throw new Error(`LNURL discovery failed: No callback URL found. Response: ${JSON.stringify(discoveryData)}`);
       }
       
       lnurlCallback = discoveryData.callback;
