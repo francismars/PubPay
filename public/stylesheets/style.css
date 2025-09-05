@@ -2555,19 +2555,10 @@ body.qr-blend-active.qr-multiply-active .qr-swiper {
     margin-bottom: 10px;
 }
 
-.top-zappers-title {
-    font-size: 1.1vw;
-    font-weight: 600;
-    color: var(--text-color);
-    margin-bottom: 15px;
-    text-align: center;
-    opacity: 0.9;
-}
-
 .top-zappers-list {
     display: flex;
     justify-content: space-around;
-    gap: 15px;
+    gap: 10px;
 }
 
 .top-zapper {
@@ -3892,12 +3883,8 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
         padding-right: 20px;
     }
     
-    .top-zappers-title {
-        font-size: max(1.5vw, 14px);
-    }
-    
     .top-zappers-list {
-        gap: 10px;
+        gap: 8px;
     }
     
     .top-zapper {
@@ -5013,7 +5000,6 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 .main-layout .note-section,
 .main-layout .qr-section,
 .main-layout .top-zappers-bar,
-.main-layout .top-zappers-title,
 .main-layout .zapper-name {
     color: var(--text-color) !important;
 }
@@ -6797,8 +6783,8 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 }
 
 /* Grid toggle disabled state */
-.grid-toggle-disabled {
-    opacity: 0.8 !important;
+  .grid-toggle-disabled {
+      opacity: 0.8 !important;
     pointer-events: none !important;
     cursor: not-allowed !important;
 }
