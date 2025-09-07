@@ -1898,7 +1898,6 @@ async function subscribeLiveEventParticipants(liveEvent) {
 }
 
 async function subscribeChatAuthorProfile(pubkey) {
-    console.log("Subscribing to chat author profile:", pubkey);
     
     let filter = {
         kinds: [0], // Profile kind
@@ -1907,12 +1906,10 @@ async function subscribeChatAuthorProfile(pubkey) {
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(profile) {
-            console.log("Received chat author profile:", profile);
             // Update chat message display with profile info
             updateChatAuthorProfile(profile);
         },
         oneose() {
-            console.log("subscribeChatAuthorProfile() EOS");
         },
         onclosed() {
             console.log("subscribeChatAuthorProfile() Closed");
@@ -1932,7 +1929,6 @@ async function subscribeLiveEventZaps(pubkey, identifier) {
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(zapReceipt) {
-            console.log("Received live event zap receipt:", zapReceipt);
             processLiveEventZap(zapReceipt, pubkey, identifier);
         },
         oneose() {
@@ -2268,7 +2264,6 @@ async function drawKind1(kind1){
     // Apply current slide visibility settings with delay to ensure localStorage is loaded
     setTimeout(() => {
         if (window.updateQRSlideVisibility) {
-            console.log('Calling updateQRSlideVisibility from QR generation with delay');
             window.updateQRSlideVisibility(true); // Skip URL update during QR generation
         }
     }, 300); // Longer delay to ensure localStorage is loaded (after the 200ms delay)
@@ -2613,7 +2608,6 @@ function startContentMonitoring() {
 }
 
 function displayLiveChatMessage(chatMessage) {
-    console.log("Displaying live chat message:", chatMessage);
     
     const zapsContainer = document.getElementById("zaps");
     
@@ -2681,7 +2675,6 @@ function updateParticipantProfile(profile) {
 }
 
 function updateChatAuthorProfile(profile) {
-    console.log("Updating chat author profile:", profile);
     
     const profileData = JSON.parse(profile.content || '{}');
     const name = profileData.display_name || profileData.displayName || profileData.name || profile.pubkey.slice(0,8) + '...';
@@ -2721,14 +2714,12 @@ function updateLiveEventHostProfile(profile) {
 }
 
 function generateLiveEventQRCodes(liveEvent) {
-    console.log("Generating QR codes for live event:", liveEvent);
     
     const identifier = liveEvent.tags.find(tag => tag[0] === "d")?.[1];
     const pubkey = liveEvent.pubkey;
     const kind = 30311;
     
     if (!identifier || !pubkey) {
-        console.error("Missing identifier or pubkey for QR generation");
         return;
     }
     
@@ -2746,68 +2737,72 @@ function generateLiveEventQRCodes(liveEvent) {
     // Calculate QR size dynamically (same as note1/nevent pages)
     const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
     
-    // Generate QR codes
-    const qrCode = new QRious({
-        element: document.getElementById('qrCode'),
-        value: njumpUrl,
-        size: qrSize
-    });
+    // Generate QR codes (with null checks)
+    const qrCodeElement = document.getElementById('qrCode');
+    const qrCodeNeventElement = document.getElementById('qrCodeNevent');
+    const qrCodeNoteElement = document.getElementById('qrCodeNote');
     
-    const qrCodeNevent = new QRious({
-        element: document.getElementById('qrCodeNevent'),
-        value: nostrNaddr,
-        size: qrSize
-    });
-    
-    const qrCodeNote = new QRious({
-        element: document.getElementById('qrCodeNote'),
-        value: naddrId,
-        size: qrSize
-    });
-    
-    // Update QR code links
-    document.getElementById('qrcodeLinkNostr').href = njumpUrl;
-    document.getElementById('qrcodeNeventLink').href = nostrNaddr;
-    document.getElementById('qrcodeNoteLink').href = naddrId;
-    
-    // Update QR data previews
-    const preview1 = document.getElementById('qrDataPreview1');
-    const preview2 = document.getElementById('qrDataPreview2');
-    const preview3 = document.getElementById('qrDataPreview3');
-    
-    console.log("QR preview elements found:", { preview1: !!preview1, preview2: !!preview2, preview3: !!preview3 });
-    console.log("Preview data to set:", { njumpUrl, nostrNaddr, naddrId });
-    
-    if (preview1) {
-        const previewText = njumpUrl.slice(0, 20) + '...';
-        preview1.textContent = previewText;
-        console.log("Set preview1 to:", previewText, "- actual element content:", preview1.textContent);
-    } else {
-        console.error("qrDataPreview1 element not found");
+    if (qrCodeElement) {
+        const qrCode = new QRious({
+            element: qrCodeElement,
+            value: njumpUrl,
+            size: qrSize
+        });
     }
     
-    if (preview2) {
-        const previewText = nostrNaddr.slice(0, 20) + '...';
-        preview2.textContent = previewText;
-        console.log("Set preview2 to:", previewText, "- actual element content:", preview2.textContent);
-    } else {
-        console.error("qrDataPreview2 element not found");
+    if (qrCodeNeventElement) {
+        const qrCodeNevent = new QRious({
+            element: qrCodeNeventElement,
+            value: nostrNaddr,
+            size: qrSize
+        });
     }
     
-    if (preview3) {
-        const previewText = naddrId.slice(0, 20) + '...';
-        preview3.textContent = previewText;
-        console.log("Set preview3 to:", previewText, "- actual element content:", preview3.textContent);
-    } else {
-        console.error("qrDataPreview3 element not found");
+    if (qrCodeNoteElement) {
+        const qrCodeNote = new QRious({
+            element: qrCodeNoteElement,
+            value: naddrId,
+            size: qrSize
+        });
     }
+    
+    // Update QR code links (with null checks)
+    const qrcodeLinkNostr = document.getElementById('qrcodeLinkNostr');
+    const qrcodeNeventLink = document.getElementById('qrcodeNeventLink');
+    const qrcodeNoteLink = document.getElementById('qrcodeNoteLink');
+    
+    if (qrcodeLinkNostr) qrcodeLinkNostr.href = njumpUrl;
+    if (qrcodeNeventLink) qrcodeNeventLink.href = nostrNaddr;
+    if (qrcodeNoteLink) qrcodeNoteLink.href = naddrId;
+    
     
     // Apply slide visibility settings for live events after QR generation
-    console.log("Calling updateQRSlideVisibility for live event after QR generation");
     setTimeout(() => {
         if (window.updateQRSlideVisibility) {
             window.updateQRSlideVisibility(true); // Skip URL update during initialization
         }
+        
+        // Set preview data after slide visibility is updated (with additional delay)
+        setTimeout(() => {
+            const preview1 = document.getElementById('qrDataPreview1');
+            const preview2 = document.getElementById('qrDataPreview2');
+            const preview3 = document.getElementById('qrDataPreview3');
+            
+            if (preview1) {
+                const previewText = njumpUrl.slice(8, 28) + '...'; // Remove https:// prefix
+                preview1.textContent = previewText;
+            }
+            
+            if (preview2) {
+                const previewText = 'nostr:' + naddrId.slice(0, 15) + '...';
+                preview2.textContent = previewText;
+            }
+            
+            if (preview3) {
+                const previewText = naddrId.slice(0, 20) + '...';
+                preview3.textContent = previewText;
+            }
+        }, 100);
     }, 100);
 }
 
@@ -2885,12 +2880,20 @@ function initializeLiveVideoPlayer(streamingUrl) {
 }
 
 async function processLiveEventZap(zapReceipt, eventPubkey, eventIdentifier) {
-    console.log("Processing live event zap:", zapReceipt);
     
     try {
         // Extract zap information from the receipt
-        const description9735 = zapReceipt.tags.find(tag => tag[0] === "description")[1];
-        const zapRequest = JSON.parse(description9735);
+        const description9735 = zapReceipt.tags.find(tag => tag[0] === "description")?.[1];
+        if (!description9735) {
+            return;
+        }
+        
+        let zapRequest;
+        try {
+            zapRequest = JSON.parse(description9735);
+        } catch (parseError) {
+            return;
+        }
         const bolt11 = zapReceipt.tags.find(tag => tag[0] === "bolt11")[1];
         const amount = lightningPayReq.decode(bolt11).satoshis;
         const zapperPubkey = zapRequest.pubkey;
@@ -2922,7 +2925,6 @@ async function processLiveEventZap(zapReceipt, eventPubkey, eventIdentifier) {
 }
 
 function displayLiveEventZap(zapData) {
-    console.log("Displaying live event zap:", zapData);
     
     const zapsContainer = document.getElementById("zaps");
     
@@ -3450,10 +3452,8 @@ function initializePortraitSwiper() {
         // Event callbacks
         on: {
             init: function () {
-                console.log('Portrait Swiper initialized');
             },
             slideChange: function () {
-                console.log('Slide changed to:', this.activeIndex);
             }
         }
     });
@@ -3930,10 +3930,7 @@ function setupStyleOptions() {
         updateBlendMode();
     });
     
-    // QR slide visibility toggles
-    const qrShowWebLinkToggle = document.getElementById('qrShowWebLinkToggle');
-    const qrShowNeventToggle = document.getElementById('qrShowNeventToggle');
-    const qrShowNoteToggle = document.getElementById('qrShowNoteToggle');
+    // QR slide visibility toggles will be attached when DOM is ready
     
     // Debounce mechanism to prevent rapid successive calls
     let qrVisibilityUpdateTimeout = null;
@@ -3941,16 +3938,14 @@ function setupStyleOptions() {
     function updateQRSlideVisibility(skipURLUpdate = false) {
         // Clear any existing timeout to debounce rapid calls
         if (qrVisibilityUpdateTimeout) {
-            console.log('Debouncing QR visibility update - clearing previous timeout');
             clearTimeout(qrVisibilityUpdateTimeout);
         }
         
         // For user interactions (not skipURLUpdate), add a small debounce
         if (!skipURLUpdate) {
-            console.log('Adding debounce for user interaction');
             qrVisibilityUpdateTimeout = setTimeout(() => {
                 updateQRSlideVisibilityImmediate(skipURLUpdate);
-            }, 50);
+            }, 150);
             return;
         }
         
@@ -3967,27 +3962,19 @@ function setupStyleOptions() {
         const showNevent = neventToggle?.checked ?? true;
         const showNote = noteToggle?.checked ?? true;
         
-        console.log('=== updateQRSlideVisibilityImmediate DEBUG ===');
-        console.log('Function called with skipURLUpdate:', skipURLUpdate);
-        console.log('Stack trace:', new Error().stack.split('\n').slice(1, 5).join('\n'));
-        
-        console.log('updateQRSlideVisibilityImmediate called:', {
-            showWebLink, showNevent, showNote,
-            skipURLUpdate,
-            webLinkToggleChecked: webLinkToggle?.checked,
-            neventToggleChecked: neventToggle?.checked,
-            noteToggleChecked: noteToggle?.checked
-        });
         
         // Check if we can avoid rebuilding by just showing/hiding existing slides
         const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
-        if (swiperWrapper) {
+        if (swiperWrapper && window.qrSwiper) {
             const existingSlides = swiperWrapper.children;
-            const hasAllSlides = existingSlides.length >= 3; // At least 3 basic slides
+            // Check if we have the basic QR slides (not just count, but actual QR elements)
+            const hasQRSlides = Array.from(existingSlides).some(slide => {
+                const img = slide.querySelector('img');
+                return img && (img.id === 'qrCode' || img.id === 'qrCodeNevent' || img.id === 'qrCodeNote');
+            });
             
-            // If we have all slides and swiper exists, try to show/hide instead of rebuilding
-            if (window.qrSwiper && hasAllSlides) {
-                console.log('Attempting to show/hide slides without rebuilding');
+            // If we have QR slides and swiper exists, try to show/hide instead of rebuilding
+            if (hasQRSlides) {
                 
                 // Store references to slides that should be hidden
                 const slidesToHide = [];
@@ -4011,7 +3998,6 @@ function setupStyleOptions() {
                         slidesToHide.push(slide);
                         slide.style.display = 'none';
                     }
-                    console.log(`Slide ${index} (${slideId}): ${shouldShow ? 'shown' : 'hidden'}`);
                 });
                 
                 // Show/hide the swiper container based on visible slides
@@ -4023,29 +4009,26 @@ function setupStyleOptions() {
                     }
                     
                     // Update swiper without destroying it
-                    setTimeout(() => {
-                        if (window.qrSwiper) {
+                    if (window.qrSwiper && typeof window.qrSwiper.update === 'function') {
+                        try {
                             window.qrSwiper.update();
-                            // If only one slide, disable loop and touch
+                            
+                            // Update swiper behavior based on visible slides
                             if (slidesToShow.length === 1) {
                                 window.qrSwiper.allowTouchMove = false;
-                                if (window.qrSwiper.params) {
-                                    window.qrSwiper.params.loop = false;
-                                    window.qrSwiper.params.autoplay = false;
+                                if (window.qrSwiper.autoplay && window.qrSwiper.autoplay.stop) {
+                                    window.qrSwiper.autoplay.stop();
                                 }
-                            } else {
+                            } else if (slidesToShow.length > 1) {
                                 window.qrSwiper.allowTouchMove = true;
-                                if (window.qrSwiper.params) {
-                                    window.qrSwiper.params.loop = true;
-                                    window.qrSwiper.params.autoplay = {
-                                        delay: 3000,
-                                        disableOnInteraction: false,
-                                        pauseOnMouseEnter: true
-                                    };
+                                if (window.qrSwiper.autoplay && window.qrSwiper.autoplay.start) {
+                                    window.qrSwiper.autoplay.start();
                                 }
                             }
+                        } catch (error) {
+                            // If update fails, we'll need to rebuild
                         }
-                    }, 10);
+                    }
                 } else {
                     // No slides to show, hide the entire swiper
                     if (qrSwiperContainer) {
@@ -4060,7 +4043,6 @@ function setupStyleOptions() {
                 return;
             }
             
-            console.log('Need to rebuild swiper - destroying existing instance');
             // Fallback to rebuilding if we don't have all slides or no swiper exists
             if (window.qrSwiper) {
                 window.qrSwiper.destroy(true, true);
@@ -4076,16 +4058,11 @@ function setupStyleOptions() {
             const lightningSlide = document.getElementById('lightningQRSlide');
             const shouldPreserveLightning = lightningSlide && lightningSlide.style.display !== 'none' && window.lightningEnabled;
             
-            console.log('updateQRSlideVisibility - Lightning check:', {
-                lightningSlide: !!lightningSlide,
-                display: lightningSlide?.style.display,
-                windowLightningEnabled: window.lightningEnabled,
-                shouldPreserveLightning
-            });
             
             swiperWrapper.innerHTML = '';
             
             // Add slides based on visibility settings
+            const isLiveEvent = window.currentEventType === 'live-event';
             const slideConfigs = [
                 { 
                     show: showWebLink, 
@@ -4099,14 +4076,14 @@ function setupStyleOptions() {
                     id: 'qrCodeNevent', 
                     linkId: 'qrcodeNeventLink',
                     previewId: 'qrDataPreview2',
-                    label: 'Nostr Event'
+                    label: isLiveEvent ? 'Nostr Live Event' : 'Nostr Event'
                 },
                 { 
                     show: showNote, 
                     id: 'qrCodeNote', 
                     linkId: 'qrcodeNoteLink',
                     previewId: 'qrDataPreview3',
-                    label: 'Note ID'
+                    label: isLiveEvent ? 'Live Event Address (naddr)' : 'Note ID'
                 },
                 { 
                     show: window.lightningEnabled, 
@@ -4178,18 +4155,13 @@ function setupStyleOptions() {
     
     // Function to regenerate QR codes for visible slides
     function regenerateQRCodes() {
-        console.log('regenerateQRCodes called', { 
-            currentLiveEvent: !!window.currentLiveEvent, 
-            currentNoteId: !!window.currentNoteId 
-        });
         
         // Check if we have live event data first
         if (window.currentLiveEvent) {
-            console.log('Regenerating QR codes for live event');
             // Add delay to ensure swiper slides are fully created
             setTimeout(() => {
                 generateLiveEventQRCodes(window.currentLiveEvent);
-            }, 50);
+            }, 150);
             return;
         }
         
@@ -4197,11 +4169,8 @@ function setupStyleOptions() {
         const noteId = window.currentNoteId;
         
         if (!noteId) {
-            console.log('No noteId or liveEvent found for QR regeneration');
             return;
         }
-        
-        console.log('Regenerating QR codes for regular note:', noteId);
         
         // Generate QR code data
         const neventId = NostrTools.nip19.neventEncode({ id: noteId, relays: [] });
@@ -4306,23 +4275,34 @@ function setupStyleOptions() {
     window.updateQRSlideVisibilityImmediate = updateQRSlideVisibilityImmediate;
     window.regenerateQRCodes = regenerateQRCodes;
     
-    if (qrShowWebLinkToggle) {
-        qrShowWebLinkToggle.addEventListener('change', function(e) {
-            console.log('QR Show Web Link toggle changed:', e.target.checked);
-            updateQRSlideVisibility(); // This will call updateStyleURL() to save state
-        });
+    // Add event listeners with retry mechanism for DOM readiness
+    function attachQRToggleListeners() {
+        const webLinkToggle = document.getElementById('qrShowWebLinkToggle');
+        const neventToggle = document.getElementById('qrShowNeventToggle');
+        const noteToggle = document.getElementById('qrShowNoteToggle');
+        
+        if (webLinkToggle) {
+            webLinkToggle.addEventListener('change', function(e) {
+                updateQRSlideVisibility(); // This will call updateStyleURL() to save state
+            });
+        }
+        if (neventToggle) {
+            neventToggle.addEventListener('change', function(e) {
+                updateQRSlideVisibility(); // This will call updateStyleURL() to save state
+            });
+        }
+        if (noteToggle) {
+            noteToggle.addEventListener('change', function(e) {
+                updateQRSlideVisibility(); // This will call updateStyleURL() to save state
+            });
+        }
     }
-    if (qrShowNeventToggle) {
-        qrShowNeventToggle.addEventListener('change', function(e) {
-            console.log('QR Show Nevent toggle changed:', e.target.checked);
-            updateQRSlideVisibility(); // This will call updateStyleURL() to save state
-        });
-    }
-    if (qrShowNoteToggle) {
-        qrShowNoteToggle.addEventListener('change', function(e) {
-            console.log('QR Show Note toggle changed:', e.target.checked);
-            updateQRSlideVisibility(); // This will call updateStyleURL() to save state
-        });
+    
+    // Try to attach listeners immediately, and retry if elements don't exist yet
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', attachQRToggleListeners);
+    } else {
+        attachQRToggleListeners();
     }
     
     // Layout inversion toggle
