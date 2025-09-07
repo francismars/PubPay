@@ -2565,6 +2565,13 @@ function displayLiveEvent(liveEvent) {
         generateLiveEventQRCodes(liveEvent);
     }, 100);
     
+    // Enable Lightning payments if previously enabled
+    if (lightningEnabled) {
+        setTimeout(() => {
+            enableLightningPayments();
+        }, 150);
+    }
+    
     // Initialize video player if streaming URL is available
     if (streaming) {
         setTimeout(() => {
@@ -4987,8 +4994,15 @@ function reinitializeSwiper() {
   });
 }
 
-// Get current event ID from URL
+// Get current event ID from URL or live event
 function getCurrentEventId() {
+  // Check if we have a live event first
+  if (window.currentEventType === 'live-event' && window.currentLiveEvent) {
+    // For live events, use the event ID
+    return window.currentLiveEvent.id;
+  }
+  
+  // For regular notes, extract from URL
   const pathParts = window.location.pathname.split('/');
   const noteId = pathParts[pathParts.length - 1];
   return noteId && noteId !== 'live' ? noteId : null;
