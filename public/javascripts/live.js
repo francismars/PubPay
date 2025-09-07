@@ -1868,7 +1868,6 @@ async function subscribeLiveChat(pubkey, identifier) {
 }
 
 async function subscribeLiveEventParticipants(liveEvent) {
-    console.log("Subscribing to live event participants");
     
     // Extract participant pubkeys from p tags
     const participants = liveEvent.tags
@@ -1884,15 +1883,12 @@ async function subscribeLiveEventParticipants(liveEvent) {
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(profile) {
-            console.log("Received participant profile:", profile);
             // Update participant display with profile info
             updateParticipantProfile(profile);
         },
         oneose() {
-            console.log("subscribeLiveEventParticipants() EOS");
         },
         onclosed() {
-            console.log("subscribeLiveEventParticipants() Closed");
         }
     });
 }
@@ -1947,7 +1943,6 @@ async function subscribeLiveEventZaps(pubkey, identifier) {
 }
 
 async function subscribeLiveEventHostProfile(hostPubkey) {
-    console.log("Subscribing to live event host profile:", hostPubkey);
     
     let filter = {
         kinds: [0], // Profile kind
@@ -1956,14 +1951,11 @@ async function subscribeLiveEventHostProfile(hostPubkey) {
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(profile) {
-            console.log("Received live event host profile:", profile);
             updateLiveEventHostProfile(profile);
         },
         oneose() {
-            console.log("subscribeLiveEventHostProfile() EOS");
         },
         onclosed() {
-            console.log("subscribeLiveEventHostProfile() Closed");
         }
     });
   }
@@ -2386,11 +2378,8 @@ function setupLiveEventTwoColumnLayout() {
     // Check if layout is already set up to avoid clearing existing content
     if (zapsContainer.classList.contains('live-event-two-column') && 
         zapsContainer.querySelector('.live-event-columns')) {
-        console.log("Two-column layout already exists, skipping setup to preserve content");
         return;
     }
-    
-    console.log("Setting up two-column layout");
     
     // Clear existing content and set up two-column structure
     zapsContainer.innerHTML = `
@@ -2446,13 +2435,15 @@ function enableGridToggle() {
 }
 
 function displayLiveEvent(liveEvent) {
-    console.log("Displaying live event:", liveEvent);
     
     // Check if this live event is already displayed to avoid clearing content
     if (window.currentLiveEvent && window.currentLiveEvent.id === liveEvent.id) {
-        console.log("Live event already displayed, skipping to avoid clearing content");
         return;
     }
+    
+    // Store event info globally at the beginning to prevent duplicate calls
+    window.currentLiveEvent = liveEvent;
+    window.currentEventType = 'live-event';
     
     // Hide note content loading animation
     const noteContent = document.querySelector('.note-content');
@@ -2482,69 +2473,88 @@ function displayLiveEvent(liveEvent) {
         return date.toLocaleString();
     };
     
-    // Update the note content area with live event info
-    noteContent.innerHTML = `
-        ${streaming ? `
-            <div class="live-event-video">
-                <div id="live-video-player" class="video-player-container">
-                    <video id="live-video" controls autoplay muted playsinline class="live-video">
-                        <source src="${streaming}" type="application/x-mpegURL">
-                        <source src="${streaming}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
-                    <div class="video-error" id="video-error" style="display: none;">
-                        <p>Unable to load video stream</p>
-                        <a href="${streaming}" target="_blank" class="streaming-link">
-                            📺 Watch in External Player
-                        </a>
+    // Check if live event content already exists to avoid rebuilding video
+    const existingLiveContent = noteContent.querySelector('.live-event-content');
+    const existingVideo = noteContent.querySelector('#live-video');
+    
+    if (!existingLiveContent) {
+        // Only set innerHTML if content doesn't exist yet
+        noteContent.innerHTML = `
+            ${streaming ? `
+                <div class="live-event-video">
+                    <div id="live-video-player" class="video-player-container">
+                        <video id="live-video" controls autoplay muted playsinline class="live-video">
+                            <source src="${streaming}" type="application/x-mpegURL">
+                            <source src="${streaming}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="video-error" id="video-error" style="display: none;">
+                            <p>Unable to load video stream</p>
+                            <a href="${streaming}" target="_blank" class="streaming-link">
+                                📺 Watch in External Player
+                            </a>
+                        </div>
                     </div>
                 </div>
-            </div>
-        ` : ''}
-        
-        <div class="live-event-content">
-            ${summary ? `<p class="live-event-summary">${summary}</p>` : ''}
+            ` : ''}
             
-            <div class="live-event-status">
-                <span class="status-indicator status-${status}">
-                    ${status === 'live' ? '🔴 LIVE' : status === 'planned' ? '📅 PLANNED' : status === 'ended' ? '✅ ENDED' : status.toUpperCase()}
-                </span>
-            </div>
-            
-            ${starts ? `<div class="live-event-time">
-                <strong>Starts:</strong> ${formatTime(starts)}
-            </div>` : ''}
-            
-            ${ends ? `<div class="live-event-time">
-                <strong>Ends:</strong> ${formatTime(ends)}
-            </div>` : ''}
-            
-            <div class="live-event-participants">
-                <div class="participants-count">
-                    <strong>Participants:</strong> ${currentParticipants}/${totalParticipants}
+            <div class="live-event-content">
+                ${summary ? `<p class="live-event-summary">${summary}</p>` : ''}
+                
+                <div class="live-event-status">
+                    <span class="status-indicator status-${status}">
+                        ${status === 'live' ? '🔴 LIVE' : status === 'planned' ? '📅 PLANNED' : status === 'ended' ? '✅ ENDED' : status.toUpperCase()}
+                    </span>
                 </div>
-                ${participants.length > 0 ? `
-                    <div class="participants-list">
-                        ${participants.slice(0, 10).map(p => `
-                            <div class="participant" data-pubkey="${p[1]}">
-                                <span class="participant-role">${p[3] || 'Participant'}</span>: 
-                                <span class="participant-pubkey">${p[1].slice(0,8)}...</span>
-                            </div>
-                        `).join('')}
-                        ${participants.length > 10 ? `<div class="participants-more">... and ${participants.length - 10} more</div>` : ''}
+                
+                ${starts ? `<div class="live-event-time">
+                    <strong>Starts:</strong> ${formatTime(starts)}
+                </div>` : ''}
+                
+                ${ends ? `<div class="live-event-time">
+                    <strong>Ends:</strong> ${formatTime(ends)}
+                </div>` : ''}
+                
+                <div class="live-event-participants">
+                    <div class="participants-count">
+                        <strong>Participants:</strong> ${currentParticipants}/${totalParticipants}
+                    </div>
+                    ${participants.length > 0 ? `
+                        <div class="participants-list">
+                            ${participants.slice(0, 10).map(p => `
+                                <div class="participant" data-pubkey="${p[1]}">
+                                    <span class="participant-role">${p[3] || 'Participant'}</span>: 
+                                    <span class="participant-pubkey">${p[1].slice(0,8)}...</span>
+                                </div>
+                            `).join('')}
+                            ${participants.length > 10 ? `<div class="participants-more">... and ${participants.length - 10} more</div>` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+                
+                ${recording ? `
+                    <div class="live-event-actions">
+                        <a href="${recording}" target="_blank" class="recording-link">
+                            🎥 Watch Recording
+                        </a>
                     </div>
                 ` : ''}
             </div>
-            
-            ${recording ? `
-                <div class="live-event-actions">
-                    <a href="${recording}" target="_blank" class="recording-link">
-                        🎥 Watch Recording
-                    </a>
-                </div>
-            ` : ''}
-        </div>
-    `;
+        `;
+    } else {
+        // Content exists, just update dynamic parts without touching video
+        const statusElement = noteContent.querySelector('.live-event-status .status-indicator');
+        const participantsCountElement = noteContent.querySelector('.participants-count');
+        
+        if (statusElement) {
+            statusElement.className = `status-indicator status-${status}`;
+            statusElement.textContent = status === 'live' ? '🔴 LIVE' : status === 'planned' ? '📅 PLANNED' : status === 'ended' ? '✅ ENDED' : status.toUpperCase();
+        }
+        
+        if (participantsCountElement) {
+            participantsCountElement.innerHTML = `<strong>Participants:</strong> ${currentParticipants}/${totalParticipants}`;
+        }
+    }
     
     // Update author info with event title and fetch host profile
     document.getElementById("authorName").innerText = title;
@@ -2556,9 +2566,7 @@ function displayLiveEvent(liveEvent) {
     // Subscribe to host profile to get their image
     subscribeLiveEventHostProfile(hostPubkey);
     
-    // Store event info globally for QR generation
-    window.currentLiveEvent = liveEvent;
-    window.currentEventType = 'live-event';
+    // Event info already stored globally at the beginning of function
     
     // Generate QR codes for the live event (with small delay to ensure DOM is ready)
     setTimeout(() => {
@@ -2570,6 +2578,11 @@ function displayLiveEvent(liveEvent) {
         setTimeout(() => {
             enableLightningPayments();
         }, 150);
+    }
+    
+    // Clean up any existing video player before initializing new one
+    if (window.cleanupLiveVideoPlayer) {
+        window.cleanupLiveVideoPlayer();
     }
     
     // Initialize video player if streaming URL is available
@@ -2665,7 +2678,6 @@ function displayLiveChatMessage(chatMessage) {
 }
 
 function updateParticipantProfile(profile) {
-    console.log("Updating participant profile:", profile);
     
     const profileData = JSON.parse(profile.content || '{}');
     const name = profileData.display_name || profileData.displayName || profileData.name || profile.pubkey.slice(0,8) + '...';
@@ -2708,7 +2720,6 @@ function updateChatAuthorProfile(profile) {
 }
 
 function updateLiveEventHostProfile(profile) {
-    console.log("Updating live event host profile:", profile);
     
     const profileData = JSON.parse(profile.content || '{}');
     const picture = profileData.picture || "/images/gradient_color.gif";
@@ -2814,66 +2825,286 @@ function generateLiveEventQRCodes(liveEvent) {
 }
 
 function initializeLiveVideoPlayer(streamingUrl) {
-    console.log("Initializing live video player with URL:", streamingUrl);
     
     const video = document.getElementById('live-video');
     const videoError = document.getElementById('video-error');
     
     if (!video) {
-        console.error("Video element not found");
         return;
     }
     
-    // Handle video errors
+    // Store player state for recovery
+    let lastVolume = video.volume || 0.8;
+    let wasMuted = video.muted || false;
+    let wasPlaying = false;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 10;
+    let reconnectTimeout = null;
+    let hlsInstance = null;
+    
+    // Preserve volume and mute state
+    function preserveAudioState() {
+        if (!wasMuted && video.muted) {
+            video.muted = false;
+        }
+        if (lastVolume > 0 && video.volume !== lastVolume) {
+            video.volume = lastVolume;
+        }
+    }
+    
+    // Save current audio state
+    function saveAudioState() {
+        lastVolume = video.volume;
+        wasMuted = video.muted;
+        wasPlaying = !video.paused;
+    }
+    
+    // Reconnect function with faster exponential backoff
+    function attemptReconnect() {
+        if (reconnectAttempts >= maxReconnectAttempts) {
+            showVideoError();
+            return;
+        }
+        
+        reconnectAttempts++;
+        // Faster reconnection: 500ms, 1s, 2s, 4s, 8s, max 10s
+        const delay = Math.min(500 * Math.pow(2, reconnectAttempts - 1), 10000);
+        
+        reconnectTimeout = setTimeout(() => {
+            initializeStream();
+        }, delay);
+    }
+    
+    // Initialize or reinitialize the stream
+    function initializeStream() {
+        // Clean up existing HLS instance
+        if (hlsInstance) {
+            hlsInstance.destroy();
+            hlsInstance = null;
+        }
+        
+        // Clear any existing reconnect timeout
+        if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+            reconnectTimeout = null;
+        }
+        
+        // Handle different streaming formats
+        if (streamingUrl.includes('.m3u8') || streamingUrl.includes('hls')) {
+            // HLS stream - try to use HLS.js if available
+            if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                hlsInstance = new Hls({
+                    enableWorker: true,
+                    lowLatencyMode: false, // Disable for better stability
+                    backBufferLength: 30,
+                    maxBufferLength: 60,
+                    maxMaxBufferLength: 120,
+                    maxBufferSize: 60 * 1000 * 1000, // 60MB
+                    maxBufferHole: 0.5,
+                    highBufferWatchdogPeriod: 2,
+                    nudgeOffset: 0.1,
+                    nudgeMaxRetry: 3,
+                    maxFragLookUpTolerance: 0.25,
+                    liveSyncDurationCount: 3,
+                    liveMaxLatencyDurationCount: 10,
+                    liveDurationInfinity: false,
+                    enableSoftwareAES: true,
+                    manifestLoadingTimeOut: 10000,
+                    manifestLoadingMaxRetry: 4,
+                    manifestLoadingRetryDelay: 500,
+                    levelLoadingTimeOut: 10000,
+                    levelLoadingMaxRetry: 4,
+                    levelLoadingRetryDelay: 500,
+                    fragLoadingTimeOut: 20000,
+                    fragLoadingMaxRetry: 6,
+                    fragLoadingRetryDelay: 500,
+                    startFragPrefetch: true,
+                    testBandwidth: true
+                });
+                
+                hlsInstance.loadSource(streamingUrl);
+                hlsInstance.attachMedia(video);
+                
+                hlsInstance.on(Hls.Events.MANIFEST_PARSED, function() {
+                    hideVideoError();
+                    reconnectAttempts = 0; // Reset on successful connection
+                    video.play().then(() => {
+                        preserveAudioState();
+                    }).catch(e => {
+                        // Autoplay prevented, but stream is ready
+                        preserveAudioState();
+                    });
+                });
+                
+                // Enhanced error handling with detailed logging
+                hlsInstance.on(Hls.Events.ERROR, function(event, data) {
+                    if (data.fatal) {
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                // Network error - attempt reconnect
+                                saveAudioState();
+                                attemptReconnect();
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                // Try to recover from media error
+                                saveAudioState();
+                                try {
+                                    hlsInstance.recoverMediaError();
+                                } catch (err) {
+                                    attemptReconnect();
+                                }
+                                break;
+                            default:
+                                // Other fatal errors - attempt reconnect
+                                saveAudioState();
+                                attemptReconnect();
+                                break;
+                        }
+                    } else {
+                        // Non-fatal errors - try to continue but monitor
+                        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                            // Network hiccup - might cause brief interruption
+                        }
+                    }
+                });
+                
+                // Monitor fragment loading for connection health
+                hlsInstance.on(Hls.Events.FRAG_LOAD_ERROR, function(event, data) {
+                    if (data.response && data.response.code >= 400) {
+                        saveAudioState();
+                        attemptReconnect();
+                    }
+                });
+                
+                // Monitor buffer events to detect stalling
+                hlsInstance.on(Hls.Events.BUFFER_EMPTY, function(event, data) {
+                    // Buffer is empty - might cause brief pause
+                });
+                
+                hlsInstance.on(Hls.Events.BUFFER_EOS, function(event, data) {
+                    // End of stream in buffer
+                });
+                
+                // Monitor level switching (quality changes)
+                hlsInstance.on(Hls.Events.LEVEL_SWITCHING, function(event, data) {
+                    // Quality level is switching - might cause brief interruption
+                });
+                
+                // Monitor fragment loading progress
+                let lastFragLoadTime = Date.now();
+                hlsInstance.on(Hls.Events.FRAG_LOADED, function(event, data) {
+                    lastFragLoadTime = Date.now();
+                    // Reset reconnect attempts on successful fragment load
+                    if (reconnectAttempts > 0) {
+                        reconnectAttempts = Math.max(0, reconnectAttempts - 1);
+                    }
+                });
+                
+                // Periodic health check
+                const healthCheckInterval = setInterval(() => {
+                    if (hlsInstance && hlsInstance.media) {
+                        const now = Date.now();
+                        const timeSinceLastFrag = now - lastFragLoadTime;
+                        
+                        // If no fragments loaded for 30 seconds and video is supposed to be playing
+                        if (timeSinceLastFrag > 30000 && wasPlaying && !video.paused) {
+                            clearInterval(healthCheckInterval);
+                            saveAudioState();
+                            attemptReconnect();
+                        }
+                    }
+                }, 10000); // Check every 10 seconds
+                
+                // Store health check interval for cleanup
+                window.hlsHealthCheckInterval = healthCheckInterval;
+                
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                // Native HLS support (Safari)
+                video.src = streamingUrl;
+                video.play().then(() => {
+                    hideVideoError();
+                    reconnectAttempts = 0;
+                    preserveAudioState();
+                }).catch(e => {
+                    preserveAudioState();
+                });
+            } else {
+                showVideoError();
+            }
+        } else {
+            // Regular video formats (MP4, WebM, etc.)
+            video.src = streamingUrl;
+            video.play().then(() => {
+                hideVideoError();
+                reconnectAttempts = 0;
+                preserveAudioState();
+            }).catch(e => {
+                preserveAudioState();
+            });
+        }
+    }
+    
+    // Enhanced video event handlers
     video.addEventListener('error', function(e) {
-        console.error("Video error:", e);
-        showVideoError();
+        saveAudioState();
+        attemptReconnect();
     });
     
     video.addEventListener('loadstart', function() {
-        console.log("Video loading started");
         hideVideoError();
     });
     
     video.addEventListener('canplay', function() {
-        console.log("Video can start playing");
         hideVideoError();
+        preserveAudioState();
     });
     
-    video.addEventListener('loadeddata', function() {
-        console.log("Video data loaded");
+    video.addEventListener('play', function() {
+        wasPlaying = true;
+        preserveAudioState();
     });
     
-    // Handle different streaming formats
-    if (streamingUrl.includes('.m3u8') || streamingUrl.includes('hls')) {
-        // HLS stream - try to use HLS.js if available, otherwise rely on native support
-        if (typeof Hls !== 'undefined' && Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource(streamingUrl);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                console.log("HLS manifest parsed, starting playback");
-                video.play().catch(e => console.log("Autoplay prevented:", e));
-            });
-            hls.on(Hls.Events.ERROR, function(event, data) {
-                console.error("HLS error:", data);
-                if (data.fatal) {
-                    showVideoError();
-                }
-            });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            // Native HLS support (Safari)
-            video.src = streamingUrl;
-            video.play().catch(e => console.log("Autoplay prevented:", e));
-        } else {
-            console.warn("HLS not supported, showing error");
-            showVideoError();
+    video.addEventListener('pause', function() {
+        wasPlaying = false;
+        saveAudioState();
+    });
+    
+    video.addEventListener('volumechange', function() {
+        saveAudioState();
+    });
+    
+    // Monitor for unexpected pauses/stalls
+    video.addEventListener('stalled', function() {
+        saveAudioState();
+        setTimeout(() => {
+            if (video.readyState < 3 && wasPlaying) { // HAVE_FUTURE_DATA
+                attemptReconnect();
+            }
+        }, 5000);
+    });
+    
+    video.addEventListener('waiting', function() {
+        saveAudioState();
+    });
+    
+    // Start initial stream
+    initializeStream();
+    
+    // Store cleanup function globally for potential use
+    window.cleanupLiveVideoPlayer = function() {
+        if (hlsInstance) {
+            hlsInstance.destroy();
+            hlsInstance = null;
         }
-    } else {
-        // Regular video formats (MP4, WebM, etc.)
-        video.src = streamingUrl;
-        video.play().catch(e => console.log("Autoplay prevented:", e));
-    }
+        if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+            reconnectTimeout = null;
+        }
+        if (window.hlsHealthCheckInterval) {
+            clearInterval(window.hlsHealthCheckInterval);
+            window.hlsHealthCheckInterval = null;
+        }
+    };
     
     function showVideoError() {
         if (video) video.style.display = 'none';
