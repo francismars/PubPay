@@ -2390,6 +2390,7 @@
       align-items: center;
       justify-content: center;
       min-height: 250px;
+      position: relative;
   }
   
   .qr-slide-label {
@@ -2398,6 +2399,185 @@
       opacity: 0.7;
       margin-top: 4px;
       font-weight: 500;
+  }
+
+  /* QR Timer and Next Slide Indicator */
+  .qr-timer-container {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      z-index: 1000;
+      pointer-events: none;
+  }
+
+  .qr-timer-circle {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      backdrop-filter: blur(5px);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      padding: 2px;
+  }
+
+  .qr-timer-text {
+      color: white;
+      font-size: 8px;
+      font-weight: bold;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+      line-height: 1;
+      position: absolute;
+      top: 1px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 4;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 4px;
+      padding: 1px 2px;
+  }
+
+  .qr-timer-progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, rgba(0, 204, 102, 0.2) 0deg, transparent 0deg);
+      transition: background 0.1s linear;
+      z-index: 3;
+    }
+
+  .qr-next-indicator {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 2;
+      background: rgba(0, 204, 102, 0.2);
+      border: 1px solid rgba(0, 204, 102, 0.4);
+      font-family: 'Inter', sans-serif;
+  }
+
+  .qr-next-label {
+      color: white;
+      font-size: 8px;
+      font-weight: 500;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+      text-align: center;
+      margin-top: 2px;
+      opacity: 0.8;
+  }
+
+  /* Next slide icons */
+  .qr-next-web { 
+      background: linear-gradient(135deg, #4285f4, #34a853); 
+      border: 1px solid rgba(66, 133, 244, 0.8);
+  }
+  .qr-next-nostr { 
+      background: linear-gradient(135deg, #8b5cf6, #a855f7); 
+      border: 1px solid rgba(139, 92, 246, 0.8);
+  }
+  .qr-next-note { 
+      background: linear-gradient(135deg, #8b5cf6, #a855f7); 
+      border: 1px solid rgba(139, 92, 246, 0.8);
+      font-weight: 900;
+  }
+  .qr-next-lightning { 
+      background: linear-gradient(135deg, #fbbf24, #f59e0b); 
+      border: 1px solid rgba(251, 191, 36, 0.8);
+  }
+
+  /* Responsive timer sizing */
+  @media (max-width: 768px) {
+      .qr-timer-container {
+          top: 8px;
+          right: 8px;
+          gap: 3px;
+      }
+      
+      .qr-timer-circle {
+          width: 34px;
+          height: 34px;
+          padding: 2px;
+      }
+      
+      .qr-timer-progress {
+          width: 100%;
+          height: 100%;
+      }
+      
+      .qr-timer-text {
+          font-size: 7px;
+          padding: 1px 2px;
+      }
+      
+      .qr-next-indicator {
+          width: 100%;
+          height: 100%;
+          font-size: 8px;
+          font-weight: bold;
+          font-family: 'Inter', sans-serif;
+      }
+      
+      .qr-next-label {
+          font-size: 7px;
+      }
+  }
+
+  @media (max-width: 480px) {
+      .qr-timer-container {
+          top: 6px;
+          right: 6px;
+          gap: 2px;
+      }
+      
+      .qr-timer-circle {
+          width: 30px;
+          height: 30px;
+          padding: 1px;
+      }
+      
+      .qr-timer-progress {
+          width: 100%;
+          height: 100%;
+      }
+      
+      .qr-timer-text {
+          font-size: 6px;
+          padding: 1px 2px;
+      }
+      
+      .qr-next-indicator {
+          width: 100%;
+          height: 100%;
+          font-size: 7px;
+          font-weight: bold;
+          font-family: 'Inter', sans-serif;
+      }
+      
+      .qr-next-label {
+          font-size: 6px;
+      }
   }
   
   .qr-data-preview {
@@ -2629,14 +2809,14 @@
   }
   
   .zaps-header-left h2 {
-      font-size: 2.2vw;
+      font-size: max(2.2vw, 16px);
       margin: 0 0 15px 0;
       color: #fff;
       font-weight: 600;
   }
   
   .total-zapped, .dashboard-title {
-      font-size: 1.2vw;
+      font-size: max(1.2vw, 12px);
       font-weight: 600;
       color: #fff;
       display: flex;
@@ -2671,43 +2851,64 @@
   /* Responsive adjustments for total elements */
   @media (max-width: 665px) {
       .total-label {
-          font-size: 1.8vw;
+          font-size: max(1.8vw, 12px);
       }
       
       .total-amount {
-          font-size: 2.4vw;
+          font-size: max(2.4vw, 16px);
       }
       
       .total-sats {
-          font-size: 1.4vw;
+          font-size: max(1.4vw, 10px);
+      }
+      
+      .zap-count-separator,
+      .total-count,
+      #zappedTotalCount,
+      .total-zaps {
+          font-size: max(1.4vw, 11px);
       }
   }
   
   @media (max-width: 480px) {
       .total-label {
-          font-size: 2.2vw;
+          font-size: max(2.2vw, 10px);
       }
       
       .total-amount {
-          font-size: 2.8vw;
+          font-size: max(2.8vw, 14px);
       }
       
       .total-sats {
-          font-size: 1.6vw;
+          font-size: max(1.6vw, 9px);
+      }
+      
+      .zap-count-separator,
+      .total-count,
+      #zappedTotalCount,
+      .total-zaps {
+          font-size: max(1.6vw, 10px);
       }
   }
   
   @media (min-width: 1200px) {
       .total-label {
-          font-size: 1vw;
+          font-size: max(1vw, 12px);
       }
       
       .total-amount {
-          font-size: 1.6vw;
+          font-size: max(1.6vw, 16px);
       }
       
       .total-sats {
-          font-size: 0.9vw;
+          font-size: max(0.9vw, 10px);
+      }
+      
+      .zap-count-separator,
+      .total-count,
+      #zappedTotalCount,
+      .total-zaps {
+          font-size: max(1vw, 12px);
       }
   }
   
@@ -5090,7 +5291,7 @@
   
   /* Section Labels */
   .section-label {
-      font-size: max(1.2vw, 14px);
+      font-size: max(1vw, 10px);
       font-weight: 600;
       color: inherit;
       margin: 0 0 15px 0;
@@ -6691,17 +6892,24 @@
       margin: 0 8px;
       opacity: 0.6;
       color: var(--text-color);
+      font-size: max(1vw, 10px);
   }
   
   .total-count {
       font-weight: bold;
       color: var(--text-color);
+      font-size: max(1.2vw, 12px);
+  }
+  
+  #zappedTotalCount {
+      font-size: max(1.2vw, 12px);
   }
   
   .total-zaps {
       color: var(--text-color);
       opacity: 0.8;
       margin-left: 4px;
+      font-size: max(1vw, 10px);
   }
   
   /* Make zap authors larger in activity column to differentiate from chat */
