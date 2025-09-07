@@ -6,6 +6,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Font sizes are now controlled by CSS using vw units
     // No JavaScript font size initialization needed
     
+    // Initialize QR timer after a delay to ensure everything is loaded
+    setTimeout(() => {
+        if (window.qrSwiper) {
+            initializeQRTimer();
+        } else {
+            // Retry after another delay
+            setTimeout(() => {
+                if (window.qrSwiper) {
+                    initializeQRTimer();
+                } else {
+                }
+            }, 2000);
+        }
+    }, 1000);
+    
+    // Lightning QR will be generated through the swiper rebuild process
+    
     // Get note ID from URL path instead of query parameters
     const pathParts = window.location.pathname.split('/');
     
@@ -512,6 +529,12 @@ function applyStylesFromURL() {
             document.getElementById('qrCodeNevent'),
             document.getElementById('qrCodeNote')
         ];
+        
+        // Add Lightning QR if enabled
+        if (window.lightningEnabled) {
+            qrCodes.push(document.getElementById('lightningQRCode'));
+        }
+        
         qrCodes.forEach(qrCode => {
             if (qrCode) qrCode.style.filter = invert ? 'invert(1)' : 'none';
         });
@@ -763,10 +786,21 @@ function applyStylesFromLocalStorage() {
         if (styles.qrInvert !== undefined) {
             const qrInvertToggle = document.getElementById('qrInvertToggle');
             if (qrInvertToggle) qrInvertToggle.checked = styles.qrInvert;
-        const qrCodeContainer = document.getElementById('qrCode');
-        if (qrCodeContainer) {
-                qrCodeContainer.style.filter = styles.qrInvert ? 'invert(1)' : 'none';
+            
+            const qrCodes = [
+                document.getElementById('qrCode'),
+                document.getElementById('qrCodeNevent'),
+                document.getElementById('qrCodeNote')
+            ];
+            
+            // Add Lightning QR if enabled
+            if (window.lightningEnabled) {
+                qrCodes.push(document.getElementById('lightningQRCode'));
             }
+            
+            qrCodes.forEach(qrCode => {
+                if (qrCode) qrCode.style.filter = styles.qrInvert ? 'invert(1)' : 'none';
+            });
         }
         
         // Apply QR code blend modes
@@ -1868,7 +1902,6 @@ async function subscribeLiveChat(pubkey, identifier) {
 }
 
 async function subscribeLiveEventParticipants(liveEvent) {
-    console.log("Subscribing to live event participants");
     
     // Extract participant pubkeys from p tags
     const participants = liveEvent.tags
@@ -1884,21 +1917,17 @@ async function subscribeLiveEventParticipants(liveEvent) {
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(profile) {
-            console.log("Received participant profile:", profile);
             // Update participant display with profile info
             updateParticipantProfile(profile);
         },
         oneose() {
-            console.log("subscribeLiveEventParticipants() EOS");
         },
         onclosed() {
-            console.log("subscribeLiveEventParticipants() Closed");
         }
     });
 }
 
 async function subscribeChatAuthorProfile(pubkey) {
-    console.log("Subscribing to chat author profile:", pubkey);
     
     let filter = {
         kinds: [0], // Profile kind
@@ -1907,21 +1936,17 @@ async function subscribeChatAuthorProfile(pubkey) {
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(profile) {
-            console.log("Received chat author profile:", profile);
             // Update chat message display with profile info
             updateChatAuthorProfile(profile);
         },
         oneose() {
-            console.log("subscribeChatAuthorProfile() EOS");
         },
         onclosed() {
-            console.log("subscribeChatAuthorProfile() Closed");
         }
     });
 }
 
 async function subscribeLiveEventZaps(pubkey, identifier) {
-    console.log("Subscribing to live event zaps for:", { pubkey, identifier });
     
     const aTag = `30311:${pubkey}:${identifier}`;
     
@@ -1932,18 +1957,14 @@ async function subscribeLiveEventZaps(pubkey, identifier) {
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(zapReceipt) {
-            console.log("Received live event zap receipt:", zapReceipt);
             processLiveEventZap(zapReceipt, pubkey, identifier);
         },
         oneose() {
-            console.log("subscribeLiveEventZaps() EOS - keeping subscription alive");
             // Keep subscription alive for new zaps
         },
         onclosed() {
-            console.log("subscribeLiveEventZaps() Closed - attempting to reconnect");
             // Attempt to reconnect after a delay
             setTimeout(() => {
-                console.log("Reconnecting to live event zaps...");
                 subscribeLiveEventZaps(pubkey, identifier);
             }, 5000);
         }
@@ -1951,7 +1972,6 @@ async function subscribeLiveEventZaps(pubkey, identifier) {
 }
 
 async function subscribeLiveEventHostProfile(hostPubkey) {
-    console.log("Subscribing to live event host profile:", hostPubkey);
     
     let filter = {
         kinds: [0], // Profile kind
@@ -1960,14 +1980,11 @@ async function subscribeLiveEventHostProfile(hostPubkey) {
     
     const sub = pool.subscribeMany(relays, [filter], {
         onevent(profile) {
-            console.log("Received live event host profile:", profile);
             updateLiveEventHostProfile(profile);
         },
         oneose() {
-            console.log("subscribeLiveEventHostProfile() EOS");
         },
         onclosed() {
-            console.log("subscribeLiveEventHostProfile() Closed");
         }
     });
   }
@@ -2044,7 +2061,6 @@ function parseNostrMentions(content) {
                 });
             }
         } catch (e) {
-            console.log("Error decoding nostr mention:", e, "for match:", fullMatch);
         }
     }
     
@@ -2053,11 +2069,9 @@ function parseNostrMentions(content) {
 
 async function replaceNostrMentions(content) {
     try {
-        console.log("Replacing nostr mentions in content:", content);
         if (!content) return '';
         
         const mentions = parseNostrMentions(content);
-        console.log("Found mentions:", mentions);
         if (mentions.length === 0) return content;
     
     // Sort mentions by index in reverse order to avoid index shifting during replacement
@@ -2086,7 +2100,6 @@ async function replaceNostrMentions(content) {
                                  replacement + 
                                  processedContent.slice(mention.index + mention.fullMatch.length);
             } catch (e) {
-                console.log("Error processing profile data:", e);
             }
         }
     }
@@ -2121,11 +2134,9 @@ function parseImages(content) {
 
 async function replaceImages(content) {
     try {
-        console.log("Replacing images in content:", content);
         if (!content) return '';
         
         const images = parseImages(content);
-        console.log("Found images:", images);
         if (images.length === 0) return content;
     
     // Sort images by index in reverse order to avoid index shifting during replacement
@@ -2149,13 +2160,10 @@ async function replaceImages(content) {
 
 async function processNoteContent(content) {
     try {
-        console.log("Processing note content:", content);
         // First process images
         let processedContent = await replaceImages(content);
-        console.log("After image processing:", processedContent);
         // Then process nostr mentions
         processedContent = await replaceNostrMentions(processedContent);
-        console.log("After mention processing:", processedContent);
         return processedContent;
     } catch (e) {
         console.error("Error processing note content:", e);
@@ -2164,17 +2172,14 @@ async function processNoteContent(content) {
 }
 
 async function drawKind1(kind1){
-    console.log("Drawing kind1:", kind1)
     
     // Store note ID globally for QR regeneration
     window.currentNoteId = kind1.id;
     
     const noteContent = document.getElementById("noteContent");
-    console.log("Note content element:", noteContent);
     
     // Process content for both images and nostr mentions
     const processedContent = await processNoteContent(kind1.content);
-    console.log("Processed content:", processedContent);
     noteContent.innerHTML = processedContent;
     
     // Hide note content loading animation
@@ -2184,7 +2189,6 @@ async function drawKind1(kind1){
     
     // Update Lightning state now that we have an event ID
     if (lightningEnabled) {
-        console.log('Note loaded, attempting to enable Lightning payments...');
         setTimeout(() => {
             enableLightningPayments();
         }, 100);
@@ -2253,7 +2257,7 @@ async function drawKind1(kind1){
             },
             loop: false, // Disable loop to avoid issues with hidden slides
             autoplay: {
-                delay: 3000,
+                delay: 10000,
                 disableOnInteraction: false,
                 pauseOnMouseEnter: true
             },
@@ -2261,14 +2265,23 @@ async function drawKind1(kind1){
             height: 250,
             watchOverflow: true, // Handle case where all slides might be hidden
             observer: true, // Watch for DOM changes
-            observeParents: true
+            observeParents: true,
+            on: {
+                init: function() {
+                    setTimeout(() => {
+                        initializeQRTimer();
+                    }, 500);
+                },
+                slideChange: function() {
+                    updateQRTimer();
+                }
+            }
         });
     }
     
     // Apply current slide visibility settings with delay to ensure localStorage is loaded
     setTimeout(() => {
         if (window.updateQRSlideVisibility) {
-            console.log('Calling updateQRSlideVisibility from QR generation with delay');
             window.updateQRSlideVisibility(true); // Skip URL update during QR generation
         }
     }, 300); // Longer delay to ensure localStorage is loaded (after the 200ms delay)
@@ -2276,7 +2289,6 @@ async function drawKind1(kind1){
 
 function drawKind0(kind0){
       let authorContent = JSON.parse(kind0.content)
-      console.log(authorContent);
       //document.getElementById("authorName").innerText = authorContent.name;
       const displayName = JSON.parse(kind0.content).displayName
       const display_Name = JSON.parse(kind0.content).display_name
@@ -2287,7 +2299,6 @@ function drawKind0(kind0){
 
 
   function drawKinds9735(json9735List){
-      console.log(json9735List)
 
       const zapsContainer = document.getElementById("zaps");
       zapsContainer.innerHTML = ""
@@ -2367,15 +2378,9 @@ function drawKind0(kind0){
                   return amountB - amountA;
               });
               
-              console.log('Applying podium classes in list layout. Top 3 zaps:', sortedZaps.slice(0, 3).map(zap => ({
-                  amount: zap.querySelector('.zapperAmountSats')?.textContent,
-                  name: zap.querySelector('.zapperName')?.textContent
-              })));
-              
               for (let i = 0; i < Math.min(3, sortedZaps.length); i++) {
                   const zap = sortedZaps[i];
                   zap.classList.add(`podium-${i + 1}`);
-                  console.log(`Applied podium-${i + 1} to zap with amount:`, zap.querySelector('.zapperAmountSats')?.textContent);
               }
           }
       }
@@ -2391,11 +2396,9 @@ function setupLiveEventTwoColumnLayout() {
     // Check if layout is already set up to avoid clearing existing content
     if (zapsContainer.classList.contains('live-event-two-column') && 
         zapsContainer.querySelector('.live-event-columns')) {
-        console.log("Two-column layout already exists, skipping setup to preserve content");
         return;
     }
     
-    console.log("Setting up two-column layout");
     
     // Clear existing content and set up two-column structure
     zapsContainer.innerHTML = `
@@ -2451,11 +2454,9 @@ function enableGridToggle() {
 }
 
 function displayLiveEvent(liveEvent) {
-    console.log("Displaying live event:", liveEvent);
     
     // Check if this live event is already displayed to avoid clearing content
     if (window.currentLiveEvent && window.currentLiveEvent.id === liveEvent.id) {
-        console.log("Live event already displayed, skipping to avoid clearing content");
         return;
     }
     
@@ -2599,7 +2600,6 @@ function startContentMonitoring() {
                 console.warn("Live event content disappeared! Attempting to restore...");
                 // Try to restore if we have the current live event info
                 if (window.currentLiveEvent && currentLiveEventInfo) {
-                    console.log("Restoring live event content");
                     displayLiveEvent(window.currentLiveEvent);
                 }
             }
@@ -2613,7 +2613,6 @@ function startContentMonitoring() {
 }
 
 function displayLiveChatMessage(chatMessage) {
-    console.log("Displaying live chat message:", chatMessage);
     
     const zapsContainer = document.getElementById("zaps");
     
@@ -2664,7 +2663,6 @@ function displayLiveChatMessage(chatMessage) {
 }
 
 function updateParticipantProfile(profile) {
-    console.log("Updating participant profile:", profile);
     
     const profileData = JSON.parse(profile.content || '{}');
     const name = profileData.display_name || profileData.displayName || profileData.name || profile.pubkey.slice(0,8) + '...';
@@ -2681,7 +2679,6 @@ function updateParticipantProfile(profile) {
 }
 
 function updateChatAuthorProfile(profile) {
-    console.log("Updating chat author profile:", profile);
     
     const profileData = JSON.parse(profile.content || '{}');
     const name = profileData.display_name || profileData.displayName || profileData.name || profile.pubkey.slice(0,8) + '...';
@@ -2708,7 +2705,6 @@ function updateChatAuthorProfile(profile) {
 }
 
 function updateLiveEventHostProfile(profile) {
-    console.log("Updating live event host profile:", profile);
     
     const profileData = JSON.parse(profile.content || '{}');
     const picture = profileData.picture || "/images/gradient_color.gif";
@@ -2721,7 +2717,6 @@ function updateLiveEventHostProfile(profile) {
 }
 
 function generateLiveEventQRCodes(liveEvent) {
-    console.log("Generating QR codes for live event:", liveEvent);
     
     const identifier = liveEvent.tags.find(tag => tag[0] === "d")?.[1];
     const pubkey = liveEvent.pubkey;
@@ -2775,13 +2770,10 @@ function generateLiveEventQRCodes(liveEvent) {
     const preview2 = document.getElementById('qrDataPreview2');
     const preview3 = document.getElementById('qrDataPreview3');
     
-    console.log("QR preview elements found:", { preview1: !!preview1, preview2: !!preview2, preview3: !!preview3 });
-    console.log("Preview data to set:", { njumpUrl, nostrNaddr, naddrId });
     
     if (preview1) {
         const previewText = njumpUrl.slice(0, 20) + '...';
         preview1.textContent = previewText;
-        console.log("Set preview1 to:", previewText, "- actual element content:", preview1.textContent);
     } else {
         console.error("qrDataPreview1 element not found");
     }
@@ -2789,7 +2781,6 @@ function generateLiveEventQRCodes(liveEvent) {
     if (preview2) {
         const previewText = nostrNaddr.slice(0, 20) + '...';
         preview2.textContent = previewText;
-        console.log("Set preview2 to:", previewText, "- actual element content:", preview2.textContent);
     } else {
         console.error("qrDataPreview2 element not found");
     }
@@ -2797,13 +2788,11 @@ function generateLiveEventQRCodes(liveEvent) {
     if (preview3) {
         const previewText = naddrId.slice(0, 20) + '...';
         preview3.textContent = previewText;
-        console.log("Set preview3 to:", previewText, "- actual element content:", preview3.textContent);
     } else {
         console.error("qrDataPreview3 element not found");
     }
     
     // Apply slide visibility settings for live events after QR generation
-    console.log("Calling updateQRSlideVisibility for live event after QR generation");
     setTimeout(() => {
         if (window.updateQRSlideVisibility) {
             window.updateQRSlideVisibility(true); // Skip URL update during initialization
@@ -2812,7 +2801,6 @@ function generateLiveEventQRCodes(liveEvent) {
 }
 
 function initializeLiveVideoPlayer(streamingUrl) {
-    console.log("Initializing live video player with URL:", streamingUrl);
     
     const video = document.getElementById('live-video');
     const videoError = document.getElementById('video-error');
@@ -2829,17 +2817,14 @@ function initializeLiveVideoPlayer(streamingUrl) {
     });
     
     video.addEventListener('loadstart', function() {
-        console.log("Video loading started");
         hideVideoError();
     });
     
     video.addEventListener('canplay', function() {
-        console.log("Video can start playing");
         hideVideoError();
     });
     
     video.addEventListener('loadeddata', function() {
-        console.log("Video data loaded");
     });
     
     // Handle different streaming formats
@@ -2850,8 +2835,7 @@ function initializeLiveVideoPlayer(streamingUrl) {
             hls.loadSource(streamingUrl);
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, function() {
-                console.log("HLS manifest parsed, starting playback");
-                video.play().catch(e => console.log("Autoplay prevented:", e));
+                video.play().catch(e => {});
             });
             hls.on(Hls.Events.ERROR, function(event, data) {
                 console.error("HLS error:", data);
@@ -2862,7 +2846,7 @@ function initializeLiveVideoPlayer(streamingUrl) {
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             // Native HLS support (Safari)
             video.src = streamingUrl;
-            video.play().catch(e => console.log("Autoplay prevented:", e));
+            video.play().catch(e => {});
         } else {
             console.warn("HLS not supported, showing error");
             showVideoError();
@@ -2870,7 +2854,7 @@ function initializeLiveVideoPlayer(streamingUrl) {
     } else {
         // Regular video formats (MP4, WebM, etc.)
         video.src = streamingUrl;
-        video.play().catch(e => console.log("Autoplay prevented:", e));
+        video.play().catch(e => {});
     }
     
     function showVideoError() {
@@ -2885,7 +2869,6 @@ function initializeLiveVideoPlayer(streamingUrl) {
 }
 
 async function processLiveEventZap(zapReceipt, eventPubkey, eventIdentifier) {
-    console.log("Processing live event zap:", zapReceipt);
     
     try {
         // Extract zap information from the receipt
@@ -2922,7 +2905,6 @@ async function processLiveEventZap(zapReceipt, eventPubkey, eventIdentifier) {
 }
 
 function displayLiveEventZap(zapData) {
-    console.log("Displaying live event zap:", zapData);
     
     const zapsContainer = document.getElementById("zaps");
     
@@ -3258,13 +3240,11 @@ function updateBlendMode() {
 
 // Preset functions
 function applyPreset(presetName) {
-    console.log('applyPreset called with:', presetName);
     const preset = STYLE_PRESETS[presetName];
     if (!preset) {
         console.error('Preset not found:', presetName);
         return;
     }
-    console.log('Applying preset:', preset);
     
     // Update all controls
     document.getElementById('textColorPicker').value = preset.textColor;
@@ -3450,10 +3430,8 @@ function initializePortraitSwiper() {
         // Event callbacks
         on: {
             init: function () {
-                console.log('Portrait Swiper initialized');
             },
             slideChange: function () {
-                console.log('Slide changed to:', this.activeIndex);
             }
         }
     });
@@ -3491,7 +3469,6 @@ function initializeFontSizes() {
 }
 
 function applyAllStyles() {
-    console.log('applyAllStyles called');
     const mainLayout = document.querySelector('.main-layout');
     
     if (!mainLayout) {
@@ -3511,7 +3488,6 @@ function applyAllStyles() {
     const textColor = textColorElement.value;
     const bgColor = bgColorElement.value;
     const bgImage = bgImageElement.value;
-    console.log('Style values:', { textColor, bgColor, bgImage });
     // Font size no longer controlled by JavaScript - using CSS vw units
     // const fontSize = parseFloat(document.getElementById('fontSizeSlider').value);
     const opacity = parseFloat(document.getElementById('opacitySlider').value);
@@ -3559,6 +3535,12 @@ function applyAllStyles() {
         document.getElementById('qrCodeNevent'),
         document.getElementById('qrCodeNote')
     ];
+    
+    // Add Lightning QR if enabled
+    if (window.lightningEnabled) {
+        qrCodeContainers.push(document.getElementById('lightningQRCode'));
+    }
+    
     qrCodeContainers.forEach(qrCodeContainer => {
         if (qrCodeContainer) {
             qrCodeContainer.style.filter = document.getElementById('qrInvertToggle').checked ? 'invert(1)' : 'none';
@@ -3591,7 +3573,6 @@ function applyAllStyles() {
 function resetToDefaults() {
     // Clear localStorage to remove saved customizations
     localStorage.removeItem('pubpay-styles');
-    console.log('Cleared localStorage - resetting to defaults');
     
     // Apply light mode preset
     applyPreset('lightMode');
@@ -3717,12 +3698,10 @@ function setupStyleOptions() {
     const clearBgImage = document.getElementById('clearBgImage');
     const customUrlGroup = document.getElementById('customUrlGroup');
     
-    console.log('bgPresetPreview element found:', bgPresetPreview);
     
     // Handle background preset selection
     bgImagePreset.addEventListener('change', function(e) {
         const selectedValue = e.target.value;
-        console.log('Selected background:', selectedValue);
         
         if (selectedValue === 'custom') {
             // Show custom URL input
@@ -3737,12 +3716,9 @@ function setupStyleOptions() {
             applyAllStyles(); // Sync all style controls
             
             // Update preview directly
-            console.log('Updating preview to:', selectedValue);
-            console.log('bgPresetPreview element:', bgPresetPreview);
             if (bgPresetPreview) {
                 bgPresetPreview.src = selectedValue;
                 bgPresetPreview.alt = selectedValue ? 'Background preview' : 'No background';
-                console.log('Preview src set to:', bgPresetPreview.src);
             } else {
                 console.error('bgPresetPreview element not found!');
             }
@@ -3800,7 +3776,6 @@ function setupStyleOptions() {
     if (partnerLogoSelect && partnerLogoImg) {
         partnerLogoSelect.addEventListener('change', function(e) {
             const selectedValue = e.target.value;
-            console.log('Selected partner logo:', selectedValue);
             
             if (selectedValue === 'custom') {
                 // Show custom URL input
@@ -3910,6 +3885,12 @@ function setupStyleOptions() {
             document.getElementById('qrCodeNevent'),
             document.getElementById('qrCodeNote')
         ];
+        
+        // Add Lightning QR if enabled
+        if (window.lightningEnabled) {
+            qrCodes.push(document.getElementById('lightningQRCode'));
+        }
+        
         qrCodes.forEach(qrCode => {
             if (qrCode) qrCode.style.filter = e.target.checked ? 'invert(1)' : 'none';
         });
@@ -3935,19 +3916,123 @@ function setupStyleOptions() {
     const qrShowNeventToggle = document.getElementById('qrShowNeventToggle');
     const qrShowNoteToggle = document.getElementById('qrShowNoteToggle');
     
+    // Centralized QR slide configuration
+    const QR_SLIDE_CONFIGS = {
+        webLink: {
+            id: 'qrCode',
+            elementId: null,
+            linkId: 'qrcodeLinkNostr',
+            previewId: 'qrDataPreview1',
+            label: 'Web Link',
+            getValue: () => {
+                const noteId = window.currentNoteId;
+                if (noteId) {
+                    const note1Id = NostrTools.nip19.noteEncode(noteId);
+                    return "https://njump.me/" + note1Id;
+                }
+                return 'https://njump.me/';
+            }
+        },
+        nevent: {
+            id: 'qrCodeNevent',
+            elementId: null,
+            linkId: 'qrcodeNeventLink',
+            previewId: 'qrDataPreview2',
+            label: 'Nostr Event',
+            getValue: () => {
+                const noteId = window.currentNoteId;
+                if (noteId) {
+                    const neventId = NostrTools.nip19.neventEncode({ id: noteId, relays: [] });
+                    return "nostr:" + neventId;
+                }
+                return 'nostr:nevent1...';
+            }
+        },
+        note: {
+            id: 'qrCodeNote',
+            elementId: null,
+            linkId: 'qrcodeNoteLink',
+            previewId: 'qrDataPreview3',
+            label: 'Note ID',
+            getValue: () => {
+                const noteId = window.currentNoteId;
+                if (noteId) {
+                    return "nostr:" + NostrTools.nip19.noteEncode(noteId);
+                }
+                return 'nostr:note1...';
+            }
+        },
+        lightning: {
+            id: 'lightningQRCode',
+            elementId: 'lightningQRSlide',
+            linkId: null,
+            previewId: 'qrDataPreview4',
+            label: 'Lightning Payment',
+            getValue: () => window.lightningLNURL || 'lightning:lnbc1p...',
+            requiresSpecialHandling: true
+        }
+    };
+    
+    // Helper functions for QR slide management
+    function getSlideVisibilityStates() {
+        return {
+            webLink: qrShowWebLinkToggle?.checked ?? true,
+            nevent: qrShowNeventToggle?.checked ?? true,
+            note: qrShowNoteToggle?.checked ?? true,
+            lightning: window.lightningEnabled ?? false
+        };
+    }
+    
+    function isLightningSlide(slide) {
+        const slideId = slide.querySelector('img')?.id;
+        const slideElementId = slide.id;
+        return slideId === 'lightningQRCode' || slideElementId === 'lightningQRSlide';
+    }
+    
+    function getSlideType(slide) {
+        const slideId = slide.querySelector('img')?.id;
+        const slideElementId = slide.id;
+        
+        for (const [type, config] of Object.entries(QR_SLIDE_CONFIGS)) {
+            if (slideId === config.id || slideElementId === config.elementId) {
+                return type;
+            }
+        }
+        return null;
+    }
+    
+    function shouldShowSlide(slide, visibilityStates) {
+        const slideType = getSlideType(slide);
+        if (!slideType) return true;
+        
+        if (slideType === 'lightning') {
+            return visibilityStates.lightning;
+        }
+        
+        return visibilityStates[slideType] ?? true;
+    }
+    
+    function createSlideConfigs(visibilityStates) {
+        return Object.entries(QR_SLIDE_CONFIGS)
+            .filter(([type, config]) => visibilityStates[type])
+            .map(([type, config]) => ({
+                ...config,
+                value: config.getValue(),
+                show: true
+            }));
+    }
+    
     // Debounce mechanism to prevent rapid successive calls
     let qrVisibilityUpdateTimeout = null;
     
     function updateQRSlideVisibility(skipURLUpdate = false) {
         // Clear any existing timeout to debounce rapid calls
         if (qrVisibilityUpdateTimeout) {
-            console.log('Debouncing QR visibility update - clearing previous timeout');
             clearTimeout(qrVisibilityUpdateTimeout);
         }
         
         // For user interactions (not skipURLUpdate), add a small debounce
         if (!skipURLUpdate) {
-            console.log('Adding debounce for user interaction');
             qrVisibilityUpdateTimeout = setTimeout(() => {
                 updateQRSlideVisibilityImmediate(skipURLUpdate);
             }, 50);
@@ -3959,35 +4044,67 @@ function setupStyleOptions() {
     }
     
     function updateQRSlideVisibilityImmediate(skipURLUpdate = false) {
-        const webLinkToggle = document.getElementById('qrShowWebLinkToggle');
-        const neventToggle = document.getElementById('qrShowNeventToggle');
-        const noteToggle = document.getElementById('qrShowNoteToggle');
+        const visibilityStates = getSlideVisibilityStates();
         
-        const showWebLink = webLinkToggle?.checked ?? true;
-        const showNevent = neventToggle?.checked ?? true;
-        const showNote = noteToggle?.checked ?? true;
         
-        console.log('=== updateQRSlideVisibilityImmediate DEBUG ===');
-        console.log('Function called with skipURLUpdate:', skipURLUpdate);
-        console.log('Stack trace:', new Error().stack.split('\n').slice(1, 5).join('\n'));
         
-        console.log('updateQRSlideVisibilityImmediate called:', {
-            showWebLink, showNevent, showNote,
-            skipURLUpdate,
-            webLinkToggleChecked: webLinkToggle?.checked,
-            neventToggleChecked: neventToggle?.checked,
-            noteToggleChecked: noteToggle?.checked
-        });
+        
         
         // Check if we can avoid rebuilding by just showing/hiding existing slides
         const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
         if (swiperWrapper) {
             const existingSlides = swiperWrapper.children;
-            const hasAllSlides = existingSlides.length >= 3; // At least 3 basic slides
+            // Check if we have all the required slides for current visibility states
+            const requiredSlides = Object.values(visibilityStates).filter(Boolean).length;
+            const hasAllRequiredSlides = existingSlides.length >= requiredSlides;
             
-            // If we have all slides and swiper exists, try to show/hide instead of rebuilding
-            if (window.qrSwiper && hasAllSlides) {
-                console.log('Attempting to show/hide slides without rebuilding');
+            // Force rebuild if Lightning is enabled but Lightning slide is not found
+            const hasLightningSlide = Array.from(existingSlides).some(isLightningSlide);
+            
+            // Also check if we need to rebuild due to missing other slides
+            const hasWebLinkSlide = Array.from(existingSlides).some(slide => slide.querySelector('img')?.id === 'qrCode');
+            const hasNeventSlide = Array.from(existingSlides).some(slide => slide.querySelector('img')?.id === 'qrCodeNevent');
+            const hasNoteSlide = Array.from(existingSlides).some(slide => slide.querySelector('img')?.id === 'qrCodeNote');
+            
+            const needsRebuild = (visibilityStates.lightning && !hasLightningSlide) ||
+                                (visibilityStates.webLink && !hasWebLinkSlide) ||
+                                (visibilityStates.nevent && !hasNeventSlide) ||
+                                (visibilityStates.note && !hasNoteSlide);
+            
+            // Check if the number of visible slides has changed
+            const currentVisibleSlides = Array.from(existingSlides).filter(slide => slide.style.display !== 'none');
+            const slideCountChanged = currentVisibleSlides.length !== requiredSlides;
+            
+            console.log('Slide check:', { 
+                requiredSlides,
+                existingSlides: existingSlides.length,
+                hasAllRequiredSlides,
+                visibilityStates,
+                hasLightningSlide,
+                hasWebLinkSlide,
+                hasNeventSlide,
+                hasNoteSlide,
+                needsRebuild,
+                currentVisibleSlides: currentVisibleSlides.length,
+                slideCountChanged
+            });
+            
+            // Check if Lightning QR code actually exists (not just the slide)
+            const lightningQRExists = hasLightningSlide && visibilityStates.lightning && 
+                document.getElementById('lightningQRCode') && 
+                document.getElementById('lightningQRCode').children.length > 0;
+            
+            console.log('Lightning QR existence check:', {
+                hasLightningSlide,
+                visibilityStatesLightning: visibilityStates.lightning,
+                lightningQRElement: !!document.getElementById('lightningQRCode'),
+                lightningQRChildren: document.getElementById('lightningQRCode')?.children.length || 0,
+                lightningQRExists
+            });
+            
+            // If we have all required slides and swiper exists, try to show/hide instead of rebuilding
+            if (window.qrSwiper && hasAllRequiredSlides && !needsRebuild && !slideCountChanged && 
+                (!visibilityStates.lightning || lightningQRExists)) {
                 
                 // Store references to slides that should be hidden
                 const slidesToHide = [];
@@ -3995,14 +4112,24 @@ function setupStyleOptions() {
                 
                 // Check each slide
                 const slides = Array.from(existingSlides);
+                console.log('Found slides for processing:', slides.length, slides.map(s => ({ 
+                    id: s.id, 
+                    imgId: s.querySelector('img')?.id,
+                    display: s.style.display 
+                })));
+                
                 slides.forEach((slide, index) => {
-                    const slideId = slide.querySelector('img')?.id;
-                    let shouldShow = true;
+                    const shouldShow = shouldShowSlide(slide, visibilityStates);
+                    const slideType = getSlideType(slide);
                     
-                    if (slideId === 'qrCode') shouldShow = showWebLink;
-                    else if (slideId === 'qrCodeNevent') shouldShow = showNevent;
-                    else if (slideId === 'qrCodeNote') shouldShow = showNote;
-                    else if (slideId === 'lightningQRCode') shouldShow = window.lightningEnabled;
+                    if (slideType === 'lightning') {
+                        console.log('Processing lightning slide:', { 
+                            slideId: slide.querySelector('img')?.id, 
+                            slideElementId: slide.id, 
+                            shouldShow, 
+                            lightningEnabled: window.lightningEnabled 
+                        });
+                    }
                     
                     if (shouldShow) {
                         slidesToShow.push(slide);
@@ -4011,8 +4138,8 @@ function setupStyleOptions() {
                         slidesToHide.push(slide);
                         slide.style.display = 'none';
                     }
-                    console.log(`Slide ${index} (${slideId}): ${shouldShow ? 'shown' : 'hidden'}`);
                 });
+                
                 
                 // Show/hide the swiper container based on visible slides
                 const qrSwiperContainer = document.querySelector('.qr-swiper');
@@ -4038,7 +4165,7 @@ function setupStyleOptions() {
                                 if (window.qrSwiper.params) {
                                     window.qrSwiper.params.loop = true;
                                     window.qrSwiper.params.autoplay = {
-                                        delay: 3000,
+                                        delay: 10000,
                                         disableOnInteraction: false,
                                         pauseOnMouseEnter: true
                                     };
@@ -4060,7 +4187,6 @@ function setupStyleOptions() {
                 return;
             }
             
-            console.log('Need to rebuild swiper - destroying existing instance');
             // Fallback to rebuilding if we don't have all slides or no swiper exists
             if (window.qrSwiper) {
                 window.qrSwiper.destroy(true, true);
@@ -4076,46 +4202,12 @@ function setupStyleOptions() {
             const lightningSlide = document.getElementById('lightningQRSlide');
             const shouldPreserveLightning = lightningSlide && lightningSlide.style.display !== 'none' && window.lightningEnabled;
             
-            console.log('updateQRSlideVisibility - Lightning check:', {
-                lightningSlide: !!lightningSlide,
-                display: lightningSlide?.style.display,
-                windowLightningEnabled: window.lightningEnabled,
-                shouldPreserveLightning
-            });
             
             swiperWrapper.innerHTML = '';
             
             // Add slides based on visibility settings
-            const slideConfigs = [
-                { 
-                    show: showWebLink, 
-                    id: 'qrCode', 
-                    linkId: 'qrcodeLinkNostr',
-                    previewId: 'qrDataPreview1',
-                    label: 'Web Link'
-                },
-                { 
-                    show: showNevent, 
-                    id: 'qrCodeNevent', 
-                    linkId: 'qrcodeNeventLink',
-                    previewId: 'qrDataPreview2',
-                    label: 'Nostr Event'
-                },
-                { 
-                    show: showNote, 
-                    id: 'qrCodeNote', 
-                    linkId: 'qrcodeNoteLink',
-                    previewId: 'qrDataPreview3',
-                    label: 'Note ID'
-                },
-                { 
-                    show: window.lightningEnabled, 
-                    id: 'lightningQRCode', 
-                    linkId: null,
-                    previewId: 'qrDataPreview4',
-                    label: 'Lightning Payment'
-                }
-            ];
+            const slideConfigs = createSlideConfigs(visibilityStates);
+            console.log('Creating slides with configs:', slideConfigs);
             
             slideConfigs.forEach(config => {
                 if (config.show) {
@@ -4138,9 +4230,19 @@ function setupStyleOptions() {
                             </a>
                             <div class="qr-slide-label">${config.label} <span class="qr-data-preview" id="${config.previewId}"></span></div>
                         `;
+                        console.log('Created Lightning slide:', {
+                            slideId: slide.id,
+                            configId: config.id,
+                            slideHTML: slide.innerHTML
+                        });
                     }
                     
                     swiperWrapper.appendChild(slide);
+                    console.log('Added slide to swiper wrapper:', {
+                        slideId: slide.id,
+                        configId: config.id,
+                        swiperWrapperChildren: swiperWrapper.children.length
+                    });
                 }
             });
             
@@ -4156,7 +4258,7 @@ function setupStyleOptions() {
                 },
                 loop: swiperWrapper.children.length > 1, // Only loop if more than 1 slide
                 autoplay: swiperWrapper.children.length > 1 ? {
-                    delay: 3000,
+                    delay: 10000,
                     disableOnInteraction: false,
                     pauseOnMouseEnter: true
                 } : false,
@@ -4164,7 +4266,17 @@ function setupStyleOptions() {
                 height: 250,
                 watchOverflow: true,
                 observer: true,
-                observeParents: true
+                observeParents: true,
+                on: {
+                    init: function() {
+                        setTimeout(() => {
+                            initializeQRTimer();
+                        }, 500);
+                    },
+                    slideChange: function() {
+                        updateQRTimer();
+                    }
+                }
             });
             
             // Re-generate QR codes for visible slides
@@ -4178,14 +4290,15 @@ function setupStyleOptions() {
     
     // Function to regenerate QR codes for visible slides
     function regenerateQRCodes() {
-        console.log('regenerateQRCodes called', { 
-            currentLiveEvent: !!window.currentLiveEvent, 
-            currentNoteId: !!window.currentNoteId 
+        console.log('regenerateQRCodes called:', {
+            currentLiveEvent: !!window.currentLiveEvent,
+            currentNoteId: window.currentNoteId,
+            lightningEnabled: window.lightningEnabled,
+            lightningLNURL: window.lightningLNURL
         });
         
         // Check if we have live event data first
         if (window.currentLiveEvent) {
-            console.log('Regenerating QR codes for live event');
             // Add delay to ensure swiper slides are fully created
             setTimeout(() => {
                 generateLiveEventQRCodes(window.currentLiveEvent);
@@ -4196,39 +4309,53 @@ function setupStyleOptions() {
         // Get current note ID for regular notes
         const noteId = window.currentNoteId;
         
-        if (!noteId) {
-            console.log('No noteId or liveEvent found for QR regeneration');
+        // If we have Lightning enabled but no note ID, still generate Lightning QR
+        if (!noteId && !window.lightningEnabled) {
             return;
         }
         
-        console.log('Regenerating QR codes for regular note:', noteId);
         
-        // Generate QR code data
-        const neventId = NostrTools.nip19.neventEncode({ id: noteId, relays: [] });
-        const note1Id = NostrTools.nip19.noteEncode(noteId);
-        const njumpUrl = "https://njump.me/" + note1Id;
-        const nostrNevent = "nostr:" + neventId;
-        const nostrNote = "nostr:" + note1Id;
+        // Generate QR code data (only if we have a note ID)
+        let neventId, note1Id, njumpUrl, nostrNevent, nostrNote;
+        if (noteId) {
+            neventId = NostrTools.nip19.neventEncode({ id: noteId, relays: [] });
+            note1Id = NostrTools.nip19.noteEncode(noteId);
+            njumpUrl = "https://njump.me/" + note1Id;
+            nostrNevent = "nostr:" + neventId;
+            nostrNote = "nostr:" + note1Id;
+        }
         
         const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
         
         // Generate QR codes for visible slides
-        const qrConfigs = [
-            { id: 'qrCode', value: njumpUrl, linkId: 'qrcodeLinkNostr', previewId: 'qrDataPreview1' },
-            { id: 'qrCodeNevent', value: nostrNevent, linkId: 'qrcodeNeventLink', previewId: 'qrDataPreview2' },
-            { id: 'qrCodeNote', value: nostrNote, linkId: 'qrcodeNoteLink', previewId: 'qrDataPreview3' }
-        ];
+        const qrConfigs = [];
+        
+        // Add note-related QR codes only if we have a note ID
+        if (noteId) {
+            qrConfigs.push(
+                { id: 'qrCode', value: njumpUrl, linkId: 'qrcodeLinkNostr', previewId: 'qrDataPreview1' },
+                { id: 'qrCodeNevent', value: nostrNevent, linkId: 'qrcodeNeventLink', previewId: 'qrDataPreview2' },
+                { id: 'qrCodeNote', value: nostrNote, linkId: 'qrcodeNoteLink', previewId: 'qrDataPreview3' }
+            );
+        }
         
         // Add Lightning QR if enabled
         if (window.lightningEnabled && window.lightningLNURL) {
+            console.log('Adding Lightning QR to configs:', {
+                id: 'lightningQRCode',
+                value: window.lightningLNURL,
+                linkId: 'lightningQRLink',
+                previewId: 'qrDataPreview4'
+            });
             qrConfigs.push({
                 id: 'lightningQRCode',
                 value: window.lightningLNURL,
                 linkId: 'lightningQRLink',
                 previewId: 'qrDataPreview4'
             });
-            console.log('Added Lightning QR to qrConfigs:', window.lightningLNURL);
         }
+        
+        console.log('QR configs to generate:', qrConfigs);
         
         
         qrConfigs.forEach(({ id, value, linkId, previewId }) => {
@@ -4236,16 +4363,30 @@ function setupStyleOptions() {
             const link = document.getElementById(linkId);
             const preview = document.getElementById(previewId);
             
-            console.log(`Processing QR config: ${id}`, { element: !!element, value, linkId, previewId });
+            console.log(`Processing QR config ${id}:`, {
+                element: !!element,
+                link: !!link,
+                preview: !!preview,
+                value: value
+            });
             
             if (element) {
                 element.innerHTML = "";
+                console.log(`Generating QR for ${id} with value:`, value);
                 new QRious({
                     element: element,
                     size: qrSize,
                     value: value
                 });
-                console.log(`Generated QR for ${id}:`, element.innerHTML);
+                
+                // Check if QR was actually created
+                setTimeout(() => {
+                    console.log(`QR generation result for ${id}:`, {
+                        elementChildren: element.children.length,
+                        hasCanvas: element.querySelector('canvas') !== null,
+                        hasImg: element.querySelector('img') !== null
+                    });
+                }, 100);
                 
                 if (link) {
                     // For Lightning QR, use lightning: URI format
@@ -4273,7 +4414,6 @@ function setupStyleOptions() {
                     preview.textContent = previewText;
                 }
             } else {
-                console.log(`Element not found for ${id}`);
             }
         });
         
@@ -4308,15 +4448,18 @@ function setupStyleOptions() {
     
     if (qrShowWebLinkToggle) {
         qrShowWebLinkToggle.addEventListener('change', function(e) {
-            console.log('QR Show Web Link toggle changed:', e.target.checked);
+            console.log('QR Show Web Link toggle changed:', e.target.checked, 'Element:', e.target);
             updateQRSlideVisibility(); // This will call updateStyleURL() to save state
         });
+    } else {
     }
     if (qrShowNeventToggle) {
         qrShowNeventToggle.addEventListener('change', function(e) {
             console.log('QR Show Nevent toggle changed:', e.target.checked);
             updateQRSlideVisibility(); // This will call updateStyleURL() to save state
         });
+    } else {
+        console.error('qrShowNeventToggle element not found!');
     }
     if (qrShowNoteToggle) {
         qrShowNoteToggle.addEventListener('change', function(e) {
@@ -4333,15 +4476,12 @@ function setupStyleOptions() {
     
     // Add event listener for hide zapper content toggle
     hideZapperContentToggle.addEventListener('change', function(e) {
-        console.log('Hide zapper content toggle changed:', e.target.checked);
         document.body.classList.toggle('hide-zapper-content', e.target.checked);
-        console.log('Body classes after toggle:', document.body.classList.toString());
         updateStyleURL();
     });
     
     // Add event listener for show top zappers toggle
     showTopZappersToggle.addEventListener('change', function(e) {
-        console.log('Show top zappers toggle changed:', e.target.checked);
         document.body.classList.toggle('show-top-zappers', e.target.checked);
         
         // Update top zappers bar visibility immediately
@@ -4359,7 +4499,6 @@ function setupStyleOptions() {
     
     // Add event listener for podium toggle
     podiumToggle.addEventListener('change', function(e) {
-        console.log('Podium toggle changed:', e.target.checked);
         document.body.classList.toggle('podium-enabled', e.target.checked);
         // Re-render zaps to apply/remove podium styling
         if (json9735List.length > 0) {
@@ -4371,13 +4510,11 @@ function setupStyleOptions() {
 
     // Add event listener for zap grid toggle
     zapGridToggle.addEventListener('change', function(e) {
-        console.log('Zap grid toggle changed:', e.target.checked);
         const zapsList = document.getElementById('zaps');
         if (zapsList) {
             // Check if we're in live event mode (has two-column layout)
             const isLiveEvent = zapsList.classList.contains('live-event-two-column');
             if (isLiveEvent) {
-                console.log('Grid layout not supported for live events - skipping');
                 // Reset the toggle since we're not applying the change
                 e.target.checked = !e.target.checked;
                 return;
@@ -4419,7 +4556,6 @@ function setupStyleOptions() {
     document.querySelectorAll('.preset-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const presetName = this.getAttribute('data-preset');
-            console.log('Preset button clicked:', presetName);
             applyPreset(presetName);
         });
     });
@@ -4466,6 +4602,20 @@ async function enableLightningPayments() {
   
   if (!eventId) {
     console.log('No event ID found - Lightning payments require a valid event');
+    // Still set the toggle state for QR slide visibility
+    lightningEnabled = true;
+    window.lightningEnabled = true;
+    // Set a default Lightning URL for QR code generation
+    window.lightningLNURL = 'lightning:lnbc1p...'; // Placeholder Lightning URL
+    updateLightningToggle();
+    
+    // Update QR slide visibility even without full Lightning setup
+    if (window.updateQRSlideVisibility) {
+      window.updateQRSlideVisibility();
+    }
+    
+    // Lightning QR will be generated by the swiper rebuild process
+    
     return;
   }
   
@@ -4488,10 +4638,6 @@ async function enableLightningPayments() {
       window.lightningEnabled = true;
       window.lightningLNURL = data.lnurl;
       
-      console.log('Set global Lightning variables:', {
-        lightningEnabled: window.lightningEnabled,
-        lightningLNURL: window.lightningLNURL
-      });
       
       // Update toggle state
       lightningEnabled = true;
@@ -4501,13 +4647,14 @@ async function enableLightningPayments() {
       try {
         updateStyleURL();
       } catch (error) {
-        console.log('Could not call updateStyleURL:', error.message);
       }
       
       // Update swiper to include Lightning QR
       if (window.updateQRSlideVisibility) {
         window.updateQRSlideVisibility();
       }
+      
+      // Lightning QR will be generated by the swiper rebuild process
       
       // Show status message
       const statusDiv = document.getElementById('paymentStatus');
@@ -4517,7 +4664,6 @@ async function enableLightningPayments() {
         statusDiv.innerHTML = '<div class="status-waiting">⚡ Lightning enabled - scan QR to pay</div>';
       }
       
-      console.log('Lightning payments enabled:', data.message);
     } else {
       throw new Error(data.error || 'Failed to enable Lightning payments');
     }
@@ -4565,7 +4711,6 @@ async function disableLightningPayments() {
       try {
         updateStyleURL();
       } catch (error) {
-        console.log('Could not call updateStyleURL:', error.message);
       }
       
       // Update swiper to remove Lightning QR
@@ -4577,7 +4722,6 @@ async function disableLightningPayments() {
       const statusDiv = document.getElementById('paymentStatus');
       statusDiv.innerHTML = '<div class="status-disabled">🔒 Lightning disabled</div>';
       
-      console.log('Lightning payments disabled:', data.message);
     } else {
       throw new Error(data.error || 'Failed to disable Lightning payments');
     }
@@ -4592,10 +4736,21 @@ async function disableLightningPayments() {
 
 // Toggle Lightning payments
 function toggleLightningPayments() {
+  console.log('toggleLightningPayments called:', { lightningEnabled, currentState: lightningEnabled });
   if (lightningEnabled) {
+    console.log('Disabling Lightning payments');
     disableLightningPayments();
   } else {
+    console.log('Enabling Lightning payments');
     enableLightningPayments();
+  }
+  
+  // Update QR slide visibility when Lightning toggle changes
+  if (window.updateQRSlideVisibility) {
+    console.log('Lightning toggle changed, updating QR slide visibility');
+    window.updateQRSlideVisibility();
+  } else {
+    console.log('updateQRSlideVisibility function not available');
   }
 }
 
@@ -4680,7 +4835,6 @@ function createLightningQRDisplay(lnurl) {
   
   // Generate QR code
   const qrSize = 200;
-  console.log('Generating QR for popup:', { lnurl, qrSize, container: qrContainer });
   
   try {
     new QRious({
@@ -4688,16 +4842,11 @@ function createLightningQRDisplay(lnurl) {
       size: qrSize,
       value: lnurl
     });
-    console.log('QR generated successfully for popup');
     
     // Check if QR was actually created
     setTimeout(() => {
-      console.log('QR container after generation:', qrContainer);
-      console.log('QR container innerHTML:', qrContainer.innerHTML);
-      console.log('QR container children:', qrContainer.children.length);
       
       if (qrContainer.children.length === 0) {
-        console.log('QR not created, trying fallback...');
         // Fallback: Create canvas manually
         const canvas = document.createElement('canvas');
         canvas.width = qrSize;
@@ -4711,7 +4860,6 @@ function createLightningQRDisplay(lnurl) {
           size: qrSize,
           value: lnurl
         });
-        console.log('Fallback QR created');
       }
     }, 100);
     
@@ -4722,7 +4870,6 @@ function createLightningQRDisplay(lnurl) {
     qrContainer.innerHTML = `<div style="padding: 20px; font-family: monospace; word-break: break-all; background: #f0f0f0; border: 2px solid #ccc; border-radius: 8px;">${lnurl}</div>`;
   }
   
-  console.log('Created Lightning QR display with LNURL:', lnurl);
 }
 
 // Update toggle button appearance
@@ -4742,7 +4889,6 @@ function updateLightningToggle() {
 
 // Add Lightning QR code to the existing swiper
 function addLightningQRToSwiper(lnurl) {
-  console.log('Adding Lightning QR to swiper:', lnurl);
   
   const lightningSlide = document.getElementById('lightningQRSlide');
   const qrContainer = document.getElementById('lightningQRCode');
@@ -4754,12 +4900,20 @@ function addLightningQRToSwiper(lnurl) {
   
   // Show the Lightning QR slide
   lightningSlide.style.display = 'block';
+  console.log('Lightning slide display set to block:', lightningSlide.style.display);
   
   // Generate QR code using the working method
   qrContainer.innerHTML = '';
   const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
   
-  console.log('Generating Lightning QR for swiper:', { lnurl, qrSize });
+  console.log('Generating Lightning QR:', { lnurl, qrSize, qrContainer });
+  
+  // Check if QRious is available
+  if (typeof QRious === 'undefined') {
+    console.error('QRious library not available');
+    qrContainer.innerHTML = '<div style="color: white; text-align: center; padding: 20px;">QR Library Error</div>';
+    return;
+  }
   
   try {
     new QRious({
@@ -4767,12 +4921,11 @@ function addLightningQRToSwiper(lnurl) {
       size: qrSize,
       value: lnurl
     });
-    console.log('Lightning QR generated successfully for swiper');
     
     // Check if QR was actually created
     setTimeout(() => {
       if (qrContainer.children.length === 0) {
-        console.log('QR not created, trying fallback...');
+        console.log('QR not created, trying fallback method');
         // Fallback: Create canvas manually
         const canvas = document.createElement('canvas');
         canvas.width = qrSize;
@@ -4786,12 +4939,36 @@ function addLightningQRToSwiper(lnurl) {
           size: qrSize,
           value: lnurl
         });
-        console.log('Fallback Lightning QR created for swiper');
+        
+        // Final check
+        setTimeout(() => {
+          if (qrContainer.children.length === 0) {
+            console.error('Failed to generate Lightning QR code');
+            qrContainer.innerHTML = '<div style="color: white; text-align: center; padding: 20px;">Lightning QR Error</div>';
+          } else {
+            console.log('Lightning QR generated successfully');
+            console.log('Lightning slide visibility:', {
+              display: lightningSlide.style.display,
+              visibility: lightningSlide.style.visibility,
+              opacity: lightningSlide.style.opacity,
+              slideVisible: lightningSlide.offsetParent !== null
+            });
+          }
+        }, 100);
+      } else {
+        console.log('Lightning QR generated successfully');
+        console.log('Lightning slide visibility:', {
+          display: lightningSlide.style.display,
+          visibility: lightningSlide.style.visibility,
+          opacity: lightningSlide.style.opacity,
+          slideVisible: lightningSlide.offsetParent !== null
+        });
       }
     }, 100);
     
   } catch (error) {
     console.error('Error generating Lightning QR for swiper:', error);
+    qrContainer.innerHTML = '<div style="color: white; text-align: center; padding: 20px;">Lightning QR Error</div>';
   }
   
   // Update the QR data preview
@@ -4802,26 +4979,46 @@ function addLightningQRToSwiper(lnurl) {
   
   // Add the slide to the swiper wrapper if not already there
   const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
+  console.log('Swiper wrapper found:', !!swiperWrapper);
   if (swiperWrapper && !swiperWrapper.contains(lightningSlide)) {
+    console.log('Adding Lightning slide to swiper wrapper');
     swiperWrapper.appendChild(lightningSlide);
-    console.log('Added Lightning QR slide to swiper wrapper');
+  } else if (swiperWrapper) {
+    console.log('Lightning slide already in swiper wrapper');
+  }
+  
+  // Ensure the Lightning slide has the correct class
+  if (!lightningSlide.classList.contains('swiper-slide')) {
+    console.log('Adding swiper-slide class to Lightning slide');
+    lightningSlide.classList.add('swiper-slide');
   }
   
   // Update swiper to recognize the new slide
   if (window.qrSwiper) {
+    console.log('Updating swiper after Lightning QR generation');
     window.qrSwiper.update();
-    console.log('Updated swiper with Lightning QR slide');
+    console.log('Swiper updated, slide count:', window.qrSwiper.slides.length);
+    
+    // Check if Lightning slide is in the swiper
+    const lightningSlideInSwiper = window.qrSwiper.slides.find(slide => slide.id === 'lightningQRSlide');
+    console.log('Lightning slide in swiper:', !!lightningSlideInSwiper);
+    if (lightningSlideInSwiper) {
+      console.log('Lightning slide visibility in swiper:', {
+        display: lightningSlideInSwiper.style.display,
+        visibility: lightningSlideInSwiper.style.visibility,
+        opacity: lightningSlideInSwiper.style.opacity
+      });
+    }
+  } else {
+    console.error('Swiper not available for update');
   }
 }
 
 // Generate Lightning QR code and add to swiper
 function generateLightningQR(lnurl, lightningSlide, qrContainer) {
-  console.log('Adding Lightning QR to swiper:', lnurl);
   
   // Debug: Check current swiper state
   if (window.qrSwiper) {
-    console.log('Current swiper slides count:', window.qrSwiper.slides.length);
-    console.log('Current swiper wrapper children:', document.querySelector('.qr-swiper .swiper-wrapper').children.length);
   }
   
   // Use the same approach as other QR codes
@@ -4831,7 +5028,6 @@ function generateLightningQR(lnurl, lightningSlide, qrContainer) {
     
     // Calculate responsive size (same as other QR codes)
     const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
-    console.log('Generating Lightning QR with size:', qrSize);
     
     // Generate QR code (same as other QR codes)
     new QRious({
@@ -4840,15 +5036,10 @@ function generateLightningQR(lnurl, lightningSlide, qrContainer) {
       value: lnurl
     });
     
-    console.log('Lightning QR generated successfully');
   }
   
   // Show the Lightning QR slide
   lightningSlide.style.display = 'block';
-  console.log('Lightning slide display set to block');
-  console.log('Lightning slide computed style:', getComputedStyle(lightningSlide).display);
-  console.log('Lightning slide visibility:', getComputedStyle(lightningSlide).visibility);
-  console.log('Lightning slide opacity:', getComputedStyle(lightningSlide).opacity);
   
   // Update the QR data preview
   const preview = document.getElementById('qrDataPreview4');
@@ -4866,20 +5057,12 @@ function generateLightningQR(lnurl, lightningSlide, qrContainer) {
   
   // Add the slide to the swiper wrapper if not already there
   const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
-  console.log('Swiper wrapper found:', !!swiperWrapper);
-  console.log('Lightning slide already in wrapper:', swiperWrapper?.contains(lightningSlide));
   
   if (swiperWrapper && !swiperWrapper.contains(lightningSlide)) {
     swiperWrapper.appendChild(lightningSlide);
-    console.log('Added Lightning QR slide to swiper wrapper');
-    console.log('Swiper wrapper children count after adding:', swiperWrapper.children.length);
   }
   
   // Check if the slide is visible in the DOM
-  console.log('Lightning slide parent:', lightningSlide.parentElement);
-  console.log('Lightning slide offsetParent:', lightningSlide.offsetParent);
-  console.log('Lightning slide offsetWidth:', lightningSlide.offsetWidth);
-  console.log('Lightning slide offsetHeight:', lightningSlide.offsetHeight);
   
   // Force swiper to reinitialize with all slides
   if (window.qrSwiper) {
@@ -4899,30 +5082,30 @@ function generateLightningQR(lnurl, lightningSlide, qrContainer) {
         },
         loop: false,
         autoplay: {
-          delay: 3000,
+          delay: 10000,
           disableOnInteraction: false,
         },
         effect: 'slide',
         speed: 300,
         observer: true,
-        observeParents: true
+        observeParents: true,
+        on: {
+          init: function() {
+            initializeQRTimer();
+          },
+          slideChange: function() {
+            updateQRTimer();
+          }
+        }
       });
-      console.log('Reinitialized swiper with Lightning QR slide');
-      console.log('New swiper slides count:', window.qrSwiper.slides.length);
-      console.log('New swiper wrapper children:', document.querySelector('.qr-swiper .swiper-wrapper').children.length);
       
       // Check if QR code is still there after swiper reinitialization
       const lightningSlideAfter = document.getElementById('lightningQRSlide');
       const qrContainerAfter = document.getElementById('lightningQRCode');
       if (lightningSlideAfter && qrContainerAfter) {
-        console.log('Lightning slide after swiper reinit:', lightningSlideAfter);
-        console.log('QR container after swiper reinit:', qrContainerAfter);
-        console.log('QR container innerHTML after swiper reinit:', qrContainerAfter.innerHTML);
-        console.log('QR container children after swiper reinit:', qrContainerAfter.children.length);
         
         // If QR code was lost during swiper reinit, regenerate it
         if (qrContainerAfter.children.length === 0) {
-          console.log('QR code lost during swiper reinit, regenerating...');
           qrContainerAfter.innerHTML = "";
           const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
           new QRious({
@@ -4930,7 +5113,6 @@ function generateLightningQR(lnurl, lightningSlide, qrContainer) {
             size: qrSize,
             value: lnurl
           });
-          console.log('QR code regenerated after swiper reinit');
         }
       }
     }, 300);
@@ -4945,7 +5127,6 @@ function removeLightningQRFromSwiper() {
   const lightningSlide = document.getElementById('lightningQRSlide');
   
   if (lightningSlide) {
-    console.log('Removing Lightning QR from swiper');
     
     // Hide the Lightning QR slide
     lightningSlide.style.display = 'none';
@@ -4967,15 +5148,22 @@ function removeLightningQRFromSwiper() {
           },
           loop: false,
           autoplay: {
-            delay: 3000,
+            delay: 10000,
             disableOnInteraction: false,
           },
           effect: 'slide',
           speed: 300,
           observer: true,
-          observeParents: true
+          observeParents: true,
+          on: {
+            init: function() {
+              initializeQRTimer();
+            },
+            slideChange: function() {
+              updateQRTimer();
+            }
+          }
         });
-        console.log('Reinitialized swiper without Lightning QR slide');
       }, 100);
     }
     
@@ -4999,11 +5187,19 @@ function reinitializeSwiper() {
       clickable: true,
     },
     autoplay: {
-      delay: 3000,
+      delay: 10000,
       disableOnInteraction: false,
     },
     effect: 'slide',
     speed: 500,
+    on: {
+      init: function() {
+        initializeQRTimer();
+      },
+      slideChange: function() {
+        updateQRTimer();
+      }
+    }
   });
 }
 
@@ -5021,6 +5217,7 @@ function initializeLightningToggle() {
     // Lightning state is now loaded by the main styles system
     // Just add the event listener
     toggle.addEventListener('change', toggleLightningPayments);
+  } else {
   }
 }
 
@@ -5036,7 +5233,6 @@ function organizeZapsHierarchically() {
     
     // Skip if this is a live event (has two-column layout)
     if (zapsList.classList.contains('live-event-two-column')) {
-        console.log('Skipping grid organization for live events');
         return;
     }
     
@@ -5063,14 +5259,9 @@ function organizeZapsHierarchically() {
     
     // Apply podium classes to top 3 zaps
     if (document.body.classList.contains('podium-enabled')) {
-        console.log('Applying podium classes in grid layout. Top 3 zaps:', sortedZaps.slice(0, 3).map(zap => ({
-            amount: zap.querySelector('.zapperAmountSats')?.textContent,
-            name: zap.querySelector('.zapperName')?.textContent
-        })));
         for (let i = 0; i < Math.min(3, sortedZaps.length); i++) {
             const zap = sortedZaps[i];
             zap.classList.add(`podium-global-${i + 1}`);
-            console.log(`Applied podium-global-${i + 1} to zap with amount:`, zap.querySelector('.zapperAmountSats')?.textContent);
         }
     }
     
@@ -5118,7 +5309,6 @@ function cleanupHierarchicalOrganization() {
     
     // Skip if this is a live event (has two-column layout)
     if (zapsList.classList.contains('live-event-two-column')) {
-        console.log('Skipping grid cleanup for live events');
         return;
     }
     
@@ -5153,3 +5343,254 @@ function cleanupHierarchicalOrganization() {
         }
     }
 }
+
+// QR Timer functionality
+let qrTimerInterval = null;
+let qrTimerStartTime = null;
+let qrTimerDuration = 10000; // 10 seconds
+
+function initializeQRTimer() {
+    if (!window.qrSwiper) {
+        return;
+    }
+    
+    // Clear any existing timer
+    if (qrTimerInterval) {
+        clearInterval(qrTimerInterval);
+    }
+    
+    // Add timer elements to all slides
+    const slides = document.querySelectorAll('.qr-swiper .swiper-slide');
+    
+    if (slides.length === 0) {
+        // Try alternative selector
+        const altSlides = document.querySelectorAll('.swiper-slide');
+        if (altSlides.length > 0) {
+            addTimersToSlides(altSlides);
+        }
+        return;
+    }
+    
+    addTimersToSlides(slides);
+    
+    // Start timer for current slide
+    startQRTimer();
+}
+
+function addTimersToSlides(slides) {
+    
+    // Only show timer if there are multiple slides
+    if (slides.length <= 1) {
+        return;
+    }
+    
+    slides.forEach((slide, index) => {
+        
+        // Remove existing timer if any
+        const existingTimer = slide.querySelector('.qr-timer-container');
+        if (existingTimer) {
+            existingTimer.remove();
+        }
+        
+        // Create timer container
+        const timerContainer = document.createElement('div');
+        timerContainer.className = 'qr-timer-container';
+        
+        // Create timer circle
+        const timerCircle = document.createElement('div');
+        timerCircle.className = 'qr-timer-circle';
+        
+        const timerProgress = document.createElement('div');
+        timerProgress.className = 'qr-timer-progress';
+        
+        const timerText = document.createElement('div');
+        timerText.className = 'qr-timer-text';
+        timerText.textContent = '10';
+        
+        // Create next slide indicator (inside the circle)
+        const nextIndicator = document.createElement('div');
+        nextIndicator.className = 'qr-next-indicator';
+        
+        // For now, set a placeholder - we'll update this dynamically
+        const nextSlideType = 'web';
+        const nextIcon = getSlideIcon(nextSlideType);
+        
+        nextIndicator.className += ` qr-next-${nextSlideType}`;
+        nextIndicator.textContent = nextIcon;
+        
+        // Create "Next Up" label
+        const nextLabel = document.createElement('div');
+        nextLabel.className = 'qr-next-label';
+        nextLabel.textContent = 'Next Up';
+        
+        // Assemble the timer circle
+        timerCircle.appendChild(timerProgress);
+        timerCircle.appendChild(timerText);
+        timerCircle.appendChild(nextIndicator);
+        
+        // Assemble the container
+        timerContainer.appendChild(timerCircle);
+        timerContainer.appendChild(nextLabel);
+        
+        // Append to slide
+        slide.appendChild(timerContainer);
+    });
+}
+
+function getSlideType(slide) {
+    if (!slide) return 'web';
+    
+    const slideId = slide.querySelector('img')?.id;
+    const slideElementId = slide.id;
+    
+    // Use slide ID detection for better accuracy
+    if (slideId === 'qrCode') return 'web';
+    if (slideId === 'qrCodeNevent') return 'nostr';
+    if (slideId === 'qrCodeNote') return 'note';
+    if (slideId === 'lightningQRCode' || slideElementId === 'lightningQRSlide') return 'lightning';
+    
+    return 'web';
+}
+
+function getSlideIcon(type) {
+    const icons = {
+        web: '🌐',
+        nostr: 'N',
+        note: 'N',  // Use Nostr icon for notes too
+        lightning: '⚡'
+    };
+    return icons[type] || '🌐';
+}
+
+function startQRTimer() {
+    if (!window.qrSwiper) {
+        return;
+    }
+    
+    // Clear existing timer
+    if (qrTimerInterval) {
+        clearInterval(qrTimerInterval);
+        qrTimerInterval = null;
+    }
+    
+    // Check if there are multiple slides
+    const slides = document.querySelectorAll('.qr-swiper .swiper-slide');
+    if (slides.length <= 1) {
+        return;
+    }
+    
+    qrTimerStartTime = Date.now();
+    const currentSlide = window.qrSwiper.slides[window.qrSwiper.activeIndex];
+    
+    if (!currentSlide) {
+        return;
+    }
+    
+    const timerText = currentSlide.querySelector('.qr-timer-text');
+    const timerProgress = currentSlide.querySelector('.qr-timer-progress');
+    const nextIndicator = currentSlide.querySelector('.qr-next-indicator');
+    
+    if (!timerText || !timerProgress) {
+        return;
+    }
+    
+    // Update next slide indicator
+    updateNextSlideIndicator(currentSlide);
+    
+    // Reset timer display
+    timerText.textContent = '10';
+    timerProgress.style.background = 'conic-gradient(from 0deg, rgba(0, 204, 102, 0.7) 0deg, transparent 0deg)';
+    
+    qrTimerInterval = setInterval(() => {
+        const elapsed = Date.now() - qrTimerStartTime;
+        const remaining = Math.max(0, qrTimerDuration - elapsed);
+        const seconds = Math.ceil(remaining / 1000);
+        
+        timerText.textContent = seconds.toString();
+        
+        // Update progress circle
+        const progress = (elapsed / qrTimerDuration) * 360;
+        timerProgress.style.background = `conic-gradient(from 0deg, rgba(0, 204, 102, 0.7) ${progress}deg, transparent ${progress}deg)`;
+        
+        if (remaining <= 0) {
+            clearInterval(qrTimerInterval);
+            qrTimerInterval = null;
+        }
+    }, 100);
+}
+
+function updateNextSlideIndicator(currentSlide) {
+    if (!window.qrSwiper || !currentSlide) return;
+    
+    const nextIndicator = currentSlide.querySelector('.qr-next-indicator');
+    if (!nextIndicator) return;
+    
+    // Get the actual next slide from swiper
+    const currentIndex = window.qrSwiper.activeIndex;
+    const totalSlides = window.qrSwiper.slides.length;
+    let nextSlide = null;
+    
+    if (totalSlides > 1) {
+        // Calculate next slide index
+        const nextIndex = (currentIndex + 1) % totalSlides;
+        nextSlide = window.qrSwiper.slides[nextIndex];
+        
+    }
+    
+    // Determine next slide type and icon
+    const nextSlideType = getSlideType(nextSlide);
+    const nextIcon = getSlideIcon(nextSlideType);
+    
+    // Update the indicator
+    nextIndicator.className = `qr-next-indicator qr-next-${nextSlideType}`;
+    nextIndicator.textContent = nextIcon;
+    
+    console.log('Updated next slide indicator:', {
+        nextSlideType,
+        nextIcon,
+        nextIndicator: nextIndicator,
+        className: nextIndicator.className,
+        textContent: nextIndicator.textContent,
+        isVisible: nextIndicator.style.display !== 'none'
+    });
+    
+}
+
+function updateQRTimer() {
+    // Clear any existing timer first
+    if (qrTimerInterval) {
+        clearInterval(qrTimerInterval);
+        qrTimerInterval = null;
+    }
+    
+    // Restart timer for new slide
+    setTimeout(() => {
+        startQRTimer();
+    }, 100);
+}
+
+// Pause timer when swiper is paused
+function pauseQRTimer() {
+    if (qrTimerInterval) {
+        clearInterval(qrTimerInterval);
+    }
+}
+
+// Resume timer when swiper resumes
+function resumeQRTimer() {
+    startQRTimer();
+}
+
+// Manual timer initialization for testing
+function testQRTimer() {
+    
+    const slides = document.querySelectorAll('.qr-swiper .swiper-slide');
+    
+    if (slides.length > 0) {
+    }
+    
+    initializeQRTimer();
+}
+
+// Make test function available globally
+window.testQRTimer = testQRTimer;
