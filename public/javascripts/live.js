@@ -4201,8 +4201,10 @@ function setupStyleOptions() {
                                     };
                                 }
                             }
+                        } catch (error) {
+                            console.error('Error updating swiper:', error);
                         }
-                    }, 10);
+                    }
                 } else {
                     // No slides to show, hide the entire swiper
                     if (qrSwiperContainer) {
