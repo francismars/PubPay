@@ -2798,10 +2798,11 @@ function generateLiveEventQRCodes(liveEvent) {
                     newLightningSlide.className = 'swiper-slide lightning-qr-slide';
                     newLightningSlide.id = 'lightningQRSlide';
                     newLightningSlide.innerHTML = `
+                      <div class="qr-slide-title">Lightning <span class="qr-data-preview" id="qrDataPreview4"></span></div>
                       <a href="" target="_blank" id="lightningQRLink">
                         <div id="lightningQRCode" class="qr-code"></div>
                       </a>
-                      <div class="qr-slide-label">Lightning Payment <span class="qr-data-preview" id="qrDataPreview4"></span></div>
+                      <div class="qr-slide-label">Scan with Lightning Wallet</div>
                     `;
                     swiperWrapper.appendChild(newLightningSlide);
                 }
@@ -2840,7 +2841,7 @@ function generateLiveEventQRCodes(liveEvent) {
                     }
                 }
             }, 100);
-        }
+    }
     
     // Update QR code links (with null checks)
     const qrcodeLinkNostr = document.getElementById('qrcodeLinkNostr');
@@ -4295,7 +4296,7 @@ function setupStyleOptions() {
                     swiperWrapper.appendChild(webLinkSlide);
                 }
                 webLinkSlide.style.display = 'block';
-            } else {
+                    } else {
                 // Move to hidden container
                 hiddenSlidesContainer.appendChild(webLinkSlide);
             }
@@ -4347,58 +4348,58 @@ function setupStyleOptions() {
         console.log('Visibility update - Slide IDs in swiper:', visibleSlides.map(slide => slide.id));
         
         // Show/hide swiper container
-        const qrSwiperContainer = document.querySelector('.qr-swiper');
+                const qrSwiperContainer = document.querySelector('.qr-swiper');
         if (visibleSlides.length > 0) {
-            qrSwiperContainer.style.display = 'block';
-            
+                        qrSwiperContainer.style.display = 'block';
+                    
             // Update swiper if it exists
             if (window.qrSwiper) {
-                try {
-                    window.qrSwiper.update();
-                    
-                    // Update swiper behavior based on visible slides
+                        try {
+                            window.qrSwiper.update();
+                            
+                            // Update swiper behavior based on visible slides
                     if (visibleSlides.length === 1) {
-                        window.qrSwiper.allowTouchMove = false;
-                        if (window.qrSwiper.autoplay && window.qrSwiper.autoplay.stop) {
-                            window.qrSwiper.autoplay.stop();
-                        }
+                                window.qrSwiper.allowTouchMove = false;
+                                if (window.qrSwiper.autoplay && window.qrSwiper.autoplay.stop) {
+                                    window.qrSwiper.autoplay.stop();
+                                }
                     } else if (visibleSlides.length > 1) {
-                        window.qrSwiper.allowTouchMove = true;
+                                window.qrSwiper.allowTouchMove = true;
                         // Update autoplay delay to 10 seconds
                         if (window.qrSwiper.autoplay) {
                             window.qrSwiper.autoplay.params.delay = 10000;
                             if (window.qrSwiper.autoplay.start) {
-                                window.qrSwiper.autoplay.start();
+                                    window.qrSwiper.autoplay.start();
                             }
-                        }
-                    }
-                } catch (error) {
+                                }
+                            }
+                        } catch (error) {
                     console.log('Swiper update failed, will reinitialize:', error);
                     // If update fails, reinitialize swiper
                     initializeQRSwiper();
-                }
+                        }
             } else {
                 // Initialize swiper if it doesn't exist
                 initializeQRSwiper();
-            }
-        } else {
-            qrSwiperContainer.style.display = 'none';
-        }
-        
+                    }
+                } else {
+                        qrSwiperContainer.style.display = 'none';
+                }
+                
         // Update URL if not skipping
-        if (!skipURLUpdate) {
-            updateStyleURL();
-        }
-    }
-    
+                if (!skipURLUpdate) {
+                    updateStyleURL();
+                }
+            }
+            
     // Initialize QR swiper with proper configuration
     function initializeQRSwiper() {
         // Destroy existing swiper
-        if (window.qrSwiper) {
-            window.qrSwiper.destroy(true, true);
-            window.qrSwiper = null;
-        }
-        
+            if (window.qrSwiper) {
+                window.qrSwiper.destroy(true, true);
+                window.qrSwiper = null;
+            }
+            
         const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
         if (!swiperWrapper) return;
         
@@ -4451,30 +4452,30 @@ function setupStyleOptions() {
                 if (!swiperWrapper.contains(slide)) {
                     swiperWrapper.appendChild(slide);
                 }
-            }
-        });
-        
+                }
+            });
+            
         // Initialize swiper
-        window.qrSwiper = new Swiper('.qr-swiper', {
-            slidesPerView: 1,
-            spaceBetween: 0,
-            pagination: {
-                el: '.swiper-pagination',
-                clickable: true,
-                dynamicBullets: false
-            },
+            window.qrSwiper = new Swiper('.qr-swiper', {
+                slidesPerView: 1,
+                spaceBetween: 0,
+                pagination: {
+                    el: '.swiper-pagination',
+                    clickable: true,
+                    dynamicBullets: false
+                },
             loop: visibleSlides.length > 1,
             autoplay: visibleSlides.length > 1 ? {
                 delay: 10000,
-                disableOnInteraction: false,
-                pauseOnMouseEnter: true
-            } : false,
+                    disableOnInteraction: false,
+                    pauseOnMouseEnter: true
+                } : false,
             effect: 'slide',
             speed: 300,
-            observer: true,
-            observeParents: true
-        });
-        
+                observer: true,
+                observeParents: true
+            });
+            
         console.log('QR Swiper initialized with', visibleSlides.length, 'visible slides');
     }
     
@@ -4525,10 +4526,11 @@ function setupStyleOptions() {
                     newLightningSlide.className = 'swiper-slide lightning-qr-slide';
                     newLightningSlide.id = 'lightningQRSlide';
                     newLightningSlide.innerHTML = `
+                      <div class="qr-slide-title">Lightning <span class="qr-data-preview" id="qrDataPreview4"></span></div>
                       <a href="" target="_blank" id="lightningQRLink">
                         <div id="lightningQRCode" class="qr-code"></div>
                       </a>
-                      <div class="qr-slide-label">Lightning Payment <span class="qr-data-preview" id="qrDataPreview4"></span></div>
+                      <div class="qr-slide-label">Scan with Lightning Wallet</div>
                     `;
                     swiperWrapper.appendChild(newLightningSlide);
                 }
@@ -4564,12 +4566,12 @@ function setupStyleOptions() {
                     const size = qrSize;
                     
                     const qr = new QRious({
-                        element: element,
+                    element: element,
                         size: size,
-                        value: value
-                    });
+                    value: value
+                });
                     console.log(`QRious object created:`, qr);
-                    console.log(`Generated QR for ${id}:`, element.innerHTML);
+                console.log(`Generated QR for ${id}:`, element.innerHTML);
                     console.log(`QR element after generation:`, element);
                     console.log(`QR element children:`, element.children);
                     
@@ -5136,10 +5138,11 @@ function addLightningQRToSwiper(lnurl) {
     lightningSlide.className = 'swiper-slide lightning-qr-slide';
     lightningSlide.id = 'lightningQRSlide';
     lightningSlide.innerHTML = `
+      <div class="qr-slide-title">Lightning <span class="qr-data-preview" id="qrDataPreview4"></span></div>
       <a href="" target="_blank" id="lightningQRLink">
         <div id="lightningQRCode" class="qr-code"></div>
       </a>
-      <div class="qr-slide-label">Lightning Payment <span class="qr-data-preview" id="qrDataPreview4"></span></div>
+      <div class="qr-slide-label">Scan with Lightning Wallet</div>
     `;
     
     // Add to swiper wrapper
@@ -5149,17 +5152,17 @@ function addLightningQRToSwiper(lnurl) {
   // Generate QR code
   const qrContainer = document.getElementById('lightningQRCode');
   if (qrContainer) {
-    qrContainer.innerHTML = '';
-    const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
-    
-    try {
-      new QRious({
-        element: qrContainer,
-        size: qrSize,
-        value: lnurl
-      });
+  qrContainer.innerHTML = '';
+  const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
+  
+  try {
+    new QRious({
+      element: qrContainer,
+      size: qrSize,
+      value: lnurl
+    });
       console.log('Lightning QR generated successfully');
-    } catch (error) {
+  } catch (error) {
       console.error('Error generating Lightning QR:', error);
     }
   }
