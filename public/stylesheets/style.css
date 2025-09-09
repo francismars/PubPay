@@ -46,46 +46,16 @@
     position: relative;
   }
   
-  .lightning-qr-container {
-    position: relative;
-    display: inline-block;
-  }
   
-  .lightning-qr {
-    border-radius: 8px;
-    background: white;
-  }
-  
-  .lightning-qr-overlay {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(255, 215, 0, 0.9);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-  
-  .lightning-icon {
-    font-size: 20px;
-    color: #b8860b;
-    font-weight: bold;
-  }
-  
-  .lightning-qr-slide .qr-slide-label {
-    color: #b8860b;
-    font-weight: bold;
-  }
   
   .lightning-qr-slide .qr-code {
-    max-width: 200px;
-    max-height: 200px;
-    width: auto;
+    width: 100%;
+    max-width: 50vw;
     height: auto;
+    margin-bottom: 8px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
   }
   body {
     margin: 0;
@@ -4206,7 +4176,8 @@
           font-size: 0.75em;
       }
       
-      .qr-code {
+      .qr-code,
+      .lightning-qr-slide .qr-code {
           max-width: 200px;
       }
       
@@ -4217,7 +4188,8 @@
   
   /* Extra small screens */
   @media (max-width: 480px) {
-      .qr-code {
+      .qr-code,
+      .lightning-qr-slide .qr-code {
           max-width: 150px;
       }
       
@@ -4250,7 +4222,8 @@
           aspect-ratio: 1 / 1; /* Maintain square aspect ratio */
       }
       
-      .qr-code {
+      .qr-code,
+      .lightning-qr-slide .qr-code {
           max-width: 30vh;
       }
       
