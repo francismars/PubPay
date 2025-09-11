@@ -2592,20 +2592,83 @@
   }
   
   .qr-swiper .swiper-pagination-bullet {
+      width: 2.5vw !important;
+      min-width: 20px !important;
+      max-width: 40px !important;
+      height: 0.3vw !important;
+      min-height: 3px !important;
+      max-height: 5px !important;
+      border-radius: 0 !important;
+      background-color: rgba(var(--text-color-rgb), 0.2) !important;
+      border: 1px solid var(--text-color) !important;
+      opacity: 1 !important;
+      margin: 0 0.2vw !important;
+      position: relative;
+      overflow: hidden;
+  }
+  
+  .qr-swiper .swiper-pagination-bullet::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
       background-color: var(--text-color);
-      opacity: 0.3;
-      width: 4px;
-      height: 4px;
-      margin: 0 1px;
+      transform: translateX(-100%);
+      transition: transform 0.1s ease;
   }
   
   .qr-swiper .swiper-pagination-bullet-active {
-      opacity: 0.8;
+      background-color: rgba(var(--text-color-rgb), 0.2) !important;
+      opacity: 1 !important;
+  }
+  
+  .qr-swiper .swiper-pagination-bullet-active::before {
+      transform: translateX(calc(-100% + var(--progress, 0%)));
+      transition: transform 0.05s ease-out;
   }
   
   /* Ensure swiper doesn't interfere with blend modes */
   .qr-swiper {
       position: static;
+  }
+  
+  /* Responsive progress bar adjustments */
+  @media (max-width: 768px) {
+      .qr-swiper .swiper-pagination-bullet {
+          width: 3vw !important;
+          min-width: 15px !important;
+          max-width: 35px !important;
+          height: 0.4vw !important;
+          min-height: 2px !important;
+          max-height: 4px !important;
+          margin: 0 0.3vw !important;
+      }
+  }
+  
+  @media (max-width: 480px) {
+      .qr-swiper .swiper-pagination-bullet {
+          width: 4vw !important;
+          min-width: 12px !important;
+          max-width: 30px !important;
+          height: 0.5vw !important;
+          min-height: 2px !important;
+          max-height: 3px !important;
+          margin: 0 0.4vw !important;
+      }
+  }
+  
+  @media (min-width: 1200px) {
+      .qr-swiper .swiper-pagination-bullet {
+          width: 2vw !important;
+          min-width: 25px !important;
+          max-width: 45px !important;
+          height: 0.25vw !important;
+          min-height: 4px !important;
+          max-height: 6px !important;
+          margin: 0 0.15vw !important;
+      }
   }
   
   .qr-swiper .swiper-wrapper,
@@ -7024,3 +7087,4 @@
   .live-event-zap * {
       font-style: normal !important;
   }
+
