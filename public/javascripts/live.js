@@ -97,9 +97,9 @@ document.addEventListener('DOMContentLoaded', function() {
         qrInvert: false,
         qrScreenBlend: false,
         qrMultiplyBlend: false,
-        qrShowWebLink: true,
+        qrShowWebLink: false,
         qrShowNevent: true,
-        qrShowNote: true,
+        qrShowNote: false,
         layoutInvert: false,
         hideZapperContent: false,
         showTopZappers: false,  // Default to hidden
@@ -212,9 +212,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
-            qrShowWebLink: true,
+            qrShowWebLink: false,
             qrShowNevent: true,
-            qrShowNote: true,
+            qrShowNote: false,
             layoutInvert: false,
             hideZapperContent: false,
             showTopZappers: false,
@@ -232,9 +232,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
-            qrShowWebLink: true,
+            qrShowWebLink: false,
             qrShowNevent: true,
-            qrShowNote: true,
+            qrShowNote: false,
             layoutInvert: false,
             hideZapperContent: false,
             showTopZappers: false,
@@ -252,9 +252,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: true,
             qrMultiplyBlend: false,
-            qrShowWebLink: true,
+            qrShowWebLink: false,
             qrShowNevent: true,
-            qrShowNote: true,
+            qrShowNote: false,
             layoutInvert: false,
             hideZapperContent: false,
             showTopZappers: false,
@@ -271,9 +271,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
-            qrShowWebLink: true,
+            qrShowWebLink: false,
             qrShowNevent: true,
-            qrShowNote: true,
+            qrShowNote: false,
             layoutInvert: false,
             hideZapperContent: false,
             showTopZappers: false,
@@ -290,9 +290,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: true,
             qrMultiplyBlend: false,
-            qrShowWebLink: true,
+            qrShowWebLink: false,
             qrShowNevent: true,
-            qrShowNote: true,
+            qrShowNote: false,
             layoutInvert: false,
             hideZapperContent: false,
             showTopZappers: false,
@@ -309,9 +309,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
-            qrShowWebLink: true,
+            qrShowWebLink: false,
             qrShowNevent: true,
-            qrShowNote: true,
+            qrShowNote: false,
             layoutInvert: false,
             hideZapperContent: false,
             showTopZappers: false,
@@ -328,9 +328,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
-            qrShowWebLink: true,
+            qrShowWebLink: false,
             qrShowNevent: true,
-            qrShowNote: true,
+            qrShowNote: false,
             layoutInvert: false,
             hideZapperContent: false,
             showTopZappers: false,
@@ -348,9 +348,9 @@ document.addEventListener('DOMContentLoaded', function() {
             qrInvert: false,
             qrScreenBlend: false,
             qrMultiplyBlend: false,
-            qrShowWebLink: true,
+            qrShowWebLink: false,
             qrShowNevent: true,
-            qrShowNote: true,
+            qrShowNote: false,
             layoutInvert: false,
             hideZapperContent: false,
             showTopZappers: false,
@@ -4264,9 +4264,9 @@ function setupStyleOptions() {
         const neventToggle = document.getElementById('qrShowNeventToggle');
         const noteToggle = document.getElementById('qrShowNoteToggle');
         
-        const showWebLink = webLinkToggle?.checked ?? true;
+        const showWebLink = webLinkToggle?.checked ?? false;
         const showNevent = neventToggle?.checked ?? true;
-        const showNote = noteToggle?.checked ?? true;
+        const showNote = noteToggle?.checked ?? false;
         const showLightning = window.lightningEnabled || false;
         
         console.log('QR Visibility Update:', { showWebLink, showNevent, showNote, showLightning });
@@ -4408,9 +4408,9 @@ function setupStyleOptions() {
         const neventToggle = document.getElementById('qrShowNeventToggle');
         const noteToggle = document.getElementById('qrShowNoteToggle');
         
-        const showWebLink = webLinkToggle?.checked ?? true;
+        const showWebLink = webLinkToggle?.checked ?? false;
         const showNevent = neventToggle?.checked ?? true;
-        const showNote = noteToggle?.checked ?? true;
+        const showNote = noteToggle?.checked ?? false;
         const showLightning = window.lightningEnabled || false;
         
         // Get all existing slides
@@ -4464,17 +4464,129 @@ function setupStyleOptions() {
                     clickable: true,
                     dynamicBullets: false
                 },
-            loop: visibleSlides.length > 1,
-            autoplay: visibleSlides.length > 1 ? {
-                delay: 10000,
+                loop: visibleSlides.length > 1,
+                autoplay: visibleSlides.length > 1 ? {
+                    delay: 10000,
                     disableOnInteraction: false,
                     pauseOnMouseEnter: true
                 } : false,
-            effect: 'slide',
-            speed: 300,
+                effect: 'slide',
+                speed: 300,
                 observer: true,
-                observeParents: true
+                observeParents: true,
+                watchSlidesProgress: true,
+                on: {
+                    init() {
+                        // Reset all progress bars
+                        this.el.querySelectorAll('.swiper-pagination-bullet').forEach(bullet => {
+                            bullet.classList.remove('progress-animating');
+                        });
+                        // Start animation for active slide
+                        setTimeout(() => {
+                            const activeBullet = this.el.querySelector('.swiper-pagination-bullet-active');
+                            if (activeBullet) {
+                                activeBullet.classList.add('progress-animating');
+                            }
+                        }, 50);
+                    },
+                    slideChange() {
+                        // Reset all progress bars
+                        this.el.querySelectorAll('.swiper-pagination-bullet').forEach(bullet => {
+                            bullet.style.setProperty('--progress', '0%');
+                        });
+                        // Start progress tracking for new slide
+                        setTimeout(() => {
+                            startProgressTracking();
+                        }, 50);
+                    },
+                    autoplayStart() {
+                        // Remove paused class and resume progress animation
+                        this.el.classList.remove('swiper-paused');
+                        const activeBullet = this.el.querySelector('.swiper-pagination-bullet-active');
+                        if (activeBullet) {
+                            activeBullet.classList.add('progress-animating');
+                        }
+                    },
+                    autoplayStop() {
+                        // Add paused class to pause progress animation
+                        this.el.classList.add('swiper-paused');
+                    }
+                }
             });
+            
+            // Add custom mouse event handlers for progress bar pause/resume
+            let progressStartTime = null;
+            let progressPauseTime = null;
+            let progressInterval = null;
+            
+            window.qrSwiper.el.addEventListener('mouseenter', () => {
+                // Pause progress animation on hover
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                    progressPauseTime = Date.now();
+                }
+            });
+            
+            window.qrSwiper.el.addEventListener('mouseleave', () => {
+                // Resume progress animation on mouse leave
+                if (progressPauseTime && progressStartTime) {
+                    const pausedDuration = Date.now() - progressPauseTime;
+                    progressStartTime += pausedDuration; // Adjust start time to account for pause
+                    resumeProgressTracking();
+                }
+            });
+            
+            function startProgressTracking() {
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                }
+                
+                const activeBullet = window.qrSwiper.el.querySelector('.swiper-pagination-bullet-active');
+                if (!activeBullet) return;
+                
+                progressStartTime = Date.now();
+                const autoplayDelay = window.qrSwiper.params.autoplay.delay || 10000;
+                
+                progressInterval = setInterval(() => {
+                    const elapsed = Date.now() - progressStartTime;
+                    const progress = Math.min((elapsed / autoplayDelay) * 100, 100);
+                    
+                    // Set CSS custom property for progress
+                    activeBullet.style.setProperty('--progress', `${progress}%`);
+                    
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                    }
+                }, 16); // ~60fps for smooth animation
+            }
+            
+            function resumeProgressTracking() {
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                }
+                
+                const activeBullet = window.qrSwiper.el.querySelector('.swiper-pagination-bullet-active');
+                if (!activeBullet) return;
+                
+                const autoplayDelay = window.qrSwiper.params.autoplay.delay || 10000;
+                
+                progressInterval = setInterval(() => {
+                    const elapsed = Date.now() - progressStartTime;
+                    const progress = Math.min((elapsed / autoplayDelay) * 100, 100);
+                    
+                    // Set CSS custom property for progress
+                    activeBullet.style.setProperty('--progress', `${progress}%`);
+                    
+                    if (progress >= 100) {
+                        clearInterval(progressInterval);
+                    }
+                }, 16); // ~60fps for smooth animation
+            }
+            
+            // Start progress tracking initially
+            setTimeout(() => {
+                startProgressTracking();
+            }, 100);
             
         console.log('QR Swiper initialized with', visibleSlides.length, 'visible slides');
     }
