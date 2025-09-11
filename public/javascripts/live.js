@@ -512,6 +512,12 @@ function applyStylesFromURL() {
             document.getElementById('qrCodeNevent'),
             document.getElementById('qrCodeNote')
         ];
+        
+        // Include Lightning QR in invert effect if enabled
+        if (window.lightningEnabled) {
+            qrCodes.push(document.getElementById('lightningQRCode'));
+        }
+        
         qrCodes.forEach(qrCode => {
             if (qrCode) qrCode.style.filter = invert ? 'invert(1)' : 'none';
         });
@@ -3866,6 +3872,12 @@ function applyAllStyles() {
         document.getElementById('qrCodeNevent'),
         document.getElementById('qrCodeNote')
     ];
+    
+    // Include Lightning QR in invert effect if enabled
+    if (window.lightningEnabled) {
+        qrCodeContainers.push(document.getElementById('lightningQRCode'));
+    }
+    
     qrCodeContainers.forEach(qrCodeContainer => {
         if (qrCodeContainer) {
             qrCodeContainer.style.filter = document.getElementById('qrInvertToggle').checked ? 'invert(1)' : 'none';
@@ -4217,6 +4229,12 @@ function setupStyleOptions() {
             document.getElementById('qrCodeNevent'),
             document.getElementById('qrCodeNote')
         ];
+        
+        // Include Lightning QR in invert effect if enabled
+        if (window.lightningEnabled) {
+            qrCodes.push(document.getElementById('lightningQRCode'));
+        }
+        
         qrCodes.forEach(qrCode => {
             if (qrCode) qrCode.style.filter = e.target.checked ? 'invert(1)' : 'none';
         });
