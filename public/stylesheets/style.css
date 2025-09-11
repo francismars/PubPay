@@ -4295,7 +4295,7 @@
   }
   
   /* 16:9 ratio displays (phones turned sideways) - More specific, comes after */
-  @media (min-aspect-ratio: 16/10) {
+  @media (min-aspect-ratio: 16/14) {
       .main-layout .left-side,
       .live .left-side {
           height: 100vh;
@@ -4313,10 +4313,10 @@
           aspect-ratio: 1 / 1; /* Maintain square aspect ratio */
       }
       
-      .qr-code,
+      /*.qr-code,
       .lightning-qr-slide .qr-code {
-          max-width: 30vh;
-      }
+          max-width: 45vh;
+      }*/
       
       .qr-section {
           padding: 10px;
