@@ -2128,7 +2128,11 @@
       text-align: left !important;
   }
   
-  /* Only apply column direction when grid layout is active */
+  /* Override flex-direction for grid layout - don't force row direction */
+  body.flex-direction-invert .zaps-list.grid-layout .zapperProfile {
+      flex-direction: column !important;
+  }
+  
   body.flex-direction-invert .zaps-list.grid-layout .zap:nth-child(even) .zapperProfile {
       flex-direction: column !important;
   }
@@ -3933,14 +3937,14 @@
       line-height: 1.2;
   }
   
-  /* Zap ranking system - Only apply when podium is enabled */
-  body.podium-enabled .zap:nth-child(1) {
+  /* Zap ranking system - Only apply when podium is enabled and NOT in grid layout */
+  body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(1) {
       background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
       border-color: rgba(255, 215, 0, 0.3);
       position: relative;
   }
   
-  body.podium-enabled .zap:nth-child(1)::before {
+  body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(1)::before {
       content: "🥇";
       position: absolute;
       left: 0px;
@@ -3951,13 +3955,13 @@
       z-index: 10;
   }
   
-  body.podium-enabled .zap:nth-child(2) {
+  body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(2) {
       background: linear-gradient(135deg, rgba(192, 192, 192, 0.15), rgba(192, 192, 192, 0.05));
       border-color: rgba(192, 192, 192, 0.3);
       position: relative;
   }
   
-  body.podium-enabled .zap:nth-child(2)::before {
+  body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(2)::before {
       content: "🥈";
       position: absolute;
       left: 0px;
@@ -3968,13 +3972,13 @@
       z-index: 10;
   }
   
-  body.podium-enabled .zap:nth-child(3) {
+  body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(3) {
       background: linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05));
       border-color: rgba(205, 127, 50, 0.3);
       position: relative;
   }
   
-  body.podium-enabled .zap:nth-child(3)::before {
+  body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(3)::before {
       content: "🥉";
       position: absolute;
       left: 0px;
@@ -3985,63 +3989,58 @@
       z-index: 10;
   }
   
-  /* Responsive medal sizing - Only apply when podium is enabled */
+  /* Responsive medal sizing - Only apply when podium is enabled and NOT in grid layout */
   @media (max-width: 665px) {
-      body.podium-enabled .zap:nth-child(1)::before {
+      body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(1)::before {
           font-size: 3vw;
       }
       
-      body.podium-enabled .zap:nth-child(2)::before {
+      body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(2)::before {
           font-size: 2.7vw;
       }
       
-      body.podium-enabled .zap:nth-child(3)::before {
+      body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(3)::before {
           font-size: 2.5vw;
       }
   }
   
   @media (max-width: 480px) {
-      body.podium-enabled .zap:nth-child(1)::before {
+      body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(1)::before {
           font-size: 4vw;
       }
       
-      body.podium-enabled .zap:nth-child(2)::before {
+      body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(2)::before {
           font-size: 3.5vw;
       }
       
-      body.podium-enabled .zap:nth-child(3)::before {
+      body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(3)::before {
           font-size: 3vw;
       }
   }
   
   @media (min-width: 1200px) {
-      body.podium-enabled .zap:nth-child(1)::before {
+      body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(1)::before {
           font-size: 2.2vw;
       }
       
-      body.podium-enabled .zap:nth-child(2)::before {
+      body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(2)::before {
           font-size: 2vw;
       }
       
-      body.podium-enabled .zap:nth-child(3)::before {
+      body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(3)::before {
           font-size: 1.8vw;
       }
   }
   
   /* Top 3 zap amounts styling removed - zapperAmountSats will use default styling */
   
-  /* Disable podium styling in grid layout since nth-child is scoped to parent rows */
-  body.podium-enabled .zaps-list.grid-layout .zap:nth-child(1),
-  body.podium-enabled .zaps-list.grid-layout .zap:nth-child(2),
-  body.podium-enabled .zaps-list.grid-layout .zap:nth-child(3) {
+  /* Disable podium styling in grid layout for zaps that don't have podium-global classes */
+  body.podium-enabled .zaps-list.grid-layout .zap:not(.podium-global-1):not(.podium-global-2):not(.podium-global-3) {
       background: unset !important;
-      border-color: unset !important;
       position: unset !important;
   }
   
-  body.podium-enabled .zaps-list.grid-layout .zap:nth-child(1)::before,
-  body.podium-enabled .zaps-list.grid-layout .zap:nth-child(2)::before,
-  body.podium-enabled .zaps-list.grid-layout .zap:nth-child(3)::before {
+  body.podium-enabled .zaps-list.grid-layout .zap:not(.podium-global-1):not(.podium-global-2):not(.podium-global-3)::before {
       content: none !important;
   }
   
