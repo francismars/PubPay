@@ -1657,7 +1657,10 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (color) {
         (mainLayout as HTMLElement).style.setProperty('--text-color', color);
         const textColorInput = document.getElementById('textColorPicker') as HTMLInputElement;
+        const textColorValue = document.getElementById('textColorValue') as HTMLInputElement;
         if (textColorInput) textColorInput.value = color;
+        if (textColorValue) textColorValue.value = color;
+        console.log('🔗 [DEBUG] Applied text color from URL:', color);
       }
     }
 
@@ -1669,7 +1672,10 @@ export const useLiveFunctionality = (eventId?: string) => {
         const rgbaColor = hexToRgba(color, opacity);
         (mainLayout as HTMLElement).style.backgroundColor = rgbaColor;
         const bgColorInput = document.getElementById('bgColorPicker') as HTMLInputElement;
+        const bgColorValue = document.getElementById('bgColorValue') as HTMLInputElement;
         if (bgColorInput) bgColorInput.value = color;
+        if (bgColorValue) bgColorValue.value = color;
+        console.log('🔗 [DEBUG] Applied background color from URL:', color);
       }
     }
 
@@ -1887,18 +1893,25 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     }, 500); // Longer delay to ensure QR codes are generated first
 
-    // Save styles to localStorage and clean URL (like the original)
+    // Save the URL-applied styles to localStorage first, then clean URL
+    saveCurrentStylesToLocalStorage();
+    console.log('🔗 [DEBUG] Saved URL styles to localStorage before cleaning URL');
     updateStyleURL();
   };
 
   const copyStyleUrl = () => {
+    console.log('🔗 [DEBUG] Copy Style URL button clicked!');
+    
     // Get current styles from localStorage
     const savedStyles = localStorage.getItem('pubpay-styles');
+    console.log('🔗 [DEBUG] Current saved styles:', savedStyles);
+    
     let urlToCopy = window.location.origin + window.location.pathname;
 
     if (savedStyles) {
       try {
         const styles = JSON.parse(savedStyles);
+        console.log('🔗 [DEBUG] Parsed styles for URL generation:', styles);
         const params = new URLSearchParams();
 
         // Add style parameters that differ from defaults
@@ -1961,9 +1974,14 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (params.toString()) {
           urlToCopy += `?${  params.toString()}`;
         }
+        
+        console.log('🔗 [DEBUG] Generated URL parameters:', params.toString());
+        console.log('🔗 [DEBUG] Final URL to copy:', urlToCopy);
       } catch (e) {
         console.error('Error parsing saved styles:', e);
       }
+    } else {
+      console.log('🔗 [DEBUG] No saved styles found, using base URL:', urlToCopy);
     }
 
     navigator.clipboard.writeText(urlToCopy).then(() => {
@@ -3162,6 +3180,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       opacitySlider.addEventListener('input', (e: any) => {
         const value = parseFloat(e.target.value);
         opacityValue.textContent = `${Math.round(value * 100)  }%`;
+        console.log('🎚️ [DEBUG] Opacity slider changed to:', value);
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
@@ -3172,6 +3191,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       textOpacitySlider.addEventListener('input', (e: any) => {
         const value = parseFloat(e.target.value);
         textOpacityValue.textContent = `${Math.round(value * 100)  }%`;
+        console.log('🎚️ [DEBUG] Text opacity slider changed to:', value);
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
@@ -3358,6 +3378,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       picker.addEventListener('input', () => {
         const color = toHexColor(picker.value);
         value.value = color;
+        console.log(`🎨 [DEBUG] Color picker ${pickerId} changed to:`, color);
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
@@ -3365,6 +3386,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       value.addEventListener('input', () => {
         const color = toHexColor(value.value);
         picker.value = color;
+        console.log(`🎨 [DEBUG] Color value ${valueId} changed to:`, color);
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
@@ -3378,7 +3400,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (toggle) {
       // Debug log removed
       toggle.addEventListener('change', () => {
-        // Debug log removed
+        console.log(`🔄 [DEBUG] Toggle ${toggleId} changed to:`, toggle.checked);
         callback(toggle.checked);
         saveCurrentStylesToLocalStorage();
       });
@@ -3422,24 +3444,24 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Load initial styles from localStorage or apply defaults
   const loadInitialStyles = () => {
-    // Debug log removed
+    console.log('🎨 [DEBUG] Loading initial styles...');
 
     // Check if there are URL parameters first
     const params = new URLSearchParams(window.location.search);
     if (params.toString() !== '') {
-      // Debug log removed
+      console.log('🎨 [DEBUG] URL parameters found:', params.toString());
       applyStylesFromURL();
       return; // URL parameters take precedence, skip localStorage
     }
 
     // Load saved styles from localStorage if no URL parameters
     const savedStyles = localStorage.getItem('pubpay-styles');
-    // Debug log removed
+    console.log('🎨 [DEBUG] Saved styles from localStorage:', savedStyles);
 
     if (savedStyles) {
       try {
         const styles = JSON.parse(savedStyles);
-        // Debug log removed
+        console.log('🎨 [DEBUG] Parsed styles on load:', styles);
         // Debug background image loading
         if (styles.bgImage || styles.backgroundImage) {
           // Debug log removed
@@ -4079,8 +4101,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         ...toggleStates
       };
 
+      console.log('💾 [DEBUG] Saving styles to localStorage:', styles);
       localStorage.setItem('pubpay-styles', JSON.stringify(styles));
-      // Debug log removed
+      console.log('💾 [DEBUG] Styles saved successfully');
     }
   };
 
