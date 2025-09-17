@@ -1660,7 +1660,6 @@ export const useLiveFunctionality = (eventId?: string) => {
         const textColorValue = document.getElementById('textColorValue') as HTMLInputElement;
         if (textColorInput) textColorInput.value = color;
         if (textColorValue) textColorValue.value = color;
-        console.log('🔗 [DEBUG] Applied text color from URL:', color);
       }
     }
 
@@ -1675,7 +1674,6 @@ export const useLiveFunctionality = (eventId?: string) => {
         const bgColorValue = document.getElementById('bgColorValue') as HTMLInputElement;
         if (bgColorInput) bgColorInput.value = color;
         if (bgColorValue) bgColorValue.value = color;
-        console.log('🔗 [DEBUG] Applied background color from URL:', color);
       }
     }
 
@@ -1711,18 +1709,15 @@ export const useLiveFunctionality = (eventId?: string) => {
         (qrCode as HTMLElement).style.filter = qrInvert ? 'invert(1)' : 'none';
       }
     });
-    console.log('🔗 [DEBUG] Applied qrInvert from URL:', qrInvert);
 
     // Apply QR code blend modes (set to default if not specified in URL)
     const qrScreenBlend = params.has('qrScreenBlend') ? params.get('qrScreenBlend') === 'true' : DEFAULT_STYLES.qrScreenBlend;
     const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
     if (qrScreenBlendToggle) qrScreenBlendToggle.checked = qrScreenBlend;
-    console.log('🔗 [DEBUG] Applied qrScreenBlend from URL:', qrScreenBlend);
 
     const qrMultiplyBlend = params.has('qrMultiplyBlend') ? params.get('qrMultiplyBlend') === 'true' : DEFAULT_STYLES.qrMultiplyBlend;
     const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
     if (qrMultiplyBlendToggle) qrMultiplyBlendToggle.checked = qrMultiplyBlend;
-    console.log('🔗 [DEBUG] Applied qrMultiplyBlend from URL:', qrMultiplyBlend);
 
     // Update blend mode after setting toggles
     updateBlendMode();
@@ -1731,45 +1726,38 @@ export const useLiveFunctionality = (eventId?: string) => {
     const qrShowWebLink = params.has('qrShowWebLink') ? params.get('qrShowWebLink') === 'true' : DEFAULT_STYLES.qrShowWebLink;
     const qrShowWebLinkToggle = document.getElementById('qrShowWebLinkToggle') as HTMLInputElement;
     if (qrShowWebLinkToggle) qrShowWebLinkToggle.checked = qrShowWebLink;
-    console.log('🔗 [DEBUG] Applied qrShowWebLink from URL:', qrShowWebLink);
 
     const qrShowNevent = params.has('qrShowNevent') ? params.get('qrShowNevent') === 'true' : DEFAULT_STYLES.qrShowNevent;
     const qrShowNeventToggle = document.getElementById('qrShowNeventToggle') as HTMLInputElement;
     if (qrShowNeventToggle) qrShowNeventToggle.checked = qrShowNevent;
-    console.log('🔗 [DEBUG] Applied qrShowNevent from URL:', qrShowNevent);
 
     const qrShowNote = params.has('qrShowNote') ? params.get('qrShowNote') === 'true' : DEFAULT_STYLES.qrShowNote;
     const qrShowNoteToggle = document.getElementById('qrShowNoteToggle') as HTMLInputElement;
     if (qrShowNoteToggle) qrShowNoteToggle.checked = qrShowNote;
-    console.log('🔗 [DEBUG] Applied qrShowNote from URL:', qrShowNote);
 
     // Apply layout invert (set to default if not specified in URL)
     const layoutInvert = params.has('layoutInvert') ? params.get('layoutInvert') === 'true' : DEFAULT_STYLES.layoutInvert;
     const layoutInvertToggle = document.getElementById('layoutInvertToggle') as HTMLInputElement;
     if (layoutInvertToggle) layoutInvertToggle.checked = layoutInvert;
     document.body.classList.toggle('flex-direction-invert', layoutInvert);
-    console.log('🔗 [DEBUG] Applied layoutInvert from URL:', layoutInvert);
 
     // Apply hide zapper content (set to default if not specified in URL)
     const hideZapperContent = params.has('hideZapperContent') ? params.get('hideZapperContent') === 'true' : DEFAULT_STYLES.hideZapperContent;
     const hideZapperContentToggle = document.getElementById('hideZapperContentToggle') as HTMLInputElement;
     if (hideZapperContentToggle) hideZapperContentToggle.checked = hideZapperContent;
     document.body.classList.toggle('hide-zapper-content', hideZapperContent);
-    console.log('🔗 [DEBUG] Applied hideZapperContent from URL:', hideZapperContent);
 
     // Apply show top zappers (set to default if not specified in URL)
     const showTopZappers = params.has('showTopZappers') ? params.get('showTopZappers') === 'true' : DEFAULT_STYLES.showTopZappers;
     const showTopZappersToggle = document.getElementById('showTopZappersToggle') as HTMLInputElement;
     if (showTopZappersToggle) showTopZappersToggle.checked = showTopZappers;
     document.body.classList.toggle('show-top-zappers', showTopZappers);
-    console.log('🔗 [DEBUG] Applied showTopZappers from URL:', showTopZappers);
 
     // Apply podium (set to default if not specified in URL)
     const podium = params.has('podium') ? params.get('podium') === 'true' : DEFAULT_STYLES.podium;
     const podiumToggle = document.getElementById('podiumToggle') as HTMLInputElement;
     if (podiumToggle) podiumToggle.checked = podium;
     document.body.classList.toggle('podium-enabled', podium);
-    console.log('🔗 [DEBUG] Applied podium from URL:', podium);
 
     // Apply zap grid (set to default if not specified in URL)
     const zapGrid = params.has('zapGrid') ? params.get('zapGrid') === 'true' : DEFAULT_STYLES.zapGrid;
@@ -1784,13 +1772,11 @@ export const useLiveFunctionality = (eventId?: string) => {
         cleanupHierarchicalOrganization();
       }
     }
-    console.log('🔗 [DEBUG] Applied zapGrid from URL:', zapGrid);
 
     // Apply lightning toggle (set to default if not specified in URL)
     const lightning = params.has('lightning') ? params.get('lightning') === 'true' : DEFAULT_STYLES.lightning;
     const lightningToggle = document.getElementById('lightningToggle') as HTMLInputElement;
     if (lightningToggle) lightningToggle.checked = lightning;
-    console.log('🔗 [DEBUG] Applied lightning from URL:', lightning);
 
     // Apply opacity
     if (params.has('opacity')) {
@@ -1886,23 +1872,19 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Save the URL-applied styles to localStorage first, then clean URL
     saveCurrentStylesToLocalStorage();
-    console.log('🔗 [DEBUG] Saved URL styles to localStorage before cleaning URL');
     updateStyleURL();
   };
 
   const copyStyleUrl = () => {
-    console.log('🔗 [DEBUG] Copy Style URL button clicked!');
     
     // Get current styles from localStorage
     const savedStyles = localStorage.getItem('pubpay-styles');
-    console.log('🔗 [DEBUG] Current saved styles:', savedStyles);
     
     let urlToCopy = window.location.origin + window.location.pathname;
 
     if (savedStyles) {
       try {
         const styles = JSON.parse(savedStyles);
-        console.log('🔗 [DEBUG] Parsed styles for URL generation:', styles);
         const params = new URLSearchParams();
 
         // Add style parameters that differ from defaults
@@ -1966,13 +1948,10 @@ export const useLiveFunctionality = (eventId?: string) => {
           urlToCopy += `?${  params.toString()}`;
         }
         
-        console.log('🔗 [DEBUG] Generated URL parameters:', params.toString());
-        console.log('🔗 [DEBUG] Final URL to copy:', urlToCopy);
       } catch (e) {
         console.error('Error parsing saved styles:', e);
       }
     } else {
-      console.log('🔗 [DEBUG] No saved styles found, using base URL:', urlToCopy);
     }
 
     navigator.clipboard.writeText(urlToCopy).then(() => {
@@ -2925,7 +2904,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Apply PubPay preset with all settings
   const applyPubPayPreset = () => {
-    console.log('🎨 [DEBUG] Applying PubPay preset...');
     
     // Set text color to white
     const textColorPicker = document.getElementById('textColorPicker') as HTMLInputElement;
@@ -2975,7 +2953,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     updateBlendMode();
     saveCurrentStylesToLocalStorage();
     
-    console.log('🎨 [DEBUG] PubPay preset applied successfully');
   };
 
   // Style options functionality
@@ -2996,7 +2973,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (bgImagePreset) {
       bgImagePreset.addEventListener('change', (e: any) => {
         const selectedValue = e.target.value;
-        console.log('🎨 [DEBUG] Background preset selected:', selectedValue);
         
         if (selectedValue === 'custom') {
           if (customUrlGroup) customUrlGroup.style.display = 'block';
@@ -3239,7 +3215,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       opacitySlider.addEventListener('input', (e: any) => {
         const value = parseFloat(e.target.value);
         opacityValue.textContent = `${Math.round(value * 100)  }%`;
-        console.log('🎚️ [DEBUG] Opacity slider changed to:', value);
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
@@ -3250,7 +3225,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       textOpacitySlider.addEventListener('input', (e: any) => {
         const value = parseFloat(e.target.value);
         textOpacityValue.textContent = `${Math.round(value * 100)  }%`;
-        console.log('🎚️ [DEBUG] Text opacity slider changed to:', value);
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
@@ -3437,7 +3411,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       picker.addEventListener('input', () => {
         const color = toHexColor(picker.value);
         value.value = color;
-        console.log(`🎨 [DEBUG] Color picker ${pickerId} changed to:`, color);
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
@@ -3445,7 +3418,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       value.addEventListener('input', () => {
         const color = toHexColor(value.value);
         picker.value = color;
-        console.log(`🎨 [DEBUG] Color value ${valueId} changed to:`, color);
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
@@ -3459,7 +3431,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (toggle) {
       // Debug log removed
       toggle.addEventListener('change', () => {
-        console.log(`🔄 [DEBUG] Toggle ${toggleId} changed to:`, toggle.checked);
         callback(toggle.checked);
         saveCurrentStylesToLocalStorage();
       });
@@ -3503,24 +3474,20 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Load initial styles from localStorage or apply defaults
   const loadInitialStyles = () => {
-    console.log('🎨 [DEBUG] Loading initial styles...');
 
     // Check if there are URL parameters first
     const params = new URLSearchParams(window.location.search);
     if (params.toString() !== '') {
-      console.log('🎨 [DEBUG] URL parameters found:', params.toString());
       applyStylesFromURL();
       return; // URL parameters take precedence, skip localStorage
     }
 
     // Load saved styles from localStorage if no URL parameters
     const savedStyles = localStorage.getItem('pubpay-styles');
-    console.log('🎨 [DEBUG] Saved styles from localStorage:', savedStyles);
 
     if (savedStyles) {
       try {
         const styles = JSON.parse(savedStyles);
-        console.log('🎨 [DEBUG] Parsed styles on load:', styles);
         // Debug background image loading
         if (styles.bgImage || styles.backgroundImage) {
           // Debug log removed
@@ -4160,9 +4127,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         ...toggleStates
       };
 
-      console.log('💾 [DEBUG] Saving styles to localStorage:', styles);
       localStorage.setItem('pubpay-styles', JSON.stringify(styles));
-      console.log('💾 [DEBUG] Styles saved successfully');
     }
   };
 

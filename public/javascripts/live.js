@@ -4046,7 +4046,6 @@ if (document.readyState === 'loading') {
 
 // Apply PubPay preset with all settings
 function applyPubPayPreset() {
-    console.log('🎨 [DEBUG] Applying PubPay preset...');
     
     // Set text color to white
     const textColorPicker = document.getElementById('textColorPicker');
@@ -4096,7 +4095,6 @@ function applyPubPayPreset() {
     updateBlendMode();
     updateStyleURL();
     
-    console.log('🎨 [DEBUG] PubPay preset applied successfully');
 }
 
 function setupStyleOptions() {

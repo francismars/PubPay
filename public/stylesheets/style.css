@@ -2320,7 +2320,7 @@
   
   .qr-instructions {
       font-size: max(1vw, 12px);
-      color: #ccc;
+      color: var(--text-color);
       font-weight: 500;
       margin-top: 8px;
   }
@@ -2697,7 +2697,7 @@
   .author-name {
       font-size: max(2.5vw, 16px);
       font-weight: 600;
-      color: #fff;
+      color: var(--text-color);
   }
   
   .author-info .author-name {
@@ -2724,7 +2724,7 @@
   .note-content {
       font-size: max(1.2vw, 14px);
       line-height: 1.6;
-      color: #e0e0e0;
+      color: var(--text-color);
       word-wrap: break-word;
       overflow-y: auto;
       max-height: 100%;
@@ -2886,7 +2886,7 @@
   .total-zapped, .dashboard-title {
       font-size: max(1.2vw, 12px);
       font-weight: 600;
-      color: #fff;
+      color: var(--text-color);
       display: flex;
       align-items: center;
       gap: 10px;
@@ -2902,7 +2902,7 @@
   
   .total-label {
       font-size: max(1.2vw, 14px);
-      color: #ccc;
+      color: var(--text-color);
   }
   
   .total-amount {
@@ -2913,7 +2913,7 @@
   
   .total-sats {
       font-size: max(1vw, 12px);
-      color: #ccc;
+      color: var(--text-color);
   }
   
   /* Responsive adjustments for total elements */
