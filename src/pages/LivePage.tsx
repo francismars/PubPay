@@ -533,6 +533,7 @@ export const LivePage: React.FC = () => {
                   <div className="preset-inputs">
                     <select id="bgImagePreset" className="bg-preset-select">
                       <option value="">No Background (Default)</option>
+                      <option value="/images/gradient_color.gif">Gradient Color</option>
                       <option value="/images/adopting.webp">Adopting Bitcoin</option>
                       <option value="/images/sky.jpg">Sky</option>
                       <option value="/images/lightning.gif">Lightning</option>

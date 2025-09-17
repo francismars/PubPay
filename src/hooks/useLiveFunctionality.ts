@@ -1691,115 +1691,106 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     }
 
-    // Apply QR code invert
-    if (params.has('qrInvert')) {
-      const invert = params.get('qrInvert') === 'true';
-      const qrInvertToggle = document.getElementById('qrInvertToggle') as HTMLInputElement;
-      if (qrInvertToggle) qrInvertToggle.checked = invert;
-      const qrCodes = [
-        document.getElementById('qrCode'),
-        document.getElementById('qrCodeNevent'),
-        document.getElementById('qrCodeNote')
-      ];
+    // Apply QR code invert (set to default if not specified in URL)
+    const qrInvert = params.has('qrInvert') ? params.get('qrInvert') === 'true' : DEFAULT_STYLES.qrInvert;
+    const qrInvertToggle = document.getElementById('qrInvertToggle') as HTMLInputElement;
+    if (qrInvertToggle) qrInvertToggle.checked = qrInvert;
+    const qrCodes = [
+      document.getElementById('qrCode'),
+      document.getElementById('qrCodeNevent'),
+      document.getElementById('qrCodeNote')
+    ];
 
-      // Include Lightning QR in invert effect if enabled
-      if (lightningEnabled) {
-        qrCodes.push(document.getElementById('lightningQRCode'));
+    // Include Lightning QR in invert effect if enabled
+    if (lightningEnabled) {
+      qrCodes.push(document.getElementById('lightningQRCode'));
+    }
+
+    qrCodes.forEach(qrCode => {
+      if (qrCode) {
+        (qrCode as HTMLElement).style.filter = qrInvert ? 'invert(1)' : 'none';
       }
+    });
+    console.log('🔗 [DEBUG] Applied qrInvert from URL:', qrInvert);
 
-      qrCodes.forEach(qrCode => {
-        if (qrCode) {
-          (qrCode as HTMLElement).style.filter = invert ? 'invert(1)' : 'none';
-        }
-      });
-    }
+    // Apply QR code blend modes (set to default if not specified in URL)
+    const qrScreenBlend = params.has('qrScreenBlend') ? params.get('qrScreenBlend') === 'true' : DEFAULT_STYLES.qrScreenBlend;
+    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
+    if (qrScreenBlendToggle) qrScreenBlendToggle.checked = qrScreenBlend;
+    console.log('🔗 [DEBUG] Applied qrScreenBlend from URL:', qrScreenBlend);
 
-    // Apply QR code blend modes
-    if (params.has('qrScreenBlend')) {
-      const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
-      if (qrScreenBlendToggle) qrScreenBlendToggle.checked = params.get('qrScreenBlend') === 'true';
-    }
-    if (params.has('qrMultiplyBlend')) {
-      const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
-      if (qrMultiplyBlendToggle) qrMultiplyBlendToggle.checked = params.get('qrMultiplyBlend') === 'true';
-    }
+    const qrMultiplyBlend = params.has('qrMultiplyBlend') ? params.get('qrMultiplyBlend') === 'true' : DEFAULT_STYLES.qrMultiplyBlend;
+    const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
+    if (qrMultiplyBlendToggle) qrMultiplyBlendToggle.checked = qrMultiplyBlend;
+    console.log('🔗 [DEBUG] Applied qrMultiplyBlend from URL:', qrMultiplyBlend);
 
     // Update blend mode after setting toggles
-    if (params.has('qrScreenBlend') || params.has('qrMultiplyBlend')) {
-      updateBlendMode();
-    }
+    updateBlendMode();
 
-    // Apply QR slide visibility
-    if (params.has('qrShowWebLink')) {
-      const show = params.get('qrShowWebLink') === 'true';
-      const toggle = document.getElementById('qrShowWebLinkToggle') as HTMLInputElement;
-      if (toggle) toggle.checked = show;
-    }
-    if (params.has('qrShowNevent')) {
-      const show = params.get('qrShowNevent') === 'true';
-      const toggle = document.getElementById('qrShowNeventToggle') as HTMLInputElement;
-      if (toggle) toggle.checked = show;
-    }
-    if (params.has('qrShowNote')) {
-      const show = params.get('qrShowNote') === 'true';
-      const toggle = document.getElementById('qrShowNoteToggle') as HTMLInputElement;
-      if (toggle) toggle.checked = show;
-    }
+    // Apply QR slide visibility (set to default if not specified in URL)
+    const qrShowWebLink = params.has('qrShowWebLink') ? params.get('qrShowWebLink') === 'true' : DEFAULT_STYLES.qrShowWebLink;
+    const qrShowWebLinkToggle = document.getElementById('qrShowWebLinkToggle') as HTMLInputElement;
+    if (qrShowWebLinkToggle) qrShowWebLinkToggle.checked = qrShowWebLink;
+    console.log('🔗 [DEBUG] Applied qrShowWebLink from URL:', qrShowWebLink);
 
-    // Apply layout invert
-    if (params.has('layoutInvert')) {
-      const invert = params.get('layoutInvert') === 'true';
-      const layoutInvertToggle = document.getElementById('layoutInvertToggle') as HTMLInputElement;
-      if (layoutInvertToggle) layoutInvertToggle.checked = invert;
-      document.body.classList.toggle('flex-direction-invert', invert);
-    }
+    const qrShowNevent = params.has('qrShowNevent') ? params.get('qrShowNevent') === 'true' : DEFAULT_STYLES.qrShowNevent;
+    const qrShowNeventToggle = document.getElementById('qrShowNeventToggle') as HTMLInputElement;
+    if (qrShowNeventToggle) qrShowNeventToggle.checked = qrShowNevent;
+    console.log('🔗 [DEBUG] Applied qrShowNevent from URL:', qrShowNevent);
 
-    // Apply hide zapper content
-    if (params.has('hideZapperContent')) {
-      const hide = params.get('hideZapperContent') === 'true';
-      const hideZapperContentToggle = document.getElementById('hideZapperContentToggle') as HTMLInputElement;
-      if (hideZapperContentToggle) hideZapperContentToggle.checked = hide;
-      document.body.classList.toggle('hide-zapper-content', hide);
-    }
+    const qrShowNote = params.has('qrShowNote') ? params.get('qrShowNote') === 'true' : DEFAULT_STYLES.qrShowNote;
+    const qrShowNoteToggle = document.getElementById('qrShowNoteToggle') as HTMLInputElement;
+    if (qrShowNoteToggle) qrShowNoteToggle.checked = qrShowNote;
+    console.log('🔗 [DEBUG] Applied qrShowNote from URL:', qrShowNote);
 
-    // Apply show top zappers
-    if (params.has('showTopZappers')) {
-      const show = params.get('showTopZappers') === 'true';
-      const showTopZappersToggle = document.getElementById('showTopZappersToggle') as HTMLInputElement;
-      if (showTopZappersToggle) showTopZappersToggle.checked = show;
-      document.body.classList.toggle('show-top-zappers', show);
-    }
+    // Apply layout invert (set to default if not specified in URL)
+    const layoutInvert = params.has('layoutInvert') ? params.get('layoutInvert') === 'true' : DEFAULT_STYLES.layoutInvert;
+    const layoutInvertToggle = document.getElementById('layoutInvertToggle') as HTMLInputElement;
+    if (layoutInvertToggle) layoutInvertToggle.checked = layoutInvert;
+    document.body.classList.toggle('flex-direction-invert', layoutInvert);
+    console.log('🔗 [DEBUG] Applied layoutInvert from URL:', layoutInvert);
 
-    // Apply podium
-    if (params.has('podium')) {
-      const podium = params.get('podium') === 'true';
-      const podiumToggle = document.getElementById('podiumToggle') as HTMLInputElement;
-      if (podiumToggle) podiumToggle.checked = podium;
-      document.body.classList.toggle('podium-enabled', podium);
-    }
+    // Apply hide zapper content (set to default if not specified in URL)
+    const hideZapperContent = params.has('hideZapperContent') ? params.get('hideZapperContent') === 'true' : DEFAULT_STYLES.hideZapperContent;
+    const hideZapperContentToggle = document.getElementById('hideZapperContentToggle') as HTMLInputElement;
+    if (hideZapperContentToggle) hideZapperContentToggle.checked = hideZapperContent;
+    document.body.classList.toggle('hide-zapper-content', hideZapperContent);
+    console.log('🔗 [DEBUG] Applied hideZapperContent from URL:', hideZapperContent);
 
-    // Apply zap grid
-    if (params.has('zapGrid')) {
-      const zapGrid = params.get('zapGrid') === 'true';
-      const zapGridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
-      if (zapGridToggle) zapGridToggle.checked = zapGrid;
-      const zapsList = document.getElementById('zaps');
-      if (zapsList) {
-        zapsList.classList.toggle('grid-layout', zapGrid);
-        if (zapGrid) {
-          organizeZapsHierarchically();
-        } else {
-          cleanupHierarchicalOrganization();
-        }
+    // Apply show top zappers (set to default if not specified in URL)
+    const showTopZappers = params.has('showTopZappers') ? params.get('showTopZappers') === 'true' : DEFAULT_STYLES.showTopZappers;
+    const showTopZappersToggle = document.getElementById('showTopZappersToggle') as HTMLInputElement;
+    if (showTopZappersToggle) showTopZappersToggle.checked = showTopZappers;
+    document.body.classList.toggle('show-top-zappers', showTopZappers);
+    console.log('🔗 [DEBUG] Applied showTopZappers from URL:', showTopZappers);
+
+    // Apply podium (set to default if not specified in URL)
+    const podium = params.has('podium') ? params.get('podium') === 'true' : DEFAULT_STYLES.podium;
+    const podiumToggle = document.getElementById('podiumToggle') as HTMLInputElement;
+    if (podiumToggle) podiumToggle.checked = podium;
+    document.body.classList.toggle('podium-enabled', podium);
+    console.log('🔗 [DEBUG] Applied podium from URL:', podium);
+
+    // Apply zap grid (set to default if not specified in URL)
+    const zapGrid = params.has('zapGrid') ? params.get('zapGrid') === 'true' : DEFAULT_STYLES.zapGrid;
+    const zapGridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+    if (zapGridToggle) zapGridToggle.checked = zapGrid;
+    const zapsList = document.getElementById('zaps');
+    if (zapsList) {
+      zapsList.classList.toggle('grid-layout', zapGrid);
+      if (zapGrid) {
+        organizeZapsHierarchically();
+      } else {
+        cleanupHierarchicalOrganization();
       }
     }
+    console.log('🔗 [DEBUG] Applied zapGrid from URL:', zapGrid);
 
-    // Apply lightning toggle
-    if (params.has('lightning')) {
-      const lightning = params.get('lightning') === 'true';
-      const lightningToggle = document.getElementById('lightningToggle') as HTMLInputElement;
-      if (lightningToggle) lightningToggle.checked = lightning;
-    }
+    // Apply lightning toggle (set to default if not specified in URL)
+    const lightning = params.has('lightning') ? params.get('lightning') === 'true' : DEFAULT_STYLES.lightning;
+    const lightningToggle = document.getElementById('lightningToggle') as HTMLInputElement;
+    if (lightningToggle) lightningToggle.checked = lightning;
+    console.log('🔗 [DEBUG] Applied lightning from URL:', lightning);
 
     // Apply opacity
     if (params.has('opacity')) {
@@ -2962,8 +2953,17 @@ export const useLiveFunctionality = (eventId?: string) => {
           }
           updateBackgroundImage(selectedValue);
           if (bgPresetPreview) {
-            (bgPresetPreview as HTMLImageElement).src = selectedValue;
-            (bgPresetPreview as HTMLImageElement).alt = selectedValue ? 'Background preview' : 'No background';
+            if (selectedValue === '') {
+              // No background selected - hide the preview image
+              (bgPresetPreview as HTMLImageElement).src = '';
+              (bgPresetPreview as HTMLImageElement).alt = 'No background';
+              (bgPresetPreview as HTMLImageElement).style.display = 'none';
+            } else {
+              // Background selected - show the preview image
+              (bgPresetPreview as HTMLImageElement).src = selectedValue;
+              (bgPresetPreview as HTMLImageElement).alt = 'Background preview';
+              (bgPresetPreview as HTMLImageElement).style.display = 'block';
+            }
           }
         }
         saveCurrentStylesToLocalStorage();

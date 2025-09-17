@@ -4059,9 +4059,19 @@ function setupStyleOptions() {
             console.log('Updating preview to:', selectedValue);
             console.log('bgPresetPreview element:', bgPresetPreview);
             if (bgPresetPreview) {
-                bgPresetPreview.src = selectedValue;
-                bgPresetPreview.alt = selectedValue ? 'Background preview' : 'No background';
-                console.log('Preview src set to:', bgPresetPreview.src);
+                if (selectedValue === '') {
+                    // No background selected - hide the preview image
+                    bgPresetPreview.src = '';
+                    bgPresetPreview.alt = 'No background';
+                    bgPresetPreview.style.display = 'none';
+                    console.log('Preview hidden for no background');
+                } else {
+                    // Background selected - show the preview image
+                    bgPresetPreview.src = selectedValue;
+                    bgPresetPreview.alt = 'Background preview';
+                    bgPresetPreview.style.display = 'block';
+                    console.log('Preview src set to:', bgPresetPreview.src);
+                }
             } else {
                 console.error('bgPresetPreview element not found!');
             }
