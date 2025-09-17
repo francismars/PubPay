@@ -2923,6 +2923,61 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
+  // Apply PubPay preset with all settings
+  const applyPubPayPreset = () => {
+    console.log('🎨 [DEBUG] Applying PubPay preset...');
+    
+    // Set text color to white
+    const textColorPicker = document.getElementById('textColorPicker') as HTMLInputElement;
+    const textColorValue = document.getElementById('textColorValue') as HTMLInputElement;
+    if (textColorPicker && textColorValue) {
+      textColorPicker.value = '#ffffff';
+      textColorValue.value = '#ffffff';
+    }
+    
+    // Set background image to gradient
+    const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
+    if (bgImageUrl) {
+      bgImageUrl.value = '/images/gradient_color.gif';
+    }
+    updateBackgroundImage('/images/gradient_color.gif');
+    
+    // Set opacity to 0 (fully transparent)
+    const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
+    const opacityValue = document.getElementById('opacityValue');
+    if (opacitySlider && opacityValue) {
+      opacitySlider.value = '0';
+      opacityValue.textContent = '0%';
+    }
+    
+    // Enable QR invert
+    const qrInvertToggle = document.getElementById('qrInvertToggle') as HTMLInputElement;
+    if (qrInvertToggle) {
+      qrInvertToggle.checked = true;
+    }
+    
+    // Enable QR screen blend
+    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
+    if (qrScreenBlendToggle) {
+      qrScreenBlendToggle.checked = true;
+    }
+    
+    // Update preview
+    const bgPresetPreview = document.getElementById('bgPresetPreview') as HTMLImageElement;
+    if (bgPresetPreview) {
+      bgPresetPreview.src = '/images/gradient_color.gif';
+      bgPresetPreview.alt = 'PubPay preset preview';
+      bgPresetPreview.style.display = 'block';
+    }
+    
+    // Apply all styles and save
+    applyAllStyles();
+    updateBlendMode();
+    saveCurrentStylesToLocalStorage();
+    
+    console.log('🎨 [DEBUG] PubPay preset applied successfully');
+  };
+
   // Style options functionality
   const setupStyleOptions = () => {
     // Debug log removed
@@ -2941,15 +2996,19 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (bgImagePreset) {
       bgImagePreset.addEventListener('change', (e: any) => {
         const selectedValue = e.target.value;
-        // Debug log removed
+        console.log('🎨 [DEBUG] Background preset selected:', selectedValue);
+        
         if (selectedValue === 'custom') {
           if (customUrlGroup) customUrlGroup.style.display = 'block';
           if (bgImageUrl) (bgImageUrl as HTMLInputElement).focus();
+        } else if (selectedValue === 'pubpay-preset') {
+          // Apply PubPay preset with all settings
+          if (customUrlGroup) customUrlGroup.style.display = 'none';
+          applyPubPayPreset();
         } else {
           if (customUrlGroup) customUrlGroup.style.display = 'none';
           if (bgImageUrl) {
             (bgImageUrl as HTMLInputElement).value = selectedValue;
-            // Debug log removed
           }
           updateBackgroundImage(selectedValue);
           if (bgPresetPreview) {
@@ -2965,8 +3024,8 @@ export const useLiveFunctionality = (eventId?: string) => {
               (bgPresetPreview as HTMLImageElement).style.display = 'block';
             }
           }
+          saveCurrentStylesToLocalStorage();
         }
-        saveCurrentStylesToLocalStorage();
       });
     }
 
@@ -4365,6 +4424,25 @@ export const useLiveFunctionality = (eventId?: string) => {
         podium: false,
         zapGrid: false,
         opacity: 1.0,
+        textOpacity: 1.0,
+        partnerLogo: ''
+      },
+      pubpay: {
+        textColor: '#ffffff',
+        bgColor: '#ffffff',
+        bgImage: '/images/gradient_color.gif',
+        qrInvert: true,
+        qrScreenBlend: true,
+        qrMultiplyBlend: false,
+        qrShowWebLink: true,
+        qrShowNevent: true,
+        qrShowNote: true,
+        layoutInvert: false,
+        hideZapperContent: false,
+        showTopZappers: false,
+        podium: false,
+        zapGrid: false,
+        opacity: 0,
         textOpacity: 1.0,
         partnerLogo: ''
       },
