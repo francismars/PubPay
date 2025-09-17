@@ -2686,10 +2686,13 @@
   body.qr-blend-active .qr-swiper {
       mix-blend-mode: screen;
   }
-  
+
   body.qr-blend-active.qr-multiply-active .qr-swiper {
       mix-blend-mode: multiply;
   }
+
+  /* Note: Removed body.qr-blend-active .qr-slide-title, body.qr-blend-active .qr-slide-label background rule */
+  /* The dark background on QR slide titles and labels has been intentionally removed */
   
   .author-name {
       font-size: max(2.5vw, 16px);
