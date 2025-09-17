@@ -245,6 +245,26 @@ document.addEventListener('DOMContentLoaded', function() {
             textOpacity: 1.0,
             partnerLogo: ''
         },
+        pubpay: {
+            textColor: '#ffffff',
+            bgColor: '#ffffff',
+            bgImage: '/images/gradient_color.gif',
+            qrInvert: true,
+            qrScreenBlend: true,
+            qrMultiplyBlend: false,
+            qrShowWebLink: true,
+            qrShowNevent: true,
+            qrShowNote: true,
+            layoutInvert: false,
+            hideZapperContent: false,
+            showTopZappers: false,
+            podium: false,
+            zapGrid: false,
+            // fontSize: 1.0, // Disabled - using CSS vw units
+            opacity: 0,
+            textOpacity: 1.0,
+            partnerLogo: ''
+        },
         cosmic: {
             textColor: '#ffffff',
             bgColor: '#0a0a1a',
@@ -4024,6 +4044,61 @@ if (document.readyState === 'loading') {
     setupStyleOptions();
 }
 
+// Apply PubPay preset with all settings
+function applyPubPayPreset() {
+    console.log('🎨 [DEBUG] Applying PubPay preset...');
+    
+    // Set text color to white
+    const textColorPicker = document.getElementById('textColorPicker');
+    const textColorValue = document.getElementById('textColorValue');
+    if (textColorPicker && textColorValue) {
+        textColorPicker.value = '#ffffff';
+        textColorValue.value = '#ffffff';
+    }
+    
+    // Set background image to gradient
+    const bgImageUrl = document.getElementById('bgImageUrl');
+    if (bgImageUrl) {
+        bgImageUrl.value = '/images/gradient_color.gif';
+    }
+    updateBackgroundImage('/images/gradient_color.gif');
+    
+    // Set opacity to 0 (fully transparent)
+    const opacitySlider = document.getElementById('opacitySlider');
+    const opacityValue = document.getElementById('opacityValue');
+    if (opacitySlider && opacityValue) {
+        opacitySlider.value = '0';
+        opacityValue.textContent = '0%';
+    }
+    
+    // Enable QR invert
+    const qrInvertToggle = document.getElementById('qrInvertToggle');
+    if (qrInvertToggle) {
+        qrInvertToggle.checked = true;
+    }
+    
+    // Enable QR screen blend
+    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle');
+    if (qrScreenBlendToggle) {
+        qrScreenBlendToggle.checked = true;
+    }
+    
+    // Update preview
+    const bgPresetPreview = document.getElementById('bgPresetPreview');
+    if (bgPresetPreview) {
+        bgPresetPreview.src = '/images/gradient_color.gif';
+        bgPresetPreview.alt = 'PubPay preset preview';
+        bgPresetPreview.style.display = 'block';
+    }
+    
+    // Apply all styles and save
+    applyAllStyles();
+    updateBlendMode();
+    updateStyleURL();
+    
+    console.log('🎨 [DEBUG] PubPay preset applied successfully');
+}
+
 function setupStyleOptions() {
     // Setup both color pickers
     setupColorPicker('textColorPicker', 'textColorValue', 'color');
@@ -4047,6 +4122,10 @@ function setupStyleOptions() {
             // Show custom URL input
             customUrlGroup.style.display = 'block';
             bgImageUrl.focus();
+        } else if (selectedValue === 'pubpay-preset') {
+            // Apply PubPay preset with all settings
+            customUrlGroup.style.display = 'none';
+            applyPubPayPreset();
         } else {
             // Hide custom URL input and apply preset
             customUrlGroup.style.display = 'none';

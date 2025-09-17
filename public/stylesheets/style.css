@@ -5120,8 +5120,8 @@
       transform: none;
       width: 20px;
       height: 20px;
-      border: 2px solid rgba(122, 139, 160, 0.3);
-      border-top: 2px solid #7a8ba0;
+      border: 2px solid color-mix(in srgb, var(--text-color) 30%, transparent);
+      border-top: 2px solid var(--text-color);
       border-radius: 50%;
       animation: spin 1s linear infinite;
       z-index: 11;
@@ -5173,8 +5173,8 @@
       transform: none;
       width: 20px;
       height: 20px;
-      border: 2px solid rgba(122, 139, 160, 0.3);
-      border-top: 2px solid #7a8ba0;
+      border: 2px solid color-mix(in srgb, var(--text-color) 30%, transparent);
+      border-top: 2px solid var(--text-color);
       border-radius: 50%;
       animation: spin 1s linear infinite;
       z-index: 11;
