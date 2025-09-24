@@ -14,13 +14,15 @@ export const HomePage: React.FC = () => {
   const [nsecInput, setNsecInput] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [qrScanner, setQrScanner] = useState<any>(null);
+  const [extensionAvailable, setExtensionAvailable] = useState(true);
+  const [externalSignerAvailable, setExternalSignerAvailable] = useState(true);
+  const [externalSignerLoading, setExternalSignerLoading] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState<string>('');
 
   const qrReaderRef = useRef<HTMLDivElement>(null);
 
   const {
     isLoading,
-    error,
     activeFeed,
     posts,
     followingPosts,
@@ -39,9 +41,15 @@ export const HomePage: React.FC = () => {
     handlePayWithWallet,
     handleCopyInvoice,
     handlePostNote,
-    loadMorePosts,
-    setError
+    loadMorePosts
   } = useHomeFunctionality();
+
+  // Reset login form to main state
+  const resetLoginForm = () => {
+    document.getElementById('nsecInputGroup')!.style.display = 'none';
+    document.getElementById('loginFormGroup')!.style.display = 'flex';
+    setNsecInput('');
+  };
 
   // Handler functions
   const handleSharePost = async (post: PubPayPost) => {
@@ -75,29 +83,6 @@ export const HomePage: React.FC = () => {
 
   const handleQRScannerOpen = () => {
     setShowQRScanner(true);
-    // Initialize QR scanner
-    if (typeof window !== 'undefined' && (window as any).Html5Qrcode) {
-      const html5QrCode = new (window as any).Html5Qrcode("reader");
-      setQrScanner(html5QrCode);
-      
-      html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-        },
-        (decodedText: string) => {
-          console.log("QR Code scanned:", decodedText);
-          handleScannedContent(decodedText);
-          html5QrCode.stop().then(() => {
-            setShowQRScanner(false);
-          });
-        },
-        (errorMessage: string) => {
-          console.error("QR Code scanning error:", errorMessage);
-        }
-      );
-    }
   };
 
   const handleScannedContent = async (decodedText: string) => {
@@ -130,6 +115,7 @@ export const HomePage: React.FC = () => {
     if (authState.isLoggedIn) {
       setShowLoggedInForm(true);
     } else {
+      resetLoginForm();
       setShowLoginForm(true);
     }
   };
@@ -145,51 +131,172 @@ export const HomePage: React.FC = () => {
   const handlePostNoteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
-    const data = Object.fromEntries(formData.entries());
+    const data: Record<string, string> = {};
     
-    await handlePostNote(data);
-    setShowNewPayNoteForm(false);
+    for (const [key, value] of formData.entries()) {
+      data[key] = value.toString();
+    }
+    
+    // Show "Publishing..." state
+    const submitButton = document.getElementById('postNote');
+    if (submitButton) {
+      submitButton.textContent = 'Publishing...';
+    }
+    
+    try {
+      await handlePostNote(data);
+      
+      // Close the form after successful submission
+      setShowNewPayNoteForm(false);
+      
+      // Reset form fields
+      (e.target as HTMLFormElement).reset();
+      
+      // Reset radio button to fixed
+      const fixedRadio = document.getElementById('fixedFlow') as HTMLInputElement;
+      if (fixedRadio) {
+        fixedRadio.checked = true;
+        document.getElementById('fixedInterface')!.style.display = 'block';
+        document.getElementById('rangeInterface')!.style.display = 'none';
+      }
+    } catch (error) {
+      console.error('Failed to post note:', error);
+    } finally {
+      // Reset button text
+      if (submitButton) {
+        submitButton.textContent = 'Publish';
+      }
+    }
   };
+
+  // Initialize button states on mount
+  useEffect(() => {
+    // Both buttons start as available - they only get disabled after failed attempts
+    setExtensionAvailable(true);
+    setExternalSignerAvailable(true);
+  }, []);
+
+  // Handle return from external signer
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === "visible") {
+        // Wait for page to have focus
+        while (!document.hasFocus()) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+
+        const signInData = JSON.parse(sessionStorage.getItem("signIn") || 'null');
+        if (signInData && signInData.rememberMe !== undefined) {
+          sessionStorage.removeItem("signIn");
+          
+          try {
+            // Get the public key from clipboard (external signer puts it there)
+            const npub = await navigator.clipboard.readText();
+            const decodedNPUB = window.NostrTools.nip19.decode(npub);
+            const pubKey = decodedNPUB.data;
+            
+            // Store authentication data
+            if (signInData.rememberMe === true) {
+              localStorage.setItem("publicKey", pubKey);
+              localStorage.setItem("signInMethod", "externalSigner");
+            } else {
+              sessionStorage.setItem("publicKey", pubKey);
+              sessionStorage.setItem("signInMethod", "externalSigner");
+            }
+            
+            // Reset button state
+            setExternalSignerLoading(false);
+            setExternalSignerAvailable(true);
+            
+            // Close login form
+            setShowLoginForm(false);
+            
+            // Reload the page to trigger authentication
+            window.location.reload();
+          } catch (error) {
+            console.error('Failed to process external signer return:', error);
+            setExternalSignerLoading(false);
+            setExternalSignerAvailable(false);
+          }
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  // Initialize QR scanner when overlay opens
+  useEffect(() => {
+    if (showQRScanner && !qrScanner && typeof window !== 'undefined' && (window as any).Html5Qrcode) {
+      // Add a small delay to ensure DOM element is ready
+      setTimeout(() => {
+        const readerElement = document.getElementById("reader");
+        if (readerElement) {
+          const html5QrCode = new (window as any).Html5Qrcode("reader");
+          setQrScanner(html5QrCode);
+          
+          html5QrCode.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+            },
+            async (decodedText: string) => {
+              console.log("QR Code scanned:", decodedText);
+              html5QrCode.stop().then(() => {
+                setShowQRScanner(false);
+              });
+              await handleScannedContent(decodedText);
+            },
+            (errorMessage: string) => {
+              console.error("QR Code scanning error:", errorMessage);
+            }
+          ).catch((error: any) => {
+            console.error("Failed to start QR scanner:", error);
+          });
+        }
+      }, 100);
+    }
+  }, [showQRScanner]);
+
+  // Cleanup QR scanner when overlay closes
+  useEffect(() => {
+    if (!showQRScanner && qrScanner) {
+      // Check if scanner is running before trying to stop it
+      qrScanner.getState().then((state: any) => {
+        if (state === 'ACTIVE' || state === 'PAUSED') {
+          return qrScanner.stop();
+        }
+      }).then(() => {
+        setQrScanner(null);
+      }).catch((error: any) => {
+        console.error("Error stopping QR scanner:", error);
+        setQrScanner(null);
+      });
+    }
+  }, [showQRScanner, qrScanner]);
 
   // Cleanup QR scanner on unmount
   useEffect(() => {
     return () => {
       if (qrScanner) {
-        qrScanner.stop();
+        qrScanner.getState().then((state: any) => {
+          if (state === 'ACTIVE' || state === 'PAUSED') {
+            return qrScanner.stop();
+          }
+        }).catch((error: any) => {
+          console.error("Error stopping QR scanner on unmount:", error);
+        });
       }
     };
   }, [qrScanner]);
 
   return (
     <div>
-      {/* Error Display */}
-      {error && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          backgroundColor: '#ff4444',
-          color: 'white',
-          padding: '12px 16px',
-          borderRadius: '4px',
-          zIndex: 10000,
-          maxWidth: '300px'
-        }}>
-          {error}
-          <button 
-            onClick={() => setError(null)}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'white',
-              marginLeft: '8px',
-              cursor: 'pointer'
-            }}
-          >
-            ×
-          </button>
-        </div>
-      )}
 
       <div id="nav">
         <div id="navInner">
@@ -206,9 +313,9 @@ export const HomePage: React.FC = () => {
             <a id="login" href="#" className="topAction" onClick={handleLoginOpen}>
               {authState.isLoggedIn && authState.userProfile ? (
                 <img 
+                  className="userImg currentUserImg"
                   src={JSON.parse(authState.userProfile.content).picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg'}
                   alt="Profile"
-                  style={{ width: '24px', height: '24px', borderRadius: '50%' }}
                 />
               ) : (
                 <span className="material-symbols-outlined">account_circle</span>
@@ -582,23 +689,91 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* QR Scanner Overlay */}
-      <div className="overlayContainer" id="qrScanner" style={{display: showQRScanner ? 'block' : 'none'}}>
+      <div className="overlayContainer" id="qrScanner" style={{display: showQRScanner ? 'flex' : 'none'}}>
         <div className="overlayInner">
           <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
           <p className="label" id="titleScanner">Scan note1 or nevent1 QR code</p>
           <div id="reader"></div>
-          <a id="stopScanner" href="#" className="label" onClick={() => setShowQRScanner(false)}>cancel</a>
+          <a id="stopScanner" href="#" className="label" onClick={() => {
+            if (qrScanner) {
+              qrScanner.getState().then((state: any) => {
+                if (state === 'ACTIVE' || state === 'PAUSED') {
+                  return qrScanner.stop();
+                }
+              }).then(() => {
+                setShowQRScanner(false);
+              }).catch((error: any) => {
+                console.error("Error stopping QR scanner:", error);
+                setShowQRScanner(false);
+              });
+            } else {
+              setShowQRScanner(false);
+            }
+          }}>cancel</a>
         </div>
       </div>
 
       {/* Login Form Overlay */}
-      <div className="overlayContainer" id="loginForm" style={{display: showLoginForm ? 'block' : 'none'}}>
+      <div className="overlayContainer" id="loginForm" style={{display: showLoginForm ? 'flex' : 'none'}}>
         <div className="overlayInner">
           <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
           <p className="label" id="titleSignin">Choose Sign-in Method</p>
           <div className="formFieldGroup" id="loginFormGroup">
-            <a href="#" id="signInExtension" className="cta" onClick={handleSignInExtension}>Extension</a>
-            <a href="#" id="signInexternalSigner" className="cta" onClick={handleSignInExternalSigner}>Signer</a>
+            <a 
+              href="#" 
+              id="signInExtension" 
+              className={`cta ${!extensionAvailable ? 'disabled red' : ''}`}
+              onClick={async (e) => {
+                if (!extensionAvailable) {
+                  e.preventDefault();
+                  return;
+                }
+                try {
+                  const result = await handleSignInExtension(rememberMe);
+                  // Only close the form if sign in was successful
+                  if (result && result.success) {
+                    setShowLoginForm(false);
+                  } else {
+                    // If extension is not available, disable the button
+                    setExtensionAvailable(false);
+                  }
+                } catch (error) {
+                  console.error('Extension sign in failed:', error);
+                  setExtensionAvailable(false);
+                }
+              }}
+            >
+              {!extensionAvailable ? 'Not found' : 'Extension'}
+            </a>
+            <a 
+              href="#" 
+              id="signInexternalSigner" 
+              className={`cta ${!externalSignerAvailable ? 'disabled red' : ''}`}
+              onClick={async (e) => {
+                if (!externalSignerAvailable || externalSignerLoading) {
+                  e.preventDefault();
+                  return;
+                }
+                try {
+                  setExternalSignerLoading(true);
+                  const result = await handleSignInExternalSigner(rememberMe);
+                  // Only close the form if sign in was successful
+                  if (result && result.success) {
+                    setShowLoginForm(false);
+                  } else {
+                    // If external signer failed, disable the button
+                    setExternalSignerAvailable(false);
+                    setExternalSignerLoading(false);
+                  }
+                } catch (error) {
+                  console.error('External signer failed:', error);
+                  setExternalSignerAvailable(false);
+                  setExternalSignerLoading(false);
+                }
+              }}
+            >
+              {!externalSignerAvailable ? 'Not found' : externalSignerLoading ? 'Loading...' : 'Signer'}
+            </a>
             <a href="#" id="signInNsec" className="cta" onClick={() => {
               document.getElementById('nsecInputGroup')!.style.display = 'block';
               document.getElementById('loginFormGroup')!.style.display = 'none';
@@ -615,7 +790,10 @@ export const HomePage: React.FC = () => {
                 onChange={(e) => setNsecInput(e.target.value)}
                 required
               />
-              <button id="continueWithNsec" className="cta" type="submit">Continue</button>
+              <button id="continueWithNsec" className="cta" type="submit" onClick={async () => {
+                await handleContinueWithNsec(nsecInput, rememberMe);
+                setShowLoginForm(false);
+              }}>Continue</button>
             </form>
           </div>
           <div className="rememberPK">
@@ -628,12 +806,15 @@ export const HomePage: React.FC = () => {
               onChange={(e) => setRememberMe(e.target.checked)}
             />
           </div>
-          <a id="cancelLogin" href="#" className="label" onClick={() => setShowLoginForm(false)}>cancel</a>
+          <a id="cancelLogin" href="#" className="label" onClick={() => {
+            resetLoginForm();
+            setShowLoginForm(false);
+          }}>cancel</a>
         </div>
       </div>
 
       {/* Logged In Form Overlay */}
-      <div className="overlayContainer" id="loggedInForm" style={{display: showLoggedInForm ? 'block' : 'none'}}>
+      <div className="overlayContainer" id="loggedInForm" style={{display: showLoggedInForm ? 'flex' : 'none'}}>
         <div className="overlayInner">
           <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
           <p className="label">You are logged in as:</p>
@@ -653,7 +834,7 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* Invoice Overlay */}
-      <div className="overlayContainer" id="invoiceOverlay" style={{display: showInvoiceOverlay ? 'block' : 'none'}}>
+      <div className="overlayContainer" id="invoiceOverlay" style={{display: showInvoiceOverlay ? 'flex' : 'none'}}>
         <div className="overlayInner">
           <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
           <p id="qrcodeTitle" className="label">Scan Invoice to Pay Zap</p>
@@ -669,7 +850,7 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* JSON Viewer Overlay */}
-      <div className="overlayContainer" id="viewJSON" style={{display: showJSON ? 'block' : 'none'}}>
+      <div className="overlayContainer" id="viewJSON" style={{display: showJSON ? 'flex' : 'none'}}>
         <div className="overlayInner">
           <pre id="noteJSON"></pre>
           <a id="closeJSON" href="#" className="label" onClick={() => setShowJSON(false)}>close</a>
@@ -677,7 +858,7 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* New Pay Note Form Overlay */}
-      <div className="overlayContainer" id="newPayNoteForm" style={{display: showNewPayNoteForm ? 'block' : 'none'}}>
+      <div className="overlayContainer" id="newPayNoteForm" style={{display: showNewPayNoteForm ? 'flex' : 'none'}}>
         <div className="overlayInner">
           <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
           <form id="newKind1" onSubmit={handlePostNoteSubmit}>
@@ -689,11 +870,37 @@ export const HomePage: React.FC = () => {
             <fieldset className="formField formSelector">
               <legend className="uppercase">Select type</legend>
               <div>
-                <input type="radio" id="fixedFlow" name="paymentType" value="fixed" defaultChecked />
+                <input 
+                  type="radio" 
+                  id="fixedFlow" 
+                  name="paymentType" 
+                  value="fixed" 
+                  defaultChecked 
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      document.getElementById('fixedInterface')!.style.display = 'block';
+                      document.getElementById('rangeInterface')!.style.display = 'none';
+                      (document.getElementById('zapMin') as HTMLInputElement)!.value = '';
+                      (document.getElementById('zapMax') as HTMLInputElement)!.value = '';
+                    }
+                  }}
+                />
                 <label htmlFor="fixedFlow">Fixed</label>
               </div>
               <div>
-                <input type="radio" id="rangeFlow" name="paymentType" value="range" />
+                <input 
+                  type="radio" 
+                  id="rangeFlow" 
+                  name="paymentType" 
+                  value="range" 
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      document.getElementById('rangeInterface')!.style.display = 'flex';
+                      document.getElementById('fixedInterface')!.style.display = 'none';
+                      (document.getElementById('zapFixed') as HTMLInputElement)!.value = '';
+                    }
+                  }}
+                />
                 <label htmlFor="rangeFlow">Range</label>
               </div>
               <div className="disabled">
@@ -749,7 +956,7 @@ export const HomePage: React.FC = () => {
                 <input type="text" id="redirectToNote" placeholder="note1..." name="redirectToNote" disabled />
               </div>
             </details>
-            <button type="submit" id="postNote" className="cta" onClick={handlePostNote}>Publish</button>
+            <button type="submit" id="postNote" className="cta">Publish</button>
           </form>
           <a id="cancelNewNote" href="#" className="label" onClick={() => setShowNewPayNoteForm(false)}>cancel</a>
         </div>
