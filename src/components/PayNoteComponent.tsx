@@ -2,6 +2,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 
+// Define ProcessedZap interface locally since it's not exported
+interface ProcessedZap {
+  zapAmount: number;
+  zapPayerPubkey: string;
+  zapPayerPicture: string;
+  zapPayerNpub: string;
+  id: string;
+  pubkey: string;
+  tags: string[][];
+  content: string;
+  created_at: number;
+  sig: string;
+}
+
 interface PayNoteComponentProps {
   post: PubPayPost;
   onPay: (post: PubPayPost, amount: number) => void;
@@ -20,7 +34,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
   const [zapAmount, setZapAmount] = useState(post.zapMin);
   const [showZapMenu, setShowZapMenu] = useState(false);
   const [customZapAmount, setCustomZapAmount] = useState('');
+  const [heroZaps, setHeroZaps] = useState<ProcessedZap[]>([]);
+  const [overflowZaps, setOverflowZaps] = useState<ProcessedZap[]>([]);
   const zapMenuRef = useRef<HTMLDivElement>(null);
+
 
   const authorData = post.author ? JSON.parse(post.author.content) : null;
   const displayName = authorData?.display_name || authorData?.name || 'Anonymous';
@@ -140,6 +157,35 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
     }
   };
 
+  // Process zaps and separate into hero zaps and overflow zaps
+  useEffect(() => {
+    if (post.zaps.length === 0) {
+      setHeroZaps([]);
+      setOverflowZaps([]);
+      return;
+    }
+
+    const heroZapsList: ProcessedZap[] = [];
+    const overflowZapsList: ProcessedZap[] = [];
+
+    post.zaps.forEach((zap, index) => {
+      // Check if this zap is within the target (zap-uses limit)
+      const currentUses = post.zapUsesCurrent;
+      const maxUses = post.zapUses;
+      
+      if (index < maxUses) {
+        // This is a hero zap (within target)
+        heroZapsList.push(zap);
+      } else {
+        // This is an overflow zap (exceeds target)
+        overflowZapsList.push(zap);
+      }
+    });
+
+    setHeroZaps(heroZapsList);
+    setOverflowZaps(overflowZapsList);
+  }, [post.zaps, post.zapUsesCurrent, post.zapUses]);
+
   // Close zap menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -148,11 +194,14 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    if (showZapMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [showZapMenu]);
 
   return (
     <div className="paynote">
@@ -228,7 +277,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
         <div className="noteValues">
           <div className="zapMin">
             <span className="zapMinVal">{post.zapMin.toLocaleString()}</span>
-            <span className="label">sats<br />Min</span>
+            <span className="label">sats<br />{post.zapMin !== post.zapMax ? 'Min' : ''}</span>
           </div>
           
           {post.zapMin !== post.zapMax && (
@@ -263,17 +312,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
           </div>
         )}
 
-        {/* Main CTA */}
-        <div className="noteCTA">
-          <button
-            className={`noteMainCTA cta ${!isPayable || !isLoggedIn ? 'disabled' : ''}`}
-            onClick={() => isPayable && onPay(post, zapAmount)}
-            disabled={!isPayable || !isLoggedIn}
-          >
-            Pay
-          </button>
-        </div>
-
         {/* Zap Slider for Range */}
         {post.zapMin !== post.zapMax && isPayable && (
           <div className="zapSliderContainer">
@@ -292,45 +330,168 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
           </div>
         )}
 
+        {/* Hero Zaps - for zaps within target */}
+        <div className="noteHeroZaps noteZapReactions">
+          {heroZaps.map((zap, index) => {
+            console.log('Rendering hero zap:', { index, zapAmount: zap.zapAmount, zapPayerPicture: zap.zapPayerPicture, zapPayerNpub: zap.zapPayerNpub });
+            return (
+              <div key={index} className="zapReaction">
+                <a 
+                  href={`https://next.nostrudel.ninja/#/u/${zap.zapPayerNpub}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <img className="userImg" src={zap.zapPayerPicture} alt="Zap Payer" />
+                </a>
+                <a 
+                  href={`https://next.nostrudel.ninja/#/n/${zap.id}`} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="zapReactionAmount"
+                >
+                  {zap.zapAmount ? zap.zapAmount.toLocaleString() : '0'}
+                </a>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Main CTA */}
+        <div className="noteCTA">
+          <button
+            className={`noteMainCTA cta ${!isPayable || !isLoggedIn ? 'disabled' : ''}`}
+            onClick={() => isPayable && onPay(post, zapAmount)}
+            disabled={!isPayable || !isLoggedIn}
+          >
+            Pay
+          </button>
+        </div>
+
         {/* Actions */}
         <div className="noteActionsReactions">
           <div className="noteZaps noteZapReactions">
-            {/* Zap reactions would go here */}
+            {overflowZaps.map((zap, index) => {
+              console.log('Rendering overflow zap:', { index, zapAmount: zap.zapAmount, zapPayerPicture: zap.zapPayerPicture, zapPayerNpub: zap.zapPayerNpub });
+              return (
+                <div key={index} className="zapReaction">
+                  <a 
+                    href={`https://next.nostrudel.ninja/#/u/${zap.zapPayerNpub}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    <img className="userImg" src={zap.zapPayerPicture} alt="Zap Payer" />
+                  </a>
+                  <a 
+                    href={`https://next.nostrudel.ninja/#/n/${zap.id}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="zapReactionAmount"
+                  >
+                    {zap.zapAmount ? zap.zapAmount.toLocaleString() : '0'}
+                  </a>
+                </div>
+              );
+            })}
           </div>
 
           <div className="noteActions">
             {/* Zap Menu */}
-            <a className="noteAction">
+            <a 
+              className={isPayable ? "noteAction zapMenuAction" : "disabled"}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!isPayable) return;
+                setShowZapMenu(!showZapMenu);
+              }}
+              style={{ position: 'relative' }}
+            >
               <span className="material-symbols-outlined">bolt</span>
-            </a>
-
-            {/* Favorite */}
-            <a className="noteAction">
-              <span className="material-symbols-outlined">favorite</span>
+              {showZapMenu && (
+                <div className="zapMenu" ref={zapMenuRef}>
+                  <div className="zapMenuCustom">
+                    <input 
+                      type="number" 
+                      placeholder="sats" 
+                      min="1"
+                      value={customZapAmount}
+                      onChange={(e) => setCustomZapAmount(e.target.value)}
+                    />
+                    <button onClick={handleCustomZap}>Zap</button>
+                    <button onClick={handleAnonZap}>anonZap</button>
+                  </div>
+                </div>
+              )}
             </a>
 
             {/* Share */}
-            <a className="noteAction" onClick={() => onShare(post)}>
+            <a 
+              className="noteAction" 
+              onClick={() => onShare(post)}
+            >
               <span className="material-symbols-outlined">ios_share</span>
             </a>
 
             {/* More Menu */}
             <div className="noteAction dropdown">
-              <button className="dropbtn">
+              <button 
+                className="dropbtn"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setTimeout(() => {
+                    const dropdown = e.currentTarget.nextElementSibling;
+                    if (dropdown) {
+                      dropdown.classList.toggle("show");
+                    }
+                  }, 100);
+                }}
+              >
                 <span className="material-symbols-outlined">more_horiz</span>
               </button>
               
               <div className="dropdown-content">
-                <button onClick={() => onViewRaw(post)}>
-                  View Raw
-                </button>
-                <a
-                  href={`https://next.nostrudel.ninja/#/n/${post.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View on nostrudel
-                </a>
+                <a className="cta dropdown-element disabled">New Pay Forward</a>
+                
+                {isPayable && (
+                  <a className={`cta dropdown-element ${!isPayable ? 'disabled' : ''}`}>
+                    Pay Anonymously
+                  </a>
+                )}
+                
+                <div className="noteAction">
+                  <a 
+                    className="toolTipLink dropdown-element" 
+                    href="#" 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onViewRaw(post);
+                    }}
+                  >
+                    View Raw
+                  </a>
+                </div>
+                
+                <div className="noteAction">
+                  <a
+                    href={`https://next.nostrudel.ninja/#/n/${post.id}`}
+                    className="toolTipLink"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View on nostrudel
+                  </a>
+                </div>
+                
+                <div className="noteAction">
+                  <a
+                    href={`/live?note=${post.id}`}
+                    className="toolTipLink"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    View on live
+                  </a>
+                </div>
               </div>
             </div>
           </div>

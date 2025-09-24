@@ -55,7 +55,34 @@ export class AuthService {
       
       // Navigate to external signer
       const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
-      window.location.href = nostrSignerURL;
+      
+      // Set up visibility change listener to detect when external signer opens
+      const navigationAttempted = await new Promise<boolean>((resolve) => {
+        let attempted = false;
+        const handleVisibilityChange = () => {
+          if (document.visibilityState === "hidden") {
+            attempted = true;
+            resolve(true);
+          }
+        };
+        
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        window.location.href = nostrSignerURL;
+        
+        // Timeout after 3 seconds if no navigation occurs
+        setTimeout(() => {
+          document.removeEventListener("visibilitychange", handleVisibilityChange);
+          resolve(false);
+        }, 3000);
+      });
+      
+      if (!navigationAttempted) {
+        sessionStorage.removeItem('signIn');
+        return {
+          success: false,
+          error: "Failed to launch 'nostrsigner': Redirection did not occur."
+        };
+      }
       
       // This will redirect, so we return a pending state
       return {
