@@ -37,6 +37,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
   const [heroZaps, setHeroZaps] = useState<ProcessedZap[]>([]);
   const [overflowZaps, setOverflowZaps] = useState<ProcessedZap[]>([]);
   const zapMenuRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
 
   const authorData = post.author ? JSON.parse(post.author.content) : null;
@@ -169,15 +170,19 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
     const overflowZapsList: ProcessedZap[] = [];
 
     post.zaps.forEach((zap, index) => {
-      // Check if this zap is within the target (zap-uses limit)
-      const currentUses = post.zapUsesCurrent;
-      const maxUses = post.zapUses;
+      // Check if this zap amount is within the zap min/max range
+      const zapAmount = zap.zapAmount;
+      const zapMin = post.zapMin;
+      const zapMax = post.zapMax;
       
-      if (index < maxUses) {
-        // This is a hero zap (within target)
+      // Check if zap amount is within the valid range
+      const isWithinRange = zapAmount >= zapMin && zapAmount <= zapMax;
+      
+      if (isWithinRange) {
+        // This is a hero zap (within amount range)
         heroZapsList.push(zap);
       } else {
-        // This is an overflow zap (exceeds target)
+        // This is an overflow zap (outside amount range)
         overflowZapsList.push(zap);
       }
     });
@@ -202,6 +207,41 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showZapMenu]);
+
+  // Close dropdowns when clicking outside (global handler)
+  useEffect(() => {
+    const handleGlobalClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.matches('.dropbtn') && !target.matches('.dropdown-element')) {
+        // Close all dropdowns
+        const dropdowns = document.getElementsByClassName('dropdown-content');
+        for (let i = 0; i < dropdowns.length; i++) {
+          const dropdown = dropdowns[i] as HTMLElement;
+          dropdown.classList.remove('show');
+        }
+      }
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.matches('.dropbtn') && !target.matches('.dropdown-element')) {
+        // Close all dropdowns
+        const dropdowns = document.getElementsByClassName('dropdown-content');
+        for (let i = 0; i < dropdowns.length; i++) {
+          const dropdown = dropdowns[i] as HTMLElement;
+          dropdown.classList.remove('show');
+        }
+      }
+    };
+
+    document.addEventListener('click', handleGlobalClick);
+    document.addEventListener('touchstart', handleTouchStart);
+
+    return () => {
+      document.removeEventListener('click', handleGlobalClick);
+      document.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, []);
 
   return (
     <div className="paynote">
@@ -438,10 +478,11 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
+                  console.log("Dropdown button clicked");
                   setTimeout(() => {
-                    const dropdown = e.currentTarget.nextElementSibling;
-                    if (dropdown) {
-                      dropdown.classList.toggle("show");
+                    if (dropdownRef.current) {
+                      dropdownRef.current.classList.toggle("show");
+                      console.log("Dropdown classes after toggle:", dropdownRef.current.className);
                     }
                   }, 100);
                 }}
@@ -449,7 +490,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
                 <span className="material-symbols-outlined">more_horiz</span>
               </button>
               
-              <div className="dropdown-content">
+              <div className="dropdown-content dropdown-element" ref={dropdownRef}>
                 <a className="cta dropdown-element disabled">New Pay Forward</a>
                 
                 {isPayable && (
@@ -458,40 +499,34 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
                   </a>
                 )}
                 
-                <div className="noteAction">
-                  <a 
-                    className="toolTipLink dropdown-element" 
-                    href="#" 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onViewRaw(post);
-                    }}
-                  >
-                    View Raw
-                  </a>
-                </div>
+                <a 
+                  className="toolTipLink dropdown-element" 
+                  href="#" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onViewRaw(post);
+                  }}
+                >
+                  View Raw
+                </a>
                 
-                <div className="noteAction">
-                  <a
-                    href={`https://next.nostrudel.ninja/#/n/${post.id}`}
-                    className="toolTipLink"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View on nostrudel
-                  </a>
-                </div>
+                <a
+                  href={`https://next.nostrudel.ninja/#/n/${post.id}`}
+                  className="toolTipLink dropdown-element"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View on nostrudel
+                </a>
                 
-                <div className="noteAction">
-                  <a
-                    href={`/live?note=${post.id}`}
-                    className="toolTipLink"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View on live
-                  </a>
-                </div>
+                <a
+                  href={`/live?note=${post.id}`}
+                  className="toolTipLink dropdown-element"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View on live
+                </a>
               </div>
             </div>
           </div>
