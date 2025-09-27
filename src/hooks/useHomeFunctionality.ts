@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { NostrClient } from '@/services/nostr/NostrClient';
 import { LightningService } from '@/services/lightning/LightningService';
 import { AuthService } from '@/services/AuthService';
-import { NostrFilter, Kind1Event, Kind0Event, Kind9735Event } from '@/types/nostr';
+import { ZapService } from '@/services/zap';
+import { NostrFilter, NostrEvent, Kind1Event, Kind0Event, Kind9735Event } from '@/types/nostr';
 import { LightningConfig } from '@/types/lightning';
 
 // Types for processed zaps
@@ -55,6 +56,7 @@ export const useHomeFunctionality = () => {
 
   const nostrClientRef = useRef<NostrClient | null>(null);
   const lightningServiceRef = useRef<LightningService | null>(null);
+  const zapServiceRef = useRef<ZapService | null>(null);
   const followingPubkeysRef = useRef<string[]>([]);
 
   // Initialize services
@@ -79,6 +81,9 @@ export const useHomeFunctionality = () => {
           webhookUrl: (typeof process !== 'undefined' && process.env?.REACT_APP_WEBHOOK_URL) || ''
         };
         lightningServiceRef.current = new LightningService(lightningConfig);
+        
+        // Initialize Zap service
+        zapServiceRef.current = new ZapService();
 
         console.log('Services initialized');
       } catch (err) {
@@ -277,15 +282,23 @@ export const useHomeFunctionality = () => {
       const zapPayerPubkeys = new Set<string>();
       zapEvents.forEach(zap => {
         const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
+        let hasPubkeyInDescription = false;
+        
         if (descriptionTag) {
           try {
             const zapData = JSON.parse(descriptionTag[1] || '{}');
             if (zapData.pubkey) {
               zapPayerPubkeys.add(zapData.pubkey);
+              hasPubkeyInDescription = true;
             }
           } catch {
             // Handle parsing error
           }
+        }
+        
+        // For anonymous zaps (no pubkey in description), use the zap event's pubkey
+        if (!hasPubkeyInDescription) {
+          zapPayerPubkeys.add(zap.pubkey);
         }
       });
 
@@ -350,27 +363,52 @@ export const useHomeFunctionality = () => {
         // Extract zap payer pubkey from description tag
         const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
         let zapPayerPubkey = '';
+        let isAnonymousZap = false;
+        
         if (descriptionTag) {
           try {
             const zapData = JSON.parse(descriptionTag[1] || '{}');
             zapPayerPubkey = zapData.pubkey || '';
+            // Check if this is an anonymous zap (no pubkey in description)
+            isAnonymousZap = !zapData.pubkey;
           } catch {
             zapPayerPubkey = '';
+            isAnonymousZap = true;
           }
+        } else {
+          isAnonymousZap = true;
+        }
+
+        // For anonymous zaps, use the zap event's pubkey instead
+        if (isAnonymousZap) {
+          zapPayerPubkey = zap.pubkey;
         }
 
         // Find zap payer's profile
         const zapPayerProfile = profileEvents.find(p => p.pubkey === zapPayerPubkey);
-        const zapPayerPicture = zapPayerProfile ?
-          JSON.parse(zapPayerProfile.content).picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg' :
-          'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+        
+        let zapPayerPicture = 'https://via.placeholder.com/40x40/4b90ff/ffffff?text=Z';
+        
+        if (zapPayerProfile) {
+          try {
+            const profileData = JSON.parse(zapPayerProfile.content);
+            zapPayerPicture = profileData.picture || 'https://via.placeholder.com/40x40/4b90ff/ffffff?text=Z';
+          } catch {
+            // If parsing fails, use default
+            zapPayerPicture = 'https://via.placeholder.com/40x40/4b90ff/ffffff?text=Z';
+          }
+        }
 
         // Debug logging
-        if (zapPayerPubkey) {
-          console.log('Zap payer pubkey:', zapPayerPubkey);
-          console.log('Found zap payer profile:', !!zapPayerProfile);
-          console.log('Zap payer picture:', zapPayerPicture);
-        }
+        console.log('Zap processing:', {
+          zapId: zap.id,
+          zapPayerPubkey,
+          isAnonymousZap,
+          foundProfile: !!zapPayerProfile,
+          zapPayerPicture,
+          profileEventsCount: profileEvents.length,
+          availablePubkeys: profileEvents.map(p => p.pubkey).slice(0, 5) // First 5 for debugging
+        });
 
         // Create npub for zap payer
         const zapPayerNpub = zapPayerPubkey && window.NostrTools ?
@@ -572,12 +610,121 @@ export const useHomeFunctionality = () => {
       return;
     }
 
+    if (!zapServiceRef.current) {
+      console.error('Zap service not initialized');
+      return;
+    }
+
     try {
-      // This would integrate with the zap functionality
-      console.log('Paying with extension:', amount, 'sats for post:', post.id);
+      console.log('Processing zap payment:', amount, 'sats for post:', post.id);
+      
+      // Get author data
+      if (!post.author) {
+        console.error('No author data found');
+        return;
+      }
+
+      // Get Lightning callback (pass raw author object, not parsed content)
+      const callback = await zapServiceRef.current.getInvoiceCallBack(post.event, post.author);
+      if (!callback) {
+        console.error('Failed to get Lightning callback');
+        return;
+      }
+
+      // Get user's public key
+      const publicKey = authState.publicKey;
+      if (!publicKey) {
+        console.error('No public key found');
+        return;
+      }
+
+      // Create zap event
+      const zapEventData = await zapServiceRef.current.createZapEvent(
+        post.event,
+        amount,
+        callback.lud16ToZap,
+        publicKey
+      );
+      
+      if (!zapEventData) {
+        console.error('Failed to create zap event');
+        return;
+      }
+
+      // Sign and send zap event
+      const success = await zapServiceRef.current.signZapEvent(
+        zapEventData.zapEvent,
+        callback.callbackToZap,
+        zapEventData.amountPay,
+        callback.lud16ToZap,
+        post.id,
+        false // not anonymous
+      );
+
+      if (success) {
+        console.log('Zap payment initiated successfully');
+        // The ZapService will trigger the payment UI via custom event
+      } else {
+        console.error('Failed to sign and send zap event');
+      }
     } catch (err) {
       console.error('Payment failed:', err);
-      console.error('Payment failed');
+    }
+  };
+
+  const handlePayAnonymously = async (post: PubPayPost, amount: number) => {
+    if (!zapServiceRef.current) {
+      console.error('Zap service not initialized');
+      return;
+    }
+
+    try {
+      console.log('Processing anonymous zap payment:', amount, 'sats for post:', post.id);
+      
+      // Get author data
+      if (!post.author) {
+        console.error('No author data found');
+        return;
+      }
+
+      // Get Lightning callback (pass raw author object, not parsed content)
+      const callback = await zapServiceRef.current.getInvoiceCallBack(post.event, post.author);
+      if (!callback) {
+        console.error('Failed to get Lightning callback');
+        return;
+      }
+
+      // Create zap event (no public key for anonymous)
+      const zapEventData = await zapServiceRef.current.createZapEvent(
+        post.event,
+        amount,
+        callback.lud16ToZap,
+        null // No public key for anonymous zap
+      );
+      
+      if (!zapEventData) {
+        console.error('Failed to create zap event');
+        return;
+      }
+
+      // Sign and send zap event (anonymous = true)
+      const success = await zapServiceRef.current.signZapEvent(
+        zapEventData.zapEvent,
+        callback.callbackToZap,
+        zapEventData.amountPay,
+        callback.lud16ToZap,
+        post.id,
+        true // anonymous zap
+      );
+
+      if (success) {
+        console.log('Anonymous zap payment initiated successfully');
+        // The ZapService will trigger the payment UI via custom event
+      } else {
+        console.error('Failed to initiate anonymous zap payment');
+      }
+    } catch (err) {
+      console.error('Anonymous zap payment failed:', err);
     }
   };
 
@@ -753,6 +900,192 @@ export const useHomeFunctionality = () => {
     }
   };
 
+  // Subscribe to new zaps for all posts in real-time
+  useEffect(() => {
+    if (!posts.length || !nostrClientRef.current) return;
+
+    const eventIds = posts.map(post => post.id);
+    
+    // Subscribe to new zaps for all current posts
+    const sub = nostrClientRef.current.subscribeToEvents([{
+      kinds: [9735],
+      '#e': eventIds
+    }], async (zapEvent: NostrEvent) => {
+      // Type guard to ensure this is a zap event
+      if (zapEvent.kind !== 9735) return;
+      
+      console.log('New zap received:', zapEvent);
+      
+      // Find which post this zap belongs to
+      const eventTag = zapEvent.tags.find((tag: any) => tag[0] === 'e');
+      if (!eventTag) return;
+      
+      const postId = eventTag[1];
+      const postIndex = posts.findIndex(post => post.id === postId);
+      if (postIndex === -1) return;
+      
+      // Check if this zap already exists to prevent duplicates
+      const existingZap = posts[postIndex]?.zaps.find(zap => zap.id === zapEvent.id);
+      if (existingZap) {
+        console.log('Zap already exists, skipping:', zapEvent.id);
+        return;
+      }
+      
+      // Process the new zap
+      const processedZap = await processNewZap(zapEvent as Kind9735Event);
+      if (!processedZap) return;
+      
+      // Check if this zap should close the invoice overlay
+      const invoiceOverlay = document.getElementById("invoiceOverlay");
+      if (invoiceOverlay) {
+        const overlayEventID = invoiceOverlay.getAttribute("data-event-id");
+        
+        // Get the zap request event ID from the description tag (this is what we compare)
+        const descriptionTag = zapEvent.tags.find((tag: any) => tag[0] === 'description');
+        let zapRequestEventId = '';
+        if (descriptionTag) {
+          try {
+            const zapData = JSON.parse(descriptionTag[1] || '{}');
+            zapRequestEventId = zapData.id || '';
+          } catch {
+            console.log('Failed to parse zap description');
+          }
+        }
+        
+        console.log('Checking overlay close:', {
+          overlayEventID,
+          zapRequestEventId,
+          zapEventId: zapEvent.id
+        });
+        
+        if (overlayEventID === zapRequestEventId) {
+          // Close the invoice overlay when the zap is detected
+          invoiceOverlay.style.display = "none";
+          const invoiceQR = document.getElementById("invoiceQR");
+          if (invoiceQR) {
+            invoiceQR.innerHTML = "";
+          }
+          console.log("Overlay closed for event:", postId);
+        }
+      }
+      
+      // Update the specific post with the new zap
+      setPosts(prevPosts => {
+        const newPosts = [...prevPosts];
+        const post = newPosts[postIndex];
+        if (!post) return newPosts;
+        
+        // Double-check for duplicates in the state update
+        const existingZapInState = post.zaps.find(zap => zap.id === zapEvent.id);
+        if (existingZapInState) {
+          console.log('Zap already exists in state, skipping:', zapEvent.id);
+          return newPosts;
+        }
+        
+        // Add the new zap to the post
+        const updatedPost: PubPayPost = {
+          ...post,
+          zaps: [...post.zaps, processedZap],
+          zapAmount: post.zapAmount + processedZap.zapAmount,
+          zapUsesCurrent: post.zapUsesCurrent + 1
+        };
+        
+        newPosts[postIndex] = updatedPost;
+        return newPosts;
+      });
+    }, {
+      oneose: () => {
+        console.log('Zap subscription EOS');
+      },
+      onclosed: () => {
+        console.log('Zap subscription closed');
+      }
+    });
+
+    return () => {
+      if (sub) {
+        sub.unsubscribe();
+      }
+    };
+  }, [posts.length]); // Re-subscribe when posts change
+
+  // Process a new zap event
+  const processNewZap = async (zapEvent: Kind9735Event): Promise<ProcessedZap | null> => {
+    try {
+      // Extract zap amount from bolt11 tag
+      const bolt11Tag = zapEvent.tags.find(tag => tag[0] === 'bolt11');
+      let zapAmount = 0;
+      if (bolt11Tag && (window as any).lightningPayReq) {
+        try {
+          const decoded = (window as any).lightningPayReq.decode(bolt11Tag[1]);
+          zapAmount = decoded.satoshis || 0;
+        } catch {
+          zapAmount = 0;
+        }
+      }
+
+      // Extract zap payer pubkey from description tag
+      const descriptionTag = zapEvent.tags.find(tag => tag[0] === 'description');
+      let zapPayerPubkey = '';
+      let isAnonymousZap = false;
+      
+      if (descriptionTag) {
+        try {
+          const zapData = JSON.parse(descriptionTag[1] || '{}');
+          zapPayerPubkey = zapData.pubkey || '';
+          isAnonymousZap = !zapData.pubkey;
+        } catch {
+          zapPayerPubkey = '';
+          isAnonymousZap = true;
+        }
+      } else {
+        isAnonymousZap = true;
+      }
+
+      // For anonymous zaps, use the zap event's pubkey instead
+      if (isAnonymousZap) {
+        zapPayerPubkey = zapEvent.pubkey;
+      }
+
+      // Get zap payer profile
+      let zapPayerProfile = null;
+      if (zapPayerPubkey) {
+        const profileEvents = await nostrClientRef.current!.getEvents([{
+          kinds: [0],
+          authors: [zapPayerPubkey]
+        }]) as Kind0Event[];
+        zapPayerProfile = profileEvents[0];
+      }
+
+      let zapPayerPicture = 'https://via.placeholder.com/40x40/4b90ff/ffffff?text=Z';
+      
+      if (zapPayerProfile) {
+        try {
+          const profileData = JSON.parse(zapPayerProfile.content);
+          zapPayerPicture = profileData.picture || 'https://via.placeholder.com/40x40/4b90ff/ffffff?text=Z';
+        } catch {
+          // If parsing fails, use default
+          zapPayerPicture = 'https://via.placeholder.com/40x40/4b90ff/ffffff?text=Z';
+        }
+      }
+
+      // Create npub for zap payer
+      const zapPayerNpub = zapPayerPubkey && window.NostrTools ?
+        window.NostrTools.nip19.npubEncode(zapPayerPubkey) : '';
+
+      return {
+        ...zapEvent,
+        zapAmount,
+        zapPayerPubkey,
+        zapPayerPicture,
+        zapPayerNpub
+      };
+    } catch (error) {
+      console.error('Error processing new zap:', error);
+      return null;
+    }
+  };
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -786,6 +1119,7 @@ export const useHomeFunctionality = () => {
     handleContinueWithNsec,
     handleLogout,
     handlePayWithExtension,
+    handlePayAnonymously,
     handlePayWithWallet,
     handleCopyInvoice,
     handlePostNote,

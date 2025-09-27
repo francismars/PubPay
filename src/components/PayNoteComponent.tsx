@@ -19,6 +19,7 @@ interface ProcessedZap {
 interface PayNoteComponentProps {
   post: PubPayPost;
   onPay: (post: PubPayPost, amount: number) => void;
+  onPayAnonymously: (post: PubPayPost, amount: number) => void;
   onShare: (post: PubPayPost) => void;
   onViewRaw: (post: PubPayPost) => void;
   isLoggedIn: boolean;
@@ -27,6 +28,7 @@ interface PayNoteComponentProps {
 export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
   post,
   onPay,
+  onPayAnonymously,
   onShare,
   onViewRaw,
   isLoggedIn
@@ -38,7 +40,29 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
   const [overflowZaps, setOverflowZaps] = useState<ProcessedZap[]>([]);
   const zapMenuRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const zapActionRef = useRef<HTMLAnchorElement>(null);
 
+  // Click outside to close zap menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        zapMenuRef.current &&
+        zapActionRef.current &&
+        !zapMenuRef.current.contains(event.target as Node) &&
+        !zapActionRef.current.contains(event.target as Node)
+      ) {
+        setShowZapMenu(false);
+      }
+    };
+
+    if (showZapMenu) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [showZapMenu]);
 
   const authorData = post.author ? JSON.parse(post.author.content) : null;
   const displayName = authorData?.display_name || authorData?.name || 'Anonymous';
@@ -147,14 +171,21 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
     }
   };
 
-  // Handle anonymous zap
+  // Handle anonymous zap from custom menu
   const handleAnonZap = () => {
     const amount = parseInt(customZapAmount);
     if (amount > 0) {
-      // This would be an anonymous zap
-      onPay(post, amount);
+      // Call anonymous zap handler
+      onPayAnonymously(post, amount);
       setShowZapMenu(false);
       setCustomZapAmount('');
+    }
+  };
+
+  // Handle anonymous pay from dropdown (uses current zap amount)
+  const handlePayAnonymously = () => {
+    if (isPayable) {
+      onPayAnonymously(post, zapAmount);
     }
   };
 
@@ -191,22 +222,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
     setOverflowZaps(overflowZapsList);
   }, [post.zaps, post.zapUsesCurrent, post.zapUses]);
 
-  // Close zap menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (zapMenuRef.current && !zapMenuRef.current.contains(event.target as Node)) {
-        setShowZapMenu(false);
-      }
-    };
-
-    if (showZapMenu) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showZapMenu]);
 
   // Close dropdowns when clicking outside (global handler)
   useEffect(() => {
@@ -437,6 +452,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
           <div className="noteActions">
             {/* Zap Menu */}
             <a 
+              ref={zapActionRef}
               className={isPayable ? "noteAction zapMenuAction" : "disabled"}
               onClick={(e) => {
                 e.preventDefault();
@@ -446,21 +462,42 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
               style={{ position: 'relative' }}
             >
               <span className="material-symbols-outlined">bolt</span>
-              {showZapMenu && (
-                <div className="zapMenu" ref={zapMenuRef}>
-                  <div className="zapMenuCustom">
-                    <input 
-                      type="number" 
-                      placeholder="sats" 
-                      min="1"
-                      value={customZapAmount}
-                      onChange={(e) => setCustomZapAmount(e.target.value)}
-                    />
-                    <button onClick={handleCustomZap}>Zap</button>
-                    <button onClick={handleAnonZap}>anonZap</button>
-                  </div>
+              <div 
+                className="zapMenu" 
+                style={{ display: showZapMenu ? 'block' : 'none' }} 
+                ref={zapMenuRef}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="zapMenuCustom">
+                  <input 
+                    type="number" 
+                    id="customZapInput"
+                    placeholder="sats" 
+                    min="1"
+                    value={customZapAmount}
+                    onChange={(e) => setCustomZapAmount(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <button 
+                    id="customZapButton" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCustomZap();
+                    }}
+                  >
+                    Zap
+                  </button>
+                  <button 
+                    id="customAnonZapButton" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAnonZap();
+                    }}
+                  >
+                    anonZap
+                  </button>
                 </div>
-              )}
+              </div>
             </a>
 
             {/* Share */}
@@ -494,7 +531,15 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
                 <a className="cta dropdown-element disabled">New Pay Forward</a>
                 
                 {isPayable && (
-                  <a className={`cta dropdown-element ${!isPayable ? 'disabled' : ''}`}>
+                  <a 
+                    className={`cta dropdown-element ${!isPayable ? 'disabled' : ''}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (isPayable) {
+                        handlePayAnonymously();
+                      }
+                    }}
+                  >
                     Pay Anonymously
                   </a>
                 )}

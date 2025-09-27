@@ -18,6 +18,8 @@ export const HomePage: React.FC = () => {
   const [externalSignerAvailable, setExternalSignerAvailable] = useState(true);
   const [externalSignerLoading, setExternalSignerLoading] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState<string>('');
+  const [currentInvoiceAmount, setCurrentInvoiceAmount] = useState<number>(0);
+  const [currentInvoiceEventId, setCurrentInvoiceEventId] = useState<string>('');
 
   const qrReaderRef = useRef<HTMLDivElement>(null);
 
@@ -38,6 +40,7 @@ export const HomePage: React.FC = () => {
     handleContinueWithNsec,
     handleLogout,
     handlePayWithExtension,
+    handlePayAnonymously,
     handlePayWithWallet,
     handleCopyInvoice,
     handlePostNote,
@@ -49,6 +52,54 @@ export const HomePage: React.FC = () => {
     document.getElementById('nsecInputGroup')!.style.display = 'none';
     document.getElementById('loginFormGroup')!.style.display = 'flex';
     setNsecInput('');
+  };
+
+  // Listen for payment UI events
+  useEffect(() => {
+    const handleShowPaymentUI = (event: CustomEvent) => {
+      const { bolt11, amount, eventId } = event.detail;
+      setCurrentInvoice(bolt11);
+      setCurrentInvoiceAmount(amount);
+      setCurrentInvoiceEventId(eventId);
+      setShowInvoiceOverlay(true);
+      
+      // Generate QR code
+      generateQRCode(bolt11);
+    };
+
+    window.addEventListener('showPaymentUI', handleShowPaymentUI as EventListener);
+    
+    return () => {
+      window.removeEventListener('showPaymentUI', handleShowPaymentUI as EventListener);
+    };
+  }, []);
+
+  // Generate QR code for Lightning invoice
+  const generateQRCode = (invoice: string) => {
+    if (!invoice) return;
+    
+    // Wait for the canvas to be available
+    setTimeout(() => {
+      const canvas = document.getElementById('invoiceQR') as HTMLCanvasElement;
+      if (!canvas) return;
+      
+      // Clear previous QR code
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      
+      // Generate QR code using QRious (loaded from CDN)
+      if (window.QRious) {
+        const qr = new window.QRious({
+          element: canvas,
+          value: invoice,
+          size: 256,
+          background: 'white',
+          foreground: 'black'
+        });
+      }
+    }, 100);
   };
 
   // Handler functions
@@ -78,7 +129,11 @@ export const HomePage: React.FC = () => {
 
   const handleViewRaw = (post: PubPayPost) => {
     setShowJSON(true);
-    // The JSON will be displayed in the overlay
+    // Populate the JSON viewer with the original event data (like the original showJSON function)
+    const noteJSONElement = document.getElementById('noteJSON');
+    if (noteJSONElement) {
+      noteJSONElement.textContent = JSON.stringify(post.event, null, 2);
+    }
   };
 
   const handleQRScannerOpen = () => {
@@ -563,6 +618,7 @@ export const HomePage: React.FC = () => {
                 key={post.id}
                 post={post}
                 onPay={handlePayWithExtension}
+                onPayAnonymously={handlePayAnonymously}
                 onShare={handleSharePost}
                 onViewRaw={handleViewRaw}
                 isLoggedIn={authState.isLoggedIn}
@@ -679,6 +735,7 @@ export const HomePage: React.FC = () => {
                 key={post.id}
                 post={post}
                 onPay={handlePayWithExtension}
+                onPayAnonymously={handlePayAnonymously}
                 onShare={handleSharePost}
                 onViewRaw={handleViewRaw}
                 isLoggedIn={authState.isLoggedIn}
@@ -834,16 +891,98 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* Invoice Overlay */}
-      <div className="overlayContainer" id="invoiceOverlay" style={{display: showInvoiceOverlay ? 'flex' : 'none'}}>
+      <div 
+        className="overlayContainer" 
+        id="invoiceOverlay" 
+        data-event-id={currentInvoiceEventId || ''}
+        style={{display: showInvoiceOverlay ? 'flex' : 'none'}}
+      >
         <div className="overlayInner">
           <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
           <p id="qrcodeTitle" className="label">Scan Invoice to Pay Zap</p>
+          {currentInvoiceAmount > 0 && (
+            <p className="label" style={{fontSize: '18px', fontWeight: 'bold', color: '#4a75ff'}}>
+              {currentInvoiceAmount.toLocaleString()} sats
+            </p>
+          )}
           <canvas id="invoiceQR"></canvas>
           <p id="qrcodeTitle" className="label">Otherwise:</p>
           <div className="formFieldGroup">
-            <button id="payWithExtension" className="cta" onClick={() => handlePayWithExtension({} as PubPayPost, 0)}>Pay with Extension</button>
-            <button id="payWithWallet" className="cta" onClick={() => handlePayWithWallet({} as PubPayPost, 0)}>Pay with Wallet</button>
-            <button id="copyInvoice" className="cta" onClick={() => handleCopyInvoice(currentInvoice)}>Copy Invoice</button>
+            <button 
+              id="payWithExtension" 
+              className="cta" 
+              onClick={() => {
+                // Try to pay with extension using stored invoice data
+                if (currentInvoice && currentInvoiceAmount > 0) {
+                  // This would trigger the extension to pay the invoice
+                  console.log('Paying with extension:', currentInvoice);
+                  // For now, just show a message
+                  alert('Extension payment not yet implemented. Please scan the QR code with your Lightning wallet.');
+                } else {
+                  alert('No invoice available to pay');
+                }
+              }}
+            >
+              Pay with Extension
+            </button>
+            <button 
+              id="payWithWallet" 
+              className="cta" 
+              onClick={() => {
+                // Open Lightning wallet with the invoice
+                if (currentInvoice) {
+                  try {
+                    window.location.href = `lightning:${currentInvoice}`;
+                  } catch (error) {
+                    console.error('Error opening wallet:', error);
+                  }
+                } else {
+                  console.error('No invoice available to pay');
+                }
+              }}
+            >
+              Pay with Wallet
+            </button>
+            <button 
+              id="copyInvoice" 
+              className="cta" 
+              onClick={async () => {
+                if (currentInvoice) {
+                  try {
+                    await navigator.clipboard.writeText(currentInvoice);
+                    // Change button text to "Copied!" for 1 second
+                    const button = document.getElementById('copyInvoice');
+                    if (button) {
+                      button.textContent = 'Copied!';
+                      setTimeout(() => {
+                        button.textContent = 'Copy Invoice';
+                      }, 1000);
+                    }
+                  } catch (err) {
+                    console.error('Failed to copy invoice:', err);
+                    // Fallback: select the text
+                    const textArea = document.createElement('textarea');
+                    textArea.value = currentInvoice;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    // Still show the "Copied!" feedback
+                    const button = document.getElementById('copyInvoice');
+                    if (button) {
+                      button.textContent = 'Copied!';
+                      setTimeout(() => {
+                        button.textContent = 'Copy Invoice';
+                      }, 1000);
+                    }
+                  }
+                } else {
+                  console.error('No invoice available to copy');
+                }
+              }}
+            >
+              Copy Invoice
+            </button>
           </div>
           <a id="closeInvoiceOverlay" href="#" className="label" onClick={() => setShowInvoiceOverlay(false)}>Close</a>
         </div>

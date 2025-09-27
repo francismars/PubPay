@@ -154,6 +154,27 @@ app.use('/jukebox', jukeboxRouter);
 - Integration Tests: feature workflows and service integration
 - E2E (Cypress): critical user journeys (payments, live display, jukebox)
 
+## Recent Fixes Applied
+
+- **Zap Menu Structure**: Fixed missing zap menu dropdown in `PayNoteComponent.tsx` to match original HTML structure with proper IDs and click-outside functionality.
+- **View Raw Functionality**: Fixed `handleViewRaw` in `HomePage.tsx` to properly populate the JSON viewer with the original event data (`post.event`) when "View Raw" is clicked, matching the original `showJSON(eventData)` behavior.
+- **Pay Anonymously Button**: Added missing `handlePayAnonymously` function and onClick handler for the "Pay Anonymously" button in the dropdown menu to use the current zap amount from the slider.
+- **Lightning Overlay Buttons**: Fixed "Pay with Extension", "Pay with Wallet", and "Copy Invoice" buttons in the Lightning payment overlay to match original behavior:
+  - **Copy Invoice**: Changes button text to "Copied!" for 1 second, then back to "Copy Invoice" (no alerts)
+  - **Pay with Wallet**: Uses `window.location.href = lightning:${invoice}` to open Lightning wallet
+  - **Pay with Extension**: Shows appropriate feedback for extension integration
+
+## Recent Major Implementation
+
+- **Complete Lightning Payment Flow**: Implemented full zap payment functionality:
+  1. ✅ Created `ZapService` with `getInvoiceCallBack`, `createZapEvent`, and `signZapEvent` methods
+  2. ✅ Updated `handlePayWithExtension` to use the new ZapService for complete payment flow
+  3. ✅ Added QR code generation and payment interface display
+  4. ✅ Integrated with existing Lightning address (LUD16) system
+  5. ✅ Added proper error handling and user feedback
+
+The main "Pay" button now works end-to-end: gets Lightning callback → creates zap event → signs with user's key → shows QR code for payment.
+
 ## Detailed To‑Do (Actionable)
 
 1) Styling migration
