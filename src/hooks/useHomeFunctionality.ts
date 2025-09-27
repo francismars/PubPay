@@ -38,6 +38,7 @@ interface AuthState {
   privateKey: string | null;
   signInMethod: 'extension' | 'externalSigner' | 'nsec' | null;
   userProfile: Kind0Event | null;
+  displayName: string | null;
 }
 
 export const useHomeFunctionality = () => {
@@ -51,7 +52,8 @@ export const useHomeFunctionality = () => {
     publicKey: null,
     privateKey: null,
     signInMethod: null,
-    userProfile: null
+    userProfile: null,
+    displayName: null
   });
 
   const nostrClientRef = useRef<NostrClient | null>(null);
@@ -136,7 +138,8 @@ export const useHomeFunctionality = () => {
             publicKey: result.publicKey,
             privateKey: null,
             signInMethod: 'externalSigner',
-            userProfile: null
+            userProfile: null,
+            displayName: null
           });
 
           await loadUserProfile(result.publicKey);
@@ -160,7 +163,8 @@ export const useHomeFunctionality = () => {
         publicKey,
         privateKey,
         signInMethod: method as 'extension' | 'nsec' | 'externalSigner',
-        userProfile: null
+        userProfile: null,
+        displayName: null
       });
 
       // Load user profile
@@ -185,9 +189,19 @@ export const useHomeFunctionality = () => {
 
       if (profileEvents && profileEvents.length > 0) {
         const profile = profileEvents[0];
+        let displayName = null;
+        
+        try {
+          const profileData = JSON.parse(profile?.content || '{}');
+          displayName = profileData.display_name || profileData.displayName || profileData.name || null;
+        } catch (error) {
+          console.error('Failed to parse profile data:', error);
+        }
+        
         setAuthState(prev => ({
           ...prev,
-          userProfile: profile || null
+          userProfile: profile || null,
+          displayName: displayName
         }));
       }
     } catch (err) {
@@ -524,7 +538,8 @@ export const useHomeFunctionality = () => {
           publicKey: result.publicKey,
           privateKey: result.privateKey || null,
           signInMethod: 'extension',
-          userProfile: null
+          userProfile: null,
+          displayName: null
         });
 
         await loadUserProfile(result.publicKey);
@@ -573,7 +588,8 @@ export const useHomeFunctionality = () => {
           publicKey: result.publicKey,
           privateKey: result.privateKey || null,
           signInMethod: 'nsec',
-          userProfile: null
+          userProfile: null,
+          displayName: null
         });
 
         await loadUserProfile(result.publicKey);
@@ -597,7 +613,8 @@ export const useHomeFunctionality = () => {
       publicKey: null,
       privateKey: null,
       signInMethod: null,
-      userProfile: null
+      userProfile: null,
+      displayName: null
     });
 
     setFollowingPosts([]);

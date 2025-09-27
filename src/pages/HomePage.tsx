@@ -876,12 +876,24 @@ export const HomePage: React.FC = () => {
           <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
           <p className="label">You are logged in as:</p>
           <p id="loggedInPublicKey">
-            {authState.publicKey ? 
-              (typeof window !== 'undefined' && (window as any).NostrTools ? 
-                (window as any).NostrTools.nip19.npubEncode(authState.publicKey) : 
-                authState.publicKey
-              ) : 'Unknown'
-            }
+            {authState.publicKey ? (
+              <a 
+                href={`https://next.nostrudel.ninja/#/u/${(typeof window !== 'undefined' && (window as any).NostrTools ? 
+                  (window as any).NostrTools.nip19.npubEncode(authState.publicKey) : 
+                  authState.publicKey
+                )}`}
+                className="userMention" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                {authState.displayName || 
+                 (typeof window !== 'undefined' && (window as any).NostrTools ? 
+                   (window as any).NostrTools.nip19.npubEncode(authState.publicKey) : 
+                   authState.publicKey
+                 )
+                }
+              </a>
+            ) : 'Unknown'}
           </p>
           <p className="label">Sign-in Method:</p>
           <span id="loggedInMethod">{authState.signInMethod || 'Unknown'}</span>
