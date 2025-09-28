@@ -358,7 +358,7 @@ export const useHomeFunctionality = () => {
 
     for (const event of kind1Events) {
       const author = profileEvents.find(p => p.pubkey === event.pubkey);
-      const zaps = zapEvents.filter(z => z.tags.some(tag => tag[0] === 'e' && tag[1] === event.id));
+      const zaps = zapEvents.filter(z => z.tags.some(tag => tag[0] === 'e' && tag[1] === event.id)).reverse();
 
       // Process zaps with proper data extraction
       const processedZaps = zaps.map(zap => {
@@ -401,15 +401,15 @@ export const useHomeFunctionality = () => {
         // Find zap payer's profile
         const zapPayerProfile = profileEvents.find(p => p.pubkey === zapPayerPubkey);
         
-        let zapPayerPicture = 'https://via.placeholder.com/40x40/4b90ff/ffffff?text=Z';
+        let zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
         
         if (zapPayerProfile) {
           try {
             const profileData = JSON.parse(zapPayerProfile.content);
-            zapPayerPicture = profileData.picture || 'https://via.placeholder.com/40x40/4b90ff/ffffff?text=Z';
+            zapPayerPicture = profileData.picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
           } catch {
             // If parsing fails, use default
-            zapPayerPicture = 'https://via.placeholder.com/40x40/4b90ff/ffffff?text=Z';
+            zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
           }
         }
 
@@ -1074,15 +1074,15 @@ export const useHomeFunctionality = () => {
         zapPayerProfile = profileEvents[0];
       }
 
-      let zapPayerPicture = 'https://via.placeholder.com/40x40/4b90ff/ffffff?text=Z';
+      let zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
       
       if (zapPayerProfile) {
         try {
           const profileData = JSON.parse(zapPayerProfile.content);
-          zapPayerPicture = profileData.picture || 'https://via.placeholder.com/40x40/4b90ff/ffffff?text=Z';
+          zapPayerPicture = profileData.picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
         } catch {
           // If parsing fails, use default
-          zapPayerPicture = 'https://via.placeholder.com/40x40/4b90ff/ffffff?text=Z';
+          zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
         }
       }
 
