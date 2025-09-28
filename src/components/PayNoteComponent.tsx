@@ -396,7 +396,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
                   target="_blank" 
                   rel="noopener noreferrer"
                 >
-                  <img className="userImg" src={zap.zapPayerPicture} alt="Zap Payer" />
+                  <img className="userImg" src={zap.zapPayerPicture} />
                 </a>
                 <a 
                   href={`https://next.nostrudel.ninja/#/n/${zap.id}`} 
@@ -434,7 +434,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
                     target="_blank" 
                     rel="noopener noreferrer"
                   >
-                    <img className="userImg" src={zap.zapPayerPicture} alt="Zap Payer" />
+                    <img className="userImg" src={zap.zapPayerPicture} />
                   </a>
                   <a 
                     href={`https://next.nostrudel.ninja/#/n/${zap.id}`} 
