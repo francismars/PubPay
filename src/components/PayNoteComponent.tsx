@@ -17,12 +17,13 @@ interface ProcessedZap {
 }
 
 interface PayNoteComponentProps {
-  post: PubPayPost;
+  post: PubPayPost & { replyLevel?: number };
   onPay: (post: PubPayPost, amount: number) => void;
   onPayAnonymously: (post: PubPayPost, amount: number) => void;
   onShare: (post: PubPayPost) => void;
   onViewRaw: (post: PubPayPost) => void;
   isLoggedIn: boolean;
+  isReply?: boolean;
 }
 
 export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
@@ -31,7 +32,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
   onPayAnonymously,
   onShare,
   onViewRaw,
-  isLoggedIn
+  isLoggedIn,
+  isReply = false
 }) => {
   const [zapAmount, setZapAmount] = useState(post.zapMin);
   const [showZapMenu, setShowZapMenu] = useState(false);
@@ -259,7 +261,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
   }, []);
 
   return (
-    <div className="paynote">
+    <div 
+      className={isReply ? "paynote reply" : "paynote"} 
+      style={isReply ? {marginLeft: `${(post.replyLevel || 0) * 15 + 15}px`} : undefined}
+    >
       <div className="noteProfileImg">
         <img
           className="userImg"
@@ -428,9 +433,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
         {/* Main CTA */}
         <div className="noteCTA">
           <button
-            className={`noteMainCTA cta ${!isPayable || !isLoggedIn ? 'disabled' : ''}`}
-            onClick={() => isPayable && onPay(post, zapAmount)}
-            disabled={!isPayable || !isLoggedIn}
+            className={`noteMainCTA cta ${(!isPayable || !isLoggedIn || isReply) ? 'disabled' : ''}`}
+            onClick={() => !isReply && isPayable && onPay(post, zapAmount)}
+            disabled={!isPayable || !isLoggedIn || isReply}
           >
             Pay
           </button>
