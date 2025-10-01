@@ -345,35 +345,41 @@ export const useHomeFunctionality = () => {
       // Combine all profiles
       const allProfiles = [...profileEvents, ...zapPayerProfiles];
 
-      // Process posts
-      const processedPosts = await processPosts(kind1Events, allProfiles, zapEvents);
+      // Process posts immediately with basic info (like legacy)
+      const basicPosts = await processPostsBasic(kind1Events, allProfiles);
 
       if (loadMore) {
         if (feed === 'following') {
           setFollowingPosts(prev => {
             // Filter out duplicates based on post ID
             const existingIds = new Set(prev.map(p => p.id));
-            const newPosts = processedPosts.filter(p => !existingIds.has(p.id));
-            console.log(`Adding ${newPosts.length} new posts (${processedPosts.length - newPosts.length} duplicates filtered)`);
+            const newPosts = basicPosts.filter(p => !existingIds.has(p.id));
+            console.log(`Adding ${newPosts.length} new posts (${basicPosts.length - newPosts.length} duplicates filtered)`);
             return [...prev, ...newPosts];
           });
         } else {
           setPosts(prev => {
             // Filter out duplicates based on post ID
             const existingIds = new Set(prev.map(p => p.id));
-            const newPosts = processedPosts.filter(p => !existingIds.has(p.id));
-            console.log(`Adding ${newPosts.length} new posts (${processedPosts.length - newPosts.length} duplicates filtered)`);
+            const newPosts = basicPosts.filter(p => !existingIds.has(p.id));
+            console.log(`Adding ${newPosts.length} new posts (${basicPosts.length - newPosts.length} duplicates filtered)`);
             return [...prev, ...newPosts];
           });
         }
         setIsLoadingMore(false);
       } else {
         if (feed === 'following') {
-          setFollowingPosts(processedPosts);
+          setFollowingPosts(basicPosts);
         } else {
-          setPosts(processedPosts);
+          setPosts(basicPosts);
         }
         setIsLoading(false);
+      }
+
+      // Load zaps separately and update posts (like legacy)
+      if (zapEvents.length > 0) {
+        console.log('Loading zaps separately...');
+        await loadZapsForPosts(kind1Events, zapEvents, feed);
       }
 
     } catch (err) {
@@ -381,6 +387,178 @@ export const useHomeFunctionality = () => {
       console.error('Failed to load posts:', err instanceof Error ? err.message : 'Failed to load posts');
       setIsLoading(false);
       setIsLoadingMore(false);
+    }
+  };
+
+  // Process posts with basic info only (like legacy drawKind1)
+  const processPostsBasic = async (kind1Events: Kind1Event[], profileEvents: Kind0Event[]): Promise<PubPayPost[]> => {
+    const posts: PubPayPost[] = [];
+
+    for (const event of kind1Events) {
+      const author = profileEvents.find(p => p.pubkey === event.pubkey);
+      
+      // Basic post info (no zaps yet)
+      const post: PubPayPost = {
+        id: event.id,
+        event: event,
+        author: author || {
+          kind: 0,
+          id: '',
+          pubkey: event.pubkey,
+          content: '{}',
+          created_at: 0,
+          sig: '',
+          tags: []
+        },
+        createdAt: event.created_at,
+        zapMin: 0,
+        zapMax: 0,
+        zapUses: 0,
+        zapAmount: 0,
+        zaps: [],
+        zapUsesCurrent: 0,
+        isPayable: true
+      };
+
+      // Extract zap min/max from tags
+      const zapMinTag = event.tags.find(tag => tag[0] === 'zap-min');
+      const zapMaxTag = event.tags.find(tag => tag[0] === 'zap-max');
+      const zapUsesTag = event.tags.find(tag => tag[0] === 'zap-uses');
+      
+      if (zapMinTag && zapMinTag[1]) {
+        post.zapMin = parseInt(zapMinTag[1]) / 1000 || 0;
+      }
+      if (zapMaxTag && zapMaxTag[1]) {
+        post.zapMax = parseInt(zapMaxTag[1]) / 1000 || 0;
+      }
+      if (zapUsesTag && zapUsesTag[1]) {
+        post.zapUses = parseInt(zapUsesTag[1]) || 0;
+      }
+
+      posts.push(post);
+    }
+
+    return posts;
+  };
+
+  // Load zaps separately and update posts (like legacy subscribeKind9735)
+  const loadZapsForPosts = async (kind1Events: Kind1Event[], zapEvents: Kind9735Event[], feed: 'global' | 'following') => {
+    const eventIds = kind1Events.map(event => event.id);
+    const relevantZaps = zapEvents.filter(zap => 
+      zap.tags.some(tag => tag[0] === 'e' && tag[1] && eventIds.includes(tag[1]))
+    );
+
+    if (relevantZaps.length === 0) return;
+
+    // Load zap payer profiles
+    const zapPayerPubkeys = new Set<string>();
+    relevantZaps.forEach(zap => {
+      const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
+      let hasPubkeyInDescription = false;
+      
+      if (descriptionTag) {
+        try {
+          const zapData = JSON.parse(descriptionTag[1] || '{}');
+          if (zapData.pubkey) {
+            zapPayerPubkeys.add(zapData.pubkey);
+            hasPubkeyInDescription = true;
+          }
+        } catch {
+          // Handle parsing error
+        }
+      }
+      
+      // For anonymous zaps (no pubkey in description), use the zap event's pubkey
+      if (!hasPubkeyInDescription) {
+        zapPayerPubkeys.add(zap.pubkey);
+      }
+    });
+
+    // Load zap payer profiles
+    const zapPayerProfiles = zapPayerPubkeys.size > 0 ?
+      await nostrClientRef.current?.getEvents([{
+        kinds: [0],
+        authors: Array.from(zapPayerPubkeys)
+      }]) as Kind0Event[] : [];
+
+    // Update posts with zap data
+    const updatePostsWithZaps = (currentPosts: PubPayPost[]) => {
+      return currentPosts.map(post => {
+        const postZaps = relevantZaps.filter(zap => 
+          zap.tags.some(tag => tag[0] === 'e' && tag[1] === post.id)
+        ).reverse();
+
+        if (postZaps.length === 0) return post;
+
+        // Process zaps for this post
+        const processedZaps: ProcessedZap[] = postZaps.map(zap => {
+          const bolt11Tag = zap.tags.find(tag => tag[0] === 'bolt11');
+          let zapAmount = 0;
+          if (bolt11Tag && window.lightningPayReq) {
+            try {
+              const decoded = window.lightningPayReq.decode(bolt11Tag[1] || '');
+              zapAmount = decoded.satoshis || 0;
+            } catch {
+              zapAmount = 0;
+            }
+          }
+
+          const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
+          let zapPayerPubkey = zap.pubkey;
+          let isAnonymousZap = false;
+
+          if (descriptionTag) {
+            try {
+              const zapData = JSON.parse(descriptionTag[1] || '{}');
+              if (zapData.pubkey) {
+                zapPayerPubkey = zapData.pubkey;
+              } else {
+                isAnonymousZap = true;
+              }
+            } catch {
+              isAnonymousZap = true;
+            }
+          } else {
+            isAnonymousZap = true;
+          }
+
+          const zapPayerProfile = zapPayerProfiles.find(p => p.pubkey === zapPayerPubkey);
+          const zapPayerPicture = zapPayerProfile ? 
+            JSON.parse(zapPayerProfile.content || '{}').picture || 
+            'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg' :
+            'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+
+          // Generate npub for the zap payer
+          const zapPayerNpub = window.NostrTools ? 
+            window.NostrTools.nip19.npubEncode(zapPayerPubkey) : 
+            zapPayerPubkey;
+
+          return {
+            ...zap,
+            zapAmount,
+            zapPayerPubkey,
+            zapPayerPicture,
+            zapPayerNpub
+          };
+        });
+
+        const totalZapAmount = processedZaps.reduce((sum, zap) => sum + zap.zapAmount, 0);
+        const zapUsesCurrent = processedZaps.length;
+
+        return {
+          ...post,
+          zaps: processedZaps,
+          zapAmount: totalZapAmount,
+          zapUsesCurrent // Only update current count, not the target from note tag
+        };
+      });
+    };
+
+    // Update the appropriate posts array
+    if (feed === 'following') {
+      setFollowingPosts(prev => updatePostsWithZaps(prev));
+    } else {
+      setPosts(prev => updatePostsWithZaps(prev));
     }
   };
 
