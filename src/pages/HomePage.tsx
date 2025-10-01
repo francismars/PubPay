@@ -741,25 +741,19 @@ export const HomePage: React.FC = () => {
             </div>
           )}
 
-          {/* Render replies when in single note mode */}
-          {singleNoteMode && replies.length > 0 && (
-            <div className="replies">
-              <h3 style={{margin: '20px 0 10px 0', color: '#666'}}>Replies</h3>
-              {replies.map((reply) => (
-                <div key={reply.id} className="paynote reply">
-                  <PayNoteComponent
-                    key={reply.id}
-                    post={reply}
-                    onPay={handlePayWithExtension}
-                    onPayAnonymously={handlePayAnonymously}
-                    onShare={handleSharePost}
-                    onViewRaw={handleViewRaw}
-                    isLoggedIn={authState.isLoggedIn}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Render replies when in single note mode (match legacy wrapper and disabled Pay) */}
+          {singleNoteMode && replies.map((reply) => (
+            <PayNoteComponent
+              key={reply.id}
+              post={reply}
+              onPay={handlePayWithExtension}
+              onPayAnonymously={handlePayAnonymously}
+              onShare={handleSharePost}
+              onViewRaw={handleViewRaw}
+              isLoggedIn={authState.isLoggedIn}
+              isReply={true}
+            />
+          ))}
         </div>
         
         <div id="following" style={{display: activeFeed === 'following' ? 'block' : 'none'}}>

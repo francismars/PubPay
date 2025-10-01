@@ -1053,6 +1053,31 @@ export const useHomeFunctionality = () => {
     }
   };
 
+  // Calculate reply levels for proper indentation (matches legacy behavior)
+  const calculateReplyLevels = (replies: PubPayPost[]): (PubPayPost & { replyLevel: number })[] => {
+    const repliesWithLevels: (PubPayPost & { replyLevel: number })[] = [];
+    const replyMap = new Map<string, number>(); // eventId -> level
+    
+    for (const reply of replies) {
+      let level = 0;
+      
+      // Find the reply tag to get the parent event ID
+      const replyTag = reply.event.tags.find(tag => tag[0] === 'e' && tag[3] === 'reply');
+      if (replyTag && replyTag[1]) {
+        const parentEventId = replyTag[1];
+        const parentLevel = replyMap.get(parentEventId);
+        if (parentLevel !== undefined) {
+          level = parentLevel + 1;
+        }
+      }
+      
+      replyMap.set(reply.id, level);
+      repliesWithLevels.push({ ...reply, replyLevel: level });
+    }
+    
+    return repliesWithLevels;
+  };
+
   // Load replies to a specific note
   const loadReplies = async (parentEventId: string) => {
     if (!nostrClientRef.current) return;
@@ -1127,7 +1152,12 @@ export const useHomeFunctionality = () => {
       const processedReplies = await processPosts(replyEvents, allProfiles, zapEvents);
       
       // Sort replies by creation time (oldest first, like the original)
-      setReplies(processedReplies.sort((a, b) => a.createdAt - b.createdAt));
+      const sortedReplies = processedReplies.sort((a, b) => a.createdAt - b.createdAt);
+      
+      // Calculate reply levels for proper indentation
+      const repliesWithLevels = calculateReplyLevels(sortedReplies);
+      
+      setReplies(repliesWithLevels);
     } catch (err) {
       console.error('Failed to load replies:', err);
     }
