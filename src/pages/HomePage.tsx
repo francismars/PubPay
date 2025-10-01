@@ -287,38 +287,56 @@ export const HomePage: React.FC = () => {
     }
   }, []);
 
-  // Infinite scroll handler (like the original)
+  // Infinite scroll handler with debouncing to prevent duplicate loads
   useEffect(() => {
-    const handleScroll = async () => {
-      const scrollPosition = window.innerHeight + window.scrollY;
-      const documentHeight = document.body.offsetHeight;
-      const threshold = documentHeight - 100;
-      
-      console.log('Scroll check:', {
-        scrollPosition,
-        documentHeight,
-        threshold,
-        isLoadingMore,
-        singleNoteMode,
-        postsCount: posts.length
-      });
-      
-      if (
-        scrollPosition >= threshold &&
-        !isLoadingMore &&
-        !singleNoteMode // Don't load more in single note mode
-      ) {
-        console.log('🚀 Scroll detected, loading more posts...');
-        loadMorePosts();
+    let timeoutId: NodeJS.Timeout;
+    let isLoading = false; // Local flag to prevent race conditions
+    
+    const handleScroll = () => {
+      // Clear previous timeout
+      if (timeoutId) {
+        clearTimeout(timeoutId);
       }
+      
+      // Debounce scroll events
+      timeoutId = setTimeout(() => {
+        // Check if already loading to prevent race conditions
+        if (isLoading || isLoadingMore || singleNoteMode) {
+          return;
+        }
+        
+        const scrollPosition = window.innerHeight + window.scrollY;
+        const documentHeight = document.body.offsetHeight;
+        const threshold = documentHeight - 100;
+        
+        console.log('Scroll check:', {
+          scrollPosition,
+          documentHeight,
+          threshold,
+          isLoadingMore,
+          singleNoteMode,
+          postsCount: posts.length
+        });
+        
+        if (scrollPosition >= threshold) {
+          console.log('🚀 Scroll detected, loading more posts...');
+          isLoading = true; // Set local flag
+          loadMorePosts().finally(() => {
+            isLoading = false; // Reset flag when done
+          });
+        }
+      }, 150); // 150ms debounce
     };
 
     window.addEventListener('scroll', handleScroll);
     
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
-  }, [isLoadingMore, singleNoteMode, loadMorePosts, posts.length]);
+  }, [isLoadingMore, singleNoteMode, posts.length]); // Removed loadMorePosts from deps
 
   // Handle return from external signer
   useEffect(() => {

@@ -350,9 +350,21 @@ export const useHomeFunctionality = () => {
 
       if (loadMore) {
         if (feed === 'following') {
-          setFollowingPosts(prev => [...prev, ...processedPosts]);
+          setFollowingPosts(prev => {
+            // Filter out duplicates based on post ID
+            const existingIds = new Set(prev.map(p => p.id));
+            const newPosts = processedPosts.filter(p => !existingIds.has(p.id));
+            console.log(`Adding ${newPosts.length} new posts (${processedPosts.length - newPosts.length} duplicates filtered)`);
+            return [...prev, ...newPosts];
+          });
         } else {
-          setPosts(prev => [...prev, ...processedPosts]);
+          setPosts(prev => {
+            // Filter out duplicates based on post ID
+            const existingIds = new Set(prev.map(p => p.id));
+            const newPosts = processedPosts.filter(p => !existingIds.has(p.id));
+            console.log(`Adding ${newPosts.length} new posts (${processedPosts.length - newPosts.length} duplicates filtered)`);
+            return [...prev, ...newPosts];
+          });
         }
         setIsLoadingMore(false);
       } else {
@@ -930,7 +942,7 @@ export const useHomeFunctionality = () => {
     }
   };
 
-  const loadMorePosts = () => {
+  const loadMorePosts = async () => {
     if (isLoadingMore) {
       console.log('Already loading more posts, skipping...');
       return;
@@ -944,7 +956,7 @@ export const useHomeFunctionality = () => {
     }
 
     console.log('Loading more posts...');
-    loadPosts(activeFeed, true);
+    return loadPosts(activeFeed, true);
   };
 
   // Load single note and its replies
