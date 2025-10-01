@@ -317,7 +317,21 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
             </div>
           </div>
 
-          <div className="noteDate label">
+          <div 
+            className="noteDate label"
+            onClick={() => {
+              console.log('noteDate clicked for post:', post.id);
+              // Navigate to single note view using NIP-19 encoding
+              if (typeof window !== 'undefined' && (window as any).NostrTools) {
+                const nevent = (window as any).NostrTools.nip19.noteEncode(post.id);
+                console.log('Navigating to single note:', nevent);
+                window.location.href = `/?note=${nevent}`;
+              } else {
+                console.error('NostrTools not available');
+              }
+            }}
+            style={{ cursor: 'pointer' }}
+          >
             {timeAgo(post.createdAt)}
           </div>
         </div>

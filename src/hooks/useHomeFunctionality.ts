@@ -46,6 +46,7 @@ export const useHomeFunctionality = () => {
   const [activeFeed, setActiveFeed] = useState<'global' | 'following'>('global');
   const [posts, setPosts] = useState<PubPayPost[]>([]);
   const [followingPosts, setFollowingPosts] = useState<PubPayPost[]>([]);
+  const [replies, setReplies] = useState<PubPayPost[]>([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [authState, setAuthState] = useState<AuthState>({
     isLoggedIn: false,
@@ -97,9 +98,19 @@ export const useHomeFunctionality = () => {
     initializeServices();
   }, []);
 
-  // Load initial posts
+  // Load initial posts (only if not in single note mode)
   useEffect(() => {
     const loadInitialPosts = () => {
+      // Check if we're in single note mode first
+      const queryParams = new URLSearchParams(window.location.search);
+      const queryNote = queryParams.get("note");
+      
+      if (queryNote) {
+        // Don't load global posts if we're in single note mode
+        console.log('Single note mode detected, skipping global feed load');
+        return;
+      }
+
       if (nostrClientRef.current && typeof window !== 'undefined' && window.NostrTools) {
         // Add a small delay to ensure everything is ready
         setTimeout(() => {
@@ -109,7 +120,12 @@ export const useHomeFunctionality = () => {
         // Retry loading posts when client becomes available
         const retryInterval = setInterval(() => {
           if (nostrClientRef.current && typeof window !== 'undefined' && window.NostrTools) {
-            loadPosts('global');
+            // Check again for single note mode before loading
+            const queryParams = new URLSearchParams(window.location.search);
+            const queryNote = queryParams.get("note");
+            if (!queryNote) {
+              loadPosts('global');
+            }
             clearInterval(retryInterval);
           }
         }, 1000);
@@ -119,7 +135,10 @@ export const useHomeFunctionality = () => {
       }
     };
 
-    loadInitialPosts();
+    // Add a small delay to ensure HomePage has a chance to set single note mode
+    setTimeout(() => {
+      loadInitialPosts();
+    }, 100);
   }, []);
 
   // Check authentication status
@@ -912,8 +931,205 @@ export const useHomeFunctionality = () => {
   };
 
   const loadMorePosts = () => {
-    if (!isLoadingMore) {
-      loadPosts(activeFeed, true);
+    if (isLoadingMore) {
+      console.log('Already loading more posts, skipping...');
+      return;
+    }
+
+    // Check if we have enough posts to load more (like the original)
+    const currentPosts = activeFeed === 'following' ? followingPosts : posts;
+    if (currentPosts.length < 21) {
+      console.log('Not enough posts to load more, skipping...');
+      return;
+    }
+
+    console.log('Loading more posts...');
+    loadPosts(activeFeed, true);
+  };
+
+  // Load single note and its replies
+  const loadSingleNote = async (eventId: string) => {
+    if (!nostrClientRef.current) {
+      console.warn('NostrClient not available yet');
+      return;
+    }
+
+    // Check if NostrTools is available
+    if (typeof window === 'undefined' || !window.NostrTools) {
+      console.warn('NostrTools not available yet');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // Clear existing posts when loading single note
+      setPosts([]);
+      setReplies([]);
+
+      // Load the specific note
+      const filter: NostrFilter = {
+        kinds: [1],
+        ids: [eventId]
+      };
+
+      const cleanFilter = JSON.parse(JSON.stringify(filter));
+      const kind1Events = await nostrClientRef.current.getEvents([cleanFilter]) as Kind1Event[];
+
+      if (!kind1Events || kind1Events.length === 0) {
+        console.log('Note not found');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Found single note:', kind1Events[0]);
+
+      // Get author profile
+      const authorPubkey = kind1Events[0]?.pubkey;
+      if (!authorPubkey) {
+        console.error('No author pubkey found');
+        setIsLoading(false);
+        return;
+      }
+      const profileEvents = await nostrClientRef.current.getEvents([{
+        kinds: [0],
+        authors: [authorPubkey]
+      }]) as Kind0Event[];
+
+      // Load zaps for this event
+      const zapEvents = await nostrClientRef.current.getEvents([{
+        kinds: [9735],
+        '#e': [eventId]
+      }]) as Kind9735Event[];
+
+      // Extract zap payer pubkeys and load their profiles
+      const zapPayerPubkeys = new Set<string>();
+      zapEvents.forEach(zap => {
+        const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
+        let hasPubkeyInDescription = false;
+        
+        if (descriptionTag) {
+          try {
+            const zapData = JSON.parse(descriptionTag[1] || '{}');
+            if (zapData.pubkey) {
+              zapPayerPubkeys.add(zapData.pubkey);
+              hasPubkeyInDescription = true;
+            }
+          } catch {
+            // Handle parsing error
+          }
+        }
+        
+        // For anonymous zaps (no pubkey in description), use the zap event's pubkey
+        if (!hasPubkeyInDescription) {
+          zapPayerPubkeys.add(zap.pubkey);
+        }
+      });
+
+      // Load zap payer profiles
+      const zapPayerProfiles = zapPayerPubkeys.size > 0 ?
+        await nostrClientRef.current.getEvents([{
+          kinds: [0],
+          authors: Array.from(zapPayerPubkeys)
+        }]) as Kind0Event[] : [];
+
+      // Combine all profiles
+      const allProfiles = [...profileEvents, ...zapPayerProfiles];
+
+      // Process the single note
+      const processedPosts = await processPosts(kind1Events, allProfiles, zapEvents);
+      
+      if (processedPosts.length > 0) {
+        setPosts(processedPosts);
+      }
+
+      // Load replies to this note
+      await loadReplies(eventId);
+
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Failed to load single note:', err);
+      setIsLoading(false);
+    }
+  };
+
+  // Load replies to a specific note
+  const loadReplies = async (parentEventId: string) => {
+    if (!nostrClientRef.current) return;
+
+    try {
+      const replyFilter: NostrFilter = {
+        kinds: [1],
+        '#e': [parentEventId]
+      };
+
+      const cleanFilter = JSON.parse(JSON.stringify(replyFilter));
+      const replyEvents = await nostrClientRef.current.getEvents([cleanFilter]) as Kind1Event[];
+
+      if (!replyEvents || replyEvents.length === 0) {
+        setReplies([]);
+        return;
+      }
+
+      console.log('Found replies:', replyEvents.length);
+
+      // Get author pubkeys for replies
+      const authorPubkeys = [...new Set(replyEvents.map(event => event.pubkey))];
+
+      // Load profiles for reply authors
+      const profileEvents = await nostrClientRef.current.getEvents([{
+        kinds: [0],
+        authors: authorPubkeys
+      }]) as Kind0Event[];
+
+      // Load zaps for reply events
+      const eventIds = replyEvents.map(event => event.id);
+      const zapEvents = await nostrClientRef.current.getEvents([{
+        kinds: [9735],
+        '#e': eventIds
+      }]) as Kind9735Event[];
+
+      // Extract zap payer pubkeys and load their profiles
+      const zapPayerPubkeys = new Set<string>();
+      zapEvents.forEach(zap => {
+        const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
+        let hasPubkeyInDescription = false;
+        
+        if (descriptionTag) {
+          try {
+            const zapData = JSON.parse(descriptionTag[1] || '{}');
+            if (zapData.pubkey) {
+              zapPayerPubkeys.add(zapData.pubkey);
+              hasPubkeyInDescription = true;
+            }
+          } catch {
+            // Handle parsing error
+          }
+        }
+        
+        // For anonymous zaps (no pubkey in description), use the zap event's pubkey
+        if (!hasPubkeyInDescription) {
+          zapPayerPubkeys.add(zap.pubkey);
+        }
+      });
+
+      // Load zap payer profiles
+      const zapPayerProfiles = zapPayerPubkeys.size > 0 ?
+        await nostrClientRef.current.getEvents([{
+          kinds: [0],
+          authors: Array.from(zapPayerPubkeys)
+        }]) as Kind0Event[] : [];
+
+      // Combine all profiles
+      const allProfiles = [...profileEvents, ...zapPayerProfiles];
+
+      // Process replies
+      const processedReplies = await processPosts(replyEvents, allProfiles, zapEvents);
+      
+      // Sort replies by creation time (oldest first, like the original)
+      setReplies(processedReplies.sort((a, b) => a.createdAt - b.createdAt));
+    } catch (err) {
+      console.error('Failed to load replies:', err);
     }
   };
 
@@ -1124,6 +1340,7 @@ export const useHomeFunctionality = () => {
     activeFeed,
     posts,
     followingPosts,
+    replies,
     isLoadingMore,
     authState,
     handleFeedChange,
@@ -1140,6 +1357,8 @@ export const useHomeFunctionality = () => {
     handlePayWithWallet,
     handleCopyInvoice,
     handlePostNote,
-    loadMorePosts
+    loadMorePosts,
+    loadSingleNote,
+    loadReplies
   };
 };
