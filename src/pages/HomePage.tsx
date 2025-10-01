@@ -20,6 +20,8 @@ export const HomePage: React.FC = () => {
   const [currentInvoice, setCurrentInvoice] = useState<string>('');
   const [currentInvoiceAmount, setCurrentInvoiceAmount] = useState<number>(0);
   const [currentInvoiceEventId, setCurrentInvoiceEventId] = useState<string>('');
+  const [singleNoteMode, setSingleNoteMode] = useState(false);
+  const [singleNoteId, setSingleNoteId] = useState<string>('');
 
   const qrReaderRef = useRef<HTMLDivElement>(null);
 
@@ -28,6 +30,7 @@ export const HomePage: React.FC = () => {
     activeFeed,
     posts,
     followingPosts,
+    replies,
     isLoadingMore,
     authState,
     handleFeedChange,
@@ -44,7 +47,9 @@ export const HomePage: React.FC = () => {
     handlePayWithWallet,
     handleCopyInvoice,
     handlePostNote,
-    loadMorePosts
+    loadMorePosts,
+    loadSingleNote,
+    loadReplies
   } = useHomeFunctionality();
 
   // Reset login form to main state
@@ -231,6 +236,90 @@ export const HomePage: React.FC = () => {
     setExternalSignerAvailable(true);
   }, []);
 
+  // Check for single note URL parameter on load
+  useEffect(() => {
+    const checkForSingleNote = () => {
+      const queryParams = new URLSearchParams(window.location.search);
+      const queryNote = queryParams.get("note");
+      
+      if (queryNote) {
+        try {
+          // Decode the note parameter
+          const decoded = (window as any).NostrTools.nip19.decode(queryNote);
+          if (decoded.type !== "note") {
+            console.error("Invalid type.");
+            return;
+          }
+          if (!/^[0-9a-f]{64}$/.test(decoded.data)) {
+            console.error("Invalid event ID format.");
+            return;
+          }
+          
+          // Set single note mode immediately to prevent other loading
+          setSingleNoteMode(true);
+          setSingleNoteId(decoded.data);
+          
+          // Load the single note
+          loadSingleNote(decoded.data);
+        } catch (error) {
+          console.error("Failed to decode note parameter:", error);
+        }
+      }
+    };
+
+    // Check immediately on mount
+    checkForSingleNote();
+
+    // Wait for NostrTools to be available if not already
+    if (typeof window !== 'undefined' && (window as any).NostrTools) {
+      // Already checked above
+    } else {
+      // Retry when NostrTools becomes available
+      const retryInterval = setInterval(() => {
+        if (typeof window !== 'undefined' && (window as any).NostrTools) {
+          checkForSingleNote();
+          clearInterval(retryInterval);
+        }
+      }, 1000);
+
+      // Cleanup interval after 30 seconds
+      setTimeout(() => clearInterval(retryInterval), 30000);
+    }
+  }, []);
+
+  // Infinite scroll handler (like the original)
+  useEffect(() => {
+    const handleScroll = async () => {
+      const scrollPosition = window.innerHeight + window.scrollY;
+      const documentHeight = document.body.offsetHeight;
+      const threshold = documentHeight - 100;
+      
+      console.log('Scroll check:', {
+        scrollPosition,
+        documentHeight,
+        threshold,
+        isLoadingMore,
+        singleNoteMode,
+        postsCount: posts.length
+      });
+      
+      if (
+        scrollPosition >= threshold &&
+        !isLoadingMore &&
+        !singleNoteMode // Don't load more in single note mode
+      ) {
+        console.log('🚀 Scroll detected, loading more posts...');
+        loadMorePosts();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isLoadingMore, singleNoteMode, loadMorePosts, posts.length]);
+
   // Handle return from external signer
   useEffect(() => {
     const handleVisibilityChange = async () => {
@@ -384,7 +473,7 @@ export const HomePage: React.FC = () => {
       </div>
 
       <div id="container">
-        <div id="feedSelector">
+        <div id="feedSelector" style={singleNoteMode ? {display: 'none'} : undefined}>
           <a href="#" id="feedGlobal" className={`feedSelectorLink ${activeFeed === 'global' ? 'active' : ''}`} onClick={() => handleFeedChange('global')}>
             Global
           </a>
@@ -396,10 +485,11 @@ export const HomePage: React.FC = () => {
           </a>
         </div>
 
-        <div id="main" style={{display: activeFeed === 'global' ? 'block' : 'none'}}>
+        <div id="main" style={{display: activeFeed === 'global' || singleNoteMode ? 'block' : 'none'}}>
           {isLoading && posts.length === 0 ? (
             // Show dummy posts while loading
             <>
+              {/* First dummy post - always show */}
               <div className="paynote blink">
                 <div className="noteProfileImg">
                   <img
@@ -469,144 +559,149 @@ export const HomePage: React.FC = () => {
                   </div>
                 </div>
               </div>
-              <div className="paynote blink">
-                <div className="noteProfileImg">
-                  <img
-                    className="userImg"
-                    src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"
-                    alt="Profile"
-                  />
-                </div>
-                <div className="noteData">
-                  <div className="noteHeader">
-                    <div className="noteAuthor">
-                      <div className="noteDisplayName">
-                        <a href="#" className="noteAuthorLink disabled" target="_blank">Loading...</a>
+              {/* Close conditional rendering for normal mode dummy posts */}
+              {!singleNoteMode && (
+                <>
+                  <div className="paynote blink">
+                    <div className="noteProfileImg">
+                      <img
+                        className="userImg"
+                        src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"
+                        alt="Profile"
+                      />
+                    </div>
+                    <div className="noteData">
+                      <div className="noteHeader">
+                        <div className="noteAuthor">
+                          <div className="noteDisplayName">
+                            <a href="#" className="noteAuthorLink disabled" target="_blank">Loading...</a>
+                          </div>
+                          <div className="noteNIP05 label">
+                            <a href="#" target="_blank">
+                              <span className="material-symbols-outlined">check_circle</span>
+                              loading@example.com
+                            </a>
+                          </div>
+                          <div className="noteLNAddress label">
+                            <a href="#" target="_blank">
+                              <span className="material-symbols-outlined">bolt</span>
+                              loading@example.com
+                            </a>
+                          </div>
+                        </div>
+                        <div className="noteDate label">Loading...</div>
                       </div>
-                      <div className="noteNIP05 label">
-                        <a href="#" target="_blank">
-                          <span className="material-symbols-outlined">check_circle</span>
-                          loading@example.com
-                        </a>
+                      <div className="noteContent disabled">Loading posts...</div>
+                      <div className="noteValues">
+                        <div className="zapMin">
+                          <span className="zapMinVal disabled">Loading...</span>
+                          <span className="label">sats<br />Min</span>
+                        </div>
+                        <div className="zapMax">
+                          <span className="zapMaxVal disabled">Loading...</span>
+                          <span className="label">sats<br />Max</span>
+                        </div>
+                        <div className="zapUses">
+                          <span className="zapUsesCurrent disabled">0</span>
+                          <span className="label">of</span>
+                          <span className="zapUsesTotal disabled">5</span>
+                        </div>
                       </div>
-                      <div className="noteLNAddress label">
-                        <a href="#" target="_blank">
-                          <span className="material-symbols-outlined">bolt</span>
-                          loading@example.com
-                        </a>
+                      <div className="noteCTA">
+                        <button className="noteMainCTA cta disabled">Pay</button>
                       </div>
-                    </div>
-                    <div className="noteDate label">Loading...</div>
-                  </div>
-                  <div className="noteContent disabled">Loading posts...</div>
-                  <div className="noteValues">
-                    <div className="zapMin">
-                      <span className="zapMinVal disabled">Loading...</span>
-                      <span className="label">sats<br />Min</span>
-                    </div>
-                    <div className="zapMax">
-                      <span className="zapMaxVal disabled">Loading...</span>
-                      <span className="label">sats<br />Max</span>
-                    </div>
-                    <div className="zapUses">
-                      <span className="zapUsesCurrent disabled">0</span>
-                      <span className="label">of</span>
-                      <span className="zapUsesTotal disabled">5</span>
-                    </div>
-                  </div>
-                  <div className="noteCTA">
-                    <button className="noteMainCTA cta disabled">Pay</button>
-                  </div>
-                  <div className="noteActionsReactions">
-                    <div className="noteZaps noteZapReactions"></div>
-                    <div className="noteActions">
-                      <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">bolt</span>
-                      </a>
-                      <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">favorite</span>
-                      </a>
-                      <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">ios_share</span>
-                      </a>
-                      <div className="noteAction dropdown">
-                        <button className="dropbtn">
-                          <span className="material-symbols-outlined disabled">more_horiz</span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="paynote blink">
-                <div className="noteProfileImg">
-                  <img
-                    className="userImg"
-                    src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"
-                    alt="Profile"
-                  />
-                </div>
-                <div className="noteData">
-                  <div className="noteHeader">
-                    <div className="noteAuthor">
-                      <div className="noteDisplayName">
-                        <a href="#" className="noteAuthorLink disabled" target="_blank">Loading...</a>
-                      </div>
-                      <div className="noteNIP05 label">
-                        <a href="#" target="_blank">
-                          <span className="material-symbols-outlined">check_circle</span>
-                          loading@example.com
-                        </a>
-                      </div>
-                      <div className="noteLNAddress label">
-                        <a href="#" target="_blank">
-                          <span className="material-symbols-outlined">bolt</span>
-                          loading@example.com
-                        </a>
-                      </div>
-                    </div>
-                    <div className="noteDate label">Loading...</div>
-                  </div>
-                  <div className="noteContent disabled">Loading posts...</div>
-                  <div className="noteValues">
-                    <div className="zapMin">
-                      <span className="zapMinVal disabled">Loading...</span>
-                      <span className="label">sats<br />Min</span>
-                    </div>
-                    <div className="zapMax">
-                      <span className="zapMaxVal disabled">Loading...</span>
-                      <span className="label">sats<br />Max</span>
-                    </div>
-                    <div className="zapUses">
-                      <span className="zapUsesCurrent disabled">0</span>
-                      <span className="label">of</span>
-                      <span className="zapUsesTotal disabled">5</span>
-                    </div>
-                  </div>
-                  <div className="noteCTA">
-                    <button className="noteMainCTA cta disabled">Pay</button>
-                  </div>
-                  <div className="noteActionsReactions">
-                    <div className="noteZaps noteZapReactions"></div>
-                    <div className="noteActions">
-                      <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">bolt</span>
-                      </a>
-                      <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">favorite</span>
-                      </a>
-                      <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">ios_share</span>
-                      </a>
-                      <div className="noteAction dropdown">
-                        <button className="dropbtn">
-                          <span className="material-symbols-outlined disabled">more_horiz</span>
-                        </button>
+                      <div className="noteActionsReactions">
+                        <div className="noteZaps noteZapReactions"></div>
+                        <div className="noteActions">
+                          <a className="noteAction disabled">
+                            <span className="material-symbols-outlined">bolt</span>
+                          </a>
+                          <a className="noteAction disabled">
+                            <span className="material-symbols-outlined">favorite</span>
+                          </a>
+                          <a className="noteAction disabled">
+                            <span className="material-symbols-outlined">ios_share</span>
+                          </a>
+                          <div className="noteAction dropdown">
+                            <button className="dropbtn">
+                              <span className="material-symbols-outlined disabled">more_horiz</span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                  <div className="paynote blink">
+                    <div className="noteProfileImg">
+                      <img
+                        className="userImg"
+                        src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"
+                        alt="Profile"
+                      />
+                    </div>
+                    <div className="noteData">
+                      <div className="noteHeader">
+                        <div className="noteAuthor">
+                          <div className="noteDisplayName">
+                            <a href="#" className="noteAuthorLink disabled" target="_blank">Loading...</a>
+                          </div>
+                          <div className="noteNIP05 label">
+                            <a href="#" target="_blank">
+                              <span className="material-symbols-outlined">check_circle</span>
+                              loading@example.com
+                            </a>
+                          </div>
+                          <div className="noteLNAddress label">
+                            <a href="#" target="_blank">
+                              <span className="material-symbols-outlined">bolt</span>
+                              loading@example.com
+                            </a>
+                          </div>
+                        </div>
+                        <div className="noteDate label">Loading...</div>
+                      </div>
+                      <div className="noteContent disabled">Loading posts...</div>
+                      <div className="noteValues">
+                        <div className="zapMin">
+                          <span className="zapMinVal disabled">Loading...</span>
+                          <span className="label">sats<br />Min</span>
+                        </div>
+                        <div className="zapMax">
+                          <span className="zapMaxVal disabled">Loading...</span>
+                          <span className="label">sats<br />Max</span>
+                        </div>
+                        <div className="zapUses">
+                          <span className="zapUsesCurrent disabled">0</span>
+                          <span className="label">of</span>
+                          <span className="zapUsesTotal disabled">5</span>
+                        </div>
+                      </div>
+                      <div className="noteCTA">
+                        <button className="noteMainCTA cta disabled">Pay</button>
+                      </div>
+                      <div className="noteActionsReactions">
+                        <div className="noteZaps noteZapReactions"></div>
+                        <div className="noteActions">
+                          <a className="noteAction disabled">
+                            <span className="material-symbols-outlined">bolt</span>
+                          </a>
+                          <a className="noteAction disabled">
+                            <span className="material-symbols-outlined">favorite</span>
+                          </a>
+                          <a className="noteAction disabled">
+                            <span className="material-symbols-outlined">ios_share</span>
+                          </a>
+                          <div className="noteAction dropdown">
+                            <button className="dropbtn">
+                              <span className="material-symbols-outlined disabled">more_horiz</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </>
           ) : posts.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
@@ -632,21 +727,37 @@ export const HomePage: React.FC = () => {
             </div>
           )}
           
-          {posts.length > 0 && !isLoadingMore && (
-            <div style={{ textAlign: 'center', padding: '20px' }}>
-            <button
-              onClick={() => loadMorePosts()}
-              style={{
-                backgroundColor: '#0066cc',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              Load More
-            </button>
+          {/* Debug info for infinite scroll */}
+          {!singleNoteMode && posts.length > 0 && (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '10px', 
+              fontSize: '12px', 
+              color: '#999',
+              borderTop: '1px solid #eee',
+              marginTop: '20px'
+            }}>
+              Posts loaded: {posts.length} | Scroll to load more (100px from bottom)
+            </div>
+          )}
+
+          {/* Render replies when in single note mode */}
+          {singleNoteMode && replies.length > 0 && (
+            <div className="replies">
+              <h3 style={{margin: '20px 0 10px 0', color: '#666'}}>Replies</h3>
+              {replies.map((reply) => (
+                <div key={reply.id} className="paynote reply">
+                  <PayNoteComponent
+                    key={reply.id}
+                    post={reply}
+                    onPay={handlePayWithExtension}
+                    onPayAnonymously={handlePayAnonymously}
+                    onShare={handleSharePost}
+                    onViewRaw={handleViewRaw}
+                    isLoggedIn={authState.isLoggedIn}
+                  />
+                </div>
+              ))}
             </div>
           )}
         </div>
