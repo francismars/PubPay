@@ -457,6 +457,19 @@ export const HomePage: React.FC = () => {
     };
   }, [qrScanner]);
 
+  // Listen for login form show events from the hook
+  useEffect(() => {
+    const handleShowLoginForm = () => {
+      handleLoginOpen();
+    };
+
+    window.addEventListener('showLoginForm', handleShowLoginForm);
+    
+    return () => {
+      window.removeEventListener('showLoginForm', handleShowLoginForm);
+    };
+  }, []);
+
   return (
     <div>
 
@@ -483,7 +496,13 @@ export const HomePage: React.FC = () => {
                 <span className="material-symbols-outlined">account_circle</span>
               )}
             </a>
-            <a id="newPayNote" className="cta" href="#" onClick={() => { handleNewPayNote(); setShowNewPayNoteForm(true); }}>
+            <a id="newPayNote" className="cta" href="#" onClick={() => { 
+              if (authState.isLoggedIn) {
+                setShowNewPayNoteForm(true);
+              } else {
+                handleNewPayNote();
+              }
+            }}>
               New <span className="hideOnMobile">Paynote</span>
             </a>
           </div>

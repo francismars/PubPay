@@ -124,7 +124,7 @@ export const useHomeFunctionality = () => {
             const queryParams = new URLSearchParams(window.location.search);
             const queryNote = queryParams.get("note");
             if (!queryNote) {
-              loadPosts('global');
+            loadPosts('global');
             }
             clearInterval(retryInterval);
           }
@@ -137,7 +137,7 @@ export const useHomeFunctionality = () => {
 
     // Add a small delay to ensure HomePage has a chance to set single note mode
     setTimeout(() => {
-      loadInitialPosts();
+    loadInitialPosts();
     }, 100);
   }, []);
 
@@ -687,6 +687,10 @@ export const useHomeFunctionality = () => {
   };
 
   const handleFeedChange = (feed: 'global' | 'following') => {
+    if (feed === 'following' && !authState.isLoggedIn) {
+      handleLogin();
+      return;
+    }
     setActiveFeed(feed);
     if (feed === 'following' && followingPosts.length === 0) {
       loadFollowingPosts();
@@ -723,8 +727,9 @@ export const useHomeFunctionality = () => {
   };
 
   const handleLogin = () => {
-    // Login form will be handled by the component
-    console.log('Opening login form...');
+    // Dispatch custom event to show login form
+    const customEvent = new CustomEvent('showLoginForm');
+    window.dispatchEvent(customEvent);
   };
 
   const handleNewPayNote = () => {
@@ -831,8 +836,13 @@ export const useHomeFunctionality = () => {
   };
 
   const handlePayWithExtension = async (post: PubPayPost, amount: number) => {
-    if (!authState.isLoggedIn || !window.nostr) {
-      console.error('Please sign in first');
+    if (!authState.isLoggedIn) {
+      handleLogin();
+      return;
+    }
+    
+    if (!window.nostr) {
+      console.error('Nostr extension not available');
       return;
     }
 
@@ -976,7 +986,7 @@ export const useHomeFunctionality = () => {
 
   const handlePostNote = async (formData: Record<string, string | undefined>) => {
     if (!authState.isLoggedIn) {
-      console.error('Please sign in first');
+      handleLogin();
       return;
     }
 
