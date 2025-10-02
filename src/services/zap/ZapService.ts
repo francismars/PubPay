@@ -1,4 +1,4 @@
-import { NostrEvent } from '@/types/nostr';
+// import { NostrEvent } from '@/types/nostr'; // Unused import
 
 export interface ZapCallback {
   callbackToZap: string;
@@ -6,7 +6,7 @@ export interface ZapCallback {
 }
 
 export interface ZapEventData {
-  zapEvent: any;
+  zapEvent: unknown;
   amountPay: number;
 }
 
@@ -21,17 +21,17 @@ export class ZapService {
    * Get Lightning callback URL from author's LUD16 address
    */
   async getInvoiceCallBack(
-    eventData: any,
-    authorData: any
+    eventData: unknown,
+    authorData: unknown
   ): Promise<ZapCallback | null> {
     try {
       console.log('getInvoiceCallBack called with:', { eventData, authorData });
-      
+
       // Check for zap-lnurl tag first, then fall back to author's lud16
-      const zapLNURL = eventData.tags.find((tag: any) => tag[0] === 'zap-lnurl');
-      const eventCreatorProfileContent = JSON.parse(authorData.content);
+      const zapLNURL = (eventData as any).tags.find((tag: any) => tag[0] === 'zap-lnurl');
+      const eventCreatorProfileContent = JSON.parse((authorData as any).content);
       console.log('Parsed author content:', eventCreatorProfileContent);
-      
+
       const lud16 = zapLNURL && zapLNURL.length > 0
         ? zapLNURL[1]
         : eventCreatorProfileContent.lud16;
@@ -49,17 +49,17 @@ export class ZapService {
 
       let errorResponse = null;
       let response: Response | undefined;
-      
+
       try {
         response = await fetch(
           `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`
         );
-      } catch (error) {
-        errorResponse = "CAN'T PAY: Failed to fetch lud16";
+      } catch {
+        errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
       }
 
       if (!response || response === undefined) {
-        errorResponse = "CAN'T PAY: Failed to fetch lud16";
+        errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
       }
 
       if (errorResponse) {
@@ -69,7 +69,7 @@ export class ZapService {
 
       const lnurlinfo = await response!.json();
       if (!(lnurlinfo.allowsNostr === true)) {
-        errorResponse = "CAN'T PAY: No nostr support";
+        errorResponse = 'CAN\'T PAY: No nostr support';
       }
 
       if (errorResponse) {
@@ -91,21 +91,21 @@ export class ZapService {
    * Create a zap event
    */
   async createZapEvent(
-    eventData: any,
+    eventData: unknown,
     rangeValue: number,
     lud16: string,
     pubKey: string | null = null
   ): Promise<ZapEventData | null> {
     try {
       // Find zap-min tag for minimum amount
-      const zapMintag = eventData.tags.find((tag: any) => tag[0] === 'zap-min');
+      const zapMintag = (eventData as any).tags.find((tag: any) => tag[0] === 'zap-min');
       const zapTagAmount = zapMintag ? zapMintag[1] : 1000;
       const amountPay = rangeValue !== -1 ? parseInt(rangeValue.toString()) * 1000 : Math.floor(parseInt(zapTagAmount));
 
       // Create zap request using NostrTools.nip57.makeZapRequest
       const zapEvent = await (window as any).NostrTools.nip57.makeZapRequest({
-        event: eventData.id,
-        profile: eventData.pubkey,
+        event: (eventData as any).id,
+        profile: (eventData as any).pubkey,
         amount: amountPay,
         comment: '',
         relays: [
@@ -113,8 +113,8 @@ export class ZapService {
           'wss://relay.primal.net',
           'wss://nostr.mutinywallet.com/',
           'wss://relay.nostr.band/',
-          'wss://relay.nostr.nu/',
-        ],
+          'wss://relay.nostr.nu/'
+        ]
       });
 
       console.log('Created zap event:', zapEvent);
@@ -124,9 +124,9 @@ export class ZapService {
       zapEvent.tags.push(['t', 'pubpay']);
 
       if (pubKey !== null) {
-        zapEvent.pubkey = pubKey;
+        (zapEvent as any).pubkey = pubKey;
         const eventID = (window as any).NostrTools.getEventHash(zapEvent);
-        if (eventID !== null) zapEvent.id = eventID;
+        if (eventID !== null) (zapEvent as any).id = eventID;
       }
 
       return {
@@ -143,7 +143,7 @@ export class ZapService {
    * Sign and send zap event
    */
   async signZapEvent(
-    zapEvent: any,
+    zapEvent: unknown,
     callbackToZap: string,
     amountPay: number,
     lud16ToZap: string,
@@ -167,7 +167,7 @@ export class ZapService {
             amount: amountPay,
             lud16: lud16ToZap,
             event: zapEvent,
-            id: eventoToZapID,
+            id: eventoToZapID
           })
         );
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
@@ -182,7 +182,7 @@ export class ZapService {
           console.error('No private key found. Please sign in first.');
           return false;
         }
-        const { type, data } = (window as any).NostrTools.nip19.decode(privateKey);
+        const { data } = (window as any).NostrTools.nip19.decode(privateKey);
         zapFinalized = (window as any).NostrTools.finalizeEvent(zapEvent, data);
       }
 
@@ -214,9 +214,9 @@ export class ZapService {
   async getInvoiceandPay(
     callback: string,
     amount: number,
-    zapFinalized: any,
+    zapFinalized: unknown,
     lud16: string,
-    eventID: string
+    _eventID: string
   ): Promise<void> {
     try {
       if (!zapFinalized) {
@@ -229,7 +229,7 @@ export class ZapService {
       const callString = `${callback}?amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`;
       console.log('Sending zap request to:', callString);
       const responseFinal = await fetch(callString);
-      
+
       if (!responseFinal.ok) {
         const errorText = await responseFinal.text();
         console.error('Failed to get invoice from callback:', responseFinal.status, errorText);
@@ -238,14 +238,14 @@ export class ZapService {
 
       const responseData = await responseFinal.json();
       console.log('Lightning service response:', responseData);
-      
+
       if (!responseData.pr) {
         console.error('No invoice (pr) in response:', responseData);
         return;
       }
 
       const { pr: invoice } = responseData;
-      await this.handleFetchedInvoice(invoice, zapFinalized.id);
+      await this.handleFetchedInvoice(invoice, (zapFinalized as any).id);
     } catch (error) {
       console.error('Error getting invoice and paying:', error);
     }

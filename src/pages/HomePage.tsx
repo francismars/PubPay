@@ -61,48 +61,46 @@ export const HomePage: React.FC = () => {
 
   // Listen for payment UI events
   useEffect(() => {
-    const handleShowPaymentUI = (event: CustomEvent) => {
-      const { bolt11, amount, eventId } = event.detail;
+    const handleShowPaymentUI = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { bolt11, amount, eventId } = customEvent.detail;
       setCurrentInvoice(bolt11);
       setCurrentInvoiceAmount(amount);
       setCurrentInvoiceEventId(eventId);
       setShowInvoiceOverlay(true);
       
       // Generate QR code
-      generateQRCode(bolt11);
+      await generateQRCode(bolt11);
     };
 
-    window.addEventListener('showPaymentUI', handleShowPaymentUI as EventListener);
+    window.addEventListener('showPaymentUI', handleShowPaymentUI);
     
     return () => {
-      window.removeEventListener('showPaymentUI', handleShowPaymentUI as EventListener);
+      window.removeEventListener('showPaymentUI', handleShowPaymentUI);
     };
   }, []);
 
-  // Generate QR code for Lightning invoice
-  const generateQRCode = (invoice: string) => {
+  // Generate QR code for Lightning invoice (matches legacy behavior)
+  const generateQRCode = async (invoice: string) => {
     if (!invoice) return;
     
     // Wait for the canvas to be available
-    setTimeout(() => {
+    setTimeout(async () => {
       const canvas = document.getElementById('invoiceQR') as HTMLCanvasElement;
       if (!canvas) return;
       
       // Clear previous QR code
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
+      canvas.innerHTML = '';
       
-      // Generate QR code using QRious (loaded from CDN)
-      if (window.QRious) {
-        const qr = new window.QRious({
-          element: canvas,
-          value: invoice,
-          size: 256,
-          background: 'white',
-          foreground: 'black'
-        });
+      // Use QRCode.toCanvas exactly like the legacy code
+      if ((window as any).QRCode) {
+        try {
+          const qr = await (window as any).QRCode.toCanvas(canvas, invoice);
+        } catch (error) {
+          console.error('Error generating QR code:', error);
+        }
+      } else {
+        console.error('QRCode library not available');
       }
     }, 100);
   };
