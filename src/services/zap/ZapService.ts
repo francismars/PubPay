@@ -255,6 +255,8 @@ export class ZapService {
    * Handle fetched invoice (matches original handleFetchedInvoice)
    */
   async handleFetchedInvoice(invoice: string, zapEventID: string): Promise<void> {
+    console.log('handleFetchedInvoice called with:', { invoice: invoice.substring(0, 50) + '...', zapEventID });
+    
     // Dispatch custom event to show payment UI
     const customEvent = new CustomEvent('showPaymentUI', {
       detail: {
@@ -263,6 +265,8 @@ export class ZapService {
         eventId: zapEventID
       }
     });
+    
+    console.log('Dispatching showPaymentUI event:', customEvent.detail);
     window.dispatchEvent(customEvent);
   }
 }

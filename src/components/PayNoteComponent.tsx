@@ -26,7 +26,7 @@ interface PayNoteComponentProps {
   isReply?: boolean;
 }
 
-export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
+export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
   post,
   onPay,
   onPayAnonymously,
@@ -71,7 +71,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
   const profilePicture = authorData?.picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
   const nip05 = authorData?.nip05;
   const lud16 = authorData?.lud16;
-  const isPayable = post.isPayable;
+  
+  // Check if note is payable - must have lud16 AND not reached zap uses target
+  const isPayable = post.isPayable && (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses);
 
   // Format time ago
   const timeAgo = (timestamp: number): string => {
@@ -387,7 +389,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
         )}
 
         {/* Zap Slider for Range */}
-        {post.zapMin !== post.zapMax && isPayable && (
+        {post.zapMin !== post.zapMax && isPayable && (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses) && (
           <div className="zapSliderContainer">
             <input
               type="range"
@@ -407,7 +409,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
         {/* Hero Zaps - for zaps within target */}
         <div className="noteHeroZaps noteZapReactions">
           {heroZaps.map((zap, index) => {
-            console.log('Rendering hero zap:', { index, zapAmount: zap.zapAmount, zapPayerPicture: zap.zapPayerPicture, zapPayerNpub: zap.zapPayerNpub });
             return (
               <div key={index} className="zapReaction">
                 <a 
@@ -437,7 +438,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
             onClick={() => !isReply && isPayable && onPay(post, zapAmount)}
             disabled={!isPayable || !isLoggedIn || isReply}
           >
-            Pay
+            {post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses ? 'Paid' : 'Pay'}
           </button>
         </div>
 
@@ -445,7 +446,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
         <div className="noteActionsReactions">
           <div className="noteZaps noteZapReactions">
             {overflowZaps.map((zap, index) => {
-              console.log('Rendering overflow zap:', { index, zapAmount: zap.zapAmount, zapPayerPicture: zap.zapPayerPicture, zapPayerNpub: zap.zapPayerNpub });
               return (
                 <div key={index} className="zapReaction">
                   <a 
@@ -472,10 +472,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
             {/* Zap Menu */}
             <a 
               ref={zapActionRef}
-              className={isPayable ? "noteAction zapMenuAction" : "disabled"}
+              className={isPayable && (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses) ? "noteAction zapMenuAction" : "disabled"}
               onClick={(e) => {
                 e.preventDefault();
-                if (!isPayable) return;
+                if (!isPayable || (post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses)) return;
                 setShowZapMenu(!showZapMenu);
               }}
               style={{ position: 'relative' }}
@@ -598,4 +598,4 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = ({
       </div>
     </div>
   );
-};
+});

@@ -27,8 +27,9 @@ export interface PubPayPost {
   zapUses: number;
   zapUsesCurrent: number;
   zapPayer?: string;
-  zapLNURL?: string;
+  content: string;
   isPayable: boolean;
+  zapLNURL?: string;
   createdAt: number;
 }
 
@@ -259,16 +260,19 @@ export const useHomeFunctionality = () => {
         filter.authors = [...followingPubkeysRef.current]; // Clone the array
       }
 
-      // Add pagination for load more
+      // Add until filter for loading more posts (older posts)
       if (loadMore) {
         const currentPosts = feed === 'following' ? followingPosts : posts;
-        if (currentPosts && currentPosts.length > 0) {
+        if (currentPosts.length > 0) {
+          // Get the oldest post (last in the array since they're sorted newest first)
           const oldestPost = currentPosts[currentPosts.length - 1];
           if (oldestPost) {
             filter.until = oldestPost.createdAt;
+            console.log('Loading more posts until:', oldestPost.createdAt, 'for post:', oldestPost.id);
           }
         }
       }
+
 
       // Ensure filter is valid before sending
       if (!filter.kinds || filter.kinds.length === 0) {
@@ -417,7 +421,8 @@ export const useHomeFunctionality = () => {
         zapAmount: 0,
         zaps: [],
         zapUsesCurrent: 0,
-        isPayable: true
+        isPayable: true,
+        content: event.content
       };
 
       // Extract zap min/max from tags
@@ -438,7 +443,8 @@ export const useHomeFunctionality = () => {
       posts.push(post);
     }
 
-    return posts;
+    // Sort by creation time (newest first) - matches legacy behavior
+    return posts.sort((a, b) => b.createdAt - a.createdAt);
   };
 
   // Load zaps separately and update posts (like legacy subscribeKind9735)
@@ -675,9 +681,10 @@ export const useHomeFunctionality = () => {
         zapMax,
         zapUses,
         zapUsesCurrent,
+        content: event.content,
+        isPayable,
         zapPayer,
         zapLNURL,
-        isPayable,
         createdAt: event.created_at
       });
     }
@@ -1121,7 +1128,7 @@ export const useHomeFunctionality = () => {
 
       console.log('Event published successfully');
 
-      // Reload posts to show the new one
+      // Reload posts to show the new one (since real-time subscription is disabled)
       await loadPosts(activeFeed);
 
     } catch (err) {
@@ -1363,17 +1370,26 @@ export const useHomeFunctionality = () => {
     }
   };
 
-  // Subscribe to new zaps for all posts in real-time
+  // Subscribe to new zaps in real-time (disable note subscription for now)
   useEffect(() => {
-    if (!posts.length || !nostrClientRef.current) return;
+    if (!nostrClientRef.current || isLoading) {
+      return () => {}; // Return empty cleanup function
+    }
 
-    const eventIds = posts.map(post => post.id);
-    
+    // Temporarily disable real-time note subscription to fix loading issues
+    // The legacy code works fine without real-time note subscriptions
+    // Only real-time zap subscriptions are needed
+    const notesSub = null; // Disabled for now
+
     // Subscribe to new zaps for all current posts
-    const sub = nostrClientRef.current.subscribeToEvents([{
-      kinds: [9735],
-      '#e': eventIds
-    }], async (zapEvent: NostrEvent) => {
+    let zapsSub: any = null;
+    if (posts.length > 0) {
+      const eventIds = posts.map(post => post.id);
+      
+      zapsSub = nostrClientRef.current.subscribeToEvents([{
+        kinds: [9735],
+        '#e': eventIds
+      }], async (zapEvent: NostrEvent) => {
       // Type guard to ensure this is a zap event
       if (zapEvent.kind !== 9735) return;
       
@@ -1464,13 +1480,15 @@ export const useHomeFunctionality = () => {
         console.log('Zap subscription closed');
       }
     });
+    }
 
     return () => {
-      if (sub) {
-        sub.unsubscribe();
+      // notesSub is disabled for now
+      if (zapsSub) {
+        zapsSub.unsubscribe();
       }
     };
-  }, [posts.length]); // Re-subscribe when posts change
+  }, [posts.length, isLoading]); // Re-subscribe when posts change or loading state changes
 
   // Process a new zap event
   const processNewZap = async (zapEvent: Kind9735Event): Promise<ProcessedZap | null> => {
@@ -1546,6 +1564,81 @@ export const useHomeFunctionality = () => {
     } catch (error) {
       console.error('Error processing new zap:', error);
       return null;
+    }
+  };
+
+  // Process a new note event and add it to the feed
+  const processNewNote = async (noteEvent: Kind1Event) => {
+    try {
+      console.log('Processing new note:', noteEvent.id);
+      
+      // Get the author's profile
+      const authorProfiles = await nostrClientRef.current?.getEvents([{
+        kinds: [0],
+        authors: [noteEvent.pubkey]
+      }]) as Kind0Event[];
+      
+      const author = authorProfiles[0] || {
+        kind: 0, id: '', pubkey: noteEvent.pubkey, content: '{}', created_at: 0, sig: '', tags: []
+      };
+      
+      // Create basic post structure (like processPostsBasic)
+      const newPost: PubPayPost = {
+        id: noteEvent.id,
+        event: noteEvent,
+        author: author,
+        createdAt: noteEvent.created_at,
+        zapMin: 0,
+        zapMax: 0,
+        zapUses: 0,
+        zapAmount: 0,
+        zaps: [],
+        zapUsesCurrent: 0,
+        isPayable: true,
+        content: noteEvent.content
+      };
+
+      // Extract zap min/max from tags
+      const zapMinTag = noteEvent.tags.find(tag => tag[0] === 'zap-min');
+      const zapMaxTag = noteEvent.tags.find(tag => tag[0] === 'zap-max');
+      const zapUsesTag = noteEvent.tags.find(tag => tag[0] === 'zap-uses');
+      
+      if (zapMinTag && zapMinTag[1]) {
+        newPost.zapMin = parseInt(zapMinTag[1]) / 1000 || 0; // Divide by 1000 for sats
+      }
+      if (zapMaxTag && zapMaxTag[1]) {
+        newPost.zapMax = parseInt(zapMaxTag[1]) / 1000 || 0; // Divide by 1000 for sats
+      }
+      if (zapUsesTag && zapUsesTag[1]) {
+        newPost.zapUses = parseInt(zapUsesTag[1]) || 0; // Only set if tag exists
+      }
+
+      // Add the new post to the beginning of the posts array (most recent first)
+      setPosts(prevPosts => {
+        // Check if post already exists to prevent duplicates
+        const exists = prevPosts.find(post => post.id === noteEvent.id);
+        if (exists) {
+          console.log('Post already exists in state, skipping:', noteEvent.id);
+          return prevPosts;
+        }
+        
+        console.log('Adding new post to feed:', noteEvent.id);
+        return [newPost, ...prevPosts];
+      });
+      
+      // Also add to following posts if we're in following mode
+      if (activeFeed === 'following') {
+        setFollowingPosts(prevPosts => {
+          const exists = prevPosts.find(post => post.id === noteEvent.id);
+          if (exists) {
+            return prevPosts;
+          }
+          return [newPost, ...prevPosts];
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error processing new note:', error);
     }
   };
 
