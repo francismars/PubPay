@@ -62,15 +62,26 @@ export const HomePage: React.FC = () => {
   // Listen for payment UI events
   useEffect(() => {
     const handleShowPaymentUI = async (event: Event) => {
+      console.log('handleShowPaymentUI received event:', event);
       const customEvent = event as CustomEvent;
       const { bolt11, amount, eventId } = customEvent.detail;
-      setCurrentInvoice(bolt11);
-      setCurrentInvoiceAmount(amount);
-      setCurrentInvoiceEventId(eventId);
-      setShowInvoiceOverlay(true);
+      console.log('Setting payment UI state:', { bolt11: bolt11?.substring(0, 50) + '...', amount, eventId });
       
-      // Generate QR code
-      await generateQRCode(bolt11);
+      // Force re-render by briefly hiding and then showing the overlay
+      setShowInvoiceOverlay(false);
+      
+      // Use setTimeout to ensure the state change is processed
+      setTimeout(() => {
+        setCurrentInvoice(bolt11);
+        setCurrentInvoiceAmount(amount);
+        setCurrentInvoiceEventId(eventId);
+        setShowInvoiceOverlay(true);
+        
+        console.log('Payment overlay should now be visible');
+        
+        // Generate QR code
+        generateQRCode(bolt11);
+      }, 10);
     };
 
     window.addEventListener('showPaymentUI', handleShowPaymentUI);
@@ -216,6 +227,10 @@ export const HomePage: React.FC = () => {
         fixedRadio.checked = true;
         document.getElementById('fixedInterface')!.style.display = 'block';
         document.getElementById('rangeInterface')!.style.display = 'none';
+        // Reset required attributes for fixed mode
+        (document.getElementById('zapFixed') as HTMLInputElement)!.setAttribute('required', 'true');
+        (document.getElementById('zapMin') as HTMLInputElement)!.removeAttribute('required');
+        (document.getElementById('zapMax') as HTMLInputElement)!.removeAttribute('required');
       }
     } catch (error) {
       console.error('Failed to post note:', error);
@@ -232,6 +247,15 @@ export const HomePage: React.FC = () => {
     // Both buttons start as available - they only get disabled after failed attempts
     setExtensionAvailable(true);
     setExternalSignerAvailable(true);
+    
+    // Initialize form with correct required attributes for default FIXED mode
+    const zapFixed = document.getElementById('zapFixed') as HTMLInputElement;
+    const zapMin = document.getElementById('zapMin') as HTMLInputElement;
+    const zapMax = document.getElementById('zapMax') as HTMLInputElement;
+    
+    if (zapFixed) zapFixed.setAttribute('required', 'true');
+    if (zapMin) zapMin.removeAttribute('required');
+    if (zapMax) zapMax.removeAttribute('required');
   }, []);
 
   // Check for single note URL parameter on load
@@ -1173,6 +1197,10 @@ export const HomePage: React.FC = () => {
                       document.getElementById('rangeInterface')!.style.display = 'none';
                       (document.getElementById('zapMin') as HTMLInputElement)!.value = '';
                       (document.getElementById('zapMax') as HTMLInputElement)!.value = '';
+                      // Set required attributes for fixed mode
+                      (document.getElementById('zapFixed') as HTMLInputElement)!.setAttribute('required', 'true');
+                      (document.getElementById('zapMin') as HTMLInputElement)!.removeAttribute('required');
+                      (document.getElementById('zapMax') as HTMLInputElement)!.removeAttribute('required');
                     }
                   }}
                 />
@@ -1189,6 +1217,10 @@ export const HomePage: React.FC = () => {
                       document.getElementById('rangeInterface')!.style.display = 'flex';
                       document.getElementById('fixedInterface')!.style.display = 'none';
                       (document.getElementById('zapFixed') as HTMLInputElement)!.value = '';
+                      // Set required attributes for range mode
+                      (document.getElementById('zapMin') as HTMLInputElement)!.setAttribute('required', 'true');
+                      (document.getElementById('zapMax') as HTMLInputElement)!.setAttribute('required', 'true');
+                      (document.getElementById('zapFixed') as HTMLInputElement)!.removeAttribute('required');
                     }
                   }}
                 />
