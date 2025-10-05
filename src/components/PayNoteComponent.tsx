@@ -375,8 +375,23 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
         {/* Zap Payer */}
         {post.zapPayer && (
           <div className="zapPayer">
-            <span className="material-symbols-outlined">target</span>
-            Payer: {post.zapPayer.substr(0, 8)}...{post.zapPayer.substr(-8)}
+            Payer <span className="material-symbols-outlined main-icon">target</span>
+            <div className="zapPayerInner">
+              <img className="userImg" src={post.zapPayerPicture || "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"} />
+              <div className="userName">
+                {(() => {
+                  if (window.NostrTools) {
+                    const npub = window.NostrTools.nip19.npubEncode(post.zapPayer);
+                    // Use start_and_end formatting: first 4 chars + "..." + last 4 chars
+                    return npub.length > 35 ? 
+                      npub.substr(0, 4) + "..." + npub.substr(npub.length - 4, npub.length) : 
+                      npub;
+                  }
+                  // Fallback to pubkey formatting
+                  return post.zapPayer.substr(0, 8) + '...' + post.zapPayer.substr(-8);
+                })()}
+              </div>
+            </div>
           </div>
         )}
 

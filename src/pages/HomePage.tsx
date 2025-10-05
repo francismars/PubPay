@@ -62,10 +62,8 @@ export const HomePage: React.FC = () => {
   // Listen for payment UI events
   useEffect(() => {
     const handleShowPaymentUI = async (event: Event) => {
-      console.log('handleShowPaymentUI received event:', event);
       const customEvent = event as CustomEvent;
       const { bolt11, amount, eventId } = customEvent.detail;
-      console.log('Setting payment UI state:', { bolt11: bolt11?.substring(0, 50) + '...', amount, eventId });
       
       // Force re-render by briefly hiding and then showing the overlay
       setShowInvoiceOverlay(false);
@@ -76,8 +74,6 @@ export const HomePage: React.FC = () => {
         setCurrentInvoiceAmount(amount);
         setCurrentInvoiceEventId(eventId);
         setShowInvoiceOverlay(true);
-        
-        console.log('Payment overlay should now be visible');
         
         // Generate QR code
         generateQRCode(bolt11);
@@ -331,17 +327,7 @@ export const HomePage: React.FC = () => {
         const documentHeight = document.body.offsetHeight;
         const threshold = documentHeight - 100;
         
-        console.log('Scroll check:', {
-          scrollPosition,
-          documentHeight,
-          threshold,
-          isLoadingMore,
-          singleNoteMode,
-          postsCount: posts.length
-        });
-        
         if (scrollPosition >= threshold) {
-          console.log('🚀 Scroll detected, loading more posts...');
           isLoading = true; // Set local flag
           loadMorePosts().finally(() => {
             isLoading = false; // Reset flag when done
