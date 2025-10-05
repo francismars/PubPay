@@ -221,7 +221,6 @@ export class NostrClient {
           oneose() {
             if (!isComplete) {
               isComplete = true;
-              console.log('Events loaded:', events.length);
               resolve(events);
             }
           },
