@@ -63,6 +63,7 @@ export const useHomeFunctionality = () => {
   const lightningServiceRef = useRef<LightningService | null>(null);
   const zapServiceRef = useRef<ZapService | null>(null);
   const followingPubkeysRef = useRef<string[]>([]);
+  const didLoadInitialRef = useRef<boolean>(false);
   
   // Profile cache to prevent duplicate requests
   const profileCacheRef = useRef<Map<string, Kind0Event>>(new Map());
@@ -116,6 +117,8 @@ export const useHomeFunctionality = () => {
   // Load initial posts (only if not in single note mode)
   useEffect(() => {
     const loadInitialPosts = () => {
+      if (didLoadInitialRef.current) return; // guard against StrictMode double-invoke
+      didLoadInitialRef.current = true;
       // Check if we're in single note mode first
       const queryParams = new URLSearchParams(window.location.search);
       const queryNote = queryParams.get("note");
@@ -154,6 +157,12 @@ export const useHomeFunctionality = () => {
     setTimeout(() => {
     loadInitialPosts();
     }, 100);
+
+    // Cleanup: allow re-run only after full unmount
+    return () => {
+      didLoadInitialRef.current = false;
+      nostrClientRef.current?.unsubscribeAll?.();
+    };
   }, []);
 
   // Check authentication status
@@ -312,11 +321,9 @@ export const useHomeFunctionality = () => {
       // Get author pubkeys
       const authorPubkeys = [...new Set(kind1Events.map(event => event.pubkey))];
 
-      // Load profiles
-      const profileEvents = await nostrClientRef.current.getEvents([{
-        kinds: [0],
-        authors: authorPubkeys
-      }]) as Kind0Event[];
+      // Load profiles (cached & batched)
+      const profilesMap = await loadProfilesBatched(authorPubkeys);
+      const profileEvents = Array.from(profilesMap.values());
 
       // Load zaps for these events
       const eventIds = kind1Events.map(event => event.id);
@@ -349,12 +356,9 @@ export const useHomeFunctionality = () => {
         }
       });
 
-      // Load zap payer profiles
+      // Load zap payer profiles (cached & batched)
       const zapPayerProfiles = zapPayerPubkeys.size > 0 ?
-        await nostrClientRef.current.getEvents([{
-          kinds: [0],
-          authors: Array.from(zapPayerPubkeys)
-        }]) as Kind0Event[] : [];
+        Array.from((await loadProfilesBatched(Array.from(zapPayerPubkeys))).values()) : [];
 
       // Combine all profiles
       const allProfiles = [...profileEvents, ...zapPayerProfiles];
@@ -419,10 +423,8 @@ export const useHomeFunctionality = () => {
     // Load zap-payer profiles
     let zapPayerProfiles: Kind0Event[] = [];
     if (zapPayerPubkeys.size > 0) {
-      zapPayerProfiles = await nostrClientRef.current?.getEvents([{
-        kinds: [0],
-        authors: Array.from(zapPayerPubkeys)
-      }]) as Kind0Event[] || [];
+      const map = await loadProfilesBatched(Array.from(zapPayerPubkeys));
+      zapPayerProfiles = Array.from(map.values());
     }
 
     // Combine all profiles
@@ -527,12 +529,9 @@ export const useHomeFunctionality = () => {
       }
     });
 
-    // Load zap payer profiles
-    const zapPayerProfiles = zapPayerPubkeys.size > 0 ?
-      await nostrClientRef.current?.getEvents([{
-        kinds: [0],
-        authors: Array.from(zapPayerPubkeys)
-      }]) as Kind0Event[] : [];
+      // Load zap payer profiles (cached & batched)
+      const zapPayerProfiles = zapPayerPubkeys.size > 0 ?
+        Array.from((await loadProfilesBatched(Array.from(zapPayerPubkeys))).values()) : [];
 
     // Update posts with zap data
     const updatePostsWithZaps = (currentPosts: PubPayPost[]) => {
@@ -1293,12 +1292,9 @@ export const useHomeFunctionality = () => {
         }
       });
 
-      // Load zap payer profiles
+      // Load zap payer profiles (cached & batched)
       const zapPayerProfiles = zapPayerPubkeys.size > 0 ?
-        await nostrClientRef.current.getEvents([{
-          kinds: [0],
-          authors: Array.from(zapPayerPubkeys)
-        }]) as Kind0Event[] : [];
+        Array.from((await loadProfilesBatched(Array.from(zapPayerPubkeys))).values()) : [];
 
       // Combine all profiles
       const allProfiles = [...profileEvents, ...zapPayerProfiles];
