@@ -795,9 +795,12 @@ export const useHomeFunctionality = () => {
   };
 
   const handleLogin = () => {
-    // Dispatch custom event to show login form
-    const customEvent = new CustomEvent('showLoginForm');
-    window.dispatchEvent(customEvent);
+    // Open login via UI store
+    import('@/services/state/uiStore').then(({ useUIStore }) => {
+      useUIStore.getState().openLogin();
+    }).catch(() => {
+      console.warn('UI store not available yet');
+    });
   };
 
   const handleNewPayNote = () => {
@@ -1528,32 +1531,23 @@ export const useHomeFunctionality = () => {
       
       const postId = eventTag[1];
       
-      // Check if this zap should close the invoice overlay
-      const invoiceOverlay = document.getElementById("invoiceOverlay");
-      if (invoiceOverlay) {
-        const overlayEventID = invoiceOverlay.getAttribute("data-event-id");
-        
-        // Get the zap request event ID from the description tag
-        const descriptionTag = zapEvent.tags.find(tag => tag[0] === 'description');
+      // Auto-close invoice overlay via store when matching zap receipt arrives
+      try {
+        const descriptionTag = zapEvent.tags.find((tag: any) => tag[0] === 'description');
         let zapRequestEventId = '';
         if (descriptionTag) {
-          try {
-            const zapData = JSON.parse(descriptionTag[1] || '{}');
-            zapRequestEventId = zapData.id || '';
-          } catch {
-            // Ignore parsing errors
-          }
+          const zapData = JSON.parse(descriptionTag[1] || '{}');
+          zapRequestEventId = zapData.id || '';
         }
-        
-        if (overlayEventID === zapRequestEventId) {
-          // Close the invoice overlay when the zap is detected
-          invoiceOverlay.style.display = "none";
-          const invoiceQR = document.getElementById("invoiceQR");
-          if (invoiceQR) {
-            invoiceQR.innerHTML = "";
-          }
+        if (zapRequestEventId) {
+          import('@/services/state/uiStore').then(({ useUIStore }) => {
+            const { eventId, show } = useUIStore.getState().invoiceOverlay;
+            if (show && eventId === zapRequestEventId) {
+              useUIStore.getState().closeInvoice();
+            }
+          });
         }
-      }
+      } catch {}
       
       // Update posts with the new zap
       setPosts(prevPosts => {
