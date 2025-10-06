@@ -1,3 +1,4 @@
+import { parseZapDescription, safeJson } from '@/utils/nostrSchemas';
 // React hook for home functionality integration
 import { useEffect, useRef, useState } from 'react';
 import { NostrClient } from '@/services/nostr/NostrClient';
@@ -225,26 +226,14 @@ export const useHomeFunctionality = () => {
     if (!nostrClientRef.current || !pubkey) return;
 
     try {
-      const filter: NostrFilter = {
-        kinds: [0],
-        authors: [pubkey]
-      };
+      // Use ensureProfiles for centralized profile loading
+      const profileMap = await ensureProfiles(getQueryClient(), nostrClientRef.current!, [pubkey]);
+      const profile = profileMap.get(pubkey);
 
-      // Create a clean filter
-      const cleanFilter = JSON.parse(JSON.stringify(filter));
-      const profileEvents = await nostrClientRef.current.getEvents([cleanFilter]) as Kind0Event[];
+      if (profile) {
+        const profileData = safeJson<Record<string, unknown>>(profile?.content || '{}', {});
+        const displayName = (profileData as any).display_name || (profileData as any).displayName || (profileData as any).name || null;
 
-      if (profileEvents && profileEvents.length > 0) {
-        const profile = profileEvents[0];
-        let displayName = null;
-        
-        try {
-          const profileData = JSON.parse(profile?.content || '{}');
-          displayName = profileData.display_name || profileData.displayName || profileData.name || null;
-        } catch (error) {
-          console.error('Failed to parse profile data:', error);
-        }
-        
         setAuthState(prev => ({
           ...prev,
           userProfile: profile || null,
@@ -327,7 +316,7 @@ export const useHomeFunctionality = () => {
         
         if (descriptionTag) {
           try {
-            const zapData = JSON.parse(descriptionTag[1] || '{}');
+            const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
             if (zapData.pubkey) {
               zapPayerPubkeys.add(zapData.pubkey);
               hasPubkeyInDescription = true;
@@ -467,8 +456,8 @@ export const useHomeFunctionality = () => {
         const zapPayerProfile = allProfiles.find(p => p.pubkey === zapPayerTag[1]);
         if (zapPayerProfile) {
           try {
-            const profileData = JSON.parse(zapPayerProfile.content);
-            post.zapPayerPicture = profileData.picture || '/images/generic-user-icon.svg';
+            const profileData = safeJson<Record<string, any>>(zapPayerProfile.content, {});
+            post.zapPayerPicture = (profileData as any).picture || '/images/generic-user-icon.svg';
           } catch {
             post.zapPayerPicture = '/images/generic-user-icon.svg';
           }
@@ -484,8 +473,8 @@ export const useHomeFunctionality = () => {
 
       // Determine if payable (author lud16 or override LNURL)
       try {
-        const authorData = post.author ? JSON.parse((post.author as any).content || '{}') : {};
-        const hasLud16 = !!authorData.lud16;
+        const authorData = post.author ? safeJson<Record<string, any>>((post.author as any).content || '{}', {}) : {};
+        const hasLud16 = !!(authorData as any).lud16;
         post.isPayable = hasLud16 || !!(post as any).zapLNURL;
       } catch {
         post.isPayable = !!(post as any).zapLNURL;
@@ -515,7 +504,7 @@ export const useHomeFunctionality = () => {
       
       if (descriptionTag) {
         try {
-          const zapData = JSON.parse(descriptionTag[1] || '{}');
+          const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
           if (zapData.pubkey) {
             zapPayerPubkeys.add(zapData.pubkey);
             hasPubkeyInDescription = true;
@@ -549,7 +538,7 @@ export const useHomeFunctionality = () => {
             const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
             if (descriptionTag) {
               try {
-                const zapData = JSON.parse(descriptionTag[1] || '{}');
+                const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
                 // Check if zap is from the specified zap-payer
                 return zapData.pubkey === post.zapPayer;
               } catch {
@@ -583,7 +572,7 @@ export const useHomeFunctionality = () => {
 
           if (descriptionTag) {
             try {
-              const zapData = JSON.parse(descriptionTag[1] || '{}');
+              const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
               if (zapData.pubkey) {
                 zapPayerPubkey = zapData.pubkey;
               } else {
@@ -598,7 +587,7 @@ export const useHomeFunctionality = () => {
 
         const zapPayerProfile = zapPayerProfiles.find(p => p.pubkey === zapPayerPubkey);
         const zapPayerPicture = zapPayerProfile ? 
-          JSON.parse(zapPayerProfile.content || '{}').picture || 
+          (safeJson<Record<string, unknown>>(zapPayerProfile.content || '{}', {}) as any).picture || 
           '/images/generic-user-icon.svg' :
           '/images/generic-user-icon.svg';
 
@@ -664,7 +653,7 @@ export const useHomeFunctionality = () => {
         
         if (descriptionTag) {
           try {
-            const zapData = JSON.parse(descriptionTag[1] || '{}');
+            const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
             zapPayerPubkey = zapData.pubkey || '';
             // Check if this is an anonymous zap (no pubkey in description)
             isAnonymousZap = !zapData.pubkey;
@@ -688,8 +677,8 @@ export const useHomeFunctionality = () => {
         
         if (zapPayerProfile) {
           try {
-            const profileData = JSON.parse(zapPayerProfile.content);
-            zapPayerPicture = profileData.picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+            const profileData = safeJson<Record<string, any>>(zapPayerProfile.content, {});
+            zapPayerPicture = (profileData as any).picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
           } catch {
             // If parsing fails, use default
             zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
@@ -730,7 +719,7 @@ export const useHomeFunctionality = () => {
       // Debug logging removed - no zap-payer tags found in current feed
 
       // Check if payable
-      const isPayable = !!(author && JSON.parse(author.content).lud16) || !!zapLNURL;
+      const isPayable = !!(author && safeJson<Record<string, unknown>>(author.content, {})['lud16']) || !!zapLNURL;
 
       posts.push({
         id: event.id,
@@ -1262,10 +1251,9 @@ export const useHomeFunctionality = () => {
         setIsLoading(false);
         return;
       }
-      const profileEvents = await nostrClientRef.current.getEvents([{
-        kinds: [0],
-        authors: [authorPubkey]
-      }]) as Kind0Event[];
+      // Use ensureProfiles for centralized profile loading
+      const profileMap = await ensureProfiles(getQueryClient(), nostrClientRef.current!, [authorPubkey]);
+      const profileEvents = profileMap.get(authorPubkey) ? [profileMap.get(authorPubkey)!] : [];
 
       // Load zaps for this event via react-query
       const zapEvents = await ensureZaps(getQueryClient(), nostrClientRef.current!, [eventId]);
@@ -1278,7 +1266,7 @@ export const useHomeFunctionality = () => {
         
         if (descriptionTag) {
           try {
-            const zapData = JSON.parse(descriptionTag[1] || '{}');
+            const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
             if (zapData.pubkey) {
               zapPayerPubkeys.add(zapData.pubkey);
               hasPubkeyInDescription = true;
@@ -1500,7 +1488,7 @@ export const useHomeFunctionality = () => {
       
       if (descriptionTag) {
         try {
-          const zapData = JSON.parse(descriptionTag[1] || '{}');
+          const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
           zapPayerPubkey = zapData.pubkey || '';
         } catch {
           zapPayerPubkey = '';
@@ -1536,7 +1524,7 @@ export const useHomeFunctionality = () => {
         const descriptionTag = zapEvent.tags.find((tag: any) => tag[0] === 'description');
         let zapRequestEventId = '';
         if (descriptionTag) {
-          const zapData = JSON.parse(descriptionTag[1] || '{}');
+          const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
           zapRequestEventId = zapData.id || '';
         }
         if (zapRequestEventId) {
@@ -1626,10 +1614,9 @@ export const useHomeFunctionality = () => {
       uncachedPubkeys.forEach(pubkey => pendingProfileRequestsRef.current.add(pubkey));
       
       try {
-        const profileEvents = await nostrClientRef.current.getEvents([{
-          kinds: [0],
-          authors: uncachedPubkeys
-        }]) as Kind0Event[];
+        // Use ensureProfiles for centralized profile loading
+        const profileMap = await ensureProfiles(getQueryClient(), nostrClientRef.current!, uncachedPubkeys);
+        const profileEvents = Array.from(profileMap.values());
         
         // Cache the results
         profileEvents.forEach(profile => {
@@ -1671,7 +1658,7 @@ export const useHomeFunctionality = () => {
       
       if (descriptionTag) {
         try {
-          const zapData = JSON.parse(descriptionTag[1] || '{}');
+          const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
           zapPayerPubkey = zapData.pubkey || '';
           isAnonymousZap = !zapData.pubkey;
         } catch {
@@ -1706,8 +1693,8 @@ export const useHomeFunctionality = () => {
       
       if (zapPayerProfile) {
         try {
-          const profileData = JSON.parse(zapPayerProfile.content);
-          zapPayerPicture = profileData.picture || '/images/generic-user-icon.svg';
+          const profileData = safeJson<Record<string, any>>(zapPayerProfile.content, {});
+          zapPayerPicture = (profileData as any).picture || '/images/generic-user-icon.svg';
         } catch {
           // If parsing fails, use default
           zapPayerPicture = '/images/generic-user-icon.svg';
@@ -1753,7 +1740,7 @@ export const useHomeFunctionality = () => {
       
       if (descriptionTag) {
         try {
-          const zapData = JSON.parse(descriptionTag[1] || '{}');
+          const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
           zapPayerPubkey = zapData.pubkey || '';
           isAnonymousZap = !zapData.pubkey;
         } catch {
@@ -1797,8 +1784,8 @@ export const useHomeFunctionality = () => {
       
       if (zapPayerProfile) {
         try {
-          const profileData = JSON.parse(zapPayerProfile.content);
-          zapPayerPicture = profileData.picture || '/images/generic-user-icon.svg';
+          const profileData = safeJson<Record<string, any>>(zapPayerProfile.content, {});
+          zapPayerPicture = (profileData as any).picture || '/images/generic-user-icon.svg';
         } catch {
           // If parsing fails, use default
           zapPayerPicture = '/images/generic-user-icon.svg';

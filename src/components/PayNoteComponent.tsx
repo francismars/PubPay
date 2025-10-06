@@ -66,7 +66,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
     };
   }, [showZapMenu]);
 
-  const authorData = post.author ? JSON.parse(post.author.content) : null;
+  const authorData = post.author ? (() => { try { return JSON.parse(post.author.content || '{}'); } catch { return null; } })() : null;
   const displayName = authorData?.display_name || authorData?.name || 'Anonymous';
   const profilePicture = authorData?.picture || '/images/generic-user-icon.svg';
   const nip05 = authorData?.nip05;
