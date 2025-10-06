@@ -254,19 +254,14 @@ export class ZapService {
   /**
    * Handle fetched invoice (matches original handleFetchedInvoice)
    */
-  async handleFetchedInvoice(invoice: string, zapEventID: string): Promise<void> {
-    console.log('handleFetchedInvoice called with:', { invoice: invoice.substring(0, 50) + '...', zapEventID });
-    
-    // Dispatch custom event to show payment UI
-    const customEvent = new CustomEvent('showPaymentUI', {
-      detail: {
-        bolt11: invoice,
-        amount: 0, // Will be calculated from invoice
-        eventId: zapEventID
-      }
-    });
-    
-    console.log('Dispatching showPaymentUI event:', customEvent.detail);
-    window.dispatchEvent(customEvent);
-  }
+          async handleFetchedInvoice(invoice: string, zapEventID: string): Promise<void> {
+            console.log('handleFetchedInvoice called with:', { invoice: invoice.substring(0, 50) + '...', zapEventID });
+            // Open invoice overlay via UI store
+            try {
+              const { useUIStore } = await import('@/services/state/uiStore');
+              useUIStore.getState().openInvoice({ bolt11: invoice, amount: 0, eventId: zapEventID });
+            } catch (e) {
+              console.error('Failed to open invoice overlay via store:', e);
+            }
+          }
 }

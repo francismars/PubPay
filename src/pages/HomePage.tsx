@@ -1,25 +1,32 @@
 // Home page component - matches original index.html design exactly
 import React, { useState, useEffect, useRef } from 'react';
+import { useUIStore } from '@/services/state/uiStore';
 import { useHomeFunctionality } from '@/hooks/useHomeFunctionality';
 import { PayNoteComponent } from '@/components/PayNoteComponent';
+import { InvoiceQR } from '@/components/InvoiceQR';
 import { PubPayPost } from '@/hooks/useHomeFunctionality';
 
 export const HomePage: React.FC = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
-  const [showLoginForm, setShowLoginForm] = useState(false);
+  const showLoginForm = useUIStore(s => s.loginForm.show);
   const [showLoggedInForm, setShowLoggedInForm] = useState(false);
-  const [showInvoiceOverlay, setShowInvoiceOverlay] = useState(false);
+  const showInvoiceOverlay = useUIStore(s => s.invoiceOverlay.show);
+  const openInvoice = useUIStore(s => s.openInvoice);
+  const closeInvoice = useUIStore(s => s.closeInvoice);
+  const openLogin = useUIStore(s => s.openLogin);
+  const closeLogin = useUIStore(s => s.closeLogin);
   const [showJSON, setShowJSON] = useState(false);
+  const [jsonContent, setJsonContent] = useState('');
   const [showNewPayNoteForm, setShowNewPayNoteForm] = useState(false);
+  const [paymentType, setPaymentType] = useState<'fixed' | 'range'>('fixed');
+  const [showNsecGroup, setShowNsecGroup] = useState(false);
   const [nsecInput, setNsecInput] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [qrScanner, setQrScanner] = useState<any>(null);
   const [extensionAvailable, setExtensionAvailable] = useState(true);
   const [externalSignerAvailable, setExternalSignerAvailable] = useState(true);
   const [externalSignerLoading, setExternalSignerLoading] = useState(false);
-  const [currentInvoice, setCurrentInvoice] = useState<string>('');
-  const [currentInvoiceAmount, setCurrentInvoiceAmount] = useState<number>(0);
-  const [currentInvoiceEventId, setCurrentInvoiceEventId] = useState<string>('');
+  // Invoice state now read from UI store
   const [singleNoteMode, setSingleNoteMode] = useState(false);
   const [singleNoteId, setSingleNoteId] = useState<string>('');
 
@@ -54,63 +61,11 @@ export const HomePage: React.FC = () => {
 
   // Reset login form to main state
   const resetLoginForm = () => {
-    document.getElementById('nsecInputGroup')!.style.display = 'none';
-    document.getElementById('loginFormGroup')!.style.display = 'flex';
+    setShowNsecGroup(false);
     setNsecInput('');
   };
 
-  // Listen for payment UI events
-  useEffect(() => {
-    const handleShowPaymentUI = async (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { bolt11, amount, eventId } = customEvent.detail;
-      
-      // Force re-render by briefly hiding and then showing the overlay
-      setShowInvoiceOverlay(false);
-      
-      // Use setTimeout to ensure the state change is processed
-      setTimeout(() => {
-        setCurrentInvoice(bolt11);
-        setCurrentInvoiceAmount(amount);
-        setCurrentInvoiceEventId(eventId);
-        setShowInvoiceOverlay(true);
-        
-        // Generate QR code
-        generateQRCode(bolt11);
-      }, 10);
-    };
-
-    window.addEventListener('showPaymentUI', handleShowPaymentUI);
-    
-    return () => {
-      window.removeEventListener('showPaymentUI', handleShowPaymentUI);
-    };
-  }, []);
-
-  // Generate QR code for Lightning invoice (matches legacy behavior)
-  const generateQRCode = async (invoice: string) => {
-    if (!invoice) return;
-    
-    // Wait for the canvas to be available
-    setTimeout(async () => {
-      const canvas = document.getElementById('invoiceQR') as HTMLCanvasElement;
-      if (!canvas) return;
-      
-      // Clear previous QR code
-      canvas.innerHTML = '';
-      
-      // Use QRCode.toCanvas exactly like the legacy code
-      if ((window as any).QRCode) {
-        try {
-          const qr = await (window as any).QRCode.toCanvas(canvas, invoice);
-        } catch (error) {
-          console.error('Error generating QR code:', error);
-        }
-      } else {
-        console.error('QRCode library not available');
-      }
-    }, 100);
-  };
+  // Invoice QR is rendered by <InvoiceQR />
 
   // Handler functions
   const handleSharePost = async (post: PubPayPost) => {
@@ -138,12 +93,8 @@ export const HomePage: React.FC = () => {
   };
 
   const handleViewRaw = (post: PubPayPost) => {
+    setJsonContent(JSON.stringify(post.event, null, 2));
     setShowJSON(true);
-    // Populate the JSON viewer with the original event data (like the original showJSON function)
-    const noteJSONElement = document.getElementById('noteJSON');
-    if (noteJSONElement) {
-      noteJSONElement.textContent = JSON.stringify(post.event, null, 2);
-    }
   };
 
   const handleQRScannerOpen = () => {
@@ -181,7 +132,7 @@ export const HomePage: React.FC = () => {
       setShowLoggedInForm(true);
     } else {
       resetLoginForm();
-      setShowLoginForm(true);
+      openLogin();
     }
   };
 
@@ -189,10 +140,11 @@ export const HomePage: React.FC = () => {
     if (nsecInput.trim()) {
       handleContinueWithNsec(nsecInput, rememberMe);
       setNsecInput('');
-      setShowLoginForm(false);
+      closeLogin();
     }
   };
 
+  const [isPublishing, setIsPublishing] = useState(false);
   const handlePostNoteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
@@ -202,11 +154,7 @@ export const HomePage: React.FC = () => {
       data[key] = value.toString();
     }
     
-    // Show "Publishing..." state
-    const submitButton = document.getElementById('postNote');
-    if (submitButton) {
-      submitButton.textContent = 'Publishing...';
-    }
+    setIsPublishing(true);
     
     try {
       await handlePostNote(data);
@@ -214,44 +162,19 @@ export const HomePage: React.FC = () => {
       // Close the form after successful submission
       setShowNewPayNoteForm(false);
       
-      // Reset form fields
-      (e.target as HTMLFormElement).reset();
-      
-      // Reset radio button to fixed
-      const fixedRadio = document.getElementById('fixedFlow') as HTMLInputElement;
-      if (fixedRadio) {
-        fixedRadio.checked = true;
-        document.getElementById('fixedInterface')!.style.display = 'block';
-        document.getElementById('rangeInterface')!.style.display = 'none';
-        // Reset required attributes for fixed mode
-        (document.getElementById('zapFixed') as HTMLInputElement)!.setAttribute('required', 'true');
-        (document.getElementById('zapMin') as HTMLInputElement)!.removeAttribute('required');
-        (document.getElementById('zapMax') as HTMLInputElement)!.removeAttribute('required');
-      }
+      // Reset local UI state
+      setPaymentType('fixed');
     } catch (error) {
       console.error('Failed to post note:', error);
     } finally {
-      // Reset button text
-      if (submitButton) {
-        submitButton.textContent = 'Publish';
-      }
+      setIsPublishing(false);
     }
   };
 
   // Initialize button states on mount
   useEffect(() => {
-    // Both buttons start as available - they only get disabled after failed attempts
     setExtensionAvailable(true);
     setExternalSignerAvailable(true);
-    
-    // Initialize form with correct required attributes for default FIXED mode
-    const zapFixed = document.getElementById('zapFixed') as HTMLInputElement;
-    const zapMin = document.getElementById('zapMin') as HTMLInputElement;
-    const zapMax = document.getElementById('zapMax') as HTMLInputElement;
-    
-    if (zapFixed) zapFixed.setAttribute('required', 'true');
-    if (zapMin) zapMin.removeAttribute('required');
-    if (zapMax) zapMax.removeAttribute('required');
   }, []);
 
   // Check for single note URL parameter on load
@@ -379,7 +302,7 @@ export const HomePage: React.FC = () => {
             setExternalSignerAvailable(true);
             
             // Close login form
-            setShowLoginForm(false);
+            closeLogin();
             
             // Reload the page to trigger authentication
             window.location.reload();
@@ -465,18 +388,7 @@ export const HomePage: React.FC = () => {
     };
   }, [qrScanner]);
 
-  // Listen for login form show events from the hook
-  useEffect(() => {
-    const handleShowLoginForm = () => {
-      handleLoginOpen();
-    };
-
-    window.addEventListener('showLoginForm', handleShowLoginForm);
-    
-    return () => {
-      window.removeEventListener('showLoginForm', handleShowLoginForm);
-    };
-  }, []);
+  // No CustomEvent listener needed; login opens via store
 
   return (
     <div>
@@ -507,6 +419,7 @@ export const HomePage: React.FC = () => {
             <a id="newPayNote" className="cta" href="#" onClick={() => { 
               if (authState.isLoggedIn) {
                 setShowNewPayNoteForm(true);
+                setPaymentType('fixed');
               } else {
                 handleNewPayNote();
               }
@@ -939,7 +852,7 @@ export const HomePage: React.FC = () => {
                   const result = await handleSignInExtension(rememberMe);
                   // Only close the form if sign in was successful
                   if (result && result.success) {
-                    setShowLoginForm(false);
+                    closeLogin();
                   } else {
                     // If extension is not available, disable the button
                     setExtensionAvailable(false);
@@ -966,7 +879,7 @@ export const HomePage: React.FC = () => {
                   const result = await handleSignInExternalSigner(rememberMe);
                   // Only close the form if sign in was successful
                   if (result && result.success) {
-                    setShowLoginForm(false);
+                    closeLogin();
                   } else {
                     // If external signer failed, disable the button
                     setExternalSignerAvailable(false);
@@ -982,11 +895,10 @@ export const HomePage: React.FC = () => {
               {!externalSignerAvailable ? 'Not found' : externalSignerLoading ? 'Loading...' : 'Signer'}
             </a>
             <a href="#" id="signInNsec" className="cta" onClick={() => {
-              document.getElementById('nsecInputGroup')!.style.display = 'block';
-              document.getElementById('loginFormGroup')!.style.display = 'none';
+              setShowNsecGroup(true);
             }}>NSEC</a>
           </div>
-          <div id="nsecInputGroup" style={{display: 'none'}}>
+          <div id="nsecInputGroup" style={{display: showNsecGroup ? 'block' : 'none'}}>
             <form onSubmit={(e) => { e.preventDefault(); handleNsecContinue(); }}>
               <input
                 type="password"
@@ -999,7 +911,7 @@ export const HomePage: React.FC = () => {
               />
               <button id="continueWithNsec" className="cta" type="submit" onClick={async () => {
                 await handleContinueWithNsec(nsecInput, rememberMe);
-                setShowLoginForm(false);
+                closeLogin();
               }}>Continue</button>
             </form>
           </div>
@@ -1013,9 +925,9 @@ export const HomePage: React.FC = () => {
               onChange={(e) => setRememberMe(e.target.checked)}
             />
           </div>
-          <a id="cancelLogin" href="#" className="label" onClick={() => {
+            <a id="cancelLogin" href="#" className="label" onClick={() => {
             resetLoginForm();
-            setShowLoginForm(false);
+            closeLogin();
           }}>cancel</a>
         </div>
       </div>
@@ -1053,31 +965,26 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* Invoice Overlay */}
-      <div 
-        className="overlayContainer" 
-        id="invoiceOverlay" 
-        data-event-id={currentInvoiceEventId || ''}
-        style={{display: showInvoiceOverlay ? 'flex' : 'none'}}
-      >
+      <div className="overlayContainer" id="invoiceOverlay" style={{display: showInvoiceOverlay ? 'flex' : 'none'}}>
         <div className="overlayInner">
           <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
           <p id="qrcodeTitle" className="label">Scan Invoice to Pay Zap</p>
-          {currentInvoiceAmount > 0 && (
+          {useUIStore.getState().invoiceOverlay.amount > 0 && (
             <p className="label" style={{fontSize: '18px', fontWeight: 'bold', color: '#4a75ff'}}>
-              {currentInvoiceAmount.toLocaleString()} sats
+              {useUIStore.getState().invoiceOverlay.amount.toLocaleString()} sats
             </p>
           )}
-          <canvas id="invoiceQR"></canvas>
+          <InvoiceQR bolt11={useUIStore.getState().invoiceOverlay.bolt11} />
           <p id="qrcodeTitle" className="label">Otherwise:</p>
           <div className="formFieldGroup">
             <button 
               id="payWithExtension" 
               className="cta" 
               onClick={() => {
-                // Try to pay with extension using stored invoice data
-                if (currentInvoice && currentInvoiceAmount > 0) {
+                const { bolt11, amount } = useUIStore.getState().invoiceOverlay;
+                if (bolt11 && amount > 0) {
                   // This would trigger the extension to pay the invoice
-                  console.log('Paying with extension:', currentInvoice);
+                  console.log('Paying with extension:', bolt11);
                   // For now, just show a message
                   alert('Extension payment not yet implemented. Please scan the QR code with your Lightning wallet.');
                 } else {
@@ -1091,10 +998,10 @@ export const HomePage: React.FC = () => {
               id="payWithWallet" 
               className="cta" 
               onClick={() => {
-                // Open Lightning wallet with the invoice
-                if (currentInvoice) {
+                const bolt11 = useUIStore.getState().invoiceOverlay.bolt11;
+                if (bolt11) {
                   try {
-                    window.location.href = `lightning:${currentInvoice}`;
+                    window.location.href = `lightning:${bolt11}`;
                   } catch (error) {
                     console.error('Error opening wallet:', error);
                   }
@@ -1109,9 +1016,10 @@ export const HomePage: React.FC = () => {
               id="copyInvoice" 
               className="cta" 
               onClick={async () => {
-                if (currentInvoice) {
+                const bolt11 = useUIStore.getState().invoiceOverlay.bolt11;
+                if (bolt11) {
                   try {
-                    await navigator.clipboard.writeText(currentInvoice);
+                    await navigator.clipboard.writeText(bolt11);
                     // Change button text to "Copied!" for 1 second
                     const button = document.getElementById('copyInvoice');
                     if (button) {
@@ -1124,7 +1032,7 @@ export const HomePage: React.FC = () => {
                     console.error('Failed to copy invoice:', err);
                     // Fallback: select the text
                     const textArea = document.createElement('textarea');
-                    textArea.value = currentInvoice;
+                    textArea.value = bolt11;
                     document.body.appendChild(textArea);
                     textArea.select();
                     document.execCommand('copy');
@@ -1146,14 +1054,14 @@ export const HomePage: React.FC = () => {
               Copy Invoice
             </button>
           </div>
-          <a id="closeInvoiceOverlay" href="#" className="label" onClick={() => setShowInvoiceOverlay(false)}>Close</a>
+          <a id="closeInvoiceOverlay" href="#" className="label" onClick={() => closeInvoice()}>Close</a>
         </div>
       </div>
 
       {/* JSON Viewer Overlay */}
       <div className="overlayContainer" id="viewJSON" style={{display: showJSON ? 'flex' : 'none'}}>
         <div className="overlayInner">
-          <pre id="noteJSON"></pre>
+          <pre id="noteJSON">{jsonContent}</pre>
           <a id="closeJSON" href="#" className="label" onClick={() => setShowJSON(false)}>close</a>
         </div>
       </div>
@@ -1176,19 +1084,8 @@ export const HomePage: React.FC = () => {
                   id="fixedFlow" 
                   name="paymentType" 
                   value="fixed" 
-                  defaultChecked 
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      document.getElementById('fixedInterface')!.style.display = 'block';
-                      document.getElementById('rangeInterface')!.style.display = 'none';
-                      (document.getElementById('zapMin') as HTMLInputElement)!.value = '';
-                      (document.getElementById('zapMax') as HTMLInputElement)!.value = '';
-                      // Set required attributes for fixed mode
-                      (document.getElementById('zapFixed') as HTMLInputElement)!.setAttribute('required', 'true');
-                      (document.getElementById('zapMin') as HTMLInputElement)!.removeAttribute('required');
-                      (document.getElementById('zapMax') as HTMLInputElement)!.removeAttribute('required');
-                    }
-                  }}
+                  checked={paymentType === 'fixed'}
+                  onChange={(e) => { if (e.target.checked) setPaymentType('fixed'); }}
                 />
                 <label htmlFor="fixedFlow">Fixed</label>
               </div>
@@ -1198,17 +1095,8 @@ export const HomePage: React.FC = () => {
                   id="rangeFlow" 
                   name="paymentType" 
                   value="range" 
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      document.getElementById('rangeInterface')!.style.display = 'flex';
-                      document.getElementById('fixedInterface')!.style.display = 'none';
-                      (document.getElementById('zapFixed') as HTMLInputElement)!.value = '';
-                      // Set required attributes for range mode
-                      (document.getElementById('zapMin') as HTMLInputElement)!.setAttribute('required', 'true');
-                      (document.getElementById('zapMax') as HTMLInputElement)!.setAttribute('required', 'true');
-                      (document.getElementById('zapFixed') as HTMLInputElement)!.removeAttribute('required');
-                    }
-                  }}
+                  checked={paymentType === 'range'}
+                  onChange={(e) => { if (e.target.checked) setPaymentType('range'); }}
                 />
                 <label htmlFor="rangeFlow">Range</label>
               </div>
@@ -1218,21 +1106,21 @@ export const HomePage: React.FC = () => {
               </div>
             </fieldset>
 
-            <div className="formFieldGroup" id="fixedInterface">
+            <div className="formFieldGroup" id="fixedInterface" style={{display: paymentType === 'fixed' ? 'block' : 'none'}}>
               <div className="formField">
                 <label htmlFor="zapFixed" className="label">Fixed Amount* <span className="tagName">zap-min = zap-max</span></label>
-                <input type="number" min={1} id="zapFixed" placeholder="1" name="zapFixed" required />
+                <input type="number" min={1} id="zapFixed" placeholder="1" name="zapFixed" required={paymentType === 'fixed'} />
               </div>
             </div>
 
-            <div className="formFieldGroup" id="rangeInterface" style={{display: 'none'}}>
+            <div className="formFieldGroup" id="rangeInterface" style={{display: paymentType === 'range' ? 'flex' : 'none'}}>
               <div className="formField">
                 <label htmlFor="zapMin" className="label">Minimum* <span className="tagName">zap-min</span></label>
-                <input type="number" min={1} id="zapMin" placeholder="1" name="zapMin" />
+                <input type="number" min={1} id="zapMin" placeholder="1" name="zapMin" required={paymentType === 'range'} />
               </div>
               <div className="formField">
                 <label htmlFor="zapMax" className="label">Maximum* <span className="tagName">zap-max</span></label>
-                <input type="number" min={1} id="zapMax" placeholder="1000000000" name="zapMax" />
+                <input type="number" min={1} id="zapMax" placeholder="1000000000" name="zapMax" required={paymentType === 'range'} />
               </div>
             </div>
 
@@ -1265,7 +1153,7 @@ export const HomePage: React.FC = () => {
                 <input type="text" id="redirectToNote" placeholder="note1..." name="redirectToNote" disabled />
               </div>
             </details>
-            <button type="submit" id="postNote" className="cta">Publish</button>
+            <button type="submit" id="postNote" className="cta">{isPublishing ? 'Publishing...' : 'Publish'}</button>
           </form>
           <a id="cancelNewNote" href="#" className="label" onClick={() => setShowNewPayNoteForm(false)}>cancel</a>
         </div>
