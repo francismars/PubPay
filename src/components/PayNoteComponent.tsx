@@ -68,7 +68,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
 
   const authorData = post.author ? JSON.parse(post.author.content) : null;
   const displayName = authorData?.display_name || authorData?.name || 'Anonymous';
-  const profilePicture = authorData?.picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+  const profilePicture = authorData?.picture || '/images/generic-user-icon.svg';
   const nip05 = authorData?.nip05;
   const lud16 = authorData?.lud16;
   
@@ -377,7 +377,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
           <div className="zapPayer">
             Payer <span className="material-symbols-outlined main-icon">target</span>
             <div className="zapPayerInner">
-              <img className="userImg" src={post.zapPayerPicture || "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"} />
+              <img className="userImg" src={post.zapPayerPicture || "/images/generic-user-icon.svg"} />
               <div className="userName">
                 {(() => {
                   if (window.NostrTools) {

@@ -594,11 +594,11 @@ export const useHomeFunctionality = () => {
             isAnonymousZap = true;
           }
 
-          const zapPayerProfile = zapPayerProfiles.find(p => p.pubkey === zapPayerPubkey);
-          const zapPayerPicture = zapPayerProfile ? 
-            JSON.parse(zapPayerProfile.content || '{}').picture || 
-            'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg' :
-            'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+        const zapPayerProfile = zapPayerProfiles.find(p => p.pubkey === zapPayerPubkey);
+        const zapPayerPicture = zapPayerProfile ? 
+          JSON.parse(zapPayerProfile.content || '{}').picture || 
+          '/images/generic-user-icon.svg' :
+          '/images/generic-user-icon.svg';
 
           // Generate npub for the zap payer
           const zapPayerNpub = window.NostrTools ? 
@@ -1713,15 +1713,15 @@ export const useHomeFunctionality = () => {
       // Get zap payer profile from pre-loaded profiles
       const zapPayerProfile = zapPayerPubkey ? profiles.get(zapPayerPubkey) : null;
 
-      let zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+      let zapPayerPicture = '/images/generic-user-icon.svg';
       
       if (zapPayerProfile) {
         try {
           const profileData = JSON.parse(zapPayerProfile.content);
-          zapPayerPicture = profileData.picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+          zapPayerPicture = profileData.picture || '/images/generic-user-icon.svg';
         } catch {
           // If parsing fails, use default
-          zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+          zapPayerPicture = '/images/generic-user-icon.svg';
         }
       }
 
@@ -1804,15 +1804,15 @@ export const useHomeFunctionality = () => {
         zapPayerProfile = profiles.get(zapPayerPubkey) || null;
       }
 
-      let zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+      let zapPayerPicture = '/images/generic-user-icon.svg';
       
       if (zapPayerProfile) {
         try {
           const profileData = JSON.parse(zapPayerProfile.content);
-          zapPayerPicture = profileData.picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+          zapPayerPicture = profileData.picture || '/images/generic-user-icon.svg';
         } catch {
           // If parsing fails, use default
-          zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+          zapPayerPicture = '/images/generic-user-icon.svg';
         }
       }
 
