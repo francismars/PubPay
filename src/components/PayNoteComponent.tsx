@@ -395,11 +395,15 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
           </div>
         )}
 
-        {/* LNURL Override */}
+        {/* LNURL Override (match legacy structure/styling) */}
         {post.zapLNURL && (
-          <div className="zapLNURL">
-            <span className="material-symbols-outlined">double_arrow</span>
-            Redirect to: <a href={post.zapLNURL} target="_blank" rel="noopener noreferrer">{post.zapLNURL}</a>
+          <div className="zapPayer">
+            <div>
+              <span className="material-symbols-outlined main-icon">double_arrow</span> Redirect to
+            </div>
+            <div className="zapPayerInner">
+              <a href={post.zapLNURL} target="_blank" rel="noopener noreferrer">{post.zapLNURL}</a>
+            </div>
           </div>
         )}
 

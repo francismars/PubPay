@@ -444,11 +444,12 @@ export const useHomeFunctionality = () => {
         content: event.content
       };
 
-      // Extract zap min/max from tags
+      // Extract zap min/max and overrides from tags
       const zapMinTag = event.tags.find(tag => tag[0] === 'zap-min');
       const zapMaxTag = event.tags.find(tag => tag[0] === 'zap-max');
       const zapUsesTag = event.tags.find(tag => tag[0] === 'zap-uses');
       const zapPayerTag = event.tags.find(tag => tag[0] === 'zap-payer');
+      const zapLNURLTag = event.tags.find(tag => tag[0] === 'zap-lnurl');
       
       if (zapMinTag && zapMinTag[1]) {
         post.zapMin = parseInt(zapMinTag[1]) / 1000 || 0;
@@ -467,13 +468,27 @@ export const useHomeFunctionality = () => {
         if (zapPayerProfile) {
           try {
             const profileData = JSON.parse(zapPayerProfile.content);
-            post.zapPayerPicture = profileData.picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+            post.zapPayerPicture = profileData.picture || '/images/generic-user-icon.svg';
           } catch {
-            post.zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+            post.zapPayerPicture = '/images/generic-user-icon.svg';
           }
         } else {
-          post.zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+          post.zapPayerPicture = '/images/generic-user-icon.svg';
         }
+      }
+
+      // Set zap LNURL override if present
+      if (zapLNURLTag && zapLNURLTag[1]) {
+        (post as any).zapLNURL = zapLNURLTag[1];
+      }
+
+      // Determine if payable (author lud16 or override LNURL)
+      try {
+        const authorData = post.author ? JSON.parse((post.author as any).content || '{}') : {};
+        const hasLud16 = !!authorData.lud16;
+        post.isPayable = hasLud16 || !!(post as any).zapLNURL;
+      } catch {
+        post.isPayable = !!(post as any).zapLNURL;
       }
 
       posts.push(post);
