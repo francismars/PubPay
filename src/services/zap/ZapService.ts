@@ -29,8 +29,12 @@ export class ZapService {
 
       // Check for zap-lnurl tag first, then fall back to author's lud16
       const zapLNURL = (eventData as any).tags.find((tag: any) => tag[0] === 'zap-lnurl');
-      const eventCreatorProfileContent = JSON.parse((authorData as any).content);
-      console.log('Parsed author content:', eventCreatorProfileContent);
+      let eventCreatorProfileContent: any = {};
+      try {
+        eventCreatorProfileContent = JSON.parse((authorData as any)?.content || '{}');
+      } catch {
+        eventCreatorProfileContent = {};
+      }
 
       const lud16 = zapLNURL && zapLNURL.length > 0
         ? zapLNURL[1]

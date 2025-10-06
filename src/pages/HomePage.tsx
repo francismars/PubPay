@@ -409,7 +409,7 @@ export const HomePage: React.FC = () => {
               {authState.isLoggedIn && authState.userProfile ? (
                 <img 
                   className="userImg currentUserImg"
-                  src={JSON.parse(authState.userProfile.content).picture || '/images/generic-user-icon.svg'}
+                  src={((() => { try { return JSON.parse(authState.userProfile.content || '{}').picture; } catch { return undefined; } })()) || '/images/generic-user-icon.svg'}
                   alt="Profile"
                 />
               ) : (
