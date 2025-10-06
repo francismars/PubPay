@@ -497,7 +497,7 @@ export const HomePage: React.FC = () => {
               {authState.isLoggedIn && authState.userProfile ? (
                 <img 
                   className="userImg currentUserImg"
-                  src={JSON.parse(authState.userProfile.content).picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg'}
+                  src={JSON.parse(authState.userProfile.content).picture || '/images/generic-user-icon.svg'}
                   alt="Profile"
                 />
               ) : (
@@ -539,7 +539,7 @@ export const HomePage: React.FC = () => {
                 <div className="noteProfileImg">
                   <img
                     className="userImg"
-                    src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"
+                    src="/images/generic-user-icon.svg"
                     alt="Profile"
                   />
                 </div>
@@ -611,7 +611,7 @@ export const HomePage: React.FC = () => {
                     <div className="noteProfileImg">
                       <img
                         className="userImg"
-                        src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"
+                        src="/images/generic-user-icon.svg"
                         alt="Profile"
                       />
                     </div>
@@ -680,7 +680,7 @@ export const HomePage: React.FC = () => {
                     <div className="noteProfileImg">
                       <img
                         className="userImg"
-                        src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"
+                        src="/images/generic-user-icon.svg"
                         alt="Profile"
                       />
                     </div>
@@ -809,7 +809,7 @@ export const HomePage: React.FC = () => {
                 <div className="noteProfileImg">
                   <img
                     className="userImg"
-                    src="https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"
+                    src="/images/generic-user-icon.svg"
                     alt="Profile"
                   />
                 </div>

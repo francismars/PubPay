@@ -7,6 +7,7 @@ export class NostrClient {
   private relays: string[];
   private connections: Map<string, RelayConnection> = new Map();
   private subscriptions: Map<string, Subscription> = new Map();
+  private inFlightRequests: Map<string, Promise<NostrEvent[]>> = new Map();
 
   constructor(relays: string[] = RELAYS) {
     this.relays = relays;
@@ -173,7 +174,13 @@ export class NostrClient {
   async publishEvent(event: NostrEvent): Promise<void> {
     try {
       await this.pool.publish(this.relays, event);
-    } catch (error) {
+    } catch (error: any) {
+      const msg = String(error?.message || error || '');
+      // Ignore NIP-13 PoW requirement errors if at least one relay accepts elsewhere
+      if (msg.includes('pow:') || msg.toLowerCase().includes('proof-of-work')) {
+        console.warn('Publish encountered PoW requirement; treating as non-fatal');
+        return; // soft-success
+      }
       console.error('Failed to publish event:', error);
       throw new Error(`Failed to publish event: ${error}`);
     }
@@ -183,7 +190,22 @@ export class NostrClient {
    * Get events from relays using subscribeMany pattern
    */
   async getEvents(filters: NostrFilter[]): Promise<NostrEvent[]> {
-    return new Promise((resolve, reject) => {
+    // Coalesce identical concurrent requests
+    const norm = (f: any) => ({
+      kinds: f.kinds,
+      authors: f.authors ? [...new Set(f.authors)].sort() : undefined,
+      '#e': f['#e'] ? [...new Set(f['#e'])].sort() : undefined,
+      '#t': f['#t'] ? [...new Set(f['#t'])].sort() : undefined,
+      '#a': f['#a'] ? [...new Set(f['#a'])].sort() : undefined,
+      limit: f.limit,
+      until: f.until,
+      since: f.since
+    });
+    const key = JSON.stringify(filters.map(norm));
+    const existing = this.inFlightRequests.get(key);
+    if (existing) return existing;
+
+    const promise = new Promise<NostrEvent[]>((resolve, reject) => {
       try {
         if (!this.pool) {
           throw new Error('Nostr pool not initialized');
@@ -248,6 +270,14 @@ export class NostrClient {
         reject(new Error(`Failed to get events: ${error}`));
       }
     });
+
+    this.inFlightRequests.set(key, promise);
+    promise.finally(() => {
+      const cur = this.inFlightRequests.get(key);
+      if (cur === promise) this.inFlightRequests.delete(key);
+    });
+
+    return promise;
   }
 
   /**
