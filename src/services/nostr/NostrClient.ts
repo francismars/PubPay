@@ -1,6 +1,7 @@
 // NostrClient - Handles all Nostr protocol interactions
 import { NostrEvent, NostrFilter, RelayConnection, EventHandler, Subscription } from '../../types/nostr';
 import { RELAYS } from '../../utils/constants';
+import { QueryClient } from '@tanstack/react-query';
 
 export class NostrClient {
   private pool: any; // NostrTools.SimplePool
@@ -342,14 +343,11 @@ export class NostrClient {
    */
   destroy(): void {
     this.unsubscribeAll();
-    if (this.pool) {
+    if (this.pool && typeof this.pool.close === 'function') {
       try {
-        // Check if pool has relays before closing
-        if (this.pool.relays && this.pool.relays.size > 0) {
-          this.pool.close();
-        }
-      } catch (error) {
-        console.warn('Error closing Nostr pool:', error);
+        this.pool.close();
+      } catch (_err) {
+        // Ignore close errors (can occur in StrictMode double-unmounts)
       }
     }
   }

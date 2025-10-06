@@ -16,6 +16,7 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.2",
     "bolt11": "^1.4.1",
     "cookie-parser": "~1.4.4",
     "cors": "^2.8.5",

@@ -1,6 +1,10 @@
 // React hook for home functionality integration
 import { useEffect, useRef, useState } from 'react';
 import { NostrClient } from '@/services/nostr/NostrClient';
+import { ensureProfiles } from '@/services/query/profileQueries';
+import { ensureZaps } from '@/services/query/zapQueries';
+import { ensurePosts } from '@/services/query/postQueries';
+import { getQueryClient } from '@/services/query/queryClient';
 import { LightningService } from '@/services/lightning/LightningService';
 import { AuthService } from '@/services/AuthService';
 import { ZapService } from '@/services/zap';
@@ -271,16 +275,12 @@ export const useHomeFunctionality = () => {
         setIsLoading(true);
       }
 
-      // Create a clean filter object
-      const filter: NostrFilter = {
-        kinds: [1],
-        '#t': ['pubpay'],
-        limit: 21
-      };
+      // Build posts params
+      let params: { until?: number; limit?: number; authors?: string[] } = { limit: 21 };
 
       // Add following filter if needed
       if (feed === 'following' && followingPubkeysRef.current && followingPubkeysRef.current.length > 0) {
-        filter.authors = [...followingPubkeysRef.current]; // Clone the array
+        params.authors = [...followingPubkeysRef.current];
       }
 
       // Add until filter for loading more posts (older posts)
@@ -290,24 +290,13 @@ export const useHomeFunctionality = () => {
           // Get the oldest post (last in the array since they're sorted newest first)
           const oldestPost = currentPosts[currentPosts.length - 1];
           if (oldestPost) {
-            filter.until = oldestPost.createdAt;
+            params.until = oldestPost.createdAt;
             console.log('Loading more posts until:', oldestPost.createdAt, 'for post:', oldestPost.id);
           }
         }
       }
-
-
-      // Ensure filter is valid before sending
-      if (!filter.kinds || filter.kinds.length === 0) {
-        console.warn('Invalid filter: missing kinds');
-        return;
-      }
-
-      // Create a deep clone of the filter to avoid reference issues
-      const cleanFilter = JSON.parse(JSON.stringify(filter));
-      const filters = [cleanFilter];
-
-      const kind1Events = await nostrClientRef.current.getEvents(filters) as Kind1Event[];
+      // Fetch posts via react-query ensure
+      const kind1Events = await ensurePosts(getQueryClient(), nostrClientRef.current!, { until: params.until, limit: params.limit });
 
       if (!kind1Events || kind1Events.length === 0) {
         if (loadMore) {
@@ -321,16 +310,14 @@ export const useHomeFunctionality = () => {
       // Get author pubkeys
       const authorPubkeys = [...new Set(kind1Events.map(event => event.pubkey))];
 
-      // Load profiles (cached & batched)
-      const profilesMap = await loadProfilesBatched(authorPubkeys);
-      const profileEvents = Array.from(profilesMap.values());
+      // Load profiles via react-query (deduped & cached)
+      const profileEvents = Array.from(
+        (await ensureProfiles(getQueryClient(), nostrClientRef.current!, authorPubkeys)).values()
+      );
 
-      // Load zaps for these events
+      // Load zaps for these events via react-query
       const eventIds = kind1Events.map(event => event.id);
-      const zapEvents = await nostrClientRef.current.getEvents([{
-        kinds: [9735],
-        '#e': eventIds
-      }]) as Kind9735Event[];
+      const zapEvents = await ensureZaps(getQueryClient(), nostrClientRef.current!, eventIds);
 
       // Extract zap payer pubkeys and load their profiles
       const zapPayerPubkeys = new Set<string>();
@@ -1262,11 +1249,8 @@ export const useHomeFunctionality = () => {
         authors: [authorPubkey]
       }]) as Kind0Event[];
 
-      // Load zaps for this event
-      const zapEvents = await nostrClientRef.current.getEvents([{
-        kinds: [9735],
-        '#e': [eventId]
-      }]) as Kind9735Event[];
+      // Load zaps for this event via react-query
+      const zapEvents = await ensureZaps(getQueryClient(), nostrClientRef.current!, [eventId]);
 
       // Extract zap payer pubkeys and load their profiles
       const zapPayerPubkeys = new Set<string>();
@@ -1364,18 +1348,14 @@ export const useHomeFunctionality = () => {
       // Get author pubkeys for replies
       const authorPubkeys = [...new Set(replyEvents.map(event => event.pubkey))];
 
-      // Load profiles for reply authors
-      const profileEvents = await nostrClientRef.current.getEvents([{
-        kinds: [0],
-        authors: authorPubkeys
-      }]) as Kind0Event[];
+      // Load profiles for reply authors via react-query
+      const profileEvents = Array.from(
+        (await ensureProfiles(getQueryClient(), nostrClientRef.current!, authorPubkeys)).values()
+      );
 
-      // Load zaps for reply events
+      // Load zaps for reply events via react-query
       const eventIds = replyEvents.map(event => event.id);
-      const zapEvents = await nostrClientRef.current.getEvents([{
-        kinds: [9735],
-        '#e': eventIds
-      }]) as Kind9735Event[];
+      const zapEvents = await ensureZaps(getQueryClient(), nostrClientRef.current!, eventIds);
 
       // Extract zap payer pubkeys and load their profiles
       const zapPayerPubkeys = new Set<string>();
