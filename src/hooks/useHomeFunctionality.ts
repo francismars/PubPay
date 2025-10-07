@@ -69,11 +69,11 @@ export const useHomeFunctionality = () => {
   const zapServiceRef = useRef<ZapService | null>(null);
   const followingPubkeysRef = useRef<string[]>([]);
   const didLoadInitialRef = useRef<boolean>(false);
-  
+
   // Profile cache to prevent duplicate requests
   const profileCacheRef = useRef<Map<string, Kind0Event>>(new Map());
   const pendingProfileRequestsRef = useRef<Set<string>>(new Set());
-  
+
   // Zap batch processing
   const zapBatchRef = useRef<Kind9735Event[]>([]);
   const zapBatchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -84,7 +84,7 @@ export const useHomeFunctionality = () => {
     if (nostrClientRef.current) {
       return;
     }
-    
+
     const initializeServices = () => {
       try {
       // Check if NostrTools is available
@@ -105,7 +105,7 @@ export const useHomeFunctionality = () => {
           webhookUrl: (typeof process !== 'undefined' && process.env?.REACT_APP_WEBHOOK_URL) || ''
         };
         lightningServiceRef.current = new LightningService(lightningConfig);
-        
+
         // Initialize Zap service
         zapServiceRef.current = new ZapService();
 
@@ -126,8 +126,8 @@ export const useHomeFunctionality = () => {
       didLoadInitialRef.current = true;
       // Check if we're in single note mode first
       const queryParams = new URLSearchParams(window.location.search);
-      const queryNote = queryParams.get("note");
-      
+      const queryNote = queryParams.get('note');
+
       if (queryNote) {
         // Don't load global posts if we're in single note mode
         console.log('Single note mode detected, skipping global feed load');
@@ -145,7 +145,7 @@ export const useHomeFunctionality = () => {
           if (nostrClientRef.current && typeof window !== 'undefined' && window.NostrTools) {
             // Check again for single note mode before loading
             const queryParams = new URLSearchParams(window.location.search);
-            const queryNote = queryParams.get("note");
+            const queryNote = queryParams.get('note');
             if (!queryNote) {
             loadPosts('global');
             }
@@ -237,7 +237,7 @@ export const useHomeFunctionality = () => {
         setAuthState(prev => ({
           ...prev,
           userProfile: profile || null,
-          displayName: displayName
+          displayName
         }));
       }
     } catch (err) {
@@ -265,7 +265,7 @@ export const useHomeFunctionality = () => {
       }
 
       // Build posts params
-      let params: { until?: number; limit?: number; authors?: string[] } = { limit: 21 };
+      const params: { until?: number; limit?: number; authors?: string[] } = { limit: 21 };
 
       // Add following filter if needed
       if (feed === 'following' && followingPubkeysRef.current && followingPubkeysRef.current.length > 0) {
@@ -313,7 +313,7 @@ export const useHomeFunctionality = () => {
       zapEvents.forEach(zap => {
         const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
         let hasPubkeyInDescription = false;
-        
+
         if (descriptionTag) {
           try {
             const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
@@ -325,7 +325,7 @@ export const useHomeFunctionality = () => {
             // Handle parsing error
           }
         }
-        
+
         // For anonymous zaps (no pubkey in description), use the zap event's pubkey
         if (!hasPubkeyInDescription) {
           zapPayerPubkeys.add(zap.pubkey);
@@ -408,11 +408,11 @@ export const useHomeFunctionality = () => {
 
     for (const event of kind1Events) {
       const author = allProfiles.find(p => p.pubkey === event.pubkey);
-      
+
       // Basic post info (no zaps yet)
       const post: PubPayPost = {
         id: event.id,
-        event: event,
+        event,
         author: author || {
           kind: 0,
           id: '',
@@ -439,7 +439,7 @@ export const useHomeFunctionality = () => {
       const zapUsesTag = event.tags.find(tag => tag[0] === 'zap-uses');
       const zapPayerTag = event.tags.find(tag => tag[0] === 'zap-payer');
       const zapLNURLTag = event.tags.find(tag => tag[0] === 'zap-lnurl');
-      
+
       if (zapMinTag && zapMinTag[1]) {
         post.zapMin = parseInt(zapMinTag[1]) / 1000 || 0;
       }
@@ -451,7 +451,7 @@ export const useHomeFunctionality = () => {
       }
       if (zapPayerTag && zapPayerTag[1]) {
         post.zapPayer = zapPayerTag[1];
-        
+
         // Find the zap-payer's profile picture
         const zapPayerProfile = allProfiles.find(p => p.pubkey === zapPayerTag[1]);
         if (zapPayerProfile) {
@@ -490,7 +490,7 @@ export const useHomeFunctionality = () => {
   // Load zaps separately and update posts (like legacy subscribeKind9735)
   const loadZapsForPosts = async (kind1Events: Kind1Event[], zapEvents: Kind9735Event[], feed: 'global' | 'following') => {
     const eventIds = kind1Events.map(event => event.id);
-    const relevantZaps = zapEvents.filter(zap => 
+    const relevantZaps = zapEvents.filter(zap =>
       zap.tags.some(tag => tag[0] === 'e' && tag[1] && eventIds.includes(tag[1]))
     );
 
@@ -501,7 +501,7 @@ export const useHomeFunctionality = () => {
     relevantZaps.forEach(zap => {
       const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
       let hasPubkeyInDescription = false;
-      
+
       if (descriptionTag) {
         try {
           const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
@@ -513,7 +513,7 @@ export const useHomeFunctionality = () => {
           // Handle parsing error
         }
       }
-      
+
       // For anonymous zaps (no pubkey in description), use the zap event's pubkey
       if (!hasPubkeyInDescription) {
         zapPayerPubkeys.add(zap.pubkey);
@@ -528,7 +528,7 @@ export const useHomeFunctionality = () => {
     const updatePostsWithZaps = (currentPosts: PubPayPost[]) => {
       return currentPosts.map(post => {
         // Filter zaps for this post
-        let postZaps = relevantZaps.filter(zap => 
+        let postZaps = relevantZaps.filter(zap =>
           zap.tags.some(tag => tag[0] === 'e' && tag[1] === post.id)
         );
 
@@ -586,14 +586,14 @@ export const useHomeFunctionality = () => {
           }
 
         const zapPayerProfile = zapPayerProfiles.find(p => p.pubkey === zapPayerPubkey);
-        const zapPayerPicture = zapPayerProfile ? 
-          (safeJson<Record<string, unknown>>(zapPayerProfile.content || '{}', {}) as any).picture || 
+        const zapPayerPicture = zapPayerProfile ?
+          (safeJson<Record<string, unknown>>(zapPayerProfile.content || '{}', {}) as any).picture ||
           '/images/generic-user-icon.svg' :
           '/images/generic-user-icon.svg';
 
           // Generate npub for the zap payer
-          const zapPayerNpub = window.NostrTools ? 
-            window.NostrTools.nip19.npubEncode(zapPayerPubkey) : 
+          const zapPayerNpub = window.NostrTools ?
+            window.NostrTools.nip19.npubEncode(zapPayerPubkey) :
             zapPayerPubkey;
 
           return {
@@ -650,7 +650,7 @@ export const useHomeFunctionality = () => {
         const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
         let zapPayerPubkey = '';
         let isAnonymousZap = false;
-        
+
         if (descriptionTag) {
           try {
             const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
@@ -672,9 +672,9 @@ export const useHomeFunctionality = () => {
 
         // Find zap payer's profile
         const zapPayerProfile = profileEvents.find(p => p.pubkey === zapPayerPubkey);
-        
+
         let zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
-        
+
         if (zapPayerProfile) {
           try {
             const profileData = safeJson<Record<string, any>>(zapPayerProfile.content, {});
@@ -900,7 +900,7 @@ export const useHomeFunctionality = () => {
       handleLogin();
       return;
     }
-    
+
     if (!window.nostr) {
       console.error('Nostr extension not available');
       return;
@@ -913,7 +913,7 @@ export const useHomeFunctionality = () => {
 
     try {
       console.log('Processing zap payment:', amount, 'sats for post:', post.id);
-      
+
       // Get author data
       if (!post.author) {
         console.error('No author data found');
@@ -941,7 +941,7 @@ export const useHomeFunctionality = () => {
         callback.lud16ToZap,
         publicKey
       );
-      
+
       if (!zapEventData) {
         console.error('Failed to create zap event');
         return;
@@ -976,7 +976,7 @@ export const useHomeFunctionality = () => {
 
     try {
       console.log('Processing anonymous zap payment:', amount, 'sats for post:', post.id);
-      
+
       // Get author data
       if (!post.author) {
         console.error('No author data found');
@@ -997,7 +997,7 @@ export const useHomeFunctionality = () => {
         callback.lud16ToZap,
         null // No public key for anonymous zap
       );
-      
+
       if (!zapEventData) {
         console.error('Failed to create zap event');
         return;
@@ -1222,7 +1222,7 @@ export const useHomeFunctionality = () => {
 
     try {
       setIsLoading(true);
-      
+
       // Clear existing posts when loading single note
       setPosts([]);
       setReplies([]);
@@ -1263,7 +1263,7 @@ export const useHomeFunctionality = () => {
       zapEvents.forEach(zap => {
         const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
         let hasPubkeyInDescription = false;
-        
+
         if (descriptionTag) {
           try {
             const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
@@ -1275,7 +1275,7 @@ export const useHomeFunctionality = () => {
             // Handle parsing error
           }
         }
-        
+
         // For anonymous zaps (no pubkey in description), use the zap event's pubkey
         if (!hasPubkeyInDescription) {
           zapPayerPubkeys.add(zap.pubkey);
@@ -1291,7 +1291,7 @@ export const useHomeFunctionality = () => {
 
       // Process the single note
       const processedPosts = await processPosts(kind1Events, allProfiles, zapEvents);
-      
+
       if (processedPosts.length > 0) {
         setPosts(processedPosts);
       }
@@ -1310,10 +1310,10 @@ export const useHomeFunctionality = () => {
   const calculateReplyLevels = (replies: PubPayPost[]): (PubPayPost & { replyLevel: number })[] => {
     const repliesWithLevels: (PubPayPost & { replyLevel: number })[] = [];
     const replyMap = new Map<string, number>(); // eventId -> level
-    
+
     for (const reply of replies) {
       let level = 0;
-      
+
       // Find the reply tag to get the parent event ID
       const replyTag = reply.event.tags.find(tag => tag[0] === 'e' && tag[3] === 'reply');
       if (replyTag && replyTag[1]) {
@@ -1323,11 +1323,11 @@ export const useHomeFunctionality = () => {
           level = parentLevel + 1;
         }
       }
-      
+
       replyMap.set(reply.id, level);
       repliesWithLevels.push({ ...reply, replyLevel: level });
     }
-    
+
     return repliesWithLevels;
   };
 
@@ -1368,7 +1368,7 @@ export const useHomeFunctionality = () => {
       zapEvents.forEach(zap => {
         const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
         let hasPubkeyInDescription = false;
-        
+
         if (descriptionTag) {
           try {
             const zapData = JSON.parse(descriptionTag[1] || '{}');
@@ -1380,7 +1380,7 @@ export const useHomeFunctionality = () => {
             // Handle parsing error
           }
         }
-        
+
         // For anonymous zaps (no pubkey in description), use the zap event's pubkey
         if (!hasPubkeyInDescription) {
           zapPayerPubkeys.add(zap.pubkey);
@@ -1399,13 +1399,13 @@ export const useHomeFunctionality = () => {
 
       // Process replies
       const processedReplies = await processPosts(replyEvents, allProfiles, zapEvents);
-      
+
       // Sort replies by creation time (oldest first, like the original)
       const sortedReplies = processedReplies.sort((a, b) => a.createdAt - b.createdAt);
-      
+
       // Calculate reply levels for proper indentation
       const repliesWithLevels = calculateReplyLevels(sortedReplies);
-      
+
       setReplies(repliesWithLevels);
     } catch (err) {
       console.error('Failed to load replies:', err);
@@ -1427,22 +1427,22 @@ export const useHomeFunctionality = () => {
     let zapsSub: any = null;
     if (posts.length > 0) {
       const eventIds = posts.map(post => post.id);
-      
+
       zapsSub = nostrClientRef.current.subscribeToEvents([{
         kinds: [9735],
         '#e': eventIds
       }], async (zapEvent: NostrEvent) => {
       // Type guard to ensure this is a zap event
       if (zapEvent.kind !== 9735) return;
-      
+
       // Add to batch for processing
       zapBatchRef.current.push(zapEvent as Kind9735Event);
-      
+
       // Clear existing timeout
       if (zapBatchTimeoutRef.current) {
         clearTimeout(zapBatchTimeoutRef.current);
       }
-      
+
       // Process batch after 500ms delay (or immediately if batch is large)
       if (zapBatchRef.current.length >= 10) {
         // Process immediately if batch is large
@@ -1457,7 +1457,7 @@ export const useHomeFunctionality = () => {
           await processZapBatch(batchToProcess);
         }, 500);
       }
-      
+
     }, {
       oneose: () => {
         console.log('Zap subscription EOS');
@@ -1479,13 +1479,13 @@ export const useHomeFunctionality = () => {
   // Process zaps in batches to reduce relay load
   const processZapBatch = async (zapEvents: Kind9735Event[]) => {
     if (zapEvents.length === 0) return;
-    
+
     // Collect all unique zap payer pubkeys
     const zapPayerPubkeys = new Set<string>();
     zapEvents.forEach(zapEvent => {
       const descriptionTag = zapEvent.tags.find(tag => tag[0] === 'description');
       let zapPayerPubkey = '';
-      
+
       if (descriptionTag) {
         try {
           const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
@@ -1494,31 +1494,31 @@ export const useHomeFunctionality = () => {
           zapPayerPubkey = '';
         }
       }
-      
+
       // For anonymous zaps, use the zap event's pubkey
       if (!zapPayerPubkey) {
         zapPayerPubkey = zapEvent.pubkey;
       }
-      
+
       if (zapPayerPubkey) {
         zapPayerPubkeys.add(zapPayerPubkey);
       }
     });
-    
+
     // Load all profiles in one batch
     const profiles = await loadProfilesBatched(Array.from(zapPayerPubkeys));
-    
+
     // Process each zap with cached profile data and update posts
     for (const zapEvent of zapEvents) {
       const processedZap = await processNewZapWithProfiles(zapEvent, profiles);
       if (!processedZap) continue;
-      
+
       // Find which post this zap belongs to
       const eventTag = zapEvent.tags.find(tag => tag[0] === 'e');
       if (!eventTag) continue;
-      
+
       const postId = eventTag[1];
-      
+
       // Auto-close invoice overlay via store when matching zap receipt arrives
       try {
         const descriptionTag = zapEvent.tags.find((tag: any) => tag[0] === 'description');
@@ -1536,22 +1536,22 @@ export const useHomeFunctionality = () => {
           });
         }
       } catch {}
-      
+
       // Update posts with the new zap
       setPosts(prevPosts => {
         const newPosts = [...prevPosts];
         const postIndex = newPosts.findIndex(post => post.id === postId);
         if (postIndex === -1) return newPosts;
-        
+
         const post = newPosts[postIndex];
         if (!post) return newPosts;
-        
+
         // Check for duplicates
         const existingZapInState = post.zaps.find(zap => zap.id === zapEvent.id);
         if (existingZapInState) {
           return newPosts;
         }
-        
+
         // Add the new zap to the post
         const updatedPost: PubPayPost = {
           ...post,
@@ -1559,26 +1559,26 @@ export const useHomeFunctionality = () => {
           zapAmount: post.zapAmount + processedZap.zapAmount,
           zapUsesCurrent: post.zapUsesCurrent + 1
         };
-        
+
         newPosts[postIndex] = updatedPost;
         return newPosts;
       });
-      
+
       // Also update following posts if this post exists there
       setFollowingPosts(prevPosts => {
         const newPosts = [...prevPosts];
         const postIndex = newPosts.findIndex(post => post.id === postId);
         if (postIndex === -1) return newPosts;
-        
+
         const post = newPosts[postIndex];
         if (!post) return newPosts;
-        
+
         // Check for duplicates
         const existingZapInState = post.zaps.find(zap => zap.id === zapEvent.id);
         if (existingZapInState) {
           return newPosts;
         }
-        
+
         // Add the new zap to the post
         const updatedPost: PubPayPost = {
           ...post,
@@ -1586,7 +1586,7 @@ export const useHomeFunctionality = () => {
           zapAmount: post.zapAmount + processedZap.zapAmount,
           zapUsesCurrent: post.zapUsesCurrent + 1
         };
-        
+
         newPosts[postIndex] = updatedPost;
         return newPosts;
       });
@@ -1597,7 +1597,7 @@ export const useHomeFunctionality = () => {
   const loadProfilesBatched = async (pubkeys: string[]): Promise<Map<string, Kind0Event>> => {
     const profiles = new Map<string, Kind0Event>();
     const uncachedPubkeys: string[] = [];
-    
+
     // Check cache first
     for (const pubkey of pubkeys) {
       const cached = profileCacheRef.current.get(pubkey);
@@ -1607,23 +1607,23 @@ export const useHomeFunctionality = () => {
         uncachedPubkeys.push(pubkey);
       }
     }
-    
+
     // Load uncached profiles in batches
     if (uncachedPubkeys.length > 0 && nostrClientRef.current) {
       // Mark as pending to prevent duplicate requests
       uncachedPubkeys.forEach(pubkey => pendingProfileRequestsRef.current.add(pubkey));
-      
+
       try {
         // Use ensureProfiles for centralized profile loading
         const profileMap = await ensureProfiles(getQueryClient(), nostrClientRef.current!, uncachedPubkeys);
         const profileEvents = Array.from(profileMap.values());
-        
+
         // Cache the results
         profileEvents.forEach(profile => {
           profileCacheRef.current.set(profile.pubkey, profile);
           profiles.set(profile.pubkey, profile);
         });
-        
+
         // Remove from pending
         uncachedPubkeys.forEach(pubkey => pendingProfileRequestsRef.current.delete(pubkey));
       } catch (error) {
@@ -1632,7 +1632,7 @@ export const useHomeFunctionality = () => {
         uncachedPubkeys.forEach(pubkey => pendingProfileRequestsRef.current.delete(pubkey));
       }
     }
-    
+
     return profiles;
   };
 
@@ -1655,7 +1655,7 @@ export const useHomeFunctionality = () => {
       const descriptionTag = zapEvent.tags.find(tag => tag[0] === 'description');
       let zapPayerPubkey = '';
       let isAnonymousZap = false;
-      
+
       if (descriptionTag) {
         try {
           const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
@@ -1690,7 +1690,7 @@ export const useHomeFunctionality = () => {
       const zapPayerProfile = zapPayerPubkey ? profiles.get(zapPayerPubkey) : null;
 
       let zapPayerPicture = '/images/generic-user-icon.svg';
-      
+
       if (zapPayerProfile) {
         try {
           const profileData = safeJson<Record<string, any>>(zapPayerProfile.content, {});
@@ -1737,7 +1737,7 @@ export const useHomeFunctionality = () => {
       const descriptionTag = zapEvent.tags.find(tag => tag[0] === 'description');
       let zapPayerPubkey = '';
       let isAnonymousZap = false;
-      
+
       if (descriptionTag) {
         try {
           const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
@@ -1781,7 +1781,7 @@ export const useHomeFunctionality = () => {
       }
 
       let zapPayerPicture = '/images/generic-user-icon.svg';
-      
+
       if (zapPayerProfile) {
         try {
           const profileData = safeJson<Record<string, any>>(zapPayerProfile.content, {});
@@ -1813,22 +1813,22 @@ export const useHomeFunctionality = () => {
   const processNewNote = async (noteEvent: Kind1Event) => {
     try {
       console.log('Processing new note:', noteEvent.id);
-      
+
       // Get the author's profile
       const authorProfiles = await nostrClientRef.current?.getEvents([{
         kinds: [0],
         authors: [noteEvent.pubkey]
       }]) as Kind0Event[];
-      
+
       const author = authorProfiles[0] || {
         kind: 0, id: '', pubkey: noteEvent.pubkey, content: '{}', created_at: 0, sig: '', tags: []
       };
-      
+
       // Create basic post structure (like processPostsBasic)
       const newPost: PubPayPost = {
         id: noteEvent.id,
         event: noteEvent,
-        author: author,
+        author,
         createdAt: noteEvent.created_at,
         zapMin: 0,
         zapMax: 0,
@@ -1844,7 +1844,7 @@ export const useHomeFunctionality = () => {
       const zapMinTag = noteEvent.tags.find(tag => tag[0] === 'zap-min');
       const zapMaxTag = noteEvent.tags.find(tag => tag[0] === 'zap-max');
       const zapUsesTag = noteEvent.tags.find(tag => tag[0] === 'zap-uses');
-      
+
       if (zapMinTag && zapMinTag[1]) {
         newPost.zapMin = parseInt(zapMinTag[1]) / 1000 || 0; // Divide by 1000 for sats
       }
@@ -1863,11 +1863,11 @@ export const useHomeFunctionality = () => {
           console.log('Post already exists in state, skipping:', noteEvent.id);
           return prevPosts;
         }
-        
+
         console.log('Adding new post to feed:', noteEvent.id);
         return [newPost, ...prevPosts];
       });
-      
+
       // Also add to following posts if we're in following mode
       if (activeFeed === 'following') {
         setFollowingPosts(prevPosts => {
@@ -1878,7 +1878,7 @@ export const useHomeFunctionality = () => {
           return [newPost, ...prevPosts];
         });
       }
-      
+
     } catch (error) {
       console.error('Error processing new note:', error);
     }

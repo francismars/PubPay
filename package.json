@@ -13,7 +13,8 @@
     "format": "prettier --write src/**/*.{ts,tsx,js,jsx,json,css,scss,md}",
     "format:check": "prettier --check src/**/*.{ts,tsx,js,jsx,json,css,scss,md}",
     "clean": "rimraf dist",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "precommit": "lint-staged"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.2",
@@ -59,5 +60,14 @@
     "webpack": "^5.101.3",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.2"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "src/**/*.{json,css,scss,md}": [
+      "prettier --write"
+    ]
   }
 }

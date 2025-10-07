@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 // Basic tuple-like tag: [key, ...values]
 export const TagSchema = z.array(z.string()).refine(arr => arr.length >= 1, {
-  message: 'tag must have at least a key',
+  message: 'tag must have at least a key'
 });
 
 export type Tag = z.infer<typeof TagSchema>;
@@ -14,7 +14,7 @@ export const BaseEventSchema = z.object({
   content: z.string(),
   created_at: z.number().int(),
   tags: z.array(TagSchema),
-  sig: z.string().optional(),
+  sig: z.string().optional()
 });
 
 export type BaseEvent = z.infer<typeof BaseEventSchema>;
@@ -60,7 +60,7 @@ export function getAllTagValues(tags: string[][], key: string): string[] {
 // Zap description payload per NIP-57 (minimal fields we use)
 export const ZapDescriptionSchema = z.object({
   pubkey: z.string().length(64).optional(),
-  id: z.string().length(64).optional(),
+  id: z.string().length(64).optional()
 });
 export type ZapDescription = z.infer<typeof ZapDescriptionSchema>;
 

@@ -15,12 +15,12 @@ export const fetchZaps = async (client: NostrClient, eventIds: string[]): Promis
 export const ensureZaps = async (
   qc: QueryClient,
   client: NostrClient,
-  eventIds: string[],
+  eventIds: string[]
 ): Promise<Kind9735Event[]> => {
   return await qc.ensureQueryData({
     queryKey: zapsKey(eventIds),
     queryFn: () => fetchZaps(client, eventIds),
-    staleTime: 30_000,
+    staleTime: 30_000
   });
 };
 

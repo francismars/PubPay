@@ -23,7 +23,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   setAuth: (partial) => set((s) => ({ ...s, ...partial })),
   clearAuth: () => set({ isLoggedIn: false, publicKey: null, displayName: null, userProfile: null, signInMethod: null }),
   setProfile: (profile) => set({ userProfile: profile }),
-  setDisplayName: (displayName) => set({ displayName }),
+  setDisplayName: (displayName) => set({ displayName })
 }));
 
 

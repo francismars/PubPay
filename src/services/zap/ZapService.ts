@@ -259,7 +259,7 @@ export class ZapService {
    * Handle fetched invoice (matches original handleFetchedInvoice)
    */
           async handleFetchedInvoice(invoice: string, zapEventID: string): Promise<void> {
-            console.log('handleFetchedInvoice called with:', { invoice: invoice.substring(0, 50) + '...', zapEventID });
+            console.log('handleFetchedInvoice called with:', { invoice: `${invoice.substring(0, 50)  }...`, zapEventID });
             // Open invoice overlay via UI store
             try {
               const { useUIStore } = await import('@/services/state/uiStore');

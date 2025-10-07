@@ -23,7 +23,7 @@ export class AuthService {
       }
 
       const publicKey = await (window as any).nostr.getPublicKey();
-      
+
       if (!publicKey || typeof publicKey !== 'string' || publicKey.length !== 64) {
         return {
           success: false,
@@ -52,38 +52,38 @@ export class AuthService {
     try {
       // Store sign in data for when user returns
       sessionStorage.setItem('signIn', JSON.stringify({ rememberMe }));
-      
+
       // Navigate to external signer
-      const nostrSignerURL = `nostrsigner:?compressionType=none&returnType=signature&type=get_public_key`;
-      
+      const nostrSignerURL = 'nostrsigner:?compressionType=none&returnType=signature&type=get_public_key';
+
       // Set up visibility change listener to detect when external signer opens
       const navigationAttempted = await new Promise<boolean>((resolve) => {
         let attempted = false;
         const handleVisibilityChange = () => {
-          if (document.visibilityState === "hidden") {
+          if (document.visibilityState === 'hidden') {
             attempted = true;
             resolve(true);
           }
         };
-        
-        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
         window.location.href = nostrSignerURL;
-        
+
         // Timeout after 3 seconds if no navigation occurs
         setTimeout(() => {
-          document.removeEventListener("visibilitychange", handleVisibilityChange);
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
           resolve(false);
         }, 3000);
       });
-      
+
       if (!navigationAttempted) {
         sessionStorage.removeItem('signIn');
         return {
           success: false,
-          error: "Failed to launch 'nostrsigner': Redirection did not occur."
+          error: 'Failed to launch \'nostrsigner\': Redirection did not occur.'
         };
       }
-      
+
       // This will redirect, so we return a pending state
       return {
         success: true,
@@ -118,7 +118,7 @@ export class AuthService {
       }
 
       const { type, data } = (window as any).NostrTools.nip19.decode(nsec);
-      
+
       if (type !== 'nsec') {
         return {
           success: false,
@@ -127,7 +127,7 @@ export class AuthService {
       }
 
       const publicKey = (window as any).NostrTools.getPublicKey(data);
-      
+
       if (!publicKey || typeof publicKey !== 'string' || publicKey.length !== 64) {
         return {
           success: false,
@@ -158,7 +158,7 @@ export class AuthService {
       const signInData = JSON.parse(sessionStorage.getItem('signIn') || '{}');
       if (!signInData.rememberMe !== undefined) {
         sessionStorage.removeItem('signIn');
-        
+
         // Get the public key from clipboard
         const npub = await this.accessClipboard();
         if (!npub) {
@@ -170,7 +170,7 @@ export class AuthService {
 
         const decodedNPUB = (window as any).NostrTools.nip19.decode(npub);
         const publicKey = decodedNPUB.data;
-        
+
         if (!publicKey || typeof publicKey !== 'string' || publicKey.length !== 64) {
           return {
             success: false,
@@ -184,7 +184,7 @@ export class AuthService {
           method: 'externalSigner'
         };
       }
-      
+
       return {
         success: false,
         error: 'No external signer data found'
@@ -214,7 +214,7 @@ export class AuthService {
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
+
         try {
           const result = document.execCommand('paste');
           const text = textArea.value;
@@ -235,16 +235,16 @@ export class AuthService {
    * Store authentication data
    */
   static storeAuthData(
-    publicKey: string, 
-    privateKey: string | null, 
-    method: string, 
+    publicKey: string,
+    privateKey: string | null,
+    method: string,
     rememberMe: boolean
   ): void {
     const storage = rememberMe ? localStorage : sessionStorage;
-    
+
     storage.setItem('publicKey', publicKey);
     storage.setItem('signInMethod', method);
-    
+
     if (privateKey) {
       storage.setItem('privateKey', privateKey);
     }
@@ -287,7 +287,7 @@ export class AuthService {
    */
   static validateStoredAuthData(): boolean {
     const { publicKey, method } = this.getStoredAuthData();
-    
+
     if (!publicKey || typeof publicKey !== 'string' || publicKey.length !== 64) {
       this.clearAuthData();
       return false;

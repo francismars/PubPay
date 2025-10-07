@@ -75,19 +75,19 @@ export const HomePage: React.FC = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Check out this PubPay!",
-          text: "Here's a PubPay I want to share with you:",
-          url: shareURL,
+          title: 'Check out this PubPay!',
+          text: 'Here\'s a PubPay I want to share with you:',
+          url: shareURL
         });
       } catch (error) {
-        console.error("Error sharing the link:", error);
+        console.error('Error sharing the link:', error);
       }
     } else {
       try {
         await navigator.clipboard.writeText(shareURL);
-        alert("Link copied to clipboard!");
+        alert('Link copied to clipboard!');
       } catch (error) {
-        console.error("Failed to copy the link:", error);
+        console.error('Failed to copy the link:', error);
       }
     }
   };
@@ -106,24 +106,24 @@ export const HomePage: React.FC = () => {
       const regex = /(note1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|nevent1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/i;
       const match = decodedText.match(regex);
       if (!match) return;
-      
+
       decodedText = match[0];
-      
+
       if (typeof window !== 'undefined' && (window as any).NostrTools) {
         const decoded = (window as any).NostrTools.nip19.decode(decodedText);
 
-        if (decoded.type === "note") {
+        if (decoded.type === 'note') {
           window.location.href = `/?note=${decodedText}`;
-        } else if (decoded.type === "nevent") {
+        } else if (decoded.type === 'nevent') {
           const noteID = decoded.data.id;
           const note1 = (window as any).NostrTools.nip19.noteEncode(noteID);
           window.location.href = `/?note=${note1}`;
         } else {
-          console.error("Invalid QR code content. Expected 'note' or 'nevent'.");
+          console.error('Invalid QR code content. Expected \'note\' or \'nevent\'.');
         }
       }
     } catch (error) {
-      console.error("Failed to decode QR code content:", error);
+      console.error('Failed to decode QR code content:', error);
     }
   };
 
@@ -149,19 +149,19 @@ export const HomePage: React.FC = () => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
     const data: Record<string, string> = {};
-    
+
     for (const [key, value] of formData.entries()) {
       data[key] = value.toString();
     }
-    
+
     setIsPublishing(true);
-    
+
     try {
       await handlePostNote(data);
-      
+
       // Close the form after successful submission
       setShowNewPayNoteForm(false);
-      
+
       // Reset local UI state
       setPaymentType('fixed');
     } catch (error) {
@@ -181,29 +181,29 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     const checkForSingleNote = () => {
       const queryParams = new URLSearchParams(window.location.search);
-      const queryNote = queryParams.get("note");
-      
+      const queryNote = queryParams.get('note');
+
       if (queryNote) {
         try {
           // Decode the note parameter
           const decoded = (window as any).NostrTools.nip19.decode(queryNote);
-          if (decoded.type !== "note") {
-            console.error("Invalid type.");
+          if (decoded.type !== 'note') {
+            console.error('Invalid type.');
             return;
           }
           if (!/^[0-9a-f]{64}$/.test(decoded.data)) {
-            console.error("Invalid event ID format.");
+            console.error('Invalid event ID format.');
             return;
           }
-          
+
           // Set single note mode immediately to prevent other loading
           setSingleNoteMode(true);
           setSingleNoteId(decoded.data);
-          
+
           // Load the single note
           loadSingleNote(decoded.data);
         } catch (error) {
-          console.error("Failed to decode note parameter:", error);
+          console.error('Failed to decode note parameter:', error);
         }
       }
     };
@@ -232,24 +232,24 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     let isLoading = false; // Local flag to prevent race conditions
-    
+
     const handleScroll = () => {
       // Clear previous timeout
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      
+
       // Debounce scroll events
       timeoutId = setTimeout(() => {
         // Check if already loading to prevent race conditions
         if (isLoading || isLoadingMore || singleNoteMode) {
           return;
         }
-        
+
         const scrollPosition = window.innerHeight + window.scrollY;
         const documentHeight = document.body.offsetHeight;
         const threshold = documentHeight - 100;
-        
+
         if (scrollPosition >= threshold) {
           isLoading = true; // Set local flag
           loadMorePosts().finally(() => {
@@ -260,7 +260,7 @@ export const HomePage: React.FC = () => {
     };
 
     window.addEventListener('scroll', handleScroll);
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       if (timeoutId) {
@@ -272,38 +272,38 @@ export const HomePage: React.FC = () => {
   // Handle return from external signer
   useEffect(() => {
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === 'visible') {
         // Wait for page to have focus
         while (!document.hasFocus()) {
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
 
-        const signInData = JSON.parse(sessionStorage.getItem("signIn") || 'null');
+        const signInData = JSON.parse(sessionStorage.getItem('signIn') || 'null');
         if (signInData && signInData.rememberMe !== undefined) {
-          sessionStorage.removeItem("signIn");
-          
+          sessionStorage.removeItem('signIn');
+
           try {
             // Get the public key from clipboard (external signer puts it there)
             const npub = await navigator.clipboard.readText();
             const decodedNPUB = window.NostrTools.nip19.decode(npub);
             const pubKey = decodedNPUB.data;
-            
+
             // Store authentication data
             if (signInData.rememberMe === true) {
-              localStorage.setItem("publicKey", pubKey);
-              localStorage.setItem("signInMethod", "externalSigner");
+              localStorage.setItem('publicKey', pubKey);
+              localStorage.setItem('signInMethod', 'externalSigner');
             } else {
-              sessionStorage.setItem("publicKey", pubKey);
-              sessionStorage.setItem("signInMethod", "externalSigner");
+              sessionStorage.setItem('publicKey', pubKey);
+              sessionStorage.setItem('signInMethod', 'externalSigner');
             }
-            
+
             // Reset button state
             setExternalSignerLoading(false);
             setExternalSignerAvailable(true);
-            
+
             // Close login form
             closeLogin();
-            
+
             // Reload the page to trigger authentication
             window.location.reload();
           } catch (error) {
@@ -315,10 +315,10 @@ export const HomePage: React.FC = () => {
       }
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -327,29 +327,29 @@ export const HomePage: React.FC = () => {
     if (showQRScanner && !qrScanner && typeof window !== 'undefined' && (window as any).Html5Qrcode) {
       // Add a small delay to ensure DOM element is ready
       setTimeout(() => {
-        const readerElement = document.getElementById("reader");
+        const readerElement = document.getElementById('reader');
         if (readerElement) {
-          const html5QrCode = new (window as any).Html5Qrcode("reader");
+          const html5QrCode = new (window as any).Html5Qrcode('reader');
           setQrScanner(html5QrCode);
-          
+
           html5QrCode.start(
-            { facingMode: "environment" },
+            { facingMode: 'environment' },
             {
               fps: 10,
-              qrbox: { width: 250, height: 250 },
+              qrbox: { width: 250, height: 250 }
             },
             async (decodedText: string) => {
-              console.log("QR Code scanned:", decodedText);
+              console.log('QR Code scanned:', decodedText);
               html5QrCode.stop().then(() => {
                 setShowQRScanner(false);
               });
               await handleScannedContent(decodedText);
             },
             (errorMessage: string) => {
-              console.error("QR Code scanning error:", errorMessage);
+              console.error('QR Code scanning error:', errorMessage);
             }
           ).catch((error: any) => {
-            console.error("Failed to start QR scanner:", error);
+            console.error('Failed to start QR scanner:', error);
           });
         }
       }, 100);
@@ -367,7 +367,7 @@ export const HomePage: React.FC = () => {
       }).then(() => {
         setQrScanner(null);
       }).catch((error: any) => {
-        console.error("Error stopping QR scanner:", error);
+        console.error('Error stopping QR scanner:', error);
         setQrScanner(null);
       });
     }
@@ -382,7 +382,7 @@ export const HomePage: React.FC = () => {
             return qrScanner.stop();
           }
         }).catch((error: any) => {
-          console.error("Error stopping QR scanner on unmount:", error);
+          console.error('Error stopping QR scanner on unmount:', error);
         });
       }
     };
@@ -407,7 +407,7 @@ export const HomePage: React.FC = () => {
             </a>
             <a id="login" href="#" className="topAction" onClick={handleLoginOpen}>
               {authState.isLoggedIn && authState.userProfile ? (
-                <img 
+                <img
                   className="userImg currentUserImg"
                   src={((() => { try { return JSON.parse(authState.userProfile.content || '{}').picture; } catch { return undefined; } })()) || '/images/generic-user-icon.svg'}
                   alt="Profile"
@@ -416,7 +416,7 @@ export const HomePage: React.FC = () => {
                 <span className="material-symbols-outlined">account_circle</span>
               )}
             </a>
-            <a id="newPayNote" className="cta" href="#" onClick={() => { 
+            <a id="newPayNote" className="cta" href="#" onClick={() => {
               if (authState.isLoggedIn) {
                 setShowNewPayNoteForm(true);
                 setPaymentType('fixed');
@@ -678,19 +678,19 @@ export const HomePage: React.FC = () => {
               />
             ))
           )}
-          
+
           {isLoadingMore && (
             <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
               Loading more posts...
             </div>
           )}
-          
+
           {/* Debug info for infinite scroll */}
           {!singleNoteMode && posts.length > 0 && (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '10px', 
-              fontSize: '12px', 
+            <div style={{
+              textAlign: 'center',
+              padding: '10px',
+              fontSize: '12px',
               color: '#999',
               borderTop: '1px solid #eee',
               marginTop: '20px'
@@ -713,7 +713,7 @@ export const HomePage: React.FC = () => {
             />
           ))}
         </div>
-        
+
         <div id="following" style={{display: activeFeed === 'following' ? 'block' : 'none'}}>
           {isLoading && followingPosts.length === 0 ? (
             // Show dummy posts while loading following
@@ -823,7 +823,7 @@ export const HomePage: React.FC = () => {
               }).then(() => {
                 setShowQRScanner(false);
               }).catch((error: any) => {
-                console.error("Error stopping QR scanner:", error);
+                console.error('Error stopping QR scanner:', error);
                 setShowQRScanner(false);
               });
             } else {
@@ -839,9 +839,9 @@ export const HomePage: React.FC = () => {
           <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
           <p className="label" id="titleSignin">Choose Sign-in Method</p>
           <div className="formFieldGroup" id="loginFormGroup">
-            <a 
-              href="#" 
-              id="signInExtension" 
+            <a
+              href="#"
+              id="signInExtension"
               className={`cta ${!extensionAvailable ? 'disabled red' : ''}`}
               onClick={async (e) => {
                 if (!extensionAvailable) {
@@ -865,9 +865,9 @@ export const HomePage: React.FC = () => {
             >
               {!extensionAvailable ? 'Not found' : 'Extension'}
             </a>
-            <a 
-              href="#" 
-              id="signInexternalSigner" 
+            <a
+              href="#"
+              id="signInexternalSigner"
               className={`cta ${!externalSignerAvailable ? 'disabled red' : ''}`}
               onClick={async (e) => {
                 if (!externalSignerAvailable || externalSignerLoading) {
@@ -917,10 +917,10 @@ export const HomePage: React.FC = () => {
           </div>
           <div className="rememberPK">
             <label htmlFor="rememberMe" className="label">Remember</label>
-            <input 
-              type="checkbox" 
-              className="checkBoxRemember" 
-              id="rememberMe" 
+            <input
+              type="checkbox"
+              className="checkBoxRemember"
+              id="rememberMe"
               checked={rememberMe}
               onChange={(e) => setRememberMe(e.target.checked)}
             />
@@ -939,18 +939,18 @@ export const HomePage: React.FC = () => {
           <p className="label">You are logged in as:</p>
           <p id="loggedInPublicKey">
             {authState.publicKey ? (
-              <a 
-                href={`https://next.nostrudel.ninja/#/u/${(typeof window !== 'undefined' && (window as any).NostrTools ? 
-                  (window as any).NostrTools.nip19.npubEncode(authState.publicKey) : 
+              <a
+                href={`https://next.nostrudel.ninja/#/u/${(typeof window !== 'undefined' && (window as any).NostrTools ?
+                  (window as any).NostrTools.nip19.npubEncode(authState.publicKey) :
                   authState.publicKey
                 )}`}
-                className="userMention" 
-                target="_blank" 
+                className="userMention"
+                target="_blank"
                 rel="noopener noreferrer"
               >
-                {authState.displayName || 
-                 (typeof window !== 'undefined' && (window as any).NostrTools ? 
-                   (window as any).NostrTools.nip19.npubEncode(authState.publicKey) : 
+                {authState.displayName ||
+                 (typeof window !== 'undefined' && (window as any).NostrTools ?
+                   (window as any).NostrTools.nip19.npubEncode(authState.publicKey) :
                    authState.publicKey
                  )
                 }
@@ -977,9 +977,9 @@ export const HomePage: React.FC = () => {
           <InvoiceQR bolt11={useUIStore.getState().invoiceOverlay.bolt11} />
           <p id="qrcodeTitle" className="label">Otherwise:</p>
           <div className="formFieldGroup">
-            <button 
-              id="payWithExtension" 
-              className="cta" 
+            <button
+              id="payWithExtension"
+              className="cta"
               onClick={() => {
                 const { bolt11, amount } = useUIStore.getState().invoiceOverlay;
                 if (bolt11 && amount > 0) {
@@ -994,9 +994,9 @@ export const HomePage: React.FC = () => {
             >
               Pay with Extension
             </button>
-            <button 
-              id="payWithWallet" 
-              className="cta" 
+            <button
+              id="payWithWallet"
+              className="cta"
               onClick={() => {
                 const bolt11 = useUIStore.getState().invoiceOverlay.bolt11;
                 if (bolt11) {
@@ -1012,9 +1012,9 @@ export const HomePage: React.FC = () => {
             >
               Pay with Wallet
             </button>
-            <button 
-              id="copyInvoice" 
-              className="cta" 
+            <button
+              id="copyInvoice"
+              className="cta"
               onClick={async () => {
                 const bolt11 = useUIStore.getState().invoiceOverlay.bolt11;
                 if (bolt11) {
@@ -1079,22 +1079,22 @@ export const HomePage: React.FC = () => {
             <fieldset className="formField formSelector">
               <legend className="uppercase">Select type</legend>
               <div>
-                <input 
-                  type="radio" 
-                  id="fixedFlow" 
-                  name="paymentType" 
-                  value="fixed" 
+                <input
+                  type="radio"
+                  id="fixedFlow"
+                  name="paymentType"
+                  value="fixed"
                   checked={paymentType === 'fixed'}
                   onChange={(e) => { if (e.target.checked) setPaymentType('fixed'); }}
                 />
                 <label htmlFor="fixedFlow">Fixed</label>
               </div>
               <div>
-                <input 
-                  type="radio" 
-                  id="rangeFlow" 
-                  name="paymentType" 
-                  value="range" 
+                <input
+                  type="radio"
+                  id="rangeFlow"
+                  name="paymentType"
+                  value="range"
                   checked={paymentType === 'range'}
                   onChange={(e) => { if (e.target.checked) setPaymentType('range'); }}
                 />
