@@ -28,7 +28,7 @@ export const useUIStore = create<UIState>((set) => ({
   openLogin: () => set({ loginForm: { show: true } }),
   closeLogin: () => set({ loginForm: { show: false } }),
   openNewPayNote: () => set({ newPayNoteForm: { show: true } }),
-  closeNewPayNote: () => set({ newPayNoteForm: { show: false } }),
+  closeNewPayNote: () => set({ newPayNoteForm: { show: false } })
 }));
 
 

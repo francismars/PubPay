@@ -1876,10 +1876,10 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const copyStyleUrl = () => {
-    
+
     // Get current styles from localStorage
     const savedStyles = localStorage.getItem('pubpay-styles');
-    
+
     let urlToCopy = window.location.origin + window.location.pathname;
 
     if (savedStyles) {
@@ -1947,7 +1947,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (params.toString()) {
           urlToCopy += `?${  params.toString()}`;
         }
-        
+
       } catch (e) {
         console.error('Error parsing saved styles:', e);
       }
@@ -2817,7 +2817,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (setupNoteLoaderListenersInProgress && retryCount === 0) {
       return;
     }
-    
+
     if (retryCount === 0) {
       setupNoteLoaderListenersInProgress = true;
     }
@@ -2904,7 +2904,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Apply PubPay preset with all settings
   const applyPubPayPreset = () => {
-    
+
     // Set text color to white
     const textColorPicker = document.getElementById('textColorPicker') as HTMLInputElement;
     const textColorValue = document.getElementById('textColorValue') as HTMLInputElement;
@@ -2912,14 +2912,14 @@ export const useLiveFunctionality = (eventId?: string) => {
       textColorPicker.value = '#ffffff';
       textColorValue.value = '#ffffff';
     }
-    
+
     // Set background image to gradient
     const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
     if (bgImageUrl) {
       bgImageUrl.value = '/images/gradient_color.gif';
     }
     updateBackgroundImage('/images/gradient_color.gif');
-    
+
     // Set opacity to 0 (fully transparent)
     const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
     const opacityValue = document.getElementById('opacityValue');
@@ -2927,19 +2927,19 @@ export const useLiveFunctionality = (eventId?: string) => {
       opacitySlider.value = '0';
       opacityValue.textContent = '0%';
     }
-    
+
     // Enable QR invert
     const qrInvertToggle = document.getElementById('qrInvertToggle') as HTMLInputElement;
     if (qrInvertToggle) {
       qrInvertToggle.checked = true;
     }
-    
+
     // Enable QR screen blend
     const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
     if (qrScreenBlendToggle) {
       qrScreenBlendToggle.checked = true;
     }
-    
+
     // Update preview
     const bgPresetPreview = document.getElementById('bgPresetPreview') as HTMLImageElement;
     if (bgPresetPreview) {
@@ -2947,12 +2947,12 @@ export const useLiveFunctionality = (eventId?: string) => {
       bgPresetPreview.alt = 'PubPay preset preview';
       bgPresetPreview.style.display = 'block';
     }
-    
+
     // Apply all styles and save
     applyAllStyles();
     updateBlendMode();
     saveCurrentStylesToLocalStorage();
-    
+
   };
 
   // Style options functionality
@@ -2973,7 +2973,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (bgImagePreset) {
       bgImagePreset.addEventListener('change', (e: any) => {
         const selectedValue = e.target.value;
-        
+
         if (selectedValue === 'custom') {
           if (customUrlGroup) customUrlGroup.style.display = 'block';
           if (bgImageUrl) (bgImageUrl as HTMLInputElement).focus();

@@ -211,7 +211,7 @@ export class NostrClient {
         if (!this.pool) {
           throw new Error('Nostr pool not initialized');
         }
-        
+
         if (!this.relays || this.relays.length === 0) {
           throw new Error('No relays configured');
         }
@@ -229,14 +229,14 @@ export class NostrClient {
 
         console.log('Getting events with filters:', filters);
         console.log('Filter structure:', JSON.stringify(filters, null, 2));
-        
+
         // Ensure filters are plain objects
         const cleanFilters = filters.map(filter => JSON.parse(JSON.stringify(filter)));
         console.log('Clean filters:', cleanFilters);
-        
+
         const events: NostrEvent[] = [];
         let isComplete = false;
-        
+
         const subscription = this.pool.subscribeMany(this.relays, cleanFilters, {
           onevent(event: NostrEvent) {
             events.push(event);

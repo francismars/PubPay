@@ -11,7 +11,7 @@ export const fetchPosts = async (client: NostrClient, params: PostsParams): Prom
     kinds: [1],
     '#t': ['pubpay'],
     limit: params.limit ?? 21,
-    ...(params.until ? { until: params.until } : {}),
+    ...(params.until ? { until: params.until } : {})
   };
   return await client.getEvents([filter]) as Kind1Event[];
 };
@@ -19,12 +19,12 @@ export const fetchPosts = async (client: NostrClient, params: PostsParams): Prom
 export const ensurePosts = async (
   qc: QueryClient,
   client: NostrClient,
-  params: PostsParams,
+  params: PostsParams
 ): Promise<Kind1Event[]> => {
   return await qc.ensureQueryData({
     queryKey: postsKey(params),
     queryFn: () => fetchPosts(client, params),
-    staleTime: 10_000,
+    staleTime: 10_000
   });
 };
 

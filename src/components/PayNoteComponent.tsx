@@ -71,7 +71,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
   const profilePicture = authorData?.picture || '/images/generic-user-icon.svg';
   const nip05 = authorData?.nip05;
   const lud16 = authorData?.lud16;
-  
+
   // Check if note is payable - must have lud16 AND not reached zap uses target
   const isPayable = post.isPayable && (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses);
 
@@ -142,8 +142,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
       /(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
       (match, prefix, npub) => {
         const cleanNpub = npub.replace('nostr:', '').replace('@', '');
-        const shortNpub = cleanNpub.length > 35 
-          ? cleanNpub.substr(0, 4) + '...' + cleanNpub.substr(cleanNpub.length - 4)
+        const shortNpub = cleanNpub.length > 35
+          ? `${cleanNpub.substr(0, 4)  }...${  cleanNpub.substr(cleanNpub.length - 4)}`
           : cleanNpub;
         return `<a href="https://next.nostrudel.ninja/#/u/${cleanNpub}" 
                    target="_blank" 
@@ -156,7 +156,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
 
     // Convert newlines to breaks
     content = content.replace(/\n/g, '<br />');
-    
+
     return content;
   };
 
@@ -209,10 +209,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
       const zapAmount = zap.zapAmount;
       const zapMin = post.zapMin;
       const zapMax = post.zapMax;
-      
+
       // Check if zap amount is within the valid range
       const isWithinRange = zapAmount >= zapMin && zapAmount <= zapMax;
-      
+
       if (isWithinRange) {
         // This is a hero zap (within amount range)
         heroZapsList.push(zap);
@@ -263,8 +263,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
   }, []);
 
   return (
-    <div 
-      className={isReply ? "paynote reply" : "paynote"} 
+    <div
+      className={isReply ? 'paynote reply' : 'paynote'}
       style={isReply ? {marginLeft: `${(post.replyLevel || 0) * 15 + 15}px`} : undefined}
     >
       <div className="noteProfileImg">
@@ -287,7 +287,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
                 {displayName}
               </a>
             </div>
-            
+
             {/* NIP-05 Verification */}
             <div className="noteNIP05 label">
               {nip05 ? (
@@ -324,7 +324,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
             </div>
           </div>
 
-          <div 
+          <div
             className="noteDate label"
             onClick={() => {
               console.log('noteDate clicked for post:', post.id);
@@ -344,7 +344,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
         </div>
 
         {/* Content */}
-        <div 
+        <div
           className="noteContent"
           dangerouslySetInnerHTML={{ __html: formatContent(post.event.content) }}
         />
@@ -355,7 +355,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
             <span className="zapMinVal">{post.zapMin.toLocaleString()}</span>
             <span className="label">sats<br />{post.zapMin !== post.zapMax ? 'Min' : ''}</span>
           </div>
-          
+
           {post.zapMin !== post.zapMax && (
             <div className="zapMax">
               <span className="zapMaxVal">{post.zapMax.toLocaleString()}</span>
@@ -377,18 +377,18 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
           <div className="zapPayer">
             Payer <span className="material-symbols-outlined main-icon">target</span>
             <div className="zapPayerInner">
-              <img className="userImg" src={post.zapPayerPicture || "/images/generic-user-icon.svg"} />
+              <img className="userImg" src={post.zapPayerPicture || '/images/generic-user-icon.svg'} />
               <div className="userName">
                 {(() => {
                   if (window.NostrTools) {
                     const npub = window.NostrTools.nip19.npubEncode(post.zapPayer);
                     // Use start_and_end formatting: first 4 chars + "..." + last 4 chars
-                    return npub.length > 35 ? 
-                      npub.substr(0, 4) + "..." + npub.substr(npub.length - 4, npub.length) : 
+                    return npub.length > 35 ?
+                      `${npub.substr(0, 4)  }...${  npub.substr(npub.length - 4, npub.length)}` :
                       npub;
                   }
                   // Fallback to pubkey formatting
-                  return post.zapPayer.substr(0, 8) + '...' + post.zapPayer.substr(-8);
+                  return `${post.zapPayer.substr(0, 8)  }...${  post.zapPayer.substr(-8)}`;
                 })()}
               </div>
             </div>
@@ -430,16 +430,16 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
           {heroZaps.map((zap, index) => {
             return (
               <div key={index} className="zapReaction">
-                <a 
-                  href={`https://next.nostrudel.ninja/#/u/${zap.zapPayerNpub}`} 
-                  target="_blank" 
+                <a
+                  href={`https://next.nostrudel.ninja/#/u/${zap.zapPayerNpub}`}
+                  target="_blank"
                   rel="noopener noreferrer"
                 >
                   <img className="userImg" src={zap.zapPayerPicture} />
                 </a>
-                <a 
-                  href={`https://next.nostrudel.ninja/#/n/${zap.id}`} 
-                  target="_blank" 
+                <a
+                  href={`https://next.nostrudel.ninja/#/n/${zap.id}`}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="zapReactionAmount"
                 >
@@ -467,16 +467,16 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
             {overflowZaps.map((zap, index) => {
               return (
                 <div key={index} className="zapReaction">
-                  <a 
-                    href={`https://next.nostrudel.ninja/#/u/${zap.zapPayerNpub}`} 
-                    target="_blank" 
+                  <a
+                    href={`https://next.nostrudel.ninja/#/u/${zap.zapPayerNpub}`}
+                    target="_blank"
                     rel="noopener noreferrer"
                   >
                     <img className="userImg" src={zap.zapPayerPicture} />
                   </a>
-                  <a 
-                    href={`https://next.nostrudel.ninja/#/n/${zap.id}`} 
-                    target="_blank" 
+                  <a
+                    href={`https://next.nostrudel.ninja/#/n/${zap.id}`}
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="zapReactionAmount"
                   >
@@ -489,9 +489,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
 
           <div className="noteActions">
             {/* Zap Menu */}
-            <a 
+            <a
               ref={zapActionRef}
-              className={isPayable && (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses) ? "noteAction zapMenuAction" : "disabled"}
+              className={isPayable && (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses) ? 'noteAction zapMenuAction' : 'disabled'}
               onClick={(e) => {
                 e.preventDefault();
                 if (!isPayable || (post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses)) return;
@@ -500,24 +500,24 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
               style={{ position: 'relative' }}
             >
               <span className="material-symbols-outlined">bolt</span>
-              <div 
-                className="zapMenu" 
-                style={{ display: showZapMenu ? 'block' : 'none' }} 
+              <div
+                className="zapMenu"
+                style={{ display: showZapMenu ? 'block' : 'none' }}
                 ref={zapMenuRef}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="zapMenuCustom">
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     id="customZapInput"
-                    placeholder="sats" 
+                    placeholder="sats"
                     min="1"
                     value={customZapAmount}
                     onChange={(e) => setCustomZapAmount(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <button 
-                    id="customZapButton" 
+                  <button
+                    id="customZapButton"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleCustomZap();
@@ -525,8 +525,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
                   >
                     Zap
                   </button>
-                  <button 
-                    id="customAnonZapButton" 
+                  <button
+                    id="customAnonZapButton"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleAnonZap();
@@ -539,8 +539,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
             </a>
 
             {/* Share */}
-            <a 
-              className="noteAction" 
+            <a
+              className="noteAction"
               onClick={() => onShare(post)}
             >
               <span className="material-symbols-outlined">ios_share</span>
@@ -548,28 +548,28 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
 
             {/* More Menu */}
             <div className="noteAction dropdown">
-              <button 
+              <button
                 className="dropbtn"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log("Dropdown button clicked");
+                  console.log('Dropdown button clicked');
                   setTimeout(() => {
                     if (dropdownRef.current) {
-                      dropdownRef.current.classList.toggle("show");
-                      console.log("Dropdown classes after toggle:", dropdownRef.current.className);
+                      dropdownRef.current.classList.toggle('show');
+                      console.log('Dropdown classes after toggle:', dropdownRef.current.className);
                     }
                   }, 100);
                 }}
               >
                 <span className="material-symbols-outlined">more_horiz</span>
               </button>
-              
+
               <div className="dropdown-content dropdown-element" ref={dropdownRef}>
                 <a className="cta dropdown-element disabled">New Pay Forward</a>
-                
+
                 {isPayable && (
-                  <a 
+                  <a
                     className={`cta dropdown-element ${!isPayable ? 'disabled' : ''}`}
                     onClick={(e) => {
                       e.preventDefault();
@@ -581,10 +581,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
                     Pay Anonymously
                   </a>
                 )}
-                
-                <a 
-                  className="toolTipLink dropdown-element" 
-                  href="#" 
+
+                <a
+                  className="toolTipLink dropdown-element"
+                  href="#"
                   onClick={(e) => {
                     e.preventDefault();
                     onViewRaw(post);
@@ -592,7 +592,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
                 >
                   View Raw
                 </a>
-                
+
                 <a
                   href={`https://next.nostrudel.ninja/#/n/${post.id}`}
                   className="toolTipLink dropdown-element"
@@ -601,7 +601,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
                 >
                   View on nostrudel
                 </a>
-                
+
                 <a
                   href={`/live?note=${post.id}`}
                   className="toolTipLink dropdown-element"

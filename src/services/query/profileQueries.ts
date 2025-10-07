@@ -9,7 +9,7 @@ const profileKey = (pubkey: string) => ['profile', pubkey];
 export const ensureProfiles = async (
   qc: QueryClient,
   client: NostrClient,
-  pubkeys: string[],
+  pubkeys: string[]
 ): Promise<Map<string, Kind0Event>> => {
   const unique = sortUnique(pubkeys);
   const result = new Map<string, Kind0Event>();
