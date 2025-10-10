@@ -285,7 +285,11 @@ export const useHomeFunctionality = () => {
         }
       }
       // Fetch posts via react-query ensure
-      const kind1Events = await ensurePosts(getQueryClient(), nostrClientRef.current!, { until: params.until, limit: params.limit });
+      const kind1Events = await ensurePosts(getQueryClient(), nostrClientRef.current!, { 
+        until: params.until, 
+        limit: params.limit,
+        authors: params.authors 
+      });
 
       if (!kind1Events || kind1Events.length === 0) {
         if (loadMore) {
