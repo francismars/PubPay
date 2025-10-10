@@ -1,4 +1,5 @@
 import { RELAYS } from '../../utils/constants';
+import * as NostrTools from 'nostr-tools';
 export class NostrClient {
     constructor(relays = RELAYS) {
         this.connections = new Map();
@@ -8,13 +9,8 @@ export class NostrClient {
         this.initializePool();
     }
     initializePool() {
-        // Initialize NostrTools.SimplePool
-        if (typeof window !== 'undefined' && window.NostrTools) {
-            this.pool = new window.NostrTools.SimplePool();
-        }
-        else {
-            throw new Error('NostrTools not available. Make sure nostrtools.min.js is loaded.');
-        }
+        // Initialize NostrTools.SimplePool using npm package
+        this.pool = new NostrTools.SimplePool();
     }
     /**
      * Subscribe to events with the given filters
@@ -33,26 +29,37 @@ export class NostrClient {
                 console.log(`Subscription ${subscriptionId} timeout - keeping alive`);
             }, options.timeout);
         }
-        const sub = this.pool.subscribeMany(this.relays, filters, {
-            onevent: (event) => {
-                if (timeoutId) {
-                    clearTimeout(timeoutId);
+        // Subscribe to each filter individually to avoid subscribeMany issues
+        const subscriptions = [];
+        filters.forEach(filter => {
+            const sub = this.pool.subscribe(this.relays, filter, {
+                onevent: (event) => {
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                    }
+                    eventHandler(event);
+                },
+                oneose: () => {
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                    }
+                    options.oneose?.();
+                },
+                onclosed: () => {
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                    }
+                    options.onclosed?.();
                 }
-                eventHandler(event);
-            },
-            oneose: () => {
-                if (timeoutId) {
-                    clearTimeout(timeoutId);
-                }
-                options.oneose?.();
-            },
-            onclosed: () => {
-                if (timeoutId) {
-                    clearTimeout(timeoutId);
-                }
-                options.onclosed?.();
-            }
+            });
+            subscriptions.push(sub);
         });
+        // Create a combined subscription object
+        const sub = {
+            close: () => {
+                subscriptions.forEach(s => s.close());
+            }
+        };
         this.subscriptions.set(subscriptionId, subscription);
         return subscription;
     }
@@ -166,29 +173,86 @@ export class NostrClient {
                 }
                 console.log('Getting events with filters:', filters);
                 console.log('Filter structure:', JSON.stringify(filters, null, 2));
-                // Ensure filters are plain objects
-                const cleanFilters = filters.map(filter => JSON.parse(JSON.stringify(filter)));
+                // Ensure filters are plain objects and properly format hashtag properties
+                const cleanFilters = filters.map(filter => {
+                    const cleanFilter = {};
+                    // Copy standard properties
+                    if (filter.kinds)
+                        cleanFilter.kinds = filter.kinds;
+                    if (filter.authors)
+                        cleanFilter.authors = filter.authors;
+                    if (filter.ids)
+                        cleanFilter.ids = filter.ids;
+                    if (filter.limit)
+                        cleanFilter.limit = filter.limit;
+                    if (filter.until)
+                        cleanFilter.until = filter.until;
+                    if (filter.since)
+                        cleanFilter.since = filter.since;
+                    // Handle hashtag properties properly - ensure they are arrays
+                    if (filter['#t']) {
+                        cleanFilter['#t'] = Array.isArray(filter['#t']) ? filter['#t'] : [filter['#t']];
+                    }
+                    if (filter['#e']) {
+                        cleanFilter['#e'] = Array.isArray(filter['#e']) ? filter['#e'] : [filter['#e']];
+                    }
+                    if (filter['#p']) {
+                        cleanFilter['#p'] = Array.isArray(filter['#p']) ? filter['#p'] : [filter['#p']];
+                    }
+                    if (filter['#a']) {
+                        cleanFilter['#a'] = Array.isArray(filter['#a']) ? filter['#a'] : [filter['#a']];
+                    }
+                    return cleanFilter;
+                }).filter(filter => {
+                    // Filter out empty filters
+                    const hasKinds = filter.kinds && filter.kinds.length > 0;
+                    const hasAuthors = filter.authors && filter.authors.length > 0;
+                    const hasIds = filter.ids && filter.ids.length > 0;
+                    const hasTags = filter['#t'] || filter['#e'] || filter['#p'] || filter['#a'];
+                    // Additional validation: ensure filter is a proper object
+                    const isValidObject = filter && typeof filter === 'object' && !Array.isArray(filter);
+                    return isValidObject && hasKinds && (hasAuthors || hasIds || hasTags);
+                });
                 console.log('Clean filters:', cleanFilters);
+                // If no valid filters remain, return empty array
+                if (cleanFilters.length === 0) {
+                    console.log('No valid filters after cleaning, returning empty array');
+                    resolve([]);
+                    return;
+                }
                 const events = [];
                 let isComplete = false;
-                const subscription = this.pool.subscribeMany(this.relays, cleanFilters, {
-                    onevent(event) {
-                        events.push(event);
-                    },
-                    oneose() {
-                        if (!isComplete) {
-                            isComplete = true;
-                            resolve(events);
+                let completedSubscriptions = 0;
+                const totalSubscriptions = cleanFilters.length;
+                // Subscribe to each filter individually
+                const subscriptions = cleanFilters.map(filter => {
+                    return this.pool.subscribe(this.relays, filter, {
+                        onevent(event) {
+                            events.push(event);
+                        },
+                        oneose() {
+                            completedSubscriptions++;
+                            if (completedSubscriptions === totalSubscriptions && !isComplete) {
+                                isComplete = true;
+                                resolve(events);
+                            }
+                        },
+                        onclosed() {
+                            completedSubscriptions++;
+                            if (completedSubscriptions === totalSubscriptions && !isComplete) {
+                                isComplete = true;
+                                console.log('All subscriptions closed, resolving with', events.length, 'events');
+                                resolve(events);
+                            }
                         }
-                    },
-                    onclosed() {
-                        if (!isComplete) {
-                            isComplete = true;
-                            console.log('Subscription closed, resolving with', events.length, 'events');
-                            resolve(events);
-                        }
-                    }
+                    });
                 });
+                // Store all subscriptions for cleanup
+                const subscription = {
+                    close: () => {
+                        subscriptions.forEach(sub => sub.close());
+                    }
+                };
                 // Timeout after 10 seconds
                 setTimeout(() => {
                     if (!isComplete) {

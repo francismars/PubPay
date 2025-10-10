@@ -4,7 +4,8 @@ import { NostrClient } from '../nostr/NostrClient';
 export type PostsParams = {
     until?: number;
     limit?: number;
+    authors?: string[];
 };
-export declare const postsKey: (params: PostsParams) => (string | number | null)[];
+export declare const postsKey: (params: PostsParams) => (string | number | string[] | null)[];
 export declare const fetchPosts: (client: NostrClient, params: PostsParams) => Promise<Kind1Event[]>;
 export declare const ensurePosts: (qc: QueryClient, client: NostrClient, params: PostsParams) => Promise<Kind1Event[]>;

@@ -1,4 +1,5 @@
 // import { NostrEvent } from '@/types/nostr'; // Unused import
+import * as NostrTools from 'nostr-tools';
 export class ZapService {
     constructor(baseUrl = '') {
         this.baseUrl = baseUrl;
@@ -73,9 +74,9 @@ export class ZapService {
             const zapTagAmount = zapMintag ? zapMintag[1] : 1000;
             const amountPay = rangeValue !== -1 ? parseInt(rangeValue.toString()) * 1000 : Math.floor(parseInt(zapTagAmount));
             // Create zap request using NostrTools.nip57.makeZapRequest
-            const zapEvent = await window.NostrTools.nip57.makeZapRequest({
-                event: eventData.id,
-                profile: eventData.pubkey,
+            const zapEvent = await NostrTools.nip57.makeZapRequest({
+                event: eventData,
+                pubkey: eventData.pubkey,
                 amount: amountPay,
                 comment: '',
                 relays: [
@@ -92,7 +93,7 @@ export class ZapService {
             zapEvent.tags.push(['t', 'pubpay']);
             if (pubKey !== null) {
                 zapEvent.pubkey = pubKey;
-                const eventID = window.NostrTools.getEventHash(zapEvent);
+                const eventID = NostrTools.getEventHash(zapEvent);
                 if (eventID !== null)
                     zapEvent.id = eventID;
             }
@@ -111,14 +112,21 @@ export class ZapService {
      */
     async signZapEvent(zapEvent, callbackToZap, amountPay, lud16ToZap, eventoToZapID, anonymousZap = false) {
         try {
-            // Use global signIn module (loaded in index.html)
-            const signInMethod = window.signIn?.getSignInMethod();
+            // Check for authentication state in localStorage/sessionStorage (React app)
+            const publicKey = localStorage.getItem('publicKey') || sessionStorage.getItem('publicKey');
+            const signInMethod = localStorage.getItem('signInMethod') || sessionStorage.getItem('signInMethod');
+            const privateKey = localStorage.getItem('privateKey') || sessionStorage.getItem('privateKey');
+            console.log('Sign in method:', signInMethod);
+            console.log('Public key:', publicKey);
+            console.log('Has private key:', !!privateKey);
             let zapFinalized;
             if (anonymousZap === true) {
-                const privateKey = window.NostrTools.generateSecretKey();
-                zapFinalized = window.NostrTools.finalizeEvent(zapEvent, privateKey);
+                console.log('Using anonymous zap signing');
+                const privateKey = NostrTools.generateSecretKey();
+                zapFinalized = NostrTools.finalizeEvent(zapEvent, privateKey);
             }
             else if (signInMethod === 'externalSigner') {
+                console.log('Using external signer');
                 const eventString = JSON.stringify(zapEvent);
                 sessionStorage.setItem('SignZapEvent', JSON.stringify({
                     callback: callbackToZap,
@@ -131,18 +139,24 @@ export class ZapService {
                 return true;
             }
             else if (signInMethod === 'extension') {
+                console.log('Using extension signing');
                 if (window.nostr !== null) {
                     zapFinalized = await window.nostr.signEvent(zapEvent);
                 }
             }
             else if (signInMethod === 'nsec') {
-                const privateKey = window.signIn?.getPrivateKey();
+                console.log('Using nsec signing');
                 if (!privateKey) {
                     console.error('No private key found. Please sign in first.');
                     return false;
                 }
-                const { data } = window.NostrTools.nip19.decode(privateKey);
-                zapFinalized = window.NostrTools.finalizeEvent(zapEvent, data);
+                const { data } = NostrTools.nip19.decode(privateKey);
+                zapFinalized = NostrTools.finalizeEvent(zapEvent, data);
+            }
+            else {
+                console.log('No valid signing method found, falling back to anonymous zap');
+                const privateKey = NostrTools.generateSecretKey();
+                zapFinalized = NostrTools.finalizeEvent(zapEvent, privateKey);
             }
             // Check if zapFinalized was successfully created
             if (!zapFinalized) {
