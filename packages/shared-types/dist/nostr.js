@@ -1,0 +1,2 @@
+// Nostr-specific types
+export {};

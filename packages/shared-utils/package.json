@@ -1,0 +1,18 @@
+{
+  "name": "@pubpay/shared-utils",
+  "version": "1.0.0",
+  "description": "Shared utilities for PubPay",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pubpay/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
