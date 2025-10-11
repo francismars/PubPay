@@ -1,5 +1,5 @@
 import { BaseComponent } from './BaseComponent';
-import { ErrorService } from './services/ErrorService';
+import { ErrorService } from '@pubpay/shared-services';
 export interface QRCodeOptions {
     size?: number;
     value: string;

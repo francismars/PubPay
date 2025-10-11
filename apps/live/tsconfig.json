@@ -1,0 +1,31 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "../../",
+    "baseUrl": "../../",
+    "paths": {
+      "@pubpay/shared-services": ["packages/shared-services/src"],
+      "@pubpay/shared-ui": ["packages/shared-ui/src"],
+      "@pubpay/shared-types": ["packages/shared-types/src"],
+      "@pubpay/shared-utils": ["packages/shared-utils/src"],
+      "@live/*": ["apps/live/src/*"]
+    },
+    "typeRoots": [
+      "../../node_modules/@types",
+      "../../packages/shared-types/src"
+    ]
+  },
+  "include": [
+    "src/**/*",
+    "../../packages/shared-services/src/**/*",
+    "../../packages/shared-ui/src/**/*",
+    "../../packages/shared-types/src/**/*",
+    "../../packages/shared-utils/src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}
+
+

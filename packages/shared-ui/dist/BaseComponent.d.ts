@@ -1,4 +1,4 @@
-import { ErrorService } from './services/ErrorService';
+import { ErrorService } from '@pubpay/shared-services';
 export declare abstract class BaseComponent {
     protected element: HTMLElement;
     protected errorService: ErrorService;

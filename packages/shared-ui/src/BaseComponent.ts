@@ -1,5 +1,5 @@
 // BaseComponent - Base class for all UI components
-import { ErrorService } from './services/ErrorService';
+import { ErrorService } from '@pubpay/shared-services';
 
 export abstract class BaseComponent {
   protected element: HTMLElement;

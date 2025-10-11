@@ -1,0 +1,41 @@
+{
+  "name": "@pubpay/live",
+  "version": "1.0.0",
+  "description": "PubPay Live Events App",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "webpack --config ../../tools/webpack/live.config.js",
+    "dev": "webpack serve --config ../../tools/webpack/live.config.js --mode development",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@pubpay/shared-services": "workspace:*",
+    "@pubpay/shared-ui": "workspace:*",
+    "@pubpay/shared-types": "workspace:*",
+    "@pubpay/shared-utils": "workspace:*",
+    "bolt11": "^1.4.1",
+    "nostr-tools": "^2.17.0",
+    "qrcode": "^1.5.4",
+    "qrious": "^4.0.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^6.28.0",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/react-router-dom": "^5.3.3",
+    "typescript": "^5.7.2",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.1.0",
+    "ts-loader": "^9.5.1",
+    "css-loader": "^7.1.2",
+    "style-loader": "^4.0.0",
+    "html-webpack-plugin": "^5.6.3",
+    "copy-webpack-plugin": "^12.0.2"
+  }
+}
+
+
