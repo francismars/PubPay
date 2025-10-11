@@ -1,7 +1,7 @@
 // LightningPaymentComponent - Handles Lightning payment UI
 import { BaseComponent } from './BaseComponent';
-import { ErrorService } from './services/ErrorService';
-import { LightningService } from './services/LightningService';
+import { ErrorService } from '@pubpay/shared-services';
+import { LightningService } from '@pubpay/shared-services';
 
 export interface LightningPaymentOptions {
   showToggle?: boolean;
