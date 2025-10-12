@@ -489,7 +489,6 @@ export const LivePage: React.FC = () => {
               <div className="presets-container">
                 <button className="preset-btn" data-preset="lightMode">Light Mode</button>
                 <button className="preset-btn" data-preset="darkMode">Dark Mode</button>
-                <button className="preset-btn" data-preset="pubpay">PubPay</button>
                 <button className="preset-btn" data-preset="cosmic">Cosmic</button>
                 <button className="preset-btn" data-preset="vibrant">Vibrant</button>
                 <button className="preset-btn" data-preset="electric">Electric</button>
@@ -545,7 +544,6 @@ export const LivePage: React.FC = () => {
                   <div className="preset-inputs">
                     <select id="bgImagePreset" className="bg-preset-select">
                       <option value="">No Background (Default)</option>
-                      <option value="/images/gradient_color.gif">Gradient Color</option>
                       <option value="/images/adopting.webp">Adopting Bitcoin</option>
                       <option value="/images/sky.jpg">Sky</option>
                       <option value="/images/lightning.gif">Lightning</option>
@@ -565,7 +563,7 @@ export const LivePage: React.FC = () => {
                     </div>
                   </div>
                   <div className="preset-preview-container">
-                    <img id="bgPresetPreview" src="/images/gradient_color.gif" alt="No background" />
+                    <img id="bgPresetPreview" src="" alt="No background" />
                   </div>
                 </div>
               </div>
