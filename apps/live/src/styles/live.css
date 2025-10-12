@@ -3296,7 +3296,12 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
   display: flex !important;
   flex-direction: column !important;
   gap: 12px;
-  flex-direction: unset;
+}
+
+.zaps-list.grid-layout .zapperProfile {
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 4px;
 }
 
 .zaps-list.grid-layout .zap .zapperProfile {
@@ -3305,6 +3310,58 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 
 .zaps-list.grid-layout .zap .zapperAmount {
   margin-left: 0;
+}
+
+/* Override basic zap styles for grid layout */
+.zaps-list.grid-layout .zap {
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  display: flex !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+/* Base styles for grid layout elements */
+.zaps-list.grid-layout .zapperProfileImg {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.zaps-list.grid-layout .zapperName {
+  font-weight: 600;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.zaps-list.grid-layout .zap .zapperMessage {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: block;
+  box-sizing: border-box;
+}
+
+.zaps-list.grid-layout .zapperMessage {
+  font-weight: 300;
+  color: var(--text-color);
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 /* Container for each row - use CSS Grid */
@@ -3325,6 +3382,24 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
   min-height: 160px;
 }
 
+.zaps-list.grid-layout .zap.row-1 .zapperProfileImg {
+  width: 6vw;
+  height: 6vw;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.zaps-list.grid-layout .zap.row-1 .zapperName {
+  font-size: 1.5vw;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
 /* Row 2: 2 medium zaps */
 .zaps-list.grid-layout .zap-row.row-2 {
   grid-template-columns: repeat(2, 1fr);
@@ -3333,6 +3408,111 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 .zaps-list.grid-layout .zap.row-2 {
   padding: 18px;
   min-height: 130px;
+}
+
+.zaps-list.grid-layout .zap.row-2 .zapperProfileImg {
+  width: 4vw;
+  height: 4vw;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.zaps-list.grid-layout .zap.row-2 .zapperName {
+  font-size: 1.3vw;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+.zaps-list.grid-layout .zap.row-2 .zapperMessage {
+  font-size: 1.0vw;
+  opacity: 0.8;
+  margin-bottom: 8px;
+}
+
+.zaps-list.grid-layout .zap.row-1 .zapperMessage {
+  font-size: 1.2vw;
+  opacity: 0.8;
+  margin-bottom: 12px;
+}
+
+.zaps-list.grid-layout .zap.row-1 .zapperAmountSats {
+  font-size: 1.8vw;
+  font-weight: bold;
+}
+
+.zaps-list.grid-layout .zap.row-2 .zapperAmountSats {
+  font-size: 1.5vw;
+  font-weight: bold;
+}
+
+.zaps-list.grid-layout .zap.row-3 .zapperAmountSats {
+  font-size: 1.3vw;
+  font-weight: bold;
+}
+
+.zaps-list.grid-layout .zap.row-4 .zapperAmountSats {
+  font-size: 1.1vw;
+  font-weight: bold;
+}
+
+.zaps-list.grid-layout .zap.row-5 .zapperAmountSats {
+  font-size: 1.0vw;
+  font-weight: bold;
+}
+
+.zaps-list.grid-layout .zapperAmount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.zaps-list.grid-layout .zap.row-1 .zapperAmountLabel {
+  font-size: 1.2vw;
+  opacity: 0.8;
+}
+
+.zaps-list.grid-layout .zap.row-2 .zapperAmountLabel {
+  font-size: 1.0vw;
+  opacity: 0.8;
+}
+
+.zaps-list.grid-layout .zap.row-3 .zapperAmountLabel {
+  font-size: 0.9vw;
+  opacity: 0.8;
+}
+
+.zaps-list.grid-layout .zap.row-4 .zapperAmountLabel {
+  font-size: 0.7vw;
+  opacity: 0.8;
+}
+
+.zaps-list.grid-layout .zap.row-5 .zapperAmountLabel {
+  font-size: 0.6vw;
+  opacity: 0.8;
+}
+
+.zaps-list.grid-layout .zap.row-3 .zapperMessage {
+  font-size: 0.9vw;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
+.zaps-list.grid-layout .zap.row-4 .zapperMessage {
+  font-size: 0.7vw;
+  opacity: 0.8;
+  margin-bottom: 5px;
+}
+
+.zaps-list.grid-layout .zap.row-5 .zapperMessage {
+  font-size: 0.6vw;
+  opacity: 0.8;
+  margin-bottom: 4px;
 }
 
 /* Row 3: 4 smaller zaps */
@@ -3345,6 +3525,24 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
   min-height: 110px;
 }
 
+.zaps-list.grid-layout .zap.row-3 .zapperProfileImg {
+  width: 3vw;
+  height: 3vw;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.zaps-list.grid-layout .zap.row-3 .zapperName {
+  font-size: 1.1vw;
+  margin-bottom: 3px;
+  font-weight: bold;
+}
+
 /* Row 4: 8 even smaller zaps */
 .zaps-list.grid-layout .zap-row.row-4 {
   grid-template-columns: repeat(8, 1fr);
@@ -3355,6 +3553,24 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
   min-height: 90px;
 }
 
+.zaps-list.grid-layout .zap.row-4 .zapperProfileImg {
+  width: 2vw;
+  height: 2vw;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.zaps-list.grid-layout .zap.row-4 .zapperName {
+  font-size: 0.9vw;
+  margin-bottom: 3px;
+  font-weight: bold;
+}
+
 /* Row 5+: 16+ tiny zaps */
 .zaps-list.grid-layout .zap-row.row-5 {
   grid-template-columns: repeat(16, 1fr);
@@ -3363,6 +3579,36 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 .zaps-list.grid-layout .zap.row-5 {
   padding: 8px;
   min-height: 70px;
+}
+
+.zaps-list.grid-layout .zap.row-5 .zapperProfileImg {
+  width: 1.5vw;
+  height: 1.5vw;
+  margin-bottom: 3px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.zaps-list.grid-layout .zap.row-5 .zapperName {
+  font-size: 0.8vw;
+  margin-bottom: 2px;
+  font-weight: bold;
+}
+
+.zaps-list.grid-layout .zap .zapperInfo {
+  overflow: hidden;
+  width: 100%;
+}
+
+.zaps-list.grid-layout .zapperInfo {
+  text-align: center;
+  width: 100%;
+  min-width: 0;
+  flex: 1;
 }
 
 body.flex-direction-invert .main-layout .right-side,
