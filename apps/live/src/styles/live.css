@@ -1223,7 +1223,7 @@ body.qr-blend-active.qr-multiply-active .qr-swiper {
 .zaps-header-left h2 {
   font-size: max(2.2vw, 16px);
   margin: 0 0 15px 0;
-  color: #fff;
+  color: var(--text-color);
   font-weight: 600;
 }
 
@@ -1257,7 +1257,7 @@ body.qr-blend-active.qr-multiply-active .qr-swiper {
 
 .total-zaps {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--text-color);
 }
 
 .zaps-header-right {
@@ -1289,8 +1289,10 @@ body.qr-blend-active.qr-multiply-active .qr-swiper {
 }
 
 /* Adjust main layout when style panel is open */
-body.style-panel-open .main-layout {
+body.style-panel-open .main-layout,
+body.style-panel-open .live .main-layout {
   width: calc(100vw - 450px);
+  transition: width 0.3s ease-out;
 }
 
 /* Style toggle button when panel is open */
@@ -1333,28 +1335,18 @@ body.style-panel-open .style-toggle-btn {
   border: 1px solid rgb(133 133 133 / 18%);
 }
 
-.zapper-rank {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--text-color);
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 600;
-  margin-right: 10px;
-  flex-shrink: 0;
+.top-zapper:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
 }
 
 .zapper-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  margin-right: 12px;
   object-fit: cover;
-  margin-right: 10px;
-  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .zapper-info {
@@ -2016,7 +2008,6 @@ body.style-panel-open .style-toggle-btn {
   }
   
   .top-zappers-list {
-    flex-direction: column;
     gap: 8px;
   }
   
@@ -2056,14 +2047,417 @@ body.style-panel-open .style-toggle-btn {
   body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
     font-size: 3vw;
   }
+}
+
+@media (max-width: 1200px) {
+  /* Responsive adjustments for grid layout */
+  .zaps-list.grid-layout .zap.row-1 {
+    min-height: 100px;
+  }
+  .zaps-list.grid-layout .zap.row-1 .zapperProfileImg {
+    width: 2.6vw;
+    height: 2.6vw;
+  }
+  .zaps-list.grid-layout .zap.row-1 .zapperName {
+    font-size: 1.1vw;
+  }
+  .zaps-list.grid-layout .zap.row-1 .zapperMessage {
+    font-size: 0.9vw;
+  }
+  .zaps-list.grid-layout .zap.row-1 .zapperAmountSats {
+    font-size: 1.3vw;
+  }
+  .zaps-list.grid-layout .zap.row-1 .zapperAmountLabel {
+    font-size: 0.9vw;
+  }
   
-  /* On mobile, revert to overlay behavior */
+  .zaps-list.grid-layout .zap.row-2 {
+    min-height: 80px;
+  }
+  .zaps-list.grid-layout .zap.row-2 .zapperProfileImg {
+    width: 2vw;
+    height: 2vw;
+  }
+  .zaps-list.grid-layout .zap.row-2 .zapperName {
+    font-size: 0.9vw;
+  }
+  .zaps-list.grid-layout .zap.row-2 .zapperMessage {
+    font-size: 0.7vw;
+  }
+  .zaps-list.grid-layout .zap.row-2 .zapperAmountSats {
+    font-size: 1.1vw;
+  }
+  .zaps-list.grid-layout .zap.row-2 .zapperAmountLabel {
+    font-size: 0.7vw;
+  }
+  
+  .zaps-list.grid-layout .zap.row-3 {
+    min-height: 60px;
+  }
+  .zaps-list.grid-layout .zap.row-3 .zapperProfileImg {
+    width: 1.5vw;
+    height: 1.5vw;
+  }
+  .zaps-list.grid-layout .zap.row-3 .zapperName {
+    font-size: 0.7vw;
+  }
+  .zaps-list.grid-layout .zap.row-3 .zapperMessage {
+    font-size: 0.5vw;
+  }
+  .zaps-list.grid-layout .zap.row-3 .zapperAmountSats {
+    font-size: 0.9vw;
+  }
+  .zaps-list.grid-layout .zap.row-3 .zapperAmountLabel {
+    font-size: 0.5vw;
+  }
+  
+  .zaps-list.grid-layout .zap.row-4 {
+    min-height: 50px;
+  }
+  .zaps-list.grid-layout .zap.row-4 .zapperProfileImg {
+    width: 1.1vw;
+    height: 1.1vw;
+  }
+  .zaps-list.grid-layout .zap.row-4 .zapperName {
+    font-size: 0.5vw;
+  }
+  .zaps-list.grid-layout .zap.row-4 .zapperMessage {
+    font-size: 0.4vw;
+  }
+  .zaps-list.grid-layout .zap.row-4 .zapperAmountSats {
+    font-size: 0.7vw;
+  }
+  .zaps-list.grid-layout .zap.row-4 .zapperAmountLabel {
+    font-size: 0.4vw;
+  }
+  
+  .zaps-list.grid-layout .zap.row-5 {
+    min-height: 35px;
+  }
+  .zaps-list.grid-layout .zap.row-5 .zapperProfileImg {
+    width: 0.9vw;
+    height: 0.9vw;
+  }
+  .zaps-list.grid-layout .zap.row-5 .zapperName {
+    font-size: 0.4vw;
+  }
+  .zaps-list.grid-layout .zap.row-5 .zapperMessage {
+    font-size: 0.3vw;
+  }
+  .zaps-list.grid-layout .zap.row-5 .zapperAmountSats {
+    font-size: 0.5vw;
+  }
+  .zaps-list.grid-layout .zap.row-5 .zapperAmountLabel {
+    font-size: 0.3vw;
+  }
+}
+
+@media (max-width: 900px) {
+  .zaps-list.grid-layout .zap.row-1 {
+    min-height: 90px;
+  }
+  .zaps-list.grid-layout .zap.row-1 .zapperProfileImg {
+    width: 2.2vw;
+    height: 2.2vw;
+  }
+  .zaps-list.grid-layout .zap.row-1 .zapperName {
+    font-size: 1.0vw;
+  }
+  .zaps-list.grid-layout .zap.row-1 .zapperMessage {
+    font-size: 0.8vw;
+  }
+  .zaps-list.grid-layout .zap.row-1 .zapperAmountSats {
+    font-size: 1.2vw;
+  }
+  .zaps-list.grid-layout .zap.row-1 .zapperAmountLabel {
+    font-size: 0.8vw;
+  }
+  
+  .zaps-list.grid-layout .zap-row.row-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .zaps-list.grid-layout .zap.row-2 {
+    min-height: 70px;
+  }
+  .zaps-list.grid-layout .zap.row-2 .zapperProfileImg {
+    width: 1.7vw;
+    height: 1.7vw;
+  }
+  .zaps-list.grid-layout .zap.row-2 .zapperName {
+    font-size: 0.8vw;
+  }
+  .zaps-list.grid-layout .zap.row-2 .zapperMessage {
+    font-size: 0.6vw;
+  }
+  .zaps-list.grid-layout .zap.row-2 .zapperAmountSats {
+    font-size: 1.0vw;
+  }
+  .zaps-list.grid-layout .zap.row-2 .zapperAmountLabel {
+    font-size: 0.6vw;
+  }
+  
+  .zaps-list.grid-layout .zap-row.row-3 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .zaps-list.grid-layout .zap.row-3 {
+    min-height: 55px;
+  }
+  .zaps-list.grid-layout .zap.row-3 .zapperProfileImg {
+    width: 1.2vw;
+    height: 1.2vw;
+  }
+  .zaps-list.grid-layout .zap.row-3 .zapperName {
+    font-size: 0.6vw;
+  }
+  .zaps-list.grid-layout .zap.row-3 .zapperMessage {
+    font-size: 0.4vw;
+  }
+  .zaps-list.grid-layout .zap.row-3 .zapperAmountSats {
+    font-size: 0.8vw;
+  }
+  .zaps-list.grid-layout .zap.row-3 .zapperAmountLabel {
+    font-size: 0.4vw;
+  }
+  
+  .zaps-list.grid-layout .zap-row.row-4 {
+    grid-template-columns: repeat(8, 1fr);
+  }
+  .zaps-list.grid-layout .zap.row-4 {
+    min-height: 45px;
+  }
+  .zaps-list.grid-layout .zap.row-4 .zapperProfileImg {
+    width: 1vw;
+    height: 1vw;
+  }
+  .zaps-list.grid-layout .zap.row-4 .zapperName {
+    font-size: 0.4vw;
+  }
+  .zaps-list.grid-layout .zap.row-4 .zapperMessage {
+    font-size: 0.3vw;
+  }
+  .zaps-list.grid-layout .zap.row-4 .zapperAmountSats {
+    font-size: 0.6vw;
+  }
+  .zaps-list.grid-layout .zap.row-4 .zapperAmountLabel {
+    font-size: 0.3vw;
+  }
+  
+  .zaps-list.grid-layout .zap-row.row-5 {
+    grid-template-columns: repeat(16, 1fr);
+  }
+  .zaps-list.grid-layout .zap.row-5 {
+    min-height: 35px;
+  }
+  .zaps-list.grid-layout .zap.row-5 .zapperProfileImg {
+    width: 0.8vw;
+    height: 0.8vw;
+  }
+  .zaps-list.grid-layout .zap.row-5 .zapperName {
+    font-size: 0.3vw;
+  }
+  .zaps-list.grid-layout .zap.row-5 .zapperMessage {
+    font-size: 0.25vw;
+  }
+  .zaps-list.grid-layout .zap.row-5 .zapperAmountSats {
+    font-size: 0.4vw;
+  }
+  .zaps-list.grid-layout .zap.row-5 .zapperAmountLabel {
+    font-size: 0.25vw;
+  }
+}
+
+@media (max-width: 665px) {
+  .main-layout,
+  .live {
+    flex-direction: column;
+  }
+  
+  .main-layout .left-side,
+  .live .left-side {
+    width: 100%;
+    height: 40vh;
+    border-right: none;
+    border-bottom: 2px solid color-mix(in srgb, var(--text-color) 20%, transparent);
+  }
+  
+  .main-layout .right-side,
+  .live .right-side {
+    width: 100%;
+    height: 60vh;
+  }
+  
+  .post-info {
+    padding: 15px;
+  }
+  
+  .zaps-header,
+  .zaps-container,
+  .top-zappers-bar {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+  
+  .top-zappers-list {
+    gap: 8px;
+  }
+  
+  .top-zapper {
+    padding: 8px;
+  }
+  
+  .zapper-avatar {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .zapper-name {
+    font-size: 0.85em;
+  }
+  
+  .zapper-total {
+    font-size: 0.75em;
+  }
+  
+  .qr-code,
+  .lightning-qr-slide .qr-code {
+    max-width: 200px;
+  }
+  
+  .qr-section {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .qr-code,
+  .lightning-qr-slide .qr-code {
+    max-width: 150px;
+  }
+  
+  .note-content {
+    font-size: max(0.9vw, 11px);
+    line-height: 1.3;
+  }
+  
+  .note-section {
+    max-height: 25vh;
+  }
+  
+  .zaps-header {
+    font-size: max(1.2vw, 14px);
+  }
+  
+  .zap {
+    padding: 8px;
+  }
+  
+  .zapperProfileImg {
+    width: 2vw;
+    height: 2vw;
+  }
+  
+  .zapperName {
+    font-size: max(0.8vw, 12px);
+  }
+  
+  .zapperMessage {
+    font-size: max(0.7vw, 10px);
+  }
+  
+  .zapperAmountSats {
+    font-size: max(1.0vw, 14px);
+  }
+  
+  .zapperAmountLabel {
+    font-size: max(0.7vw, 10px);
+  }
+}
+
+/* ===== LIVE EVENT TWO-COLUMN LAYOUT ===== */
+
+.live-event-two-column {
+  height: 100%;
+  overflow: hidden;
+}
+
+.live-event-columns {
+  display: flex;
+  height: 100%;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.live-event-zaps-only {
+  flex: 0 0 calc(70% - 7px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.live-event-activity {
+  flex: 0 0 calc(30% - 3px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.zaps-only-list,
+.activity-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+/* Zap-only column styling */
+.zap-only-item {
+  margin-bottom: 10px;
+}
+
+/* Responsive adjustments for two-column layout */
+@media (max-width: 768px) {
+  .live-event-columns {
+    flex-direction: column;
+  }
+  
+  .live-event-zaps-only {
+    flex: 0 0 60%;
+  }
+  
+  .live-event-activity {
+    flex: 0 0 40%;
+  }
+}
+
+/* Grid toggle disabled state */
+.grid-toggle-disabled {
+  opacity: 0.8 !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+}
+
+.grid-toggle-disabled .toggle-slider {
+  opacity: 0.4 !important;
+}
+
+.grid-toggle-disabled span {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+}
+
+/* On mobile, revert to overlay behavior */
   body.style-panel-open .main-layout {
     width: 100vw;
   }
   
   .top-zappers-list {
-    flex-direction: column;
     gap: 8px;
   }
   
@@ -2080,11 +2474,6 @@ body.style-panel-open .style-toggle-btn {
     font-size: max(1.1vw, 13px);
   }
   
-  #styleOptionsModal.show {
-    width: 100%;
-    background-color: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-  }
   
   .style-options-content {
     width: 100%;
@@ -2108,7 +2497,7 @@ body.style-panel-open .style-toggle-btn {
     flex-direction: column;
     padding: 15px;
   }
-}
+
 
 /* Portrait Swiper */
 .portrait-swiper {
@@ -2610,6 +2999,7 @@ body.style-panel-open .style-toggle-btn {
   
   .total-zaps {
     font-size: max(1vw, 12px);
+    color: var(--text-color);
   }
 }
 
@@ -2628,6 +3018,7 @@ body.style-panel-open .style-toggle-btn {
   
   .total-zaps {
     font-size: max(1.2vw, 10px);
+    color: var(--text-color);
   }
 }
 
@@ -2646,6 +3037,7 @@ body.style-panel-open .style-toggle-btn {
   
   .total-zaps {
     font-size: max(0.8vw, 12px);
+    color: var(--text-color);
   }
 }
 
@@ -2899,6 +3291,80 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
   z-index: 10;
 }
 
+/* Hierarchical grid layout for zaps */
+.zaps-list.grid-layout {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px;
+  flex-direction: unset;
+}
+
+.zaps-list.grid-layout .zap .zapperProfile {
+  gap: 0;
+}
+
+.zaps-list.grid-layout .zap .zapperAmount {
+  margin-left: 0;
+}
+
+/* Container for each row - use CSS Grid */
+.zaps-list.grid-layout .zap-row {
+  display: grid;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+/* Row 1: 1 big zap */
+.zaps-list.grid-layout .zap-row.row-1 {
+  grid-template-columns: 1fr;
+}
+
+.zaps-list.grid-layout .zap.row-1 {
+  padding: 24px;
+  min-height: 160px;
+}
+
+/* Row 2: 2 medium zaps */
+.zaps-list.grid-layout .zap-row.row-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.zaps-list.grid-layout .zap.row-2 {
+  padding: 18px;
+  min-height: 130px;
+}
+
+/* Row 3: 4 smaller zaps */
+.zaps-list.grid-layout .zap-row.row-3 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.zaps-list.grid-layout .zap.row-3 {
+  padding: 14px;
+  min-height: 110px;
+}
+
+/* Row 4: 8 even smaller zaps */
+.zaps-list.grid-layout .zap-row.row-4 {
+  grid-template-columns: repeat(8, 1fr);
+}
+
+.zaps-list.grid-layout .zap.row-4 {
+  padding: 10px;
+  min-height: 90px;
+}
+
+/* Row 5+: 16+ tiny zaps */
+.zaps-list.grid-layout .zap-row.row-5 {
+  grid-template-columns: repeat(16, 1fr);
+}
+
+.zaps-list.grid-layout .zap.row-5 {
+  padding: 8px;
+  min-height: 70px;
+}
+
 body.flex-direction-invert .main-layout .right-side,
 body.flex-direction-invert .live .right-side {
   height: auto;
@@ -2953,22 +3419,20 @@ body.flex-direction-invert .live .right-side {
 #zappedTotalCount {
   font-weight: bold;
   font-size: 18px;
-  color: #2c3e50;
+  color: var(--text-color);
 }
 
 .live #zappedTotalValue {
   font-weight: 600;
   font-size: 3vw;
   line-height: 1.5vw;
+  color: var(--text-color);
 }
 
 /* Live-specific color overrides for zap header elements - match legacy black colors */
-.live .total-label,
 .live .total-amount,
-.live .total-sats,
-.live .total-count,
-.live .total-zaps {
-  color: rgb(0, 0, 0) !important;
+.live .total-count {
+  color: rgb(0, 0, 0);
 }
 
 /* Top Zappers Bar */
@@ -3011,7 +3475,6 @@ body.show-top-zappers #top-zappers-bar {
 .zapper-rank {
   font-size: 1.2em;
   font-weight: bold;
-  color: #FFD700;
   margin-right: 12px;
   min-width: 20px;
   text-align: center;
@@ -3024,6 +3487,10 @@ body.show-top-zappers #top-zappers-bar {
   margin-right: 12px;
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+#partnerLogo {
+  margin-right: 10px;
 }
 
 .zapper-info {
@@ -3043,7 +3510,6 @@ body.show-top-zappers #top-zappers-bar {
 
 .zapper-total {
   font-size: 0.8em;
-  color: #FFD700;
   font-weight: 500;
 }
 
@@ -3248,26 +3714,25 @@ body.show-top-zappers #top-zappers-bar {
 /* ===== MAIN LAYOUT COLOR OVERRIDES ===== */
 
 /* Override hardcoded colors to use CSS custom property */
-.main-layout .zaps-header-left h2,
-.main-layout .total-label,
-.main-layout .total-sats,
-.main-layout .total-amount,
-.main-layout .dashboard-title,
-.main-layout .zapperName,
-.main-layout .zapperAmountSats,
-.main-layout .author-name,
-.main-layout .note-content,
-.main-layout .note-content *,
-.main-layout .section-label,
-.main-layout .qr-instructions,
-.main-layout .zaps-header,
-.main-layout .zaps-container,
-.main-layout .zaps-list,
-.main-layout .zap,
-.main-layout .zapperProfile,
-.main-layout .zapperInfo,
-.main-layout * {
-  color: inherit;
+.zaps-header-left h2,
+.total-label,
+.total-sats,
+.total-amount,
+.dashboard-title,
+.zapperName,
+.zapperAmountSats,
+.author-name,
+.note-content,
+.note-content *,
+.section-label,
+.qr-instructions,
+.zaps-header,
+.zaps-container,
+.zaps-list,
+.zap,
+.zapperProfile,
+.zapperInfo {
+  color: var(--text-color);
 }
 
 /* Override inherit for specific elements that need explicit colors */
@@ -3675,6 +4140,12 @@ input:checked + .toggle-slider:before {
 
 /* Responsive design for style options */
 @media (max-width: 768px) {
+  /* On mobile, revert to overlay behavior */
+  body.style-panel-open .main-layout,
+  body.style-panel-open .live .main-layout {
+    width: 100vw;
+  }
+  
   .colors-container {
     flex-direction: column;
     gap: 15px;
