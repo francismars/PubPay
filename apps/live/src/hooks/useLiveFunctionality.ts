@@ -3179,31 +3179,35 @@ export const useLiveFunctionality = (eventId?: string) => {
     });
 
     setupToggle('zapGridToggle', (checked: boolean) => {
-      // Debug log removed
+      console.log('Zap grid toggle changed:', checked);
       const zapsList = document.getElementById('zaps');
       if (zapsList) {
         // Check if we're in live event mode (has two-column layout)
         const isLiveEvent = zapsList.classList.contains('live-event-two-column');
         if (isLiveEvent) {
-          // Debug log removed
+          console.log('Grid layout not supported for live events - skipping');
+          // Reset the toggle since we're not applying the change
+          const zapGridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+          if (zapGridToggle) {
+            zapGridToggle.checked = !checked;
+          }
           return;
         }
 
         zapsList.classList.toggle('grid-layout', checked);
         if (checked) {
-          // Debug log removed
           organizeZapsHierarchically();
         } else {
-          // Debug log removed
+          // Clean up hierarchical organization when grid mode is disabled
           cleanupHierarchicalOrganization();
         }
 
         // Re-render zaps to apply/remove podium styling based on current state
         if (zaps.length > 0) {
-          // Debug log removed
           drawKinds9735(zaps);
         }
       }
+      updateStyleURL();
     });
 
     setupToggle('qrInvertToggle', () => {
@@ -4306,6 +4310,18 @@ export const useLiveFunctionality = (eventId?: string) => {
             partnerLogoPreview.alt = 'No partner logo';
           }
         }
+      }
+    }
+
+    // Apply zap grid layout
+    const zapsList = document.getElementById('zaps');
+    if (zapsList) {
+      const isGridLayout = (document.getElementById('zapGridToggle') as HTMLInputElement)?.checked;
+      zapsList.classList.toggle('grid-layout', isGridLayout);
+      if (isGridLayout) {
+        organizeZapsHierarchically();
+      } else {
+        cleanupHierarchicalOrganization();
       }
     }
   };
