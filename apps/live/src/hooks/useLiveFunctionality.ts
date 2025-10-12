@@ -3035,7 +3035,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           updateBackgroundImage(selectedValue);
           if (bgPresetPreview) {
             if (selectedValue === '') {
-              // No background selected - hide the preview image
+              // No background selected - show white square (container background)
               (bgPresetPreview as HTMLImageElement).src = '';
               (bgPresetPreview as HTMLImageElement).alt = 'No background';
               (bgPresetPreview as HTMLImageElement).style.display = 'none';
@@ -3076,6 +3076,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           if (bgPresetPreview) {
             (bgPresetPreview as HTMLImageElement).src = '';
             (bgPresetPreview as HTMLImageElement).alt = 'No background';
+            (bgPresetPreview as HTMLImageElement).style.display = 'none';
           }
           saveCurrentStylesToLocalStorage();
         }
@@ -3091,6 +3092,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (bgPresetPreview) {
           (bgPresetPreview as HTMLImageElement).src = '';
           (bgPresetPreview as HTMLImageElement).alt = 'No background';
+          (bgPresetPreview as HTMLImageElement).style.display = 'none';
         }
         saveCurrentStylesToLocalStorage();
       });
@@ -3671,6 +3673,7 @@ export const useLiveFunctionality = (eventId?: string) => {
               if (bgPresetPreview) {
                 bgPresetPreview.src = '';
                 bgPresetPreview.alt = 'No background';
+                bgPresetPreview.style.display = 'none';
                 // Debug log removed
               }
             }
@@ -4617,6 +4620,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (bgPresetPreview) {
         bgPresetPreview.src = presetData.bgImage;
         bgPresetPreview.alt = presetData.bgImage ? 'Background preview' : 'No background';
+        bgPresetPreview.style.display = presetData.bgImage ? 'block' : 'none';
       }
 
       // Show/hide custom URL group based on preset selection

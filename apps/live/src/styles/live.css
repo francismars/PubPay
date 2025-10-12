@@ -668,6 +668,12 @@
   box-sizing: border-box;
 }
 
+.formField, textarea, input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   background: #fafafa;
@@ -1366,13 +1372,6 @@ body.style-panel-open .style-toggle-btn {
   text-overflow: ellipsis;
 }
 
-.zapper-total {
-  font-size: 0.8rem;
-  color: #666;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 /* Zaps Container */
 .main-layout .zaps-container {
@@ -1443,6 +1442,30 @@ body.style-panel-open .style-toggle-btn {
   flex-shrink: 0;
 }
 
+.zapperMessage {
+  font-size: max(0.9vw, 12px);
+  font-weight: 300;
+  color: var(--text-color);
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 200px;
+  margin-top: 2px;
+}
+
+.zapperName {
+  font-size: max(1vw, 14px);
+  font-weight: 600;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 200px;
+}
+
 .zapperInfo {
   display: flex;
   flex-direction: column;
@@ -1450,17 +1473,6 @@ body.style-panel-open .style-toggle-btn {
   flex: 1;
 }
 
-.zapperName {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-color);
-  margin: 0 0 4px 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  max-width: 200px;
-}
 
 .zapperMessage {
   font-size: 13px;
@@ -1567,6 +1579,7 @@ body.style-panel-open .style-toggle-btn {
   display: flex;
   align-items: center;
   gap: 1vw;
+  min-width: 0px;
 }
 
 .live .zapperProfileImg {
@@ -1642,6 +1655,7 @@ body.style-panel-open .style-toggle-btn {
   display: flex;
   align-items: center;
   gap: 1vw;
+  min-width: 0px;
 }
 
 .live .zapperProfileImg {
@@ -1999,6 +2013,48 @@ body.style-panel-open .style-toggle-btn {
   .top-zappers-bar {
     padding-left: 15px;
     padding-right: 15px;
+  }
+  
+  .top-zappers-list {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .top-zapper {
+    padding: 8px;
+  }
+  
+  .zapper-avatar {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .zapper-name {
+    font-size: 0.85em;
+  }
+  
+  .zapper-total {
+    font-size: 0.75em;
+  }
+  
+  /* Responsive medal sizing - Only apply when podium is enabled and NOT in grid layout */
+  body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(1)::before {
+    font-size: 3vw;
+  }
+  
+  body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(2)::before {
+    font-size: 2.7vw;
+  }
+  
+  body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(3)::before {
+    font-size: 2.5vw;
+  }
+  
+  /* Responsive font sizes for global podium styling */
+  body.podium-enabled .zaps-list.grid-layout .zap.podium-global-1::before,
+  body.podium-enabled .zaps-list.grid-layout .zap.podium-global-2::before,
+  body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
+    font-size: 3vw;
   }
   
   /* On mobile, revert to overlay behavior */
@@ -2678,6 +2734,171 @@ body.style-panel-open .style-toggle-btn {
 }
 
 /* Flex direction invert support */
+body.flex-direction-invert .main-layout {
+  flex-direction: row-reverse;
+}
+
+body.flex-direction-invert .left-side {
+  border-left: 2px solid color-mix(in srgb, var(--text-color) 20%, transparent);
+}
+
+body.flex-direction-invert .right-side {
+  border-left: none;
+}
+
+/* Override zapper profile inversion - keep profiles in normal orientation */
+body.flex-direction-invert .live .zapperProfile {
+  display: flex;
+  justify-content: flex-start !important;
+  align-items: center;
+  gap: 1vw;
+  flex-direction: row !important;
+  text-align: left !important;
+}
+
+body.flex-direction-invert .zap:nth-child(even) .zapperProfile {
+  justify-content: flex-start !important;
+  flex-direction: row !important;
+  text-align: left !important;
+}
+
+/* Override flex-direction for grid layout - don't force row direction */
+body.flex-direction-invert .zaps-list.grid-layout .zapperProfile {
+  flex-direction: column !important;
+}
+
+body.flex-direction-invert .zaps-list.grid-layout .zap:nth-child(even) .zapperProfile {
+  flex-direction: column !important;
+}
+
+body.flex-direction-invert .zapperTotalLabel {
+  text-align: right !important;
+}
+
+/* Hide Zapper Content */
+body.hide-zapper-content .zapperMessage {
+  display: none;
+}
+
+/* Hide Zapper Content in Grid Layout */
+body.hide-zapper-content .zaps-list.grid-layout .zapperMessage {
+  display: none;
+}
+
+/* Zap ranking system - Only apply when podium is enabled and NOT in grid layout */
+body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(1) {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05));
+  border-color: rgba(255, 215, 0, 0.3);
+  position: relative;
+}
+
+body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(1)::before {
+  content: "🥇";
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  transform: translateY(-20%);
+  font-size: 2.5vw;
+  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+  z-index: 10;
+}
+
+body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(2) {
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.15), rgba(192, 192, 192, 0.05));
+  border-color: rgba(192, 192, 192, 0.3);
+  position: relative;
+}
+
+body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(2)::before {
+  content: "🥈";
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  transform: translateY(-20%);
+  font-size: 2.2vw;
+  filter: drop-shadow(0 0 5px rgba(192, 192, 192, 0.5));
+  z-index: 10;
+}
+
+body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(3) {
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05));
+  border-color: rgba(205, 127, 50, 0.3);
+  position: relative;
+}
+
+body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(3)::before {
+  content: "🥉";
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  transform: translateY(-20%);
+  font-size: 2vw;
+  filter: drop-shadow(0 0 5px rgba(205, 127, 50, 0.5));
+  z-index: 10;
+}
+
+/* Disable podium styling in grid layout for zaps that don't have podium-global classes */
+body.podium-enabled .zaps-list.grid-layout .zap:not(.podium-global-1):not(.podium-global-2):not(.podium-global-3) {
+  background: unset !important;
+  position: unset !important;
+}
+
+body.podium-enabled .zaps-list.grid-layout .zap:not(.podium-global-1):not(.podium-global-2):not(.podium-global-3)::before {
+  content: none !important;
+}
+
+/* Global podium styling for grid layout - applied via JavaScript classes */
+body.podium-enabled .zaps-list.grid-layout .zap.podium-global-1 {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 215, 0, 0.05)) !important;
+  border-color: rgba(255, 215, 0, 0.3) !important;
+  position: relative !important;
+}
+
+body.podium-enabled .zaps-list.grid-layout .zap.podium-global-1::before {
+  content: "🥇" !important;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  transform: translateY(-20%);
+  font-size: 2vw;
+  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5));
+  z-index: 10;
+}
+
+body.podium-enabled .zaps-list.grid-layout .zap.podium-global-2 {
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.15), rgba(192, 192, 192, 0.05)) !important;
+  border-color: rgba(192, 192, 192, 0.3) !important;
+  position: relative !important;
+}
+
+body.podium-enabled .zaps-list.grid-layout .zap.podium-global-2::before {
+  content: "🥈" !important;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  transform: translateY(-20%);
+  font-size: 2vw;
+  filter: drop-shadow(0 0 5px rgba(192, 192, 192, 0.5));
+  z-index: 10;
+}
+
+body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3 {
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.15), rgba(205, 127, 50, 0.05)) !important;
+  border-color: rgba(205, 127, 50, 0.3) !important;
+  position: relative !important;
+}
+
+body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
+  content: "🥉" !important;
+  position: absolute;
+  left: 0px;
+  top: 0px;
+  transform: translateY(-20%);
+  font-size: 2vw;
+  filter: drop-shadow(0 0 5px rgba(205, 127, 50, 0.5));
+  z-index: 10;
+}
+
 body.flex-direction-invert .main-layout .right-side,
 body.flex-direction-invert .live .right-side {
   height: auto;
@@ -2752,70 +2973,85 @@ body.flex-direction-invert .live .right-side {
 
 /* Top Zappers Bar */
 #top-zappers-bar {
-  display: none;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 10px 15px;
-  border-radius: 8px;
-  margin: 10px 0;
+  display: none !important;
 }
 
 body.show-top-zappers #top-zappers-bar {
-  display: block;
+  display: block !important;
 }
 
 .top-zappers-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
+  padding: 0 30px 0px 30px;
+  /* border-bottom: 1px solid rgba(255, 255, 255, 0.1); */
+  margin-bottom: 10px;
 }
 
 .top-zappers-list {
   display: flex;
-  align-items: center;
-  gap: 15px;
-  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 10px;
 }
 
-.top-zapper-item {
+.top-zapper {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 6px 10px;
-  border-radius: 20px;
-  backdrop-filter: blur(10px);
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 12px;
   transition: all 0.3s ease;
+  border: 1px solid rgb(133 133 133 / 18%);
 }
 
-.top-zapper-item:hover {
-  background: rgba(255, 255, 255, 0.2);
+.top-zapper:hover {
+  background: rgba(255, 255, 255, 0.08);
   transform: translateY(-2px);
 }
 
+.zapper-rank {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #FFD700;
+  margin-right: 12px;
+  min-width: 20px;
+  text-align: center;
+}
+
 .zapper-avatar {
-  width: 24px;
-  height: 24px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  margin-right: 12px;
   object-fit: cover;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.zapper-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .zapper-name {
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 0.9em;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 4px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .zapper-total {
-  color: white;
-  font-size: 12px;
-  font-weight: bold;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 2px 6px;
-  border-radius: 10px;
+  font-size: 0.8em;
+  color: #FFD700;
+  font-weight: 500;
+}
+
+.zap-count-separator {
+  margin: 0 8px;
+  opacity: 0.6;
+  color: var(--text-color) !important;
+  font-size: max(1vw, 10px);
 }
 
 /* Live Event Zap Amounts */
@@ -2949,24 +3185,22 @@ body.show-top-zappers #top-zappers-bar {
 
 /* Mobile Responsive for Live Dashboard */
 @media (max-width: 768px) {
+  .top-zappers-bar {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  
   .top-zappers-list {
-    flex-direction: column;
-    align-items: stretch;
     gap: 8px;
   }
   
-  .top-zapper-item {
-    justify-content: space-between;
+  .top-zapper {
+    padding: 10px;
   }
   
   .zapper-avatar {
-    width: 20px;
-    height: 20px;
-  }
-  
-  .zapper-name,
-  .zapper-total {
-    font-size: 11px;
+    width: 35px;
+    height: 35px;
   }
   
   .live-event-columns {
@@ -2983,6 +3217,26 @@ body.show-top-zappers #top-zappers-bar {
   .zap-amount-sats,
   .zapperAmountSats {
     font-size: 14px;
+  }
+  
+  /* Responsive medal sizing for smaller screens */
+  body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(1)::before {
+    font-size: 4vw;
+  }
+  
+  body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(2)::before {
+    font-size: 3.5vw;
+  }
+  
+  body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(3)::before {
+    font-size: 3vw;
+  }
+  
+  /* Responsive font sizes for global podium styling on smaller screens */
+  body.podium-enabled .zaps-list.grid-layout .zap.podium-global-1::before,
+  body.podium-enabled .zaps-list.grid-layout .zap.podium-global-2::before,
+  body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
+    font-size: 4vw;
   }
   
   .zap-content,
@@ -3012,13 +3266,19 @@ body.show-top-zappers #top-zappers-bar {
 .main-layout .zap,
 .main-layout .zapperProfile,
 .main-layout .zapperInfo,
+.main-layout * {
+  color: inherit;
+}
+
+/* Override inherit for specific elements that need explicit colors */
 .main-layout .zapperMessage,
 .main-layout .post-info,
 .main-layout .author-section,
 .main-layout .note-section,
 .main-layout .qr-section,
 .main-layout .top-zappers-bar,
-.main-layout .zapper-name {
+.main-layout .zapper-name,
+.main-layout .zap-count-separator {
   color: var(--text-color) !important;
 }
 
