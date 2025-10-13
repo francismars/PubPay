@@ -3233,26 +3233,24 @@ export const useLiveFunctionality = (eventId?: string) => {
     });
 
     setupToggle('qrScreenBlendToggle', () => {
-      // Debug log removed
+      console.log('qrScreenBlendToggle changed');
       const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
       const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
 
       if (qrScreenBlendToggle?.checked) {
         qrMultiplyBlendToggle.checked = false;
       }
-      // Debug log removed
       updateBlendMode();
     });
 
     setupToggle('qrMultiplyBlendToggle', () => {
-      // Debug log removed
+      console.log('qrMultiplyBlendToggle changed');
       const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
       const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
 
       if (qrMultiplyBlendToggle?.checked) {
         qrScreenBlendToggle.checked = false;
       }
-      // Debug log removed
       updateBlendMode();
     });
 
@@ -4324,6 +4322,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         cleanupHierarchicalOrganization();
       }
     }
+
+    // Apply QR blend modes
+    updateBlendMode();
   };
 
   const applyColor = (property: string, color: string) => {
@@ -4392,29 +4393,40 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const updateBlendMode = () => {
-    // Debug log removed
+    console.log('updateBlendMode called');
     const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
     const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
 
-    // Debug log removed
+    console.log('Screen blend toggle checked:', qrScreenBlendToggle?.checked);
+    console.log('Multiply blend toggle checked:', qrMultiplyBlendToggle?.checked);
 
     if (qrScreenBlendToggle?.checked) {
       qrMultiplyBlendToggle.checked = false;
       document.body.classList.add('qr-blend-active');
       document.body.classList.remove('qr-multiply-active');
-      // Debug log removed
+      console.log('Applied screen blend mode');
     } else if (qrMultiplyBlendToggle?.checked) {
       qrScreenBlendToggle.checked = false;
       document.body.classList.add('qr-blend-active');
       document.body.classList.add('qr-multiply-active');
-      // Debug log removed
+      console.log('Applied multiply blend mode');
     } else {
       document.body.classList.remove('qr-blend-active');
       document.body.classList.remove('qr-multiply-active');
-      // Debug log removed
+      console.log('Removed blend modes');
     }
 
-    // Debug log removed
+    console.log('Body classes:', document.body.className);
+    
+    // Check if .qr-swiper exists and debug CSS application
+    const qrSwiper = document.querySelector('.qr-swiper');
+    console.log('QR swiper element:', qrSwiper);
+    if (qrSwiper) {
+      const computedStyle = window.getComputedStyle(qrSwiper);
+      console.log('QR swiper mix-blend-mode:', computedStyle.mixBlendMode);
+    }
+    
+    updateStyleURL();
   };
 
   const applyPreset = (preset: string) => {

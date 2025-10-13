@@ -1853,6 +1853,8 @@ body.style-panel-open .style-toggle-btn {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  gap: 20px;
+  min-height: 0;
 }
 
 .style-section {
@@ -1861,7 +1863,6 @@ body.style-panel-open .style-toggle-btn {
   padding: 20px;
   box-shadow: 0 4px 15px rgba(74, 117, 255, 0.1);
   border: 1px solid rgba(74, 117, 255, 0.1);
-  margin-bottom: 20px;
 }
 
 .section-title {
@@ -1879,6 +1880,7 @@ body.style-panel-open .style-toggle-btn {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-bottom: 10px;
   justify-content: flex-start;
 }
 
@@ -1888,7 +1890,7 @@ body.style-panel-open .style-toggle-btn {
   background: white;
   border-radius: 20px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: #495057;
   transition: all 0.3s ease;
@@ -2480,24 +2482,12 @@ body.style-panel-open .style-toggle-btn {
     height: 100vh;
   }
   
-  .style-options-body {
-    padding: 0 15px 15px 15px;
-    gap: 15px;
-  }
   
-  .style-section {
-    padding: 15px;
-  }
   
   .presets-container {
     justify-content: flex-start;
   }
   
-  .style-actions {
-    flex-direction: column;
-    padding: 15px;
-  }
-
 
 /* Portrait Swiper */
 .portrait-swiper {
@@ -4023,6 +4013,7 @@ body.show-top-zappers #top-zappers-bar {
   border: 1px solid #e9ecef;
   border-radius: 8px;
   font-size: 14px;
+  font-family: monospace;
 }
 
 /* Toggle switches */
@@ -4069,6 +4060,7 @@ body.show-top-zappers #top-zappers-bar {
   height: 16px;
   width: 16px;
   left: 4px;
+  bottom: 4px;
   background-color: white;
   transition: .4s;
   border-radius: 50%;
@@ -4321,6 +4313,14 @@ input:checked + .toggle-slider:before {
   border-radius: 12px;
   font-size: 14px;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+  height: 48px;
+  flex: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4438,6 +4438,11 @@ input:checked + .toggle-slider:before {
   display: flex;
   gap: 10px;
   justify-content: center;
+  padding: 15px 25px;
+  background: #f8f9fa;
+  border-radius: 0;
+  border-top: 1px solid #e9ecef;
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
