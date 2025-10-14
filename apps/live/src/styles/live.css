@@ -68,6 +68,10 @@
   flex-direction: column;
 }
 
+.live #noteLoader div {
+  margin: 18px 0;
+}
+
 /* Mobile responsive adjustments for noteLoader */
 @media (max-width: 665px) {
   .live #noteLoaderContainer {
@@ -127,14 +131,6 @@
     overflow: hidden;
   }
 
-  .live #noteLoader .example-item a {
-    display: block;
-    max-width: 100%;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
-    overflow: hidden;
-  }
 
   /* Fix all text elements */
   .live #noteLoader h1,
@@ -149,11 +145,11 @@
   }
 
   .live #noteLoader div {
+    margin: 18px 0;
     max-width: 100%;
     word-wrap: break-word;
     overflow-wrap: break-word;
     overflow: hidden;
-    margin: 18px 0;
   }
 
   /* Make button-container stack vertically on mobile */
@@ -189,6 +185,11 @@
   margin-bottom: 8px;
   font-size: 1.1rem;
   text-decoration: none !important;
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  overflow: hidden;
 }
 
 .live #noteLoader .example-item a:hover {
@@ -454,13 +455,6 @@
   color: #555;
 }
 
-/* Button Container */
-.live #noteLoader .button-container {
-  display: flex;
-  gap: 15px;
-  margin: 20px 0;
-  flex-wrap: wrap;
-}
 
 .live #noteLoader .button-container div {
   margin: 0;
@@ -747,6 +741,7 @@ body {
 
 /* Note Loader Content Wrapper */
 .live #noteLoader .note-loader-content {
+  margin-bottom: 0px;
   width: 100%;
   padding: 0px 30px 0 30px;
   box-sizing: border-box;
