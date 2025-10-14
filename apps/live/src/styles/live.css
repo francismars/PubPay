@@ -1104,12 +1104,30 @@ body {
   display: none !important;
 }
 
+.qr-swiper .swiper-wrapper,
+.qr-swiper .swiper-slide {
+  isolation: auto;
+  transform-style: flat;
+  position: static;
+}
+
 /* Apply blend mode to swiper container instead of individual images */
 body.qr-blend-active .qr-swiper {
   mix-blend-mode: screen;
 }
 
 body.qr-blend-active.qr-multiply-active .qr-swiper {
+  mix-blend-mode: multiply;
+}
+
+/* Also apply blend mode to individual QR code elements */
+body.qr-blend-active .qr-swiper img,
+body.qr-blend-active .qr-swiper canvas {
+  mix-blend-mode: screen;
+}
+
+body.qr-blend-active.qr-multiply-active .qr-swiper img,
+body.qr-blend-active.qr-multiply-active .qr-swiper canvas {
   mix-blend-mode: multiply;
 }
 

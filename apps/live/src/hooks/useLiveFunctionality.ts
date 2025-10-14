@@ -161,6 +161,47 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Load note content if eventId is provided
         if (eventId) {
           console.log('📝 Loading note content for eventId:', eventId);
+          // Legacy-style guard: strip prefix and validate first; if invalid, show error and abort
+          try {
+            const cleanId = stripNostrPrefix(eventId);
+            validateNoteId(cleanId);
+          } catch (err) {
+            console.error('❌ Note ID validation failed before load:', err);
+            // Legacy-style messages based on prefix
+            const cleanId = stripNostrPrefix(eventId);
+            let msg = err instanceof Error ? err.message : 'Invalid nostr identifier format. Please check the note ID and try again.';
+            if (cleanId.startsWith('naddr1')) {
+              msg = 'Failed to load live event. Please check the identifier and try again.';
+            } else if (cleanId.startsWith('nprofile1')) {
+              msg = 'Failed to load profile. Please check the identifier and try again.';
+            }
+
+            // Force loader to render first by normalizing URL to root (no identifier)
+            try {
+              window.history.replaceState({}, '', '/');
+              // Notify router/listeners about the URL change
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            } catch {}
+
+            // After the loader mounts, show the error and prefill input
+            setTimeout(() => {
+              showLoadingError(msg);
+              // Ensure note loader listeners are attached after redirect
+              try {
+                setupNoteLoaderListeners();
+              } catch {}
+              const input = document.getElementById('note1LoaderInput') as HTMLInputElement | null;
+              if (input) {
+                input.value = cleanId;
+                input.focus();
+                input.select();
+              }
+            }, 60);
+
+            // Do not proceed with loading
+            setIsLoading(false);
+            return;
+          }
           await loadNoteContent(eventId);
         } else {
           console.log('🔧 No eventId provided, initializing QR code placeholders...');
@@ -311,6 +352,9 @@ export const useLiveFunctionality = (eventId?: string) => {
           value: lnurl
         });
         // Debug log removed
+        
+        // Apply blend mode after Lightning QR code is updated
+        updateBlendMode();
       } else {
         console.error('❌ QR element not found or QRious not available');
       }
@@ -356,6 +400,10 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Store reference globally
     (window as any).lightningQRSlide = lightningSlide;
+    
+    // Apply blend mode after Lightning QR code is generated
+    updateBlendMode();
+    
     // Debug log removed
   };
 
@@ -400,6 +448,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     });
 
     // QR swiper is initialized by initializeQRSwiper() function
+
+    // Apply blend mode after QR codes are generated
+    updateBlendMode();
 
     // Debug log removed
   };
@@ -1341,6 +1392,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     } catch (error) {
       console.error('Error generating QR codes for live event:', error);
     }
+
+    // Apply blend mode after QR codes are generated
+    updateBlendMode();
   };
 
   const loadNoteContent = async (noteId: string) => {
@@ -1651,7 +1705,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Keep URL clean - no style parameters
     const pathParts = window.location.pathname.split('/');
     const noteId = pathParts[pathParts.length - 1];
-    const cleanUrl = noteId && noteId !== 'live' ? `/live/${noteId}` : '/live';
+    const cleanUrl = noteId ? `/${noteId}` : '/';
 
     if (window.location.href !== window.location.origin + cleanUrl) {
       window.history.replaceState({}, '', cleanUrl);
@@ -2791,8 +2845,8 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Decode and route to appropriate handler
       const decoded = nip19.decode(cleanNoteId);
 
-      // Update URL with the identifier using path format
-      const newUrl = `/live/${  cleanNoteId}`;
+      // Update URL with the identifier using path format (rooted, no /live prefix)
+      const newUrl = `/${  cleanNoteId}`;
       window.history.pushState({}, '', newUrl);
 
       // Trigger a custom event to notify the React component
@@ -3233,7 +3287,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     });
 
     setupToggle('qrScreenBlendToggle', () => {
-      console.log('qrScreenBlendToggle changed');
+      console.log('qrScreenBlendToggle callback triggered');
       const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
       const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
 
@@ -3244,7 +3298,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     });
 
     setupToggle('qrMultiplyBlendToggle', () => {
-      console.log('qrMultiplyBlendToggle changed');
+      console.log('qrMultiplyBlendToggle callback triggered');
       const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
       const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
 
@@ -3479,13 +3533,14 @@ export const useLiveFunctionality = (eventId?: string) => {
   const setupToggle = (toggleId: string, callback: (checked: boolean) => void) => {
     const toggle = document.getElementById(toggleId) as HTMLInputElement;
     if (toggle) {
-      // Debug log removed
+      console.log(`Setting up toggle for ${toggleId}:`, toggle);
       toggle.addEventListener('change', () => {
+        console.log(`Toggle ${toggleId} changed to:`, toggle.checked);
         callback(toggle.checked);
         saveCurrentStylesToLocalStorage();
       });
     } else {
-      // Debug log removed
+      console.error(`Toggle element not found: ${toggleId}`);
     }
   };
 
@@ -4397,6 +4452,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
     const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
 
+    console.log('Screen blend toggle element:', qrScreenBlendToggle);
+    console.log('Multiply blend toggle element:', qrMultiplyBlendToggle);
     console.log('Screen blend toggle checked:', qrScreenBlendToggle?.checked);
     console.log('Multiply blend toggle checked:', qrMultiplyBlendToggle?.checked);
 
@@ -4416,7 +4473,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       console.log('Removed blend modes');
     }
 
-    console.log('Body classes:', document.body.className);
+    console.log('Body classes after update:', document.body.className);
     
     // Check if .qr-swiper exists and debug CSS application
     const qrSwiper = document.querySelector('.qr-swiper');
@@ -4424,6 +4481,46 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (qrSwiper) {
       const computedStyle = window.getComputedStyle(qrSwiper);
       console.log('QR swiper mix-blend-mode:', computedStyle.mixBlendMode);
+      console.log('QR swiper element classes:', qrSwiper.className);
+      console.log('QR swiper element style:', (qrSwiper as HTMLElement).style.cssText);
+      
+      // Also check the QR code elements inside
+      const qrCodes = qrSwiper.querySelectorAll('img, canvas');
+      console.log('QR code elements found:', qrCodes.length);
+      qrCodes.forEach((qrCode, index) => {
+        const qrComputedStyle = window.getComputedStyle(qrCode);
+        console.log(`QR code ${index} mix-blend-mode:`, qrComputedStyle.mixBlendMode);
+        console.log(`QR code ${index} element:`, qrCode);
+        
+        // Test: manually apply blend mode to see if it works
+        if (qrScreenBlendToggle?.checked) {
+          (qrCode as HTMLElement).style.mixBlendMode = 'screen';
+          console.log(`Manually applied screen blend mode to QR code ${index}`);
+        } else if (qrMultiplyBlendToggle?.checked) {
+          (qrCode as HTMLElement).style.mixBlendMode = 'multiply';
+          console.log(`Manually applied multiply blend mode to QR code ${index}`);
+        } else {
+          (qrCode as HTMLElement).style.mixBlendMode = 'normal';
+          console.log(`Manually applied normal blend mode to QR code ${index}`);
+        }
+        
+        // Also try applying to the parent slide
+        const parentSlide = qrCode.closest('.swiper-slide');
+        if (parentSlide) {
+          if (qrScreenBlendToggle?.checked) {
+            (parentSlide as HTMLElement).style.mixBlendMode = 'screen';
+            console.log(`Manually applied screen blend mode to slide ${index}`);
+          } else if (qrMultiplyBlendToggle?.checked) {
+            (parentSlide as HTMLElement).style.mixBlendMode = 'multiply';
+            console.log(`Manually applied multiply blend mode to slide ${index}`);
+          } else {
+            (parentSlide as HTMLElement).style.mixBlendMode = 'normal';
+            console.log(`Manually applied normal blend mode to slide ${index}`);
+          }
+        }
+      });
+    } else {
+      console.error('QR swiper element not found!');
     }
     
     updateStyleURL();

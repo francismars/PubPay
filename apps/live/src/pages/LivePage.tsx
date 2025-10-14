@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useLiveFunctionality } from '@live/hooks/useLiveFunctionality';
 import '../styles/live.css';
+import { nip19 } from 'nostr-tools';
 
 export const LivePage: React.FC = () => {
   const { eventId } = useParams<{ eventId?: string }>();
@@ -35,6 +36,102 @@ export const LivePage: React.FC = () => {
     resetToDefaults,
     copyStyleUrl
   } = useLiveFunctionality(eventId);
+
+  // Legacy-style URL parsing/validation: support compound nprofile/.../live/:id and invalid IDs
+  useEffect(() => {
+    // Helper to strip nostr: prefix
+    const stripNostrPrefix = (id: string) => id?.replace(/^nostr:/, '') ?? '';
+
+    try {
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+
+      // Try compound form: /{nprofile...}/live/{event-id} → build naddr(kind 30311) and normalize URL
+      // If any legacy '/live' segment is present, normalize away from it
+      if (pathParts.includes('live')) {
+        const possibleNprofile = pathParts[pathParts.length - 3];
+        const liveIdentifier = pathParts[pathParts.length - 1];
+        if (possibleNprofile && liveIdentifier) {
+          try {
+            const decoded: any = nip19.decode(possibleNprofile as string);
+            if (decoded && decoded.type === 'nprofile') {
+              const pubkey: string = decoded.data?.pubkey as string;
+              if (pubkey) {
+                const naddr = nip19.naddrEncode({ identifier: liveIdentifier as string, pubkey, kind: 30311, relays: [] });
+                const cleanUrl = `/${naddr}`;
+                if (window.location.pathname !== cleanUrl) {
+                  window.history.replaceState({}, '', cleanUrl);
+                }
+                setShowNoteLoader(false);
+                setShowMainLayout(true);
+                return; // URL normalized; hook will use updated param on next render
+              }
+            }
+          } catch {
+            // Fall through to standard handling
+          }
+        }
+      }
+
+      // Standard handling: last path segment or router param
+      const lastPart = (pathParts[pathParts.length - 1] || '').trim();
+      const candidate = stripNostrPrefix(lastPart || (eventId ?? ''));
+
+      if (!candidate) {
+        setShowNoteLoader(true);
+        setShowMainLayout(false);
+        return;
+      }
+
+      // Basic prefix validation first
+      const validPrefixes = ['note1', 'nevent1', 'naddr1', 'nprofile1'];
+      if (!validPrefixes.some(p => candidate.startsWith(p))) {
+        setShowNoteLoader(true);
+        setShowMainLayout(false);
+        showLoadingError('Invalid format. Please enter a valid nostr identifier (note1/nevent1/naddr1/nprofile1).');
+        return;
+      }
+
+      // Bech32/NIP-19 validation
+      try {
+        // Decode to ensure the identifier is a valid NIP-19 bech32
+        nip19.decode(candidate as string);
+        // Normalize URL to clean "/:identifier"
+        const cleanUrl = `/${candidate}`;
+        if (window.location.pathname !== cleanUrl) {
+          window.history.replaceState({}, '', cleanUrl);
+        }
+        setShowNoteLoader(false);
+        setShowMainLayout(true);
+      } catch {
+        setShowNoteLoader(true);
+        setShowMainLayout(false);
+        // Delay until after the note loader mounts so the DOM nodes exist
+        setTimeout(() => {
+          // Legacy-style messages based on intended type
+          let msg = 'Invalid nostr identifier format. Please check the note ID and try again.';
+          if (candidate.startsWith('naddr1')) {
+            msg = 'Failed to load live event. Please check the identifier and try again.';
+          } else if (candidate.startsWith('nprofile1')) {
+            msg = 'Failed to load profile. Please check the identifier and try again.';
+          }
+          showLoadingError(msg);
+          const input = document.getElementById('note1LoaderInput') as HTMLInputElement | null;
+          if (input) {
+            input.value = candidate;
+            input.focus();
+            input.select();
+          }
+        }, 50);
+      }
+    } catch {
+      // If anything unexpected happens, fall back to note loader with error
+      setShowNoteLoader(true);
+      setShowMainLayout(false);
+      showLoadingError('Failed to parse URL. Please enter a valid nostr identifier.');
+    }
+    // We want this to run on initial mount and when eventId changes from the router
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId]);
 
   useEffect(() => {
     if (eventId) {
@@ -265,7 +362,7 @@ export const LivePage: React.FC = () => {
               <div className="examples-section">
                 <h3>Examples - Notes, Live Events & Profiles</h3>
                 <div className="example-item">
-                  <a href="/live/note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7" target="_blank">
+                  <a href="/note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7" target="_blank">
                     Zap my set at at Plan B at Adopting Bitcoin after party ⚡️
                   </a>
                   <div className="author-name">
@@ -274,7 +371,7 @@ export const LivePage: React.FC = () => {
                   </div>
                 </div>
                 <div className="example-item">
-                  <a href="/live/note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu" target="_blank">
+                  <a href="/note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu" target="_blank">
                     Bienvenidos a nuestro querido el salvador 🇸🇻
                   </a>
                   <div className="author-name">
@@ -283,7 +380,7 @@ export const LivePage: React.FC = () => {
                   </div>
                 </div>
                 <div className="example-item">
-                  <a href="/live/note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv" target="_blank">
+                  <a href="/note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv" target="_blank">
                     The Network School of Rock is Live from Malaysia!
                   </a>
                   <div className="author-name">
@@ -292,7 +389,7 @@ export const LivePage: React.FC = () => {
                   </div>
                 </div>
                 <div className="example-item">
-                  <a href="/live/nevent1qqsphk43g2pzpwfr8qcp5zdx8ftgaj7gvxk682y4sedjvscrsm0lpssc96mm3" target="_blank">
+                  <a href="/nevent1qqsphk43g2pzpwfr8qcp5zdx8ftgaj7gvxk682y4sedjvscrsm0lpssc96mm3" target="_blank">
                     Hola Barcelona! Pubpay me at the After Party of Bitcoin Cypher Conference!!!! @BCC 8333
                   </a>
                   <div className="author-name">
@@ -301,7 +398,7 @@ export const LivePage: React.FC = () => {
                   </div>
                 </div>
                 <div className="example-item">
-                  <a href="/live/naddr1qqjr2vehvyenvdtr94nrzetr956rgctr94skvvfs95eryep3x3snwve389nxyqg3waehxw309ahx7um5wgh8w6twv5hsygx0gknt5ymr44ldyyaq0rn3p5jpzkh8y8ymg773a06ytr4wldxz55psgqqqwensuq723w" target="_blank">
+                  <a href="/naddr1qqjr2vehvyenvdtr94nrzetr956rgctr94skvvfs95eryep3x3snwve389nxyqg3waehxw309ahx7um5wgh8w6twv5hsygx0gknt5ymr44ldyyaq0rn3p5jpzkh8y8ymg773a06ytr4wldxz55psgqqqwensuq723w" target="_blank">
                     NoGood Radio is a 24/7 pirate radio station running on scrap parts and broadcasting from a basement somewhere.
                   </a>
                   <div className="author-name">
