@@ -155,8 +155,15 @@ export class WebhookService {
       errors.push('Invalid amount');
     }
 
-    if (webhookData.comment && typeof webhookData.comment !== 'string') {
-      errors.push('Invalid comment format');
+    // Handle comments flexibly like legacy - convert arrays to strings, allow any format
+    if (webhookData.comment) {
+      if (Array.isArray(webhookData.comment)) {
+        // Convert array to string (join with spaces)
+        webhookData.comment = webhookData.comment.join(' ');
+      } else if (typeof webhookData.comment !== 'string') {
+        // Convert other types to string
+        webhookData.comment = String(webhookData.comment);
+      }
     }
 
     return {
