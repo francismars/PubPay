@@ -377,15 +377,18 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (qrElement && QRious) {
         qrElement.innerHTML = '';
         try {
-          console.log('🔍 Creating QRious instance with:', { element: qrElement, size: 200, value: lnurl });
+          // Calculate QR size to match other QR codes
+          const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
+          console.log('🔍 Creating QRious instance with:', { element: qrElement, size: qrSize, value: lnurl });
           
-          // Try creating a canvas element explicitly
+          // Try creating a canvas element explicitly with proper styling
           const canvas = document.createElement('canvas');
+          canvas.className = 'qr-code'; // Apply the same CSS class as other QR codes
           qrElement.appendChild(canvas);
           
           const qrInstance = new QRious({
             element: canvas,
-            size: 200,
+            size: qrSize,
             value: lnurl
           });
           
@@ -395,6 +398,13 @@ export const useLiveFunctionality = (eventId?: string) => {
           console.log('🔍 QR element children:', qrElement.children.length);
           console.log('🔍 Canvas element:', canvas);
           console.log('🔍 Canvas width/height:', canvas.width, canvas.height);
+          
+          // Set the Lightning QR link href (same as legacy implementation)
+          const lightningQRLink = document.getElementById('lightningQRLink') as HTMLAnchorElement;
+          if (lightningQRLink) {
+            lightningQRLink.href = `lightning:${lnurl}`;
+            console.log('🔗 Lightning QR link set to:', lightningQRLink.href);
+          }
           
           // Apply blend mode after Lightning QR code is updated
           updateBlendMode();
@@ -464,15 +474,18 @@ export const useLiveFunctionality = (eventId?: string) => {
         qrElement.innerHTML = '';
         
         try {
-          console.log('🔍 Creating QRious instance with:', { element: qrElement, size: 200, value: lnurl });
+          // Calculate QR size to match other QR codes
+          const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
+          console.log('🔍 Creating QRious instance with:', { element: qrElement, size: qrSize, value: lnurl });
           
-          // Try creating a canvas element explicitly
+          // Try creating a canvas element explicitly with proper styling
           const canvas = document.createElement('canvas');
+          canvas.className = 'qr-code'; // Apply the same CSS class as other QR codes
           qrElement.appendChild(canvas);
           
           const qrInstance = new QRious({
             element: canvas,
-            size: 200,
+            size: qrSize,
             value: lnurl
           });
           console.log('🔍 QRious instance created:', qrInstance);
@@ -482,6 +495,13 @@ export const useLiveFunctionality = (eventId?: string) => {
           console.log('🔍 QR element children:', qrElement.children.length);
           console.log('🔍 Canvas element:', canvas);
           console.log('🔍 Canvas width/height:', canvas.width, canvas.height);
+          
+          // Set the Lightning QR link href (same as legacy implementation)
+          const lightningQRLink = document.getElementById('lightningQRLink') as HTMLAnchorElement;
+          if (lightningQRLink) {
+            lightningQRLink.href = `lightning:${lnurl}`;
+            console.log('🔗 Lightning QR link set to:', lightningQRLink.href);
+          }
           
           // Force the QR swiper to be visible after QR creation
           const qrSwiper = document.querySelector('.qr-swiper') as HTMLElement;
@@ -3976,7 +3996,40 @@ export const useLiveFunctionality = (eventId?: string) => {
                 // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
               },
               lightningToggle: (checked: boolean) => {
-                // Debug log removed
+                const lightningToggle = document.getElementById('lightningToggle') as HTMLInputElement;
+                if (lightningToggle) {
+                  lightningToggle.checked = checked;
+                  console.log('🔄 Restored Lightning toggle state:', checked);
+                  
+                  // If Lightning was previously enabled, trigger the enable functionality
+                  if (checked && lightningService.current) {
+                    console.log('🔄 Lightning was previously enabled, re-enabling...');
+                    // Use setTimeout to ensure this runs after the DOM is fully ready
+                    setTimeout(async () => {
+                      try {
+                        const success = await lightningService.current!.enableLightning(eventId);
+                        if (success) {
+                          console.log('✅ Lightning payments re-enabled after page refresh');
+                          
+                          // Get the LNURL and create QR code
+                          const lnurl = lightningService.current!.currentLnurl || '';
+                          if (lnurl) {
+                            console.log('🔗 Creating Lightning QR slide with restored LNURL:', lnurl);
+                            createLightningQRSlide(lnurl);
+                            updatePaymentStatus('Lightning enabled - scan QR to pay', 'success');
+                          } else {
+                            console.error('❌ No LNURL received after re-enabling Lightning');
+                            updatePaymentStatus('Lightning enabled but no QR code available', 'error');
+                          }
+                        } else {
+                          console.error('❌ Failed to re-enable Lightning payments after page refresh');
+                        }
+                      } catch (error) {
+                        console.error('❌ Error re-enabling Lightning payments:', error);
+                      }
+                    }, 500); // Delay to ensure everything is ready
+                  }
+                }
                 // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
               }
             };
