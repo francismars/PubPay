@@ -5,6 +5,7 @@ import { LightningConfig } from '@pubpay/shared-types';
 export interface LNURLResult {
   success: boolean;
   lnurl?: string;
+  id?: string; // LNURL-pay ID for webhook mapping
   error?: string;
   existing?: boolean;
 }
@@ -74,11 +75,12 @@ export class LightningService {
         webhookUrl: this.config.webhookUrl
       });
 
-      const lnurl = await this.createLNBitsLNURL(eventId, frontendSessionId);
+      const result = await this.createLNBitsLNURL(eventId, frontendSessionId);
       
       return {
         success: true,
-        lnurl,
+        lnurl: result.lnurl,
+        id: result.id,
         existing: false
       };
     } catch (error) {
@@ -93,7 +95,7 @@ export class LightningService {
   /**
    * Create LNURL-pay link using LNBits API
    */
-  private async createLNBitsLNURL(eventId: string, _frontendSessionId: string): Promise<string> {
+  private async createLNBitsLNURL(eventId: string, _frontendSessionId: string): Promise<{ lnurl: string; id: string }> {
     const requestBody = {
       description: `PubPay Live - Real-time Tip Tracker`,
       min: 1000, // 1 sat minimum
@@ -134,7 +136,10 @@ export class LightningService {
 
     this.logger.info(`✅ Created LNURL for event ${eventId}: ${data.lnurl}`);
     
-    return data.lnurl;
+    return {
+      lnurl: data.lnurl,
+      id: data.id // Include the LNURL-pay ID for webhook mapping
+    };
   }
 
   /**

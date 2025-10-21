@@ -36,7 +36,7 @@ export class SessionService {
   /**
    * Create or update a Lightning session
    */
-  createOrUpdateSession(frontendSessionId: string, eventId: string, lnurl: string): void {
+  createOrUpdateSession(frontendSessionId: string, eventId: string, lnurl: string, lnurlpId?: string): void {
     let session = this.sessions.get(frontendSessionId);
     
     if (!session) {
@@ -50,15 +50,17 @@ export class SessionService {
       active: true
     };
     
-    // Extract LNURL-pay ID from LNURL and create mapping
-    const lnurlpId = this.extractLNURLPayId(lnurl);
-    if (lnurlpId) {
-      this.lnurlpMappings.set(lnurlpId, {
+    // Use provided LNURL-pay ID or try to extract from LNURL
+    const id = lnurlpId || this.extractLNURLPayId(lnurl);
+    if (id) {
+      this.lnurlpMappings.set(id, {
         frontendSessionId,
         eventId
       });
       
-      this.logger.info(`Created LNURL mapping: ${lnurlpId} -> ${frontendSessionId}/${eventId}`);
+      this.logger.info(`Created LNURL mapping: ${id} -> ${frontendSessionId}/${eventId}`);
+    } else {
+      this.logger.warn('No LNURL-pay ID available for mapping');
     }
     
     this.logger.info(`Session updated: ${frontendSessionId}/${eventId}`, {

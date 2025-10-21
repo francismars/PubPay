@@ -90,8 +90,8 @@ export class LightningRouter {
       const result = await this.lightningService.enableLightningPayments(eventId, frontendSessionId);
       
       if (result.success && result.lnurl) {
-        // Store session data
-        this.sessionService.createOrUpdateSession(frontendSessionId, eventId, result.lnurl);
+        // Store session data with both LNURL and ID
+        this.sessionService.createOrUpdateSession(frontendSessionId, eventId, result.lnurl, result.id);
         
         this.logger.info(`✅ Successfully created new LNURL for session: ${frontendSessionId}, event: ${eventId}`);
         
