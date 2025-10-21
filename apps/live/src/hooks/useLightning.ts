@@ -1,13 +1,12 @@
 // useLightning - Custom hook for Lightning functionality
-// Note: This is a vanilla JS hook, not a React hook
-import { LightningService, InvoiceService, WebhookService, ErrorService } from '@pubpay/shared-services';
-import { LightningConfig, LightningInvoice, LightningPayment } from '@pubpay/shared-types';
+// Updated to use the new backend API endpoints
+import { LightningApiService, LightningApiResponse, LightningStatus, LightningPayment } from '../services/LightningApiService';
 
 export interface UseLightningOptions {
   autoEnable?: boolean;
   eventId?: string;
   onPayment?: (payment: LightningPayment) => void;
-  onInvoiceCreated?: (invoice: LightningInvoice) => void;
+  onInvoiceCreated?: (invoice: any) => void;
 }
 
 export class UseLightning {
@@ -17,23 +16,11 @@ export class UseLightning {
   private lnurl: string | null = null;
   private sessionId: string | null = null;
   private options: UseLightningOptions;
-
-  private lightningService: LightningService;
-  private invoiceService: InvoiceService;
-  private webhookService: WebhookService;
-  private errorService: ErrorService;
+  private apiService: LightningApiService;
 
   constructor(options: UseLightningOptions = {}) {
     this.options = options;
-    this.lightningService = new LightningService({
-      enabled: false,
-      lnbitsUrl: '',
-      apiKey: '',
-      webhookUrl: ''
-    });
-    this.invoiceService = new InvoiceService();
-    this.webhookService = new WebhookService(this.lightningService, this.invoiceService);
-    this.errorService = new ErrorService();
+    this.apiService = new LightningApiService();
   }
 
   // Enable Lightning payments
@@ -48,21 +35,25 @@ export class UseLightning {
     this.error = null;
 
     try {
-      const result = await this.lightningService.enableLightningPayments(targetEventId);
+      // Generate a frontend session ID
+      const frontendSessionId = this.generateSessionId();
+      
+      const result = await this.apiService.enableLightning(targetEventId, frontendSessionId);
 
       if (result.success && result.lnurl) {
         this.isEnabled = true;
         this.lnurl = result.lnurl;
-        this.sessionId = this.lightningService.getLightningStatus().sessionId;
-        this.errorService.info('Lightning payments enabled', { lnurl: result.lnurl });
+        this.sessionId = frontendSessionId;
+        console.log('✅ Lightning payments enabled:', result.lnurl);
         return true;
       } else {
         this.error = result.error || 'Failed to enable Lightning payments';
+        console.error('❌ Failed to enable Lightning payments:', result.error);
         return false;
       }
     } catch (err) {
       this.error = err instanceof Error ? err.message : 'Unknown error';
-      this.errorService.error('Failed to enable Lightning payments', err as Error);
+      console.error('❌ Error enabling Lightning payments:', err);
       return false;
     } finally {
       this.isLoading = false;
@@ -81,21 +72,23 @@ export class UseLightning {
     this.error = null;
 
     try {
-      const result = await this.lightningService.disableLightningPayments(targetEventId);
+      const frontendSessionId = this.sessionId || this.generateSessionId();
+      const result = await this.apiService.disableLightning(targetEventId, frontendSessionId);
 
       if (result.success) {
         this.isEnabled = false;
         this.lnurl = null;
         this.sessionId = null;
-        this.errorService.info('Lightning payments disabled');
+        console.log('✅ Lightning payments disabled');
         return true;
       } else {
         this.error = result.error || 'Failed to disable Lightning payments';
+        console.error('❌ Failed to disable Lightning payments:', result.error);
         return false;
       }
     } catch (err) {
       this.error = err instanceof Error ? err.message : 'Unknown error';
-      this.errorService.error('Failed to disable Lightning payments', err as Error);
+      console.error('❌ Error disabling Lightning payments:', err);
       return false;
     } finally {
       this.isLoading = false;
@@ -111,59 +104,66 @@ export class UseLightning {
     }
   }
 
-  // Create invoice
-  async createInvoice(amount: number, description: string, comment?: string): Promise<LightningInvoice | null> {
-    if (!this.isEnabled) {
-      this.error = 'Lightning payments not enabled';
-      return null;
-    }
-
-    try {
-      const invoice = this.invoiceService.createInvoice(amount, description, { comment });
-      this.options.onInvoiceCreated?.(invoice);
-      this.errorService.info('Invoice created', { amount, description });
-      return invoice;
-    } catch (err) {
-      this.errorService.error('Failed to create invoice', err as Error);
-      return null;
-    }
-  }
-
-  // Check payment status
-  async checkPaymentStatus(paymentHash: string): Promise<LightningPayment | null> {
-    try {
-      const result = await this.lightningService.checkPaymentStatus(paymentHash);
-      if (result.success && result.payment) {
-        this.options.onPayment?.(result.payment);
-        return result.payment;
-      }
-      return null;
-    } catch (err) {
-      this.errorService.error('Failed to check payment status', err as Error);
-      return null;
-    }
-  }
-
   // Get Lightning status
-  getStatus() {
-    return {
-      enabled: this.isEnabled,
-      loading: this.isLoading,
-      error: this.error,
-      lnurl: this.lnurl,
-      sessionId: this.sessionId,
-      config: this.lightningService.getConfig()
-    };
+  async getStatus(): Promise<LightningStatus> {
+    try {
+      const result = await this.apiService.getStatus();
+      if (result.success && result.data) {
+        return result.data;
+      }
+      return {
+        enabled: this.isEnabled,
+        lnurl: this.lnurl || undefined,
+        sessionId: this.sessionId || undefined,
+        config: {
+          enabled: this.isEnabled,
+          lnbitsUrl: '',
+          apiKey: '',
+          webhookUrl: ''
+        }
+      };
+    } catch (err) {
+      console.error('❌ Error getting Lightning status:', err);
+      return {
+        enabled: this.isEnabled,
+        config: {
+          enabled: this.isEnabled,
+          lnbitsUrl: '',
+          apiKey: '',
+          webhookUrl: ''
+        }
+      };
+    }
   }
 
   // Get payment history
-  getPaymentHistory() {
-    return this.invoiceService.getAllPayments();
+  async getPaymentHistory(eventId?: string): Promise<LightningPayment[]> {
+    try {
+      const result = await this.apiService.getPaymentHistory(eventId);
+      if (result.success && result.data) {
+        return result.data;
+      }
+      return [];
+    } catch (err) {
+      console.error('❌ Error getting payment history:', err);
+      return [];
+    }
   }
 
-  // Get invoice statistics
-  getInvoiceStats() {
-    return this.invoiceService.getInvoiceStats();
+  // Health check
+  async healthCheck(): Promise<boolean> {
+    try {
+      const result = await this.apiService.healthCheck();
+      return result.success && result.data?.healthy === true;
+    } catch (err) {
+      console.error('❌ Error checking Lightning health:', err);
+      return false;
+    }
+  }
+
+  // Generate session ID
+  private generateSessionId(): string {
+    return `frontend_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   // Getters
@@ -172,8 +172,5 @@ export class UseLightning {
   get lastError(): string | null { return this.error; }
   get currentLnurl(): string | null { return this.lnurl; }
   get currentSessionId(): string | null { return this.sessionId; }
-  get lightningServiceInstance(): LightningService { return this.lightningService; }
-  get invoiceServiceInstance(): InvoiceService { return this.invoiceService; }
-  get webhookServiceInstance(): WebhookService { return this.webhookService; }
-  get errorServiceInstance(): ErrorService { return this.errorService; }
+  get apiServiceInstance(): LightningApiService { return this.apiService; }
 }

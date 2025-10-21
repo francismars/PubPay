@@ -229,7 +229,8 @@ export class WebhookService {
       comment: testData.comment || 'test_comment',
       created_at: testData.created_at || Date.now(),
       paid_at: testData.paid_at || Date.now(),
-      status: testData.status || 'paid'
+      status: testData.status || 'paid',
+      lnurlp: testData.lnurlp || 'test_lnurlp_id' // Required field
     };
 
     return this.processWebhook(mockWebhookData);
