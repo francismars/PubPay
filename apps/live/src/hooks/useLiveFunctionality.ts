@@ -650,6 +650,9 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const subscribeLiveEventZaps = async (pubkey: string, identifier: string) => {
     // Debug log removed
+    
+    // Reset zap list when starting a new live event (like legacy)
+    resetZapList();
 
     const aTag = `30311:${pubkey}:${identifier}`;
 
@@ -2186,6 +2189,10 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const subscribeKind1 = async (kind1ID: string) => {
     console.log('📡 subscribeKind1 called with kind1ID:', kind1ID);
+    
+    // Reset zap list when starting a new note/event (like legacy)
+    resetZapList();
+    
     if (!(window as any).pool || !(window as any).relays) {
       console.error('❌ Nostr pool or relays not available');
       return;
@@ -2392,14 +2399,33 @@ export const useLiveFunctionality = (eventId?: string) => {
     );
   };
 
+  // Persistent zap list that accumulates over time (like legacy)
+  let json9735List: any[] = [];
+  let processedZapIDs = new Set(); // Track processed zap IDs to prevent duplicates
+
+  // Function to reset zap list when starting a new note/event
+  const resetZapList = () => {
+    json9735List = [];
+    processedZapIDs = new Set();
+  };
+
   const createkinds9735JSON = async (kind9735List: any[], kind0fromkind9735List: any[]) => {
     // Debug log removed
     // Reset zapper totals for new note
     resetZapperTotals();
 
-    const json9735List: any[] = [];
+    // Don't reset json9735List - keep accumulating zaps like legacy
+    // const json9735List: any[] = []; // REMOVED - this was causing the issue
 
     for (const kind9735 of kind9735List) {
+      // Skip if we've already processed this zap
+      if (processedZapIDs.has(kind9735.id)) {
+        continue;
+      }
+      
+      // Mark this zap as processed
+      processedZapIDs.add(kind9735.id);
+      
       const description9735 = JSON.parse(kind9735.tags.find((tag: any) => tag[0] == 'description')?.[1] || '{}');
       const pubkey9735 = description9735.pubkey;
       const bolt119735 = kind9735.tags.find((tag: any) => tag[0] == 'bolt11')?.[1];
