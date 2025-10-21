@@ -38,6 +38,7 @@ export interface LNURLPCallbackResponse {
     };
 }
 export interface WebhookData {
+    lnurlp: string;
     payment_hash: string;
     payment_request: string;
     amount: number;

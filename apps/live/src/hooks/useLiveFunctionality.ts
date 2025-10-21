@@ -1,8 +1,8 @@
 // React hook for live functionality integration
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SimplePool, nip19 } from 'nostr-tools';
-const QRious = require('qrious');
-const bolt11 = require('bolt11');
+const QRious = require('qrious') as any;
+const bolt11 = require('bolt11') as any;
 import { UseLightning } from './useLightning';
 
 // Flag to prevent multiple simultaneous calls to setupNoteLoaderListeners
@@ -93,8 +93,18 @@ export const useLiveFunctionality = (eventId?: string) => {
 
         console.log('🚀 Starting Live functionality initialization...');
 
-        // Initialize Lightning service
-        lightningService.current = new UseLightning({ eventId });
+        // Initialize Lightning service with proper configuration
+        lightningService.current = new UseLightning({ 
+          eventId,
+          autoEnable: false
+        });
+        
+        // Configure Lightning service with LNBits settings
+        if (lightningService.current) {
+          // Note: The LightningService will use the backend API endpoints
+          // The actual LNBits configuration is handled by the backend
+          console.log('✅ Lightning service initialized for event:', eventId);
+        }
 
         // Initialize Nostr pool and relays
         console.log('🔗 Initializing Nostr pool and relays...');
@@ -333,6 +343,22 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   }, []);
 
+  // Update payment status display
+  const updatePaymentStatus = (message: string, type: 'info' | 'success' | 'error' | 'waiting' | 'disabled' = 'info') => {
+    const statusDiv = document.getElementById('paymentStatus');
+    if (statusDiv) {
+      const iconMap = {
+        info: '📱',
+        success: '✅',
+        error: '❌',
+        waiting: '⚡',
+        disabled: '🔒'
+      };
+      
+      statusDiv.innerHTML = `<div class="status-${type}">${iconMap[type]} ${message}</div>`;
+    }
+  };
+
   // Create Lightning QR slide
   const createLightningQRSlide = (lnurl: string) => {
     // Debug log removed
@@ -341,61 +367,139 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Check if Lightning QR slide already exists
     let lightningSlide = document.getElementById('lightningQRSlide');
     if (lightningSlide) {
-      // Debug log removed
+      console.log('🔄 Updating existing Lightning QR slide');
+      console.log('🔍 Lightning slide HTML:', lightningSlide.innerHTML);
+      
       // Update existing QR code
-      const qrElement = lightningSlide.querySelector('#qrCodeLightning');
+      const qrElement = lightningSlide.querySelector('#lightningQRCode');
+      console.log('🔍 QR element found:', !!qrElement, 'QRious available:', !!QRious);
+      
       if (qrElement && QRious) {
         qrElement.innerHTML = '';
-        new QRious({
-          element: qrElement,
-          size: 200,
-          value: lnurl
-        });
-        // Debug log removed
-        
-        // Apply blend mode after Lightning QR code is updated
-        updateBlendMode();
+        try {
+          console.log('🔍 Creating QRious instance with:', { element: qrElement, size: 200, value: lnurl });
+          
+          // Try creating a canvas element explicitly
+          const canvas = document.createElement('canvas');
+          qrElement.appendChild(canvas);
+          
+          const qrInstance = new QRious({
+            element: canvas,
+            size: 200,
+            value: lnurl
+          });
+          
+          console.log('🔍 QRious instance created:', qrInstance);
+          console.log('✅ Lightning QR code updated successfully');
+          console.log('🔍 QR element after update:', qrElement.innerHTML);
+          console.log('🔍 QR element children:', qrElement.children.length);
+          console.log('🔍 Canvas element:', canvas);
+          console.log('🔍 Canvas width/height:', canvas.width, canvas.height);
+          
+          // Apply blend mode after Lightning QR code is updated
+          updateBlendMode();
+        } catch (error) {
+          console.error('❌ Error updating QR code:', error);
+        }
       } else {
-        console.error('❌ QR element not found or QRious not available');
+        console.log('🔧 QR element missing, recreating slide structure');
+        // Recreate the slide structure if QR element is missing
+        lightningSlide.innerHTML = `
+          <div class="qr-slide-title">Lightning <span class="qr-data-preview" id="qrDataPreview4"></span></div>
+          <a href="" target="_blank" id="lightningQRLink">
+            <div id="lightningQRCode" class="qr-code"></div>
+          </a>
+          <div class="qr-slide-label">Scan with Lightning Wallet</div>
+        `;
+        
+        // Now create the QR code
+        const newQrElement = document.getElementById('lightningQRCode');
+        if (newQrElement && QRious) {
+          new QRious({
+            element: newQrElement,
+            size: 200,
+            value: lnurl
+          });
+          console.log('✅ Lightning QR code created after structure fix');
+          updateBlendMode();
+        } else {
+          console.error('❌ Still unable to create QR code after structure fix');
+        }
       }
       return;
     }
 
-    // Create new Lightning QR slide
-    // Debug log removed
-    lightningSlide = document.createElement('div');
-    lightningSlide.id = 'lightningQRSlide';
-    lightningSlide.className = 'swiper-slide';
-
-    lightningSlide.innerHTML = `
-      <div class="qr-container">
-        <div class="qr-code" id="qrCodeLightning"></div>
-        <div class="qr-label">Lightning Payment</div>
-      </div>
-    `;
-
-    // Add to swiper wrapper
-    const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
-    // Debug log removed
-    if (swiperWrapper) {
-      swiperWrapper.appendChild(lightningSlide);
-      // Debug log removed
+    // Use the existing hardcoded Lightning QR slide from HTML
+    lightningSlide = document.getElementById('lightningQRSlide');
+    if (lightningSlide) {
+      console.log('✅ Using existing Lightning QR slide from HTML');
+      
+      // Update the existing slide structure to match the HTML format
+      lightningSlide.innerHTML = `
+        <div class="qr-slide-title">Lightning <span class="qr-data-preview" id="qrDataPreview4"></span></div>
+        <a href="" target="_blank" id="lightningQRLink">
+          <div id="lightningQRCode" class="qr-code"></div>
+        </a>
+        <div class="qr-slide-label">Scan with Lightning Wallet</div>
+      `;
+      
+      // Make sure it's visible
+      lightningSlide.style.display = 'block';
+      console.log('✅ Lightning QR slide made visible');
     } else {
-      console.error('❌ Swiper wrapper not found');
+      console.error('❌ Lightning QR slide not found in HTML');
       return;
     }
 
     // Generate QR code
     if (QRious) {
-      // Debug log removed
-      new QRious({
-        element: document.getElementById('qrCodeLightning'),
-        size: 200,
-        value: lnurl
-      });
-      // Debug log removed
+      console.log('🔄 Creating new Lightning QR code');
+      console.log('🔍 LNURL to encode:', lnurl);
+      const qrElement = document.getElementById('lightningQRCode');
+      console.log('🔍 New QR element found:', !!qrElement);
+      console.log('🔍 QR element:', qrElement);
+      
+      if (qrElement) {
+        // Clear any existing content
+        qrElement.innerHTML = '';
+        
+        try {
+          console.log('🔍 Creating QRious instance with:', { element: qrElement, size: 200, value: lnurl });
+          
+          // Try creating a canvas element explicitly
+          const canvas = document.createElement('canvas');
+          qrElement.appendChild(canvas);
+          
+          const qrInstance = new QRious({
+            element: canvas,
+            size: 200,
+            value: lnurl
+          });
+          console.log('🔍 QRious instance created:', qrInstance);
+          
+          console.log('✅ New Lightning QR code created successfully');
+          console.log('🔍 QR element after creation:', qrElement.innerHTML);
+          console.log('🔍 QR element children:', qrElement.children.length);
+          console.log('🔍 Canvas element:', canvas);
+          console.log('🔍 Canvas width/height:', canvas.width, canvas.height);
+          
+          // Force the QR swiper to be visible after QR creation
+          const qrSwiper = document.querySelector('.qr-swiper') as HTMLElement;
+          if (qrSwiper) {
+            qrSwiper.style.display = 'block';
+            console.log('✅ QR swiper forced to visible after QR creation');
+          }
+          
+          updateBlendMode();
+        } catch (error) {
+          console.error('❌ Error creating QR code:', error);
+        }
+      } else {
+        console.error('❌ QR element not found after creation');
+      }
     } else {
       console.error('❌ QRious library not available');
+      console.log('🔍 Available QRious:', typeof QRious);
     }
 
     // Store reference globally
@@ -3375,22 +3479,27 @@ export const useLiveFunctionality = (eventId?: string) => {
       try {
         if (lightningEnabled) {
           // Disable Lightning payments
-          // Debug log removed
+          console.log('🔌 Disabling Lightning payments...');
           const success = await lightningService.current.disableLightning(eventId);
-          // Debug log removed
+          console.log('Lightning disable result:', success);
+          
           if (success) {
             setLightningEnabled(false);
             setLightningLNURL('');
-            // Debug log removed
+            updatePaymentStatus('Lightning disabled', 'disabled');
+            console.log('✅ Lightning payments disabled successfully');
           } else {
             console.error('❌ Failed to disable Lightning payments');
+            updatePaymentStatus('Failed to disable Lightning payments', 'error');
           }
         } else {
           // Enable Lightning payments
-          // Debug log removed
-          // Debug log removed
+          console.log('⚡ Enabling Lightning payments...');
+          updatePaymentStatus('Enabling Lightning payments...', 'waiting');
+          
           const success = await lightningService.current.enableLightning(eventId);
-          // Debug log removed
+          console.log('Lightning enable result:', success);
+          
           console.log('Lightning service state after enable:', {
             enabled: lightningService.current.enabled,
             lnurl: lightningService.current.currentLnurl,
@@ -3402,18 +3511,21 @@ export const useLiveFunctionality = (eventId?: string) => {
             setLightningEnabled(true);
             const lnurl = lightningService.current.currentLnurl || '';
             setLightningLNURL(lnurl);
-            // Debug log removed
+            console.log('✅ Lightning payments enabled successfully');
 
             // Create Lightning QR slide if it doesn't exist
             if (lnurl) {
-              // Debug log removed
+              console.log('🔗 Creating Lightning QR slide with LNURL:', lnurl);
               createLightningQRSlide(lnurl);
+              updatePaymentStatus('Lightning enabled - scan QR to pay', 'success');
             } else {
               console.error('❌ No LNURL received from Lightning service');
+              updatePaymentStatus('Lightning enabled but no QR code available', 'error');
             }
           } else {
             console.error('❌ Failed to enable Lightning payments');
             console.error('Error from service:', lightningService.current.lastError);
+            updatePaymentStatus(`Failed to enable Lightning: ${lightningService.current.lastError || 'Unknown error'}`, 'error');
           }
         }
 
@@ -4885,25 +4997,55 @@ export const useLiveFunctionality = (eventId?: string) => {
     const showNevent = neventToggle?.checked ?? true;
     const showNote = noteToggle?.checked ?? false;
     const showLightning = lightningToggle?.checked ?? false;
+    
+    console.log('🔍 Toggle states:', {
+      webLinkToggle: !!webLinkToggle,
+      webLinkChecked: webLinkToggle?.checked,
+      neventToggle: !!neventToggle,
+      neventChecked: neventToggle?.checked,
+      noteToggle: !!noteToggle,
+      noteChecked: noteToggle?.checked,
+      lightningToggle: !!lightningToggle,
+      lightningChecked: lightningToggle?.checked,
+      showLightning
+    });
 
     // Debug log removed
 
     // Get all existing slides using the same selectors as original
-    const webLinkSlide = document.querySelector('.swiper-slide:has(#qrCode)') as HTMLElement;
+    let webLinkSlide = document.querySelector('.swiper-slide:has(#qrCode)') as HTMLElement;
     let neventSlide = document.querySelector('.swiper-slide:has(#qrCodeNevent)') as HTMLElement;
     const noteSlide = document.querySelector('.swiper-slide:has(#qrCodeNote)') as HTMLElement;
     const lightningSlide = document.getElementById('lightningQRSlide') as HTMLElement;
 
-    // Fallback: if :has() doesn't work, find the slide containing qrCodeNevent manually
+    // Fallback: if :has() doesn't work, find slides manually
+    if (!webLinkSlide) {
+      const qrCode = document.getElementById('qrCode');
+      if (qrCode) {
+        webLinkSlide = qrCode.closest('.swiper-slide') as HTMLElement;
+        console.log('Found web link slide via fallback');
+      }
+    }
+    
     if (!neventSlide) {
       const qrCodeNevent = document.getElementById('qrCodeNevent');
       if (qrCodeNevent) {
         neventSlide = qrCodeNevent.closest('.swiper-slide') as HTMLElement;
-        // Debug log removed
+        console.log('Found nevent slide via fallback');
       }
     }
 
-    // Debug log removed
+    // Debug: Log slide detection
+    console.log('QR Slide Detection:', {
+      webLinkSlide: !!webLinkSlide,
+      neventSlide: !!neventSlide,
+      noteSlide: !!noteSlide,
+      lightningSlide: !!lightningSlide,
+      showWebLink,
+      showNevent,
+      showNote,
+      showLightning
+    });
 
     // Create or get hidden slides container
     let hiddenSlidesContainer = document.getElementById('hiddenSlidesContainer');
@@ -4924,16 +5066,22 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Show/hide slides based on settings by moving them between containers
     if (webLinkSlide) {
+      console.log('Processing web link slide:', { showWebLink, isInSwiper: swiperWrapper.contains(webLinkSlide) });
       if (showWebLink) {
         // Move to swiper wrapper if not already there
         if (!swiperWrapper.contains(webLinkSlide)) {
           swiperWrapper.appendChild(webLinkSlide);
+          console.log('Moved web link slide to swiper wrapper');
         }
         webLinkSlide.style.display = 'block';
+        console.log('Set web link slide to display: block');
       } else {
         // Move to hidden container
         hiddenSlidesContainer.appendChild(webLinkSlide);
+        console.log('Moved web link slide to hidden container');
       }
+    } else {
+      console.log('Web link slide not found!');
     }
 
     if (neventSlide) {
@@ -4963,22 +5111,43 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     if (lightningSlide) {
+      console.log('🔍 Processing Lightning slide:', {
+        showLightning,
+        isInSwiper: swiperWrapper.contains(lightningSlide),
+        slideDisplay: lightningSlide.style.display
+      });
+      
       if (showLightning) {
         // Move to swiper wrapper if not already there
         if (!swiperWrapper.contains(lightningSlide)) {
           swiperWrapper.appendChild(lightningSlide);
+          console.log('✅ Moved Lightning slide to swiper wrapper');
         }
         lightningSlide.style.display = 'block';
+        console.log('✅ Set Lightning slide to display: block');
       } else {
         // Move to hidden container
         hiddenSlidesContainer.appendChild(lightningSlide);
+        console.log('❌ Moved Lightning slide to hidden container');
       }
+    } else {
+      console.log('❌ Lightning slide not found!');
     }
 
     // Count visible slides (those in the swiper wrapper)
     const visibleSlides = Array.from(swiperWrapper.children).filter(slide =>
       slide.classList.contains('swiper-slide')
     );
+    
+    // Show QR swiper if there are visible slides
+    const qrSwiper = document.querySelector('.qr-swiper') as HTMLElement;
+    if (qrSwiper && visibleSlides.length > 0) {
+      qrSwiper.style.display = 'block';
+      console.log('✅ QR swiper made visible (slides count:', visibleSlides.length, ')');
+    } else if (qrSwiper && visibleSlides.length === 0) {
+      qrSwiper.style.display = 'none';
+      console.log('❌ QR swiper hidden (no visible slides)');
+    }
 
     // Debug log removed
     // Debug log removed

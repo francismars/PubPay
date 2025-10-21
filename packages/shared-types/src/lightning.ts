@@ -44,6 +44,7 @@ export interface LNURLPCallbackResponse {
 }
 
 export interface WebhookData {
+  lnurlp: string; // LNURL-pay ID for mapping to sessions
   payment_hash: string;
   payment_request: string;
   amount: number;

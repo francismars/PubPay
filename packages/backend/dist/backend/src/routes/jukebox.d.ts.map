@@ -1,0 +1,1 @@
+{"version":3,"file":"jukebox.d.ts","sourceRoot":"","sources":["../../../../src/routes/jukebox.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,MAAM,EAAqB,MAAM,SAAS,CAAC;AAGpD,qBAAa,aAAa;IACxB,OAAO,CAAC,MAAM,CAAS;IACvB,OAAO,CAAC,MAAM,CAAS;;IASvB,OAAO,CAAC,gBAAgB;YAOV,gBAAgB;YAuBhB,SAAS;YAwBT,SAAS;IAoBhB,SAAS,IAAI,MAAM;CAG3B"}
