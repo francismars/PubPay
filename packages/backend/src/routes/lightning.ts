@@ -67,6 +67,15 @@ export class LightningRouter {
 
       // Check if session already has active Lightning for this event
       const existingSession = this.sessionService.getSession(frontendSessionId);
+      this.logger.info('🔍 Session lookup result:', {
+        frontendSessionId,
+        eventId,
+        sessionExists: !!existingSession,
+        eventExists: existingSession?.events?.[eventId] ? true : false,
+        eventActive: existingSession?.events?.[eventId]?.active,
+        allSessions: this.sessionService.getAllSessions().length
+      });
+      
       if (existingSession?.events[eventId]?.active) {
         // Update last seen and return existing LNURL
         this.sessionService.updateLastSeen(frontendSessionId, eventId);
