@@ -79,6 +79,8 @@ export class UseLightning {
         this.isEnabled = false;
         this.lnurl = null;
         this.sessionId = null;
+        // Clear session ID from localStorage when disabling
+        localStorage.removeItem('lightningSessionId');
         console.log('✅ Lightning payments disabled');
         return true;
       } else {
@@ -161,9 +163,18 @@ export class UseLightning {
     }
   }
 
-  // Generate session ID
+  // Generate session ID - persist across page refreshes
   private generateSessionId(): string {
-    return `frontend_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Try to get existing session ID from localStorage
+    const existingSessionId = localStorage.getItem('lightningSessionId');
+    if (existingSessionId) {
+      return existingSessionId;
+    }
+    
+    // Generate new session ID and store it
+    const newSessionId = `frontend_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('lightningSessionId', newSessionId);
+    return newSessionId;
   }
 
   // Getters
