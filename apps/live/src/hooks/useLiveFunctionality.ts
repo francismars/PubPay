@@ -2406,7 +2406,15 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       if (!bolt119735) continue;
 
-      const amount9735 = bolt11?.decode(bolt119735)?.satoshis || 0;
+      let amount9735 = 0;
+      try {
+        const decodedBolt11 = bolt11?.decode(bolt119735);
+        amount9735 = decodedBolt11?.satoshis || 0;
+      } catch (error) {
+        console.warn('Failed to decode bolt11 invoice:', bolt119735, error);
+        // Skip this zap if we can't decode the invoice
+        continue;
+      }
       const kind1from9735 = kind9735.tags.find((tag: any) => tag[0] == 'e')?.[1];
       const kind9735id = nip19.noteEncode(kind9735.id) || kind9735.id;
       const kind9735Content = description9735.content || '';

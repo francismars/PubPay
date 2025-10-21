@@ -34,34 +34,77 @@ export class NostrService {
    */
   async sendAnonymousZap(eventId: string, amount: number, comment: string): Promise<ZapResult> {
     try {
-      this.logger.info(`Creating zap request for event ${eventId} with amount ${amount} sats`);
+      this.logger.info(`⚡ Creating zap request:`, {
+        eventId,
+        amount,
+        comment,
+        timestamp: new Date().toISOString()
+      });
       
       // Generate anonymous key pair
+      this.logger.info('🔑 Generating anonymous key pair...');
       const privateKey = crypto.randomBytes(32);
       const publicKey = this.getPublicKeyFromPrivate(privateKey);
+      this.logger.info('✅ Anonymous key pair generated:', {
+        publicKey: publicKey.substring(0, 16) + '...'
+      });
       
       // Decode event ID if it's encoded (note1... or nevent1...)
+      this.logger.info('🔍 Decoding event ID...');
       const rawEventId = this.decodeEventId(eventId);
+      this.logger.info('✅ Event ID decoded:', {
+        original: eventId,
+        decoded: rawEventId
+      });
       
       // Get recipient public key from event
+      this.logger.info('🔍 Getting recipient public key from event...');
       const recipientPubkey = await this.getRecipientPubkey(rawEventId);
       if (!recipientPubkey) {
+        this.logger.error('❌ Could not determine recipient public key');
         throw new Error('Could not determine recipient public key');
       }
+      this.logger.info('✅ Recipient public key found:', {
+        pubkey: recipientPubkey.substring(0, 16) + '...'
+      });
 
       // Create zap request (kind 9734)
+      this.logger.info('🔄 Creating zap request (kind 9734)...');
       const zapRequest = this.createZapRequest(recipientPubkey, rawEventId, amount, comment, publicKey);
+      this.logger.info('✅ Zap request created:', {
+        kind: zapRequest.kind,
+        content: zapRequest.content,
+        tagsCount: zapRequest.tags.length
+      });
       
       // Create zap receipt (kind 9735)
+      this.logger.info('🔄 Creating zap receipt (kind 9735)...');
       const zapReceipt = this.createZapReceipt(recipientPubkey, rawEventId, amount, comment, zapRequest);
+      this.logger.info('✅ Zap receipt created:', {
+        kind: zapReceipt.kind,
+        content: zapReceipt.content,
+        tagsCount: zapReceipt.tags.length
+      });
       
       // Sign the zap receipt
+      this.logger.info('🔐 Signing zap receipt...');
       const signedEvent = this.signEvent(zapReceipt, privateKey);
+      this.logger.info('✅ Zap receipt signed:', {
+        eventId: signedEvent.id,
+        signature: signedEvent.sig.substring(0, 16) + '...'
+      });
       
       // Publish to relays
+      this.logger.info('📡 Publishing to relays...');
       const publishedRelays = await this.publishToRelays(signedEvent);
       
-      this.logger.info(`✅ Zap published successfully to ${publishedRelays.length} relays`);
+      this.logger.info(`✅ Zap published successfully:`, {
+        amount,
+        eventId: signedEvent.id,
+        publishedToRelays: publishedRelays.length,
+        totalRelays: this.relays.length,
+        relays: publishedRelays
+      });
       
       return {
         success: true,
@@ -69,7 +112,13 @@ export class NostrService {
         relays: publishedRelays
       };
     } catch (error) {
-      this.logger.error('Error sending anonymous zap:', error);
+      this.logger.error('💥 Error sending anonymous zap:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        eventId,
+        amount,
+        comment,
+        stack: error instanceof Error ? error.stack : undefined
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -190,23 +239,46 @@ export class NostrService {
    */
   private async publishToRelays(event: any): Promise<string[]> {
     const publishedRelays: string[] = [];
+    const failedRelays: string[] = [];
+    
+    this.logger.info(`📡 Publishing to ${this.relays.length} relays:`, {
+      relays: this.relays,
+      eventId: event.id
+    });
     
     try {
       const publishPromises = this.relays.map(async (relay) => {
         try {
+          this.logger.info(`🔄 Publishing to relay: ${relay}`);
           await this.pool.publish([relay], event);
           publishedRelays.push(relay);
-          this.logger.debug(`Published to relay: ${relay}`);
+          this.logger.info(`✅ Published to relay: ${relay}`);
         } catch (error) {
-          this.logger.warn(`Failed to publish to relay ${relay}:`, error);
+          failedRelays.push(relay);
+          this.logger.warn(`❌ Failed to publish to relay ${relay}:`, {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            relay
+          });
         }
       });
 
       await Promise.allSettled(publishPromises);
       
+      this.logger.info(`📊 Relay publishing results:`, {
+        totalRelays: this.relays.length,
+        successful: publishedRelays.length,
+        failed: failedRelays.length,
+        publishedRelays,
+        failedRelays
+      });
+      
       return publishedRelays;
     } catch (error) {
-      this.logger.error('Error publishing to relays:', error);
+      this.logger.error('💥 Error publishing to relays:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        publishedRelays,
+        failedRelays
+      });
       throw error;
     }
   }

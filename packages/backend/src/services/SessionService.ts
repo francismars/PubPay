@@ -17,12 +17,13 @@ export interface LNURLMapping {
 }
 
 export class SessionService {
+  private static instance: SessionService;
   private sessions: Map<string, LightningSession> = new Map();
   private lnurlpMappings: Map<string, LNURLMapping> = new Map();
   private logger: Logger;
   private cleanupInterval: NodeJS.Timeout;
 
-  constructor() {
+  private constructor() {
     this.logger = new Logger('SessionService');
     
     // Start cleanup interval (every 5 minutes)
@@ -31,6 +32,16 @@ export class SessionService {
     }, 5 * 60 * 1000);
     
     this.logger.info('SessionService initialized with cleanup interval');
+  }
+
+  /**
+   * Get singleton instance
+   */
+  public static getInstance(): SessionService {
+    if (!SessionService.instance) {
+      SessionService.instance = new SessionService();
+    }
+    return SessionService.instance;
   }
 
   /**
@@ -82,7 +93,18 @@ export class SessionService {
    * Get LNURL mapping by LNURL-pay ID
    */
   getLNURLMapping(lnurlpId: string): LNURLMapping | undefined {
-    return this.lnurlpMappings.get(lnurlpId);
+    this.logger.info(`🔍 Looking up LNURL-pay ID: "${lnurlpId}"`);
+    this.logger.info(`📋 Available mappings:`, Array.from(this.lnurlpMappings.keys()));
+    
+    const mapping = this.lnurlpMappings.get(lnurlpId);
+    if (mapping) {
+      this.logger.info(`✅ Found mapping:`, mapping);
+    } else {
+      this.logger.warn(`❌ No mapping found for: "${lnurlpId}"`);
+      this.logger.info(`🔍 All mappings:`, Array.from(this.lnurlpMappings.entries()));
+    }
+    
+    return mapping;
   }
 
   /**
