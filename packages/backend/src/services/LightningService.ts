@@ -117,6 +117,12 @@ export class LightningService {
       body: JSON.stringify(requestBody)
     });
 
+    this.logger.info('LNBits API response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
+
     if (!response.ok) {
       const errorText = await response.text();
       this.logger.error('LNBits API error:', {
@@ -128,6 +134,7 @@ export class LightningService {
     }
 
     const data = await response.json() as any;
+    this.logger.info('LNBits API response data:', data);
     
     if (!data.lnurl) {
       this.logger.error('No LNURL in LNBits response:', data);
@@ -135,6 +142,7 @@ export class LightningService {
     }
 
     this.logger.info(`✅ Created LNURL for event ${eventId}: ${data.lnurl}`);
+    this.logger.info(`📋 LNURL-pay ID: ${data.id}`);
     
     return {
       lnurl: data.lnurl,

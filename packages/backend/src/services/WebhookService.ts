@@ -24,7 +24,7 @@ export class WebhookService {
 
   constructor() {
     this.nostrService = new NostrService();
-    this.sessionService = new SessionService();
+    this.sessionService = SessionService.getInstance();
     this.logger = new Logger('WebhookService');
   }
 
