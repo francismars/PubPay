@@ -25,7 +25,7 @@ export class BackendServer {
 
   constructor() {
     this.app = express();
-    this.port = parseInt(process.env['PORT'] || '3000', 10);
+    this.port = parseInt(process.env['PORT'] || '3002', 10);
     this.logger = new Logger('BackendServer');
     
     this.initializeMiddleware();
@@ -44,7 +44,7 @@ export class BackendServer {
     this.app.use(cors({
       origin: process.env['NODE_ENV'] === 'production' 
         ? process.env['FRONTEND_URL'] 
-        : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:8080'],
+        : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:8080'],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
