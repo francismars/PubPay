@@ -80,7 +80,7 @@ export class LightningRouter {
         // Update last seen and return existing LNURL
         this.sessionService.updateLastSeen(frontendSessionId, eventId);
         
-        this.logger.info(`✅ Returning existing LNURL for session: ${frontendSessionId}, event: ${eventId}`);
+        this.logger.info(`✅ Session validation successful - reusing existing LNURL for session: ${frontendSessionId}, event: ${eventId}`);
         
         const response = {
           success: true,
@@ -100,8 +100,8 @@ export class LightningRouter {
         return;
       }
 
-      // Create new Lightning session
-      this.logger.info('🔄 Creating new Lightning session...');
+      // Create new Lightning session (session not found or expired)
+      this.logger.info('🔄 Session not found or expired - creating new Lightning session...');
       const result = await this.lightningService.enableLightningPayments(eventId, frontendSessionId);
       
       this.logger.info('📥 LightningService result:', result);

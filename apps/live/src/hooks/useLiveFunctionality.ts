@@ -3520,7 +3520,13 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Debug log removed
       }
     });
-    setupToggle('lightningToggle', async () => {
+    setupToggle('lightningToggle', async (checked: boolean) => {
+      // Skip Lightning calls during preset application
+      if (isApplyingPreset) {
+        console.log('🔄 Skipping Lightning toggle callback during preset application');
+        return;
+      }
+      
       // Debug log removed
       // Debug log removed
       // Debug log removed
@@ -3531,7 +3537,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
 
       try {
-        if (lightningEnabled) {
+        if (!checked) {
           // Disable Lightning payments
           console.log('🔌 Disabling Lightning payments...');
           const success = await lightningService.current.disableLightning(eventId);
@@ -3696,15 +3702,35 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
+  // Track which toggles have been set up to prevent duplicates
+  const setupToggleTracker = new Set<string>();
+  
+  // Flag to prevent Lightning calls during preset application
+  let isApplyingPreset = false;
+
   const setupToggle = (toggleId: string, callback: (checked: boolean) => void) => {
+    // Prevent duplicate setup
+    if (setupToggleTracker.has(toggleId)) {
+      console.log(`Toggle ${toggleId} already set up, skipping...`);
+      return;
+    }
+    
     const toggle = document.getElementById(toggleId) as HTMLInputElement;
     if (toggle) {
       console.log(`Setting up toggle for ${toggleId}:`, toggle);
-      toggle.addEventListener('change', () => {
-        console.log(`Toggle ${toggleId} changed to:`, toggle.checked);
-        callback(toggle.checked);
+      
+      // Remove existing event listeners to prevent duplicates
+      const newToggle = toggle.cloneNode(true) as HTMLInputElement;
+      toggle.parentNode?.replaceChild(newToggle, toggle);
+      
+      newToggle.addEventListener('change', () => {
+        console.log(`Toggle ${toggleId} changed to:`, newToggle.checked);
+        callback(newToggle.checked);
         saveCurrentStylesToLocalStorage();
       });
+      
+      // Mark as set up
+      setupToggleTracker.add(toggleId);
     } else {
       console.error(`Toggle element not found: ${toggleId}`);
     }
@@ -4029,39 +4055,34 @@ export const useLiveFunctionality = (eventId?: string) => {
                 // Debug log removed
                 // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
               },
-              lightningToggle: (checked: boolean) => {
+              lightningToggle: async (checked: boolean) => {
                 const lightningToggle = document.getElementById('lightningToggle') as HTMLInputElement;
                 if (lightningToggle) {
                   lightningToggle.checked = checked;
-                  console.log('🔄 Restored Lightning toggle state:', checked);
+                  console.log('🔄 Restored Lightning toggle visual state:', checked);
                   
-                  // If Lightning was previously enabled, trigger the enable functionality
+                  // If Lightning was previously enabled, restore by calling enable endpoint
                   if (checked && lightningService.current) {
-                    console.log('🔄 Lightning was previously enabled, re-enabling...');
-                    // Use setTimeout to ensure this runs after the DOM is fully ready
-                    setTimeout(async () => {
-                      try {
-                        const success = await lightningService.current!.enableLightning(eventId);
-                        if (success) {
-                          console.log('✅ Lightning payments re-enabled after page refresh');
-                          
-                          // Get the LNURL and create QR code
-                          const lnurl = lightningService.current!.currentLnurl || '';
-                          if (lnurl) {
-                            console.log('🔗 Creating Lightning QR slide with restored LNURL:', lnurl);
-                            createLightningQRSlide(lnurl);
-                            updatePaymentStatus('Lightning enabled - scan QR to pay', 'success');
-                          } else {
-                            console.error('❌ No LNURL received after re-enabling Lightning');
-                            updatePaymentStatus('Lightning enabled but no QR code available', 'error');
-                          }
-                        } else {
-                          console.error('❌ Failed to re-enable Lightning payments after page refresh');
-                        }
-                      } catch (error) {
-                        console.error('❌ Error re-enabling Lightning payments:', error);
+                    console.log('🔄 Lightning was previously enabled, validating session with backend...');
+                    
+                    // Always call enable endpoint to validate session and get current LNURL
+                    try {
+                      const success = await lightningService.current.enableLightning(eventId);
+                      if (success) {
+                        const lnurl = lightningService.current.currentLnurl || '';
+                        console.log('🔗 Lightning session validated, creating QR slide with LNURL:', lnurl);
+                        createLightningQRSlide(lnurl);
+                        updatePaymentStatus('Lightning enabled - scan QR to pay', 'success');
+                      } else {
+                        console.log('❌ Lightning session validation failed - user can manually enable if needed');
+                        updatePaymentStatus('Lightning session expired - please re-enable', 'error');
                       }
-                    }, 500); // Delay to ensure everything is ready
+                    } catch (error) {
+                      console.error('❌ Error validating Lightning session:', error);
+                      updatePaymentStatus('Lightning session validation failed', 'error');
+                    }
+                  } else {
+                    console.log('ℹ️ Lightning toggle restored - user can manually enable if needed');
                   }
                 }
                 // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
@@ -4960,6 +4981,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         'zapGridToggle', 'podiumToggle', 'lightningToggle'
       ];
 
+      // Set flag to prevent Lightning calls during preset application
+      isApplyingPreset = true;
+      
       toggleIds.forEach(toggleId => {
         const toggle = document.getElementById(toggleId) as HTMLInputElement;
         if (toggle) {
@@ -4974,6 +4998,9 @@ export const useLiveFunctionality = (eventId?: string) => {
           toggle.dispatchEvent(event);
         }
       });
+      
+      // Clear flag after preset application
+      isApplyingPreset = false;
 
       // Apply all styles to trigger visual effects
       applyAllStyles();
