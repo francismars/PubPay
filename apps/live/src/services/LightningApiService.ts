@@ -31,7 +31,7 @@ export interface LightningPayment {
 export class LightningApiService {
   private baseUrl: string;
 
-  constructor(baseUrl: string = 'http://localhost:3000') {
+  constructor(baseUrl: string = 'http://localhost:3002') {
     this.baseUrl = baseUrl;
   }
 
