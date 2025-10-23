@@ -607,7 +607,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
             {/* Zap Menu */}
             <a
               ref={zapActionRef}
-              className={isPayable ? 'noteAction zapMenuAction' : 'disabled'}
+              className={`noteAction zapMenuAction ${!isPayable ? 'disabled' : ''}`}
               onClick={(e) => {
                 e.preventDefault();
                 if (!isPayable) return;
