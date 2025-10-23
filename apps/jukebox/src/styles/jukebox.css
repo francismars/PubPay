@@ -1,0 +1,657 @@
+/* Jukebox App Styles */
+
+/* Base Jukebox Layout */
+body.jukebox {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Note Loader Container */
+.jukebox #noteLoaderContainer {
+  position: fixed;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.jukebox #noteLoader {
+  width: 95%;
+  max-width: 600px;
+  max-height: 90vh;
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow-y: auto;
+  text-align: center;
+}
+
+/* App Header Styles */
+.app-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.app-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 15px 0;
+  background: linear-gradient(45deg, #4ecdc4, #44a08d);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.app-description {
+  font-size: 1.1rem;
+  color: #555;
+  margin: 0 0 20px 0;
+  line-height: 1.6;
+}
+
+.viral-features {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.feature-badge {
+  background: linear-gradient(45deg, #4ecdc4, #44a08d);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(78, 205, 196, 0.3);
+}
+
+/* Note Input Section */
+.note-input-section {
+  margin: 30px 0;
+  text-align: left;
+}
+
+.jukebox #noteLoader label {
+  display: block;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.jukebox #noteLoader input {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid #e1e8ed;
+  border-radius: 12px;
+  font-size: 1rem;
+  color: #2c3e50;
+  background: #f8f9fa;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.jukebox #noteLoader input:focus {
+  outline: none;
+  border-color: #4ecdc4;
+  box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.1);
+  transform: translateY(-1px);
+}
+
+.jukebox #noteLoader input::placeholder {
+  color: #95a5a6;
+}
+
+/* Button Styles */
+.jukebox #noteLoader .button {
+  background: linear-gradient(45deg, #4ecdc4, #44a08d);
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+}
+
+.jukebox #noteLoader .button:hover {
+  background: linear-gradient(45deg, #44a08d, #4ecdc4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
+}
+
+/* How It Works Section */
+.how-it-works {
+  margin: 40px 0;
+  text-align: center;
+}
+
+.jukebox #noteLoader h3 {
+  margin: 25px 0 20px 0;
+  color: #2c3e50;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.jukebox #noteLoader .step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.jukebox #noteLoader .step-number {
+  background: #4ecdc4;
+  color: white;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  margin: 0;
+}
+
+.jukebox #noteLoader .step-text {
+  text-align: center;
+  line-height: 1.6;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+/* Examples Section */
+.examples-section {
+  margin: 40px 0;
+  text-align: left;
+}
+
+.example-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 15px 0;
+}
+
+.example-comment {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: #2c3e50;
+  border-left: 4px solid #4ecdc4;
+}
+
+.example-note {
+  font-size: 0.85rem;
+  color: #e74c3c;
+  font-style: italic;
+  margin-top: 10px;
+}
+
+/* Main Layout */
+.jukebox-layout {
+  display: grid;
+  grid-template-columns: minmax(250px, 1fr) minmax(400px, 2fr) minmax(250px, 1fr);
+  gap: 20px;
+  padding: 20px;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+.jukebox .left-side {
+  grid-area: left;
+  width: 100%;
+}
+
+.jukebox .center-side {
+  grid-area: center;
+  min-width: 0;
+}
+
+.jukebox .right-side {
+  grid-area: right;
+  width: 100%;
+}
+
+/* Section Labels */
+.jukebox .section-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #e0e0e0;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(78, 205, 196, 0.3);
+}
+
+/* Author Section */
+.jukebox .author-section {
+  text-align: left;
+  margin: 15px 0;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.author-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  margin-right: 15px;
+  object-fit: cover;
+  border: 2px solid rgba(78, 205, 196, 0.3);
+}
+
+.author-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.author-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e0e0e0;
+  margin: 0;
+}
+
+/* Note Section */
+.jukebox .note-section {
+  padding: 15px;
+  text-align: left;
+}
+
+.note-content {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
+  line-height: 1.6;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* QR Section */
+.jukebox .qr-section {
+  margin-bottom: 0px;
+}
+
+.qr-code {
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  border-radius: 10px;
+  border: 2px solid rgba(78, 205, 196, 0.3);
+}
+
+.qr-instructions {
+  text-align: center;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  margin: 10px 0;
+}
+
+.qr-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 15px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #4ecdc4;
+}
+
+/* Video Container */
+.video-container {
+  width: 100%;
+  min-height: 300px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.no-video-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px 15px;
+}
+
+.no-video-icon {
+  font-size: 3rem;
+  margin-bottom: 10px;
+  opacity: 0.5;
+}
+
+.no-video-text {
+  font-size: 1.3rem;
+  margin-bottom: 8px;
+  color: #aaa;
+}
+
+.no-video-subtext {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.no-video-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.example-item {
+  font-size: 0.8rem;
+  color: #777;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+/* Video Wrapper */
+.videoWrapper {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+}
+
+.videoWrapper iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+}
+
+/* Video Progress */
+.video-progress-container {
+  margin: 15px 0;
+  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4ecdc4, #44a08d);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progress-time {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+/* Player Controls */
+.player-controls {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.control-button {
+  padding: 12px 24px;
+  border: 2px solid rgba(78, 205, 196, 0.3);
+  background: rgba(78, 205, 196, 0.1);
+  color: #4ecdc4;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.control-button:hover:not(:disabled) {
+  background: rgba(78, 205, 196, 0.2);
+  border-color: rgba(78, 205, 196, 0.5);
+  transform: translateY(-1px);
+}
+
+.control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.skip-button {
+  background: rgba(255, 107, 107, 0.1);
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.skip-button:hover:not(:disabled) {
+  background: rgba(255, 107, 107, 0.2);
+  border-color: rgba(255, 107, 107, 0.5);
+}
+
+/* Queue Section */
+.queue-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.queue-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.queue-count {
+  font-weight: 600;
+}
+
+.queue-total {
+  color: #4ecdc4;
+}
+
+.song-queue {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* History Section */
+.history-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 15px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.played-songs {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Style Options Modal */
+#styleOptionsModal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.style-options-content {
+  background-color: white;
+  margin: 5% auto;
+  padding: 20px;
+  border-radius: 15px;
+  width: 80%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.style-options-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e1e8ed;
+}
+
+.style-options-header h2 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.5rem;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #95a5a6;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-button:hover {
+  color: #e74c3c;
+}
+
+/* Scrollbar Styles */
+.jukebox .note-content::-webkit-scrollbar,
+.jukebox #noteLoader::-webkit-scrollbar,
+.song-queue::-webkit-scrollbar,
+.played-songs::-webkit-scrollbar {
+  width: 6px;
+}
+
+.jukebox .note-content::-webkit-scrollbar-track,
+.jukebox #noteLoader::-webkit-scrollbar-track,
+.song-queue::-webkit-scrollbar-track,
+.played-songs::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.jukebox .note-content::-webkit-scrollbar-thumb,
+.jukebox #noteLoader::-webkit-scrollbar-thumb,
+.song-queue::-webkit-scrollbar-thumb,
+.played-songs::-webkit-scrollbar-thumb {
+  background: rgba(78, 205, 196, 0.5);
+  border-radius: 3px;
+}
+
+.jukebox .note-content::-webkit-scrollbar-thumb:hover,
+.jukebox #noteLoader::-webkit-scrollbar-thumb:hover,
+.song-queue::-webkit-scrollbar-thumb:hover,
+.played-songs::-webkit-scrollbar-thumb:hover {
+  background: rgba(78, 205, 196, 0.7);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .jukebox-layout {
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 15px;
+    padding: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .jukebox-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 10px;
+  }
+  
+  .jukebox .left-side,
+  .jukebox .center-side,
+  .jukebox .right-side {
+    min-height: auto;
+  }
+  
+  .steps {
+    grid-template-columns: 1fr;
+  }
+  
+  .viral-features {
+    flex-direction: column;
+    align-items: center;
+  }
+}
