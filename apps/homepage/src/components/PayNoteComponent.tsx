@@ -100,6 +100,18 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
 
   // Format content with mentions and links
   const formatContent = (content: string): string => {
+    // First, handle npub mentions (before URL processing to avoid conflicts)
+    content = content.replace(
+      /(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+      (match, prefix, npub) => {
+        const cleanNpub = npub.replace('nostr:', '').replace('@', '');
+        const shortNpub = cleanNpub.length > 35
+          ? `${cleanNpub.substr(0, 4)}...${cleanNpub.substr(cleanNpub.length - 4)}`
+          : cleanNpub;
+        return `<a href="https://next.nostrudel.ninja/#/u/${cleanNpub}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${shortNpub}</a>`;
+      }
+    );
+
     // Handle image URLs
     content = content.replace(
       /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(gif|png|jpg|jpeg)/gi,
@@ -130,32 +142,18 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
       }
     );
 
-    // Handle regular URLs
+    // Handle regular URLs (but skip if already processed as images/videos or npubs)
     content = content.replace(
       /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+|www\.[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)/gi,
       (match) => {
-        if (content.includes(`src="${match}"`)) {
+        // Skip if already processed as image, video, or npub
+        if (content.includes(`src="${match}"`) || 
+            content.includes(`href="https://next.nostrudel.ninja/#/u/`) ||
+            content.includes(`href="https://www.youtube.com/embed/`)) {
           return match;
         }
         const url = match.startsWith('http') ? match : `http://${match}`;
         return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${match}</a>`;
-      }
-    );
-
-    // Handle npub mentions
-    content = content.replace(
-      /(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-      (match, prefix, npub) => {
-        const cleanNpub = npub.replace('nostr:', '').replace('@', '');
-        const shortNpub = cleanNpub.length > 35
-          ? `${cleanNpub.substr(0, 4)  }...${  cleanNpub.substr(cleanNpub.length - 4)}`
-          : cleanNpub;
-        return `<a href="https://next.nostrudel.ninja/#/u/${cleanNpub}" 
-                   target="_blank" 
-                   rel="noopener noreferrer"
-                   style="color: #0066cc; text-decoration: underline;">
-                   ${shortNpub}
-                 </a>`;
       }
     );
 
