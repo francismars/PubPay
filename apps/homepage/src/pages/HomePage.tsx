@@ -7,7 +7,6 @@ import { InvoiceQR } from '@pubpay/shared-ui';
 import { PubPayPost } from '@homepage/hooks/useHomeFunctionality';
 import { genericUserIcon } from '@homepage/assets/images';
 import * as NostrTools from 'nostr-tools';
-import '../styles/homepage.css';
 
 export const HomePage: React.FC = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
@@ -43,6 +42,7 @@ export const HomePage: React.FC = () => {
     replies,
     isLoadingMore,
     authState,
+    nostrClient,
     handleFeedChange,
     handleQRScanner,
     handleLogin,
@@ -473,18 +473,27 @@ export const HomePage: React.FC = () => {
                   </div>
                   <div className="noteContent disabled">Loading posts...</div>
                   <div className="noteValues">
-                    <div className="zapMin">
-                      <span className="zapMinVal disabled">Loading...</span>
-                      <span className="label">sats<br />Min</span>
+                    <div className="zapMinContainer">
+                      <div className="zapMin">
+                        <span className="zapMinVal disabled">Loading...</span>
+                        <span className="label">sats</span>
+                      </div>
+                      <div className="zapMinLabel">Min</div>
                     </div>
-                    <div className="zapMax">
-                      <span className="zapMaxVal disabled">Loading...</span>
-                      <span className="label">sats<br />Max</span>
+                    <div className="zapMaxContainer">
+                      <div className="zapMax">
+                        <span className="zapMaxVal disabled">Loading...</span>
+                        <span className="label">sats</span>
+                      </div>
+                      <div className="zapMaxLabel">Max</div>
                     </div>
-                    <div className="zapUses">
-                      <span className="zapUsesCurrent disabled">0</span>
-                      <span className="label">of</span>
-                      <span className="zapUsesTotal disabled">5</span>
+                    <div className="zapUsesContainer">
+                      <div className="zapUses">
+                        <span className="zapUsesCurrent disabled">0</span>
+                        <span className="label">of</span>
+                        <span className="zapUsesTotal disabled">5</span>
+                      </div>
+                      <div className="zapUsesLabel">Uses</div>
                     </div>
                   </div>
                   <div className="noteCTA">
@@ -502,11 +511,9 @@ export const HomePage: React.FC = () => {
                       <a className="noteAction disabled">
                         <span className="material-symbols-outlined">ios_share</span>
                       </a>
-                      <div className="noteAction dropdown">
-                        <button className="dropbtn">
-                          <span className="material-symbols-outlined disabled">more_horiz</span>
-                        </button>
-                      </div>
+                      <button className="noteAction dropdown disabled">
+                        <span className="material-symbols-outlined disabled">more_horiz</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -545,18 +552,27 @@ export const HomePage: React.FC = () => {
                       </div>
                       <div className="noteContent disabled">Loading posts...</div>
                       <div className="noteValues">
-                        <div className="zapMin">
-                          <span className="zapMinVal disabled">Loading...</span>
-                          <span className="label">sats<br />Min</span>
+                        <div className="zapMinContainer">
+                          <div className="zapMin">
+                            <span className="zapMinVal disabled">Loading...</span>
+                            <span className="label">sats</span>
+                          </div>
+                          <div className="zapMinLabel">Min</div>
                         </div>
-                        <div className="zapMax">
-                          <span className="zapMaxVal disabled">Loading...</span>
-                          <span className="label">sats<br />Max</span>
+                        <div className="zapMaxContainer">
+                          <div className="zapMax">
+                            <span className="zapMaxVal disabled">Loading...</span>
+                            <span className="label">sats</span>
+                          </div>
+                          <div className="zapMaxLabel">Max</div>
                         </div>
-                        <div className="zapUses">
-                          <span className="zapUsesCurrent disabled">0</span>
-                          <span className="label">of</span>
-                          <span className="zapUsesTotal disabled">5</span>
+                        <div className="zapUsesContainer">
+                          <div className="zapUses">
+                            <span className="zapUsesCurrent disabled">0</span>
+                            <span className="label">of</span>
+                            <span className="zapUsesTotal disabled">5</span>
+                          </div>
+                          <div className="zapUsesLabel">Uses</div>
                         </div>
                       </div>
                       <div className="noteCTA">
@@ -574,11 +590,9 @@ export const HomePage: React.FC = () => {
                           <a className="noteAction disabled">
                             <span className="material-symbols-outlined">ios_share</span>
                           </a>
-                          <div className="noteAction dropdown">
-                            <button className="dropbtn">
-                              <span className="material-symbols-outlined disabled">more_horiz</span>
-                            </button>
-                          </div>
+                          <button className="noteAction dropdown disabled">
+                            <span className="material-symbols-outlined disabled">more_horiz</span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -614,18 +628,27 @@ export const HomePage: React.FC = () => {
                       </div>
                       <div className="noteContent disabled">Loading posts...</div>
                       <div className="noteValues">
-                        <div className="zapMin">
-                          <span className="zapMinVal disabled">Loading...</span>
-                          <span className="label">sats<br />Min</span>
+                        <div className="zapMinContainer">
+                          <div className="zapMin">
+                            <span className="zapMinVal disabled">Loading...</span>
+                            <span className="label">sats</span>
+                          </div>
+                          <div className="zapMinLabel">Min</div>
                         </div>
-                        <div className="zapMax">
-                          <span className="zapMaxVal disabled">Loading...</span>
-                          <span className="label">sats<br />Max</span>
+                        <div className="zapMaxContainer">
+                          <div className="zapMax">
+                            <span className="zapMaxVal disabled">Loading...</span>
+                            <span className="label">sats</span>
+                          </div>
+                          <div className="zapMaxLabel">Max</div>
                         </div>
-                        <div className="zapUses">
-                          <span className="zapUsesCurrent disabled">0</span>
-                          <span className="label">of</span>
-                          <span className="zapUsesTotal disabled">5</span>
+                        <div className="zapUsesContainer">
+                          <div className="zapUses">
+                            <span className="zapUsesCurrent disabled">0</span>
+                            <span className="label">of</span>
+                            <span className="zapUsesTotal disabled">5</span>
+                          </div>
+                          <div className="zapUsesLabel">Uses</div>
                         </div>
                       </div>
                       <div className="noteCTA">
@@ -643,11 +666,9 @@ export const HomePage: React.FC = () => {
                           <a className="noteAction disabled">
                             <span className="material-symbols-outlined">ios_share</span>
                           </a>
-                          <div className="noteAction dropdown">
-                            <button className="dropbtn">
-                              <span className="material-symbols-outlined disabled">more_horiz</span>
-                            </button>
-                          </div>
+                          <button className="noteAction dropdown disabled">
+                            <span className="material-symbols-outlined disabled">more_horiz</span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -669,6 +690,7 @@ export const HomePage: React.FC = () => {
                 onShare={handleSharePost}
                 onViewRaw={handleViewRaw}
                 isLoggedIn={authState.isLoggedIn}
+                nostrClient={nostrClient}
               />
             ))
           )}
@@ -704,6 +726,7 @@ export const HomePage: React.FC = () => {
               onViewRaw={handleViewRaw}
               isLoggedIn={authState.isLoggedIn}
               isReply={true}
+              nostrClient={nostrClient}
             />
           ))}
         </div>
@@ -743,18 +766,27 @@ export const HomePage: React.FC = () => {
                   </div>
                   <div className="noteContent disabled">Loading following posts...</div>
                   <div className="noteValues">
-                    <div className="zapMin">
-                      <span className="zapMinVal disabled">Loading...</span>
-                      <span className="label">sats<br />Min</span>
+                    <div className="zapMinContainer">
+                      <div className="zapMin">
+                        <span className="zapMinVal disabled">Loading...</span>
+                        <span className="label">sats</span>
+                      </div>
+                      <div className="zapMinLabel">Min</div>
                     </div>
-                    <div className="zapMax">
-                      <span className="zapMaxVal disabled">Loading...</span>
-                      <span className="label">sats<br />Max</span>
+                    <div className="zapMaxContainer">
+                      <div className="zapMax">
+                        <span className="zapMaxVal disabled">Loading...</span>
+                        <span className="label">sats</span>
+                      </div>
+                      <div className="zapMaxLabel">Max</div>
                     </div>
-                    <div className="zapUses">
-                      <span className="zapUsesCurrent disabled">0</span>
-                      <span className="label">of</span>
-                      <span className="zapUsesTotal disabled">5</span>
+                    <div className="zapUsesContainer">
+                      <div className="zapUses">
+                        <span className="zapUsesCurrent disabled">0</span>
+                        <span className="label">of</span>
+                        <span className="zapUsesTotal disabled">5</span>
+                      </div>
+                      <div className="zapUsesLabel">Uses</div>
                     </div>
                   </div>
                   <div className="noteCTA">
@@ -772,11 +804,9 @@ export const HomePage: React.FC = () => {
                       <a className="noteAction disabled">
                         <span className="material-symbols-outlined">ios_share</span>
                       </a>
-                      <div className="noteAction dropdown">
-                        <button className="dropbtn">
-                          <span className="material-symbols-outlined disabled">more_horiz</span>
-                        </button>
-                      </div>
+                      <button className="noteAction dropdown disabled">
+                        <span className="material-symbols-outlined disabled">more_horiz</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -796,6 +826,7 @@ export const HomePage: React.FC = () => {
                 onShare={handleSharePost}
                 onViewRaw={handleViewRaw}
                 isLoggedIn={authState.isLoggedIn}
+                nostrClient={nostrClient}
               />
             ))
           )}
