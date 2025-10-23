@@ -35,7 +35,11 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
+        //type: 'asset/resource',
+        generator: {
+          filename: 'styles/[name][ext]',
+          publicPath: '/',
+        },
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif|webp)$/i,
@@ -66,6 +70,18 @@ module.exports = {
         publicPath: '/',
         serveIndex: false,
       },
+      // CSS dev
+      {
+        directory: path.join(__dirname, '../../apps/homepage/src/styles'),
+        publicPath: '/styles',
+        serveIndex: false,
+      },
+      {
+        directory: path.join(__dirname, '../../../public'),
+        publicPath: '/',
+        serveIndex: false,
+      },
+      // CSS dev end
     ],
     compress: true,
     port: 3000,
