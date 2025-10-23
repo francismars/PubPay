@@ -376,27 +376,43 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
         {/* Zap Values - only show for notes with zap tags */}
         {post.hasZapTags && (
           <div className="noteValues">
-            <div className="zapMin">
-              <span className="zapMinVal">{post.zapMin.toLocaleString()}</span>
-              <span className="label">sats<br />{post.zapMin !== post.zapMax ? 'Min' : ''}</span>
+            <div className="zapMinContainer">
+              <div className="zapMin">
+                <span className="zapMinVal">{post.zapMin.toLocaleString()}</span>
+                <span className="label">sats</span>
+              </div>
+              <div className="zapMinLabel">
+                {post.zapMin !== post.zapMax ? 'Min' : ''}
+              </div>
             </div>
 
             {post.zapMin !== post.zapMax && (
-              <div className="zapMax">
-                <span className="zapMaxVal">{post.zapMax.toLocaleString()}</span>
-                <span className="label">sats<br />Max</span>
+              <div className="zapMaxContainer">
+                <div className="zapMax">
+                  <span className="zapMaxVal">{post.zapMax.toLocaleString()}</span>
+                  <span className="label">sats</span>
+                </div>
+                <div className="zapMaxLabel">
+                  Max
+                </div>
               </div>
             )}
 
             {post.zapUses > 1 && (
+              <div className="zapUsesContainer">
               <div className="zapUses">
                 <span className="zapUsesCurrent">{post.zapUsesCurrent}</span>
                 <span className="label">of</span>
                 <span className="zapUsesTotal">{post.zapUses}</span>
               </div>
+              <div className="zapUsesLabel">
+                Uses
+              </div>
+              </div>
             )}
           </div>
         )}
+
 
         {/* Zap Payer */}
         {post.zapPayer && (

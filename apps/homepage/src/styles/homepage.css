@@ -413,6 +413,7 @@ body {
   .noteAuthor .label .material-symbols-outlined {
     font-size: 12px;
     margin-top: -3px;
+    margin-right: 3px;
   }
   
   .main-icon {
@@ -443,6 +444,40 @@ body {
     font-size: 20px;
     line-height: 1;
     font-weight: 300;
+    align-items: flex-start;
+  }
+
+  .zapUses {
+    display: flex;
+    gap: 4px;
+    line-height: 1;
+    align-items: baseline;
+  }
+
+  .zapMin,
+  .zapMax {
+    display: flex;
+    gap: 4px;
+    align-items: baseline;
+  }
+
+  .zapLabels {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 0 0 0;
+    padding: 0 0 8px 0;
+    font-size: 12px;
+    color: #919191;
+  }
+
+  .zapMinLabel,
+  .zapMaxLabel,
+  .zapUsesLabel {
+    /* text-align: center; */
+    margin: 3px 0;
+    flex: 1;
+    color: gray;
+    font-size: 15px;
   }
   
   .zapPayer {
@@ -581,6 +616,7 @@ body {
   legend {
     color: #919191;
     font-size: 14px;
+    line-height: 1;
   }
   
   .uppercase {
