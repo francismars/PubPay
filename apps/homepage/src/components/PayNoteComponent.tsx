@@ -39,12 +39,15 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
 }) => {
   const [zapAmount, setZapAmount] = useState(post.zapMin);
   const [showZapMenu, setShowZapMenu] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [customZapAmount, setCustomZapAmount] = useState('');
   const [heroZaps, setHeroZaps] = useState<ProcessedZap[]>([]);
   const [overflowZaps, setOverflowZaps] = useState<ProcessedZap[]>([]);
   const zapMenuRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const zapActionRef = useRef<HTMLAnchorElement>(null);
+  const paynoteRef = useRef<HTMLDivElement>(null);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Click outside to close zap menu
   useEffect(() => {
@@ -233,40 +236,63 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
   useEffect(() => {
     const handleGlobalClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.matches('.dropbtn') && !target.matches('.dropdown-element')) {
-        // Close all dropdowns
-        const dropdowns = document.getElementsByClassName('dropdown-content');
-        for (let i = 0; i < dropdowns.length; i++) {
-          const dropdown = dropdowns[i] as HTMLElement;
-          dropdown.classList.remove('show');
-        }
+      if (!target.matches('.dropdown') && !target.matches('.dropdown-element')) {
+        // Close dropdown
+        setShowDropdown(false);
       }
     };
 
     const handleTouchStart = (event: TouchEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.matches('.dropbtn') && !target.matches('.dropdown-element')) {
-        // Close all dropdowns
-        const dropdowns = document.getElementsByClassName('dropdown-content');
-        for (let i = 0; i < dropdowns.length; i++) {
-          const dropdown = dropdowns[i] as HTMLElement;
-          dropdown.classList.remove('show');
-        }
+      if (!target.matches('.dropdown') && !target.matches('.dropdown-element')) {
+        // Close dropdown
+        setShowDropdown(false);
       }
     };
 
-    document.addEventListener('click', handleGlobalClick);
-    document.addEventListener('touchstart', handleTouchStart);
+      const handlePaynoteHover = (event: MouseEvent) => {
+        const target = event.target as HTMLElement;
+        const hoveredPaynote = target.closest('.paynote');
+        const hoveredDropdown = target.closest('.dropdown-content, .zapMenu');
+        
+        // Clear any existing timeout
+        if (hideTimeoutRef.current) {
+          clearTimeout(hideTimeoutRef.current);
+          hideTimeoutRef.current = null;
+        }
+        
+        // If hovering over a different paynote AND not hovering over any dropdown content, schedule closing
+        if (hoveredPaynote && hoveredPaynote !== paynoteRef.current && !hoveredDropdown) {
+          hideTimeoutRef.current = setTimeout(() => {
+            // Close dropdown menus
+            setShowDropdown(false);
+            
+            // Close zap menus
+            setShowZapMenu(false);
+          }, 300); // 300ms delay
+        }
+      };
 
-    return () => {
-      document.removeEventListener('click', handleGlobalClick);
-      document.removeEventListener('touchstart', handleTouchStart);
-    };
+      document.addEventListener('click', handleGlobalClick);
+      document.addEventListener('touchstart', handleTouchStart);
+      document.addEventListener('mouseover', handlePaynoteHover);
+
+      return () => {
+        document.removeEventListener('click', handleGlobalClick);
+        document.removeEventListener('touchstart', handleTouchStart);
+        document.removeEventListener('mouseover', handlePaynoteHover);
+        if (hideTimeoutRef.current) {
+          clearTimeout(hideTimeoutRef.current);
+        }
+      };
   }, []);
+
+  const hasOpenDropdown = showZapMenu || showDropdown;
 
   return (
     <div
-      className={isReply ? 'paynote reply' : 'paynote'}
+      ref={paynoteRef}
+      className={`${isReply ? 'paynote reply' : 'paynote'} ${hasOpenDropdown ? 'has-open-dropdown' : ''}`}
       style={isReply ? {marginLeft: `${(post.replyLevel || 0) * 15 + 15}px`} : undefined}
     >
       <div className="noteProfileImg">
@@ -503,8 +529,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
             >
               <span className="material-symbols-outlined">bolt</span>
               <div
-                className="zapMenu"
-                style={{ display: showZapMenu ? 'block' : 'none' }}
+                className={`zapMenu ${showZapMenu ? 'show' : ''}`}
                 ref={zapMenuRef}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -549,25 +574,17 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
             </a>
 
             {/* More Menu */}
-            <div className="noteAction dropdown">
-              <button
-                className="dropbtn"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('Dropdown button clicked');
-                  setTimeout(() => {
-                    if (dropdownRef.current) {
-                      dropdownRef.current.classList.toggle('show');
-                      console.log('Dropdown classes after toggle:', dropdownRef.current.className);
-                    }
-                  }, 100);
-                }}
-              >
-                <span className="material-symbols-outlined">more_horiz</span>
-              </button>
-
-              <div className="dropdown-content dropdown-element" ref={dropdownRef}>
+            <button
+              className="noteAction dropdown"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowDropdown(!showDropdown);
+              }}
+            >
+              <span className="material-symbols-outlined">more_horiz</span>
+              
+              <div className={`dropdown-content dropdown-element ${showDropdown ? 'show' : ''}`} ref={dropdownRef}>
                 <a className="cta dropdown-element disabled">New Pay Forward</a>
 
                 {isPayable && (
@@ -613,7 +630,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
                   View on live
                 </a>
               </div>
-            </div>
+            </button>
           </div>
         </div>
       </div>
