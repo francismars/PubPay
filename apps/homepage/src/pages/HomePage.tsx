@@ -42,6 +42,7 @@ export const HomePage: React.FC = () => {
     replies,
     isLoadingMore,
     authState,
+    nostrClient,
     handleFeedChange,
     handleQRScanner,
     handleLogin,
@@ -689,6 +690,7 @@ export const HomePage: React.FC = () => {
                 onShare={handleSharePost}
                 onViewRaw={handleViewRaw}
                 isLoggedIn={authState.isLoggedIn}
+                nostrClient={nostrClient}
               />
             ))
           )}
@@ -724,6 +726,7 @@ export const HomePage: React.FC = () => {
               onViewRaw={handleViewRaw}
               isLoggedIn={authState.isLoggedIn}
               isReply={true}
+              nostrClient={nostrClient}
             />
           ))}
         </div>
@@ -823,6 +826,7 @@ export const HomePage: React.FC = () => {
                 onShare={handleSharePost}
                 onViewRaw={handleViewRaw}
                 isLoggedIn={authState.isLoggedIn}
+                nostrClient={nostrClient}
               />
             ))
           )}

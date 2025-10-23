@@ -2019,6 +2019,7 @@ export const useHomeFunctionality = () => {
     replies,
     isLoadingMore,
     authState,
+    nostrClient: nostrClientRef.current,
     handleFeedChange,
     handleQRScanner,
     handleLogin,
