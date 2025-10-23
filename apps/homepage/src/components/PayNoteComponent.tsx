@@ -424,17 +424,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
             </div>
           </div>
 
-          <div
-            className="noteDate label"
-            onClick={() => {
-              console.log('noteDate clicked for post:', post.id);
-              // Navigate to single note view using NIP-19 encoding
-              const nevent = NostrTools.nip19.noteEncode(post.id);
-              console.log('Navigating to single note:', nevent);
-              window.location.href = `/?note=${nevent}`;
-            }}
-            style={{ cursor: 'pointer' }}
-          >
+          <div className="noteDate label">
             {timeAgo(post.createdAt)}
           </div>
         </div>
@@ -442,6 +432,20 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
         {/* Content */}
         <div
           className="noteContent"
+          onClick={(e) => {
+            // Check if the clicked element is a link or inside a link
+            const target = e.target as HTMLElement;
+            const isLink = target.tagName === 'A' || target.closest('a');
+            
+            if (!isLink) {
+              console.log('noteContent clicked for post:', post.id);
+              // Navigate to single note view using NIP-19 encoding
+              const nevent = NostrTools.nip19.noteEncode(post.id);
+              console.log('Navigating to single note:', nevent);
+              window.location.href = `/?note=${nevent}`;
+            }
+          }}
+          style={{ cursor: 'pointer' }}
           dangerouslySetInnerHTML={{ __html: formattedContent || post.event.content }}
         />
 

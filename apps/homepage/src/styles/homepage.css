@@ -428,12 +428,37 @@ body {
     font-weight: 300;
     word-break: break-word;
     letter-spacing: 0.03rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    padding: 4px;
+    margin: 16px -4px;
+  }
+
+  .noteContent:hover {
+    background-color: rgba(74, 117, 255, 0.01);
   }
   
   .noteContent img {
     width: 100%;
     margin-top: 10px;
     filter: brightness(0.98);
+  }
+
+  /* Ensure links within noteContent maintain their styling and behavior */
+  .noteContent a {
+    color: #4a75ff;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .noteContent a:visited {
+    color: #4a75ff;
+  }
+
+  .noteContent a:hover {
+    text-decoration: underline;
+    background-color: transparent;
   }
   
   .noteValues {
