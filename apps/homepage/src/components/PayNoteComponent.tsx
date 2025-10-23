@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { genericUserIcon } from '@homepage/assets/images';
 import * as NostrTools from 'nostr-tools';
+import { ensureProfiles } from '@pubpay/shared-services';
+import { getQueryClient } from '@pubpay/shared-services';
 
 // Define ProcessedZap interface locally since it's not exported
 interface ProcessedZap {
@@ -26,6 +28,7 @@ interface PayNoteComponentProps {
   onViewRaw: (post: PubPayPost) => void;
   isLoggedIn: boolean;
   isReply?: boolean;
+  nostrClient: any; // NostrClient type
 }
 
 export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
@@ -35,7 +38,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
   onShare,
   onViewRaw,
   isLoggedIn,
-  isReply = false
+  isReply = false,
+  nostrClient
 }) => {
   const [zapAmount, setZapAmount] = useState(post.zapMin);
   const [showZapMenu, setShowZapMenu] = useState(false);
@@ -43,11 +47,39 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
   const [customZapAmount, setCustomZapAmount] = useState('');
   const [heroZaps, setHeroZaps] = useState<ProcessedZap[]>([]);
   const [overflowZaps, setOverflowZaps] = useState<ProcessedZap[]>([]);
+  const [formattedContent, setFormattedContent] = useState<string>('');
   const zapMenuRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const zapActionRef = useRef<HTMLAnchorElement>(null);
   const paynoteRef = useRef<HTMLDivElement>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Format content on mount and when content changes
+  useEffect(() => {
+    const formatPostContent = async () => {
+      if (post.event.content && nostrClient) {
+        try {
+          const formatted = await formatContent(post.event.content);
+          setFormattedContent(formatted);
+        } catch (error) {
+          console.error('Error formatting content:', error);
+          // Fallback to basic formatting without async npub resolution
+          const basicFormatted = post.event.content
+            .replace(/(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi, (match, prefix, npub) => {
+              const cleanNpub = npub.replace('nostr:', '').replace('@', '');
+              const shortNpub = cleanNpub.length > 35
+                ? `${cleanNpub.substr(0, 4)}...${cleanNpub.substr(cleanNpub.length - 4)}`
+                : cleanNpub;
+              return `<a href="https://next.nostrudel.ninja/#/u/${cleanNpub}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${shortNpub}</a>`;
+            })
+            .replace(/\n/g, '<br />');
+          setFormattedContent(basicFormatted);
+        }
+      }
+    };
+
+    formatPostContent();
+  }, [post.event.content, nostrClient]);
 
   // Click outside to close zap menu
   useEffect(() => {
@@ -98,19 +130,61 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
     }
   };
 
-  // Format content with mentions and links
-  const formatContent = (content: string): string => {
-    // First, handle npub mentions (before URL processing to avoid conflicts)
-    content = content.replace(
-      /(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-      (match, prefix, npub) => {
-        const cleanNpub = npub.replace('nostr:', '').replace('@', '');
-        const shortNpub = cleanNpub.length > 35
-          ? `${cleanNpub.substr(0, 4)}...${cleanNpub.substr(cleanNpub.length - 4)}`
-          : cleanNpub;
-        return `<a href="https://next.nostrudel.ninja/#/u/${cleanNpub}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${shortNpub}</a>`;
+  // Get user display name for npub mention
+  const getMentionUserName = async (npub: string): Promise<string> => {
+    try {
+      const decoded = NostrTools.nip19.decode(npub);
+      if (decoded.type !== "npub" && decoded.type !== "nprofile") {
+        console.error("Invalid npub format");
+        return npub.length > 35 ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4)}` : npub;
       }
-    );
+      
+      const pubkey = decoded.type === "npub" ? decoded.data : decoded.data.pubkey;
+      
+      // Use the existing profile system to get user data
+      const queryClient = getQueryClient();
+      const profileMap = await ensureProfiles(queryClient, nostrClient, [pubkey]);
+      const profile = profileMap.get(pubkey);
+      
+      if (profile && profile.content) {
+        try {
+          const profileData = JSON.parse(profile.content);
+          const displayName = profileData.display_name || profileData.displayName || profileData.name;
+          if (displayName) {
+            return displayName;
+          }
+        } catch (error) {
+          console.error("Error parsing profile data:", error);
+        }
+      }
+      
+      // Fallback to shortened npub
+      return npub.length > 35 ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4)}` : npub;
+    } catch (error) {
+      console.error("Error in getMentionUserName:", error);
+      return npub.length > 35 ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4)}` : npub;
+    }
+  };
+
+  // Format content with mentions and links (async version)
+  const formatContent = async (content: string): Promise<string> => {
+    // First, handle npub mentions (before URL processing to avoid conflicts)
+    const npubMatches = content.match(/(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi);
+    
+    if (npubMatches) {
+      const replacements = await Promise.all(npubMatches.map(async (match) => {
+        const cleanMatch = match.replace(/^(nostr:|@)/, '');
+        const displayName = await getMentionUserName(cleanMatch);
+        return {
+          match,
+          replacement: `<a href="https://next.nostrudel.ninja/#/u/${cleanMatch}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${displayName}</a>`
+        };
+      }));
+      
+      replacements.forEach(({ match, replacement }) => {
+        content = content.replace(match, replacement);
+      });
+    }
 
     // Handle image URLs
     content = content.replace(
@@ -368,7 +442,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
         {/* Content */}
         <div
           className="noteContent"
-          dangerouslySetInnerHTML={{ __html: formatContent(post.event.content) }}
+          dangerouslySetInnerHTML={{ __html: formattedContent || post.event.content }}
         />
 
         {/* Zap Values - only show for notes with zap tags */}
