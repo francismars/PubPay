@@ -3,6 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { genericUserIcon } from '@homepage/assets/images';
 import * as NostrTools from 'nostr-tools';
+import { ensureProfiles } from '@pubpay/shared-services';
+import { getQueryClient } from '@pubpay/shared-services';
 
 // Define ProcessedZap interface locally since it's not exported
 interface ProcessedZap {
@@ -26,6 +28,7 @@ interface PayNoteComponentProps {
   onViewRaw: (post: PubPayPost) => void;
   isLoggedIn: boolean;
   isReply?: boolean;
+  nostrClient: any; // NostrClient type
 }
 
 export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
@@ -35,16 +38,48 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
   onShare,
   onViewRaw,
   isLoggedIn,
-  isReply = false
+  isReply = false,
+  nostrClient
 }) => {
   const [zapAmount, setZapAmount] = useState(post.zapMin);
   const [showZapMenu, setShowZapMenu] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [customZapAmount, setCustomZapAmount] = useState('');
   const [heroZaps, setHeroZaps] = useState<ProcessedZap[]>([]);
   const [overflowZaps, setOverflowZaps] = useState<ProcessedZap[]>([]);
+  const [formattedContent, setFormattedContent] = useState<string>('');
   const zapMenuRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const zapActionRef = useRef<HTMLAnchorElement>(null);
+  const paynoteRef = useRef<HTMLDivElement>(null);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Format content on mount and when content changes
+  useEffect(() => {
+    const formatPostContent = async () => {
+      if (post.event.content && nostrClient) {
+        try {
+          const formatted = await formatContent(post.event.content);
+          setFormattedContent(formatted);
+        } catch (error) {
+          console.error('Error formatting content:', error);
+          // Fallback to basic formatting without async npub resolution
+          const basicFormatted = post.event.content
+            .replace(/(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi, (match, prefix, npub) => {
+              const cleanNpub = npub.replace('nostr:', '').replace('@', '');
+              const shortNpub = cleanNpub.length > 35
+                ? `${cleanNpub.substr(0, 4)}...${cleanNpub.substr(cleanNpub.length - 4)}`
+                : cleanNpub;
+              return `<a href="https://next.nostrudel.ninja/#/u/${cleanNpub}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${shortNpub}</a>`;
+            })
+            .replace(/\n/g, '<br />');
+          setFormattedContent(basicFormatted);
+        }
+      }
+    };
+
+    formatPostContent();
+  }, [post.event.content, nostrClient]);
 
   // Click outside to close zap menu
   useEffect(() => {
@@ -95,8 +130,62 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
     }
   };
 
-  // Format content with mentions and links
-  const formatContent = (content: string): string => {
+  // Get user display name for npub mention
+  const getMentionUserName = async (npub: string): Promise<string> => {
+    try {
+      const decoded = NostrTools.nip19.decode(npub);
+      if (decoded.type !== "npub" && decoded.type !== "nprofile") {
+        console.error("Invalid npub format");
+        return npub.length > 35 ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4)}` : npub;
+      }
+      
+      const pubkey = decoded.type === "npub" ? decoded.data : decoded.data.pubkey;
+      
+      // Use the existing profile system to get user data
+      const queryClient = getQueryClient();
+      const profileMap = await ensureProfiles(queryClient, nostrClient, [pubkey]);
+      const profile = profileMap.get(pubkey);
+      
+      if (profile && profile.content) {
+        try {
+          const profileData = JSON.parse(profile.content);
+          const displayName = profileData.display_name || profileData.displayName || profileData.name;
+          if (displayName) {
+            return displayName;
+          }
+        } catch (error) {
+          console.error("Error parsing profile data:", error);
+        }
+      }
+      
+      // Fallback to shortened npub
+      return npub.length > 35 ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4)}` : npub;
+    } catch (error) {
+      console.error("Error in getMentionUserName:", error);
+      return npub.length > 35 ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4)}` : npub;
+    }
+  };
+
+  // Format content with mentions and links (async version)
+  const formatContent = async (content: string): Promise<string> => {
+    // First, handle npub mentions (before URL processing to avoid conflicts)
+    const npubMatches = content.match(/(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi);
+    
+    if (npubMatches) {
+      const replacements = await Promise.all(npubMatches.map(async (match) => {
+        const cleanMatch = match.replace(/^(nostr:|@)/, '');
+        const displayName = await getMentionUserName(cleanMatch);
+        return {
+          match,
+          replacement: `<a href="https://next.nostrudel.ninja/#/u/${cleanMatch}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${displayName}</a>`
+        };
+      }));
+      
+      replacements.forEach(({ match, replacement }) => {
+        content = content.replace(match, replacement);
+      });
+    }
+
     // Handle image URLs
     content = content.replace(
       /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(gif|png|jpg|jpeg)/gi,
@@ -127,32 +216,18 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
       }
     );
 
-    // Handle regular URLs
+    // Handle regular URLs (but skip if already processed as images/videos or npubs)
     content = content.replace(
       /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+|www\.[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)/gi,
       (match) => {
-        if (content.includes(`src="${match}"`)) {
+        // Skip if already processed as image, video, or npub
+        if (content.includes(`src="${match}"`) || 
+            content.includes(`href="https://next.nostrudel.ninja/#/u/`) ||
+            content.includes(`href="https://www.youtube.com/embed/`)) {
           return match;
         }
         const url = match.startsWith('http') ? match : `http://${match}`;
         return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${match}</a>`;
-      }
-    );
-
-    // Handle npub mentions
-    content = content.replace(
-      /(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-      (match, prefix, npub) => {
-        const cleanNpub = npub.replace('nostr:', '').replace('@', '');
-        const shortNpub = cleanNpub.length > 35
-          ? `${cleanNpub.substr(0, 4)  }...${  cleanNpub.substr(cleanNpub.length - 4)}`
-          : cleanNpub;
-        return `<a href="https://next.nostrudel.ninja/#/u/${cleanNpub}" 
-                   target="_blank" 
-                   rel="noopener noreferrer"
-                   style="color: #0066cc; text-decoration: underline;">
-                   ${shortNpub}
-                 </a>`;
       }
     );
 
@@ -233,40 +308,63 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
   useEffect(() => {
     const handleGlobalClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.matches('.dropbtn') && !target.matches('.dropdown-element')) {
-        // Close all dropdowns
-        const dropdowns = document.getElementsByClassName('dropdown-content');
-        for (let i = 0; i < dropdowns.length; i++) {
-          const dropdown = dropdowns[i] as HTMLElement;
-          dropdown.classList.remove('show');
-        }
+      if (!target.matches('.dropdown') && !target.matches('.dropdown-element')) {
+        // Close dropdown
+        setShowDropdown(false);
       }
     };
 
     const handleTouchStart = (event: TouchEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.matches('.dropbtn') && !target.matches('.dropdown-element')) {
-        // Close all dropdowns
-        const dropdowns = document.getElementsByClassName('dropdown-content');
-        for (let i = 0; i < dropdowns.length; i++) {
-          const dropdown = dropdowns[i] as HTMLElement;
-          dropdown.classList.remove('show');
-        }
+      if (!target.matches('.dropdown') && !target.matches('.dropdown-element')) {
+        // Close dropdown
+        setShowDropdown(false);
       }
     };
 
-    document.addEventListener('click', handleGlobalClick);
-    document.addEventListener('touchstart', handleTouchStart);
+      const handlePaynoteHover = (event: MouseEvent) => {
+        const target = event.target as HTMLElement;
+        const hoveredPaynote = target.closest('.paynote');
+        const hoveredDropdown = target.closest('.dropdown-content, .zapMenu');
+        
+        // Clear any existing timeout
+        if (hideTimeoutRef.current) {
+          clearTimeout(hideTimeoutRef.current);
+          hideTimeoutRef.current = null;
+        }
+        
+        // If hovering over a different paynote AND not hovering over any dropdown content, schedule closing
+        if (hoveredPaynote && hoveredPaynote !== paynoteRef.current && !hoveredDropdown) {
+          hideTimeoutRef.current = setTimeout(() => {
+            // Close dropdown menus
+            setShowDropdown(false);
+            
+            // Close zap menus
+            setShowZapMenu(false);
+          }, 300); // 300ms delay
+        }
+      };
 
-    return () => {
-      document.removeEventListener('click', handleGlobalClick);
-      document.removeEventListener('touchstart', handleTouchStart);
-    };
+      document.addEventListener('click', handleGlobalClick);
+      document.addEventListener('touchstart', handleTouchStart);
+      document.addEventListener('mouseover', handlePaynoteHover);
+
+      return () => {
+        document.removeEventListener('click', handleGlobalClick);
+        document.removeEventListener('touchstart', handleTouchStart);
+        document.removeEventListener('mouseover', handlePaynoteHover);
+        if (hideTimeoutRef.current) {
+          clearTimeout(hideTimeoutRef.current);
+        }
+      };
   }, []);
+
+  const hasOpenDropdown = showZapMenu || showDropdown;
 
   return (
     <div
-      className={isReply ? 'paynote reply' : 'paynote'}
+      ref={paynoteRef}
+      className={`${isReply ? 'paynote reply' : 'paynote'} ${hasOpenDropdown ? 'has-open-dropdown' : ''}`}
       style={isReply ? {marginLeft: `${(post.replyLevel || 0) * 15 + 15}px`} : undefined}
     >
       <div className="noteProfileImg">
@@ -344,33 +442,49 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
         {/* Content */}
         <div
           className="noteContent"
-          dangerouslySetInnerHTML={{ __html: formatContent(post.event.content) }}
+          dangerouslySetInnerHTML={{ __html: formattedContent || post.event.content }}
         />
 
         {/* Zap Values - only show for notes with zap tags */}
         {post.hasZapTags && (
           <div className="noteValues">
-            <div className="zapMin">
-              <span className="zapMinVal">{post.zapMin.toLocaleString()}</span>
-              <span className="label">sats<br />{post.zapMin !== post.zapMax ? 'Min' : ''}</span>
+            <div className="zapMinContainer">
+              <div className="zapMin">
+                <span className="zapMinVal">{post.zapMin.toLocaleString()}</span>
+                <span className="label">sats</span>
+              </div>
+              <div className="zapMinLabel">
+                {post.zapMin !== post.zapMax ? 'Min' : ''}
+              </div>
             </div>
 
             {post.zapMin !== post.zapMax && (
-              <div className="zapMax">
-                <span className="zapMaxVal">{post.zapMax.toLocaleString()}</span>
-                <span className="label">sats<br />Max</span>
+              <div className="zapMaxContainer">
+                <div className="zapMax">
+                  <span className="zapMaxVal">{post.zapMax.toLocaleString()}</span>
+                  <span className="label">sats</span>
+                </div>
+                <div className="zapMaxLabel">
+                  Max
+                </div>
               </div>
             )}
 
             {post.zapUses > 1 && (
+              <div className="zapUsesContainer">
               <div className="zapUses">
                 <span className="zapUsesCurrent">{post.zapUsesCurrent}</span>
                 <span className="label">of</span>
                 <span className="zapUsesTotal">{post.zapUses}</span>
               </div>
+              <div className="zapUsesLabel">
+                Uses
+              </div>
+              </div>
             )}
           </div>
         )}
+
 
         {/* Zap Payer */}
         {post.zapPayer && (
@@ -493,7 +607,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
             {/* Zap Menu */}
             <a
               ref={zapActionRef}
-              className={isPayable ? 'noteAction zapMenuAction' : 'disabled'}
+              className={`noteAction zapMenuAction ${!isPayable ? 'disabled' : ''}`}
               onClick={(e) => {
                 e.preventDefault();
                 if (!isPayable) return;
@@ -503,8 +617,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
             >
               <span className="material-symbols-outlined">bolt</span>
               <div
-                className="zapMenu"
-                style={{ display: showZapMenu ? 'block' : 'none' }}
+                className={`zapMenu ${showZapMenu ? 'show' : ''}`}
                 ref={zapMenuRef}
                 onClick={(e) => e.stopPropagation()}
               >
@@ -549,25 +662,17 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
             </a>
 
             {/* More Menu */}
-            <div className="noteAction dropdown">
-              <button
-                className="dropbtn"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('Dropdown button clicked');
-                  setTimeout(() => {
-                    if (dropdownRef.current) {
-                      dropdownRef.current.classList.toggle('show');
-                      console.log('Dropdown classes after toggle:', dropdownRef.current.className);
-                    }
-                  }, 100);
-                }}
-              >
-                <span className="material-symbols-outlined">more_horiz</span>
-              </button>
-
-              <div className="dropdown-content dropdown-element" ref={dropdownRef}>
+            <button
+              className="noteAction dropdown"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowDropdown(!showDropdown);
+              }}
+            >
+              <span className="material-symbols-outlined">more_horiz</span>
+              
+              <div className={`dropdown-content dropdown-element ${showDropdown ? 'show' : ''}`} ref={dropdownRef}>
                 <a className="cta dropdown-element disabled">New Pay Forward</a>
 
                 {isPayable && (
@@ -613,7 +718,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
                   View on live
                 </a>
               </div>
-            </div>
+            </button>
           </div>
         </div>
       </div>

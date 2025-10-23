@@ -20,7 +20,6 @@ body {
   word-wrap: normal;
   direction: ltr;
   -webkit-font-feature-settings: 'liga';
-  font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
 
@@ -37,19 +36,14 @@ body {
 
   .zapMenu {
     position: absolute;
-    top: 0px;
-    left: -120px;
+    top: 25px;
+    left: -50px;
     background-color: #ffffff;
+    border: 1px solid #cecece;
     border-radius: 5px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    padding: 20px;
-    min-width: 140px;
-    opacity: 0;
-    transform: translateY(-8px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    visibility: hidden;
-    pointer-events: none;
-    z-index: 10000;
+    padding: 10px;
+    min-width: 90px;
   }
   
   .zapMenuOption {
@@ -67,20 +61,13 @@ body {
   
   .zapMenuCustom {
     display: grid;
-    gap: 7px;
+    gap: 2px;
     margin-top: 5px;
-  }
-
-  .zapMenu.show {
-    opacity: 1;
-    transform: translateY(0);
-    visibility: visible;
-    pointer-events: auto;
   }
 
   #customZapInput {
     flex: 1;
-    padding: 13px 10px;
+    padding: 5px 10px;
     border: 1px solid #cecece;
     border-radius: 3px;
     font-size: 14px;
@@ -96,6 +83,7 @@ body {
     border: none;
     border-radius: 3px;
     cursor: pointer;
+    font-size: 11px;
     transition: background-color 0.2s ease;
   }
   
@@ -193,7 +181,7 @@ body {
     border-bottom: 1px solid #ffffff;
     position: fixed;
     top: 0;
-    z-index: 10001;
+    z-index: 100;
     --border-bottom-width: 1.5px;
     --border-color: rgb(255, 255, 255);
     --border-left-width: 1.5px;
@@ -313,11 +301,6 @@ body {
     background: #fff;
     transform: scale(1.01);
   }
-
-  .paynote.has-open-dropdown {
-    z-index: 9999;
-    position: relative;
-  }
   
   .label.noteDate {
     font-size: 12px;
@@ -414,7 +397,6 @@ body {
   .noteAuthor .label .material-symbols-outlined {
     font-size: 12px;
     margin-top: -3px;
-    margin-right: 3px;
   }
   
   .main-icon {
@@ -445,45 +427,6 @@ body {
     font-size: 20px;
     line-height: 1;
     font-weight: 300;
-    align-items: flex-start;
-  }
-
-  .zapUses {
-    display: flex;
-    gap: 4px;
-    line-height: 1;
-    align-items: baseline;
-  }
-
-  .zapMin,
-  .zapMax {
-    display: flex;
-    gap: 4px;
-    align-items: baseline;
-  }
-
-  .zapMinContainer,
-  .zapMaxContainer,
-  .zapUsesContainer {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    align-items: flex-start;
-  }
-
-  .zapUsesContainer{
-    text-align: right;
-    display: flex;
-    align-items: flex-end;
-  }
-
-  .zapMinLabel,
-  .zapMaxLabel,
-  .zapUsesLabel {
-    margin: 3px 0;
-    color: gray;
-    font-size: 15px;
-    text-align: center;
   }
   
   .zapPayer {
@@ -510,7 +453,6 @@ body {
   .zapPayer img {
     width: 30px;
     height: 30px;
-    object-fit: cover;
   }
   
   .zapPayer .userName {
@@ -623,7 +565,6 @@ body {
   legend {
     color: #919191;
     font-size: 14px;
-    line-height: 1;
   }
   
   .uppercase {
@@ -633,34 +574,19 @@ body {
   a.cta,
   button.cta {
     width: 100%;
-    background: linear-gradient(135deg, #4a75ff 0%, #3b5bdb 100%);
+    background: #4a75ff;
     color: #fff;
-    padding: 14px 24px;
-    border-radius: 6px;
+    padding: 10px 20px;
+    border-radius: 7px;
     box-sizing: border-box;
     text-decoration: none;
     text-align: center;
-    font-size: 15px;
-    letter-spacing: 0.02em;
-    font-weight: 600;
+    /* text-transform: uppercase; */
+    font-size: 14px;
+    letter-spacing: 0.03em;
+    font-weight: 500;
     border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 12px rgba(74, 117, 255, 0.3);
-    font-family: "Inter", sans-serif;
-  }
-
-  a.cta:hover,
-  button.cta:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(74, 117, 255, 0.4);
-    background: linear-gradient(135deg, #3b5bdb 0%, #2c4bc7 100%);
-  }
-
-  a.cta:active,
-  button.cta:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(74, 117, 255, 0.3);
+    border: none;
   }
   
   .paynote .cta {
@@ -722,48 +648,19 @@ body {
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 100000;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    align-items: flex-start;
+    z-index: 100;
+    background: #000000b3;
+    align-items: center;
     justify-content: center;
-    animation: fadeIn 0.3s ease-out;
-    overflow-y: auto;
-    padding: 20px;
-    box-sizing: border-box;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
   }
   
   .overlayInner {
     width: 95%;
-    max-width: 500px;
-    padding: 40px 35px;
+    max-width: 450px;
+    padding: 30px 30px;
     box-sizing: border-box;
     background: #fff;
     border-radius: 10px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    animation: slideUp 0.3s ease-out;
-    margin: 20px 0;
-    min-height: fit-content;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes slideUp {
-    from { 
-      opacity: 0;
-      transform: translateY(20px) scale(0.95);
-    }
-    to { 
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
   }
   
   #viewJSON .overlayInner {
@@ -795,82 +692,33 @@ body {
   input {
     width: 100%;
     box-sizing: border-box;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
   }
   
   .formFieldGroup {
     display: flex;
-    column-gap: 15px;
+    column-gap: 10px;
   }
   
   .formField label,
   .formField legend {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     text-transform: uppercase;
-    font-size: 11px;
-    letter-spacing: 0.05em;
-    color: #374151;
+    font-size: 12px;
+    margin-bottom: 3px;
+    letter-spacing: 0.01rem;
+    color: #000;
     font-weight: 600;
   }
   
   .summaryOptions {
     padding-bottom: 5px;
-    text-transform: uppercase;
-    font-size: 11px;
   }
   
   .formField legend,
   .formField summary {
-    color: #6b7280;
-    font-weight: 600;
-    cursor: pointer;
-    transition: color 0.2s ease;
-  }
-
-  .formField summary:hover {
-    color: #374151;
-  }
-
-  details {
-    border: 2px solid #e5e7eb;
-    border-radius: 6px;
-    padding: 16px;
-    margin-bottom: 20px;
-    background: #f9fafb;
-    transition: all 0.2s ease;
-  }
-
-  details:hover {
-    border-color: #d1d5db;
-    background: #fff;
-  }
-
-  details[open] {
-    border-color: #4a75ff;
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(74, 117, 255, 0.1);
-  }
-
-  details summary {
-    list-style: none;
-    padding: 0;
-    margin: 0 0 16px 0;
-  }
-
-  details summary::-webkit-details-marker {
-    display: none;
-  }
-
-  details summary::before {
-    content: "▶";
-    margin-right: 8px;
-    transition: transform 0.2s ease;
-    color: #4a75ff;
-  }
-
-  details[open] summary::before {
-    transform: rotate(90deg);
+    color: #a3a3a3;
   }
   
   .formField.disabled {
@@ -881,58 +729,19 @@ body {
     display: flex;
     padding: 0;
     border: 0;
-    margin: 0 0 20px 0;
-    gap: 20px;
+    margin: 0;
   }
   
   .formField.formSelector div {
     display: flex;
-    align-items: center;
-    padding: 12px 20px;
-    border: 2px solid #e5e7eb;
-    border-radius: 6px;
-    background: #fff;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    flex: 1;
-    justify-content: center;
-  }
-
-  .formField.formSelector div:hover {
-    border-color: #d1d5db;
-    background: #f9fafb;
-  }
-
-  .formField.formSelector div:has(input:checked) {
-    border-color: #4a75ff;
-    background: #f0f4ff;
-  }
-
-  .formField.formSelector div.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: #f9fafb;
-  }
-
-  .formField.formSelector div.disabled:hover {
-    border-color: #e5e7eb;
-    background: #f9fafb;
+    /* width:33.3333%; */
+    padding: 15px 36px 20px 0px;
   }
   
   .formField.formSelector input {
     width: unset;
     padding: 0;
-    margin: 0 8px 0 0;
-    accent-color: #4a75ff;
-  }
-
-  .formField.formSelector label {
-    margin: 0;
-    text-transform: none;
-    font-size: 14px;
-    font-weight: 500;
-    color: #374151;
-    cursor: pointer;
+    margin: -3px 4px 1px 0px;
   }
   
   legend {
@@ -951,23 +760,7 @@ body {
     display: block;
     width: 100%;
     text-align: center;
-    margin-top: 16px;
-    color: #6b7280;
-    font-size: 14px;
-    text-decoration: none;
-    transition: color 0.2s ease;
-  }
-
-  #cancelNewNote:hover,
-  #cancelLogin:hover,
-  #cancelLoggedin:hover,
-  #logoutButton:hover,
-  #titleSignin:hover,
-  #titleScanner:hover,
-  #stopScanner:hover,
-  #closeInvoiceOverlay:hover,
-  #qrcodeTitle:hover {
-    color: #374151;
+    margin-top: 10px;
   }
   
   #reader {
@@ -983,54 +776,23 @@ body {
   
   textarea,
   input {
-    border: 2px solid #e5e7eb;
-    padding: 12px 16px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-family: "Inter", sans-serif;
-    background: #fff;
-    transition: all 0.2s ease;
-    outline: none;
-  }
-
-  textarea:focus,
-  input:focus {
-    border-color: #4a75ff;
-    box-shadow: 0 0 0 3px rgba(74, 117, 255, 0.1);
-    background: #fafbff;
-  }
-
-  textarea:hover,
-  input:hover {
-    border-color: #d1d5db;
-  }
-
-  textarea {
-    resize: vertical;
-    min-height: 100px;
-    line-height: 1.5;
+    border: 1px #cecece solid;
+    /* padding: 10px; */
+    border-radius: 5px;
   }
   
   .tagName {
     font-size: 10px;
-    color: #9ca3af;
-    font-weight: 500;
-    background: #f3f4f6;
-    padding: 2px 6px;
-    border-radius: 2px;
-    margin-left: 6px;
-    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    color: #b4b4b4;
+    font-weight: 400;
   }
   
-  input::placeholder,
-  textarea::placeholder {
-    color: #9ca3af;
-    opacity: 1;
+  input::placeholder {
+    opacity: 0.3;
   }
   
-  input:focus::placeholder,
-  textarea:focus::placeholder {
-    color: #d1d5db;
+  input:focus::placeholder {
+    color: transparent;
   }
   
   .noteNIP05.label .unverified {
@@ -1039,28 +801,39 @@ body {
     color: #de0000;
   }
   
+  .dropbtn {
+    background-color: transparent;
+    /* color: white; */
+    /* padding: 16px; */
+    /* font-size: 16px; */
+    border: none;
+    cursor: pointer;
+  }
+  
+  .dropbtn:hover,
+  .dropbtn:focus {
+    background-color: #4a75ff;
+    color: #fff;
+    border-radius: 5px;
+  }
+  
   .dropdown {
+    float: right;
     position: relative;
-    display: inline-flex;
+    display: inline-block;
   }
   
   .dropdown-content {
+    display: none;
     position: absolute;
     background-color: #ffffff;
     min-width: 260px;
     overflow: auto;
     box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-    right: -10px;
-    top: 100%;
-    margin-top: -32px;
-    z-index: 10000;
+    right: 0;
+    z-index: 10;
     padding: 16px 16px 20px;
     border-radius: 10px;
-    opacity: 0;
-    transform: translateY(-8px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    visibility: hidden;
-    pointer-events: none;
   }
   
   .dropdown-content a {
@@ -1081,10 +854,7 @@ body {
   }
   
   .show {
-    opacity: 1;
-    transform: translateY(0);
-    visibility: visible;
-    pointer-events: auto;
+    display: block;
   }
   
   .originZap .originZap {
@@ -1126,7 +896,6 @@ body {
     background: #ddd;
     outline: none;
     -webkit-appearance: none;
-    appearance: none;
   }
 
   .zapSlider::-webkit-slider-thumb {
@@ -1158,7 +927,6 @@ body {
   
   .zapSlider {
     -webkit-appearance: none;
-    appearance: none;
     width: 100%;
     height: 34px;
     background: #f1f1f1;
@@ -1213,7 +981,7 @@ body {
       position: fixed;
       top: auto;
       bottom: 0;
-      z-index: 10001;
+      z-index: 10;
       --border-bottom-width: 1.5px;
       --border-color: rgb(255, 255, 255);
       --border-left-width: 1.5px;
@@ -1251,37 +1019,6 @@ body {
   
     .hideOnMobile {
       display: none;
-    }
-
-    /* Mobile form improvements */
-    .overlayContainer {
-      padding: 10px;
-    }
-
-    .overlayInner {
-      width: 95%;
-      max-width: none;
-      padding: 30px 20px;
-      margin: 10px 0;
-      border-radius: 5px;
-    }
-
-    .formFieldGroup {
-      flex-direction: column;
-      gap: 15px;
-    }
-
-    .formField.formSelector {
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .formField.formSelector div {
-      padding: 16px 20px;
-    }
-
-    details {
-      padding: 12px;
     }
   }
   
