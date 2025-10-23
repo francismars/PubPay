@@ -36,19 +36,14 @@ body {
 
   .zapMenu {
     position: absolute;
-    top: 0px;
-    left: -120px;
+    top: 25px;
+    left: -50px;
     background-color: #ffffff;
+    border: 1px solid #cecece;
     border-radius: 5px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    padding: 20px;
-    min-width: 140px;
-    opacity: 0;
-    transform: translateY(-8px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    visibility: hidden;
-    pointer-events: none;
-    z-index: 10000;
+    padding: 10px;
+    min-width: 90px;
   }
   
   .zapMenuOption {
@@ -66,20 +61,13 @@ body {
   
   .zapMenuCustom {
     display: grid;
-    gap: 7px;
+    gap: 2px;
     margin-top: 5px;
-  }
-
-  .zapMenu.show {
-    opacity: 1;
-    transform: translateY(0);
-    visibility: visible;
-    pointer-events: auto;
   }
 
   #customZapInput {
     flex: 1;
-    padding: 13px 10px;
+    padding: 5px 10px;
     border: 1px solid #cecece;
     border-radius: 3px;
     font-size: 14px;
@@ -95,6 +83,7 @@ body {
     border: none;
     border-radius: 3px;
     cursor: pointer;
+    font-size: 11px;
     transition: background-color 0.2s ease;
   }
   
@@ -192,7 +181,7 @@ body {
     border-bottom: 1px solid #ffffff;
     position: fixed;
     top: 0;
-    z-index: 10001;
+    z-index: 100;
     --border-bottom-width: 1.5px;
     --border-color: rgb(255, 255, 255);
     --border-left-width: 1.5px;
@@ -311,11 +300,6 @@ body {
   .paynote:hover {
     background: #fff;
     transform: scale(1.01);
-  }
-
-  .paynote.has-open-dropdown {
-    z-index: 9999;
-    position: relative;
   }
   
   .label.noteDate {
@@ -817,28 +801,39 @@ body {
     color: #de0000;
   }
   
+  .dropbtn {
+    background-color: transparent;
+    /* color: white; */
+    /* padding: 16px; */
+    /* font-size: 16px; */
+    border: none;
+    cursor: pointer;
+  }
+  
+  .dropbtn:hover,
+  .dropbtn:focus {
+    background-color: #4a75ff;
+    color: #fff;
+    border-radius: 5px;
+  }
+  
   .dropdown {
+    float: right;
     position: relative;
-    display: inline-flex;
+    display: inline-block;
   }
   
   .dropdown-content {
+    display: none;
     position: absolute;
     background-color: #ffffff;
     min-width: 260px;
     overflow: auto;
     box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-    right: -10px;
-    top: 100%;
-    margin-top: -32px;
-    z-index: 10000;
+    right: 0;
+    z-index: 10;
     padding: 16px 16px 20px;
     border-radius: 10px;
-    opacity: 0;
-    transform: translateY(-8px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    visibility: hidden;
-    pointer-events: none;
   }
   
   .dropdown-content a {
@@ -859,10 +854,7 @@ body {
   }
   
   .show {
-    opacity: 1;
-    transform: translateY(0);
-    visibility: visible;
-    pointer-events: auto;
+    display: block;
   }
   
   .originZap .originZap {
@@ -989,7 +981,7 @@ body {
       position: fixed;
       top: auto;
       bottom: 0;
-      z-index: 10001;
+      z-index: 10;
       --border-bottom-width: 1.5px;
       --border-color: rgb(255, 255, 255);
       --border-left-width: 1.5px;

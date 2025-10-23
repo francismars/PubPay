@@ -7,7 +7,6 @@ import { InvoiceQR } from '@pubpay/shared-ui';
 import { PubPayPost } from '@homepage/hooks/useHomeFunctionality';
 import { genericUserIcon } from '@homepage/assets/images';
 import * as NostrTools from 'nostr-tools';
-import '../styles/homepage.css';
 
 export const HomePage: React.FC = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
@@ -502,11 +501,9 @@ export const HomePage: React.FC = () => {
                       <a className="noteAction disabled">
                         <span className="material-symbols-outlined">ios_share</span>
                       </a>
-                      <div className="noteAction dropdown">
-                        <button className="dropbtn">
-                          <span className="material-symbols-outlined disabled">more_horiz</span>
-                        </button>
-                      </div>
+                      <button className="noteAction dropdown disabled">
+                        <span className="material-symbols-outlined disabled">more_horiz</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -574,11 +571,9 @@ export const HomePage: React.FC = () => {
                           <a className="noteAction disabled">
                             <span className="material-symbols-outlined">ios_share</span>
                           </a>
-                          <div className="noteAction dropdown">
-                            <button className="dropbtn">
-                              <span className="material-symbols-outlined disabled">more_horiz</span>
-                            </button>
-                          </div>
+                          <button className="noteAction dropdown disabled">
+                            <span className="material-symbols-outlined disabled">more_horiz</span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -643,11 +638,9 @@ export const HomePage: React.FC = () => {
                           <a className="noteAction disabled">
                             <span className="material-symbols-outlined">ios_share</span>
                           </a>
-                          <div className="noteAction dropdown">
-                            <button className="dropbtn">
-                              <span className="material-symbols-outlined disabled">more_horiz</span>
-                            </button>
-                          </div>
+                          <button className="noteAction dropdown disabled">
+                            <span className="material-symbols-outlined disabled">more_horiz</span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -772,11 +765,9 @@ export const HomePage: React.FC = () => {
                       <a className="noteAction disabled">
                         <span className="material-symbols-outlined">ios_share</span>
                       </a>
-                      <div className="noteAction dropdown">
-                        <button className="dropbtn">
-                          <span className="material-symbols-outlined disabled">more_horiz</span>
-                        </button>
-                      </div>
+                      <button className="noteAction dropdown disabled">
+                        <span className="material-symbols-outlined disabled">more_horiz</span>
+                      </button>
                     </div>
                   </div>
                 </div>
