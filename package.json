@@ -18,6 +18,7 @@
     "dev:windows:bat": "scripts/start-dev-windows.bat",
     "dev:macos": "bash scripts/start-dev-macos.sh",
     "dev:macos:tabs": "bash scripts/start-dev-macos-tabs.sh",
+    "dev:linux": "bash scripts/start-dev-linux.sh",
     "build": "pnpm -r build",
     "build:homepage": "pnpm --filter @pubpay/homepage build",
     "build:live": "pnpm --filter @pubpay/live build",
