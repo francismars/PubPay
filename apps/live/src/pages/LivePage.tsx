@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useLiveFunctionality } from '@live/hooks/useLiveFunctionality';
-import '../styles/live.css';
+// Temporarily disabled for CSS debugging - import '../styles/live.css';
 import { nip19 } from 'nostr-tools';
 
 export const LivePage: React.FC = () => {
@@ -452,6 +452,7 @@ export const LivePage: React.FC = () => {
 
               {/* QR Code Section */}
               <div className="qr-section">
+                <h3 className="section-label">scan to zap</h3>
                 {/* Swiper for QR Code slideshow */}
                 <div className="swiper qr-swiper">
                   <div className="swiper-wrapper">
@@ -495,12 +496,15 @@ export const LivePage: React.FC = () => {
           <div className="right-side">
             <div className="zaps-header">
               <div className="zaps-header-left">
-                <span className="total-label">Total:</span>
+                <h3 className="section-label">zap stats</h3>
+                <div>
+                <span className="total-label">Total</span>
                 <span id="zappedTotalValue" className="total-amount">{totalAmount}</span>
                 <span className="total-sats">sats</span>
                 <span className="zap-count-separator">•</span>
                 <span id="zappedTotalCount" className="total-count">{totalZaps}</span>
                 <span className="total-zaps">zaps</span>
+                </div>
               </div>
 
               <div className="zaps-header-right">
@@ -519,6 +523,7 @@ export const LivePage: React.FC = () => {
 
             {/* Top Zappers Bar */}
             <div id="top-zappers-bar" className="top-zappers-bar" style={{display: 'none'}}>
+              <h3 className="section-label">cumulative zaps leaderboard</h3>
               <div className="top-zappers-list">
                 <div className="top-zapper" id="top-zapper-1">
                   <div className="zapper-rank">1</div>
@@ -564,6 +569,7 @@ export const LivePage: React.FC = () => {
             </div>
 
             <div className="zaps-container">
+              <h3 className="section-label">top zaps</h3>
               <div id="zaps" className="zaps-list">
                 {/* Zaps will be populated here */}
               </div>
@@ -740,8 +746,66 @@ export const LivePage: React.FC = () => {
                     <span>Grid Layout</span>
                   </label>
                 </div>
+                <div className="style-option-group toggle-group">
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="sectionLabelsToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Show Section Labels</span>
+                  </label>
+                </div>
+                <div className="style-option-group toggle-group">
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="showFiatToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Show Fiat Amounts</span>
+                  </label>
+                </div>
+                <div className="style-option-group" id="currencySelectorGroup" style={{display: 'none'}}>
+                  <label htmlFor="currencySelector">Currency</label>
+                  <select id="currencySelector" defaultValue="USD">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="CAD">CAD</option>
+                    <option value="CHF">CHF</option>
+                    <option value="AUD">AUD</option>
+                    <option value="JPY">JPY</option>
+                  </select>
+                </div>
+                <div className="style-option-group toggle-group" id="historicalPriceGroup" style={{display: 'none'}}>
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="showHistoricalPriceToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Show Historical Prices</span>
+                  </label>
+                </div>
+                <div className="style-option-group toggle-group" id="historicalChangeGroup" style={{display: 'none'}}>
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="showHistoricalChangeToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Show Historical Change %</span>
+                  </label>
+                </div>
+                <div className="style-option-group toggle-group" id="fiatOnlyGroup" style={{display: 'none'}}>
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="fiatOnlyToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Fiat Only</span>
+                  </label>
+                </div>
               </div>
             </div>
+            
 
             {/* QR Code Effects Section */}
             <div className="style-section">
