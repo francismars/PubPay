@@ -68,9 +68,15 @@ module.exports = {
     }),
   ],
   devServer: {
-    static: {
-      directory: path.resolve(__dirname, '../../dist/live'),
-    },
+    static: [
+      {
+        directory: path.resolve(__dirname, '../../dist/live'),
+      },
+      {
+        directory: path.resolve(__dirname, '../../apps/live/src'),
+        publicPath: '/apps/live/src',
+      },
+    ],
     port: 3001,
     hot: true,
     open: true,
