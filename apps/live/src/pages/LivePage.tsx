@@ -755,6 +755,27 @@ export const LivePage: React.FC = () => {
                     <span>Show Section Labels</span>
                   </label>
                 </div>
+                <div className="style-option-group toggle-group">
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="showFiatToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Show Fiat Amounts</span>
+                  </label>
+                </div>
+                <div className="style-option-group" id="currencySelectorGroup" style={{display: 'none'}}>
+                  <label htmlFor="currencySelector">Currency</label>
+                  <select id="currencySelector" defaultValue="USD">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="CAD">CAD</option>
+                    <option value="CHF">CHF</option>
+                    <option value="AUD">AUD</option>
+                    <option value="JPY">JPY</option>
+                  </select>
+                </div>
               </div>
             </div>
 

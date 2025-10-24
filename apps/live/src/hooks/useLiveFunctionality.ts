@@ -24,10 +24,13 @@ const DEFAULT_STYLES = {
   showTopZappers: false,  // Default to hidden
   podium: false,
   zapGrid: false,
+  sectionLabels: true,  // Default to showing section labels
+  showFiat: false,  // Default to hiding fiat amounts
   lightning: false,
   opacity: 1.0,
   textOpacity: 1.0,
-  partnerLogo: ''
+  partnerLogo: '',
+  selectedCurrency: 'USD'
 };
 
 export const useLiveFunctionality = (eventId?: string) => {
@@ -1092,8 +1095,10 @@ export const useLiveFunctionality = (eventId?: string) => {
                 </div>
             </div>
             <div class="zapperAmount">
-                <span class="zapperAmountSats">${numberWithCommas(zapData.amount)}</span>
-                <span class="zapperAmountLabel">sats</span>
+                <div class="zapperAmountValue">
+                  <span class="zapperAmountSats">${numberWithCommas(zapData.amount)}</span>
+                  <span class="zapperAmountLabel">sats</span>
+                </div>
             </div>
         `;
 
@@ -1820,10 +1825,13 @@ export const useLiveFunctionality = (eventId?: string) => {
       showTopZappers: (document.getElementById('showTopZappersToggle') as HTMLInputElement)?.checked || false,
       podium: (document.getElementById('podiumToggle') as HTMLInputElement)?.checked || false,
       zapGrid: (document.getElementById('zapGridToggle') as HTMLInputElement)?.checked || false,
+      sectionLabels: (document.getElementById('sectionLabelsToggle') as HTMLInputElement)?.checked ?? true,
+      showFiat: (document.getElementById('showFiatToggle') as HTMLInputElement)?.checked || false,
       lightning: (document.getElementById('lightningToggle') as HTMLInputElement)?.checked || false,
       opacity: parseFloat((document.getElementById('opacitySlider') as HTMLInputElement)?.value || '1'),
       textOpacity: parseFloat((document.getElementById('textOpacitySlider') as HTMLInputElement)?.value || '1'),
-      partnerLogo: currentPartnerLogo
+      partnerLogo: currentPartnerLogo,
+      selectedCurrency: (document.getElementById('currencySelector') as HTMLSelectElement)?.value || 'USD'
     };
 
     // Store styles in localStorage instead of URL
@@ -2041,6 +2049,41 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     }
 
+    // Apply section labels toggle (set to default if not specified in URL)
+    const sectionLabels = params.has('sectionLabels') ? params.get('sectionLabels') === 'true' : DEFAULT_STYLES.sectionLabels;
+    const sectionLabelsToggle = document.getElementById('sectionLabelsToggle') as HTMLInputElement;
+    if (sectionLabelsToggle) sectionLabelsToggle.checked = sectionLabels;
+    const sectionLabelsElements = document.querySelectorAll('.section-label');
+    const totalLabelsElements = document.querySelectorAll('.total-label');
+    if (sectionLabels) {
+      sectionLabelsElements.forEach(label => (label as HTMLElement).style.display = 'block');
+      totalLabelsElements.forEach(label => (label as HTMLElement).style.display = 'none');
+      document.body.classList.remove('show-total-labels');
+    } else {
+      sectionLabelsElements.forEach(label => (label as HTMLElement).style.display = 'none');
+      totalLabelsElements.forEach(label => (label as HTMLElement).style.display = 'inline');
+      document.body.classList.add('show-total-labels');
+    }
+
+    // Apply fiat toggle (set to default if not specified in URL)
+    const showFiat = params.has('showFiat') ? params.get('showFiat') === 'true' : DEFAULT_STYLES.showFiat;
+    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+    const currencySelectorGroup = document.getElementById('currencySelectorGroup');
+    if (showFiatToggle) showFiatToggle.checked = showFiat;
+    if (showFiat) {
+      document.body.classList.add('show-fiat-amounts');
+      if (currencySelectorGroup) currencySelectorGroup.style.display = 'block';
+    } else {
+      document.body.classList.remove('show-fiat-amounts');
+      if (currencySelectorGroup) currencySelectorGroup.style.display = 'none';
+    }
+
+    // Apply currency selection (set to default if not specified in URL)
+    const selectedCurrency = params.has('selectedCurrency') ? params.get('selectedCurrency') || 'USD' : 'USD';
+    const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
+    if (currencySelector) currencySelector.value = selectedCurrency;
+    selectedFiatCurrency = selectedCurrency;
+
     // Apply all styles to ensure everything is synchronized
     applyAllStyles();
 
@@ -2126,6 +2169,12 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (styles.zapGrid !== DEFAULT_STYLES.zapGrid) {
           params.set('zapGrid', styles.zapGrid);
         }
+        if (styles.sectionLabels !== DEFAULT_STYLES.sectionLabels) {
+          params.set('sectionLabels', styles.sectionLabels);
+        }
+        if (styles.showFiat !== DEFAULT_STYLES.showFiat) {
+          params.set('showFiat', styles.showFiat);
+        }
         if (styles.lightning !== DEFAULT_STYLES.lightning) {
           params.set('lightning', styles.lightning);
         }
@@ -2134,6 +2183,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
         if (styles.textOpacity !== DEFAULT_STYLES.textOpacity) {
           params.set('textOpacity', styles.textOpacity);
+        }
+        if (styles.selectedCurrency && styles.selectedCurrency !== DEFAULT_STYLES.selectedCurrency) {
+          params.set('selectedCurrency', styles.selectedCurrency);
         }
         if (styles.partnerLogo && styles.partnerLogo !== DEFAULT_STYLES.partnerLogo) {
           params.set('partnerLogo', encodeURIComponent(styles.partnerLogo));
@@ -2546,8 +2598,10 @@ export const useLiveFunctionality = (eventId?: string) => {
           </div>
         </div>
         <div class="zapperAmount">
-          <span class="zapperAmountSats">${numberWithCommas(zap.amount)}</span>
-          <span class="zapperAmountLabel">sats</span>
+          <div class="zapperAmountValue">
+            <span class="zapperAmountSats">${numberWithCommas(zap.amount)}</span>
+            <span class="zapperAmountLabel">sats</span>
+          </div>
         </div>
       `;
       zapsContainer.appendChild(zapDiv);
@@ -2592,6 +2646,12 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Calculate top zappers directly from the zaps we just processed
     calculateTopZappersFromZaps(json9735List);
+
+    // Update fiat amounts if the toggle is enabled
+    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+    if (showFiatToggle && showFiatToggle.checked) {
+      updateFiatAmounts();
+    }
   };
 
   const calculateTopZappersFromZaps = (zaps: any[]) => {
@@ -3217,9 +3277,26 @@ export const useLiveFunctionality = (eventId?: string) => {
   const setupStyleOptions = () => {
     // Debug log removed
 
+    // Fetch Bitcoin prices on initialization
+    fetchBitcoinPrices();
+
     // Setup color pickers with localStorage saving
     setupColorPicker('textColorPicker', 'textColorValue', 'color');
     setupColorPicker('bgColorPicker', 'bgColorValue', 'backgroundColor');
+
+    // Setup currency selector
+    const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
+    if (currencySelector) {
+      currencySelector.addEventListener('change', (e: any) => {
+        selectedFiatCurrency = e.target.value;
+        // Update fiat amounts with new currency if toggle is enabled
+        const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+        if (showFiatToggle && showFiatToggle.checked) {
+          updateFiatAmounts();
+        }
+        saveCurrentStylesToLocalStorage();
+      });
+    }
 
     // Setup background image functionality
     const bgImagePreset = document.getElementById('bgImagePreset');
@@ -3547,6 +3624,22 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     });
 
+    setupToggle('showFiatToggle', (checked: boolean) => {
+      const currencySelectorGroup = document.getElementById('currencySelectorGroup');
+      
+      if (checked) {
+        // Show fiat amounts and currency selector
+        document.body.classList.add('show-fiat-amounts');
+        if (currencySelectorGroup) currencySelectorGroup.style.display = 'block';
+        updateFiatAmounts();
+      } else {
+        // Hide fiat amounts and currency selector
+        document.body.classList.remove('show-fiat-amounts');
+        if (currencySelectorGroup) currencySelectorGroup.style.display = 'none';
+        hideFiatAmounts();
+      }
+    });
+
     setupToggle('lightningToggle', async (checked: boolean) => {
       // Skip Lightning calls during preset application
       if (isApplyingPreset) {
@@ -3735,6 +3828,72 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Flag to prevent Lightning calls during preset application
   let isApplyingPreset = false;
 
+  // Bitcoin price data
+  let bitcoinPrices: { [key: string]: number } = {};
+  let selectedFiatCurrency = 'USD';
+
+  // Fetch Bitcoin prices from Mempool API
+  const fetchBitcoinPrices = async () => {
+    try {
+      const response = await fetch('https://mempool.space/api/v1/prices');
+      const data = await response.json();
+      bitcoinPrices = data;
+      console.log('Bitcoin prices fetched:', bitcoinPrices);
+    } catch (error) {
+      console.error('Error fetching Bitcoin prices:', error);
+    }
+  };
+
+  // Convert sats to fiat
+  const satsToFiat = (sats: number, currency: string = selectedFiatCurrency): string => {
+    if (!bitcoinPrices[currency]) return '';
+    
+    const btcAmount = sats / 100000000; // Convert sats to BTC
+    const fiatAmount = btcAmount * bitcoinPrices[currency];
+    
+    // Format based on currency - show amount followed by currency code in span
+    if (currency === 'JPY') {
+      return `${Math.round(fiatAmount).toLocaleString()} <span class="currency-code">${currency}</span>`;
+    } else {
+      return `${fiatAmount.toFixed(2)} <span class="currency-code">${currency}</span>`;
+    }
+  };
+
+  // Update fiat amounts for all sat amounts on the page
+  const updateFiatAmounts = () => {
+    if (!bitcoinPrices[selectedFiatCurrency]) return;
+
+    // Find all elements with sat amounts
+    const satElements = document.querySelectorAll('.total-amount, .zapperAmountSats, .zap-amount-sats');
+    
+    satElements.forEach(element => {
+      const satText = element.textContent || '';
+      const satMatch = satText.match(/(\d+(?:,\d{3})*)/);
+      
+      if (satMatch && satMatch[1]) {
+        const sats = parseInt(satMatch[1].replace(/,/g, ''));
+        const fiatAmount = satsToFiat(sats);
+        
+        if (fiatAmount && element.parentElement) {
+          // Check if fiat amount already exists
+          let fiatElement = element.parentElement.querySelector('.fiat-amount');
+          if (!fiatElement) {
+            fiatElement = document.createElement('div');
+            fiatElement.className = 'fiat-amount';
+            element.parentElement.appendChild(fiatElement);
+          }
+          fiatElement.innerHTML = fiatAmount;
+        }
+      }
+    });
+  };
+
+  // Hide all fiat amounts
+  const hideFiatAmounts = () => {
+    const fiatElements = document.querySelectorAll('.fiat-amount');
+    fiatElements.forEach(element => element.remove());
+  };
+
   const setupToggle = (toggleId: string, callback: (checked: boolean) => void) => {
     // Prevent duplicate setup
     if (setupToggleTracker.has(toggleId)) {
@@ -3899,6 +4058,15 @@ export const useLiveFunctionality = (eventId?: string) => {
           }
         }
 
+        // Apply saved currency selection
+        if (styles.selectedCurrency) {
+          const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
+          if (currencySelector) {
+            currencySelector.value = styles.selectedCurrency;
+            selectedFiatCurrency = styles.selectedCurrency;
+          }
+        }
+
         // Apply saved background image (check both old and new property names)
         const bgImage = styles.bgImage || styles.backgroundImage;
         if (bgImage !== undefined) {
@@ -3964,6 +4132,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           'podiumToggle',
           'zapGridToggle',
           'sectionLabelsToggle',
+          'showFiatToggle',
           'qrInvertToggle',
           'qrScreenBlendToggle',
           'qrMultiplyBlendToggle',
@@ -3987,6 +4156,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           'podium': 'podiumToggle',
           'zapGrid': 'zapGridToggle',
           'sectionLabels': 'sectionLabelsToggle',
+          'showFiat': 'showFiatToggle',
           'lightning': 'lightningToggle'
         };
 
@@ -4068,6 +4238,21 @@ export const useLiveFunctionality = (eventId?: string) => {
                   });
                   // Add class to control zaps-header alignment
                   document.body.classList.add('show-total-labels');
+                }
+              },
+              showFiatToggle: (checked: boolean) => {
+                const currencySelectorGroup = document.getElementById('currencySelectorGroup');
+                
+                if (checked) {
+                  // Show fiat amounts and currency selector
+                  document.body.classList.add('show-fiat-amounts');
+                  if (currencySelectorGroup) currencySelectorGroup.style.display = 'block';
+                  updateFiatAmounts();
+                } else {
+                  // Hide fiat amounts and currency selector
+                  document.body.classList.remove('show-fiat-amounts');
+                  if (currencySelectorGroup) currencySelectorGroup.style.display = 'none';
+                  hideFiatAmounts();
                 }
               },
               qrInvertToggle: (checked: boolean) => {
@@ -4499,6 +4684,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         { toggleId: 'podiumToggle', propertyName: 'podium' },
         { toggleId: 'zapGridToggle', propertyName: 'zapGrid' },
         { toggleId: 'sectionLabelsToggle', propertyName: 'sectionLabels' },
+        { toggleId: 'showFiatToggle', propertyName: 'showFiat' },
         { toggleId: 'qrInvertToggle', propertyName: 'qrInvert' },
         { toggleId: 'qrScreenBlendToggle', propertyName: 'qrScreenBlend' },
         { toggleId: 'qrMultiplyBlendToggle', propertyName: 'qrMultiplyBlend' },
@@ -4516,6 +4702,10 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
       });
 
+      // Get selected currency
+      const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
+      const selectedCurrency = currencySelector ? currencySelector.value : 'USD';
+
       const styles = {
         textColor: textColorElement.value,
         bgColor: bgColorElement.value,
@@ -4523,6 +4713,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         opacity: parseFloat(opacitySlider.value),
         partnerLogo: currentPartnerLogo,
         bgImage: currentBackgroundImage,
+        selectedCurrency: selectedCurrency,
         ...toggleStates
       };
 
