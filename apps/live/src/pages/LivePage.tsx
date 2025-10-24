@@ -776,8 +776,36 @@ export const LivePage: React.FC = () => {
                     <option value="JPY">JPY</option>
                   </select>
                 </div>
+                <div className="style-option-group toggle-group" id="historicalPriceGroup" style={{display: 'none'}}>
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="showHistoricalPriceToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Show Historical Prices</span>
+                  </label>
+                </div>
+                <div className="style-option-group toggle-group" id="historicalChangeGroup" style={{display: 'none'}}>
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="showHistoricalChangeToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Show Historical Change %</span>
+                  </label>
+                </div>
+                <div className="style-option-group toggle-group" id="fiatOnlyGroup" style={{display: 'none'}}>
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="fiatOnlyToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Fiat Only</span>
+                  </label>
+                </div>
               </div>
             </div>
+            
 
             {/* QR Code Effects Section */}
             <div className="style-section">

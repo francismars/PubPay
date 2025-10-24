@@ -903,7 +903,7 @@ body {
   color: inherit;
   margin: 0 0 15px 0;
   padding: 8px 0;
-  border-bottom: 2px solid color-mix(in srgb, var(--text-color) 20%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--text-color) 20%, transparent);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.9;
@@ -1256,6 +1256,40 @@ body.qr-blend-active.qr-multiply-active .qr-swiper canvas {
 
 .currency-code {
   opacity: 0.5;
+  display: inline-block;
+  /* font-size: 1vw; */
+}
+
+.historical-price {
+  opacity: 0.6;
+  font-size: 0.9em;
+  font-weight: normal;
+}
+
+.historical-change {
+  opacity: 0.7;
+  font-size: 0.85em;
+  font-weight: bold;
+  margin-left: 4px;
+}
+
+/* Loading animation for historical price toggle */
+@keyframes pulse {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.toggle-switch.loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.toggle-switch.loading .toggle-slider {
+  opacity: 0.8;
 }
 
 /* Currency Selector Styling */
