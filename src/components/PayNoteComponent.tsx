@@ -222,6 +222,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
       }
     });
 
+    // Sort zaps by date chronologically (oldest first)
+    heroZapsList.sort((a, b) => a.created_at - b.created_at);
+    overflowZapsList.sort((a, b) => a.created_at - b.created_at);
+
     setHeroZaps(heroZapsList);
     setOverflowZaps(overflowZapsList);
   }, [post.zaps, post.zapUsesCurrent, post.zapUses]);

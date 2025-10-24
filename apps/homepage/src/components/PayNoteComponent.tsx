@@ -18,6 +18,7 @@ interface ProcessedZap {
   content: string;
   created_at: number;
   sig: string;
+  isNewZap?: boolean; // Flag to indicate if this is a newly detected zap
 }
 
 interface PayNoteComponentProps {
@@ -299,9 +300,28 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
       }
     });
 
+    // Sort zaps by date chronologically (oldest first)
+    heroZapsList.sort((a, b) => a.created_at - b.created_at);
+    overflowZapsList.sort((a, b) => a.created_at - b.created_at);
+
     setHeroZaps(heroZapsList);
     setOverflowZaps(overflowZapsList);
   }, [post.zaps, post.zapUsesCurrent, post.zapUses]);
+
+  // Clear isNewZap flag after animation completes
+  useEffect(() => {
+    const newZaps = [...heroZaps, ...overflowZaps].filter(zap => zap.isNewZap);
+    if (newZaps.length > 0) {
+      const timer = setTimeout(() => {
+        // Clear the isNewZap flag after animation duration (600ms)
+        setHeroZaps(prev => prev.map(zap => ({ ...zap, isNewZap: false })));
+        setOverflowZaps(prev => prev.map(zap => ({ ...zap, isNewZap: false })));
+      }, 600);
+      
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [heroZaps, overflowZaps]);
 
 
   // Close dropdowns when clicking outside (global handler)
@@ -547,7 +567,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
         <div className="noteHeroZaps noteZapReactions">
           {heroZaps.map((zap, index) => {
             return (
-              <div key={index} className="zapReaction">
+              <div key={index} className={`zapReaction ${zap.isNewZap ? 'newZap' : ''}`}>
                 <a
                   href={`https://next.nostrudel.ninja/#/u/${zap.zapPayerNpub}`}
                   target="_blank"
@@ -586,7 +606,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(({
           <div className="noteZaps noteZapReactions">
             {overflowZaps.map((zap, index) => {
               return (
-                <div key={index} className="zapReaction">
+                <div key={index} className={`zapReaction ${zap.isNewZap ? 'newZap' : ''}`}>
                   <a
                     href={`https://next.nostrudel.ninja/#/u/${zap.zapPayerNpub}`}
                     target="_blank"

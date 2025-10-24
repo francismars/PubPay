@@ -24,6 +24,7 @@ interface ProcessedZap extends Kind9735Event {
   zapPayerPubkey: string;
   zapPayerPicture: string;
   zapPayerNpub: string;
+  isNewZap?: boolean; // Flag to indicate if this is a newly detected zap
 }
 
 // Types for PubPay posts
@@ -1818,7 +1819,8 @@ export const useHomeFunctionality = () => {
         zapAmount,
         zapPayerPubkey,
         zapPayerPicture,
-        zapPayerNpub
+        zapPayerNpub,
+        isNewZap: true // Mark as new zap for lightning effect
       };
     } catch (error) {
       console.error('Error processing zap:', error);

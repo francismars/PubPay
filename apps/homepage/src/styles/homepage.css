@@ -38,18 +38,24 @@ body {
   .zapMenu {
     position: absolute;
     top: 0px;
-    left: -120px;
-    background-color: #ffffff;
-    border-radius: 5px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-    padding: 20px;
-    min-width: 140px;
+    left: -160px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 16px;
+    box-shadow: 
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
+    padding: 24px;
+    min-width: 200px;
     opacity: 0;
-    transform: translateY(-8px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: translateY(-12px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     visibility: hidden;
     pointer-events: none;
     z-index: 10000;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
   .zapMenuOption {
@@ -66,41 +72,97 @@ body {
   }
   
   .zapMenuCustom {
-    display: grid;
-    gap: 7px;
-    margin-top: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 0;
   }
 
   .zapMenu.show {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     visibility: visible;
     pointer-events: auto;
   }
 
   #customZapInput {
-    flex: 1;
-    padding: 13px 10px;
-    border: 1px solid #cecece;
-    border-radius: 3px;
-    font-size: 14px;
-    margin-bottom: 5px;
+    width: 100%;
+    padding: 16px 20px 16px 48px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: "Inter", sans-serif;
+    background: #ffffff;
+    background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234a75ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='13,2 4,14 11,14 10,22 19,10 12,10'/></svg>");
+    background-repeat: no-repeat;
+    background-position: 16px center;
+    background-size: 16px 16px;
+    color: #374151;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+    box-sizing: border-box;
+    text-align: center;
+    letter-spacing: 0.025em;
+  }
+
+  #customZapInput:focus {
+    border-color: #4a75ff;
+    box-shadow: 0 0 0 4px rgba(74, 117, 255, 0.1);
+    background-color: #fafbff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234a75ff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='13,2 4,14 11,14 10,22 19,10 12,10'/%3E%3C/svg%3E");
+  }
+
+  #customZapInput:hover {
+    border-color: #d1d5db;
+  }
+
+  #customZapInput::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
   }
   
   #customZapButton,
   #customAnonZapButton {
-    max-height: max-content;
-    padding: 8px 3px 8px 3px;
-    background-color: #4a75ff;
-    color: #fff;
+    width: 100%;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #4a75ff 0%, #3b5bdb 100%);
+    color: #ffffff;
     border: none;
-    border-radius: 3px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: "Inter", sans-serif;
+    letter-spacing: 0.025em;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(74, 117, 255, 0.3);
+    position: relative;
+    overflow: hidden;
   }
-  
-  #customZapButton:hover {
-    background-color: #3a5fcc;
+
+  #customZapButton:hover,
+  #customAnonZapButton:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(74, 117, 255, 0.4);
+    background: linear-gradient(135deg, #3b5bdb 0%, #2c4bc7 100%);
+  }
+
+  #customZapButton:active,
+  #customAnonZapButton:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(74, 117, 255, 0.3);
+  }
+
+  /* Make anonZap button slightly different to show hierarchy */
+  #customAnonZapButton {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+  }
+
+  #customAnonZapButton:hover {
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+    box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
   }
 
   @keyframes lightningEffect {
@@ -129,6 +191,9 @@ body {
   .zapReaction {
     position: relative;
     transition: all 0.1s ease;
+  }
+  
+  .zapReaction.newZap {
     animation: lightningEffect 0.6s ease-in-out;
   }
   
@@ -311,7 +376,7 @@ body {
   
   .paynote:hover {
     background: #fff;
-    transform: scale(1.01);
+    /*transform: scale(1.01);*/
   }
 
   .paynote.has-open-dropdown {
@@ -1071,43 +1136,104 @@ body {
   
   .dropdown-content {
     position: absolute;
-    background-color: #ffffff;
-    min-width: 260px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    min-width: 280px;
     overflow: auto;
-    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    box-shadow: 
+      0 20px 25px -5px rgba(0, 0, 0, 0.1),
+      0 10px 10px -5px rgba(0, 0, 0, 0.04),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
     right: -10px;
     top: 100%;
     margin-top: -32px;
     z-index: 10000;
-    padding: 16px 16px 20px;
-    border-radius: 10px;
+    padding: 24px;
+    border-radius: 16px;
     opacity: 0;
-    transform: translateY(-8px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: translateY(-12px) scale(0.95);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     visibility: hidden;
     pointer-events: none;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
   .dropdown-content a {
-    color: black;
-    padding: 6px 0;
+    color: #374151;
+    padding: 12px 16px;
     text-decoration: none;
     display: block;
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 500;
+    font-family: "Inter", sans-serif;
+    border-radius: 8px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 2px 0;
+    position: relative;
+  }
+
+  .dropdown-content a:hover {
+    background-color: rgba(74, 117, 255, 0.08);
+    color: #4a75ff;
+    transform: translateX(4px);
   }
   
   .dropdown-content .cta {
-    color: #fff;
-    padding: 10px 0;
+    color: #ffffff;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #4a75ff 0%, #3b5bdb 100%);
+    border: none;
+    border-radius: 5px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: "Inter", sans-serif;
+    letter-spacing: 0.025em;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(74, 117, 255, 0.3);
+    margin: 8px 0;
+    text-align: center;
+    cursor: pointer;
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .dropdown-content .cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(74, 117, 255, 0.4);
+    background: linear-gradient(135deg, #3b5bdb 0%, #2c4bc7 100%);
+  }
+
+  .dropdown-content .cta:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(74, 117, 255, 0.3);
   }
   
   .dropdown-content .cta.disabled {
-    color: #000;
+    color: #9ca3af;
+    background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: not-allowed;
   }
+
+  .dropdown-content .cta.disabled:hover {
+    transform: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  }
+
+  /* Add visual separation between buttons and links */
+  .dropdown-content .cta + a {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(229, 231, 235, 0.5);
+  }
+
   
   .show {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
     visibility: visible;
     pointer-events: auto;
   }
