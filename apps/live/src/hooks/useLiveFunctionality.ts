@@ -24,10 +24,16 @@ const DEFAULT_STYLES = {
   showTopZappers: false,  // Default to hidden
   podium: false,
   zapGrid: false,
+  sectionLabels: true,  // Default to showing section labels
+  showFiat: false,  // Default to hiding fiat amounts
+  showHistoricalPrice: false,  // Default to hiding historical prices
+  showHistoricalChange: false,  // Default to hiding historical change percentage
+  fiatOnly: false,  // Default to showing sats amounts
   lightning: false,
   opacity: 1.0,
   textOpacity: 1.0,
-  partnerLogo: ''
+  partnerLogo: '',
+  selectedCurrency: 'USD'
 };
 
 export const useLiveFunctionality = (eventId?: string) => {
@@ -1025,6 +1031,14 @@ export const useLiveFunctionality = (eventId?: string) => {
     zapDiv.dataset.timestamp = zapData.timestamp;
     zapDiv.dataset.amount = zapData.amount;
     zapDiv.dataset.zapId = zapData.id;
+    
+    // Add timestamp data attribute for historical price lookup
+    if (zapData.timestamp) {
+      zapDiv.setAttribute('data-timestamp', zapData.timestamp.toString());
+      console.log(`✅ Setting timestamp for live event zap: ${zapData.timestamp} (${new Date(zapData.timestamp * 1000).toLocaleString()})`);
+    } else {
+      console.log(`⚠️ No timestamp found in live event zap data:`, zapData);
+    }
 
     const timeStr = new Date(zapData.timestamp * 1000).toLocaleString();
 
@@ -1079,6 +1093,14 @@ export const useLiveFunctionality = (eventId?: string) => {
       zapOnlyDiv.dataset.timestamp = zapData.timestamp;
       zapOnlyDiv.dataset.amount = zapData.amount;
       zapOnlyDiv.dataset.zapId = zapData.id;
+      
+      // Add timestamp data attribute for historical price lookup
+      if (zapData.timestamp) {
+        zapOnlyDiv.setAttribute('data-timestamp', zapData.timestamp.toString());
+        console.log(`✅ Setting timestamp for zap-only item: ${zapData.timestamp} (${new Date(zapData.timestamp * 1000).toLocaleString()})`);
+      } else {
+        console.log(`⚠️ No timestamp found in zap-only data:`, zapData);
+      }
 
       // Classic zap layout for left column
       zapOnlyDiv.innerHTML = `
@@ -1092,8 +1114,10 @@ export const useLiveFunctionality = (eventId?: string) => {
                 </div>
             </div>
             <div class="zapperAmount">
-                <span class="zapperAmountSats">${numberWithCommas(zapData.amount)}</span>
-                <span class="zapperAmountLabel">sats</span>
+                <div class="zapperAmountValue">
+                  <span class="zapperAmountSats">${numberWithCommas(zapData.amount)}</span>
+                  <span class="zapperAmountLabel">sats</span>
+                </div>
             </div>
         `;
 
@@ -1820,10 +1844,16 @@ export const useLiveFunctionality = (eventId?: string) => {
       showTopZappers: (document.getElementById('showTopZappersToggle') as HTMLInputElement)?.checked || false,
       podium: (document.getElementById('podiumToggle') as HTMLInputElement)?.checked || false,
       zapGrid: (document.getElementById('zapGridToggle') as HTMLInputElement)?.checked || false,
+      sectionLabels: (document.getElementById('sectionLabelsToggle') as HTMLInputElement)?.checked ?? true,
+      showFiat: (document.getElementById('showFiatToggle') as HTMLInputElement)?.checked || false,
+      showHistoricalPrice: (document.getElementById('showHistoricalPriceToggle') as HTMLInputElement)?.checked || false,
+      showHistoricalChange: (document.getElementById('showHistoricalChangeToggle') as HTMLInputElement)?.checked || false,
+      fiatOnly: (document.getElementById('fiatOnlyToggle') as HTMLInputElement)?.checked || false,
       lightning: (document.getElementById('lightningToggle') as HTMLInputElement)?.checked || false,
       opacity: parseFloat((document.getElementById('opacitySlider') as HTMLInputElement)?.value || '1'),
       textOpacity: parseFloat((document.getElementById('textOpacitySlider') as HTMLInputElement)?.value || '1'),
-      partnerLogo: currentPartnerLogo
+      partnerLogo: currentPartnerLogo,
+      selectedCurrency: (document.getElementById('currencySelector') as HTMLSelectElement)?.value || 'USD'
     };
 
     // Store styles in localStorage instead of URL
@@ -2041,6 +2071,75 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     }
 
+    // Apply section labels toggle (set to default if not specified in URL)
+    const sectionLabels = params.has('sectionLabels') ? params.get('sectionLabels') === 'true' : DEFAULT_STYLES.sectionLabels;
+    const sectionLabelsToggle = document.getElementById('sectionLabelsToggle') as HTMLInputElement;
+    if (sectionLabelsToggle) sectionLabelsToggle.checked = sectionLabels;
+    const sectionLabelsElements = document.querySelectorAll('.section-label');
+    const totalLabelsElements = document.querySelectorAll('.total-label');
+    if (sectionLabels) {
+      sectionLabelsElements.forEach(label => (label as HTMLElement).style.display = 'block');
+      totalLabelsElements.forEach(label => (label as HTMLElement).style.display = 'none');
+      document.body.classList.remove('show-total-labels');
+    } else {
+      sectionLabelsElements.forEach(label => (label as HTMLElement).style.display = 'none');
+      totalLabelsElements.forEach(label => (label as HTMLElement).style.display = 'inline');
+      document.body.classList.add('show-total-labels');
+    }
+
+    // Apply fiat toggle (set to default if not specified in URL)
+    const showFiat = params.has('showFiat') ? params.get('showFiat') === 'true' : DEFAULT_STYLES.showFiat;
+    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+    const currencySelectorGroup = document.getElementById('currencySelectorGroup');
+    const historicalPriceGroup = document.getElementById('historicalPriceGroup');
+    if (showFiatToggle) showFiatToggle.checked = showFiat;
+    if (showFiat) {
+      document.body.classList.add('show-fiat-amounts');
+      if (currencySelectorGroup) currencySelectorGroup.style.display = 'block';
+      if (historicalPriceGroup) historicalPriceGroup.style.display = 'block';
+    } else {
+      document.body.classList.remove('show-fiat-amounts');
+      if (currencySelectorGroup) currencySelectorGroup.style.display = 'none';
+      if (historicalPriceGroup) historicalPriceGroup.style.display = 'none';
+    }
+
+    // Apply historical price toggle (set to default if not specified in URL)
+    const showHistoricalPrice = params.has('showHistoricalPrice') ? params.get('showHistoricalPrice') === 'true' : DEFAULT_STYLES.showHistoricalPrice;
+    const showHistoricalPriceToggle = document.getElementById('showHistoricalPriceToggle') as HTMLInputElement;
+    if (showHistoricalPriceToggle) showHistoricalPriceToggle.checked = showHistoricalPrice;
+
+    // Apply historical change toggle (set to default if not specified in URL)
+    const showHistoricalChange = params.has('showHistoricalChange') ? params.get('showHistoricalChange') === 'true' : DEFAULT_STYLES.showHistoricalChange;
+    const showHistoricalChangeToggle = document.getElementById('showHistoricalChangeToggle') as HTMLInputElement;
+    const historicalChangeGroup = document.getElementById('historicalChangeGroup');
+    if (showHistoricalChangeToggle) showHistoricalChangeToggle.checked = showHistoricalChange;
+    
+    // Show/hide historical change toggle based on historical price toggle state
+    if (showHistoricalPrice && historicalChangeGroup) {
+      historicalChangeGroup.style.display = 'block';
+    } else if (historicalChangeGroup) {
+      historicalChangeGroup.style.display = 'none';
+    }
+
+    // Apply fiat only toggle (set to default if not specified in URL)
+    const fiatOnly = params.has('fiatOnly') ? params.get('fiatOnly') === 'true' : DEFAULT_STYLES.fiatOnly;
+    const fiatOnlyToggle = document.getElementById('fiatOnlyToggle') as HTMLInputElement;
+    const fiatOnlyGroup = document.getElementById('fiatOnlyGroup');
+    if (fiatOnlyToggle) fiatOnlyToggle.checked = fiatOnly;
+    
+    // Show/hide fiat only toggle based on show fiat toggle state
+    if (showFiat && fiatOnlyGroup) {
+      fiatOnlyGroup.style.display = 'block';
+    } else if (fiatOnlyGroup) {
+      fiatOnlyGroup.style.display = 'none';
+    }
+
+    // Apply currency selection (set to default if not specified in URL)
+    const selectedCurrency = params.has('selectedCurrency') ? params.get('selectedCurrency') || 'USD' : 'USD';
+    const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
+    if (currencySelector) currencySelector.value = selectedCurrency;
+    selectedFiatCurrency = selectedCurrency;
+
     // Apply all styles to ensure everything is synchronized
     applyAllStyles();
 
@@ -2126,6 +2225,12 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (styles.zapGrid !== DEFAULT_STYLES.zapGrid) {
           params.set('zapGrid', styles.zapGrid);
         }
+        if (styles.sectionLabels !== DEFAULT_STYLES.sectionLabels) {
+          params.set('sectionLabels', styles.sectionLabels);
+        }
+        if (styles.showFiat !== DEFAULT_STYLES.showFiat) {
+          params.set('showFiat', styles.showFiat);
+        }
         if (styles.lightning !== DEFAULT_STYLES.lightning) {
           params.set('lightning', styles.lightning);
         }
@@ -2134,6 +2239,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
         if (styles.textOpacity !== DEFAULT_STYLES.textOpacity) {
           params.set('textOpacity', styles.textOpacity);
+        }
+        if (styles.selectedCurrency && styles.selectedCurrency !== DEFAULT_STYLES.selectedCurrency) {
+          params.set('selectedCurrency', styles.selectedCurrency);
         }
         if (styles.partnerLogo && styles.partnerLogo !== DEFAULT_STYLES.partnerLogo) {
           params.set('partnerLogo', encodeURIComponent(styles.partnerLogo));
@@ -2470,7 +2578,10 @@ export const useLiveFunctionality = (eventId?: string) => {
         'zapEventID': kind9735id,
         'kind9735content': kind9735Content,
         'kind1Name': kind0finalName,
-        'kind0Profile': profileData
+        'kind0Profile': profileData,
+        'created_at': kind9735.created_at,
+        'timestamp': kind9735.created_at,
+        'id': kind9735.id
       };
       json9735List.push(json9735);
     }
@@ -2486,6 +2597,10 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (!zapsContainer) return;
 
     zapsContainer.innerHTML = '';
+
+    // Store zap data globally for timestamp lookup
+    (window as any).zaps = json9735List;
+    console.log(`💾 Stored ${json9735List.length} zaps globally for timestamp lookup`);
 
     // Hide zaps loading animation
     zapsContainer.classList.remove('loading');
@@ -2532,6 +2647,24 @@ export const useLiveFunctionality = (eventId?: string) => {
       const zapClass = 'zap';
       zapDiv.className = zapClass;
 
+      // Add zap ID for matching with stored data
+      if (zap.id) {
+        zapDiv.setAttribute('data-zap-id', zap.id);
+      }
+
+      // Add timestamp data attribute for historical price lookup
+      if (zap.timestamp || zap.created_at) {
+        const timestamp = zap.timestamp || zap.created_at;
+        zapDiv.setAttribute('data-timestamp', timestamp.toString());
+        console.log(`✅ Setting timestamp for zap: ${timestamp} (${new Date(timestamp * 1000).toLocaleString()})`);
+        console.log(`🔍 Zap data keys:`, Object.keys(zap));
+      } else {
+        console.log(`⚠️ No timestamp found in zap data:`, zap);
+        console.log(`🔍 Available zap properties:`, Object.keys(zap));
+        console.log(`🔍 Zap timestamp value:`, zap.timestamp);
+        console.log(`🔍 Zap created_at value:`, zap.created_at);
+      }
+
       if (!zap.picture) zap.picture = '';
       const profileImage = zap.picture == '' ? '/images/gradient_color.gif' : zap.picture;
 
@@ -2546,8 +2679,10 @@ export const useLiveFunctionality = (eventId?: string) => {
           </div>
         </div>
         <div class="zapperAmount">
-          <span class="zapperAmountSats">${numberWithCommas(zap.amount)}</span>
-          <span class="zapperAmountLabel">sats</span>
+          <div class="zapperAmountValue">
+            <span class="zapperAmountSats">${numberWithCommas(zap.amount)}</span>
+            <span class="zapperAmountLabel">sats</span>
+          </div>
         </div>
       `;
       zapsContainer.appendChild(zapDiv);
@@ -2592,6 +2727,15 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Calculate top zappers directly from the zaps we just processed
     calculateTopZappersFromZaps(json9735List);
+
+    // Update fiat amounts if the toggle is enabled
+    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+    if (showFiatToggle && showFiatToggle.checked) {
+      // Use setTimeout to ensure DOM is updated before fetching historical prices
+      setTimeout(() => {
+        debouncedUpdateFiatAmounts();
+      }, 100);
+    }
   };
 
   const calculateTopZappersFromZaps = (zaps: any[]) => {
@@ -3217,9 +3361,26 @@ export const useLiveFunctionality = (eventId?: string) => {
   const setupStyleOptions = () => {
     // Debug log removed
 
+    // Fetch Bitcoin prices on initialization
+    fetchBitcoinPrices();
+
     // Setup color pickers with localStorage saving
     setupColorPicker('textColorPicker', 'textColorValue', 'color');
     setupColorPicker('bgColorPicker', 'bgColorValue', 'backgroundColor');
+
+    // Setup currency selector
+    const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
+    if (currencySelector) {
+      currencySelector.addEventListener('change', (e: any) => {
+        selectedFiatCurrency = e.target.value;
+        // Update fiat amounts with new currency if toggle is enabled
+        const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+        if (showFiatToggle && showFiatToggle.checked) {
+          debouncedUpdateFiatAmounts();
+        }
+        saveCurrentStylesToLocalStorage();
+      });
+    }
 
     // Setup background image functionality
     const bgImagePreset = document.getElementById('bgImagePreset');
@@ -3520,6 +3681,104 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Debug log removed
       }
     });
+    setupToggle('sectionLabelsToggle', (checked: boolean) => {
+      const sectionLabels = document.querySelectorAll('.section-label');
+      const totalLabels = document.querySelectorAll('.total-label');
+      
+      if (checked) {
+        // Show section labels, hide total labels
+        sectionLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'block';
+        });
+        totalLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'none';
+        });
+        // Remove class to control zaps-header alignment
+        document.body.classList.remove('show-total-labels');
+      } else {
+        // Hide section labels, show total labels
+        sectionLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'none';
+        });
+        totalLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'inline';
+        });
+        // Add class to control zaps-header alignment
+        document.body.classList.add('show-total-labels');
+      }
+    });
+
+    setupToggle('showFiatToggle', (checked: boolean) => {
+      const currencySelectorGroup = document.getElementById('currencySelectorGroup');
+      const historicalPriceGroup = document.getElementById('historicalPriceGroup');
+      const historicalChangeGroup = document.getElementById('historicalChangeGroup');
+      const fiatOnlyGroup = document.getElementById('fiatOnlyGroup');
+      
+      if (checked) {
+        // Show fiat amounts, currency selector, and historical price toggle
+        document.body.classList.add('show-fiat-amounts');
+        if (currencySelectorGroup) currencySelectorGroup.style.display = 'block';
+        if (historicalPriceGroup) historicalPriceGroup.style.display = 'block';
+        if (fiatOnlyGroup) fiatOnlyGroup.style.display = 'block';
+        debouncedUpdateFiatAmounts();
+      } else {
+        // Hide fiat amounts, currency selector, and historical price toggle
+        document.body.classList.remove('show-fiat-amounts');
+        if (currencySelectorGroup) currencySelectorGroup.style.display = 'none';
+        if (historicalPriceGroup) historicalPriceGroup.style.display = 'none';
+        if (historicalChangeGroup) historicalChangeGroup.style.display = 'none';
+        if (fiatOnlyGroup) fiatOnlyGroup.style.display = 'none';
+        hideFiatAmounts();
+      }
+    });
+
+    setupToggle('showHistoricalPriceToggle', (checked: boolean) => {
+      const historicalChangeGroup = document.getElementById('historicalChangeGroup');
+      
+      if (checked) {
+        // Show historical change toggle when historical prices are enabled
+        if (historicalChangeGroup) historicalChangeGroup.style.display = 'block';
+      } else {
+        // Hide historical change toggle when historical prices are disabled
+        if (historicalChangeGroup) historicalChangeGroup.style.display = 'none';
+        // Also uncheck the historical change toggle
+        const showHistoricalChangeToggle = document.getElementById('showHistoricalChangeToggle') as HTMLInputElement;
+        if (showHistoricalChangeToggle) showHistoricalChangeToggle.checked = false;
+      }
+      
+      // Update fiat amounts when historical price toggle changes
+      const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+      if (showFiatToggle && showFiatToggle.checked) {
+        debouncedUpdateFiatAmounts();
+      }
+      // Save toggle state to localStorage
+      saveCurrentStylesToLocalStorage();
+    });
+
+    setupToggle('showHistoricalChangeToggle', (checked: boolean) => {
+      // Update fiat amounts when historical change toggle changes
+      const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+      if (showFiatToggle && showFiatToggle.checked) {
+        debouncedUpdateFiatAmounts();
+      }
+      // Save toggle state to localStorage
+      saveCurrentStylesToLocalStorage();
+    });
+
+    setupToggle('fiatOnlyToggle', (checked: boolean) => {
+      // Update fiat amounts when fiat only toggle changes
+      const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+      if (showFiatToggle && showFiatToggle.checked) {
+        if (!checked) {
+          // If fiat only is being turned off, restore satoshi amounts first
+          restoreSatoshiAmounts();
+        }
+        debouncedUpdateFiatAmounts();
+      }
+      // Save toggle state to localStorage
+      saveCurrentStylesToLocalStorage();
+    });
+
     setupToggle('lightningToggle', async (checked: boolean) => {
       // Skip Lightning calls during preset application
       if (isApplyingPreset) {
@@ -3708,6 +3967,402 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Flag to prevent Lightning calls during preset application
   let isApplyingPreset = false;
 
+  // Bitcoin price data
+  let bitcoinPrices: { [key: string]: number } = {};
+  let selectedFiatCurrency = 'USD';
+  let isUpdatingFiatAmounts = false;
+  let fiatUpdateTimeout: NodeJS.Timeout | null = null;
+
+  // Fetch Bitcoin prices from Mempool API
+  const fetchBitcoinPrices = async () => {
+    try {
+      const response = await fetch('https://mempool.space/api/v1/prices');
+      const data = await response.json();
+      bitcoinPrices = data;
+      console.log('Bitcoin prices fetched:', bitcoinPrices);
+    } catch (error) {
+      console.error('Error fetching Bitcoin prices:', error);
+    }
+  };
+
+  // Fetch historical Bitcoin prices from Mempool API
+  const fetchHistoricalBitcoinPrices = async (timestamp: number, currency: string = selectedFiatCurrency) => {
+    try {
+      const response = await fetch(`https://mempool.space/api/v1/historical-price?currency=${currency}&timestamp=${timestamp}`);
+      const data = await response.json();
+      console.log('Historical Bitcoin prices fetched:', data);
+      return data;
+    } catch (error) {
+      console.error('Error fetching historical Bitcoin prices:', error);
+      return null;
+    }
+  };
+
+  // Update loading state for historical price toggle
+  const setHistoricalPriceLoading = (loading: boolean, progress?: { current: number, total: number }) => {
+    const toggleLabel = document.querySelector('#showHistoricalPriceToggle')?.closest('.toggle-switch')?.nextElementSibling;
+    
+    if (toggleLabel) {
+      const labelElement = toggleLabel as HTMLElement;
+      if (loading) {
+        if (progress) {
+          labelElement.textContent = `Loading Historical Prices... (${progress.current}/${progress.total})`;
+        } else {
+          labelElement.textContent = 'Loading Historical Prices...';
+        }
+        labelElement.style.opacity = '0.7';
+        labelElement.style.fontStyle = 'italic';
+      } else {
+        labelElement.textContent = 'Show Historical Prices';
+        labelElement.style.opacity = '1';
+        labelElement.style.fontStyle = 'normal';
+      }
+    }
+  };
+
+  // Convert sats to fiat
+  const satsToFiat = (sats: number, currency: string = selectedFiatCurrency): string => {
+    if (!bitcoinPrices[currency]) return '';
+
+    const btcAmount = sats / 100000000; // Convert sats to BTC
+    const fiatAmount = btcAmount * bitcoinPrices[currency];
+
+    // Format based on currency - show amount followed by currency code in span
+    if (currency === 'JPY') {
+      return `${Math.round(fiatAmount).toLocaleString()} <span class="currency-code">${currency}</span>`;
+    } else {
+      return `${fiatAmount.toFixed(2)} <span class="currency-code">${currency}</span>`;
+    }
+  };
+
+  // Convert sats to fiat with historical price
+  const satsToFiatWithHistorical = async (sats: number, timestamp: number, currency: string = selectedFiatCurrency): Promise<string> => {
+    if (!bitcoinPrices[currency]) return '';
+    
+    const btcAmount = sats / 100000000; // Convert sats to BTC
+    const currentFiatAmount = btcAmount * bitcoinPrices[currency];
+    
+    console.log(`🔍 API Call - Timestamp: ${timestamp}, Currency: ${currency}`);
+    console.log(`📈 Current BTC Price: ${bitcoinPrices[currency]} ${currency}`);
+    console.log(`💵 Current Fiat Amount: ${currentFiatAmount.toFixed(2)} ${currency}`);
+    
+    // Format current amount
+    let currentFormatted: string;
+    if (currency === 'JPY') {
+      currentFormatted = `${Math.round(currentFiatAmount).toLocaleString()} <span class="currency-code">${currency}</span>`;
+    } else {
+      currentFormatted = `${currentFiatAmount.toFixed(2)} <span class="currency-code">${currency}</span>`;
+    }
+
+    // Fetch historical price
+    const historicalData = await fetchHistoricalBitcoinPrices(timestamp, currency);
+    console.log(`🌐 Historical API Response:`, historicalData);
+    
+    if (historicalData && historicalData.prices && historicalData.prices.length > 0) {
+      const historicalPrice = historicalData.prices[0][currency];
+      console.log(`📊 Historical BTC Price: ${historicalPrice} ${currency}`);
+      
+      if (historicalPrice) {
+        const historicalFiatAmount = btcAmount * historicalPrice;
+        console.log(`💸 Historical Fiat Amount: ${historicalFiatAmount.toFixed(2)} ${currency}`);
+        
+        let historicalFormatted: string;
+        if (currency === 'JPY') {
+          historicalFormatted = `${Math.round(historicalFiatAmount).toLocaleString()}`;
+        } else {
+          historicalFormatted = `${historicalFiatAmount.toFixed(2)}`;
+        }
+        
+        // Check if historical change toggle is enabled
+        const showHistoricalChangeToggle = document.getElementById('showHistoricalChangeToggle') as HTMLInputElement;
+        const showHistoricalChange = showHistoricalChangeToggle && showHistoricalChangeToggle.checked;
+        
+        let result = `${currentFormatted} <span class="historical-price">(${historicalFormatted})</span>`;
+        
+        if (showHistoricalChange) {
+          // Calculate percentage change
+          const percentageChange = ((currentFiatAmount - historicalFiatAmount) / historicalFiatAmount) * 100;
+          const changeFormatted = percentageChange >= 0 ? `+${percentageChange.toFixed(1)}%` : `${percentageChange.toFixed(1)}%`;
+          result += ` <span class="historical-change">${changeFormatted}</span>`;
+        }
+        
+        return result;
+      }
+    }
+
+    console.log(`❌ No historical price data found, returning current price only`);
+    return currentFormatted;
+  };
+
+  // Function to retroactively add timestamps to existing zaps
+  const addMissingTimestamps = () => {
+    const zapElements = document.querySelectorAll('.zap:not([data-timestamp])');
+    console.log(`🔧 Found ${zapElements.length} zaps missing timestamps, attempting to fix...`);
+    
+    zapElements.forEach((zapElement, index) => {
+      // Try to get timestamp from dataset if available
+      const datasetTimestamp = (zapElement as HTMLElement).dataset.timestamp;
+      if (datasetTimestamp) {
+        zapElement.setAttribute('data-timestamp', datasetTimestamp);
+        console.log(`✅ Fixed timestamp for zap ${index + 1}: ${datasetTimestamp}`);
+      } else {
+        // Try to get timestamp from the global zaps array if available
+        const zapId = (zapElement as HTMLElement).dataset.zapId;
+        if (zapId && (window as any).zaps) {
+          const zapData = (window as any).zaps.find((zap: any) => zap.id === zapId);
+          if (zapData && (zapData.timestamp || zapData.created_at)) {
+            const timestamp = zapData.timestamp || zapData.created_at;
+            zapElement.setAttribute('data-timestamp', timestamp.toString());
+            console.log(`✅ Fixed timestamp from zaps array for zap ${index + 1}: ${timestamp}`);
+          } else {
+            console.log(`❌ No timestamp found in zaps array for zap ${index + 1}`);
+          }
+        } else {
+          console.log(`❌ No dataset timestamp or zaps array available for zap ${index + 1}`);
+        }
+      }
+    });
+  };
+
+  // Update fiat amounts for all sat amounts on the page
+  const updateFiatAmounts = async () => {
+    if (!bitcoinPrices[selectedFiatCurrency]) return;
+
+    // Check if historical price toggle is enabled
+    const showHistoricalPriceToggle = document.getElementById('showHistoricalPriceToggle') as HTMLInputElement;
+    const showHistorical = showHistoricalPriceToggle && showHistoricalPriceToggle.checked;
+
+    // Check if fiat only toggle is enabled
+    const fiatOnlyToggle = document.getElementById('fiatOnlyToggle') as HTMLInputElement;
+    const fiatOnly = fiatOnlyToggle && fiatOnlyToggle.checked;
+
+    const totalAmountElement = document.querySelector('.total-amount');
+    const totalSatsElement = document.querySelector('.zaps-header-left .total-sats');
+    const totalValueElement = document.getElementById('zappedTotalValue');
+
+    // Handle total sats display in header
+    if (totalSatsElement) {
+      if (fiatOnly) {
+        (totalSatsElement as HTMLElement).style.display = 'none';
+      } else {
+        (totalSatsElement as HTMLElement).style.display = 'inline';
+      }
+    }
+
+    // Try to fix missing timestamps before processing
+    if (showHistorical) {
+      addMissingTimestamps();
+    }
+
+    // Set loading state if historical prices are enabled
+    if (showHistorical) {
+      setHistoricalPriceLoading(true);
+    }
+
+    try {
+      // Find all elements with sat amounts
+      const satElements = document.querySelectorAll('.total-amount, .zapperAmountSats, .zap-amount-sats');
+      
+      let processedCount = 0;
+      const totalElements = satElements.length;
+      
+      for (const element of satElements) {
+        // Store original satoshi amount if not already stored
+        if (!(element as HTMLElement).dataset.originalSats) {
+          const currentText = element.textContent || '';
+          const currentSatMatch = currentText.match(/(\d+(?:,\d{3})*)/);
+          if (currentSatMatch && currentSatMatch[1]) {
+            // Only store if it looks like a satoshi amount (not a fiat amount)
+            if (!currentText.includes('CAD') && !currentText.includes('USD') && !currentText.includes('EUR') && 
+                !currentText.includes('GBP') && !currentText.includes('JPY') && !currentText.includes('CHF') && 
+                !currentText.includes('AUD')) {
+              (element as HTMLElement).dataset.originalSats = currentText;
+            }
+          }
+        }
+        
+        // If this element has stored original satoshi data, use it for calculation
+        const originalSats = (element as HTMLElement).dataset.originalSats;
+        let satText: string;
+        if (originalSats) {
+          satText = originalSats;
+        } else {
+          satText = element.textContent || '';
+        }
+        
+        const satMatch = satText.match(/(\d+(?:,\d{3})*)/);
+        
+        if (satMatch && satMatch[1]) {
+          const sats = parseInt(satMatch[1].replace(/,/g, ''));
+          
+          // Check if this is a total amount (no timestamp needed) or individual zap amount
+          const isTotalAmount = element.classList.contains('total-amount');
+          
+          let fiatAmount: string;
+          if (isTotalAmount || !showHistorical) {
+            // For total amounts or when historical is disabled, just show current price
+            fiatAmount = satsToFiat(sats);
+          } else {
+            // For individual zap amounts, check if they're in the .zaps-list
+            const zapElement = element.closest('.zap');
+            if (zapElement) {
+              // Only apply historical prices to zaps within .zaps-list
+              const isInZapList = zapElement.closest('.zaps-list') !== null;
+              console.log(`📍 Zap element found - In .zaps-list: ${isInZapList}`);
+              
+              if (isInZapList && showHistorical) {
+                const timestampAttr = zapElement.getAttribute('data-timestamp');
+                if (timestampAttr) {
+                  const timestamp = parseInt(timestampAttr);
+                  const date = new Date(timestamp * 1000);
+                  console.log(`🕐 Zap Date: ${date.toLocaleString()} (timestamp: ${timestamp})`);
+                  console.log(`💰 Zap Amount: ${sats} sats`);
+                  
+                  fiatAmount = await satsToFiatWithHistorical(sats, timestamp);
+                  console.log(`📊 Fiat Amount Result: ${fiatAmount}`);
+                } else {
+                  console.log(`⚠️ No timestamp found for zap element:`, zapElement);
+                  console.log(`🔍 Zap element attributes:`, Array.from(zapElement.attributes).map(attr => `${attr.name}="${attr.value}"`));
+                  console.log(`🔍 Zap element dataset:`, (zapElement as HTMLElement).dataset);
+                  console.log(`🔍 Zap element classes:`, zapElement.className);
+                  fiatAmount = satsToFiat(sats);
+                }
+              } else {
+                // For zaps outside .zaps-list or when historical is disabled, show current price
+                fiatAmount = satsToFiat(sats);
+              }
+            } else {
+              fiatAmount = satsToFiat(sats);
+            }
+          }
+          
+          if (fiatAmount && element.parentElement) {
+            if (fiatOnly) {
+              // Original satoshi amount should already be stored above
+              
+              // Extract just the fiat amount without the currency span for the main display
+              const fiatAmountOnly = fiatAmount.replace(/<span class="currency-code">.*?<\/span>/g, '').trim();
+              
+              // Replace the satoshi amount with fiat amount and currency
+              const newContent = `${fiatAmountOnly} <span class="currency-code">${selectedFiatCurrency}</span>`;
+              element.innerHTML = newContent;
+              
+              // Hide any existing fiat-amount elements
+              const existingFiatElement = element.parentElement.querySelector('.fiat-amount');
+              if (existingFiatElement) {
+                (existingFiatElement as HTMLElement).style.display = 'none';
+              }
+              
+              // Hide the "sats" label element
+              const satsLabelElement = element.parentElement.querySelector('.zapperAmountLabel');
+              if (satsLabelElement) {
+                (satsLabelElement as HTMLElement).style.display = 'none';
+              }
+            } else {
+              // Add fiat amount below the satoshi amount
+              let fiatElement = element.parentElement.querySelector('.fiat-amount');
+              if (!fiatElement) {
+                fiatElement = document.createElement('div');
+                fiatElement.className = 'fiat-amount';
+                element.parentElement.appendChild(fiatElement);
+              }
+              (fiatElement as HTMLElement).style.display = 'block';
+              fiatElement.innerHTML = fiatAmount;
+              
+              // Show the "sats" label element
+              const satsLabelElement = element.parentElement.querySelector('.zapperAmountLabel');
+              if (satsLabelElement) {
+                (satsLabelElement as HTMLElement).style.display = 'inline';
+              }
+            }
+          }
+        }
+        
+        // Update progress for historical prices
+        if (showHistorical) {
+          processedCount++;
+          setHistoricalPriceLoading(true, { current: processedCount, total: totalElements });
+        }
+      }
+    } finally {
+      // Clear loading state
+      if (showHistorical) {
+        setHistoricalPriceLoading(false);
+      }
+    }
+  };
+
+  // Debounced version of updateFiatAmounts to prevent rate limiting
+  const debouncedUpdateFiatAmounts = () => {
+    if (fiatUpdateTimeout) {
+      clearTimeout(fiatUpdateTimeout);
+    }
+    
+    fiatUpdateTimeout = setTimeout(async () => {
+      if (!isUpdatingFiatAmounts) {
+        isUpdatingFiatAmounts = true;
+        try {
+          await updateFiatAmounts();
+        } finally {
+          isUpdatingFiatAmounts = false;
+        }
+      }
+    }, 500); // 500ms debounce
+  };
+
+  // Hide all fiat amounts
+  const hideFiatAmounts = () => {
+    const fiatElements = document.querySelectorAll('.fiat-amount');
+    fiatElements.forEach(element => element.remove());
+    
+    // Restore total sats display in header
+    const totalSatsElement = document.querySelector('.zaps-header-left .total-sats');
+    if (totalSatsElement) {
+      (totalSatsElement as HTMLElement).style.display = 'inline';
+    }
+    
+    // If fiat only was enabled, restore original satoshi amounts
+    const satElements = document.querySelectorAll('.total-amount, .zapperAmountSats, .zap-amount-sats');
+    satElements.forEach(element => {
+      // Check if this element has a data attribute storing the original satoshi amount
+      const originalSats = (element as HTMLElement).dataset.originalSats;
+      if (originalSats) {
+        element.textContent = originalSats;
+        (element as HTMLElement).removeAttribute('data-original-sats');
+      }
+      
+      // Also restore the "sats" label visibility
+      const satsLabelElement = element.parentElement?.querySelector('.zapperAmountLabel');
+      if (satsLabelElement) {
+        (satsLabelElement as HTMLElement).style.display = 'inline';
+      }
+    });
+  };
+
+  const restoreSatoshiAmounts = () => {
+    // Restore total sats display in header
+    const totalSatsElement = document.querySelector('.zaps-header-left .total-sats');
+    if (totalSatsElement) {
+      (totalSatsElement as HTMLElement).style.display = 'block';
+    }
+    
+    // Restore original satoshi amounts when fiat only is turned off
+    const satElements = document.querySelectorAll('.total-amount, .zapperAmountSats, .zap-amount-sats');
+    satElements.forEach(element => {
+      const originalSats = (element as HTMLElement).dataset.originalSats;
+      if (originalSats) {
+        element.textContent = originalSats;
+        (element as HTMLElement).removeAttribute('data-original-sats');
+      }
+      
+      // Also restore the "sats" label visibility
+      const satsLabelElement = element.parentElement?.querySelector('.zapperAmountLabel');
+      if (satsLabelElement) {
+        (satsLabelElement as HTMLElement).style.display = 'inline';
+      }
+    });
+  };
+
   const setupToggle = (toggleId: string, callback: (checked: boolean) => void) => {
     // Prevent duplicate setup
     if (setupToggleTracker.has(toggleId)) {
@@ -3872,6 +4527,15 @@ export const useLiveFunctionality = (eventId?: string) => {
           }
         }
 
+        // Apply saved currency selection
+        if (styles.selectedCurrency) {
+          const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
+          if (currencySelector) {
+            currencySelector.value = styles.selectedCurrency;
+            selectedFiatCurrency = styles.selectedCurrency;
+          }
+        }
+
         // Apply saved background image (check both old and new property names)
         const bgImage = styles.bgImage || styles.backgroundImage;
         if (bgImage !== undefined) {
@@ -3936,6 +4600,11 @@ export const useLiveFunctionality = (eventId?: string) => {
           'showTopZappersToggle',
           'podiumToggle',
           'zapGridToggle',
+          'sectionLabelsToggle',
+          'showFiatToggle',
+          'showHistoricalPriceToggle',
+          'showHistoricalChangeToggle',
+          'fiatOnlyToggle',
           'qrInvertToggle',
           'qrScreenBlendToggle',
           'qrMultiplyBlendToggle',
@@ -3958,6 +4627,11 @@ export const useLiveFunctionality = (eventId?: string) => {
           'showTopZappers': 'showTopZappersToggle',
           'podium': 'podiumToggle',
           'zapGrid': 'zapGridToggle',
+          'sectionLabels': 'sectionLabelsToggle',
+          'showFiat': 'showFiatToggle',
+          'showHistoricalPrice': 'showHistoricalPriceToggle',
+          'showHistoricalChange': 'showHistoricalChangeToggle',
+          'fiatOnly': 'fiatOnlyToggle',
           'lightning': 'lightningToggle'
         };
 
@@ -4013,6 +4687,93 @@ export const useLiveFunctionality = (eventId?: string) => {
                   } else {
                     zapsList.classList.remove('grid-layout');
                   }
+                }
+              },
+              sectionLabelsToggle: (checked: boolean) => {
+                const sectionLabels = document.querySelectorAll('.section-label');
+                const totalLabels = document.querySelectorAll('.total-label');
+                
+                if (checked) {
+                  // Show section labels, hide total labels
+                  sectionLabels.forEach(label => {
+                    (label as HTMLElement).style.display = 'block';
+                  });
+                  totalLabels.forEach(label => {
+                    (label as HTMLElement).style.display = 'none';
+                  });
+                  // Remove class to control zaps-header alignment
+                  document.body.classList.remove('show-total-labels');
+                } else {
+                  // Hide section labels, show total labels
+                  sectionLabels.forEach(label => {
+                    (label as HTMLElement).style.display = 'none';
+                  });
+                  totalLabels.forEach(label => {
+                    (label as HTMLElement).style.display = 'inline';
+                  });
+                  // Add class to control zaps-header alignment
+                  document.body.classList.add('show-total-labels');
+                }
+              },
+              showFiatToggle: (checked: boolean) => {
+                const currencySelectorGroup = document.getElementById('currencySelectorGroup');
+                const historicalPriceGroup = document.getElementById('historicalPriceGroup');
+                const historicalChangeGroup = document.getElementById('historicalChangeGroup');
+                const fiatOnlyGroup = document.getElementById('fiatOnlyGroup');
+                
+                if (checked) {
+                  // Show fiat amounts, currency selector, and historical price toggle
+                  document.body.classList.add('show-fiat-amounts');
+                  if (currencySelectorGroup) currencySelectorGroup.style.display = 'block';
+                  if (historicalPriceGroup) historicalPriceGroup.style.display = 'block';
+                  if (fiatOnlyGroup) fiatOnlyGroup.style.display = 'block';
+                  debouncedUpdateFiatAmounts();
+                } else {
+                  // Hide fiat amounts, currency selector, and historical price toggle
+                  document.body.classList.remove('show-fiat-amounts');
+                  if (currencySelectorGroup) currencySelectorGroup.style.display = 'none';
+                  if (historicalPriceGroup) historicalPriceGroup.style.display = 'none';
+                  if (historicalChangeGroup) historicalChangeGroup.style.display = 'none';
+                  if (fiatOnlyGroup) fiatOnlyGroup.style.display = 'none';
+                  hideFiatAmounts();
+                }
+              },
+              showHistoricalPriceToggle: (checked: boolean) => {
+                const historicalChangeGroup = document.getElementById('historicalChangeGroup');
+                
+                if (checked) {
+                  // Show historical change toggle when historical prices are enabled
+                  if (historicalChangeGroup) historicalChangeGroup.style.display = 'block';
+                } else {
+                  // Hide historical change toggle when historical prices are disabled
+                  if (historicalChangeGroup) historicalChangeGroup.style.display = 'none';
+                  // Also uncheck the historical change toggle
+                  const showHistoricalChangeToggle = document.getElementById('showHistoricalChangeToggle') as HTMLInputElement;
+                  if (showHistoricalChangeToggle) showHistoricalChangeToggle.checked = false;
+                }
+                
+                // Update fiat amounts when historical price toggle changes
+                const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+                if (showFiatToggle && showFiatToggle.checked) {
+                  debouncedUpdateFiatAmounts();
+                }
+              },
+              showHistoricalChangeToggle: (checked: boolean) => {
+                // Update fiat amounts when historical change toggle changes
+                const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+                if (showFiatToggle && showFiatToggle.checked) {
+                  debouncedUpdateFiatAmounts();
+                }
+              },
+              fiatOnlyToggle: (checked: boolean) => {
+                // Update fiat amounts when fiat only toggle changes
+                const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+                if (showFiatToggle && showFiatToggle.checked) {
+                  if (!checked) {
+                    // If fiat only is being turned off, restore satoshi amounts first
+                    restoreSatoshiAmounts();
+                  }
+                  debouncedUpdateFiatAmounts();
                 }
               },
               qrInvertToggle: (checked: boolean) => {
@@ -4125,6 +4886,23 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (opacityValue) opacityValue.textContent = `${Math.round(defaultOpacity * 100)  }%`;
       if (textOpacitySlider) textOpacitySlider.value = defaultTextOpacity.toString();
       if (textOpacityValue) textOpacityValue.textContent = `${Math.round(defaultTextOpacity * 100)  }%`;
+
+      // Set default toggle states
+      const sectionLabelsToggle = document.getElementById('sectionLabelsToggle') as HTMLInputElement;
+      if (sectionLabelsToggle) {
+        // Default state: section labels visible (toggle should be ON)
+        sectionLabelsToggle.checked = true;
+        // Apply the initial state
+        const sectionLabels = document.querySelectorAll('.section-label');
+        const totalLabels = document.querySelectorAll('.total-label');
+        sectionLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'block';
+        });
+        totalLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'none';
+        });
+        document.body.classList.remove('show-total-labels');
+      }
     }
 
     // Apply all styles after loading (with small delay to ensure DOM is ready)
@@ -4426,6 +5204,11 @@ export const useLiveFunctionality = (eventId?: string) => {
         { toggleId: 'showTopZappersToggle', propertyName: 'showTopZappers' },
         { toggleId: 'podiumToggle', propertyName: 'podium' },
         { toggleId: 'zapGridToggle', propertyName: 'zapGrid' },
+        { toggleId: 'sectionLabelsToggle', propertyName: 'sectionLabels' },
+        { toggleId: 'showFiatToggle', propertyName: 'showFiat' },
+        { toggleId: 'showHistoricalPriceToggle', propertyName: 'showHistoricalPrice' },
+        { toggleId: 'showHistoricalChangeToggle', propertyName: 'showHistoricalChange' },
+        { toggleId: 'fiatOnlyToggle', propertyName: 'fiatOnly' },
         { toggleId: 'qrInvertToggle', propertyName: 'qrInvert' },
         { toggleId: 'qrScreenBlendToggle', propertyName: 'qrScreenBlend' },
         { toggleId: 'qrMultiplyBlendToggle', propertyName: 'qrMultiplyBlend' },
@@ -4443,6 +5226,10 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
       });
 
+      // Get selected currency
+      const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
+      const selectedCurrency = currencySelector ? currencySelector.value : 'USD';
+
       const styles = {
         textColor: textColorElement.value,
         bgColor: bgColorElement.value,
@@ -4450,6 +5237,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         opacity: parseFloat(opacitySlider.value),
         partnerLogo: currentPartnerLogo,
         bgImage: currentBackgroundImage,
+        selectedCurrency: selectedCurrency,
         ...toggleStates
       };
 
@@ -4540,6 +5328,12 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Apply background color with opacity
       const rgbaColor = hexToRgba(bgColor, opacity);
       mainLayout.style.backgroundColor = rgbaColor;
+
+      // Update preset preview container background to match selected background color
+      const presetPreviewContainers = document.querySelectorAll('.preset-preview-container');
+      presetPreviewContainers.forEach(container => {
+        (container as HTMLElement).style.backgroundColor = rgbaColor;
+      });
 
       // Apply background image
       const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
