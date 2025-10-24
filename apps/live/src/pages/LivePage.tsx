@@ -498,7 +498,7 @@ export const LivePage: React.FC = () => {
               <div className="zaps-header-left">
                 <h3 className="section-label">zap stats</h3>
                 <div>
-                
+                <span className="total-label">Total</span>
                 <span id="zappedTotalValue" className="total-amount">{totalAmount}</span>
                 <span className="total-sats">sats</span>
                 <span className="zap-count-separator">•</span>
@@ -744,6 +744,15 @@ export const LivePage: React.FC = () => {
                       <span className="toggle-slider"></span>
                     </div>
                     <span>Grid Layout</span>
+                  </label>
+                </div>
+                <div className="style-option-group toggle-group">
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="sectionLabelsToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Show Section Labels</span>
                   </label>
                 </div>
               </div>
