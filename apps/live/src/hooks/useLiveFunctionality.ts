@@ -3520,6 +3520,33 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Debug log removed
       }
     });
+    setupToggle('sectionLabelsToggle', (checked: boolean) => {
+      const sectionLabels = document.querySelectorAll('.section-label');
+      const totalLabels = document.querySelectorAll('.total-label');
+      
+      if (checked) {
+        // Show section labels, hide total labels
+        sectionLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'block';
+        });
+        totalLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'none';
+        });
+        // Remove class to control zaps-header alignment
+        document.body.classList.remove('show-total-labels');
+      } else {
+        // Hide section labels, show total labels
+        sectionLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'none';
+        });
+        totalLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'inline';
+        });
+        // Add class to control zaps-header alignment
+        document.body.classList.add('show-total-labels');
+      }
+    });
+
     setupToggle('lightningToggle', async (checked: boolean) => {
       // Skip Lightning calls during preset application
       if (isApplyingPreset) {
@@ -3936,6 +3963,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           'showTopZappersToggle',
           'podiumToggle',
           'zapGridToggle',
+          'sectionLabelsToggle',
           'qrInvertToggle',
           'qrScreenBlendToggle',
           'qrMultiplyBlendToggle',
@@ -3958,6 +3986,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           'showTopZappers': 'showTopZappersToggle',
           'podium': 'podiumToggle',
           'zapGrid': 'zapGridToggle',
+          'sectionLabels': 'sectionLabelsToggle',
           'lightning': 'lightningToggle'
         };
 
@@ -4013,6 +4042,32 @@ export const useLiveFunctionality = (eventId?: string) => {
                   } else {
                     zapsList.classList.remove('grid-layout');
                   }
+                }
+              },
+              sectionLabelsToggle: (checked: boolean) => {
+                const sectionLabels = document.querySelectorAll('.section-label');
+                const totalLabels = document.querySelectorAll('.total-label');
+                
+                if (checked) {
+                  // Show section labels, hide total labels
+                  sectionLabels.forEach(label => {
+                    (label as HTMLElement).style.display = 'block';
+                  });
+                  totalLabels.forEach(label => {
+                    (label as HTMLElement).style.display = 'none';
+                  });
+                  // Remove class to control zaps-header alignment
+                  document.body.classList.remove('show-total-labels');
+                } else {
+                  // Hide section labels, show total labels
+                  sectionLabels.forEach(label => {
+                    (label as HTMLElement).style.display = 'none';
+                  });
+                  totalLabels.forEach(label => {
+                    (label as HTMLElement).style.display = 'inline';
+                  });
+                  // Add class to control zaps-header alignment
+                  document.body.classList.add('show-total-labels');
                 }
               },
               qrInvertToggle: (checked: boolean) => {
@@ -4125,6 +4180,23 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (opacityValue) opacityValue.textContent = `${Math.round(defaultOpacity * 100)  }%`;
       if (textOpacitySlider) textOpacitySlider.value = defaultTextOpacity.toString();
       if (textOpacityValue) textOpacityValue.textContent = `${Math.round(defaultTextOpacity * 100)  }%`;
+
+      // Set default toggle states
+      const sectionLabelsToggle = document.getElementById('sectionLabelsToggle') as HTMLInputElement;
+      if (sectionLabelsToggle) {
+        // Default state: section labels visible (toggle should be ON)
+        sectionLabelsToggle.checked = true;
+        // Apply the initial state
+        const sectionLabels = document.querySelectorAll('.section-label');
+        const totalLabels = document.querySelectorAll('.total-label');
+        sectionLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'block';
+        });
+        totalLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'none';
+        });
+        document.body.classList.remove('show-total-labels');
+      }
     }
 
     // Apply all styles after loading (with small delay to ensure DOM is ready)
@@ -4426,6 +4498,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         { toggleId: 'showTopZappersToggle', propertyName: 'showTopZappers' },
         { toggleId: 'podiumToggle', propertyName: 'podium' },
         { toggleId: 'zapGridToggle', propertyName: 'zapGrid' },
+        { toggleId: 'sectionLabelsToggle', propertyName: 'sectionLabels' },
         { toggleId: 'qrInvertToggle', propertyName: 'qrInvert' },
         { toggleId: 'qrScreenBlendToggle', propertyName: 'qrScreenBlend' },
         { toggleId: 'qrMultiplyBlendToggle', propertyName: 'qrMultiplyBlend' },

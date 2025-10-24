@@ -1228,8 +1228,21 @@ body.qr-blend-active.qr-multiply-active .qr-swiper canvas {
   padding: 30px 30px 20px 30px;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 5vw;
+}
+
+/* Section Labels Toggle States */
+/* When section labels are visible (toggle OFF) */
+.main-layout .zaps-header,
+.live .zaps-header {
+  align-items: flex-start;
+}
+
+/* When section labels are hidden (toggle ON) */
+.main-layout.show-total-labels .zaps-header,
+.live.show-total-labels .zaps-header {
+  align-items: flex-end;
 }
 
 .zaps-header-left {
@@ -1251,6 +1264,8 @@ body.qr-blend-active.qr-multiply-active .qr-swiper canvas {
 .total-label {
   font-size: max(1.2vw, 14px);
   color: var(--text-color);
+  display: none;
+  padding-right: .5vw;
 }
 
 .total-amount {
