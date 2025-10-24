@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useLiveFunctionality } from '@live/hooks/useLiveFunctionality';
-import '../styles/live.css';
+// Temporarily disabled for CSS debugging - import '../styles/live.css';
 import { nip19 } from 'nostr-tools';
 
 export const LivePage: React.FC = () => {
