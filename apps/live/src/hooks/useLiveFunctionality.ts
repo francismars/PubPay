@@ -4541,6 +4541,12 @@ export const useLiveFunctionality = (eventId?: string) => {
       const rgbaColor = hexToRgba(bgColor, opacity);
       mainLayout.style.backgroundColor = rgbaColor;
 
+      // Update preset preview container background to match selected background color
+      const presetPreviewContainers = document.querySelectorAll('.preset-preview-container');
+      presetPreviewContainers.forEach(container => {
+        (container as HTMLElement).style.backgroundColor = rgbaColor;
+      });
+
       // Apply background image
       const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
       // Debug log removed
