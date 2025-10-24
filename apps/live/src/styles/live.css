@@ -907,6 +907,10 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.9;
+  display: block;
+  width: 100%;
+  text-align: justify;
+  opacity: .5;
 }
 
 /* Author Section */
@@ -1224,13 +1228,17 @@ body.qr-blend-active.qr-multiply-active .qr-swiper canvas {
   padding: 30px 30px 20px 30px;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 5vw;
 }
 
 .zaps-header-left {
   display: flex;
   align-items: baseline;
   gap: 8px;
+  flex-direction: column;
+  width: 100%;
+  font-size: max(1vw, 12px);
 }
 
 .zaps-header-left h2 {
@@ -1254,6 +1262,7 @@ body.qr-blend-active.qr-multiply-active .qr-swiper canvas {
 .total-sats {
   font-size: max(1vw, 12px);
   color: var(--text-color);
+  opacity: .6;
 }
 
 .zap-count-separator {
@@ -1269,8 +1278,10 @@ body.qr-blend-active.qr-multiply-active .qr-swiper canvas {
 }
 
 .total-zaps {
-  font-size: 0.9rem;
+  font-size: max(1vw, 12px);
   color: var(--text-color);
+  padding: 0 0.5vw;
+  opacity: .6;
 }
 
 .zaps-header-right {
@@ -3676,6 +3687,7 @@ body.flex-direction-invert .live .right-side {
   font-size: 3vw;
   line-height: 1.5vw;
   color: var(--text-color);
+  padding: 0 0.5vw 0 0;
 }
 
 /* Live-specific color overrides for zap header elements - match legacy black colors */
