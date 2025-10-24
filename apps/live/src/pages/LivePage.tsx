@@ -495,7 +495,7 @@ export const LivePage: React.FC = () => {
           <div className="right-side">
             <div className="zaps-header">
               <div className="zaps-header-left">
-                <span className="total-label">Total:</span>
+                <span className="total-label">Total</span>
                 <span id="zappedTotalValue" className="total-amount">{totalAmount}</span>
                 <span className="total-sats">sats</span>
                 <span className="zap-count-separator">•</span>
