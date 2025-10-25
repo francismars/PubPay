@@ -457,32 +457,32 @@ export const LivePage: React.FC = () => {
                 <div className="swiper qr-swiper">
                   <div className="swiper-wrapper">
                     <div className="swiper-slide">
-                      <div className="qr-slide-title">Web <span className="qr-data-preview" id="qrDataPreview1"></span></div>
                       <a href="" target="_blank" id="qrcodeLinkNostr">
                         <img id="qrCode" className="qr-code" />
                       </a>
+                      <div className="qr-slide-title">Web <span className="qr-data-preview" id="qrDataPreview1"></span></div>
                       <div className="qr-slide-label">Scan with Camera APP</div>
                     </div>
                     <div className="swiper-slide">
-                      <div className="qr-slide-title">Nostr <span className="qr-data-preview" id="qrDataPreview2"></span></div>
                       <a href="" target="_blank" id="qrcodeNeventLink">
                         <img id="qrCodeNevent" className="qr-code" />
                       </a>
+                      <div className="qr-slide-title">Nostr <span className="qr-data-preview" id="qrDataPreview2"></span></div>
                       <div className="qr-slide-label">Scan with Nostr client</div>
                     </div>
                     <div className="swiper-slide">
-                      <div className="qr-slide-title">Nostr <span className="qr-data-preview" id="qrDataPreview3"></span></div>
                       <a href="" target="_blank" id="qrcodeNoteLink">
                         <img id="qrCodeNote" className="qr-code" />
                       </a>
+                      <div className="qr-slide-title">Nostr <span className="qr-data-preview" id="qrDataPreview3"></span></div>
                       <div className="qr-slide-label">Scan with Nostr client</div>
                     </div>
                     {/* Lightning Payment QR Slide */}
                     <div className="swiper-slide lightning-qr-slide" id="lightningQRSlide" style={{display: 'none'}}>
-                      <div className="qr-slide-title">Lightning <span className="qr-data-preview" id="qrDataPreview4"></span></div>
                       <a href="" target="_blank" id="lightningQRLink">
                         <div id="lightningQRCode" className="qr-code"></div>
                       </a>
+                      <div className="qr-slide-title">Lightning <span className="qr-data-preview" id="qrDataPreview4"></span></div>
                       <div className="qr-slide-label">Scan with Lightning Wallet</div>
                     </div>
                   </div>
@@ -666,7 +666,7 @@ export const LivePage: React.FC = () => {
                     </div>
                   </div>
                   <div className="preset-preview-container">
-                    <img id="bgPresetPreview" src="" alt="No background" />
+                    <img id="bgPresetPreview" alt="No background" />
                   </div>
                 </div>
               </div>
@@ -775,6 +775,9 @@ export const LivePage: React.FC = () => {
                     <option value="AUD">AUD</option>
                     <option value="JPY">JPY</option>
                   </select>
+                  <div id="priceUpdateIndicator" style={{display: 'none', fontSize: '0.8em', color: '#666', marginTop: '5px'}}>
+                    Updating prices...
+                  </div>
                 </div>
                 <div className="style-option-group toggle-group" id="historicalPriceGroup" style={{display: 'none'}}>
                   <label className="toggle-label">

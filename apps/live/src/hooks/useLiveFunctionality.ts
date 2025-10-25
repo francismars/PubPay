@@ -46,6 +46,7 @@ export const useLiveFunctionality = (eventId?: string) => {
   const [totalZaps, setTotalZaps] = useState<number>(0);
   const [totalAmount, setTotalAmount] = useState<number>(0);
 
+
   // Top zappers state
   const [topZappers, setTopZappers] = useState<any[]>([]);
 
@@ -97,7 +98,6 @@ export const useLiveFunctionality = (eventId?: string) => {
         setIsLoading(true);
         setError(null);
 
-        console.log('🚀 Starting Live functionality initialization...');
 
         // Initialize Lightning service with proper configuration
         lightningService.current = new UseLightning({ 
@@ -109,11 +109,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (lightningService.current) {
           // Note: The LightningService will use the backend API endpoints
           // The actual LNBits configuration is handled by the backend
-          console.log('✅ Lightning service initialized for event:', eventId);
         }
 
         // Initialize Nostr pool and relays
-        console.log('🔗 Initializing Nostr pool and relays...');
         (window as any).pool = new SimplePool();
         (window as any).relays = [
           'wss://relay.damus.io',
@@ -121,7 +119,6 @@ export const useLiveFunctionality = (eventId?: string) => {
           'wss://nos.lol',
           'wss://relay.nostr.band'
         ];
-        console.log('✅ Nostr pool initialized with relays:', (window as any).relays);
 
         // Initialize portrait swiper
         if (typeof window !== 'undefined' && (window as any).Swiper) {
@@ -176,13 +173,11 @@ export const useLiveFunctionality = (eventId?: string) => {
 
         // Load note content if eventId is provided
         if (eventId) {
-          console.log('📝 Loading note content for eventId:', eventId);
           // Legacy-style guard: strip prefix and validate first; if invalid, show error and abort
           try {
             const cleanId = stripNostrPrefix(eventId);
             validateNoteId(cleanId);
           } catch (err) {
-            console.error('❌ Note ID validation failed before load:', err);
             // Legacy-style messages based on prefix
             const cleanId = stripNostrPrefix(eventId);
             let msg = err instanceof Error ? err.message : 'Invalid nostr identifier format. Please check the note ID and try again.';
@@ -220,21 +215,26 @@ export const useLiveFunctionality = (eventId?: string) => {
           }
           await loadNoteContent(eventId);
         } else {
-          console.log('🔧 No eventId provided, initializing QR code placeholders...');
           // If no eventId, still initialize QR codes with placeholder content
           await initializeQRCodePlaceholders();
         }
 
         // Load initial styles and setup event listeners on page load
         setTimeout(() => {
-          loadInitialStyles();
-
           // Prevent original JavaScript from setting up duplicate event listeners
           (window as any).setupStyleOptions = () => {
             // Original setupStyleOptions disabled - using React hook instead
           };
 
-          setupStyleOptions();
+          // Load initial styles first with a delay to ensure DOM is ready
+          setTimeout(() => {
+            loadInitialStyles();
+          }, 100);
+
+          // Setup style options after styles are loaded to prevent event listeners from overriding
+          setTimeout(() => {
+            setupStyleOptions();
+          }, 200);
 
           // Setup note loader event listeners with a delay to ensure DOM is ready
           setTimeout(() => {
@@ -264,7 +264,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       // No eventId, setting up note loader only
 
       // Initialize Nostr pool and relays for note loader
-      console.log('🔗 Initializing Nostr pool for note loader...');
       (window as any).pool = new SimplePool();
       (window as any).relays = [
         'wss://relay.damus.io',
@@ -273,7 +272,6 @@ export const useLiveFunctionality = (eventId?: string) => {
         'wss://relay.primal.net',
         'wss://relay.nostr.band'
       ];
-      console.log('✅ Nostr pool initialized for note loader with relays:', (window as any).relays);
 
       // Initialize portrait swiper for note loader (with delay to ensure DOM is ready)
       setTimeout(() => {
@@ -373,19 +371,15 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Check if Lightning QR slide already exists
     let lightningSlide = document.getElementById('lightningQRSlide');
     if (lightningSlide) {
-      console.log('🔄 Updating existing Lightning QR slide');
-      console.log('🔍 Lightning slide HTML:', lightningSlide.innerHTML);
       
       // Update existing QR code
       const qrElement = lightningSlide.querySelector('#lightningQRCode');
-      console.log('🔍 QR element found:', !!qrElement, 'QRious available:', !!QRious);
       
       if (qrElement && QRious) {
         qrElement.innerHTML = '';
         try {
           // Calculate QR size to match other QR codes
           const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
-          console.log('🔍 Creating QRious instance with:', { element: qrElement, size: qrSize, value: lnurl });
           
           // Try creating a canvas element explicitly with proper styling
           const canvas = document.createElement('canvas');
@@ -398,18 +392,11 @@ export const useLiveFunctionality = (eventId?: string) => {
             value: lnurl
           });
           
-          console.log('🔍 QRious instance created:', qrInstance);
-          console.log('✅ Lightning QR code updated successfully');
-          console.log('🔍 QR element after update:', qrElement.innerHTML);
-          console.log('🔍 QR element children:', qrElement.children.length);
-          console.log('🔍 Canvas element:', canvas);
-          console.log('🔍 Canvas width/height:', canvas.width, canvas.height);
           
           // Set the Lightning QR link href (same as legacy implementation)
           const lightningQRLink = document.getElementById('lightningQRLink') as HTMLAnchorElement;
           if (lightningQRLink) {
             lightningQRLink.href = `lightning:${lnurl}`;
-            console.log('🔗 Lightning QR link set to:', lightningQRLink.href);
           }
           
           // Apply blend mode after Lightning QR code is updated
@@ -418,7 +405,6 @@ export const useLiveFunctionality = (eventId?: string) => {
           console.error('❌ Error updating QR code:', error);
         }
       } else {
-        console.log('🔧 QR element missing, recreating slide structure');
         // Recreate the slide structure if QR element is missing
         lightningSlide.innerHTML = `
           <div class="qr-slide-title">Lightning <span class="qr-data-preview" id="qrDataPreview4"></span></div>
@@ -436,7 +422,6 @@ export const useLiveFunctionality = (eventId?: string) => {
             size: 200,
             value: lnurl
           });
-          console.log('✅ Lightning QR code created after structure fix');
           updateBlendMode();
         } else {
           console.error('❌ Still unable to create QR code after structure fix');
@@ -448,7 +433,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Use the existing hardcoded Lightning QR slide from HTML
     lightningSlide = document.getElementById('lightningQRSlide');
     if (lightningSlide) {
-      console.log('✅ Using existing Lightning QR slide from HTML');
       
       // Update the existing slide structure to match the HTML format
       lightningSlide.innerHTML = `
@@ -461,7 +445,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       
       // Make sure it's visible
       lightningSlide.style.display = 'block';
-      console.log('✅ Lightning QR slide made visible');
     } else {
       console.error('❌ Lightning QR slide not found in HTML');
       return;
@@ -469,11 +452,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Generate QR code
     if (QRious) {
-      console.log('🔄 Creating new Lightning QR code');
-      console.log('🔍 LNURL to encode:', lnurl);
       const qrElement = document.getElementById('lightningQRCode');
-      console.log('🔍 New QR element found:', !!qrElement);
-      console.log('🔍 QR element:', qrElement);
       
       if (qrElement) {
         // Clear any existing content
@@ -482,7 +461,6 @@ export const useLiveFunctionality = (eventId?: string) => {
         try {
           // Calculate QR size to match other QR codes
           const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
-          console.log('🔍 Creating QRious instance with:', { element: qrElement, size: qrSize, value: lnurl });
           
           // Try creating a canvas element explicitly with proper styling
           const canvas = document.createElement('canvas');
@@ -494,26 +472,18 @@ export const useLiveFunctionality = (eventId?: string) => {
             size: qrSize,
             value: lnurl
           });
-          console.log('🔍 QRious instance created:', qrInstance);
           
-          console.log('✅ New Lightning QR code created successfully');
-          console.log('🔍 QR element after creation:', qrElement.innerHTML);
-          console.log('🔍 QR element children:', qrElement.children.length);
-          console.log('🔍 Canvas element:', canvas);
-          console.log('🔍 Canvas width/height:', canvas.width, canvas.height);
           
           // Set the Lightning QR link href (same as legacy implementation)
           const lightningQRLink = document.getElementById('lightningQRLink') as HTMLAnchorElement;
           if (lightningQRLink) {
             lightningQRLink.href = `lightning:${lnurl}`;
-            console.log('🔗 Lightning QR link set to:', lightningQRLink.href);
           }
           
           // Force the QR swiper to be visible after QR creation
           const qrSwiper = document.querySelector('.qr-swiper') as HTMLElement;
           if (qrSwiper) {
             qrSwiper.style.display = 'block';
-            console.log('✅ QR swiper forced to visible after QR creation');
           }
           
           updateBlendMode();
@@ -714,10 +684,11 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const displayLiveEvent = (liveEvent: any) => {
-    // Debug log removed
+    console.log('📺 Displaying live event:', liveEvent);
 
     // Check if this live event is already displayed to avoid clearing content
     if ((window as any).currentLiveEvent && (window as any).currentLiveEvent.id === liveEvent.id) {
+      console.log('📺 Live event already displayed, skipping...');
       return;
     }
 
@@ -741,6 +712,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     const summary = liveEvent.tags.find((tag: any) => tag[0] === 'summary')?.[1] || '';
     const status = liveEvent.tags.find((tag: any) => tag[0] === 'status')?.[1] || 'unknown';
     const streaming = liveEvent.tags.find((tag: any) => tag[0] === 'streaming')?.[1];
+    console.log('📺 Streaming URL found:', streaming);
     const recording = liveEvent.tags.find((tag: any) => tag[0] === 'recording')?.[1];
     const starts = liveEvent.tags.find((tag: any) => tag[0] === 'starts')?.[1];
     const ends = liveEvent.tags.find((tag: any) => tag[0] === 'ends')?.[1];
@@ -767,8 +739,6 @@ export const useLiveFunctionality = (eventId?: string) => {
                 <div class="live-event-video">
                     <div id="live-video-player" class="video-player-container">
                         <video id="live-video" controls autoplay muted playsinline class="live-video">
-                            <source src="${streaming}" type="application/x-mpegURL">
-                            <source src="${streaming}" type="video/mp4">
                             Your browser does not support the video tag.
                         </video>
                         <div class="video-error" id="video-error" style="display: none;">
@@ -971,8 +941,20 @@ export const useLiveFunctionality = (eventId?: string) => {
       } catch (parseError) {
         return;
       }
-      const bolt11 = zapReceipt.tags.find((tag: any) => tag[0] === 'bolt11')[1];
-      const amount = bolt11.decode(bolt11).satoshis;
+      const bolt11Tag = zapReceipt.tags.find((tag: any) => tag[0] === 'bolt11');
+      if (!bolt11Tag) {
+        return;
+      }
+      
+      let amount = 0;
+      try {
+        // Use the global lightningPayReq if available (browser environment), otherwise use imported bolt11
+        const bolt11Decoder = (window as any).lightningPayReq || bolt11;
+        const decoded = bolt11Decoder.decode(bolt11Tag[1] || '');
+        amount = decoded.satoshis || 0;
+      } catch (error) {
+        return;
+      }
       const zapperPubkey = zapRequest.pubkey;
       const zapContent = zapRequest.content || '';
 
@@ -983,7 +965,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         content: zapContent,
         pubkey: zapperPubkey,
         timestamp: zapReceipt.created_at,
-        bolt11,
+        bolt11: bolt11Tag[1],
         zapEventID: nip19.noteEncode(zapReceipt.id)
       };
 
@@ -1035,7 +1017,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Add timestamp data attribute for historical price lookup
     if (zapData.timestamp) {
       zapDiv.setAttribute('data-timestamp', zapData.timestamp.toString());
-      console.log(`✅ Setting timestamp for live event zap: ${zapData.timestamp} (${new Date(zapData.timestamp * 1000).toLocaleString()})`);
     } else {
       console.log(`⚠️ No timestamp found in live event zap data:`, zapData);
     }
@@ -1052,7 +1033,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                 <div class="zap-time">${timeStr}</div>
             </div>
             <div class="zap-amount">
-                <span class="zap-amount-sats">${numberWithCommas(zapData.amount)}</span>
+                <span class="zap-amount-sats" data-original-sats="${numberWithCommas(zapData.amount)}">${numberWithCommas(zapData.amount)}</span>
                 <span class="zap-amount-label">sats</span>
             </div>
         </div>
@@ -1097,9 +1078,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Add timestamp data attribute for historical price lookup
       if (zapData.timestamp) {
         zapOnlyDiv.setAttribute('data-timestamp', zapData.timestamp.toString());
-        console.log(`✅ Setting timestamp for zap-only item: ${zapData.timestamp} (${new Date(zapData.timestamp * 1000).toLocaleString()})`);
       } else {
-        console.log(`⚠️ No timestamp found in zap-only data:`, zapData);
       }
 
       // Classic zap layout for left column
@@ -1115,7 +1094,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             </div>
             <div class="zapperAmount">
                 <div class="zapperAmountValue">
-                  <span class="zapperAmountSats">${numberWithCommas(zapData.amount)}</span>
+                  <span class="zapperAmountSats" data-original-sats="${numberWithCommas(zapData.amount)}">${numberWithCommas(zapData.amount)}</span>
                   <span class="zapperAmountLabel">sats</span>
                 </div>
             </div>
@@ -1142,6 +1121,15 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Update total zapped amount
     updateLiveEventZapTotal();
+    
+    // Apply fiat conversion if enabled
+    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+    if (showFiatToggle && showFiatToggle.checked) {
+      // Use setTimeout to ensure DOM is updated before applying fiat conversion
+      setTimeout(() => {
+        debouncedUpdateFiatAmounts();
+      }, 100);
+    }
   };
 
   const subscribeChatAuthorProfile = async (pubkey: string) => {
@@ -1179,9 +1167,20 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     if (totalValueElement) {
       totalValueElement.innerText = numberWithCommas(totalAmount);
+      // Store the original sats amount for fiat conversion
+      (totalValueElement as HTMLElement).dataset.originalSats = numberWithCommas(totalAmount);
     }
     if (totalCountElement) {
       totalCountElement.innerText = numberWithCommas(totalCount);
+    }
+    
+    // Apply fiat conversion to total if enabled
+    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+    if (showFiatToggle && showFiatToggle.checked) {
+      // Use setTimeout to ensure DOM is updated before applying fiat conversion
+      setTimeout(() => {
+        debouncedUpdateFiatAmounts();
+      }, 50);
     }
   };
 
@@ -1419,6 +1418,11 @@ export const useLiveFunctionality = (eventId?: string) => {
     if ((window as any).contentMonitorInterval) {
       clearInterval((window as any).contentMonitorInterval);
     }
+    
+    // Clear any existing price update interval
+    if ((window as any).bitcoinPriceUpdateInterval) {
+      clearInterval((window as any).bitcoinPriceUpdateInterval);
+    }
 
     (window as any).contentMonitorInterval = setInterval(() => {
       const noteContent = document.querySelector('.note-content');
@@ -1428,7 +1432,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       if ((window as any).currentEventType === 'live-event') {
         if (!liveEventContent) {
-          console.warn('Live event content disappeared! Attempting to restore...');
           // Try to restore if we have the current live event info
           if ((window as any).currentLiveEvent && (window as any).currentLiveEventInfo) {
             // Debug log removed
@@ -1437,7 +1440,6 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
 
         if (!twoColumnLayout && zapsContainer && !zapsContainer.classList.contains('loading')) {
-          console.warn('Two-column layout disappeared! Attempting to restore...');
           setupLiveEventTwoColumnLayout();
         }
       }
@@ -1445,32 +1447,191 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const initializeLiveVideoPlayer = (streamingUrl: string) => {
-    // Debug log removed
+    console.log('🎥 Initializing video player with URL:', streamingUrl);
 
     const video = document.getElementById('live-video') as HTMLVideoElement;
-    if (!video) return;
+    const videoError = document.getElementById('video-error');
+    
+    if (!video) {
+      console.error('❌ Video element not found!');
+      return;
+    }
+    console.log('✅ Video element found:', video);
 
-    // Set up video error handling
+    // Store player state for recovery
+    let lastVolume = video.volume || 0.8;
+    let wasMuted = video.muted || false;
+    let wasPlaying = false;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 10;
+    let hlsInstance: any = null;
+
+    // Preserve volume and mute state
+    const preserveAudioState = () => {
+      if (!wasMuted && video.muted) {
+        video.muted = false;
+      }
+      if (lastVolume > 0 && video.volume !== lastVolume) {
+        video.volume = lastVolume;
+      }
+    };
+    
+    // Save current audio state
+    const saveAudioState = () => {
+      lastVolume = video.volume;
+      wasMuted = video.muted;
+      wasPlaying = !video.paused;
+    };
+
+    // Show error function
+    const showError = () => {
+      if (video) video.style.display = 'none';
+      if (videoError) videoError.style.display = 'block';
+    };
+
+    // Hide error function
+    const hideError = () => {
+      if (video) video.style.display = 'block';
+      if (videoError) videoError.style.display = 'none';
+    };
+
+    // Reconnect function
+    const attemptReconnect = () => {
+      if (reconnectAttempts >= maxReconnectAttempts) {
+        console.error('❌ Max reconnection attempts reached');
+        showError();
+        return;
+      }
+      
+      reconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 30000);
+      console.log(`🔄 Attempting reconnection ${reconnectAttempts}/${maxReconnectAttempts} in ${delay}ms`);
+      
+      setTimeout(() => {
+        initializeStream();
+      }, delay);
+    };
+
+    // Initialize stream function
+    const initializeStream = () => {
+      console.log('🎥 Initializing stream...');
+      
+      // Handle different streaming formats
+      if (streamingUrl.includes('.m3u8') || streamingUrl.includes('hls')) {
+        // HLS stream - try to use HLS.js if available
+        if (typeof (window as any).Hls !== 'undefined' && (window as any).Hls.isSupported()) {
+          console.log('🎥 Using HLS.js for HLS stream');
+          hlsInstance = new (window as any).Hls({
+            enableWorker: true,
+            lowLatencyMode: false,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 5
+          });
+          
+          hlsInstance.loadSource(streamingUrl);
+          hlsInstance.attachMedia(video);
+          
+          hlsInstance.on((window as any).Hls.Events.MANIFEST_PARSED, () => {
+            console.log('✅ HLS manifest parsed');
+            reconnectAttempts = 0;
+            hideError();
+            video.play().then(() => {
+              preserveAudioState();
+            }).catch(e => {
+              preserveAudioState();
+            });
+          });
+          
+          hlsInstance.on((window as any).Hls.Events.ERROR, (event: any, data: any) => {
+            console.error('❌ HLS error:', data);
+            if (data.fatal) {
+              attemptReconnect();
+            }
+          });
+          
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          // Native HLS support (Safari)
+          console.log('🎥 Using native HLS support');
+          video.src = streamingUrl;
+          video.play().then(() => {
+            console.log('✅ Native HLS stream started');
+            reconnectAttempts = 0;
+            hideError();
+            preserveAudioState();
+          }).catch(e => {
+            console.error('❌ Native HLS play failed:', e);
+            preserveAudioState();
+            attemptReconnect();
+          });
+        } else {
+          console.error('❌ HLS not supported');
+          showError();
+        }
+      } else {
+        // Regular video formats (MP4, WebM, etc.)
+        console.log('🎥 Using regular video format');
+        video.src = streamingUrl;
+        video.play().then(() => {
+          console.log('✅ Regular video stream started');
+          reconnectAttempts = 0;
+          hideError();
+          preserveAudioState();
+        }).catch(e => {
+          console.error('❌ Regular video play failed:', e);
+          preserveAudioState();
+          attemptReconnect();
+        });
+      }
+    };
+
+    // Enhanced video event handlers
     video.addEventListener('error', (e) => {
-      console.error('Video error:', e);
-      const videoError = document.getElementById('video-error');
-      if (videoError) {
-        videoError.style.display = 'block';
-      }
+      console.error('❌ Video error:', e);
+      saveAudioState();
+      attemptReconnect();
+    });
+    
+    video.addEventListener('loadstart', () => {
+      console.log('🎥 Video load started');
+    });
+    
+    video.addEventListener('canplay', () => {
+      console.log('✅ Video can play');
+      hideError();
+      preserveAudioState();
+    });
+    
+    video.addEventListener('play', () => {
+      wasPlaying = true;
+      preserveAudioState();
+    });
+    
+    video.addEventListener('pause', () => {
+      wasPlaying = false;
+      saveAudioState();
+    });
+    
+    video.addEventListener('volumechange', () => {
+      saveAudioState();
+    });
+    
+    video.addEventListener('stalled', () => {
+      saveAudioState();
+      setTimeout(() => {
+        if (video.readyState < 3 && wasPlaying) {
+          attemptReconnect();
+        }
+      }, 5000);
+    });
+    
+    video.addEventListener('waiting', () => {
+      saveAudioState();
     });
 
-    // Set up video load handling
-    video.addEventListener('loadeddata', () => {
-      // Debug log removed
-      const videoError = document.getElementById('video-error');
-      if (videoError) {
-        videoError.style.display = 'none';
-      }
-    });
-
-    // Set video source
-    video.src = streamingUrl;
-    video.load();
+    // Start initial stream
+    initializeStream();
   };
 
   const generateQRCode = (elementId: string, value: string, size: number) => {
@@ -1541,15 +1702,13 @@ export const useLiveFunctionality = (eventId?: string) => {
       updateQRPreviews(njumpUrl, nostrNaddr, naddrId);
 
     } catch (error) {
-      console.error('Error generating QR codes for live event:', error);
     }
 
     // Apply blend mode after QR codes are generated
-    updateBlendMode();
+    // REMOVED: updateBlendMode() should be called after styles are loaded, not during QR generation
   };
 
   const loadNoteContent = async (noteId: string) => {
-    console.log('🔍 loadNoteContent called with noteId:', noteId);
     try {
       // Re-enable grid toggle for regular notes (not live events)
       enableGridToggle();
@@ -1560,17 +1719,13 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Strip nostr: protocol prefix if present before validation
       const originalNoteId = noteId;
       noteId = stripNostrPrefix(noteId);
-      console.log('🧹 Stripped noteId:', noteId);
 
       // Validate the note ID after stripping prefix
       try {
-        console.log('✅ Validating note ID...');
         validateNoteId(noteId);
         // Clear any previous error message
         hideNoteLoaderError();
-        console.log('✅ Note ID validation passed');
       } catch (error) {
-        console.error('❌ Note ID validation failed:', error);
         showNoteLoaderError(error instanceof Error ? error.message : 'Unknown error');
         return;
       }
@@ -1831,7 +1986,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     const styles = {
       textColor: toHexColor((mainLayout as HTMLElement).style.getPropertyValue('--text-color') || DEFAULT_STYLES.textColor),
-      bgColor: toHexColor((mainLayout as HTMLElement).style.backgroundColor),
+      bgColor: toHexColor((mainLayout as HTMLElement).style.backgroundColor || DEFAULT_STYLES.bgColor),
       bgImage: (document.getElementById('bgImageUrl') as HTMLInputElement)?.value || '',
       qrInvert: (document.getElementById('qrInvertToggle') as HTMLInputElement)?.checked || false,
       qrScreenBlend: (document.getElementById('qrScreenBlendToggle') as HTMLInputElement)?.checked || false,
@@ -2253,7 +2408,6 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
 
       } catch (e) {
-        console.error('Error parsing saved styles:', e);
       }
     } else {
     }
@@ -2271,7 +2425,6 @@ export const useLiveFunctionality = (eventId?: string) => {
         }, 2000);
       }
     }).catch(err => {
-      console.error('Failed to copy URL:', err);
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
       textArea.value = urlToCopy;
@@ -2296,32 +2449,26 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const subscribeKind1 = async (kind1ID: string) => {
-    console.log('📡 subscribeKind1 called with kind1ID:', kind1ID);
     
     // Reset zap list when starting a new note/event (like legacy)
     resetZapList();
     
     if (!(window as any).pool || !(window as any).relays) {
-      console.error('❌ Nostr pool or relays not available');
       return;
     }
 
     // Validate kind1ID format (should be 64-character hex string)
     if (!kind1ID || typeof kind1ID !== 'string' || kind1ID.length !== 64 || !/^[0-9a-fA-F]+$/.test(kind1ID)) {
-      console.error('❌ Invalid kind1ID format:', kind1ID);
       return;
     }
 
     const pool = (window as any).pool;
     const relays = (window as any).relays;
-    console.log('🔗 Using pool and relays:', relays);
 
     const filter = { ids: [kind1ID] };
-    console.log('🔍 Subscribing with filter:', filter);
 
     // Add a timeout to prevent immediate EOS
     const timeoutId = setTimeout(() => {
-      console.log('⏰ Subscription timeout reached');
     }, 10000);
 
     // Try using pool.subscribe instead of pool.subscribe
@@ -2331,23 +2478,19 @@ export const useLiveFunctionality = (eventId?: string) => {
       {
         async onevent(kind1: any) {
           clearTimeout(timeoutId);
-          console.log('📨 Received kind1 event:', kind1);
           await drawKind1(kind1);
           await subscribeKind0fromKind1(kind1);
           await subscribeKind9735fromKind1(kind1);
         },
         oneose() {
           clearTimeout(timeoutId);
-          console.log('🏁 End of stream reached');
         },
         onclosed() {
           clearTimeout(timeoutId);
-          console.log('🔒 Subscription closed');
         }
       }
     );
     
-    console.log('📡 Subscription created:', sub);
   };
 
   const subscribeKind0fromKind1 = async (kind1: any) => {
@@ -2361,7 +2504,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Don't subscribe if no valid pubkey
     if (!kind0key || typeof kind0key !== 'string' || kind0key.length !== 64) {
-      console.warn('Invalid pubkey for profile subscription:', kind0key);
       return;
     }
 
@@ -2398,7 +2540,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Don't subscribe if no valid kind1id
     if (!kind1id || typeof kind1id !== 'string' || kind1id.length !== 64) {
-      console.warn('Invalid kind1id for zap subscription:', kind1id);
       return;
     }
     let isFirstStream = true;
@@ -2545,7 +2686,6 @@ export const useLiveFunctionality = (eventId?: string) => {
         const decodedBolt11 = bolt11?.decode(bolt119735);
         amount9735 = decodedBolt11?.satoshis || 0;
       } catch (error) {
-        console.warn('Failed to decode bolt11 invoice:', bolt119735, error);
         // Skip this zap if we can't decode the invoice
         continue;
       }
@@ -2600,7 +2740,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Store zap data globally for timestamp lookup
     (window as any).zaps = json9735List;
-    console.log(`💾 Stored ${json9735List.length} zaps globally for timestamp lookup`);
 
     // Hide zaps loading animation
     zapsContainer.classList.remove('loading');
@@ -2613,6 +2752,8 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     if (totalValueElement) {
       totalValueElement.innerText = numberWithCommas(totalAmountZapped);
+      // Store the original sats amount for fiat conversion
+      (totalValueElement as HTMLElement).dataset.originalSats = numberWithCommas(totalAmountZapped);
     }
     if (totalCountElement) {
       totalCountElement.innerText = json9735List.length.toString();
@@ -2656,13 +2797,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (zap.timestamp || zap.created_at) {
         const timestamp = zap.timestamp || zap.created_at;
         zapDiv.setAttribute('data-timestamp', timestamp.toString());
-        console.log(`✅ Setting timestamp for zap: ${timestamp} (${new Date(timestamp * 1000).toLocaleString()})`);
-        console.log(`🔍 Zap data keys:`, Object.keys(zap));
       } else {
-        console.log(`⚠️ No timestamp found in zap data:`, zap);
-        console.log(`🔍 Available zap properties:`, Object.keys(zap));
-        console.log(`🔍 Zap timestamp value:`, zap.timestamp);
-        console.log(`🔍 Zap created_at value:`, zap.created_at);
       }
 
       if (!zap.picture) zap.picture = '';
@@ -2680,7 +2815,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         </div>
         <div class="zapperAmount">
           <div class="zapperAmountValue">
-            <span class="zapperAmountSats">${numberWithCommas(zap.amount)}</span>
+            <span class="zapperAmountSats" data-original-sats="${numberWithCommas(zap.amount)}">${numberWithCommas(zap.amount)}</span>
             <span class="zapperAmountLabel">sats</span>
           </div>
         </div>
@@ -3016,7 +3151,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       setAuthorName(profile.name || profile.display_name || 'Anonymous');
       setAuthorImage(profile.picture || '/images/gradient_color.gif');
     } catch (e) {
-      console.error('Error parsing profile:', e);
     }
   };
 
@@ -3207,7 +3341,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
 
     } catch (e) {
-      console.error('Error loading note content:', e);
       showNoteLoaderError('Invalid nostr identifier. Please enter a valid note ID (note1...), event ID (nevent1...), live event (naddr1...), or profile (nprofile1...).');
       setIsLoading(false);
     }
@@ -3237,12 +3370,10 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Only retry up to 50 times (5 seconds) and only log warning every 10 retries
       if (retryCount < 50) {
         if (retryCount % 10 === 0) {
-          console.warn(`Input field or button not found, retrying... (attempt ${retryCount + 1}/50)`);
         }
         setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
         return;
       } else {
-        console.error('Input field or button not found after 50 retries, giving up');
         setupNoteLoaderListenersInProgress = false;
         return;
       }
@@ -3357,12 +3488,107 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   };
 
+  // Start live price updates
+  const startLivePriceUpdates = () => {
+    // Clear any existing interval
+    if ((window as any).bitcoinPriceUpdateInterval) {
+      clearInterval((window as any).bitcoinPriceUpdateInterval);
+    }
+    
+    // Fetch prices immediately
+    fetchBitcoinPrices();
+    
+    // Set up interval to fetch prices every 30 seconds
+    (window as any).bitcoinPriceUpdateInterval = setInterval(() => {
+      fetchBitcoinPrices();
+    }, 30000); // 30 seconds
+    
+    console.log('💰 Live Bitcoin price updates started (every 30 seconds)');
+  };
+
+  // Stop live price updates
+  const stopLivePriceUpdates = () => {
+    if ((window as any).bitcoinPriceUpdateInterval) {
+      clearInterval((window as any).bitcoinPriceUpdateInterval);
+      (window as any).bitcoinPriceUpdateInterval = null;
+      console.log('💰 Live Bitcoin price updates stopped');
+    }
+  };
+
+  // Manual price refresh function (exposed globally for testing)
+  const refreshBitcoinPrices = async () => {
+    console.log('💰 Manually refreshing Bitcoin prices...');
+    const newPrices = await fetchBitcoinPrices();
+    if (newPrices) {
+      console.log('✅ Bitcoin prices refreshed successfully');
+      return newPrices;
+    } else {
+      console.error('❌ Failed to refresh Bitcoin prices');
+      return null;
+    }
+  };
+
+  // Debounced version of updateFiatAmounts to prevent rate limiting
+  const debouncedUpdateFiatAmounts = () => {
+    if (fiatUpdateTimeout) {
+      clearTimeout(fiatUpdateTimeout);
+    }
+    
+    fiatUpdateTimeout = setTimeout(async () => {
+      if (!isUpdatingFiatAmounts) {
+        isUpdatingFiatAmounts = true;
+        try {
+          await updateFiatAmounts();
+        } finally {
+          isUpdatingFiatAmounts = false;
+        }
+      }
+    }, 500); // 500ms debounce
+  };
+
+  // Recalculate total zaps amount (useful when prices change)
+  const recalculateTotalZaps = () => {
+    // Get all individual zap amounts from the DOM
+    const zapElements = document.querySelectorAll('.zapperAmountSats, .zap-amount-sats');
+    let totalSats = 0;
+    
+    zapElements.forEach(element => {
+      const originalSats = (element as HTMLElement).dataset.originalSats;
+      if (originalSats) {
+        const satsMatch = originalSats.match(/(\d+(?:,\d{3})*)/);
+        if (satsMatch && satsMatch[1]) {
+          totalSats += parseInt(satsMatch[1].replace(/,/g, ''));
+        }
+      }
+    });
+    
+    // Update the total amount display
+    const totalValueElement = document.getElementById('zappedTotalValue');
+    if (totalValueElement) {
+      totalValueElement.innerText = numberWithCommas(totalSats);
+      // Store the original sats amount for fiat conversion
+      (totalValueElement as HTMLElement).dataset.originalSats = numberWithCommas(totalSats);
+    }
+    
+    // Update React state
+    setTotalAmount(totalSats);
+    
+    console.log(`💰 Total zaps recalculated: ${numberWithCommas(totalSats)} sats`);
+  };
+
+  // Expose functions globally for testing and debugging
+  (window as any).refreshBitcoinPrices = refreshBitcoinPrices;
+  (window as any).startLivePriceUpdates = startLivePriceUpdates;
+  (window as any).stopLivePriceUpdates = stopLivePriceUpdates;
+  (window as any).recalculateTotalZaps = recalculateTotalZaps;
+  (window as any).updateFiatAmounts = debouncedUpdateFiatAmounts;
+
   // Style options functionality
   const setupStyleOptions = () => {
     // Debug log removed
 
-    // Fetch Bitcoin prices on initialization
-    fetchBitcoinPrices();
+    // Start live Bitcoin price updates
+    startLivePriceUpdates();
 
     // Setup color pickers with localStorage saving
     setupColorPicker('textColorPicker', 'textColorValue', 'color');
@@ -3552,13 +3778,11 @@ export const useLiveFunctionality = (eventId?: string) => {
     });
 
     setupToggle('zapGridToggle', (checked: boolean) => {
-      console.log('Zap grid toggle changed:', checked);
       const zapsList = document.getElementById('zaps');
       if (zapsList) {
         // Check if we're in live event mode (has two-column layout)
         const isLiveEvent = zapsList.classList.contains('live-event-two-column');
         if (isLiveEvent) {
-          console.log('Grid layout not supported for live events - skipping');
           // Reset the toggle since we're not applying the change
           const zapGridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
           if (zapGridToggle) {
@@ -3606,7 +3830,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     });
 
     setupToggle('qrScreenBlendToggle', () => {
-      console.log('qrScreenBlendToggle callback triggered');
       const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
       const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
 
@@ -3617,7 +3840,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     });
 
     setupToggle('qrMultiplyBlendToggle', () => {
-      console.log('qrMultiplyBlendToggle callback triggered');
       const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
       const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
 
@@ -3782,7 +4004,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     setupToggle('lightningToggle', async (checked: boolean) => {
       // Skip Lightning calls during preset application
       if (isApplyingPreset) {
-        console.log('🔄 Skipping Lightning toggle callback during preset application');
         return;
       }
       
@@ -3791,33 +4012,26 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Debug log removed
 
       if (!lightningService.current) {
-        console.error('❌ Lightning service not initialized');
         return;
       }
 
       try {
         if (!checked) {
           // Disable Lightning payments
-          console.log('🔌 Disabling Lightning payments...');
           const success = await lightningService.current.disableLightning(eventId);
-          console.log('Lightning disable result:', success);
           
           if (success) {
             setLightningEnabled(false);
             setLightningLNURL('');
             updatePaymentStatus('Lightning disabled', 'disabled');
-            console.log('✅ Lightning payments disabled successfully');
           } else {
-            console.error('❌ Failed to disable Lightning payments');
             updatePaymentStatus('Failed to disable Lightning payments', 'error');
           }
         } else {
           // Enable Lightning payments
-          console.log('⚡ Enabling Lightning payments...');
           updatePaymentStatus('Enabling Lightning payments...', 'waiting');
           
           const success = await lightningService.current.enableLightning(eventId);
-          console.log('Lightning enable result:', success);
           
           console.log('Lightning service state after enable:', {
             enabled: lightningService.current.enabled,
@@ -3830,20 +4044,15 @@ export const useLiveFunctionality = (eventId?: string) => {
             setLightningEnabled(true);
             const lnurl = lightningService.current.currentLnurl || '';
             setLightningLNURL(lnurl);
-            console.log('✅ Lightning payments enabled successfully');
 
             // Create Lightning QR slide if it doesn't exist
             if (lnurl) {
-              console.log('🔗 Creating Lightning QR slide with LNURL:', lnurl);
               createLightningQRSlide(lnurl);
               updatePaymentStatus('Lightning enabled - scan QR to pay', 'success');
             } else {
-              console.error('❌ No LNURL received from Lightning service');
               updatePaymentStatus('Lightning enabled but no QR code available', 'error');
             }
           } else {
-            console.error('❌ Failed to enable Lightning payments');
-            console.error('Error from service:', lightningService.current.lastError);
             updatePaymentStatus(`Failed to enable Lightning: ${lightningService.current.lastError || 'Unknown error'}`, 'error');
           }
         }
@@ -3978,10 +4187,26 @@ export const useLiveFunctionality = (eventId?: string) => {
     try {
       const response = await fetch('https://mempool.space/api/v1/prices');
       const data = await response.json();
+      const previousPrices = { ...bitcoinPrices };
       bitcoinPrices = data;
-      console.log('Bitcoin prices fetched:', bitcoinPrices);
+      
+      // Check if prices have changed and update fiat amounts if needed
+      const priceChanged = Object.keys(data).some(currency => 
+        previousPrices[currency] !== data[currency]
+      );
+      
+      if (priceChanged && Object.keys(previousPrices).length > 0) {
+        console.log('💰 Bitcoin prices updated, refreshing fiat amounts...');
+        // Update fiat amounts with new prices
+        debouncedUpdateFiatAmounts();
+        // Also recalculate total zaps to ensure it's updated
+        recalculateTotalZaps();
+      }
+      
+      return data;
     } catch (error) {
-      console.error('Error fetching Bitcoin prices:', error);
+      console.error('❌ Failed to fetch Bitcoin prices:', error);
+      return null;
     }
   };
 
@@ -3990,10 +4215,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     try {
       const response = await fetch(`https://mempool.space/api/v1/historical-price?currency=${currency}&timestamp=${timestamp}`);
       const data = await response.json();
-      console.log('Historical Bitcoin prices fetched:', data);
       return data;
     } catch (error) {
-      console.error('Error fetching historical Bitcoin prices:', error);
       return null;
     }
   };
@@ -4042,9 +4265,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     const btcAmount = sats / 100000000; // Convert sats to BTC
     const currentFiatAmount = btcAmount * bitcoinPrices[currency];
     
-    console.log(`🔍 API Call - Timestamp: ${timestamp}, Currency: ${currency}`);
-    console.log(`📈 Current BTC Price: ${bitcoinPrices[currency]} ${currency}`);
-    console.log(`💵 Current Fiat Amount: ${currentFiatAmount.toFixed(2)} ${currency}`);
     
     // Format current amount
     let currentFormatted: string;
@@ -4056,15 +4276,12 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Fetch historical price
     const historicalData = await fetchHistoricalBitcoinPrices(timestamp, currency);
-    console.log(`🌐 Historical API Response:`, historicalData);
     
     if (historicalData && historicalData.prices && historicalData.prices.length > 0) {
       const historicalPrice = historicalData.prices[0][currency];
-      console.log(`📊 Historical BTC Price: ${historicalPrice} ${currency}`);
       
       if (historicalPrice) {
         const historicalFiatAmount = btcAmount * historicalPrice;
-        console.log(`💸 Historical Fiat Amount: ${historicalFiatAmount.toFixed(2)} ${currency}`);
         
         let historicalFormatted: string;
         if (currency === 'JPY') {
@@ -4090,21 +4307,18 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     }
 
-    console.log(`❌ No historical price data found, returning current price only`);
     return currentFormatted;
   };
 
   // Function to retroactively add timestamps to existing zaps
   const addMissingTimestamps = () => {
     const zapElements = document.querySelectorAll('.zap:not([data-timestamp])');
-    console.log(`🔧 Found ${zapElements.length} zaps missing timestamps, attempting to fix...`);
     
     zapElements.forEach((zapElement, index) => {
       // Try to get timestamp from dataset if available
       const datasetTimestamp = (zapElement as HTMLElement).dataset.timestamp;
       if (datasetTimestamp) {
         zapElement.setAttribute('data-timestamp', datasetTimestamp);
-        console.log(`✅ Fixed timestamp for zap ${index + 1}: ${datasetTimestamp}`);
       } else {
         // Try to get timestamp from the global zaps array if available
         const zapId = (zapElement as HTMLElement).dataset.zapId;
@@ -4113,7 +4327,6 @@ export const useLiveFunctionality = (eventId?: string) => {
           if (zapData && (zapData.timestamp || zapData.created_at)) {
             const timestamp = zapData.timestamp || zapData.created_at;
             zapElement.setAttribute('data-timestamp', timestamp.toString());
-            console.log(`✅ Fixed timestamp from zaps array for zap ${index + 1}: ${timestamp}`);
           } else {
             console.log(`❌ No timestamp found in zaps array for zap ${index + 1}`);
           }
@@ -4127,6 +4340,13 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Update fiat amounts for all sat amounts on the page
   const updateFiatAmounts = async () => {
     if (!bitcoinPrices[selectedFiatCurrency]) return;
+    
+    // Add visual indicator that prices are being updated
+    const priceUpdateIndicator = document.getElementById('priceUpdateIndicator');
+    if (priceUpdateIndicator) {
+      priceUpdateIndicator.style.display = 'inline';
+      priceUpdateIndicator.textContent = 'Updating prices...';
+    }
 
     // Check if historical price toggle is enabled
     const showHistoricalPriceToggle = document.getElementById('showHistoricalPriceToggle') as HTMLInputElement;
@@ -4208,23 +4428,15 @@ export const useLiveFunctionality = (eventId?: string) => {
             if (zapElement) {
               // Only apply historical prices to zaps within .zaps-list
               const isInZapList = zapElement.closest('.zaps-list') !== null;
-              console.log(`📍 Zap element found - In .zaps-list: ${isInZapList}`);
               
               if (isInZapList && showHistorical) {
                 const timestampAttr = zapElement.getAttribute('data-timestamp');
                 if (timestampAttr) {
                   const timestamp = parseInt(timestampAttr);
                   const date = new Date(timestamp * 1000);
-                  console.log(`🕐 Zap Date: ${date.toLocaleString()} (timestamp: ${timestamp})`);
-                  console.log(`💰 Zap Amount: ${sats} sats`);
                   
                   fiatAmount = await satsToFiatWithHistorical(sats, timestamp);
-                  console.log(`📊 Fiat Amount Result: ${fiatAmount}`);
                 } else {
-                  console.log(`⚠️ No timestamp found for zap element:`, zapElement);
-                  console.log(`🔍 Zap element attributes:`, Array.from(zapElement.attributes).map(attr => `${attr.name}="${attr.value}"`));
-                  console.log(`🔍 Zap element dataset:`, (zapElement as HTMLElement).dataset);
-                  console.log(`🔍 Zap element classes:`, zapElement.className);
                   fiatAmount = satsToFiat(sats);
                 }
               } else {
@@ -4289,26 +4501,15 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (showHistorical) {
         setHistoricalPriceLoading(false);
       }
+      
+      // Hide price update indicator
+      const priceUpdateIndicator = document.getElementById('priceUpdateIndicator');
+      if (priceUpdateIndicator) {
+        priceUpdateIndicator.style.display = 'none';
+      }
     }
   };
 
-  // Debounced version of updateFiatAmounts to prevent rate limiting
-  const debouncedUpdateFiatAmounts = () => {
-    if (fiatUpdateTimeout) {
-      clearTimeout(fiatUpdateTimeout);
-    }
-    
-    fiatUpdateTimeout = setTimeout(async () => {
-      if (!isUpdatingFiatAmounts) {
-        isUpdatingFiatAmounts = true;
-        try {
-          await updateFiatAmounts();
-        } finally {
-          isUpdatingFiatAmounts = false;
-        }
-      }
-    }, 500); // 500ms debounce
-  };
 
   // Hide all fiat amounts
   const hideFiatAmounts = () => {
@@ -4366,20 +4567,17 @@ export const useLiveFunctionality = (eventId?: string) => {
   const setupToggle = (toggleId: string, callback: (checked: boolean) => void) => {
     // Prevent duplicate setup
     if (setupToggleTracker.has(toggleId)) {
-      console.log(`Toggle ${toggleId} already set up, skipping...`);
       return;
     }
     
     const toggle = document.getElementById(toggleId) as HTMLInputElement;
     if (toggle) {
-      console.log(`Setting up toggle for ${toggleId}:`, toggle);
       
       // Remove existing event listeners to prevent duplicates
       const newToggle = toggle.cloneNode(true) as HTMLInputElement;
       toggle.parentNode?.replaceChild(newToggle, toggle);
       
       newToggle.addEventListener('change', () => {
-        console.log(`Toggle ${toggleId} changed to:`, newToggle.checked);
         callback(newToggle.checked);
         saveCurrentStylesToLocalStorage();
       });
@@ -4392,6 +4590,11 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const toHexColor = (color: string): string => {
+    // If color is empty or invalid, return default white
+    if (!color || color.trim() === '') {
+      return '#ffffff';
+    }
+
     // If it's already a hex color, return it
     if (color.startsWith('#')) {
       return color;
@@ -4408,8 +4611,8 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     }
 
-    // If we can't convert, return the default color
-    return '#000000';
+    // If we can't convert, return the default white color instead of black
+    return '#ffffff';
   };
 
   const hexToRgba = (hex: string, opacity: number): string => {
@@ -4426,6 +4629,14 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Load initial styles from localStorage or apply defaults
   const loadInitialStyles = () => {
+    console.log('🔍 loadInitialStyles called, stack trace:', new Error().stack);
+
+    // Prevent multiple calls during the same session
+    if ((window as any).loadInitialStylesCalled) {
+      console.log('❌ loadInitialStyles already called, skipping...');
+      return;
+    }
+    (window as any).loadInitialStylesCalled = true;
 
     // Check if there are URL parameters first
     const params = new URLSearchParams(window.location.search);
@@ -4440,6 +4651,19 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (savedStyles) {
       try {
         const styles = JSON.parse(savedStyles);
+        
+        // Console log all settings from localStorage
+        console.log('Loading from localStorage:', {
+          textColor: styles.textColor,
+          bgColor: styles.bgColor,
+          qrInvert: styles.qrInvert,
+          qrScreenBlend: styles.qrScreenBlend,
+          qrMultiplyBlend: styles.qrMultiplyBlend,
+          qrShowWebLink: styles.qrShowWebLink,
+          qrShowNevent: styles.qrShowNevent,
+          qrShowNote: styles.qrShowNote
+        });
+        
         // Debug background image loading
         if (styles.bgImage || styles.backgroundImage) {
           // Debug log removed
@@ -4451,9 +4675,11 @@ export const useLiveFunctionality = (eventId?: string) => {
           const textColorValue = document.getElementById('textColorValue') as HTMLInputElement;
           if (textColorPicker) {
             textColorPicker.value = styles.textColor;
+            console.log('Applied text color to picker:', styles.textColor);
           }
           if (textColorValue) {
             textColorValue.value = styles.textColor;
+            console.log('Applied text color to value input:', styles.textColor);
           }
         }
 
@@ -4820,22 +5046,18 @@ export const useLiveFunctionality = (eventId?: string) => {
                 const lightningToggle = document.getElementById('lightningToggle') as HTMLInputElement;
                 if (lightningToggle) {
                   lightningToggle.checked = checked;
-                  console.log('🔄 Restored Lightning toggle visual state:', checked);
                   
                   // If Lightning was previously enabled, restore by calling enable endpoint
                   if (checked && lightningService.current) {
-                    console.log('🔄 Lightning was previously enabled, validating session with backend...');
                     
                     // Always call enable endpoint to validate session and get current LNURL
                     try {
                       const success = await lightningService.current.enableLightning(eventId);
                       if (success) {
                         const lnurl = lightningService.current.currentLnurl || '';
-                        console.log('🔗 Lightning session validated, creating QR slide with LNURL:', lnurl);
                         createLightningQRSlide(lnurl);
                         updatePaymentStatus('Lightning enabled - scan QR to pay', 'success');
                       } else {
-                        console.log('❌ Lightning session validation failed - user can manually enable if needed');
                         updatePaymentStatus('Lightning session expired - please re-enable', 'error');
                       }
                     } catch (error) {
@@ -4843,7 +5065,6 @@ export const useLiveFunctionality = (eventId?: string) => {
                       updatePaymentStatus('Lightning session validation failed', 'error');
                     }
                   } else {
-                    console.log('ℹ️ Lightning toggle restored - user can manually enable if needed');
                   }
                 }
                 // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
@@ -4858,7 +5079,6 @@ export const useLiveFunctionality = (eventId?: string) => {
           }
         });
       } catch (error) {
-        console.error('Error loading saved styles:', error);
       }
     } else {
       // Debug log removed
@@ -4872,9 +5092,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
       const textOpacityValue = document.getElementById('textOpacityValue');
 
-      // Set default values
-      const defaultTextColor = '#ffffff';
-      const defaultBgColor = '#000000';
+        // Set default values
+        const defaultTextColor = '#000000';
+        const defaultBgColor = '#ffffff';
       const defaultOpacity = 1.0;
       const defaultTextOpacity = 1.0;
 
@@ -5241,6 +5461,18 @@ export const useLiveFunctionality = (eventId?: string) => {
         ...toggleStates
       };
 
+      // Console log what's being saved to localStorage
+      console.log('Saving to localStorage:', {
+        textColor: styles.textColor,
+        bgColor: styles.bgColor,
+        qrInvert: toggleStates.qrInvert,
+        qrScreenBlend: toggleStates.qrScreenBlend,
+        qrMultiplyBlend: toggleStates.qrMultiplyBlend,
+        qrShowWebLink: toggleStates.qrShowWebLink,
+        qrShowNevent: toggleStates.qrShowNevent,
+        qrShowNote: toggleStates.qrShowNote
+      });
+
       localStorage.setItem('pubpay-styles', JSON.stringify(styles));
     }
   };
@@ -5256,7 +5488,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Debug log removed
 
     if (!textColorElement || !bgColorElement || !opacitySlider || !textOpacitySlider) {
-      console.error('Style input elements not found:', { textColorElement, bgColorElement, opacitySlider, textOpacitySlider });
       return;
     }
 
@@ -5462,60 +5693,41 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const updateBlendMode = () => {
-    console.log('updateBlendMode called');
     const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
     const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
 
-    console.log('Screen blend toggle element:', qrScreenBlendToggle);
-    console.log('Multiply blend toggle element:', qrMultiplyBlendToggle);
-    console.log('Screen blend toggle checked:', qrScreenBlendToggle?.checked);
-    console.log('Multiply blend toggle checked:', qrMultiplyBlendToggle?.checked);
 
     if (qrScreenBlendToggle?.checked) {
       qrMultiplyBlendToggle.checked = false;
       document.body.classList.add('qr-blend-active');
       document.body.classList.remove('qr-multiply-active');
-      console.log('Applied screen blend mode');
     } else if (qrMultiplyBlendToggle?.checked) {
       qrScreenBlendToggle.checked = false;
       document.body.classList.add('qr-blend-active');
       document.body.classList.add('qr-multiply-active');
-      console.log('Applied multiply blend mode');
     } else {
       document.body.classList.remove('qr-blend-active');
       document.body.classList.remove('qr-multiply-active');
-      console.log('Removed blend modes');
     }
 
-    console.log('Body classes after update:', document.body.className);
     
     // Check if .qr-swiper exists and debug CSS application
     const qrSwiper = document.querySelector('.qr-swiper');
-    console.log('QR swiper element:', qrSwiper);
     if (qrSwiper) {
       const computedStyle = window.getComputedStyle(qrSwiper);
-      console.log('QR swiper mix-blend-mode:', computedStyle.mixBlendMode);
-      console.log('QR swiper element classes:', qrSwiper.className);
-      console.log('QR swiper element style:', (qrSwiper as HTMLElement).style.cssText);
       
       // Also check the QR code elements inside
       const qrCodes = qrSwiper.querySelectorAll('img, canvas');
-      console.log('QR code elements found:', qrCodes.length);
       qrCodes.forEach((qrCode, index) => {
         const qrComputedStyle = window.getComputedStyle(qrCode);
-        console.log(`QR code ${index} mix-blend-mode:`, qrComputedStyle.mixBlendMode);
-        console.log(`QR code ${index} element:`, qrCode);
         
         // Test: manually apply blend mode to see if it works
         if (qrScreenBlendToggle?.checked) {
           (qrCode as HTMLElement).style.mixBlendMode = 'screen';
-          console.log(`Manually applied screen blend mode to QR code ${index}`);
         } else if (qrMultiplyBlendToggle?.checked) {
           (qrCode as HTMLElement).style.mixBlendMode = 'multiply';
-          console.log(`Manually applied multiply blend mode to QR code ${index}`);
         } else {
           (qrCode as HTMLElement).style.mixBlendMode = 'normal';
-          console.log(`Manually applied normal blend mode to QR code ${index}`);
         }
         
         // Also try applying to the parent slide
@@ -5523,18 +5735,14 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (parentSlide) {
           if (qrScreenBlendToggle?.checked) {
             (parentSlide as HTMLElement).style.mixBlendMode = 'screen';
-            console.log(`Manually applied screen blend mode to slide ${index}`);
           } else if (qrMultiplyBlendToggle?.checked) {
             (parentSlide as HTMLElement).style.mixBlendMode = 'multiply';
-            console.log(`Manually applied multiply blend mode to slide ${index}`);
           } else {
             (parentSlide as HTMLElement).style.mixBlendMode = 'normal';
-            console.log(`Manually applied normal blend mode to slide ${index}`);
           }
         }
       });
     } else {
-      console.error('QR swiper element not found!');
     }
     
     updateStyleURL();
@@ -5931,7 +6139,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       const qrCode = document.getElementById('qrCode');
       if (qrCode) {
         webLinkSlide = qrCode.closest('.swiper-slide') as HTMLElement;
-        console.log('Found web link slide via fallback');
       }
     }
     
@@ -5939,7 +6146,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       const qrCodeNevent = document.getElementById('qrCodeNevent');
       if (qrCodeNevent) {
         neventSlide = qrCodeNevent.closest('.swiper-slide') as HTMLElement;
-        console.log('Found nevent slide via fallback');
       }
     }
 
@@ -5974,22 +6180,17 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Show/hide slides based on settings by moving them between containers
     if (webLinkSlide) {
-      console.log('Processing web link slide:', { showWebLink, isInSwiper: swiperWrapper.contains(webLinkSlide) });
       if (showWebLink) {
         // Move to swiper wrapper if not already there
         if (!swiperWrapper.contains(webLinkSlide)) {
           swiperWrapper.appendChild(webLinkSlide);
-          console.log('Moved web link slide to swiper wrapper');
         }
         webLinkSlide.style.display = 'block';
-        console.log('Set web link slide to display: block');
       } else {
         // Move to hidden container
         hiddenSlidesContainer.appendChild(webLinkSlide);
-        console.log('Moved web link slide to hidden container');
       }
     } else {
-      console.log('Web link slide not found!');
     }
 
     if (neventSlide) {
@@ -6029,17 +6230,13 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Move to swiper wrapper if not already there
         if (!swiperWrapper.contains(lightningSlide)) {
           swiperWrapper.appendChild(lightningSlide);
-          console.log('✅ Moved Lightning slide to swiper wrapper');
         }
         lightningSlide.style.display = 'block';
-        console.log('✅ Set Lightning slide to display: block');
       } else {
         // Move to hidden container
         hiddenSlidesContainer.appendChild(lightningSlide);
-        console.log('❌ Moved Lightning slide to hidden container');
       }
     } else {
-      console.log('❌ Lightning slide not found!');
     }
 
     // Count visible slides (those in the swiper wrapper)
@@ -6051,7 +6248,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     const qrSwiper = document.querySelector('.qr-swiper') as HTMLElement;
     if (qrSwiper && visibleSlides.length > 0) {
       qrSwiper.style.display = 'block';
-      console.log('✅ QR swiper made visible (slides count:', visibleSlides.length, ')');
     } else if (qrSwiper && visibleSlides.length === 0) {
       qrSwiper.style.display = 'none';
       console.log('❌ QR swiper hidden (no visible slides)');
@@ -6229,7 +6425,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       // Debug log removed
     } catch (error) {
-      console.error('Failed to initialize QR Swiper:', error);
     }
   };
 
