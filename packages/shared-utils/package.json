@@ -10,7 +10,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@pubpay/shared-types": "workspace:*"
+    "@pubpay/shared-types": "workspace:*",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "typescript": "^5.0.0"

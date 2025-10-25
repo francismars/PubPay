@@ -1,4 +1,2 @@
 // Live app assets
-export const genericUserIcon = require('./generic-user-icon.svg');
-
-
+// Import images directly where needed instead of re-exporting
