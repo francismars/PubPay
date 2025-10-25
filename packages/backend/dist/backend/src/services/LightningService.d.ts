@@ -1,6 +1,7 @@
 export interface LNURLResult {
     success: boolean;
     lnurl?: string;
+    id?: string;
     error?: string;
     existing?: boolean;
 }

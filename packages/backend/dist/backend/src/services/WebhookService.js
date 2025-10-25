@@ -11,7 +11,7 @@ class WebhookService {
     logger;
     constructor() {
         this.nostrService = new NostrService_1.NostrService();
-        this.sessionService = new SessionService_1.SessionService();
+        this.sessionService = SessionService_1.SessionService.getInstance();
         this.logger = new logger_1.Logger('WebhookService');
     }
     /**
@@ -127,8 +127,16 @@ class WebhookService {
         if (webhookData.amount && (typeof webhookData.amount !== 'number' || webhookData.amount < 0)) {
             errors.push('Invalid amount');
         }
-        if (webhookData.comment && typeof webhookData.comment !== 'string') {
-            errors.push('Invalid comment format');
+        // Handle comments flexibly like legacy - convert arrays to strings, allow any format
+        if (webhookData.comment) {
+            if (Array.isArray(webhookData.comment)) {
+                // Convert array to string (join with spaces)
+                webhookData.comment = webhookData.comment.join(' ');
+            }
+            else if (typeof webhookData.comment !== 'string') {
+                // Convert other types to string
+                webhookData.comment = String(webhookData.comment);
+            }
         }
         return {
             valid: errors.length === 0,

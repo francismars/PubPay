@@ -25,7 +25,7 @@ This directory contains scripts to start all PubPay services in separate termina
 When all services are running, you can access:
 
 - **Backend**: http://localhost:3002
-- **Homepage**: http://localhost:3000  
+- **PUBPAY**: http://localhost:3000  
 - **Live App**: http://localhost:3001
 - **Jukebox App**: http://localhost:3003
 

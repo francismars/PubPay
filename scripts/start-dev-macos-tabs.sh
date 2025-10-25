@@ -31,8 +31,8 @@ start_service_in_new_tab "Backend (Port 3002)" "pnpm dev:backend" "Cyan"
 # Wait a moment for backend to start
 sleep 2
 
-# Start Homepage
-start_service_in_new_tab "Homepage (Port 3000)" "pnpm dev:homepage" "Green"
+# Start PUBPAY
+start_service_in_new_tab "PUBPAY (Port 3000)" "pnpm dev:pubpay" "Green"
 
 # Start Live App
 start_service_in_new_tab "Live App (Port 3001)" "pnpm dev:live" "Blue"

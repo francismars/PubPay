@@ -3,6 +3,7 @@
   "compilerOptions": {
     "rootDir": "../../",
     "baseUrl": "../../",
+    "noEmit": false,
     "paths": {
       "@pubpay/shared-services": ["packages/shared-services/src"],
       "@pubpay/shared-ui": ["packages/shared-ui/src"],
