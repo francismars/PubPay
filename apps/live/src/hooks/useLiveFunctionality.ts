@@ -1033,7 +1033,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                 <div class="zap-time">${timeStr}</div>
             </div>
             <div class="zap-amount">
-                <span class="zap-amount-sats">${numberWithCommas(zapData.amount)}</span>
+                <span class="zap-amount-sats" data-original-sats="${numberWithCommas(zapData.amount)}">${numberWithCommas(zapData.amount)}</span>
                 <span class="zap-amount-label">sats</span>
             </div>
         </div>
@@ -1094,7 +1094,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             </div>
             <div class="zapperAmount">
                 <div class="zapperAmountValue">
-                  <span class="zapperAmountSats">${numberWithCommas(zapData.amount)}</span>
+                  <span class="zapperAmountSats" data-original-sats="${numberWithCommas(zapData.amount)}">${numberWithCommas(zapData.amount)}</span>
                   <span class="zapperAmountLabel">sats</span>
                 </div>
             </div>
@@ -1158,6 +1158,8 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     if (totalValueElement) {
       totalValueElement.innerText = numberWithCommas(totalAmount);
+      // Store the original sats amount for fiat conversion
+      (totalValueElement as HTMLElement).dataset.originalSats = numberWithCommas(totalAmount);
     }
     if (totalCountElement) {
       totalCountElement.innerText = numberWithCommas(totalCount);
@@ -1397,6 +1399,11 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Clear any existing monitoring
     if ((window as any).contentMonitorInterval) {
       clearInterval((window as any).contentMonitorInterval);
+    }
+    
+    // Clear any existing price update interval
+    if ((window as any).bitcoinPriceUpdateInterval) {
+      clearInterval((window as any).bitcoinPriceUpdateInterval);
     }
 
     (window as any).contentMonitorInterval = setInterval(() => {
@@ -2727,6 +2734,8 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     if (totalValueElement) {
       totalValueElement.innerText = numberWithCommas(totalAmountZapped);
+      // Store the original sats amount for fiat conversion
+      (totalValueElement as HTMLElement).dataset.originalSats = numberWithCommas(totalAmountZapped);
     }
     if (totalCountElement) {
       totalCountElement.innerText = json9735List.length.toString();
@@ -2788,7 +2797,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         </div>
         <div class="zapperAmount">
           <div class="zapperAmountValue">
-            <span class="zapperAmountSats">${numberWithCommas(zap.amount)}</span>
+            <span class="zapperAmountSats" data-original-sats="${numberWithCommas(zap.amount)}">${numberWithCommas(zap.amount)}</span>
             <span class="zapperAmountLabel">sats</span>
           </div>
         </div>
@@ -3461,12 +3470,107 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   };
 
+  // Start live price updates
+  const startLivePriceUpdates = () => {
+    // Clear any existing interval
+    if ((window as any).bitcoinPriceUpdateInterval) {
+      clearInterval((window as any).bitcoinPriceUpdateInterval);
+    }
+    
+    // Fetch prices immediately
+    fetchBitcoinPrices();
+    
+    // Set up interval to fetch prices every 30 seconds
+    (window as any).bitcoinPriceUpdateInterval = setInterval(() => {
+      fetchBitcoinPrices();
+    }, 30000); // 30 seconds
+    
+    console.log('💰 Live Bitcoin price updates started (every 30 seconds)');
+  };
+
+  // Stop live price updates
+  const stopLivePriceUpdates = () => {
+    if ((window as any).bitcoinPriceUpdateInterval) {
+      clearInterval((window as any).bitcoinPriceUpdateInterval);
+      (window as any).bitcoinPriceUpdateInterval = null;
+      console.log('💰 Live Bitcoin price updates stopped');
+    }
+  };
+
+  // Manual price refresh function (exposed globally for testing)
+  const refreshBitcoinPrices = async () => {
+    console.log('💰 Manually refreshing Bitcoin prices...');
+    const newPrices = await fetchBitcoinPrices();
+    if (newPrices) {
+      console.log('✅ Bitcoin prices refreshed successfully');
+      return newPrices;
+    } else {
+      console.error('❌ Failed to refresh Bitcoin prices');
+      return null;
+    }
+  };
+
+  // Debounced version of updateFiatAmounts to prevent rate limiting
+  const debouncedUpdateFiatAmounts = () => {
+    if (fiatUpdateTimeout) {
+      clearTimeout(fiatUpdateTimeout);
+    }
+    
+    fiatUpdateTimeout = setTimeout(async () => {
+      if (!isUpdatingFiatAmounts) {
+        isUpdatingFiatAmounts = true;
+        try {
+          await updateFiatAmounts();
+        } finally {
+          isUpdatingFiatAmounts = false;
+        }
+      }
+    }, 500); // 500ms debounce
+  };
+
+  // Recalculate total zaps amount (useful when prices change)
+  const recalculateTotalZaps = () => {
+    // Get all individual zap amounts from the DOM
+    const zapElements = document.querySelectorAll('.zapperAmountSats, .zap-amount-sats');
+    let totalSats = 0;
+    
+    zapElements.forEach(element => {
+      const originalSats = (element as HTMLElement).dataset.originalSats;
+      if (originalSats) {
+        const satsMatch = originalSats.match(/(\d+(?:,\d{3})*)/);
+        if (satsMatch && satsMatch[1]) {
+          totalSats += parseInt(satsMatch[1].replace(/,/g, ''));
+        }
+      }
+    });
+    
+    // Update the total amount display
+    const totalValueElement = document.getElementById('zappedTotalValue');
+    if (totalValueElement) {
+      totalValueElement.innerText = numberWithCommas(totalSats);
+      // Store the original sats amount for fiat conversion
+      (totalValueElement as HTMLElement).dataset.originalSats = numberWithCommas(totalSats);
+    }
+    
+    // Update React state
+    setTotalAmount(totalSats);
+    
+    console.log(`💰 Total zaps recalculated: ${numberWithCommas(totalSats)} sats`);
+  };
+
+  // Expose functions globally for testing and debugging
+  (window as any).refreshBitcoinPrices = refreshBitcoinPrices;
+  (window as any).startLivePriceUpdates = startLivePriceUpdates;
+  (window as any).stopLivePriceUpdates = stopLivePriceUpdates;
+  (window as any).recalculateTotalZaps = recalculateTotalZaps;
+  (window as any).updateFiatAmounts = debouncedUpdateFiatAmounts;
+
   // Style options functionality
   const setupStyleOptions = () => {
     // Debug log removed
 
-    // Fetch Bitcoin prices on initialization
-    fetchBitcoinPrices();
+    // Start live Bitcoin price updates
+    startLivePriceUpdates();
 
     // Setup color pickers with localStorage saving
     setupColorPicker('textColorPicker', 'textColorValue', 'color');
@@ -4065,8 +4169,26 @@ export const useLiveFunctionality = (eventId?: string) => {
     try {
       const response = await fetch('https://mempool.space/api/v1/prices');
       const data = await response.json();
+      const previousPrices = { ...bitcoinPrices };
       bitcoinPrices = data;
+      
+      // Check if prices have changed and update fiat amounts if needed
+      const priceChanged = Object.keys(data).some(currency => 
+        previousPrices[currency] !== data[currency]
+      );
+      
+      if (priceChanged && Object.keys(previousPrices).length > 0) {
+        console.log('💰 Bitcoin prices updated, refreshing fiat amounts...');
+        // Update fiat amounts with new prices
+        debouncedUpdateFiatAmounts();
+        // Also recalculate total zaps to ensure it's updated
+        recalculateTotalZaps();
+      }
+      
+      return data;
     } catch (error) {
+      console.error('❌ Failed to fetch Bitcoin prices:', error);
+      return null;
     }
   };
 
@@ -4200,6 +4322,13 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Update fiat amounts for all sat amounts on the page
   const updateFiatAmounts = async () => {
     if (!bitcoinPrices[selectedFiatCurrency]) return;
+    
+    // Add visual indicator that prices are being updated
+    const priceUpdateIndicator = document.getElementById('priceUpdateIndicator');
+    if (priceUpdateIndicator) {
+      priceUpdateIndicator.style.display = 'inline';
+      priceUpdateIndicator.textContent = 'Updating prices...';
+    }
 
     // Check if historical price toggle is enabled
     const showHistoricalPriceToggle = document.getElementById('showHistoricalPriceToggle') as HTMLInputElement;
@@ -4354,26 +4483,15 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (showHistorical) {
         setHistoricalPriceLoading(false);
       }
+      
+      // Hide price update indicator
+      const priceUpdateIndicator = document.getElementById('priceUpdateIndicator');
+      if (priceUpdateIndicator) {
+        priceUpdateIndicator.style.display = 'none';
+      }
     }
   };
 
-  // Debounced version of updateFiatAmounts to prevent rate limiting
-  const debouncedUpdateFiatAmounts = () => {
-    if (fiatUpdateTimeout) {
-      clearTimeout(fiatUpdateTimeout);
-    }
-    
-    fiatUpdateTimeout = setTimeout(async () => {
-      if (!isUpdatingFiatAmounts) {
-        isUpdatingFiatAmounts = true;
-        try {
-          await updateFiatAmounts();
-        } finally {
-          isUpdatingFiatAmounts = false;
-        }
-      }
-    }, 500); // 500ms debounce
-  };
 
   // Hide all fiat amounts
   const hideFiatAmounts = () => {

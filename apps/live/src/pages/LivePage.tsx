@@ -775,6 +775,9 @@ export const LivePage: React.FC = () => {
                     <option value="AUD">AUD</option>
                     <option value="JPY">JPY</option>
                   </select>
+                  <div id="priceUpdateIndicator" style={{display: 'none', fontSize: '0.8em', color: '#666', marginTop: '5px'}}>
+                    Updating prices...
+                  </div>
                 </div>
                 <div className="style-option-group toggle-group" id="historicalPriceGroup" style={{display: 'none'}}>
                   <label className="toggle-label">
