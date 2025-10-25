@@ -2915,7 +2915,7 @@ body.style-panel-open .style-toggle-btn {
 .chat-message-header {
   display: flex;
   align-items: center;
-  margin-bottom: -5px;
+  margin-bottom: 5px;
 }
 
 .chat-author-img {
@@ -2948,8 +2948,6 @@ body.style-panel-open .style-toggle-btn {
   line-height: 1.4;
   color: var(--text-color);
   word-wrap: break-word;
-  padding-left: 32px;
-  opacity: 0.5;
 }
 
 /* ===== LIVE EVENT ZAP STYLES ===== */
@@ -3038,7 +3036,7 @@ body.style-panel-open .style-toggle-btn {
 /* Activity list specific styles */
 .activity-list .live-chat-message,
 .activity-list .live-event-zap {
-  margin-bottom: 6px !important;
+  margin-bottom: 4px !important;
 }
 
 .activity-list .live-event-zap {
