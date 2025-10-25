@@ -16,9 +16,9 @@ const services = [
     url: 'http://localhost:3002'
   },
   {
-    name: 'Homepage (Port 3000)',
+    name: 'PUBPAY (Port 3000)',
     command: 'pnpm',
-    args: ['dev:homepage'],
+    args: ['dev:pubpay'],
     color: '\x1b[32m', // Green
     url: 'http://localhost:3000'
   },

@@ -23,7 +23,7 @@ export const InvoiceQR: React.FC<InvoiceQRProps> = ({ bolt11 }) => {
     QRCode.toCanvas(canvas, bolt11, {
       width: 200,
       margin: 2,
-    }).catch((error) => {
+    }).catch((error: Error) => {
       console.error('Error generating QR code:', error);
     });
   }, [bolt11]);

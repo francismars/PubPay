@@ -15,7 +15,7 @@ export default [
   
   // TypeScript files configuration
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['apps/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}', 'tools/**/*.{ts,tsx}', 'scripts/**/*.{ts,tsx}'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -87,9 +87,8 @@ export default [
     ignores: [
       'dist/',
       'node_modules/',
-      'public/',
+      'archive/',
       '*.js',
-      'webpack.config.js',
       'eslint.config.js'
     ]
   }

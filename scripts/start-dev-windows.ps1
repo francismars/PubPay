@@ -32,8 +32,8 @@ Start-ServiceInNewWindow -ServiceName "Backend (Port 3002)" -Command "pnpm dev:b
 # Wait a moment for backend to start
 Start-Sleep -Seconds 2
 
-# Start Homepage
-Start-ServiceInNewWindow -ServiceName "Homepage (Port 3000)" -Command "pnpm dev:homepage" -Color "Green"
+# Start PUBPAY
+Start-ServiceInNewWindow -ServiceName "PUBPAY (Port 3000)" -Command "pnpm dev:pubpay" -Color "Green"
 
 # Start Live App
 Start-ServiceInNewWindow -ServiceName "Live App (Port 3001)" -Command "pnpm dev:live" -Color "Blue"
