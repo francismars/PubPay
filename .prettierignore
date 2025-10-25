@@ -1,0 +1,14 @@
+# Ignore README files to prevent encoding issues
+README.md
+**/README.md
+
+# Ignore build outputs
+dist/
+build/
+out/
+
+# Ignore node_modules
+node_modules/
+
+# Ignore archive folder
+archive/

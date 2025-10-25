@@ -12,7 +12,8 @@ const { SimplePool } = require('nostr-tools');
 const LNBITS_CONFIG = {
   baseUrl: process.env.LNBITS_URL || 'https://legend.lnbits.com',
   apiKey: process.env.LNBITS_API_KEY,
-  webhookUrl: process.env.WEBHOOK_URL || 'https://yourdomain.com/lightning/webhook'
+  webhookUrl:
+    process.env.WEBHOOK_URL || 'https://yourdomain.com/lightning/webhook'
 };
 
 // Validate configuration
@@ -22,8 +23,12 @@ if (!LNBITS_CONFIG.apiKey) {
 }
 
 if (!process.env.WEBHOOK_URL) {
-  console.warn('⚠️  WEBHOOK_URL environment variable is not set, using default fallback');
-  console.warn('This will not work for production. Please set WEBHOOK_URL in your .env file.');
+  console.warn(
+    '⚠️  WEBHOOK_URL environment variable is not set, using default fallback'
+  );
+  console.warn(
+    'This will not work for production. Please set WEBHOOK_URL in your .env file.'
+  );
 }
 
 // Frontend session tracking: frontendSessionId -> { events: { eventId: { lnurl, lastSeen, active } } }
@@ -35,26 +40,29 @@ const lnurlpMappings = new Map();
 // Cleanup inactive sessions every 5 minutes
 setInterval(() => {
   const now = Date.now();
-  
+
   for (const [frontendSessionId, session] of frontendSessions.entries()) {
     // Check if any events in this session are still active
     let hasActiveEvents = false;
     for (const [eventId, eventData] of Object.entries(session.events)) {
-      if (now - eventData.lastSeen > 3600000) { // 1 hour
+      if (now - eventData.lastSeen > 3600000) {
+        // 1 hour
         delete session.events[eventId];
-        console.log(`Cleaned up event ${eventId} from session: ${frontendSessionId}`);
+        console.log(
+          `Cleaned up event ${eventId} from session: ${frontendSessionId}`
+        );
       } else if (eventData.active) {
         hasActiveEvents = true;
       }
     }
-    
+
     // If no events left in session, delete the entire session
     if (Object.keys(session.events).length === 0) {
       frontendSessions.delete(frontendSessionId);
       console.log(`Cleaned up entire frontend session: ${frontendSessionId}`);
     }
   }
-  
+
   // Clean up orphaned LNURL-pay mappings (sessions that no longer exist)
   for (const [lnurlpId, mapping] of lnurlpMappings.entries()) {
     const session = frontendSessions.get(mapping.frontendSessionId);
@@ -72,19 +80,21 @@ router.post('/enable', async (req, res) => {
     eventId: req.body.eventId,
     timestamp: new Date().toISOString()
   });
-  
+
   const { frontendSessionId, eventId } = req.body;
-  
+
   if (!frontendSessionId || !eventId) {
-    const errorMsg = 'Missing required parameters: frontendSessionId and eventId are both required';
+    const errorMsg =
+      'Missing required parameters: frontendSessionId and eventId are both required';
     console.log('❌ Validation failed:', { frontendSessionId, eventId });
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
       error: errorMsg,
-      details: 'Please provide both frontendSessionId and eventId in the request body'
+      details:
+        'Please provide both frontendSessionId and eventId in the request body'
     });
   }
-  
+
   try {
     // Get or create session
     let session = frontendSessions.get(frontendSessionId);
@@ -92,13 +102,19 @@ router.post('/enable', async (req, res) => {
       session = { events: {} };
       frontendSessions.set(frontendSessionId, session);
     }
-    
+
     // Check if this specific event already has an active LNURL
-    if (session.events[eventId] && session.events[eventId].lnurl && session.events[eventId].active) {
+    if (
+      session.events[eventId] &&
+      session.events[eventId].lnurl &&
+      session.events[eventId].active
+    ) {
       // Update last seen and return existing LNURL
       session.events[eventId].lastSeen = Date.now();
-      console.log(`♻️  Reusing existing active LNURL for session: ${frontendSessionId}, event: ${eventId}`);
-      
+      console.log(
+        `♻️  Reusing existing active LNURL for session: ${frontendSessionId}, event: ${eventId}`
+      );
+
       return res.json({
         success: true,
         message: 'Lightning payments enabled using existing payment link',
@@ -113,20 +129,24 @@ router.post('/enable', async (req, res) => {
         }
       });
     }
-    
+
     // Create new LNURL for this frontend session and event
-    console.log(`🆕 Creating new LNURL for session: ${frontendSessionId}, event: ${eventId}`);
+    console.log(
+      `🆕 Creating new LNURL for session: ${frontendSessionId}, event: ${eventId}`
+    );
     const lnurl = await createLNBitsLNURL(eventId, frontendSessionId);
-    
+
     // Store event data in session
     session.events[eventId] = {
       lnurl,
       lastSeen: Date.now(),
       active: true
     };
-    
-    console.log(`✅ Successfully created new LNURL for session: ${frontendSessionId}, event: ${eventId}`);
-    
+
+    console.log(
+      `✅ Successfully created new LNURL for session: ${frontendSessionId}, event: ${eventId}`
+    );
+
     res.json({
       success: true,
       message: 'Lightning payments enabled with new payment link',
@@ -142,10 +162,10 @@ router.post('/enable', async (req, res) => {
       instructions: {
         qrCode: 'Display the LNURL as a QR code for users to scan',
         paymentFlow: 'Users can scan QR code to pay with any Lightning wallet',
-        zapIntegration: 'Payments will automatically appear as zaps in the live feed'
+        zapIntegration:
+          'Payments will automatically appear as zaps in the live feed'
       }
     });
-    
   } catch (error) {
     console.error('💥 Error creating LNURL:', {
       error: error.message,
@@ -153,8 +173,8 @@ router.post('/enable', async (req, res) => {
       eventId,
       stack: error.stack
     });
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       success: false,
       error: 'Failed to create Lightning payment link',
       details: error.message,
@@ -174,32 +194,36 @@ router.post('/disable', (req, res) => {
     eventId: req.body.eventId,
     timestamp: new Date().toISOString()
   });
-  
+
   const { frontendSessionId, eventId } = req.body;
-  
+
   if (!frontendSessionId || !eventId) {
-    const errorMsg = 'Missing required parameters: frontendSessionId and eventId are both required';
+    const errorMsg =
+      'Missing required parameters: frontendSessionId and eventId are both required';
     console.log('❌ Validation failed:', { frontendSessionId, eventId });
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
       error: errorMsg,
-      details: 'Please provide both frontendSessionId and eventId in the request body'
+      details:
+        'Please provide both frontendSessionId and eventId in the request body'
     });
   }
-  
+
   // Find and deactivate specific event in session
   const session = frontendSessions.get(frontendSessionId);
-  
+
   if (session && session.events[eventId]) {
     // Mark specific event as inactive instead of deleting immediately
     // This allows for potential re-enabling without creating new LNURL
     const wasActive = session.events[eventId].active;
     session.events[eventId].active = false;
     session.events[eventId].lastSeen = Date.now();
-    
-    console.log(`🔌 Disabled Lightning payments for session: ${frontendSessionId}, event: ${eventId} (was active: ${wasActive})`);
-    
-    res.json({ 
+
+    console.log(
+      `🔌 Disabled Lightning payments for session: ${frontendSessionId}, event: ${eventId} (was active: ${wasActive})`
+    );
+
+    res.json({
       success: true,
       message: 'Lightning payments disabled successfully',
       sessionInfo: {
@@ -213,15 +237,21 @@ router.post('/disable', (req, res) => {
       note: 'Event is preserved for potential re-enabling without creating new LNURL'
     });
   } else {
-    console.log(`❌ Session or event not found for disable request:`, { frontendSessionId, eventId });
-    res.status(404).json({ 
+    console.log(`❌ Session or event not found for disable request:`, {
+      frontendSessionId,
+      eventId
+    });
+    res.status(404).json({
       success: false,
       error: 'Lightning payment session not found',
       details: `No active session found for frontendSessionId: ${frontendSessionId} and eventId: ${eventId}`,
       troubleshooting: {
-        checkSessionId: 'Verify the frontendSessionId matches the one used to enable payments',
-        checkEventId: 'Verify the eventId matches the one used to enable payments',
-        checkActive: 'Session may have been automatically cleaned up due to inactivity'
+        checkSessionId:
+          'Verify the frontendSessionId matches the one used to enable payments',
+        checkEventId:
+          'Verify the eventId matches the one used to enable payments',
+        checkActive:
+          'Session may have been automatically cleaned up due to inactivity'
       }
     });
   }
@@ -234,7 +264,7 @@ async function createLNBitsLNURL(eventId, frontendSessionId) {
     hasApiKey: !!LNBITS_CONFIG.apiKey,
     webhookUrl: LNBITS_CONFIG.webhookUrl
   });
-  
+
   const requestBody = {
     description: `PubPay Live - Real-time Tip Tracker`,
     min: 1000, // 1 sat minimum
@@ -244,9 +274,9 @@ async function createLNBitsLNURL(eventId, frontendSessionId) {
     success_text: 'You just experienced the future of live payments!',
     currency: 'sat'
   };
-  
+
   console.log('LNBits request body:', requestBody);
-  
+
   const response = await fetch(`${LNBITS_CONFIG.baseUrl}/lnurlp/api/v1/links`, {
     method: 'POST',
     headers: {
@@ -255,95 +285,104 @@ async function createLNBitsLNURL(eventId, frontendSessionId) {
     },
     body: JSON.stringify(requestBody)
   });
-  
+
   console.log('LNBits response status:', response.status);
-  
+
   if (!response.ok) {
     const errorText = await response.text();
     console.error('LNBits API error:', errorText);
     throw new Error(`LNBits API error: ${response.status} - ${errorText}`);
   }
-  
+
   const data = await response.json();
   console.log('LNBits response data:', data);
-  
+
   // Store the LNURL-pay ID mapping for webhook lookup
   if (data.id) {
     lnurlpMappings.set(data.id, { frontendSessionId, eventId });
-    console.log(`Stored LNURL-pay mapping: ${data.id} -> ${frontendSessionId}/${eventId}`);
+    console.log(
+      `Stored LNURL-pay mapping: ${data.id} -> ${frontendSessionId}/${eventId}`
+    );
   }
-  
+
   return data.lnurl;
 }
 
 // LNBits webhook endpoint for payment notifications
 router.post('/webhook', async (req, res) => {
   const paymentData = req.body;
-  
- 
+
   // Try different possible field names for LNURL-pay ID
   const lnurlpId = paymentData.lnurlp;
-  
+
   if (!lnurlpId) {
-    console.log('❌ No LNURL-pay ID found in webhook payload. Available fields:', Object.keys(paymentData));
-    return res.status(400).json({ 
+    console.log(
+      '❌ No LNURL-pay ID found in webhook payload. Available fields:',
+      Object.keys(paymentData)
+    );
+    return res.status(400).json({
       success: false,
       error: 'Missing LNURL-pay ID',
       details: 'The webhook payload does not contain a valid LNURL-pay ID'
     });
   }
-  
+
   // Look up session and event from LNURL-pay ID
   const mapping = lnurlpMappings.get(lnurlpId);
   if (!mapping) {
     console.log('❌ LNURL-pay ID not found in mappings:', lnurlpId);
     console.log('Available mappings:', Array.from(lnurlpMappings.keys()));
-    return res.status(404).json({ 
+    return res.status(404).json({
       success: false,
       error: 'Payment session not found',
       details: 'The LNURL-pay ID does not match any active session'
     });
   }
-  
+
   const { frontendSessionId, eventId } = mapping;
   console.log(`Found mapping: ${lnurlpId} -> ${frontendSessionId}/${eventId}`);
-  
+
   // Verify frontend session exists and event is active
   const session = frontendSessions.get(frontendSessionId);
   if (!session || !session.events[eventId] || !session.events[eventId].active) {
-    console.log('❌ Invalid or inactive session for webhook:', { 
-      frontendSessionId, 
+    console.log('❌ Invalid or inactive session for webhook:', {
+      frontendSessionId,
       eventId,
       sessionExists: !!session,
       eventExists: session?.events?.[eventId] ? true : false,
       eventActive: session?.events?.[eventId]?.active
     });
-    return res.status(404).json({ 
+    return res.status(404).json({
       success: false,
       error: 'Invalid or inactive session',
-      details: 'The payment session is either not found, inactive, or does not match the event ID'
+      details:
+        'The payment session is either not found, inactive, or does not match the event ID'
     });
   }
-  
+
   // Update last seen for this specific event
   session.events[eventId].lastSeen = Date.now();
-  
+
   // Send anonymous zap to Nostr with comment as zapperMessage
   try {
     const amount = paymentData.amount || 1000; // Default to 1 sat if not provided
     const comment = paymentData.comment || 'Lightning payment';
-    
-    console.log(`⚡ Processing Lightning payment: ${amount} sats for event ${eventId} with comment: "${comment}"`);
-    
+
+    console.log(
+      `⚡ Processing Lightning payment: ${amount} sats for event ${eventId} with comment: "${comment}"`
+    );
+
     try {
       await sendAnonymousZap(eventId, amount, comment);
-      console.log(`✅ Successfully published anonymous zap: ${amount} sats for event ${eventId}`);
+      console.log(
+        `✅ Successfully published anonymous zap: ${amount} sats for event ${eventId}`
+      );
     } catch (error) {
       console.error(`❌ Failed to publish zap: ${error.message}`);
       // Don't fail the webhook response, just log the error
     }
-    
-    res.json({ 
+
+    res.json({
       success: true,
       message: 'Payment processed and zap published successfully',
       paymentInfo: {
@@ -363,8 +402,8 @@ router.post('/webhook', async (req, res) => {
       comment: paymentData.comment,
       stack: error.stack
     });
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       success: false,
       error: 'Failed to publish zap to Nostr',
       details: error.message,
@@ -387,20 +426,22 @@ async function sendAnonymousZap(eventId, amount, comment) {
     'wss://relay.snort.social',
     'wss://relay.nostr.band'
   ];
-  
+
   try {
     // Generate anonymous key pair (same as frontend)
     const privateKey = crypto.randomBytes(32);
-    
-    console.log(`Creating zap request for event ${eventId} with amount ${amount} sats`);
-    
+
+    console.log(
+      `Creating zap request for event ${eventId} with amount ${amount} sats`
+    );
+
     // Decode note1... or nevent1... to get raw hex event ID
     let rawEventId = eventId;
     if (eventId.startsWith('note1') || eventId.startsWith('nevent1')) {
       try {
         const { decode } = require('nostr-tools/nip19');
         const decoded = decode(eventId);
-        
+
         if (eventId.startsWith('note1')) {
           // note1... decodes to raw hex event ID
           rawEventId = decoded.data;
@@ -408,14 +449,14 @@ async function sendAnonymousZap(eventId, amount, comment) {
           // nevent1... decodes to object with id field
           rawEventId = decoded.data.id;
         }
-        
+
         console.log(`Decoded event ID: ${eventId} -> ${rawEventId}`);
       } catch (error) {
         console.log('Could not decode event ID, using as-is:', error.message);
         // If decoding fails, we'll use the original format and let makeZapRequest handle it
       }
     }
-    
+
     // Fetch the event to get the author's pubkey
     let authorPubkey;
     try {
@@ -423,17 +464,17 @@ async function sendAnonymousZap(eventId, amount, comment) {
       const event = await pool.get(relays, {
         ids: [rawEventId]
       });
-      
+
       if (!event || !event.pubkey) {
         throw new Error(`Event not found or has no pubkey: ${rawEventId}`);
       }
-      
+
       authorPubkey = event.pubkey;
       console.log(`Found event author pubkey: ${authorPubkey}`);
     } catch (error) {
       throw new Error(`Failed to fetch event: ${error.message}`);
     }
-    
+
     // Fetch the author's profile to get Lightning address
     let lightningAddress;
     let lnurlCallback;
@@ -443,66 +484,82 @@ async function sendAnonymousZap(eventId, amount, comment) {
         kinds: [0],
         authors: [authorPubkey]
       });
-      
+
       if (!profile || !profile.content) {
         throw new Error(`Profile not found for author ${authorPubkey}`);
       }
-      
+
       const profileData = JSON.parse(profile.content);
       lightningAddress = profileData.lud16 || profileData.lud06;
-      
+
       if (!lightningAddress) {
-        throw new Error(`No Lightning address found in profile for author ${authorPubkey}. Author needs to set lud16 or lud06 field.`);
+        throw new Error(
+          `No Lightning address found in profile for author ${authorPubkey}. Author needs to set lud16 or lud06 field.`
+        );
       }
-      
+
       console.log(`Found Lightning address: ${lightningAddress}`);
-      
+
       // Parse Lightning address to get LNURL discovery endpoint
       const ludSplit = lightningAddress.split('@');
       console.log(`Lightning address split result:`, ludSplit);
-      
+
       if (ludSplit.length !== 2) {
-        throw new Error(`Invalid Lightning address format: ${lightningAddress}. Expected format: username@domain.com`);
+        throw new Error(
+          `Invalid Lightning address format: ${lightningAddress}. Expected format: username@domain.com`
+        );
       }
-      
+
       const lnurlDiscoveryUrl = `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`;
       console.log(`LNURL discovery URL: ${lnurlDiscoveryUrl}`);
-      
+
       // Fetch LNURL discovery to get the callback URL
       console.log(`Making LNURL discovery request to: ${lnurlDiscoveryUrl}`);
       const discoveryResponse = await fetch(lnurlDiscoveryUrl);
-      
-      console.log(`LNURL discovery response status: ${discoveryResponse.status}`);
-      console.log(`LNURL discovery response headers:`, Object.fromEntries(discoveryResponse.headers.entries()));
-      
+
+      console.log(
+        `LNURL discovery response status: ${discoveryResponse.status}`
+      );
+      console.log(
+        `LNURL discovery response headers:`,
+        Object.fromEntries(discoveryResponse.headers.entries())
+      );
+
       if (!discoveryResponse.ok) {
         const errorText = await discoveryResponse.text();
         console.log(`LNURL discovery error response: ${errorText}`);
-        throw new Error(`LNURL discovery HTTP error: ${discoveryResponse.status} - ${errorText}`);
+        throw new Error(
+          `LNURL discovery HTTP error: ${discoveryResponse.status} - ${errorText}`
+        );
       }
-      
+
       const discoveryData = await discoveryResponse.json();
       console.log(`LNURL discovery response data:`, discoveryData);
-      
+
       // Check for different response formats
       if (discoveryData.status !== 'OK') {
         // Some services might not return status: 'OK' but still work
-        console.log(`Warning: LNURL discovery returned status: ${discoveryData.status}`);
+        console.log(
+          `Warning: LNURL discovery returned status: ${discoveryData.status}`
+        );
       }
-      
+
       if (!discoveryData.callback) {
-        throw new Error(`LNURL discovery failed: No callback URL found. Response: ${JSON.stringify(discoveryData)}`);
+        throw new Error(
+          `LNURL discovery failed: No callback URL found. Response: ${JSON.stringify(discoveryData)}`
+        );
       }
-      
+
       lnurlCallback = discoveryData.callback;
       console.log(`LNURL callback URL: ${lnurlCallback}`);
       console.log(`LNURL supports Nostr: ${discoveryData.allowsNostr}`);
-      console.log(`Min sendable: ${discoveryData.minSendable}, Max sendable: ${discoveryData.maxSendable}`);
-      
+      console.log(
+        `Min sendable: ${discoveryData.minSendable}, Max sendable: ${discoveryData.maxSendable}`
+      );
     } catch (error) {
       throw new Error(`Failed to get Lightning address: ${error.message}`);
     }
-    
+
     // Use the same approach as frontend - makeZapRequest from nip57
     let makeZapRequest;
     try {
@@ -513,7 +570,7 @@ async function sendAnonymousZap(eventId, amount, comment) {
       const nostrTools = require('nostr-tools');
       makeZapRequest = nostrTools.makeZapRequest;
     }
-    
+
     const zapRequest = makeZapRequest({
       profile: authorPubkey,
       event: rawEventId, // Use raw hex event ID
@@ -521,70 +578,79 @@ async function sendAnonymousZap(eventId, amount, comment) {
       comment: String(comment || ''),
       relays: relays
     });
-    
+
     console.log('Zap request:', JSON.stringify(zapRequest, null, 2));
-    
+
     // Sign the zap request (same as frontend anonymous zap)
     const signedZapRequest = await signEvent(zapRequest, privateKey);
     console.log('Signed zap request:', signedZapRequest);
-    
+
     // Send zap request to LNURL callback (not publish to relays)
     // According to NIP-57, the zap request (kind 9734) should be sent to the LNURL callback
     // The LNURL server will validate it and return an invoice
     // Once paid, the server will publish the zap receipt (kind 9735) to relays
-    
+
     try {
       console.log(`Sending zap request to LNURL callback: ${lnurlCallback}`);
-      
+
       // Send zap request to LNURL callback
       const zapRequestUrl = `${lnurlCallback}?nostr=${encodeURIComponent(JSON.stringify(signedZapRequest))}&amount=${amount}`;
-      
+
       const response = await fetch(zapRequestUrl);
-      
+
       // Check if response is JSON
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const textResponse = await response.text();
-        throw new Error(`LNURL callback returned non-JSON response (${response.status}): ${textResponse.substring(0, 200)}`);
+        throw new Error(
+          `LNURL callback returned non-JSON response (${response.status}): ${textResponse.substring(0, 200)}`
+        );
       }
-      
+
       const responseData = await response.json();
-      
+
       if (!response.ok || !responseData.pr) {
-        throw new Error(`LNURL callback error: ${responseData.reason || 'Unknown error'}`);
+        throw new Error(
+          `LNURL callback error: ${responseData.reason || 'Unknown error'}`
+        );
       }
-      
+
       console.log(`Received Lightning invoice: ${responseData.pr}`);
       console.log(`Zap request sent successfully to ${lnurlCallback}`);
-      
+
       // Pay the invoice using LNBits API
       console.log('Paying Lightning invoice using LNBits...');
-      const paymentResponse = await fetch(`${LNBITS_CONFIG.baseUrl}/api/v1/payments`, {
-        method: 'POST',
-        headers: {
-          'X-Api-Key': LNBITS_CONFIG.apiKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          out: true,
-          bolt11: responseData.pr
-        })
-      });
-      
+      const paymentResponse = await fetch(
+        `${LNBITS_CONFIG.baseUrl}/api/v1/payments`,
+        {
+          method: 'POST',
+          headers: {
+            'X-Api-Key': LNBITS_CONFIG.apiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            out: true,
+            bolt11: responseData.pr
+          })
+        }
+      );
+
       if (!paymentResponse.ok) {
         const errorData = await paymentResponse.json();
-        throw new Error(`Failed to pay invoice: ${errorData.detail || 'Unknown error'}`);
+        throw new Error(
+          `Failed to pay invoice: ${errorData.detail || 'Unknown error'}`
+        );
       }
-      
+
       const paymentData = await paymentResponse.json();
       console.log(`✅ Lightning invoice paid successfully!`);
       console.log(`Payment details:`, paymentData);
-      console.log(`The recipient's Lightning service will now create and publish the zap receipt (kind 9735)`);
-      
+      console.log(
+        `The recipient's Lightning service will now create and publish the zap receipt (kind 9735)`
+      );
     } catch (error) {
       throw new Error(`Failed to send zap request: ${error.message}`);
     }
-    
   } catch (error) {
     console.error('Error in sendAnonymousZap:', error.message);
     throw error; // Re-throw to be caught by the calling function
@@ -601,13 +667,13 @@ async function sendAnonymousZap(eventId, amount, comment) {
 // Proper Nostr event signing
 async function signEvent(event, privateKey) {
   const { finalizeEvent } = require('nostr-tools');
-  
+
   // Convert private key to hex string
   const privateKeyHex = privateKey.toString('hex');
-  
+
   // Sign the event
   const signedEvent = finalizeEvent(event, privateKeyHex);
-  
+
   return signedEvent;
 }
 
@@ -617,14 +683,14 @@ router.post('/test', (req, res) => {
     body: req.body,
     timestamp: new Date().toISOString()
   });
-  
+
   const configStatus = {
     baseUrl: LNBITS_CONFIG.baseUrl,
     hasApiKey: !!LNBITS_CONFIG.apiKey,
     webhookUrl: LNBITS_CONFIG.webhookUrl,
     status: 'configured'
   };
-  
+
   // Check configuration validity
   const issues = [];
   if (!LNBITS_CONFIG.apiKey) {
@@ -632,10 +698,12 @@ router.post('/test', (req, res) => {
     configStatus.status = 'misconfigured';
   }
   if (!process.env.WEBHOOK_URL) {
-    issues.push('WEBHOOK_URL is using fallback (not recommended for production)');
+    issues.push(
+      'WEBHOOK_URL is using fallback (not recommended for production)'
+    );
   }
-  
-  res.json({ 
+
+  res.json({
     success: true,
     message: 'Lightning route is working correctly!',
     receivedBody: req.body,
@@ -662,26 +730,30 @@ router.post('/test', (req, res) => {
 // Debug endpoint to see current sessions
 router.get('/debug/sessions', (req, res) => {
   console.log('🔍 Debug sessions endpoint called');
-  
-  const sessions = Array.from(frontendSessions.entries()).map(([id, session]) => ({
-    frontendSessionId: id,
-    events: Object.entries(session.events).map(([eventId, eventData]) => ({
-      eventId,
-      lnurl: eventData.lnurl,
-      active: eventData.active,
-      lastSeen: new Date(eventData.lastSeen).toISOString(),
-      ageMinutes: Math.round((Date.now() - eventData.lastSeen) / 60000)
-    })),
-    totalEvents: Object.keys(session.events).length,
-    activeEvents: Object.values(session.events).filter(e => e.active).length
-  }));
-  
-  const lnurlpMappingsArray = Array.from(lnurlpMappings.entries()).map(([lnurlpId, mapping]) => ({
-    lnurlpId,
-    frontendSessionId: mapping.frontendSessionId,
-    eventId: mapping.eventId
-  }));
-  
+
+  const sessions = Array.from(frontendSessions.entries()).map(
+    ([id, session]) => ({
+      frontendSessionId: id,
+      events: Object.entries(session.events).map(([eventId, eventData]) => ({
+        eventId,
+        lnurl: eventData.lnurl,
+        active: eventData.active,
+        lastSeen: new Date(eventData.lastSeen).toISOString(),
+        ageMinutes: Math.round((Date.now() - eventData.lastSeen) / 60000)
+      })),
+      totalEvents: Object.keys(session.events).length,
+      activeEvents: Object.values(session.events).filter(e => e.active).length
+    })
+  );
+
+  const lnurlpMappingsArray = Array.from(lnurlpMappings.entries()).map(
+    ([lnurlpId, mapping]) => ({
+      lnurlpId,
+      frontendSessionId: mapping.frontendSessionId,
+      eventId: mapping.eventId
+    })
+  );
+
   res.json({
     success: true,
     message: 'Current Lightning payment sessions',

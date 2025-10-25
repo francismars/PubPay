@@ -36,8 +36,8 @@ export class JukeboxApiService {
       const response = await fetch(`${this.baseUrl}/jukebox/status`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-        },
+          'Content-Type': 'application/json'
+        }
       });
 
       if (!response.ok) {
@@ -56,17 +56,22 @@ export class JukeboxApiService {
   }
 
   // Play a track (add to queue)
-  async playTrack(trackId: string, amount: number): Promise<JukeboxApiResponse<{ trackId: string; amount: number; status: string }>> {
+  async playTrack(
+    trackId: string,
+    amount: number
+  ): Promise<
+    JukeboxApiResponse<{ trackId: string; amount: number; status: string }>
+  > {
     try {
       const response = await fetch(`${this.baseUrl}/jukebox/play`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           trackId,
           amount
-        }),
+        })
       });
 
       if (!response.ok) {
@@ -90,8 +95,8 @@ export class JukeboxApiService {
       const response = await fetch(`${this.baseUrl}/jukebox/skip`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-        },
+          'Content-Type': 'application/json'
+        }
       });
 
       if (!response.ok) {
@@ -115,8 +120,8 @@ export class JukeboxApiService {
       const response = await fetch(`${this.baseUrl}/jukebox/queue`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-        },
+          'Content-Type': 'application/json'
+        }
       });
 
       if (!response.ok) {

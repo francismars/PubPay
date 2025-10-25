@@ -9,7 +9,13 @@ import { getQueryClient } from '@/services/query/queryClient';
 import { LightningService } from '@/services/lightning/LightningService';
 import { AuthService } from '@/services/AuthService';
 import { ZapService } from '@/services/zap';
-import { NostrFilter, NostrEvent, Kind1Event, Kind0Event, Kind9735Event } from '@/types/nostr';
+import {
+  NostrFilter,
+  NostrEvent,
+  Kind1Event,
+  Kind0Event,
+  Kind9735Event
+} from '@/types/nostr';
 import { LightningConfig } from '@/types/lightning';
 
 // Types for processed zaps
@@ -50,7 +56,9 @@ interface AuthState {
 
 export const useHomeFunctionality = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [activeFeed, setActiveFeed] = useState<'global' | 'following'>('global');
+  const [activeFeed, setActiveFeed] = useState<'global' | 'following'>(
+    'global'
+  );
   const [posts, setPosts] = useState<PubPayPost[]>([]);
   const [followingPosts, setFollowingPosts] = useState<PubPayPost[]>([]);
   const [replies, setReplies] = useState<PubPayPost[]>([]);
@@ -87,7 +95,7 @@ export const useHomeFunctionality = () => {
 
     const initializeServices = () => {
       try {
-      // Check if NostrTools is available
+        // Check if NostrTools is available
         if (typeof window === 'undefined' || !window.NostrTools) {
           console.warn('NostrTools not available, retrying in 1 second...');
           setTimeout(initializeServices, 1000);
@@ -100,9 +108,18 @@ export const useHomeFunctionality = () => {
         // Initialize Lightning service
         const lightningConfig: LightningConfig = {
           enabled: true,
-          lnbitsUrl: (typeof process !== 'undefined' && process.env?.REACT_APP_LNBITS_URL) || '',
-          apiKey: (typeof process !== 'undefined' && process.env?.REACT_APP_LNBITS_API_KEY) || '',
-          webhookUrl: (typeof process !== 'undefined' && process.env?.REACT_APP_WEBHOOK_URL) || ''
+          lnbitsUrl:
+            (typeof process !== 'undefined' &&
+              process.env?.REACT_APP_LNBITS_URL) ||
+            '',
+          apiKey:
+            (typeof process !== 'undefined' &&
+              process.env?.REACT_APP_LNBITS_API_KEY) ||
+            '',
+          webhookUrl:
+            (typeof process !== 'undefined' &&
+              process.env?.REACT_APP_WEBHOOK_URL) ||
+            ''
         };
         lightningServiceRef.current = new LightningService(lightningConfig);
 
@@ -112,7 +129,9 @@ export const useHomeFunctionality = () => {
         console.log('Services initialized');
       } catch (err) {
         console.error('Failed to initialize services:', err);
-        console.error('Failed to initialize services. Please refresh the page.');
+        console.error(
+          'Failed to initialize services. Please refresh the page.'
+        );
       }
     };
 
@@ -134,7 +153,11 @@ export const useHomeFunctionality = () => {
         return;
       }
 
-      if (nostrClientRef.current && typeof window !== 'undefined' && window.NostrTools) {
+      if (
+        nostrClientRef.current &&
+        typeof window !== 'undefined' &&
+        window.NostrTools
+      ) {
         // Add a small delay to ensure everything is ready
         setTimeout(() => {
           loadPosts('global');
@@ -142,12 +165,16 @@ export const useHomeFunctionality = () => {
       } else {
         // Retry loading posts when client becomes available
         const retryInterval = setInterval(() => {
-          if (nostrClientRef.current && typeof window !== 'undefined' && window.NostrTools) {
+          if (
+            nostrClientRef.current &&
+            typeof window !== 'undefined' &&
+            window.NostrTools
+          ) {
             // Check again for single note mode before loading
             const queryParams = new URLSearchParams(window.location.search);
             const queryNote = queryParams.get('note');
             if (!queryNote) {
-            loadPosts('global');
+              loadPosts('global');
             }
             clearInterval(retryInterval);
           }
@@ -160,7 +187,7 @@ export const useHomeFunctionality = () => {
 
     // Add a small delay to ensure HomePage has a chance to set single note mode
     setTimeout(() => {
-    loadInitialPosts();
+      loadInitialPosts();
     }, 100);
 
     // Cleanup: allow re-run only after full unmount
@@ -179,7 +206,12 @@ export const useHomeFunctionality = () => {
       if (document.visibilityState === 'visible') {
         const result = await AuthService.handleExternalSignerReturn();
         if (result.success && result.publicKey) {
-          AuthService.storeAuthData(result.publicKey, null, 'externalSigner', false);
+          AuthService.storeAuthData(
+            result.publicKey,
+            null,
+            'externalSigner',
+            false
+          );
 
           setAuthState({
             isLoggedIn: true,
@@ -227,12 +259,23 @@ export const useHomeFunctionality = () => {
 
     try {
       // Use ensureProfiles for centralized profile loading
-      const profileMap = await ensureProfiles(getQueryClient(), nostrClientRef.current!, [pubkey]);
+      const profileMap = await ensureProfiles(
+        getQueryClient(),
+        nostrClientRef.current!,
+        [pubkey]
+      );
       const profile = profileMap.get(pubkey);
 
       if (profile) {
-        const profileData = safeJson<Record<string, unknown>>(profile?.content || '{}', {});
-        const displayName = (profileData as any).display_name || (profileData as any).displayName || (profileData as any).name || null;
+        const profileData = safeJson<Record<string, unknown>>(
+          profile?.content || '{}',
+          {}
+        );
+        const displayName =
+          (profileData as any).display_name ||
+          (profileData as any).displayName ||
+          (profileData as any).name ||
+          null;
 
         setAuthState(prev => ({
           ...prev,
@@ -265,10 +308,16 @@ export const useHomeFunctionality = () => {
       }
 
       // Build posts params
-      const params: { until?: number; limit?: number; authors?: string[] } = { limit: 21 };
+      const params: { until?: number; limit?: number; authors?: string[] } = {
+        limit: 21
+      };
 
       // Add following filter if needed
-      if (feed === 'following' && followingPubkeysRef.current && followingPubkeysRef.current.length > 0) {
+      if (
+        feed === 'following' &&
+        followingPubkeysRef.current &&
+        followingPubkeysRef.current.length > 0
+      ) {
         params.authors = [...followingPubkeysRef.current];
       }
 
@@ -280,12 +329,21 @@ export const useHomeFunctionality = () => {
           const oldestPost = currentPosts[currentPosts.length - 1];
           if (oldestPost) {
             params.until = oldestPost.createdAt;
-            console.log('Loading more posts until:', oldestPost.createdAt, 'for post:', oldestPost.id);
+            console.log(
+              'Loading more posts until:',
+              oldestPost.createdAt,
+              'for post:',
+              oldestPost.id
+            );
           }
         }
       }
       // Fetch posts via react-query ensure
-      const kind1Events = await ensurePosts(getQueryClient(), nostrClientRef.current!, { until: params.until, limit: params.limit });
+      const kind1Events = await ensurePosts(
+        getQueryClient(),
+        nostrClientRef.current!,
+        { until: params.until, limit: params.limit }
+      );
 
       if (!kind1Events || kind1Events.length === 0) {
         if (loadMore) {
@@ -297,16 +355,28 @@ export const useHomeFunctionality = () => {
       }
 
       // Get author pubkeys
-      const authorPubkeys = [...new Set(kind1Events.map(event => event.pubkey))];
+      const authorPubkeys = [
+        ...new Set(kind1Events.map(event => event.pubkey))
+      ];
 
       // Load profiles via react-query (deduped & cached)
       const profileEvents = Array.from(
-        (await ensureProfiles(getQueryClient(), nostrClientRef.current!, authorPubkeys)).values()
+        (
+          await ensureProfiles(
+            getQueryClient(),
+            nostrClientRef.current!,
+            authorPubkeys
+          )
+        ).values()
       );
 
       // Load zaps for these events via react-query
       const eventIds = kind1Events.map(event => event.id);
-      const zapEvents = await ensureZaps(getQueryClient(), nostrClientRef.current!, eventIds);
+      const zapEvents = await ensureZaps(
+        getQueryClient(),
+        nostrClientRef.current!,
+        eventIds
+      );
 
       // Extract zap payer pubkeys and load their profiles
       const zapPayerPubkeys = new Set<string>();
@@ -316,7 +386,8 @@ export const useHomeFunctionality = () => {
 
         if (descriptionTag) {
           try {
-            const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+            const zapData =
+              parseZapDescription(descriptionTag[1] || undefined) || {};
             if (zapData.pubkey) {
               zapPayerPubkeys.add(zapData.pubkey);
               hasPubkeyInDescription = true;
@@ -333,8 +404,12 @@ export const useHomeFunctionality = () => {
       });
 
       // Load zap payer profiles (cached & batched)
-      const zapPayerProfiles = zapPayerPubkeys.size > 0 ?
-        Array.from((await loadProfilesBatched(Array.from(zapPayerPubkeys))).values()) : [];
+      const zapPayerProfiles =
+        zapPayerPubkeys.size > 0
+          ? Array.from(
+              (await loadProfilesBatched(Array.from(zapPayerPubkeys))).values()
+            )
+          : [];
 
       // Combine all profiles
       const allProfiles = [...profileEvents, ...zapPayerProfiles];
@@ -348,7 +423,9 @@ export const useHomeFunctionality = () => {
             // Filter out duplicates based on post ID
             const existingIds = new Set(prev.map(p => p.id));
             const newPosts = basicPosts.filter(p => !existingIds.has(p.id));
-            console.log(`Adding ${newPosts.length} new posts (${basicPosts.length - newPosts.length} duplicates filtered)`);
+            console.log(
+              `Adding ${newPosts.length} new posts (${basicPosts.length - newPosts.length} duplicates filtered)`
+            );
             return [...prev, ...newPosts];
           });
         } else {
@@ -356,7 +433,9 @@ export const useHomeFunctionality = () => {
             // Filter out duplicates based on post ID
             const existingIds = new Set(prev.map(p => p.id));
             const newPosts = basicPosts.filter(p => !existingIds.has(p.id));
-            console.log(`Adding ${newPosts.length} new posts (${basicPosts.length - newPosts.length} duplicates filtered)`);
+            console.log(
+              `Adding ${newPosts.length} new posts (${basicPosts.length - newPosts.length} duplicates filtered)`
+            );
             return [...prev, ...newPosts];
           });
         }
@@ -374,17 +453,22 @@ export const useHomeFunctionality = () => {
       if (zapEvents.length > 0) {
         await loadZapsForPosts(kind1Events, zapEvents, feed);
       }
-
     } catch (err) {
       console.error('Failed to load posts:', err);
-      console.error('Failed to load posts:', err instanceof Error ? err.message : 'Failed to load posts');
+      console.error(
+        'Failed to load posts:',
+        err instanceof Error ? err.message : 'Failed to load posts'
+      );
       setIsLoading(false);
       setIsLoadingMore(false);
     }
   };
 
   // Process posts with basic info only (like legacy drawKind1)
-  const processPostsBasic = async (kind1Events: Kind1Event[], profileEvents: Kind0Event[]): Promise<PubPayPost[]> => {
+  const processPostsBasic = async (
+    kind1Events: Kind1Event[],
+    profileEvents: Kind0Event[]
+  ): Promise<PubPayPost[]> => {
     const posts: PubPayPost[] = [];
 
     // Collect all zap-payer pubkeys to load their profiles
@@ -453,11 +537,17 @@ export const useHomeFunctionality = () => {
         post.zapPayer = zapPayerTag[1];
 
         // Find the zap-payer's profile picture
-        const zapPayerProfile = allProfiles.find(p => p.pubkey === zapPayerTag[1]);
+        const zapPayerProfile = allProfiles.find(
+          p => p.pubkey === zapPayerTag[1]
+        );
         if (zapPayerProfile) {
           try {
-            const profileData = safeJson<Record<string, any>>(zapPayerProfile.content, {});
-            post.zapPayerPicture = (profileData as any).picture || '/images/generic-user-icon.svg';
+            const profileData = safeJson<Record<string, any>>(
+              zapPayerProfile.content,
+              {}
+            );
+            post.zapPayerPicture =
+              (profileData as any).picture || '/images/generic-user-icon.svg';
           } catch {
             post.zapPayerPicture = '/images/generic-user-icon.svg';
           }
@@ -473,7 +563,12 @@ export const useHomeFunctionality = () => {
 
       // Determine if payable (author lud16 or override LNURL)
       try {
-        const authorData = post.author ? safeJson<Record<string, any>>((post.author as any).content || '{}', {}) : {};
+        const authorData = post.author
+          ? safeJson<Record<string, any>>(
+              (post.author as any).content || '{}',
+              {}
+            )
+          : {};
         const hasLud16 = !!(authorData as any).lud16;
         post.isPayable = hasLud16 || !!(post as any).zapLNURL;
       } catch {
@@ -488,10 +583,16 @@ export const useHomeFunctionality = () => {
   };
 
   // Load zaps separately and update posts (like legacy subscribeKind9735)
-  const loadZapsForPosts = async (kind1Events: Kind1Event[], zapEvents: Kind9735Event[], feed: 'global' | 'following') => {
+  const loadZapsForPosts = async (
+    kind1Events: Kind1Event[],
+    zapEvents: Kind9735Event[],
+    feed: 'global' | 'following'
+  ) => {
     const eventIds = kind1Events.map(event => event.id);
     const relevantZaps = zapEvents.filter(zap =>
-      zap.tags.some(tag => tag[0] === 'e' && tag[1] && eventIds.includes(tag[1]))
+      zap.tags.some(
+        tag => tag[0] === 'e' && tag[1] && eventIds.includes(tag[1])
+      )
     );
 
     if (relevantZaps.length === 0) return;
@@ -504,7 +605,8 @@ export const useHomeFunctionality = () => {
 
       if (descriptionTag) {
         try {
-          const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+          const zapData =
+            parseZapDescription(descriptionTag[1] || undefined) || {};
           if (zapData.pubkey) {
             zapPayerPubkeys.add(zapData.pubkey);
             hasPubkeyInDescription = true;
@@ -520,9 +622,13 @@ export const useHomeFunctionality = () => {
       }
     });
 
-      // Load zap payer profiles (cached & batched)
-      const zapPayerProfiles = zapPayerPubkeys.size > 0 ?
-        Array.from((await loadProfilesBatched(Array.from(zapPayerPubkeys))).values()) : [];
+    // Load zap payer profiles (cached & batched)
+    const zapPayerProfiles =
+      zapPayerPubkeys.size > 0
+        ? Array.from(
+            (await loadProfilesBatched(Array.from(zapPayerPubkeys))).values()
+          )
+        : [];
 
     // Update posts with zap data
     const updatePostsWithZaps = (currentPosts: PubPayPost[]) => {
@@ -535,10 +641,13 @@ export const useHomeFunctionality = () => {
         // If post has zap-payer tag, only include zaps from that specific payer
         if (post.zapPayer) {
           postZaps = postZaps.filter(zap => {
-            const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
+            const descriptionTag = zap.tags.find(
+              tag => tag[0] === 'description'
+            );
             if (descriptionTag) {
               try {
-                const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+                const zapData =
+                  parseZapDescription(descriptionTag[1] || undefined) || {};
                 // Check if zap is from the specified zap-payer
                 return zapData.pubkey === post.zapPayer;
               } catch {
@@ -572,7 +681,8 @@ export const useHomeFunctionality = () => {
 
           if (descriptionTag) {
             try {
-              const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+              const zapData =
+                parseZapDescription(descriptionTag[1] || undefined) || {};
               if (zapData.pubkey) {
                 zapPayerPubkey = zapData.pubkey;
               } else {
@@ -585,16 +695,22 @@ export const useHomeFunctionality = () => {
             isAnonymousZap = true;
           }
 
-        const zapPayerProfile = zapPayerProfiles.find(p => p.pubkey === zapPayerPubkey);
-        const zapPayerPicture = zapPayerProfile ?
-          (safeJson<Record<string, unknown>>(zapPayerProfile.content || '{}', {}) as any).picture ||
-          '/images/generic-user-icon.svg' :
-          '/images/generic-user-icon.svg';
+          const zapPayerProfile = zapPayerProfiles.find(
+            p => p.pubkey === zapPayerPubkey
+          );
+          const zapPayerPicture = zapPayerProfile
+            ? (
+                safeJson<Record<string, unknown>>(
+                  zapPayerProfile.content || '{}',
+                  {}
+                ) as any
+              ).picture || '/images/generic-user-icon.svg'
+            : '/images/generic-user-icon.svg';
 
           // Generate npub for the zap payer
-          const zapPayerNpub = window.NostrTools ?
-            window.NostrTools.nip19.npubEncode(zapPayerPubkey) :
-            zapPayerPubkey;
+          const zapPayerNpub = window.NostrTools
+            ? window.NostrTools.nip19.npubEncode(zapPayerPubkey)
+            : zapPayerPubkey;
 
           return {
             ...zap,
@@ -605,7 +721,10 @@ export const useHomeFunctionality = () => {
           };
         });
 
-        const totalZapAmount = processedZaps.reduce((sum, zap) => sum + zap.zapAmount, 0);
+        const totalZapAmount = processedZaps.reduce(
+          (sum, zap) => sum + zap.zapAmount,
+          0
+        );
         const zapUsesCurrent = processedZaps.length;
 
         return {
@@ -625,12 +744,18 @@ export const useHomeFunctionality = () => {
     }
   };
 
-  const processPosts = async (kind1Events: Kind1Event[], profileEvents: Kind0Event[], zapEvents: Kind9735Event[]): Promise<PubPayPost[]> => {
+  const processPosts = async (
+    kind1Events: Kind1Event[],
+    profileEvents: Kind0Event[],
+    zapEvents: Kind9735Event[]
+  ): Promise<PubPayPost[]> => {
     const posts: PubPayPost[] = [];
 
     for (const event of kind1Events) {
       const author = profileEvents.find(p => p.pubkey === event.pubkey);
-      const zaps = zapEvents.filter(z => z.tags.some(tag => tag[0] === 'e' && tag[1] === event.id)).reverse();
+      const zaps = zapEvents
+        .filter(z => z.tags.some(tag => tag[0] === 'e' && tag[1] === event.id))
+        .reverse();
 
       // Process zaps with proper data extraction
       const processedZaps = zaps.map(zap => {
@@ -653,7 +778,8 @@ export const useHomeFunctionality = () => {
 
         if (descriptionTag) {
           try {
-            const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+            const zapData =
+              parseZapDescription(descriptionTag[1] || undefined) || {};
             zapPayerPubkey = zapData.pubkey || '';
             // Check if this is an anonymous zap (no pubkey in description)
             isAnonymousZap = !zapData.pubkey;
@@ -671,25 +797,36 @@ export const useHomeFunctionality = () => {
         }
 
         // Find zap payer's profile
-        const zapPayerProfile = profileEvents.find(p => p.pubkey === zapPayerPubkey);
+        const zapPayerProfile = profileEvents.find(
+          p => p.pubkey === zapPayerPubkey
+        );
 
-        let zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+        let zapPayerPicture =
+          'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
 
         if (zapPayerProfile) {
           try {
-            const profileData = safeJson<Record<string, any>>(zapPayerProfile.content, {});
-            zapPayerPicture = (profileData as any).picture || 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+            const profileData = safeJson<Record<string, any>>(
+              zapPayerProfile.content,
+              {}
+            );
+            zapPayerPicture =
+              (profileData as any).picture ||
+              'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
           } catch {
             // If parsing fails, use default
-            zapPayerPicture = 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
+            zapPayerPicture =
+              'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg';
           }
         }
 
         // Debug logging removed for cleaner output
 
         // Create npub for zap payer
-        const zapPayerNpub = zapPayerPubkey && window.NostrTools ?
-          window.NostrTools.nip19.npubEncode(zapPayerPubkey) : '';
+        const zapPayerNpub =
+          zapPayerPubkey && window.NostrTools
+            ? window.NostrTools.nip19.npubEncode(zapPayerPubkey)
+            : '';
 
         return {
           ...zap,
@@ -700,7 +837,10 @@ export const useHomeFunctionality = () => {
         };
       });
 
-      const totalZapAmount = processedZaps.reduce((sum, zap) => sum + zap.zapAmount, 0);
+      const totalZapAmount = processedZaps.reduce(
+        (sum, zap) => sum + zap.zapAmount,
+        0
+      );
 
       // Extract zap tags
       const zapMinTag = event.tags.find(tag => tag[0] === 'zap-min');
@@ -719,7 +859,11 @@ export const useHomeFunctionality = () => {
       // Debug logging removed - no zap-payer tags found in current feed
 
       // Check if payable
-      const isPayable = !!(author && safeJson<Record<string, unknown>>(author.content, {})['lud16']) || !!zapLNURL;
+      const isPayable =
+        !!(
+          author &&
+          safeJson<Record<string, unknown>>(author.content, {})['lud16']
+        ) || !!zapLNURL;
 
       posts.push({
         id: event.id,
@@ -759,15 +903,21 @@ export const useHomeFunctionality = () => {
 
     try {
       // Load kind 3 (contacts) to get following list
-      const kind3Events = await nostrClientRef.current.getEvents([{
-        kinds: [3],
-        authors: [authState.publicKey!]
-      }]);
+      const kind3Events = await nostrClientRef.current.getEvents([
+        {
+          kinds: [3],
+          authors: [authState.publicKey!]
+        }
+      ]);
 
       const followingPubkeys: string[] = [];
       for (const event of kind3Events) {
         const pTags = event.tags.filter(tag => tag[0] === 'p');
-        followingPubkeys.push(...pTags.map(tag => tag[1]).filter((pubkey): pubkey is string => Boolean(pubkey)));
+        followingPubkeys.push(
+          ...pTags
+            .map(tag => tag[1])
+            .filter((pubkey): pubkey is string => Boolean(pubkey))
+        );
       }
 
       followingPubkeysRef.current = followingPubkeys;
@@ -785,11 +935,13 @@ export const useHomeFunctionality = () => {
 
   const handleLogin = () => {
     // Open login via UI store
-    import('@/services/state/uiStore').then(({ useUIStore }) => {
-      useUIStore.getState().openLogin();
-    }).catch(() => {
-      console.warn('UI store not available yet');
-    });
+    import('@/services/state/uiStore')
+      .then(({ useUIStore }) => {
+        useUIStore.getState().openLogin();
+      })
+      .catch(() => {
+        console.warn('UI store not available yet');
+      });
   };
 
   const handleNewPayNote = () => {
@@ -805,7 +957,12 @@ export const useHomeFunctionality = () => {
       const result = await AuthService.signInWithExtension();
 
       if (result.success && result.publicKey) {
-        AuthService.storeAuthData(result.publicKey, result.privateKey || null, 'extension', rememberMe);
+        AuthService.storeAuthData(
+          result.publicKey,
+          result.privateKey || null,
+          'extension',
+          rememberMe
+        );
 
         setAuthState({
           isLoggedIn: true,
@@ -820,8 +977,14 @@ export const useHomeFunctionality = () => {
 
         return { success: true };
       } else {
-        console.error('Extension sign in failed:', result.error || 'Extension sign in failed');
-        return { success: false, error: result.error || 'Extension sign in failed' };
+        console.error(
+          'Extension sign in failed:',
+          result.error || 'Extension sign in failed'
+        );
+        return {
+          success: false,
+          error: result.error || 'Extension sign in failed'
+        };
       }
     } catch (error) {
       console.error('Extension sign in failed:', error);
@@ -834,8 +997,14 @@ export const useHomeFunctionality = () => {
       const result = await AuthService.signInWithExternalSigner(rememberMe);
 
       if (!result.success) {
-        console.error('External signer failed:', result.error || 'External signer failed');
-        return { success: false, error: result.error || 'External signer failed' };
+        console.error(
+          'External signer failed:',
+          result.error || 'External signer failed'
+        );
+        return {
+          success: false,
+          error: result.error || 'External signer failed'
+        };
       }
       // Note: This will redirect the page, so the component will unmount
       return { success: true };
@@ -855,7 +1024,12 @@ export const useHomeFunctionality = () => {
       const result = await AuthService.signInWithNsec(nsec);
 
       if (result.success && result.publicKey) {
-        AuthService.storeAuthData(result.publicKey, result.privateKey || null, 'nsec', rememberMe);
+        AuthService.storeAuthData(
+          result.publicKey,
+          result.privateKey || null,
+          'nsec',
+          rememberMe
+        );
 
         setAuthState({
           isLoggedIn: true,
@@ -921,7 +1095,10 @@ export const useHomeFunctionality = () => {
       }
 
       // Get Lightning callback (pass raw author object, not parsed content)
-      const callback = await zapServiceRef.current.getInvoiceCallBack(post.event, post.author);
+      const callback = await zapServiceRef.current.getInvoiceCallBack(
+        post.event,
+        post.author
+      );
       if (!callback) {
         console.error('Failed to get Lightning callback');
         return;
@@ -975,7 +1152,12 @@ export const useHomeFunctionality = () => {
     }
 
     try {
-      console.log('Processing anonymous zap payment:', amount, 'sats for post:', post.id);
+      console.log(
+        'Processing anonymous zap payment:',
+        amount,
+        'sats for post:',
+        post.id
+      );
 
       // Get author data
       if (!post.author) {
@@ -984,7 +1166,10 @@ export const useHomeFunctionality = () => {
       }
 
       // Get Lightning callback (pass raw author object, not parsed content)
-      const callback = await zapServiceRef.current.getInvoiceCallBack(post.event, post.author);
+      const callback = await zapServiceRef.current.getInvoiceCallBack(
+        post.event,
+        post.author
+      );
       if (!callback) {
         console.error('Failed to get Lightning callback');
         return;
@@ -1044,7 +1229,9 @@ export const useHomeFunctionality = () => {
     }
   };
 
-  const handlePostNote = async (formData: Record<string, string | undefined>) => {
+  const handlePostNote = async (
+    formData: Record<string, string | undefined>
+  ) => {
     if (!authState.isLoggedIn) {
       handleLogin();
       return;
@@ -1056,7 +1243,16 @@ export const useHomeFunctionality = () => {
     }
 
     try {
-      const { payNoteContent, paymentType, zapFixed, zapMin, zapMax, zapUses, zapPayer, overrideLNURL } = formData;
+      const {
+        payNoteContent,
+        paymentType,
+        zapFixed,
+        zapMin,
+        zapMax,
+        zapUses,
+        zapPayer,
+        overrideLNURL
+      } = formData;
 
       if (!payNoteContent || payNoteContent.trim() === '') {
         console.error('Please enter a payment request description');
@@ -1116,7 +1312,9 @@ export const useHomeFunctionality = () => {
       tags.push(['client', 'PubPay.me']);
 
       // Add mention tags if content has npubs
-      const npubMentions = payNoteContent.match(/(nostr:|@)?((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi);
+      const npubMentions = payNoteContent.match(
+        /(nostr:|@)?((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
+      );
       if (npubMentions) {
         npubMentions.forEach((mention: string) => {
           try {
@@ -1183,10 +1381,12 @@ export const useHomeFunctionality = () => {
 
       // Reload posts to show the new one (since real-time subscription is disabled)
       await loadPosts(activeFeed);
-
     } catch (err) {
       console.error('Failed to post note:', err);
-      console.error('Failed to post note:', err instanceof Error ? err.message : 'Failed to post note');
+      console.error(
+        'Failed to post note:',
+        err instanceof Error ? err.message : 'Failed to post note'
+      );
     }
   };
 
@@ -1234,7 +1434,9 @@ export const useHomeFunctionality = () => {
       };
 
       const cleanFilter = JSON.parse(JSON.stringify(filter));
-      const kind1Events = await nostrClientRef.current.getEvents([cleanFilter]) as Kind1Event[];
+      const kind1Events = (await nostrClientRef.current.getEvents([
+        cleanFilter
+      ])) as Kind1Event[];
 
       if (!kind1Events || kind1Events.length === 0) {
         console.log('Note not found');
@@ -1252,11 +1454,21 @@ export const useHomeFunctionality = () => {
         return;
       }
       // Use ensureProfiles for centralized profile loading
-      const profileMap = await ensureProfiles(getQueryClient(), nostrClientRef.current!, [authorPubkey]);
-      const profileEvents = profileMap.get(authorPubkey) ? [profileMap.get(authorPubkey)!] : [];
+      const profileMap = await ensureProfiles(
+        getQueryClient(),
+        nostrClientRef.current!,
+        [authorPubkey]
+      );
+      const profileEvents = profileMap.get(authorPubkey)
+        ? [profileMap.get(authorPubkey)!]
+        : [];
 
       // Load zaps for this event via react-query
-      const zapEvents = await ensureZaps(getQueryClient(), nostrClientRef.current!, [eventId]);
+      const zapEvents = await ensureZaps(
+        getQueryClient(),
+        nostrClientRef.current!,
+        [eventId]
+      );
 
       // Extract zap payer pubkeys and load their profiles
       const zapPayerPubkeys = new Set<string>();
@@ -1266,7 +1478,8 @@ export const useHomeFunctionality = () => {
 
         if (descriptionTag) {
           try {
-            const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+            const zapData =
+              parseZapDescription(descriptionTag[1] || undefined) || {};
             if (zapData.pubkey) {
               zapPayerPubkeys.add(zapData.pubkey);
               hasPubkeyInDescription = true;
@@ -1283,14 +1496,22 @@ export const useHomeFunctionality = () => {
       });
 
       // Load zap payer profiles (cached & batched)
-      const zapPayerProfiles = zapPayerPubkeys.size > 0 ?
-        Array.from((await loadProfilesBatched(Array.from(zapPayerPubkeys))).values()) : [];
+      const zapPayerProfiles =
+        zapPayerPubkeys.size > 0
+          ? Array.from(
+              (await loadProfilesBatched(Array.from(zapPayerPubkeys))).values()
+            )
+          : [];
 
       // Combine all profiles
       const allProfiles = [...profileEvents, ...zapPayerProfiles];
 
       // Process the single note
-      const processedPosts = await processPosts(kind1Events, allProfiles, zapEvents);
+      const processedPosts = await processPosts(
+        kind1Events,
+        allProfiles,
+        zapEvents
+      );
 
       if (processedPosts.length > 0) {
         setPosts(processedPosts);
@@ -1307,7 +1528,9 @@ export const useHomeFunctionality = () => {
   };
 
   // Calculate reply levels for proper indentation (matches legacy behavior)
-  const calculateReplyLevels = (replies: PubPayPost[]): (PubPayPost & { replyLevel: number })[] => {
+  const calculateReplyLevels = (
+    replies: PubPayPost[]
+  ): (PubPayPost & { replyLevel: number })[] => {
     const repliesWithLevels: (PubPayPost & { replyLevel: number })[] = [];
     const replyMap = new Map<string, number>(); // eventId -> level
 
@@ -1315,7 +1538,9 @@ export const useHomeFunctionality = () => {
       let level = 0;
 
       // Find the reply tag to get the parent event ID
-      const replyTag = reply.event.tags.find(tag => tag[0] === 'e' && tag[3] === 'reply');
+      const replyTag = reply.event.tags.find(
+        tag => tag[0] === 'e' && tag[3] === 'reply'
+      );
       if (replyTag && replyTag[1]) {
         const parentEventId = replyTag[1];
         const parentLevel = replyMap.get(parentEventId);
@@ -1342,7 +1567,9 @@ export const useHomeFunctionality = () => {
       };
 
       const cleanFilter = JSON.parse(JSON.stringify(replyFilter));
-      const replyEvents = await nostrClientRef.current.getEvents([cleanFilter]) as Kind1Event[];
+      const replyEvents = (await nostrClientRef.current.getEvents([
+        cleanFilter
+      ])) as Kind1Event[];
 
       if (!replyEvents || replyEvents.length === 0) {
         setReplies([]);
@@ -1352,16 +1579,28 @@ export const useHomeFunctionality = () => {
       console.log('Found replies:', replyEvents.length);
 
       // Get author pubkeys for replies
-      const authorPubkeys = [...new Set(replyEvents.map(event => event.pubkey))];
+      const authorPubkeys = [
+        ...new Set(replyEvents.map(event => event.pubkey))
+      ];
 
       // Load profiles for reply authors via react-query
       const profileEvents = Array.from(
-        (await ensureProfiles(getQueryClient(), nostrClientRef.current!, authorPubkeys)).values()
+        (
+          await ensureProfiles(
+            getQueryClient(),
+            nostrClientRef.current!,
+            authorPubkeys
+          )
+        ).values()
       );
 
       // Load zaps for reply events via react-query
       const eventIds = replyEvents.map(event => event.id);
-      const zapEvents = await ensureZaps(getQueryClient(), nostrClientRef.current!, eventIds);
+      const zapEvents = await ensureZaps(
+        getQueryClient(),
+        nostrClientRef.current!,
+        eventIds
+      );
 
       // Extract zap payer pubkeys and load their profiles
       const zapPayerPubkeys = new Set<string>();
@@ -1388,20 +1627,30 @@ export const useHomeFunctionality = () => {
       });
 
       // Load zap payer profiles
-      const zapPayerProfiles = zapPayerPubkeys.size > 0 ?
-        await nostrClientRef.current.getEvents([{
-          kinds: [0],
-          authors: Array.from(zapPayerPubkeys)
-        }]) as Kind0Event[] : [];
+      const zapPayerProfiles =
+        zapPayerPubkeys.size > 0
+          ? ((await nostrClientRef.current.getEvents([
+              {
+                kinds: [0],
+                authors: Array.from(zapPayerPubkeys)
+              }
+            ])) as Kind0Event[])
+          : [];
 
       // Combine all profiles
       const allProfiles = [...profileEvents, ...zapPayerProfiles];
 
       // Process replies
-      const processedReplies = await processPosts(replyEvents, allProfiles, zapEvents);
+      const processedReplies = await processPosts(
+        replyEvents,
+        allProfiles,
+        zapEvents
+      );
 
       // Sort replies by creation time (oldest first, like the original)
-      const sortedReplies = processedReplies.sort((a, b) => a.createdAt - b.createdAt);
+      const sortedReplies = processedReplies.sort(
+        (a, b) => a.createdAt - b.createdAt
+      );
 
       // Calculate reply levels for proper indentation
       const repliesWithLevels = calculateReplyLevels(sortedReplies);
@@ -1428,44 +1677,49 @@ export const useHomeFunctionality = () => {
     if (posts.length > 0) {
       const eventIds = posts.map(post => post.id);
 
-      zapsSub = nostrClientRef.current.subscribeToEvents([{
-        kinds: [9735],
-        '#e': eventIds
-      }], async (zapEvent: NostrEvent) => {
-      // Type guard to ensure this is a zap event
-      if (zapEvent.kind !== 9735) return;
+      zapsSub = nostrClientRef.current.subscribeToEvents(
+        [
+          {
+            kinds: [9735],
+            '#e': eventIds
+          }
+        ],
+        async (zapEvent: NostrEvent) => {
+          // Type guard to ensure this is a zap event
+          if (zapEvent.kind !== 9735) return;
 
-      // Add to batch for processing
-      zapBatchRef.current.push(zapEvent as Kind9735Event);
+          // Add to batch for processing
+          zapBatchRef.current.push(zapEvent as Kind9735Event);
 
-      // Clear existing timeout
-      if (zapBatchTimeoutRef.current) {
-        clearTimeout(zapBatchTimeoutRef.current);
-      }
+          // Clear existing timeout
+          if (zapBatchTimeoutRef.current) {
+            clearTimeout(zapBatchTimeoutRef.current);
+          }
 
-      // Process batch after 500ms delay (or immediately if batch is large)
-      if (zapBatchRef.current.length >= 10) {
-        // Process immediately if batch is large
-        const batchToProcess = [...zapBatchRef.current];
-        zapBatchRef.current = [];
-        await processZapBatch(batchToProcess);
-      } else {
-        // Process after delay
-        zapBatchTimeoutRef.current = setTimeout(async () => {
-          const batchToProcess = [...zapBatchRef.current];
-          zapBatchRef.current = [];
-          await processZapBatch(batchToProcess);
-        }, 500);
-      }
-
-    }, {
-      oneose: () => {
-        console.log('Zap subscription EOS');
-      },
-      onclosed: () => {
-        console.log('Zap subscription closed');
-      }
-    });
+          // Process batch after 500ms delay (or immediately if batch is large)
+          if (zapBatchRef.current.length >= 10) {
+            // Process immediately if batch is large
+            const batchToProcess = [...zapBatchRef.current];
+            zapBatchRef.current = [];
+            await processZapBatch(batchToProcess);
+          } else {
+            // Process after delay
+            zapBatchTimeoutRef.current = setTimeout(async () => {
+              const batchToProcess = [...zapBatchRef.current];
+              zapBatchRef.current = [];
+              await processZapBatch(batchToProcess);
+            }, 500);
+          }
+        },
+        {
+          oneose: () => {
+            console.log('Zap subscription EOS');
+          },
+          onclosed: () => {
+            console.log('Zap subscription closed');
+          }
+        }
+      );
     }
 
     return () => {
@@ -1483,12 +1737,15 @@ export const useHomeFunctionality = () => {
     // Collect all unique zap payer pubkeys
     const zapPayerPubkeys = new Set<string>();
     zapEvents.forEach(zapEvent => {
-      const descriptionTag = zapEvent.tags.find(tag => tag[0] === 'description');
+      const descriptionTag = zapEvent.tags.find(
+        tag => tag[0] === 'description'
+      );
       let zapPayerPubkey = '';
 
       if (descriptionTag) {
         try {
-          const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+          const zapData =
+            parseZapDescription(descriptionTag[1] || undefined) || {};
           zapPayerPubkey = zapData.pubkey || '';
         } catch {
           zapPayerPubkey = '';
@@ -1521,10 +1778,13 @@ export const useHomeFunctionality = () => {
 
       // Auto-close invoice overlay via store when matching zap receipt arrives
       try {
-        const descriptionTag = zapEvent.tags.find((tag: any) => tag[0] === 'description');
+        const descriptionTag = zapEvent.tags.find(
+          (tag: any) => tag[0] === 'description'
+        );
         let zapRequestEventId = '';
         if (descriptionTag) {
-          const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+          const zapData =
+            parseZapDescription(descriptionTag[1] || undefined) || {};
           zapRequestEventId = zapData.id || '';
         }
         if (zapRequestEventId) {
@@ -1547,7 +1807,9 @@ export const useHomeFunctionality = () => {
         if (!post) return newPosts;
 
         // Check for duplicates
-        const existingZapInState = post.zaps.find(zap => zap.id === zapEvent.id);
+        const existingZapInState = post.zaps.find(
+          zap => zap.id === zapEvent.id
+        );
         if (existingZapInState) {
           return newPosts;
         }
@@ -1574,7 +1836,9 @@ export const useHomeFunctionality = () => {
         if (!post) return newPosts;
 
         // Check for duplicates
-        const existingZapInState = post.zaps.find(zap => zap.id === zapEvent.id);
+        const existingZapInState = post.zaps.find(
+          zap => zap.id === zapEvent.id
+        );
         if (existingZapInState) {
           return newPosts;
         }
@@ -1594,7 +1858,9 @@ export const useHomeFunctionality = () => {
   };
 
   // Batched profile loading to prevent duplicate requests
-  const loadProfilesBatched = async (pubkeys: string[]): Promise<Map<string, Kind0Event>> => {
+  const loadProfilesBatched = async (
+    pubkeys: string[]
+  ): Promise<Map<string, Kind0Event>> => {
     const profiles = new Map<string, Kind0Event>();
     const uncachedPubkeys: string[] = [];
 
@@ -1611,11 +1877,17 @@ export const useHomeFunctionality = () => {
     // Load uncached profiles in batches
     if (uncachedPubkeys.length > 0 && nostrClientRef.current) {
       // Mark as pending to prevent duplicate requests
-      uncachedPubkeys.forEach(pubkey => pendingProfileRequestsRef.current.add(pubkey));
+      uncachedPubkeys.forEach(pubkey =>
+        pendingProfileRequestsRef.current.add(pubkey)
+      );
 
       try {
         // Use ensureProfiles for centralized profile loading
-        const profileMap = await ensureProfiles(getQueryClient(), nostrClientRef.current!, uncachedPubkeys);
+        const profileMap = await ensureProfiles(
+          getQueryClient(),
+          nostrClientRef.current!,
+          uncachedPubkeys
+        );
         const profileEvents = Array.from(profileMap.values());
 
         // Cache the results
@@ -1625,11 +1897,15 @@ export const useHomeFunctionality = () => {
         });
 
         // Remove from pending
-        uncachedPubkeys.forEach(pubkey => pendingProfileRequestsRef.current.delete(pubkey));
+        uncachedPubkeys.forEach(pubkey =>
+          pendingProfileRequestsRef.current.delete(pubkey)
+        );
       } catch (error) {
         console.error('Error loading profiles:', error);
         // Remove from pending on error
-        uncachedPubkeys.forEach(pubkey => pendingProfileRequestsRef.current.delete(pubkey));
+        uncachedPubkeys.forEach(pubkey =>
+          pendingProfileRequestsRef.current.delete(pubkey)
+        );
       }
     }
 
@@ -1637,7 +1913,10 @@ export const useHomeFunctionality = () => {
   };
 
   // Process a new zap event with pre-loaded profiles
-  const processNewZapWithProfiles = async (zapEvent: Kind9735Event, profiles: Map<string, Kind0Event>): Promise<ProcessedZap | null> => {
+  const processNewZapWithProfiles = async (
+    zapEvent: Kind9735Event,
+    profiles: Map<string, Kind0Event>
+  ): Promise<ProcessedZap | null> => {
     try {
       // Extract zap amount from bolt11 tag
       const bolt11Tag = zapEvent.tags.find(tag => tag[0] === 'bolt11');
@@ -1652,13 +1931,16 @@ export const useHomeFunctionality = () => {
       }
 
       // Extract zap payer pubkey from description tag
-      const descriptionTag = zapEvent.tags.find(tag => tag[0] === 'description');
+      const descriptionTag = zapEvent.tags.find(
+        tag => tag[0] === 'description'
+      );
       let zapPayerPubkey = '';
       let isAnonymousZap = false;
 
       if (descriptionTag) {
         try {
-          const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+          const zapData =
+            parseZapDescription(descriptionTag[1] || undefined) || {};
           zapPayerPubkey = zapData.pubkey || '';
           isAnonymousZap = !zapData.pubkey;
         } catch {
@@ -1687,14 +1969,20 @@ export const useHomeFunctionality = () => {
       }
 
       // Get zap payer profile from pre-loaded profiles
-      const zapPayerProfile = zapPayerPubkey ? profiles.get(zapPayerPubkey) : null;
+      const zapPayerProfile = zapPayerPubkey
+        ? profiles.get(zapPayerPubkey)
+        : null;
 
       let zapPayerPicture = '/images/generic-user-icon.svg';
 
       if (zapPayerProfile) {
         try {
-          const profileData = safeJson<Record<string, any>>(zapPayerProfile.content, {});
-          zapPayerPicture = (profileData as any).picture || '/images/generic-user-icon.svg';
+          const profileData = safeJson<Record<string, any>>(
+            zapPayerProfile.content,
+            {}
+          );
+          zapPayerPicture =
+            (profileData as any).picture || '/images/generic-user-icon.svg';
         } catch {
           // If parsing fails, use default
           zapPayerPicture = '/images/generic-user-icon.svg';
@@ -1702,8 +1990,10 @@ export const useHomeFunctionality = () => {
       }
 
       // Create npub for zap payer
-      const zapPayerNpub = zapPayerPubkey && window.NostrTools ?
-        window.NostrTools.nip19.npubEncode(zapPayerPubkey) : '';
+      const zapPayerNpub =
+        zapPayerPubkey && window.NostrTools
+          ? window.NostrTools.nip19.npubEncode(zapPayerPubkey)
+          : '';
 
       return {
         ...zapEvent,
@@ -1719,7 +2009,9 @@ export const useHomeFunctionality = () => {
   };
 
   // Process a new zap event (legacy function for backward compatibility)
-  const processNewZap = async (zapEvent: Kind9735Event): Promise<ProcessedZap | null> => {
+  const processNewZap = async (
+    zapEvent: Kind9735Event
+  ): Promise<ProcessedZap | null> => {
     try {
       // Extract zap amount from bolt11 tag
       const bolt11Tag = zapEvent.tags.find(tag => tag[0] === 'bolt11');
@@ -1734,13 +2026,16 @@ export const useHomeFunctionality = () => {
       }
 
       // Extract zap payer pubkey from description tag
-      const descriptionTag = zapEvent.tags.find(tag => tag[0] === 'description');
+      const descriptionTag = zapEvent.tags.find(
+        tag => tag[0] === 'description'
+      );
       let zapPayerPubkey = '';
       let isAnonymousZap = false;
 
       if (descriptionTag) {
         try {
-          const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+          const zapData =
+            parseZapDescription(descriptionTag[1] || undefined) || {};
           zapPayerPubkey = zapData.pubkey || '';
           isAnonymousZap = !zapData.pubkey;
         } catch {
@@ -1784,8 +2079,12 @@ export const useHomeFunctionality = () => {
 
       if (zapPayerProfile) {
         try {
-          const profileData = safeJson<Record<string, any>>(zapPayerProfile.content, {});
-          zapPayerPicture = (profileData as any).picture || '/images/generic-user-icon.svg';
+          const profileData = safeJson<Record<string, any>>(
+            zapPayerProfile.content,
+            {}
+          );
+          zapPayerPicture =
+            (profileData as any).picture || '/images/generic-user-icon.svg';
         } catch {
           // If parsing fails, use default
           zapPayerPicture = '/images/generic-user-icon.svg';
@@ -1793,8 +2092,10 @@ export const useHomeFunctionality = () => {
       }
 
       // Create npub for zap payer
-      const zapPayerNpub = zapPayerPubkey && window.NostrTools ?
-        window.NostrTools.nip19.npubEncode(zapPayerPubkey) : '';
+      const zapPayerNpub =
+        zapPayerPubkey && window.NostrTools
+          ? window.NostrTools.nip19.npubEncode(zapPayerPubkey)
+          : '';
 
       return {
         ...zapEvent,
@@ -1815,13 +2116,21 @@ export const useHomeFunctionality = () => {
       console.log('Processing new note:', noteEvent.id);
 
       // Get the author's profile
-      const authorProfiles = await nostrClientRef.current?.getEvents([{
-        kinds: [0],
-        authors: [noteEvent.pubkey]
-      }]) as Kind0Event[];
+      const authorProfiles = (await nostrClientRef.current?.getEvents([
+        {
+          kinds: [0],
+          authors: [noteEvent.pubkey]
+        }
+      ])) as Kind0Event[];
 
       const author = authorProfiles[0] || {
-        kind: 0, id: '', pubkey: noteEvent.pubkey, content: '{}', created_at: 0, sig: '', tags: []
+        kind: 0,
+        id: '',
+        pubkey: noteEvent.pubkey,
+        content: '{}',
+        created_at: 0,
+        sig: '',
+        tags: []
       };
 
       // Create basic post structure (like processPostsBasic)
@@ -1878,7 +2187,6 @@ export const useHomeFunctionality = () => {
           return [newPost, ...prevPosts];
         });
       }
-
     } catch (error) {
       console.error('Error processing new note:', error);
     }

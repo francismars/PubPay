@@ -28,7 +28,10 @@ export class UseNostr {
     this.options = options;
     this.nostrClient = new NostrClient(options.relays);
     this.eventManager = new EventManager(this.nostrClient);
-    this.profileService = new ProfileService(this.nostrClient, this.eventManager);
+    this.profileService = new ProfileService(
+      this.nostrClient,
+      this.eventManager
+    );
     this.errorService = new ErrorService();
   }
 
@@ -41,13 +44,20 @@ export class UseNostr {
 
     try {
       // Test relay connections - using a simple method for now
-      await this.nostrClient.subscribeToEvents([{ kinds: [0], limit: 1 }], () => {});
+      await this.nostrClient.subscribeToEvents(
+        [{ kinds: [0], limit: 1 }],
+        () => {}
+      );
       this.isConnected = true;
       this.errorService.info('Connected to Nostr relays');
       return true;
     } catch (err) {
-      this.error = err instanceof Error ? err.message : 'Failed to connect to relays';
-      this.errorService.error('Failed to connect to Nostr relays', err as Error);
+      this.error =
+        err instanceof Error ? err.message : 'Failed to connect to relays';
+      this.errorService.error(
+        'Failed to connect to Nostr relays',
+        err as Error
+      );
       return false;
     } finally {
       this.isConnecting = false;
@@ -62,7 +72,10 @@ export class UseNostr {
   }
 
   // Subscribe to live events
-  async subscribeToLiveEvents(pubkey: string, identifier: string): Promise<void> {
+  async subscribeToLiveEvents(
+    pubkey: string,
+    identifier: string
+  ): Promise<void> {
     if (!this.isConnected) {
       this.errorService.warn('Not connected to relays');
       return;
@@ -72,7 +85,7 @@ export class UseNostr {
       this.nostrClient.subscribeToLiveEvents(
         pubkey,
         identifier,
-        async (event) => {
+        async event => {
           const liveEvent = await this.eventManager.handleLiveEvent(event);
           if (liveEvent) {
             this.options.onEvent?.(liveEvent);
@@ -80,7 +93,10 @@ export class UseNostr {
         }
       );
     } catch (err) {
-      this.errorService.error('Failed to subscribe to live events', err as Error);
+      this.errorService.error(
+        'Failed to subscribe to live events',
+        err as Error
+      );
     }
   }
 
@@ -92,23 +108,19 @@ export class UseNostr {
     }
 
     try {
-      this.nostrClient.subscribeToLiveChat(
-        pubkey,
-        identifier,
-        async (event) => {
-          const noteData = await this.eventManager.handleNoteEvent(event as any);
-          if (noteData) {
-            const chatMessage = {
-              id: event.id,
-              pubkey: event.pubkey,
-              content: noteData.content,
-              created_at: event.created_at,
-              author: noteData.author || undefined
-            };
-            this.options.onEvent?.(chatMessage as any);
-          }
+      this.nostrClient.subscribeToLiveChat(pubkey, identifier, async event => {
+        const noteData = await this.eventManager.handleNoteEvent(event as any);
+        if (noteData) {
+          const chatMessage = {
+            id: event.id,
+            pubkey: event.pubkey,
+            content: noteData.content,
+            created_at: event.created_at,
+            author: noteData.author || undefined
+          };
+          this.options.onEvent?.(chatMessage as any);
         }
-      );
+      });
     } catch (err) {
       this.errorService.error('Failed to subscribe to chat', err as Error);
     }
@@ -122,15 +134,12 @@ export class UseNostr {
     }
 
     try {
-      this.nostrClient.subscribeToZaps(
-        eventId,
-        async (event) => {
-          const zap = await this.eventManager.handleZapEvent(event);
-          if (zap) {
-            this.options.onZap?.(zap);
-          }
+      this.nostrClient.subscribeToZaps(eventId, async event => {
+        const zap = await this.eventManager.handleZapEvent(event);
+        if (zap) {
+          this.options.onZap?.(zap);
         }
-      );
+      });
     } catch (err) {
       this.errorService.error('Failed to subscribe to zaps', err as Error);
     }
@@ -157,11 +166,25 @@ export class UseNostr {
   }
 
   // Getters
-  get connected(): boolean { return this.isConnected; }
-  get connecting(): boolean { return this.isConnecting; }
-  get lastError(): string | null { return this.error; }
-  get client(): NostrClient { return this.nostrClient; }
-  get eventManagerInstance(): EventManager { return this.eventManager; }
-  get profileServiceInstance(): ProfileService { return this.profileService; }
-  get errorServiceInstance(): ErrorService { return this.errorService; }
+  get connected(): boolean {
+    return this.isConnected;
+  }
+  get connecting(): boolean {
+    return this.isConnecting;
+  }
+  get lastError(): string | null {
+    return this.error;
+  }
+  get client(): NostrClient {
+    return this.nostrClient;
+  }
+  get eventManagerInstance(): EventManager {
+    return this.eventManager;
+  }
+  get profileServiceInstance(): ProfileService {
+    return this.profileService;
+  }
+  get errorServiceInstance(): ErrorService {
+    return this.errorService;
+  }
 }

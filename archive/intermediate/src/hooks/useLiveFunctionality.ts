@@ -18,7 +18,7 @@ const DEFAULT_STYLES = {
   qrShowNote: false,
   layoutInvert: false,
   hideZapperContent: false,
-  showTopZappers: false,  // Default to hidden
+  showTopZappers: false, // Default to hidden
   podium: false,
   zapGrid: false,
   lightning: false,
@@ -32,7 +32,9 @@ export const useLiveFunctionality = (eventId?: string) => {
   const [error, setError] = useState<string | null>(null);
   const [noteContent, setNoteContent] = useState<string>('');
   const [authorName, setAuthorName] = useState<string>('Author');
-  const [authorImage, setAuthorImage] = useState<string>('/images/gradient_color.gif');
+  const [authorImage, setAuthorImage] = useState<string>(
+    '/images/gradient_color.gif'
+  );
   const [zaps, setZaps] = useState<any[]>([]);
   const [totalZaps, setTotalZaps] = useState<number>(0);
   const [totalAmount, setTotalAmount] = useState<number>(0);
@@ -54,7 +56,9 @@ export const useLiveFunctionality = (eventId?: string) => {
   useEffect(() => {
     if (topZappers.length > 0) {
       // Only display if toggle is ON
-      const showTopZappersToggle = document.getElementById('showTopZappersToggle') as HTMLInputElement;
+      const showTopZappersToggle = document.getElementById(
+        'showTopZappersToggle'
+      ) as HTMLInputElement;
       if (showTopZappersToggle?.checked) {
         displayTopZappers();
       }
@@ -67,7 +71,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       calculateTopZappersFromZaps(zaps);
 
       // If show top zappers toggle is on OR user previously wanted to see them, display them immediately
-      const showTopZappersToggle = document.getElementById('showTopZappersToggle') as HTMLInputElement;
+      const showTopZappersToggle = document.getElementById(
+        'showTopZappersToggle'
+      ) as HTMLInputElement;
       if (showTopZappersToggle?.checked || userWantsTopZappers) {
         displayTopZappers();
         // Reset the flag since we've now shown them
@@ -78,7 +84,9 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   useEffect(() => {
     // IMMEDIATELY hide QR swiper container to prevent flash when no QR codes are toggled
-    const qrSwiperContainer = document.querySelector('.qr-swiper') as HTMLElement;
+    const qrSwiperContainer = document.querySelector(
+      '.qr-swiper'
+    ) as HTMLElement;
     if (qrSwiperContainer) {
       qrSwiperContainer.style.display = 'none';
     }
@@ -141,10 +149,10 @@ export const useLiveFunctionality = (eventId?: string) => {
 
             // Event callbacks
             on: {
-              init () {
+              init() {
                 // Portrait swiper initialized
               },
-              slideChange () {
+              slideChange() {
                 // Portrait swiper slide changed
               }
             }
@@ -178,7 +186,9 @@ export const useLiveFunctionality = (eventId?: string) => {
           }, 100);
 
           // After styles are loaded, check if show top zappers should be displayed
-          const showTopZappersToggle = document.getElementById('showTopZappersToggle') as HTMLInputElement;
+          const showTopZappersToggle = document.getElementById(
+            'showTopZappersToggle'
+          ) as HTMLInputElement;
           if (showTopZappersToggle?.checked) {
             displayTopZappers();
           }
@@ -186,7 +196,11 @@ export const useLiveFunctionality = (eventId?: string) => {
 
         setIsLoading(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to initialize live functionality');
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to initialize live functionality'
+        );
         setIsLoading(false);
       }
     };
@@ -213,7 +227,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Initialize portrait swiper for note loader (with delay to ensure DOM is ready)
       setTimeout(() => {
         if (typeof window !== 'undefined' && (window as any).Swiper) {
-          const portraitSwiperElement = document.querySelector('.portrait-swiper .swiper');
+          const portraitSwiperElement = document.querySelector(
+            '.portrait-swiper .swiper'
+          );
           if (portraitSwiperElement) {
             new (window as any).Swiper('.portrait-swiper .swiper', {
               // Basic settings
@@ -273,7 +289,8 @@ export const useLiveFunctionality = (eventId?: string) => {
       (window as any).lightningEnabled = false;
       // Expose organizeZapsHierarchically function globally
       (window as any).organizeZapsHierarchically = organizeZapsHierarchically;
-      (window as any).cleanupHierarchicalOrganization = cleanupHierarchicalOrganization;
+      (window as any).cleanupHierarchicalOrganization =
+        cleanupHierarchicalOrganization;
 
       // Note: setupStyleOptions is overridden to prevent conflicts with original JavaScript
 
@@ -355,19 +372,40 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Generate placeholder QR codes
     const placeholderNoteId = 'placeholder-note-id';
-    const neventId = (window as any).NostrTools?.nip19?.neventEncode({ id: placeholderNoteId, relays: [] }) || 'placeholder-nevent';
-    const note1Id = (window as any).NostrTools?.nip19?.noteEncode(placeholderNoteId) || 'placeholder-note';
-    const njumpUrl = `https://njump.me/${  note1Id}`;
-    const nostrNevent = `nostr:${  neventId}`;
-    const nostrNote = `nostr:${  note1Id}`;
+    const neventId =
+      (window as any).NostrTools?.nip19?.neventEncode({
+        id: placeholderNoteId,
+        relays: []
+      }) || 'placeholder-nevent';
+    const note1Id =
+      (window as any).NostrTools?.nip19?.noteEncode(placeholderNoteId) ||
+      'placeholder-note';
+    const njumpUrl = `https://njump.me/${note1Id}`;
+    const nostrNevent = `nostr:${neventId}`;
+    const nostrNote = `nostr:${note1Id}`;
 
     const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
 
     // Generate QR codes for all formats
     const qrcodeContainers = [
-      { element: document.getElementById('qrCode'), value: njumpUrl, link: document.getElementById('qrcodeLinkNostr'), preview: document.getElementById('qrDataPreview1') },
-      { element: document.getElementById('qrCodeNevent'), value: nostrNevent, link: document.getElementById('qrcodeNeventLink'), preview: document.getElementById('qrDataPreview2') },
-      { element: document.getElementById('qrCodeNote'), value: nostrNote, link: document.getElementById('qrcodeNoteLink'), preview: document.getElementById('qrDataPreview3') }
+      {
+        element: document.getElementById('qrCode'),
+        value: njumpUrl,
+        link: document.getElementById('qrcodeLinkNostr'),
+        preview: document.getElementById('qrDataPreview1')
+      },
+      {
+        element: document.getElementById('qrCodeNevent'),
+        value: nostrNevent,
+        link: document.getElementById('qrcodeNeventLink'),
+        preview: document.getElementById('qrDataPreview2')
+      },
+      {
+        element: document.getElementById('qrCodeNote'),
+        value: nostrNote,
+        link: document.getElementById('qrcodeNoteLink'),
+        preview: document.getElementById('qrDataPreview3')
+      }
     ];
 
     qrcodeContainers.forEach(({ element, value, link, preview }) => {
@@ -395,7 +433,11 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   // Live Event subscription functions
-  const subscribeLiveEvent = async (pubkey: string, identifier: string, kind: number) => {
+  const subscribeLiveEvent = async (
+    pubkey: string,
+    identifier: string,
+    kind: number
+  ) => {
     // Debug log removed
 
     const filter = {
@@ -410,29 +452,43 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Debug log removed
     }, 30000); // Increased timeout to 30 seconds
 
-    const sub = (window as any).pool.subscribeMany((window as any).relays, [filter], {
-      onevent(liveEvent: any) {
-        clearTimeout(timeoutId);
-        displayLiveEvent(liveEvent);
-        // Also subscribe to participants' profiles
-        subscribeLiveEventParticipants(liveEvent);
-      },
-      oneose() {
-        clearTimeout(timeoutId);
-        // Don't close the subscription, keep it alive for updates
-        // Debug log removed
-      },
-      onclosed() {
-        clearTimeout(timeoutId);
-        // Attempt to reconnect after a delay if we have current event info
-        if ((window as any).currentLiveEventInfo && (window as any).reconnectionAttempts.event < 3) {
-          (window as any).reconnectionAttempts.event++;
-          setTimeout(() => {
-            subscribeLiveEvent((window as any).currentLiveEventInfo.pubkey, (window as any).currentLiveEventInfo.identifier, (window as any).currentLiveEventInfo.kind);
-          }, 5000 * (window as any).reconnectionAttempts.event);
+    const sub = (window as any).pool.subscribeMany(
+      (window as any).relays,
+      [filter],
+      {
+        onevent(liveEvent: any) {
+          clearTimeout(timeoutId);
+          displayLiveEvent(liveEvent);
+          // Also subscribe to participants' profiles
+          subscribeLiveEventParticipants(liveEvent);
+        },
+        oneose() {
+          clearTimeout(timeoutId);
+          // Don't close the subscription, keep it alive for updates
+          // Debug log removed
+        },
+        onclosed() {
+          clearTimeout(timeoutId);
+          // Attempt to reconnect after a delay if we have current event info
+          if (
+            (window as any).currentLiveEventInfo &&
+            (window as any).reconnectionAttempts.event < 3
+          ) {
+            (window as any).reconnectionAttempts.event++;
+            setTimeout(
+              () => {
+                subscribeLiveEvent(
+                  (window as any).currentLiveEventInfo.pubkey,
+                  (window as any).currentLiveEventInfo.identifier,
+                  (window as any).currentLiveEventInfo.kind
+                );
+              },
+              5000 * (window as any).reconnectionAttempts.event
+            );
+          }
         }
       }
-    });
+    );
   };
 
   const subscribeLiveChat = async (pubkey: string, identifier: string) => {
@@ -444,23 +500,36 @@ export const useLiveFunctionality = (eventId?: string) => {
       '#a': [aTag]
     };
 
-    const sub = (window as any).pool.subscribeMany((window as any).relays, [filter], {
-      onevent(chatMessage: any) {
-        displayLiveChatMessage(chatMessage);
-      },
-      oneose() {
-        // Debug log removed
-      },
-      onclosed() {
-        // Attempt to reconnect after a delay if we have current event info
-        if ((window as any).currentLiveEventInfo && (window as any).reconnectionAttempts.chat < 3) {
-          (window as any).reconnectionAttempts.chat++;
-          setTimeout(() => {
-            subscribeLiveChat((window as any).currentLiveEventInfo.pubkey, (window as any).currentLiveEventInfo.identifier);
-          }, 5000 * (window as any).reconnectionAttempts.chat);
+    const sub = (window as any).pool.subscribeMany(
+      (window as any).relays,
+      [filter],
+      {
+        onevent(chatMessage: any) {
+          displayLiveChatMessage(chatMessage);
+        },
+        oneose() {
+          // Debug log removed
+        },
+        onclosed() {
+          // Attempt to reconnect after a delay if we have current event info
+          if (
+            (window as any).currentLiveEventInfo &&
+            (window as any).reconnectionAttempts.chat < 3
+          ) {
+            (window as any).reconnectionAttempts.chat++;
+            setTimeout(
+              () => {
+                subscribeLiveChat(
+                  (window as any).currentLiveEventInfo.pubkey,
+                  (window as any).currentLiveEventInfo.identifier
+                );
+              },
+              5000 * (window as any).reconnectionAttempts.chat
+            );
+          }
         }
       }
-    });
+    );
   };
 
   const subscribeLiveEventZaps = async (pubkey: string, identifier: string) => {
@@ -473,23 +542,27 @@ export const useLiveFunctionality = (eventId?: string) => {
       '#a': [aTag]
     };
 
-    const sub = (window as any).pool.subscribeMany((window as any).relays, [filter], {
-      onevent(zapReceipt: any) {
-        processLiveEventZap(zapReceipt, pubkey, identifier);
-      },
-      oneose() {
-        // Debug log removed
-        // Keep subscription alive for new zaps
-      },
-      onclosed() {
-        // Debug log removed
-        // Attempt to reconnect after a delay
-        setTimeout(() => {
+    const sub = (window as any).pool.subscribeMany(
+      (window as any).relays,
+      [filter],
+      {
+        onevent(zapReceipt: any) {
+          processLiveEventZap(zapReceipt, pubkey, identifier);
+        },
+        oneose() {
           // Debug log removed
-          subscribeLiveEventZaps(pubkey, identifier);
-        }, 5000);
+          // Keep subscription alive for new zaps
+        },
+        onclosed() {
+          // Debug log removed
+          // Attempt to reconnect after a delay
+          setTimeout(() => {
+            // Debug log removed
+            subscribeLiveEventZaps(pubkey, identifier);
+          }, 5000);
+        }
       }
-    });
+    );
   };
 
   const subscribeLiveEventParticipants = async (liveEvent: any) => {
@@ -506,16 +579,20 @@ export const useLiveFunctionality = (eventId?: string) => {
         authors: participantPubkeys
       };
 
-      const sub = (window as any).pool.subscribeMany((window as any).relays, [filter], {
-        onevent(profile: any) {
-          // Store profile for later use
-          (window as any).profiles = (window as any).profiles || {};
-          (window as any).profiles[profile.pubkey] = profile;
-        },
-        oneose() {
-          // Debug log removed
+      const sub = (window as any).pool.subscribeMany(
+        (window as any).relays,
+        [filter],
+        {
+          onevent(profile: any) {
+            // Store profile for later use
+            (window as any).profiles = (window as any).profiles || {};
+            (window as any).profiles[profile.pubkey] = profile;
+          },
+          oneose() {
+            // Debug log removed
+          }
         }
-      });
+      );
     }
   };
 
@@ -523,7 +600,10 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Debug log removed
 
     // Check if this live event is already displayed to avoid clearing content
-    if ((window as any).currentLiveEvent && (window as any).currentLiveEvent.id === liveEvent.id) {
+    if (
+      (window as any).currentLiveEvent &&
+      (window as any).currentLiveEvent.id === liveEvent.id
+    ) {
       return;
     }
 
@@ -543,15 +623,28 @@ export const useLiveFunctionality = (eventId?: string) => {
     setupLiveEventTwoColumnLayout();
 
     // Extract event information from tags
-    const title = liveEvent.tags.find((tag: any) => tag[0] === 'title')?.[1] || 'Live Event';
-    const summary = liveEvent.tags.find((tag: any) => tag[0] === 'summary')?.[1] || '';
-    const status = liveEvent.tags.find((tag: any) => tag[0] === 'status')?.[1] || 'unknown';
-    const streaming = liveEvent.tags.find((tag: any) => tag[0] === 'streaming')?.[1];
-    const recording = liveEvent.tags.find((tag: any) => tag[0] === 'recording')?.[1];
+    const title =
+      liveEvent.tags.find((tag: any) => tag[0] === 'title')?.[1] ||
+      'Live Event';
+    const summary =
+      liveEvent.tags.find((tag: any) => tag[0] === 'summary')?.[1] || '';
+    const status =
+      liveEvent.tags.find((tag: any) => tag[0] === 'status')?.[1] || 'unknown';
+    const streaming = liveEvent.tags.find(
+      (tag: any) => tag[0] === 'streaming'
+    )?.[1];
+    const recording = liveEvent.tags.find(
+      (tag: any) => tag[0] === 'recording'
+    )?.[1];
     const starts = liveEvent.tags.find((tag: any) => tag[0] === 'starts')?.[1];
     const ends = liveEvent.tags.find((tag: any) => tag[0] === 'ends')?.[1];
-    const currentParticipants = liveEvent.tags.find((tag: any) => tag[0] === 'current_participants')?.[1] || '0';
-    const totalParticipants = liveEvent.tags.find((tag: any) => tag[0] === 'total_participants')?.[1] || '0';
+    const currentParticipants =
+      liveEvent.tags.find(
+        (tag: any) => tag[0] === 'current_participants'
+      )?.[1] || '0';
+    const totalParticipants =
+      liveEvent.tags.find((tag: any) => tag[0] === 'total_participants')?.[1] ||
+      '0';
     const participants = liveEvent.tags.filter((tag: any) => tag[0] === 'p');
 
     // Format timestamps
@@ -562,14 +655,18 @@ export const useLiveFunctionality = (eventId?: string) => {
     };
 
     // Check if live event content already exists to avoid rebuilding video
-    const existingLiveContent = noteContent?.querySelector('.live-event-content');
+    const existingLiveContent = noteContent?.querySelector(
+      '.live-event-content'
+    );
     const existingVideo = noteContent?.querySelector('#live-video');
 
     if (!existingLiveContent) {
       // Only set innerHTML if content doesn't exist yet
       if (noteContent) {
         noteContent.innerHTML = `
-            ${streaming ? `
+            ${
+              streaming
+                ? `
                 <div class="live-event-video">
                     <div id="live-video-player" class="video-player-container">
                         <video id="live-video" controls autoplay muted playsinline class="live-video">
@@ -585,7 +682,9 @@ export const useLiveFunctionality = (eventId?: string) => {
                         </div>
                     </div>
                 </div>
-            ` : ''}
+            `
+                : ''
+            }
             
             <div class="live-event-content">
                 ${summary ? `<p class="live-event-summary">${summary}</p>` : ''}
@@ -596,49 +695,81 @@ export const useLiveFunctionality = (eventId?: string) => {
                     </span>
                 </div>
                 
-                ${starts ? `<div class="live-event-time">
+                ${
+                  starts
+                    ? `<div class="live-event-time">
                     <strong>Starts:</strong> ${formatTime(starts)}
-                </div>` : ''}
+                </div>`
+                    : ''
+                }
                 
-                ${ends ? `<div class="live-event-time">
+                ${
+                  ends
+                    ? `<div class="live-event-time">
                     <strong>Ends:</strong> ${formatTime(ends)}
-                </div>` : ''}
+                </div>`
+                    : ''
+                }
                 
                 <div class="live-event-participants">
                     <div class="participants-count">
                         <strong>Participants:</strong> ${currentParticipants}/${totalParticipants}
                     </div>
-                    ${participants.length > 0 ? `
+                    ${
+                      participants.length > 0
+                        ? `
                         <div class="participants-list">
-                            ${participants.slice(0, 10).map((p: any) => `
+                            ${participants
+                              .slice(0, 10)
+                              .map(
+                                (p: any) => `
                                 <div class="participant" data-pubkey="${p[1]}">
                                     <span class="participant-role">${p[3] || 'Participant'}</span>: 
-                                    <span class="participant-pubkey">${p[1].slice(0,8)}...</span>
+                                    <span class="participant-pubkey">${p[1].slice(0, 8)}...</span>
                                 </div>
-                            `).join('')}
+                            `
+                              )
+                              .join('')}
                             ${participants.length > 10 ? `<div class="participants-more">... and ${participants.length - 10} more</div>` : ''}
                         </div>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                 </div>
                 
-                ${recording ? `
+                ${
+                  recording
+                    ? `
                     <div class="live-event-actions">
                         <a href="${recording}" target="_blank" class="recording-link">
                             🎥 Watch Recording
                         </a>
                     </div>
-                ` : ''}
+                `
+                    : ''
+                }
             </div>
         `;
       }
     } else {
       // Content exists, just update dynamic parts without touching video
-      const statusElement = noteContent?.querySelector('.live-event-status .status-indicator');
-      const participantsCountElement = noteContent?.querySelector('.participants-count');
+      const statusElement = noteContent?.querySelector(
+        '.live-event-status .status-indicator'
+      );
+      const participantsCountElement = noteContent?.querySelector(
+        '.participants-count'
+      );
 
       if (statusElement) {
         statusElement.className = `status-indicator status-${status}`;
-        statusElement.textContent = status === 'live' ? '🔴 LIVE' : status === 'planned' ? '📅 PLANNED' : status === 'ended' ? '✅ ENDED' : status.toUpperCase();
+        statusElement.textContent =
+          status === 'live'
+            ? '🔴 LIVE'
+            : status === 'planned'
+              ? '📅 PLANNED'
+              : status === 'ended'
+                ? '✅ ENDED'
+                : status.toUpperCase();
       }
 
       if (participantsCountElement) {
@@ -653,7 +784,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     // Find the actual host from participants (look for "Host" role in p tags)
-    const hostParticipant = participants.find((p: any) => p[3] && p[3].toLowerCase() === 'host');
+    const hostParticipant = participants.find(
+      (p: any) => p[3] && p[3].toLowerCase() === 'host'
+    );
     const hostPubkey = hostParticipant ? hostParticipant[1] : liveEvent.pubkey;
 
     // Subscribe to host profile to get their image
@@ -693,7 +826,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Debug log removed
 
     // Check if this chat message is already displayed to prevent duplicates
-    const existingMessage = document.querySelector(`[data-chat-id="${chatMessage.id}"]`);
+    const existingMessage = document.querySelector(
+      `[data-chat-id="${chatMessage.id}"]`
+    );
     if (existingMessage) {
       // Debug log removed
       return;
@@ -709,7 +844,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     // Use activity column for live events, main container for regular notes
-    const targetContainer = document.getElementById('activity-list') || zapsContainer;
+    const targetContainer =
+      document.getElementById('activity-list') || zapsContainer;
 
     // Create chat message element
     const chatDiv = document.createElement('div');
@@ -725,7 +861,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             <img class="chat-author-img" src="/images/gradient_color.gif" data-pubkey="${chatMessage.pubkey}" />
             <div class="chat-message-info">
                 <div class="chat-author-name" data-pubkey="${chatMessage.pubkey}">
-                    ${chatMessage.pubkey.slice(0,8)}...
+                    ${chatMessage.pubkey.slice(0, 8)}...
                 </div>
                 <div class="chat-message-time">${timeStr}</div>
             </div>
@@ -740,9 +876,11 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Insert message in reverse chronological order (newest first, at top)
     if (targetContainer) {
-      const existingMessages = Array.from(targetContainer.querySelectorAll('.live-chat-message, .live-event-zap'));
-      const insertPosition = existingMessages.findIndex((msg: any) =>
-        parseInt(msg.dataset.timestamp) < chatMessage.created_at
+      const existingMessages = Array.from(
+        targetContainer.querySelectorAll('.live-chat-message, .live-event-zap')
+      );
+      const insertPosition = existingMessages.findIndex(
+        (msg: any) => parseInt(msg.dataset.timestamp) < chatMessage.created_at
       );
 
       if (insertPosition === -1) {
@@ -760,13 +898,18 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
-
-  const processLiveEventZap = async (zapReceipt: any, eventPubkey: string, eventIdentifier: string) => {
+  const processLiveEventZap = async (
+    zapReceipt: any,
+    eventPubkey: string,
+    eventIdentifier: string
+  ) => {
     // Debug log removed
 
     try {
       // Extract zap information from the receipt
-      const description9735 = zapReceipt.tags.find((tag: any) => tag[0] === 'description')?.[1];
+      const description9735 = zapReceipt.tags.find(
+        (tag: any) => tag[0] === 'description'
+      )?.[1];
       if (!description9735) {
         return;
       }
@@ -801,7 +944,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       // Display the zap
       displayLiveEventZap(zapData);
-
     } catch (error) {
       console.error('Error processing live event zap:', error);
     }
@@ -827,7 +969,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     // Get target containers - use columns for live events, main container for regular notes
-    const activityContainer = document.getElementById('activity-list') || zapsContainer;
+    const activityContainer =
+      document.getElementById('activity-list') || zapsContainer;
     const zapsOnlyContainer = document.getElementById('zaps-only-list');
 
     // Create zap element with chat-style layout for activity column
@@ -845,7 +988,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             <img class="zap-author-img" src="/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
             <div class="zap-info">
                 <div class="zap-author-name" data-pubkey="${zapData.pubkey}">
-                    ${zapData.pubkey.slice(0,8)}...
+                    ${zapData.pubkey.slice(0, 8)}...
                 </div>
                 <div class="zap-time">${timeStr}</div>
             </div>
@@ -854,18 +997,26 @@ export const useLiveFunctionality = (eventId?: string) => {
                 <span class="zap-amount-label">sats</span>
             </div>
         </div>
-        ${zapData.content ? `
+        ${
+          zapData.content
+            ? `
             <div class="zap-content">
                 ${zapData.content}
             </div>
-        ` : ''}
+        `
+            : ''
+        }
     `;
 
     // Insert zap in activity column (mixed with chat messages)
     if (activityContainer) {
-      const existingActivityItems = Array.from(activityContainer.querySelectorAll('.live-chat-message, .live-event-zap'));
-      const activityInsertPosition = existingActivityItems.findIndex((item: any) =>
-        parseInt(item.dataset.timestamp) < zapData.timestamp
+      const existingActivityItems = Array.from(
+        activityContainer.querySelectorAll(
+          '.live-chat-message, .live-event-zap'
+        )
+      );
+      const activityInsertPosition = existingActivityItems.findIndex(
+        (item: any) => parseInt(item.dataset.timestamp) < zapData.timestamp
       );
 
       if (activityInsertPosition === -1) {
@@ -898,7 +1049,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                 <img class="zapperProfileImg" src="/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
                 <div class="zapperInfo">
                     <div class="zapperName" data-pubkey="${zapData.pubkey}">
-                        ${zapData.pubkey.slice(0,8)}...
+                        ${zapData.pubkey.slice(0, 8)}...
                     </div>
                     <div class="zapperMessage">${zapData.content || ''}</div>
                 </div>
@@ -909,9 +1060,11 @@ export const useLiveFunctionality = (eventId?: string) => {
             </div>
         `;
 
-      const existingZapItems = Array.from(zapsOnlyContainer.querySelectorAll('.live-event-zap'));
-      const zapInsertPosition = existingZapItems.findIndex((item: any) =>
-        parseInt(item.dataset.amount || 0) < zapData.amount
+      const existingZapItems = Array.from(
+        zapsOnlyContainer.querySelectorAll('.live-event-zap')
+      );
+      const zapInsertPosition = existingZapItems.findIndex(
+        (item: any) => parseInt(item.dataset.amount || 0) < zapData.amount
       );
 
       if (zapInsertPosition === -1) {
@@ -940,17 +1093,21 @@ export const useLiveFunctionality = (eventId?: string) => {
       authors: [pubkey]
     };
 
-    const sub = (window as any).pool.subscribeMany((window as any).relays, [filter], {
-      onevent(profile: any) {
-        updateProfile(profile);
-      },
-      oneose() {
-        // Debug log removed
-      },
-      onclosed() {
-        // Debug log removed
+    const sub = (window as any).pool.subscribeMany(
+      (window as any).relays,
+      [filter],
+      {
+        onevent(profile: any) {
+          updateProfile(profile);
+        },
+        oneose() {
+          // Debug log removed
+        },
+        onclosed() {
+          // Debug log removed
+        }
       }
-    });
+    );
   };
 
   const updateLiveEventZapTotal = () => {
@@ -973,7 +1130,11 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
-  const addZapToTotals = (pubkey: string, amount: number, profile: any = null) => {
+  const addZapToTotals = (
+    pubkey: string,
+    amount: number,
+    profile: any = null
+  ) => {
     // Debug log removed
 
     // Initialize zapperTotals if it doesn't exist
@@ -996,7 +1157,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         amount,
         profile,
         name: profile ? getDisplayName(profile) : 'Anonymous',
-        picture: profile ? (profile.picture || '/images/gradient_color.gif') : '/images/gradient_color.gif',
+        picture: profile
+          ? profile.picture || '/images/gradient_color.gif'
+          : '/images/gradient_color.gif',
         pubkey
       });
     }
@@ -1006,7 +1169,9 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const getDisplayName = (profile: any) => {
     if (!profile) return 'Anonymous';
-    return profile.display_name || profile.displayName || profile.name || 'Anonymous';
+    return (
+      profile.display_name || profile.displayName || profile.name || 'Anonymous'
+    );
   };
 
   const updateTopZappers = () => {
@@ -1055,14 +1220,17 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       if (i < topZappers.length) {
         const zapper = topZappers[i];
-        const avatar = zapperElement.querySelector('.zapper-avatar') as HTMLImageElement;
+        const avatar = zapperElement.querySelector(
+          '.zapper-avatar'
+        ) as HTMLImageElement;
         const name = zapperElement.querySelector('.zapper-name');
         const total = zapperElement.querySelector('.zapper-total');
 
         if (avatar) avatar.src = zapper.picture;
         if (avatar) avatar.alt = zapper.name;
         if (name) name.textContent = zapper.name;
-        if (total) total.textContent = `${numberWithCommas(zapper.amount)} sats`;
+        if (total)
+          total.textContent = `${numberWithCommas(zapper.amount)} sats`;
 
         zapperElement.style.opacity = '1';
         zapperElement.style.display = 'flex';
@@ -1078,16 +1246,22 @@ export const useLiveFunctionality = (eventId?: string) => {
     document.body.classList.remove('show-top-zappers');
   };
 
-
   const updateProfile = (profile: any) => {
     // Debug log removed
 
     const profileData = JSON.parse(profile.content || '{}');
-    const name = profileData.display_name || profileData.displayName || profileData.name || `${profile.pubkey.slice(0,8)  }...`;
+    const name =
+      profileData.display_name ||
+      profileData.displayName ||
+      profileData.name ||
+      `${profile.pubkey.slice(0, 8)}...`;
     const picture = profileData.picture || '/images/gradient_color.gif';
 
     // Update zapper totals with profile info if this user has zapped
-    if ((window as any).zapperTotals && (window as any).zapperTotals.has(profile.pubkey)) {
+    if (
+      (window as any).zapperTotals &&
+      (window as any).zapperTotals.has(profile.pubkey)
+    ) {
       const zapperData = (window as any).zapperTotals.get(profile.pubkey);
       zapperData.profile = profileData;
       zapperData.name = name;
@@ -1096,11 +1270,21 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     // Update all chat messages and zaps from this author
-    const authorElements = document.querySelectorAll(`[data-pubkey="${profile.pubkey}"]`);
+    const authorElements = document.querySelectorAll(
+      `[data-pubkey="${profile.pubkey}"]`
+    );
     authorElements.forEach(element => {
-      if (element.classList.contains('chat-author-img') || element.classList.contains('zap-author-img') || element.classList.contains('zapperProfileImg')) {
+      if (
+        element.classList.contains('chat-author-img') ||
+        element.classList.contains('zap-author-img') ||
+        element.classList.contains('zapperProfileImg')
+      ) {
         (element as HTMLImageElement).src = picture;
-      } else if (element.classList.contains('chat-author-name') || element.classList.contains('zap-author-name') || element.classList.contains('zapperName')) {
+      } else if (
+        element.classList.contains('chat-author-name') ||
+        element.classList.contains('zap-author-name') ||
+        element.classList.contains('zapperName')
+      ) {
         element.textContent = name;
       }
     });
@@ -1113,8 +1297,10 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (!zapsContainer) return;
 
     // Check if layout is already set up to avoid clearing existing content
-    if (zapsContainer.classList.contains('live-event-two-column') &&
-        zapsContainer.querySelector('.live-event-columns')) {
+    if (
+      zapsContainer.classList.contains('live-event-two-column') &&
+      zapsContainer.querySelector('.live-event-columns')
+    ) {
       return;
     }
 
@@ -1148,7 +1334,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     zapsContainer.classList.add('live-event-two-column');
 
     // Disable and grey out the grid toggle for live events
-    const zapGridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+    const zapGridToggle = document.getElementById(
+      'zapGridToggle'
+    ) as HTMLInputElement;
     if (zapGridToggle) {
       zapGridToggle.disabled = true;
 
@@ -1174,17 +1362,21 @@ export const useLiveFunctionality = (eventId?: string) => {
       authors: [hostPubkey]
     };
 
-    const sub = (window as any).pool.subscribeMany((window as any).relays, [filter], {
-      onevent(profile: any) {
-        updateLiveEventHostProfile(profile);
-      },
-      oneose() {
-        // Debug log removed
-      },
-      onclosed() {
-        // Debug log removed
+    const sub = (window as any).pool.subscribeMany(
+      (window as any).relays,
+      [filter],
+      {
+        onevent(profile: any) {
+          updateLiveEventHostProfile(profile);
+        },
+        oneose() {
+          // Debug log removed
+        },
+        onclosed() {
+          // Debug log removed
+        }
       }
-    });
+    );
   };
 
   const updateLiveEventHostProfile = (profile: any) => {
@@ -1194,7 +1386,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     const picture = profileData.picture || '/images/gradient_color.gif';
 
     // Update the author profile image
-    const authorImg = document.getElementById('authorNameProfileImg') as HTMLImageElement;
+    const authorImg = document.getElementById(
+      'authorNameProfileImg'
+    ) as HTMLImageElement;
     if (authorImg) {
       authorImg.src = picture;
     }
@@ -1211,21 +1405,36 @@ export const useLiveFunctionality = (eventId?: string) => {
     (window as any).contentMonitorInterval = setInterval(() => {
       const noteContent = document.querySelector('.note-content');
       const zapsContainer = document.getElementById('zaps');
-      const liveEventContent = noteContent?.querySelector('.live-event-content');
-      const twoColumnLayout = zapsContainer?.querySelector('.live-event-columns');
+      const liveEventContent = noteContent?.querySelector(
+        '.live-event-content'
+      );
+      const twoColumnLayout = zapsContainer?.querySelector(
+        '.live-event-columns'
+      );
 
       if ((window as any).currentEventType === 'live-event') {
         if (!liveEventContent) {
-          console.warn('Live event content disappeared! Attempting to restore...');
+          console.warn(
+            'Live event content disappeared! Attempting to restore...'
+          );
           // Try to restore if we have the current live event info
-          if ((window as any).currentLiveEvent && (window as any).currentLiveEventInfo) {
+          if (
+            (window as any).currentLiveEvent &&
+            (window as any).currentLiveEventInfo
+          ) {
             // Debug log removed
             displayLiveEvent((window as any).currentLiveEvent);
           }
         }
 
-        if (!twoColumnLayout && zapsContainer && !zapsContainer.classList.contains('loading')) {
-          console.warn('Two-column layout disappeared! Attempting to restore...');
+        if (
+          !twoColumnLayout &&
+          zapsContainer &&
+          !zapsContainer.classList.contains('loading')
+        ) {
+          console.warn(
+            'Two-column layout disappeared! Attempting to restore...'
+          );
           setupLiveEventTwoColumnLayout();
         }
       }
@@ -1239,7 +1448,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (!video) return;
 
     // Set up video error handling
-    video.addEventListener('error', (e) => {
+    video.addEventListener('error', e => {
       console.error('Video error:', e);
       const videoError = document.getElementById('video-error');
       if (videoError) {
@@ -1273,17 +1482,31 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
-  const updateQRLinks = (njumpUrl: string, nostrNaddr: string, naddrId: string) => {
-    const qrcodeLinkNostr = document.getElementById('qrcodeLinkNostr') as HTMLAnchorElement;
-    const qrcodeNeventLink = document.getElementById('qrcodeNeventLink') as HTMLAnchorElement;
-    const qrcodeNoteLink = document.getElementById('qrcodeNoteLink') as HTMLAnchorElement;
+  const updateQRLinks = (
+    njumpUrl: string,
+    nostrNaddr: string,
+    naddrId: string
+  ) => {
+    const qrcodeLinkNostr = document.getElementById(
+      'qrcodeLinkNostr'
+    ) as HTMLAnchorElement;
+    const qrcodeNeventLink = document.getElementById(
+      'qrcodeNeventLink'
+    ) as HTMLAnchorElement;
+    const qrcodeNoteLink = document.getElementById(
+      'qrcodeNoteLink'
+    ) as HTMLAnchorElement;
 
     if (qrcodeLinkNostr) qrcodeLinkNostr.href = njumpUrl;
     if (qrcodeNeventLink) qrcodeNeventLink.href = nostrNaddr;
     if (qrcodeNoteLink) qrcodeNoteLink.href = naddrId;
   };
 
-  const updateQRPreviews = (njumpUrl: string, nostrNaddr: string, naddrId: string) => {
+  const updateQRPreviews = (
+    njumpUrl: string,
+    nostrNaddr: string,
+    naddrId: string
+  ) => {
     const qrDataPreview1 = document.getElementById('qrDataPreview1');
     const qrDataPreview2 = document.getElementById('qrDataPreview2');
     const qrDataPreview3 = document.getElementById('qrDataPreview3');
@@ -1311,11 +1534,14 @@ export const useLiveFunctionality = (eventId?: string) => {
         relays: []
       });
 
-      const njumpUrl = `https://njump.me/${  naddrId}`;
-      const nostrNaddr = `nostr:${  naddrId}`;
+      const njumpUrl = `https://njump.me/${naddrId}`;
+      const nostrNaddr = `nostr:${naddrId}`;
 
       // Calculate QR size
-      const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
+      const qrSize = Math.min(
+        window.innerWidth * 0.6,
+        window.innerHeight * 0.7
+      );
 
       // Generate QR codes
       generateQRCode('qrCode', njumpUrl, qrSize);
@@ -1327,7 +1553,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       // Update previews
       updateQRPreviews(njumpUrl, nostrNaddr, naddrId);
-
     } catch (error) {
       console.error('Error generating QR codes for live event:', error);
     }
@@ -1351,7 +1576,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Clear any previous error message
         hideNoteLoaderError();
       } catch (error) {
-        showNoteLoaderError(error instanceof Error ? error.message : 'Unknown error');
+        showNoteLoaderError(
+          error instanceof Error ? error.message : 'Unknown error'
+        );
         return;
       }
 
@@ -1405,7 +1632,9 @@ export const useLiveFunctionality = (eventId?: string) => {
           subscribeLiveChat(pubkey, identifier);
           subscribeLiveEventZaps(pubkey, identifier);
 
-          const noteLoaderContainer = document.getElementById('noteLoaderContainer');
+          const noteLoaderContainer = document.getElementById(
+            'noteLoaderContainer'
+          );
           if (noteLoaderContainer) {
             noteLoaderContainer.style.display = 'none';
           }
@@ -1442,7 +1671,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
 
         subscribeKind1(kind1ID);
-        const noteLoaderContainer = document.getElementById('noteLoaderContainer');
+        const noteLoaderContainer = document.getElementById(
+          'noteLoaderContainer'
+        );
         if (noteLoaderContainer) {
           noteLoaderContainer.style.display = 'none';
         }
@@ -1474,13 +1705,17 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
 
         subscribeKind1(noteId);
-        const noteLoaderContainer = document.getElementById('noteLoaderContainer');
+        const noteLoaderContainer = document.getElementById(
+          'noteLoaderContainer'
+        );
         if (noteLoaderContainer) {
           noteLoaderContainer.style.display = 'none';
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load note content');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load note content'
+      );
     }
   };
 
@@ -1494,8 +1729,15 @@ export const useLiveFunctionality = (eventId?: string) => {
     noteId = noteId.trim();
 
     // Check if it's a valid NIP-19 format (starts with note1, nevent1, naddr1, or nprofile1)
-    if (!noteId.startsWith('note1') && !noteId.startsWith('nevent1') && !noteId.startsWith('naddr1') && !noteId.startsWith('nprofile1')) {
-      throw new Error('Invalid format. Please enter a valid nostr note ID (note1...), event ID (nevent1...), addressable event (naddr1...), or profile (nprofile1...)');
+    if (
+      !noteId.startsWith('note1') &&
+      !noteId.startsWith('nevent1') &&
+      !noteId.startsWith('naddr1') &&
+      !noteId.startsWith('nprofile1')
+    ) {
+      throw new Error(
+        'Invalid format. Please enter a valid nostr note ID (note1...), event ID (nevent1...), addressable event (naddr1...), or profile (nprofile1...)'
+      );
     }
 
     // Validate Bech32 format according to NIP-19
@@ -1505,17 +1747,31 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Validate decoded structure
       if (decoded.type === 'note') {
         // For note1: should have a 32-byte hex string
-        if (!decoded.data || typeof decoded.data !== 'string' || decoded.data.length !== 64) {
+        if (
+          !decoded.data ||
+          typeof decoded.data !== 'string' ||
+          decoded.data.length !== 64
+        ) {
           throw new Error('Invalid note ID format');
         }
       } else if (decoded.type === 'nevent') {
         // For nevent1: should have an id field with 32-byte hex string
-        if (!decoded.data || !decoded.data.id || typeof decoded.data.id !== 'string' || decoded.data.id.length !== 64) {
+        if (
+          !decoded.data ||
+          !decoded.data.id ||
+          typeof decoded.data.id !== 'string' ||
+          decoded.data.id.length !== 64
+        ) {
           throw new Error('Invalid event ID format');
         }
       } else if (decoded.type === 'naddr') {
         // For naddr1: should have identifier, pubkey, and kind fields
-        if (!decoded.data || !decoded.data.identifier || !decoded.data.pubkey || typeof decoded.data.kind !== 'number') {
+        if (
+          !decoded.data ||
+          !decoded.data.identifier ||
+          !decoded.data.pubkey ||
+          typeof decoded.data.kind !== 'number'
+        ) {
           throw new Error('Invalid addressable event format');
         }
         // Validate it's a live event kind
@@ -1533,17 +1789,24 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       return true;
     } catch (error) {
-      if (error instanceof Error && (error.message.includes('Invalid') || error.message.includes('Unsupported'))) {
-        throw new Error('Invalid nostr identifier format. Please check the note ID and try again.');
+      if (
+        error instanceof Error &&
+        (error.message.includes('Invalid') ||
+          error.message.includes('Unsupported'))
+      ) {
+        throw new Error(
+          'Invalid nostr identifier format. Please check the note ID and try again.'
+        );
       }
-      throw new Error('Invalid nostr identifier format. Please check the note ID and try again.');
+      throw new Error(
+        'Invalid nostr identifier format. Please check the note ID and try again.'
+      );
     }
   };
 
   const stripNostrPrefix = (noteId: string): string => {
     return noteId.replace(/^nostr:/, '');
   };
-
 
   const showNoteLoaderError = (message: string) => {
     const errorElement = document.getElementById('noteLoaderError');
@@ -1589,15 +1852,18 @@ export const useLiveFunctionality = (eventId?: string) => {
     applyPreset('lightMode');
   };
 
-
   // Update style URL - saves styles to localStorage and cleans URL
   const updateStyleURL = () => {
     const mainLayout = document.querySelector('.main-layout');
     if (!mainLayout) return;
 
     // Get current style values
-    const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-    const partnerLogoUrl = document.getElementById('partnerLogoUrl') as HTMLInputElement;
+    const partnerLogoSelect = document.getElementById(
+      'partnerLogoSelect'
+    ) as HTMLSelectElement;
+    const partnerLogoUrl = document.getElementById(
+      'partnerLogoUrl'
+    ) as HTMLInputElement;
 
     // Get the actual partner logo URL
     let currentPartnerLogo = '';
@@ -1610,23 +1876,58 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     const styles = {
-      textColor: toHexColor((mainLayout as HTMLElement).style.getPropertyValue('--text-color') || DEFAULT_STYLES.textColor),
+      textColor: toHexColor(
+        (mainLayout as HTMLElement).style.getPropertyValue('--text-color') ||
+          DEFAULT_STYLES.textColor
+      ),
       bgColor: toHexColor((mainLayout as HTMLElement).style.backgroundColor),
-      bgImage: (document.getElementById('bgImageUrl') as HTMLInputElement)?.value || '',
-      qrInvert: (document.getElementById('qrInvertToggle') as HTMLInputElement)?.checked || false,
-      qrScreenBlend: (document.getElementById('qrScreenBlendToggle') as HTMLInputElement)?.checked || false,
-      qrMultiplyBlend: (document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement)?.checked || false,
-      qrShowWebLink: (document.getElementById('qrShowWebLinkToggle') as HTMLInputElement)?.checked ?? true,
-      qrShowNevent: (document.getElementById('qrShowNeventToggle') as HTMLInputElement)?.checked ?? true,
-      qrShowNote: (document.getElementById('qrShowNoteToggle') as HTMLInputElement)?.checked ?? true,
-      layoutInvert: (document.getElementById('layoutInvertToggle') as HTMLInputElement)?.checked || false,
-      hideZapperContent: (document.getElementById('hideZapperContentToggle') as HTMLInputElement)?.checked || false,
-      showTopZappers: (document.getElementById('showTopZappersToggle') as HTMLInputElement)?.checked || false,
-      podium: (document.getElementById('podiumToggle') as HTMLInputElement)?.checked || false,
-      zapGrid: (document.getElementById('zapGridToggle') as HTMLInputElement)?.checked || false,
-      lightning: (document.getElementById('lightningToggle') as HTMLInputElement)?.checked || false,
-      opacity: parseFloat((document.getElementById('opacitySlider') as HTMLInputElement)?.value || '1'),
-      textOpacity: parseFloat((document.getElementById('textOpacitySlider') as HTMLInputElement)?.value || '1'),
+      bgImage:
+        (document.getElementById('bgImageUrl') as HTMLInputElement)?.value ||
+        '',
+      qrInvert:
+        (document.getElementById('qrInvertToggle') as HTMLInputElement)
+          ?.checked || false,
+      qrScreenBlend:
+        (document.getElementById('qrScreenBlendToggle') as HTMLInputElement)
+          ?.checked || false,
+      qrMultiplyBlend:
+        (document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement)
+          ?.checked || false,
+      qrShowWebLink:
+        (document.getElementById('qrShowWebLinkToggle') as HTMLInputElement)
+          ?.checked ?? true,
+      qrShowNevent:
+        (document.getElementById('qrShowNeventToggle') as HTMLInputElement)
+          ?.checked ?? true,
+      qrShowNote:
+        (document.getElementById('qrShowNoteToggle') as HTMLInputElement)
+          ?.checked ?? true,
+      layoutInvert:
+        (document.getElementById('layoutInvertToggle') as HTMLInputElement)
+          ?.checked || false,
+      hideZapperContent:
+        (document.getElementById('hideZapperContentToggle') as HTMLInputElement)
+          ?.checked || false,
+      showTopZappers:
+        (document.getElementById('showTopZappersToggle') as HTMLInputElement)
+          ?.checked || false,
+      podium:
+        (document.getElementById('podiumToggle') as HTMLInputElement)
+          ?.checked || false,
+      zapGrid:
+        (document.getElementById('zapGridToggle') as HTMLInputElement)
+          ?.checked || false,
+      lightning:
+        (document.getElementById('lightningToggle') as HTMLInputElement)
+          ?.checked || false,
+      opacity: parseFloat(
+        (document.getElementById('opacitySlider') as HTMLInputElement)?.value ||
+          '1'
+      ),
+      textOpacity: parseFloat(
+        (document.getElementById('textOpacitySlider') as HTMLInputElement)
+          ?.value || '1'
+      ),
       partnerLogo: currentPartnerLogo
     };
 
@@ -1656,8 +1957,12 @@ export const useLiveFunctionality = (eventId?: string) => {
       const color = params.get('textColor');
       if (color) {
         (mainLayout as HTMLElement).style.setProperty('--text-color', color);
-        const textColorInput = document.getElementById('textColorPicker') as HTMLInputElement;
-        const textColorValue = document.getElementById('textColorValue') as HTMLInputElement;
+        const textColorInput = document.getElementById(
+          'textColorPicker'
+        ) as HTMLInputElement;
+        const textColorValue = document.getElementById(
+          'textColorValue'
+        ) as HTMLInputElement;
         if (textColorInput) textColorInput.value = color;
         if (textColorValue) textColorValue.value = color;
       }
@@ -1667,11 +1972,17 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (params.has('bgColor')) {
       const color = params.get('bgColor');
       if (color) {
-        const opacity = params.has('opacity') ? parseFloat(params.get('opacity') || '1') : DEFAULT_STYLES.opacity;
+        const opacity = params.has('opacity')
+          ? parseFloat(params.get('opacity') || '1')
+          : DEFAULT_STYLES.opacity;
         const rgbaColor = hexToRgba(color, opacity);
         (mainLayout as HTMLElement).style.backgroundColor = rgbaColor;
-        const bgColorInput = document.getElementById('bgColorPicker') as HTMLInputElement;
-        const bgColorValue = document.getElementById('bgColorValue') as HTMLInputElement;
+        const bgColorInput = document.getElementById(
+          'bgColorPicker'
+        ) as HTMLInputElement;
+        const bgColorValue = document.getElementById(
+          'bgColorValue'
+        ) as HTMLInputElement;
         if (bgColorInput) bgColorInput.value = color;
         if (bgColorValue) bgColorValue.value = color;
       }
@@ -1681,7 +1992,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (params.has('bgImage')) {
       const imageUrl = params.get('bgImage');
       if (imageUrl) {
-        const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
+        const bgImageUrl = document.getElementById(
+          'bgImageUrl'
+        ) as HTMLInputElement;
         if (bgImageUrl) {
           bgImageUrl.value = imageUrl;
           updateBackgroundImage(imageUrl);
@@ -1690,8 +2003,12 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     // Apply QR code invert (set to default if not specified in URL)
-    const qrInvert = params.has('qrInvert') ? params.get('qrInvert') === 'true' : DEFAULT_STYLES.qrInvert;
-    const qrInvertToggle = document.getElementById('qrInvertToggle') as HTMLInputElement;
+    const qrInvert = params.has('qrInvert')
+      ? params.get('qrInvert') === 'true'
+      : DEFAULT_STYLES.qrInvert;
+    const qrInvertToggle = document.getElementById(
+      'qrInvertToggle'
+    ) as HTMLInputElement;
     if (qrInvertToggle) qrInvertToggle.checked = qrInvert;
     const qrCodes = [
       document.getElementById('qrCode'),
@@ -1711,57 +2028,98 @@ export const useLiveFunctionality = (eventId?: string) => {
     });
 
     // Apply QR code blend modes (set to default if not specified in URL)
-    const qrScreenBlend = params.has('qrScreenBlend') ? params.get('qrScreenBlend') === 'true' : DEFAULT_STYLES.qrScreenBlend;
-    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
+    const qrScreenBlend = params.has('qrScreenBlend')
+      ? params.get('qrScreenBlend') === 'true'
+      : DEFAULT_STYLES.qrScreenBlend;
+    const qrScreenBlendToggle = document.getElementById(
+      'qrScreenBlendToggle'
+    ) as HTMLInputElement;
     if (qrScreenBlendToggle) qrScreenBlendToggle.checked = qrScreenBlend;
 
-    const qrMultiplyBlend = params.has('qrMultiplyBlend') ? params.get('qrMultiplyBlend') === 'true' : DEFAULT_STYLES.qrMultiplyBlend;
-    const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
+    const qrMultiplyBlend = params.has('qrMultiplyBlend')
+      ? params.get('qrMultiplyBlend') === 'true'
+      : DEFAULT_STYLES.qrMultiplyBlend;
+    const qrMultiplyBlendToggle = document.getElementById(
+      'qrMultiplyBlendToggle'
+    ) as HTMLInputElement;
     if (qrMultiplyBlendToggle) qrMultiplyBlendToggle.checked = qrMultiplyBlend;
 
     // Update blend mode after setting toggles
     updateBlendMode();
 
     // Apply QR slide visibility (set to default if not specified in URL)
-    const qrShowWebLink = params.has('qrShowWebLink') ? params.get('qrShowWebLink') === 'true' : DEFAULT_STYLES.qrShowWebLink;
-    const qrShowWebLinkToggle = document.getElementById('qrShowWebLinkToggle') as HTMLInputElement;
+    const qrShowWebLink = params.has('qrShowWebLink')
+      ? params.get('qrShowWebLink') === 'true'
+      : DEFAULT_STYLES.qrShowWebLink;
+    const qrShowWebLinkToggle = document.getElementById(
+      'qrShowWebLinkToggle'
+    ) as HTMLInputElement;
     if (qrShowWebLinkToggle) qrShowWebLinkToggle.checked = qrShowWebLink;
 
-    const qrShowNevent = params.has('qrShowNevent') ? params.get('qrShowNevent') === 'true' : DEFAULT_STYLES.qrShowNevent;
-    const qrShowNeventToggle = document.getElementById('qrShowNeventToggle') as HTMLInputElement;
+    const qrShowNevent = params.has('qrShowNevent')
+      ? params.get('qrShowNevent') === 'true'
+      : DEFAULT_STYLES.qrShowNevent;
+    const qrShowNeventToggle = document.getElementById(
+      'qrShowNeventToggle'
+    ) as HTMLInputElement;
     if (qrShowNeventToggle) qrShowNeventToggle.checked = qrShowNevent;
 
-    const qrShowNote = params.has('qrShowNote') ? params.get('qrShowNote') === 'true' : DEFAULT_STYLES.qrShowNote;
-    const qrShowNoteToggle = document.getElementById('qrShowNoteToggle') as HTMLInputElement;
+    const qrShowNote = params.has('qrShowNote')
+      ? params.get('qrShowNote') === 'true'
+      : DEFAULT_STYLES.qrShowNote;
+    const qrShowNoteToggle = document.getElementById(
+      'qrShowNoteToggle'
+    ) as HTMLInputElement;
     if (qrShowNoteToggle) qrShowNoteToggle.checked = qrShowNote;
 
     // Apply layout invert (set to default if not specified in URL)
-    const layoutInvert = params.has('layoutInvert') ? params.get('layoutInvert') === 'true' : DEFAULT_STYLES.layoutInvert;
-    const layoutInvertToggle = document.getElementById('layoutInvertToggle') as HTMLInputElement;
+    const layoutInvert = params.has('layoutInvert')
+      ? params.get('layoutInvert') === 'true'
+      : DEFAULT_STYLES.layoutInvert;
+    const layoutInvertToggle = document.getElementById(
+      'layoutInvertToggle'
+    ) as HTMLInputElement;
     if (layoutInvertToggle) layoutInvertToggle.checked = layoutInvert;
     document.body.classList.toggle('flex-direction-invert', layoutInvert);
 
     // Apply hide zapper content (set to default if not specified in URL)
-    const hideZapperContent = params.has('hideZapperContent') ? params.get('hideZapperContent') === 'true' : DEFAULT_STYLES.hideZapperContent;
-    const hideZapperContentToggle = document.getElementById('hideZapperContentToggle') as HTMLInputElement;
-    if (hideZapperContentToggle) hideZapperContentToggle.checked = hideZapperContent;
+    const hideZapperContent = params.has('hideZapperContent')
+      ? params.get('hideZapperContent') === 'true'
+      : DEFAULT_STYLES.hideZapperContent;
+    const hideZapperContentToggle = document.getElementById(
+      'hideZapperContentToggle'
+    ) as HTMLInputElement;
+    if (hideZapperContentToggle)
+      hideZapperContentToggle.checked = hideZapperContent;
     document.body.classList.toggle('hide-zapper-content', hideZapperContent);
 
     // Apply show top zappers (set to default if not specified in URL)
-    const showTopZappers = params.has('showTopZappers') ? params.get('showTopZappers') === 'true' : DEFAULT_STYLES.showTopZappers;
-    const showTopZappersToggle = document.getElementById('showTopZappersToggle') as HTMLInputElement;
+    const showTopZappers = params.has('showTopZappers')
+      ? params.get('showTopZappers') === 'true'
+      : DEFAULT_STYLES.showTopZappers;
+    const showTopZappersToggle = document.getElementById(
+      'showTopZappersToggle'
+    ) as HTMLInputElement;
     if (showTopZappersToggle) showTopZappersToggle.checked = showTopZappers;
     document.body.classList.toggle('show-top-zappers', showTopZappers);
 
     // Apply podium (set to default if not specified in URL)
-    const podium = params.has('podium') ? params.get('podium') === 'true' : DEFAULT_STYLES.podium;
-    const podiumToggle = document.getElementById('podiumToggle') as HTMLInputElement;
+    const podium = params.has('podium')
+      ? params.get('podium') === 'true'
+      : DEFAULT_STYLES.podium;
+    const podiumToggle = document.getElementById(
+      'podiumToggle'
+    ) as HTMLInputElement;
     if (podiumToggle) podiumToggle.checked = podium;
     document.body.classList.toggle('podium-enabled', podium);
 
     // Apply zap grid (set to default if not specified in URL)
-    const zapGrid = params.has('zapGrid') ? params.get('zapGrid') === 'true' : DEFAULT_STYLES.zapGrid;
-    const zapGridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+    const zapGrid = params.has('zapGrid')
+      ? params.get('zapGrid') === 'true'
+      : DEFAULT_STYLES.zapGrid;
+    const zapGridToggle = document.getElementById(
+      'zapGridToggle'
+    ) as HTMLInputElement;
     if (zapGridToggle) zapGridToggle.checked = zapGrid;
     const zapsList = document.getElementById('zaps');
     if (zapsList) {
@@ -1774,48 +2132,74 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     // Apply lightning toggle (set to default if not specified in URL)
-    const lightning = params.has('lightning') ? params.get('lightning') === 'true' : DEFAULT_STYLES.lightning;
-    const lightningToggle = document.getElementById('lightningToggle') as HTMLInputElement;
+    const lightning = params.has('lightning')
+      ? params.get('lightning') === 'true'
+      : DEFAULT_STYLES.lightning;
+    const lightningToggle = document.getElementById(
+      'lightningToggle'
+    ) as HTMLInputElement;
     if (lightningToggle) lightningToggle.checked = lightning;
 
     // Apply opacity
     if (params.has('opacity')) {
       const opacity = parseFloat(params.get('opacity') || '1');
-      const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
+      const opacitySlider = document.getElementById(
+        'opacitySlider'
+      ) as HTMLInputElement;
       const opacityValue = document.getElementById('opacityValue');
       if (opacitySlider) opacitySlider.value = opacity.toString();
-      if (opacityValue) opacityValue.textContent = `${Math.round(opacity * 100)  }%`;
+      if (opacityValue)
+        opacityValue.textContent = `${Math.round(opacity * 100)}%`;
     }
 
     // Apply text opacity
     if (params.has('textOpacity')) {
       const textOpacity = parseFloat(params.get('textOpacity') || '1');
-      const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
+      const textOpacitySlider = document.getElementById(
+        'textOpacitySlider'
+      ) as HTMLInputElement;
       const textOpacityValue = document.getElementById('textOpacityValue');
       if (textOpacitySlider) textOpacitySlider.value = textOpacity.toString();
-      if (textOpacityValue) textOpacityValue.textContent = `${Math.round(textOpacity * 100)  }%`;
+      if (textOpacityValue)
+        textOpacityValue.textContent = `${Math.round(textOpacity * 100)}%`;
     }
 
     // Apply partner logo from URL
     if (params.has('partnerLogo')) {
-      const partnerLogoUrl = decodeURIComponent(params.get('partnerLogo') || '');
-      const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-      const partnerLogoImg = document.getElementById('partnerLogo') as HTMLImageElement;
-      const partnerLogoUrlInput = document.getElementById('partnerLogoUrl') as HTMLInputElement;
-      const customPartnerLogoGroup = document.getElementById('customPartnerLogoGroup');
-      const partnerLogoPreview = document.getElementById('partnerLogoPreview') as HTMLImageElement;
+      const partnerLogoUrl = decodeURIComponent(
+        params.get('partnerLogo') || ''
+      );
+      const partnerLogoSelect = document.getElementById(
+        'partnerLogoSelect'
+      ) as HTMLSelectElement;
+      const partnerLogoImg = document.getElementById(
+        'partnerLogo'
+      ) as HTMLImageElement;
+      const partnerLogoUrlInput = document.getElementById(
+        'partnerLogoUrl'
+      ) as HTMLInputElement;
+      const customPartnerLogoGroup = document.getElementById(
+        'customPartnerLogoGroup'
+      );
+      const partnerLogoPreview = document.getElementById(
+        'partnerLogoPreview'
+      ) as HTMLImageElement;
 
       if (partnerLogoUrl) {
         // Check if it's one of the predefined options
-        const matchingOption = Array.from(partnerLogoSelect.options).find(option => option.value === partnerLogoUrl);
+        const matchingOption = Array.from(partnerLogoSelect.options).find(
+          option => option.value === partnerLogoUrl
+        );
         if (matchingOption) {
           // It's a predefined logo
           if (partnerLogoSelect) partnerLogoSelect.value = partnerLogoUrl;
-          if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+          if (customPartnerLogoGroup)
+            customPartnerLogoGroup.style.display = 'none';
         } else {
           // It's a custom URL
           if (partnerLogoSelect) partnerLogoSelect.value = 'custom';
-          if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'block';
+          if (customPartnerLogoGroup)
+            customPartnerLogoGroup.style.display = 'block';
           if (partnerLogoUrlInput) partnerLogoUrlInput.value = partnerLogoUrl;
         }
 
@@ -1833,7 +2217,8 @@ export const useLiveFunctionality = (eventId?: string) => {
       } else {
         // No logo
         if (partnerLogoSelect) partnerLogoSelect.value = '';
-        if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+        if (customPartnerLogoGroup)
+          customPartnerLogoGroup.style.display = 'none';
         if (partnerLogoImg) {
           partnerLogoImg.style.display = 'none';
           partnerLogoImg.src = '';
@@ -1876,7 +2261,6 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const copyStyleUrl = () => {
-
     // Get current styles from localStorage
     const savedStyles = localStorage.getItem('pubpay-styles');
 
@@ -1939,43 +2323,48 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (styles.textOpacity !== DEFAULT_STYLES.textOpacity) {
           params.set('textOpacity', styles.textOpacity);
         }
-        if (styles.partnerLogo && styles.partnerLogo !== DEFAULT_STYLES.partnerLogo) {
+        if (
+          styles.partnerLogo &&
+          styles.partnerLogo !== DEFAULT_STYLES.partnerLogo
+        ) {
           params.set('partnerLogo', encodeURIComponent(styles.partnerLogo));
         }
 
         // Add parameters to URL if any exist
         if (params.toString()) {
-          urlToCopy += `?${  params.toString()}`;
+          urlToCopy += `?${params.toString()}`;
         }
-
       } catch (e) {
         console.error('Error parsing saved styles:', e);
       }
     } else {
     }
 
-    navigator.clipboard.writeText(urlToCopy).then(() => {
-      // Show feedback
-      const btn = document.getElementById('copyStyleUrl');
-      if (btn) {
-        const originalText = btn.textContent;
-        btn.textContent = 'Copied!';
-        btn.style.background = '#28a745';
-        setTimeout(() => {
-          btn.textContent = originalText;
-          btn.style.background = '';
-        }, 2000);
-      }
-    }).catch(err => {
-      console.error('Failed to copy URL:', err);
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = urlToCopy;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-    });
+    navigator.clipboard
+      .writeText(urlToCopy)
+      .then(() => {
+        // Show feedback
+        const btn = document.getElementById('copyStyleUrl');
+        if (btn) {
+          const originalText = btn.textContent;
+          btn.textContent = 'Copied!';
+          btn.style.background = '#28a745';
+          setTimeout(() => {
+            btn.textContent = originalText;
+            btn.style.background = '';
+          }, 2000);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to copy URL:', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = urlToCopy;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      });
   };
 
   const resetZapperTotals = () => {
@@ -2007,25 +2396,21 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Debug log removed
     }, 10000);
 
-    pool.subscribeMany(
-      [...relays],
-      [filter],
-      {
-        async onevent(kind1: any) {
-          clearTimeout(timeoutId);
-          // Debug log removed
-          await drawKind1(kind1);
-          await subscribeKind0fromKind1(kind1);
-          await subscribeKind9735fromKind1(kind1);
-        },
-        oneose() {
-          clearTimeout(timeoutId);
-        },
-        onclosed() {
-          clearTimeout(timeoutId);
-        }
+    pool.subscribeMany([...relays], [filter], {
+      async onevent(kind1: any) {
+        clearTimeout(timeoutId);
+        // Debug log removed
+        await drawKind1(kind1);
+        await subscribeKind0fromKind1(kind1);
+        await subscribeKind9735fromKind1(kind1);
+      },
+      oneose() {
+        clearTimeout(timeoutId);
+      },
+      onclosed() {
+        clearTimeout(timeoutId);
       }
-    );
+    });
   };
 
   const subscribeKind0fromKind1 = async (kind1: any) => {
@@ -2039,18 +2424,18 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     const sub = pool.subscribeMany(
       [...relays],
-      [{
-        kinds: [0],
-        authors: [kind0key]
-      }],
+      [
+        {
+          kinds: [0],
+          authors: [kind0key]
+        }
+      ],
       {
         onevent(kind0: any) {
           drawKind0(kind0);
         },
-        oneose() {
-        },
-        onclosed() {
-        }
+        oneose() {},
+        onclosed() {}
       }
     );
   };
@@ -2095,15 +2480,17 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     const sub = pool.subscribeMany(
       [...relays],
-      [{
-        kinds: [9735],
-        '#e': [kind1id]
-      }],
+      [
+        {
+          kinds: [9735],
+          '#e': [kind1id]
+        }
+      ],
       {
         onevent(kind9735: any) {
           // Debug log removed
           clearTimeout(zapTimeoutId);
-          if (!(kinds9735IDs.has(kind9735.id))) {
+          if (!kinds9735IDs.has(kind9735.id)) {
             kinds9735IDs.add(kind9735.id);
             kinds9735.push(kind9735);
             // Debug log removed
@@ -2137,7 +2524,9 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     for (const kind9735 of kinds9735) {
       if (kind9735.tags) {
-        const description9735 = kind9735.tags.find((tag: any) => tag[0] === 'description')?.[1];
+        const description9735 = kind9735.tags.find(
+          (tag: any) => tag[0] === 'description'
+        )?.[1];
         if (description9735) {
           const kind9734 = JSON.parse(description9735);
           kind9734PKs.push(kind9734.pubkey);
@@ -2147,28 +2536,32 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     const h = pool.subscribeMany(
       [...relays],
-      [{
-        kinds: [0],
-        authors: kind9734PKs
-      }],
+      [
+        {
+          kinds: [0],
+          authors: kind9734PKs
+        }
+      ],
       {
         onevent(kind0: any) {
-          if (!(kind0fromkind9735Seen.has(kind0.pubkey))) {
+          if (!kind0fromkind9735Seen.has(kind0.pubkey)) {
             kind0fromkind9735Seen.add(kind0.pubkey);
             kind0fromkind9735List.push(kind0);
           }
         },
-        async         oneose() {
+        async oneose() {
           // Debug log removed
           createkinds9735JSON(kinds9735, kind0fromkind9735List);
         },
-        onclosed() {
-        }
+        onclosed() {}
       }
     );
   };
 
-  const createkinds9735JSON = async (kind9735List: any[], kind0fromkind9735List: any[]) => {
+  const createkinds9735JSON = async (
+    kind9735List: any[],
+    kind0fromkind9735List: any[]
+  ) => {
     // Debug log removed
     // Reset zapper totals for new note
     resetZapperTotals();
@@ -2176,15 +2569,24 @@ export const useLiveFunctionality = (eventId?: string) => {
     const json9735List: any[] = [];
 
     for (const kind9735 of kind9735List) {
-      const description9735 = JSON.parse(kind9735.tags.find((tag: any) => tag[0] == 'description')?.[1] || '{}');
+      const description9735 = JSON.parse(
+        kind9735.tags.find((tag: any) => tag[0] == 'description')?.[1] || '{}'
+      );
       const pubkey9735 = description9735.pubkey;
-      const bolt119735 = kind9735.tags.find((tag: any) => tag[0] == 'bolt11')?.[1];
+      const bolt119735 = kind9735.tags.find(
+        (tag: any) => tag[0] == 'bolt11'
+      )?.[1];
 
       if (!bolt119735) continue;
 
-      const amount9735 = (window as any).lightningPayReq?.decode(bolt119735)?.satoshis || 0;
-      const kind1from9735 = kind9735.tags.find((tag: any) => tag[0] == 'e')?.[1];
-      const kind9735id = (window as any).NostrTools?.nip19?.noteEncode(kind9735.id) || kind9735.id;
+      const amount9735 =
+        (window as any).lightningPayReq?.decode(bolt119735)?.satoshis || 0;
+      const kind1from9735 = kind9735.tags.find(
+        (tag: any) => tag[0] == 'e'
+      )?.[1];
+      const kind9735id =
+        (window as any).NostrTools?.nip19?.noteEncode(kind9735.id) ||
+        kind9735.id;
       const kind9735Content = description9735.content || '';
       let kind0picture = '';
       let kind0npub = '';
@@ -2192,27 +2594,32 @@ export const useLiveFunctionality = (eventId?: string) => {
       let kind0finalName = '';
       let profileData = null;
 
-      const kind0fromkind9735 = kind0fromkind9735List.find((kind0: any) => pubkey9735 === kind0.pubkey);
+      const kind0fromkind9735 = kind0fromkind9735List.find(
+        (kind0: any) => pubkey9735 === kind0.pubkey
+      );
       if (kind0fromkind9735) {
         const content = JSON.parse(kind0fromkind9735.content);
         const displayName = content.displayName;
         kind0name = displayName ? content.displayName : content.display_name;
         kind0finalName = kind0name != '' ? kind0name : content.name;
         kind0picture = content.picture;
-        kind0npub = (window as any).NostrTools?.nip19?.npubEncode(kind0fromkind9735.pubkey) || '';
+        kind0npub =
+          (window as any).NostrTools?.nip19?.npubEncode(
+            kind0fromkind9735.pubkey
+          ) || '';
         profileData = content;
       }
 
       const json9735 = {
-        'e': kind1from9735,
-        'amount': amount9735,
-        'picture': kind0picture,
-        'npubPayer': kind0npub,
-        'pubKey': pubkey9735,
-        'zapEventID': kind9735id,
-        'kind9735content': kind9735Content,
-        'kind1Name': kind0finalName,
-        'kind0Profile': profileData
+        e: kind1from9735,
+        amount: amount9735,
+        picture: kind0picture,
+        npubPayer: kind0npub,
+        pubKey: pubkey9735,
+        zapEventID: kind9735id,
+        kind9735content: kind9735Content,
+        kind1Name: kind0finalName,
+        kind0Profile: profileData
       };
       json9735List.push(json9735);
     }
@@ -2234,7 +2641,10 @@ export const useLiveFunctionality = (eventId?: string) => {
     const loadingText = zapsContainer.querySelector('.loading-text');
     if (loadingText) loadingText.remove();
 
-    const totalAmountZapped = json9735List.reduce((sum, zaps) => sum + zaps.amount, 0);
+    const totalAmountZapped = json9735List.reduce(
+      (sum, zaps) => sum + zaps.amount,
+      0
+    );
     const totalValueElement = document.getElementById('zappedTotalValue');
     const totalCountElement = document.getElementById('zappedTotalCount');
 
@@ -2275,7 +2685,8 @@ export const useLiveFunctionality = (eventId?: string) => {
       zapDiv.className = zapClass;
 
       if (!zap.picture) zap.picture = '';
-      const profileImage = zap.picture == '' ? '/images/gradient_color.gif' : zap.picture;
+      const profileImage =
+        zap.picture == '' ? '/images/gradient_color.gif' : zap.picture;
 
       zapDiv.innerHTML = `
         <div class="zapperProfile">
@@ -2312,15 +2723,26 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (document.body.classList.contains('podium-enabled')) {
         const zaps = Array.from(zapsContainer.querySelectorAll('.zap'));
         const sortedZaps = [...zaps].sort((a, b) => {
-          const amountA = parseInt(a.querySelector('.zapperAmountSats')?.textContent?.replace(/[^\d]/g, '') || '0');
-          const amountB = parseInt(b.querySelector('.zapperAmountSats')?.textContent?.replace(/[^\d]/g, '') || '0');
+          const amountA = parseInt(
+            a
+              .querySelector('.zapperAmountSats')
+              ?.textContent?.replace(/[^\d]/g, '') || '0'
+          );
+          const amountB = parseInt(
+            b
+              .querySelector('.zapperAmountSats')
+              ?.textContent?.replace(/[^\d]/g, '') || '0'
+          );
           return amountB - amountA;
         });
 
-        console.log('Applying podium classes in list layout. Top 3 zaps:', sortedZaps.slice(0, 3).map(zap => ({
-          amount: zap.querySelector('.zapperAmountSats')?.textContent,
-          name: zap.querySelector('.zapperName')?.textContent
-        })));
+        console.log(
+          'Applying podium classes in list layout. Top 3 zaps:',
+          sortedZaps.slice(0, 3).map(zap => ({
+            amount: zap.querySelector('.zapperAmountSats')?.textContent,
+            name: zap.querySelector('.zapperName')?.textContent
+          }))
+        );
 
         for (let i = 0; i < Math.min(3, sortedZaps.length); i++) {
           const zap = sortedZaps[i];
@@ -2358,8 +2780,11 @@ export const useLiveFunctionality = (eventId?: string) => {
         const zapperData = {
           amount,
           profile,
-          name: profile ? getDisplayName(profile) : (zap.kind1Name || 'Anonymous'),
-          picture: profile?.picture || zap.picture || '/images/gradient_color.gif'
+          name: profile
+            ? getDisplayName(profile)
+            : zap.kind1Name || 'Anonymous',
+          picture:
+            profile?.picture || zap.picture || '/images/gradient_color.gif'
         };
         zapperTotals.set(pubkey, zapperData);
         // Debug log removed
@@ -2382,7 +2807,6 @@ export const useLiveFunctionality = (eventId?: string) => {
   const numberWithCommas = (x: number) => {
     return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
-
 
   const cleanupHierarchicalOrganization = () => {
     const zapsList = document.getElementById('zaps');
@@ -2437,17 +2861,28 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Sort zaps by amount (highest first) for podium application
     const sortedZaps = [...zaps].sort((a, b) => {
-      const amountA = parseInt(a.querySelector('.zapperAmountSats')?.textContent?.replace(/[^\d]/g, '') || '0');
-      const amountB = parseInt(b.querySelector('.zapperAmountSats')?.textContent?.replace(/[^\d]/g, '') || '0');
+      const amountA = parseInt(
+        a
+          .querySelector('.zapperAmountSats')
+          ?.textContent?.replace(/[^\d]/g, '') || '0'
+      );
+      const amountB = parseInt(
+        b
+          .querySelector('.zapperAmountSats')
+          ?.textContent?.replace(/[^\d]/g, '') || '0'
+      );
       return amountB - amountA;
     });
 
     // Apply podium classes to top 3 zaps
     if (document.body.classList.contains('podium-enabled')) {
-      console.log('Applying podium classes in grid layout. Top 3 zaps:', sortedZaps.slice(0, 3).map(zap => ({
-        amount: zap.querySelector('.zapperAmountSats')?.textContent,
-        name: zap.querySelector('.zapperName')?.textContent
-      })));
+      console.log(
+        'Applying podium classes in grid layout. Top 3 zaps:',
+        sortedZaps.slice(0, 3).map(zap => ({
+          amount: zap.querySelector('.zapperAmountSats')?.textContent,
+          name: zap.querySelector('.zapperName')?.textContent
+        }))
+      );
       for (let i = 0; i < Math.min(3, sortedZaps.length); i++) {
         const zap = sortedZaps[i] as HTMLElement;
         if (zap) {
@@ -2534,19 +2969,37 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Generate multiple QR code formats
     const noteId = kind1.id;
-    const neventId = (window as any).NostrTools.nip19.neventEncode({ id: noteId, relays: [] });
+    const neventId = (window as any).NostrTools.nip19.neventEncode({
+      id: noteId,
+      relays: []
+    });
     const note1Id = (window as any).NostrTools.nip19.noteEncode(noteId);
-    const njumpUrl = `https://njump.me/${  note1Id}`;
-    const nostrNevent = `nostr:${  neventId}`;
-    const nostrNote = `nostr:${  note1Id}`;
+    const njumpUrl = `https://njump.me/${note1Id}`;
+    const nostrNevent = `nostr:${neventId}`;
+    const nostrNote = `nostr:${note1Id}`;
 
     const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
 
     // Generate QR codes for all formats
     const qrcodeContainers = [
-      { element: document.getElementById('qrCode'), value: njumpUrl, link: document.getElementById('qrcodeLinkNostr'), preview: document.getElementById('qrDataPreview1') },
-      { element: document.getElementById('qrCodeNevent'), value: nostrNevent, link: document.getElementById('qrcodeNeventLink'), preview: document.getElementById('qrDataPreview2') },
-      { element: document.getElementById('qrCodeNote'), value: nostrNote, link: document.getElementById('qrcodeNoteLink'), preview: document.getElementById('qrDataPreview3') }
+      {
+        element: document.getElementById('qrCode'),
+        value: njumpUrl,
+        link: document.getElementById('qrcodeLinkNostr'),
+        preview: document.getElementById('qrDataPreview1')
+      },
+      {
+        element: document.getElementById('qrCodeNevent'),
+        value: nostrNevent,
+        link: document.getElementById('qrcodeNeventLink'),
+        preview: document.getElementById('qrDataPreview2')
+      },
+      {
+        element: document.getElementById('qrCodeNote'),
+        value: nostrNote,
+        link: document.getElementById('qrcodeNoteLink'),
+        preview: document.getElementById('qrDataPreview3')
+      }
     ];
 
     qrcodeContainers.forEach(({ element, value, link, preview }) => {
@@ -2573,7 +3026,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             cleanValue = value.substring(6); // Remove 'nostr:'
           }
           // Always add ellipsis to show truncation
-          const previewText = `${cleanValue.substring(0, maxLength)  }...`;
+          const previewText = `${cleanValue.substring(0, maxLength)}...`;
           preview.textContent = previewText;
         }
       }
@@ -2717,7 +3170,9 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const handleNoteLoaderSubmit = async () => {
-    const inputField = document.getElementById('note1LoaderInput') as HTMLInputElement;
+    const inputField = document.getElementById(
+      'note1LoaderInput'
+    ) as HTMLInputElement;
     const noteId = inputField?.value?.trim();
 
     // Debug log removed
@@ -2737,7 +3192,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       validateNoteId(cleanNoteId);
       hideNoteLoaderError();
     } catch (error) {
-      showNoteLoaderError(error instanceof Error ? error.message : 'Invalid note ID');
+      showNoteLoaderError(
+        error instanceof Error ? error.message : 'Invalid note ID'
+      );
       return;
     }
 
@@ -2746,13 +3203,15 @@ export const useLiveFunctionality = (eventId?: string) => {
       const decoded = (window as any).NostrTools.nip19.decode(cleanNoteId);
 
       // Update URL with the identifier using path format
-      const newUrl = `/live/${  cleanNoteId}`;
+      const newUrl = `/live/${cleanNoteId}`;
       window.history.pushState({}, '', newUrl);
 
       // Trigger a custom event to notify the React component
-      window.dispatchEvent(new CustomEvent('noteLoaderSubmitted', {
-        detail: { noteId: cleanNoteId, decoded }
-      }));
+      window.dispatchEvent(
+        new CustomEvent('noteLoaderSubmitted', {
+          detail: { noteId: cleanNoteId, decoded }
+        })
+      );
 
       // Show loading state
       setIsLoading(true);
@@ -2769,7 +3228,6 @@ export const useLiveFunctionality = (eventId?: string) => {
         await subscribeLiveEvent(pubkey, identifier, kind);
         await subscribeLiveChat(pubkey, identifier);
         await subscribeLiveEventZaps(pubkey, identifier);
-
       } else if (decoded.type === 'nprofile') {
         // Handle profiles
         const { pubkey } = decoded.data;
@@ -2779,7 +3237,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
         // Load profile
         await loadProfileContent(pubkey);
-
       } else if (decoded.type === 'nevent') {
         // Handle note events
         const kind1ID = decoded.data.id;
@@ -2789,7 +3246,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
         // Subscribe to kind1 note
         await subscribeKind1(kind1ID);
-
       } else if (decoded.type === 'note') {
         // Handle direct note IDs
         const kind1ID = decoded.data;
@@ -2799,14 +3255,16 @@ export const useLiveFunctionality = (eventId?: string) => {
 
         // Subscribe to kind1 note
         await subscribeKind1(kind1ID);
-
       } else {
-        throw new Error('Invalid identifier format. Please enter a valid nostr identifier.');
+        throw new Error(
+          'Invalid identifier format. Please enter a valid nostr identifier.'
+        );
       }
-
     } catch (e) {
       console.error('Error loading note content:', e);
-      showNoteLoaderError('Invalid nostr identifier. Please enter a valid note ID (note1...), event ID (nevent1...), live event (naddr1...), or profile (nprofile1...).');
+      showNoteLoaderError(
+        'Invalid nostr identifier. Please enter a valid note ID (note1...), event ID (nevent1...), live event (naddr1...), or profile (nprofile1...).'
+      );
       setIsLoading(false);
     }
   };
@@ -2835,12 +3293,16 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Only retry up to 50 times (5 seconds) and only log warning every 10 retries
       if (retryCount < 50) {
         if (retryCount % 10 === 0) {
-          console.warn(`Input field or button not found, retrying... (attempt ${retryCount + 1}/50)`);
+          console.warn(
+            `Input field or button not found, retrying... (attempt ${retryCount + 1}/50)`
+          );
         }
         setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
         return;
       } else {
-        console.error('Input field or button not found after 50 retries, giving up');
+        console.error(
+          'Input field or button not found after 50 retries, giving up'
+        );
         setupNoteLoaderListenersInProgress = false;
         return;
       }
@@ -2850,7 +3312,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Remove any existing listeners first
       submitButton.removeEventListener('click', handleNoteLoaderSubmit);
 
-      submitButton.addEventListener('click', (e) => {
+      submitButton.addEventListener('click', e => {
         e.preventDefault();
         handleNoteLoaderSubmit();
       });
@@ -2871,7 +3333,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       });
 
       // Clear error message when user starts typing
-      inputField.addEventListener('input', (e) => {
+      inputField.addEventListener('input', e => {
         // Debug log removed
         hideNoteLoaderError();
       });
@@ -2904,24 +3366,31 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Apply PubPay preset with all settings
   const applyPubPayPreset = () => {
-
     // Set text color to white
-    const textColorPicker = document.getElementById('textColorPicker') as HTMLInputElement;
-    const textColorValue = document.getElementById('textColorValue') as HTMLInputElement;
+    const textColorPicker = document.getElementById(
+      'textColorPicker'
+    ) as HTMLInputElement;
+    const textColorValue = document.getElementById(
+      'textColorValue'
+    ) as HTMLInputElement;
     if (textColorPicker && textColorValue) {
       textColorPicker.value = '#ffffff';
       textColorValue.value = '#ffffff';
     }
 
     // Set background image to gradient
-    const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
+    const bgImageUrl = document.getElementById(
+      'bgImageUrl'
+    ) as HTMLInputElement;
     if (bgImageUrl) {
       bgImageUrl.value = '/images/gradient_color.gif';
     }
     updateBackgroundImage('/images/gradient_color.gif');
 
     // Set opacity to 0 (fully transparent)
-    const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
+    const opacitySlider = document.getElementById(
+      'opacitySlider'
+    ) as HTMLInputElement;
     const opacityValue = document.getElementById('opacityValue');
     if (opacitySlider && opacityValue) {
       opacitySlider.value = '0';
@@ -2929,19 +3398,25 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     // Enable QR invert
-    const qrInvertToggle = document.getElementById('qrInvertToggle') as HTMLInputElement;
+    const qrInvertToggle = document.getElementById(
+      'qrInvertToggle'
+    ) as HTMLInputElement;
     if (qrInvertToggle) {
       qrInvertToggle.checked = true;
     }
 
     // Enable QR screen blend
-    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
+    const qrScreenBlendToggle = document.getElementById(
+      'qrScreenBlendToggle'
+    ) as HTMLInputElement;
     if (qrScreenBlendToggle) {
       qrScreenBlendToggle.checked = true;
     }
 
     // Update preview
-    const bgPresetPreview = document.getElementById('bgPresetPreview') as HTMLImageElement;
+    const bgPresetPreview = document.getElementById(
+      'bgPresetPreview'
+    ) as HTMLImageElement;
     if (bgPresetPreview) {
       bgPresetPreview.src = '/images/gradient_color.gif';
       bgPresetPreview.alt = 'PubPay preset preview';
@@ -2952,7 +3427,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     applyAllStyles();
     updateBlendMode();
     saveCurrentStylesToLocalStorage();
-
   };
 
   // Style options functionality
@@ -3021,7 +3495,8 @@ export const useLiveFunctionality = (eventId?: string) => {
           img.onerror = () => {
             if (bgPresetPreview) {
               (bgPresetPreview as HTMLImageElement).src = '';
-              (bgPresetPreview as HTMLImageElement).alt = 'Failed to load image';
+              (bgPresetPreview as HTMLImageElement).alt =
+                'Failed to load image';
             }
           };
           img.src = url;
@@ -3112,7 +3587,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Debug log removed
 
       // Check if grid layout is active
-      const zapGridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+      const zapGridToggle = document.getElementById(
+        'zapGridToggle'
+      ) as HTMLInputElement;
       const isGridActive = zapGridToggle?.checked;
 
       if (isGridActive) {
@@ -3135,7 +3612,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       const zapsList = document.getElementById('zaps');
       if (zapsList) {
         // Check if we're in live event mode (has two-column layout)
-        const isLiveEvent = zapsList.classList.contains('live-event-two-column');
+        const isLiveEvent = zapsList.classList.contains(
+          'live-event-two-column'
+        );
         if (isLiveEvent) {
           // Debug log removed
           return;
@@ -3160,7 +3639,9 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     setupToggle('qrInvertToggle', () => {
       // Debug log removed
-      const qrInvertToggle = document.getElementById('qrInvertToggle') as HTMLInputElement;
+      const qrInvertToggle = document.getElementById(
+        'qrInvertToggle'
+      ) as HTMLInputElement;
       const qrCodes = [
         document.getElementById('qrCode'),
         document.getElementById('qrCodeNevent'),
@@ -3182,8 +3663,12 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     setupToggle('qrScreenBlendToggle', () => {
       // Debug log removed
-      const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
-      const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
+      const qrScreenBlendToggle = document.getElementById(
+        'qrScreenBlendToggle'
+      ) as HTMLInputElement;
+      const qrMultiplyBlendToggle = document.getElementById(
+        'qrMultiplyBlendToggle'
+      ) as HTMLInputElement;
 
       if (qrScreenBlendToggle?.checked) {
         qrMultiplyBlendToggle.checked = false;
@@ -3194,8 +3679,12 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     setupToggle('qrMultiplyBlendToggle', () => {
       // Debug log removed
-      const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
-      const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
+      const qrScreenBlendToggle = document.getElementById(
+        'qrScreenBlendToggle'
+      ) as HTMLInputElement;
+      const qrMultiplyBlendToggle = document.getElementById(
+        'qrMultiplyBlendToggle'
+      ) as HTMLInputElement;
 
       if (qrMultiplyBlendToggle?.checked) {
         qrScreenBlendToggle.checked = false;
@@ -3205,16 +3694,20 @@ export const useLiveFunctionality = (eventId?: string) => {
     });
 
     // Setup opacity sliders
-    const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
+    const opacitySlider = document.getElementById(
+      'opacitySlider'
+    ) as HTMLInputElement;
     const opacityValue = document.getElementById('opacityValue');
-    const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
+    const textOpacitySlider = document.getElementById(
+      'textOpacitySlider'
+    ) as HTMLInputElement;
     const textOpacityValue = document.getElementById('textOpacityValue');
 
     if (opacitySlider && opacityValue) {
       // Debug log removed
       opacitySlider.addEventListener('input', (e: any) => {
         const value = parseFloat(e.target.value);
-        opacityValue.textContent = `${Math.round(value * 100)  }%`;
+        opacityValue.textContent = `${Math.round(value * 100)}%`;
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
@@ -3224,7 +3717,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Debug log removed
       textOpacitySlider.addEventListener('input', (e: any) => {
         const value = parseFloat(e.target.value);
-        textOpacityValue.textContent = `${Math.round(value * 100)  }%`;
+        textOpacityValue.textContent = `${Math.round(value * 100)}%`;
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
@@ -3272,7 +3765,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (lightningEnabled) {
           // Disable Lightning payments
           // Debug log removed
-          const success = await lightningService.current.disableLightning(eventId);
+          const success =
+            await lightningService.current.disableLightning(eventId);
           // Debug log removed
           if (success) {
             setLightningEnabled(false);
@@ -3285,7 +3779,8 @@ export const useLiveFunctionality = (eventId?: string) => {
           // Enable Lightning payments
           // Debug log removed
           // Debug log removed
-          const success = await lightningService.current.enableLightning(eventId);
+          const success =
+            await lightningService.current.enableLightning(eventId);
           // Debug log removed
           console.log('Lightning service state after enable:', {
             enabled: lightningService.current.enabled,
@@ -3309,7 +3804,10 @@ export const useLiveFunctionality = (eventId?: string) => {
             }
           } else {
             console.error('❌ Failed to enable Lightning payments');
-            console.error('Error from service:', lightningService.current.lastError);
+            console.error(
+              'Error from service:',
+              lightningService.current.lastError
+            );
           }
         }
 
@@ -3329,19 +3827,31 @@ export const useLiveFunctionality = (eventId?: string) => {
     // QR slide visibility toggles are loaded and applied in loadInitialStyles()
 
     // Setup partner logo functionality
-    const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-    const partnerLogoImg = document.getElementById('partnerLogo') as HTMLImageElement;
-    const partnerLogoUrl = document.getElementById('partnerLogoUrl') as HTMLInputElement;
-    const customPartnerLogoGroup = document.getElementById('customPartnerLogoGroup');
-    const partnerLogoPreview = document.getElementById('partnerLogoPreview') as HTMLImageElement;
+    const partnerLogoSelect = document.getElementById(
+      'partnerLogoSelect'
+    ) as HTMLSelectElement;
+    const partnerLogoImg = document.getElementById(
+      'partnerLogo'
+    ) as HTMLImageElement;
+    const partnerLogoUrl = document.getElementById(
+      'partnerLogoUrl'
+    ) as HTMLInputElement;
+    const customPartnerLogoGroup = document.getElementById(
+      'customPartnerLogoGroup'
+    );
+    const partnerLogoPreview = document.getElementById(
+      'partnerLogoPreview'
+    ) as HTMLImageElement;
     const clearPartnerLogo = document.getElementById('clearPartnerLogo');
 
     if (partnerLogoSelect) {
       partnerLogoSelect.addEventListener('change', () => {
         if (partnerLogoSelect.value === 'custom') {
-          if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'block';
+          if (customPartnerLogoGroup)
+            customPartnerLogoGroup.style.display = 'block';
         } else {
-          if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+          if (customPartnerLogoGroup)
+            customPartnerLogoGroup.style.display = 'none';
           if (partnerLogoUrl) partnerLogoUrl.value = '';
         }
         debouncedApplyAllStyles();
@@ -3360,7 +3870,8 @@ export const useLiveFunctionality = (eventId?: string) => {
       clearPartnerLogo.addEventListener('click', () => {
         if (partnerLogoSelect) partnerLogoSelect.value = '';
         if (partnerLogoUrl) partnerLogoUrl.value = '';
-        if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+        if (customPartnerLogoGroup)
+          customPartnerLogoGroup.style.display = 'none';
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
@@ -3402,7 +3913,11 @@ export const useLiveFunctionality = (eventId?: string) => {
     }, 50); // 50ms debounce
   };
 
-  const setupColorPicker = (pickerId: string, valueId: string, targetProperty: string) => {
+  const setupColorPicker = (
+    pickerId: string,
+    valueId: string,
+    targetProperty: string
+  ) => {
     const picker = document.getElementById(pickerId) as HTMLInputElement;
     const value = document.getElementById(valueId) as HTMLInputElement;
 
@@ -3426,7 +3941,10 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
-  const setupToggle = (toggleId: string, callback: (checked: boolean) => void) => {
+  const setupToggle = (
+    toggleId: string,
+    callback: (checked: boolean) => void
+  ) => {
     const toggle = document.getElementById(toggleId) as HTMLInputElement;
     if (toggle) {
       // Debug log removed
@@ -3474,7 +3992,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Load initial styles from localStorage or apply defaults
   const loadInitialStyles = () => {
-
     // Check if there are URL parameters first
     const params = new URLSearchParams(window.location.search);
     if (params.toString() !== '') {
@@ -3495,8 +4012,12 @@ export const useLiveFunctionality = (eventId?: string) => {
 
         // Apply saved text color
         if (styles.textColor) {
-          const textColorPicker = document.getElementById('textColorPicker') as HTMLInputElement;
-          const textColorValue = document.getElementById('textColorValue') as HTMLInputElement;
+          const textColorPicker = document.getElementById(
+            'textColorPicker'
+          ) as HTMLInputElement;
+          const textColorValue = document.getElementById(
+            'textColorValue'
+          ) as HTMLInputElement;
           if (textColorPicker) {
             textColorPicker.value = styles.textColor;
           }
@@ -3508,8 +4029,12 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Apply saved background color (check both old and new property names)
         const bgColor = styles.bgColor || styles.backgroundColor;
         if (bgColor) {
-          const bgColorPicker = document.getElementById('bgColorPicker') as HTMLInputElement;
-          const bgColorValue = document.getElementById('bgColorValue') as HTMLInputElement;
+          const bgColorPicker = document.getElementById(
+            'bgColorPicker'
+          ) as HTMLInputElement;
+          const bgColorValue = document.getElementById(
+            'bgColorValue'
+          ) as HTMLInputElement;
           if (bgColorPicker) {
             bgColorPicker.value = bgColor;
           }
@@ -3520,7 +4045,9 @@ export const useLiveFunctionality = (eventId?: string) => {
 
         // Apply saved opacity values
         if (styles.opacity !== undefined) {
-          const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
+          const opacitySlider = document.getElementById(
+            'opacitySlider'
+          ) as HTMLInputElement;
           const opacityValue = document.getElementById('opacityValue');
           // Debug log removed
           if (opacitySlider) {
@@ -3528,13 +4055,15 @@ export const useLiveFunctionality = (eventId?: string) => {
             // Debug log removed
           }
           if (opacityValue) {
-            opacityValue.textContent = `${Math.round(styles.opacity * 100)  }%`;
+            opacityValue.textContent = `${Math.round(styles.opacity * 100)}%`;
             // Debug log removed
           }
         }
 
         if (styles.textOpacity !== undefined) {
-          const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
+          const textOpacitySlider = document.getElementById(
+            'textOpacitySlider'
+          ) as HTMLInputElement;
           const textOpacityValue = document.getElementById('textOpacityValue');
           // Debug log removed
           if (textOpacitySlider) {
@@ -3542,34 +4071,45 @@ export const useLiveFunctionality = (eventId?: string) => {
             // Debug log removed
           }
           if (textOpacityValue) {
-            textOpacityValue.textContent = `${Math.round(styles.textOpacity * 100)  }%`;
+            textOpacityValue.textContent = `${Math.round(styles.textOpacity * 100)}%`;
             // Debug log removed
           }
         }
 
         // Apply saved partner logo
         if (styles.partnerLogo !== undefined) {
-          const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-          const partnerLogoUrl = document.getElementById('partnerLogoUrl') as HTMLInputElement;
-          const customPartnerLogoGroup = document.getElementById('customPartnerLogoGroup');
+          const partnerLogoSelect = document.getElementById(
+            'partnerLogoSelect'
+          ) as HTMLSelectElement;
+          const partnerLogoUrl = document.getElementById(
+            'partnerLogoUrl'
+          ) as HTMLInputElement;
+          const customPartnerLogoGroup = document.getElementById(
+            'customPartnerLogoGroup'
+          );
 
           if (partnerLogoSelect) {
             if (styles.partnerLogo) {
               // Check if it's a predefined option
-              const matchingOption = Array.from(partnerLogoSelect.options).find(option => option.value === styles.partnerLogo);
+              const matchingOption = Array.from(partnerLogoSelect.options).find(
+                option => option.value === styles.partnerLogo
+              );
               if (matchingOption) {
                 partnerLogoSelect.value = styles.partnerLogo;
-                if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+                if (customPartnerLogoGroup)
+                  customPartnerLogoGroup.style.display = 'none';
               } else {
                 // It's a custom URL
                 partnerLogoSelect.value = 'custom';
-                if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'block';
+                if (customPartnerLogoGroup)
+                  customPartnerLogoGroup.style.display = 'block';
                 if (partnerLogoUrl) partnerLogoUrl.value = styles.partnerLogo;
               }
             } else {
               // No logo
               partnerLogoSelect.value = '';
-              if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+              if (customPartnerLogoGroup)
+                customPartnerLogoGroup.style.display = 'none';
               if (partnerLogoUrl) partnerLogoUrl.value = '';
             }
           }
@@ -3578,20 +4118,30 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Apply saved background image (check both old and new property names)
         const bgImage = styles.bgImage || styles.backgroundImage;
         if (bgImage !== undefined) {
-          const bgImagePreset = document.getElementById('bgImagePreset') as HTMLSelectElement;
-          const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
-          const customBgImageGroup = document.getElementById('customBgImageGroup');
-          const bgPresetPreview = document.getElementById('bgPresetPreview') as HTMLImageElement;
+          const bgImagePreset = document.getElementById(
+            'bgImagePreset'
+          ) as HTMLSelectElement;
+          const bgImageUrl = document.getElementById(
+            'bgImageUrl'
+          ) as HTMLInputElement;
+          const customBgImageGroup =
+            document.getElementById('customBgImageGroup');
+          const bgPresetPreview = document.getElementById(
+            'bgPresetPreview'
+          ) as HTMLImageElement;
 
           if (bgImagePreset) {
             if (bgImage) {
               // Debug log removed
               // Check if it's a predefined option
-              const matchingOption = Array.from(bgImagePreset.options).find(option => option.value === bgImage);
+              const matchingOption = Array.from(bgImagePreset.options).find(
+                option => option.value === bgImage
+              );
               if (matchingOption) {
                 // Debug log removed
                 bgImagePreset.value = bgImage;
-                if (customBgImageGroup) customBgImageGroup.style.display = 'none';
+                if (customBgImageGroup)
+                  customBgImageGroup.style.display = 'none';
                 // Immediately set the URL value to avoid timing issues
                 if (bgImageUrl) {
                   bgImageUrl.value = bgImage;
@@ -3601,7 +4151,8 @@ export const useLiveFunctionality = (eventId?: string) => {
                 // Debug log removed
                 // It's a custom URL
                 bgImagePreset.value = 'custom';
-                if (customBgImageGroup) customBgImageGroup.style.display = 'block';
+                if (customBgImageGroup)
+                  customBgImageGroup.style.display = 'block';
                 if (bgImageUrl) {
                   bgImageUrl.value = bgImage;
                   // Debug log removed
@@ -3649,24 +4200,26 @@ export const useLiveFunctionality = (eventId?: string) => {
 
         // Map localStorage property names to toggle IDs
         const propertyToToggleMap: { [key: string]: string } = {
-          'qrShowWebLink': 'qrShowWebLinkToggle',
-          'qrShowNevent': 'qrShowNeventToggle',
-          'qrShowNote': 'qrShowNoteToggle',
-          'qrInvert': 'qrInvertToggle',
-          'qrScreenBlend': 'qrScreenBlendToggle',
-          'qrMultiplyBlend': 'qrMultiplyBlendToggle',
-          'layoutInvert': 'layoutInvertToggle',
-          'hideZapperContent': 'hideZapperContentToggle',
-          'showTopZappers': 'showTopZappersToggle',
-          'podium': 'podiumToggle',
-          'zapGrid': 'zapGridToggle',
-          'lightning': 'lightningToggle'
+          qrShowWebLink: 'qrShowWebLinkToggle',
+          qrShowNevent: 'qrShowNeventToggle',
+          qrShowNote: 'qrShowNoteToggle',
+          qrInvert: 'qrInvertToggle',
+          qrScreenBlend: 'qrScreenBlendToggle',
+          qrMultiplyBlend: 'qrMultiplyBlendToggle',
+          layoutInvert: 'layoutInvertToggle',
+          hideZapperContent: 'hideZapperContentToggle',
+          showTopZappers: 'showTopZappersToggle',
+          podium: 'podiumToggle',
+          zapGrid: 'zapGridToggle',
+          lightning: 'lightningToggle'
         };
 
         toggleIds.forEach(toggleId => {
           const toggle = document.getElementById(toggleId) as HTMLInputElement;
           // Find the corresponding property name in localStorage
-          const propertyName = Object.keys(propertyToToggleMap).find(key => propertyToToggleMap[key] === toggleId);
+          const propertyName = Object.keys(propertyToToggleMap).find(
+            key => propertyToToggleMap[key] === toggleId
+          );
           if (toggle && propertyName && styles[propertyName] !== undefined) {
             // Debug log removed
             toggle.checked = styles[propertyName];
@@ -3694,7 +4247,8 @@ export const useLiveFunctionality = (eventId?: string) => {
                 } else {
                   // Debug log removed
                   document.body.classList.remove('show-top-zappers');
-                  const topZappersBar = document.getElementById('top-zappers-bar');
+                  const topZappersBar =
+                    document.getElementById('top-zappers-bar');
                   if (topZappersBar) {
                     topZappersBar.style.display = 'none';
                   }
@@ -3763,7 +4317,8 @@ export const useLiveFunctionality = (eventId?: string) => {
               }
             };
 
-            const callback = toggleCallbacks[toggleId as keyof typeof toggleCallbacks];
+            const callback =
+              toggleCallbacks[toggleId as keyof typeof toggleCallbacks];
             if (callback) {
               // Debug log removed
               callback(styles[propertyName]);
@@ -3776,13 +4331,25 @@ export const useLiveFunctionality = (eventId?: string) => {
     } else {
       // Debug log removed
       // Apply default styles when no saved styles exist
-      const textColorPicker = document.getElementById('textColorPicker') as HTMLInputElement;
-      const textColorValue = document.getElementById('textColorValue') as HTMLInputElement;
-      const bgColorPicker = document.getElementById('bgColorPicker') as HTMLInputElement;
-      const bgColorValue = document.getElementById('bgColorValue') as HTMLInputElement;
-      const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
+      const textColorPicker = document.getElementById(
+        'textColorPicker'
+      ) as HTMLInputElement;
+      const textColorValue = document.getElementById(
+        'textColorValue'
+      ) as HTMLInputElement;
+      const bgColorPicker = document.getElementById(
+        'bgColorPicker'
+      ) as HTMLInputElement;
+      const bgColorValue = document.getElementById(
+        'bgColorValue'
+      ) as HTMLInputElement;
+      const opacitySlider = document.getElementById(
+        'opacitySlider'
+      ) as HTMLInputElement;
       const opacityValue = document.getElementById('opacityValue');
-      const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
+      const textOpacitySlider = document.getElementById(
+        'textOpacitySlider'
+      ) as HTMLInputElement;
       const textOpacityValue = document.getElementById('textOpacityValue');
 
       // Set default values
@@ -3796,9 +4363,12 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (bgColorPicker) bgColorPicker.value = defaultBgColor;
       if (bgColorValue) bgColorValue.value = defaultBgColor;
       if (opacitySlider) opacitySlider.value = defaultOpacity.toString();
-      if (opacityValue) opacityValue.textContent = `${Math.round(defaultOpacity * 100)  }%`;
-      if (textOpacitySlider) textOpacitySlider.value = defaultTextOpacity.toString();
-      if (textOpacityValue) textOpacityValue.textContent = `${Math.round(defaultTextOpacity * 100)  }%`;
+      if (opacityValue)
+        opacityValue.textContent = `${Math.round(defaultOpacity * 100)}%`;
+      if (textOpacitySlider)
+        textOpacitySlider.value = defaultTextOpacity.toString();
+      if (textOpacityValue)
+        textOpacityValue.textContent = `${Math.round(defaultTextOpacity * 100)}%`;
     }
 
     // Apply all styles after loading (with small delay to ensure DOM is ready)
@@ -3822,13 +4392,27 @@ export const useLiveFunctionality = (eventId?: string) => {
   const detectActivePreset = () => {
     // Debug log removed
 
-    const textColorElement = document.getElementById('textColorValue') as HTMLInputElement;
-    const bgColorElement = document.getElementById('bgColorValue') as HTMLInputElement;
-    const bgImageElement = document.getElementById('bgImageUrl') as HTMLInputElement;
-    const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
-    const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
-    const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-    const partnerLogoUrl = document.getElementById('partnerLogoUrl') as HTMLInputElement;
+    const textColorElement = document.getElementById(
+      'textColorValue'
+    ) as HTMLInputElement;
+    const bgColorElement = document.getElementById(
+      'bgColorValue'
+    ) as HTMLInputElement;
+    const bgImageElement = document.getElementById(
+      'bgImageUrl'
+    ) as HTMLInputElement;
+    const textOpacitySlider = document.getElementById(
+      'textOpacitySlider'
+    ) as HTMLInputElement;
+    const opacitySlider = document.getElementById(
+      'opacitySlider'
+    ) as HTMLInputElement;
+    const partnerLogoSelect = document.getElementById(
+      'partnerLogoSelect'
+    ) as HTMLSelectElement;
+    const partnerLogoUrl = document.getElementById(
+      'partnerLogoUrl'
+    ) as HTMLInputElement;
 
     if (!textColorElement || !bgColorElement) {
       // Debug log removed
@@ -3840,14 +4424,25 @@ export const useLiveFunctionality = (eventId?: string) => {
     const currentBgImage = bgImageElement?.value || '';
     const currentTextOpacity = parseFloat(textOpacitySlider?.value || '1');
     const currentOpacity = parseFloat(opacitySlider?.value || '1');
-    const currentPartnerLogo = partnerLogoSelect?.value === 'custom' ? partnerLogoUrl?.value || '' : partnerLogoSelect?.value || '';
+    const currentPartnerLogo =
+      partnerLogoSelect?.value === 'custom'
+        ? partnerLogoUrl?.value || ''
+        : partnerLogoSelect?.value || '';
 
     // Get current toggle states
     const toggleIds = [
-      'layoutInvertToggle', 'hideZapperContentToggle', 'showTopZappersToggle',
-      'podiumToggle', 'zapGridToggle', 'qrInvertToggle', 'qrScreenBlendToggle',
-      'qrMultiplyBlendToggle', 'qrShowWebLinkToggle', 'qrShowNeventToggle',
-      'qrShowNoteToggle', 'lightningToggle'
+      'layoutInvertToggle',
+      'hideZapperContentToggle',
+      'showTopZappersToggle',
+      'podiumToggle',
+      'zapGridToggle',
+      'qrInvertToggle',
+      'qrScreenBlendToggle',
+      'qrMultiplyBlendToggle',
+      'qrShowWebLinkToggle',
+      'qrShowNeventToggle',
+      'qrShowNoteToggle',
+      'lightningToggle'
     ];
 
     const currentToggles: { [key: string]: boolean } = {};
@@ -4008,7 +4603,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         bgImage: '/images/sky.jpg',
         textOpacity: 1.0,
         opacity: 0.7,
-        partnerLogo: 'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg',
+        partnerLogo:
+          'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg',
         layoutInvert: false,
         hideZapperContent: false,
         showTopZappers: false,
@@ -4027,12 +4623,13 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Find matching preset
     for (const [presetName, presetData] of Object.entries(presets)) {
       // Check basic properties
-      const basicMatch = presetData.textColor === currentTextColor &&
-                        presetData.bgColor === currentBgColor &&
-                        presetData.bgImage === currentBgImage &&
-                        Math.abs(presetData.textOpacity - currentTextOpacity) < 0.01 &&
-                        Math.abs(presetData.opacity - currentOpacity) < 0.01 &&
-                        presetData.partnerLogo === currentPartnerLogo;
+      const basicMatch =
+        presetData.textColor === currentTextColor &&
+        presetData.bgColor === currentBgColor &&
+        presetData.bgImage === currentBgImage &&
+        Math.abs(presetData.textOpacity - currentTextOpacity) < 0.01 &&
+        Math.abs(presetData.opacity - currentOpacity) < 0.01 &&
+        presetData.partnerLogo === currentPartnerLogo;
 
       // Check toggle states
       let togglesMatch = true;
@@ -4048,8 +4645,12 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Debug log removed
 
         // Update active preset button
-        document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
-        const activeBtn = document.querySelector(`[data-preset="${presetName}"]`);
+        document
+          .querySelectorAll('.preset-btn')
+          .forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.querySelector(
+          `[data-preset="${presetName}"]`
+        );
         if (activeBtn) {
           activeBtn.classList.add('active');
           // Debug log removed
@@ -4060,21 +4661,44 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Debug log removed
     // Clear all active preset buttons
-    document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+    document
+      .querySelectorAll('.preset-btn')
+      .forEach(btn => btn.classList.remove('active'));
   };
 
   // Save current styles to localStorage
   const saveCurrentStylesToLocalStorage = () => {
-    const textColorElement = document.getElementById('textColorValue') as HTMLInputElement;
-    const bgColorElement = document.getElementById('bgColorValue') as HTMLInputElement;
-    const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
-    const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
-    const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-    const partnerLogoUrl = document.getElementById('partnerLogoUrl') as HTMLInputElement;
-    const bgImagePreset = document.getElementById('bgImagePreset') as HTMLSelectElement;
-    const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
+    const textColorElement = document.getElementById(
+      'textColorValue'
+    ) as HTMLInputElement;
+    const bgColorElement = document.getElementById(
+      'bgColorValue'
+    ) as HTMLInputElement;
+    const opacitySlider = document.getElementById(
+      'opacitySlider'
+    ) as HTMLInputElement;
+    const textOpacitySlider = document.getElementById(
+      'textOpacitySlider'
+    ) as HTMLInputElement;
+    const partnerLogoSelect = document.getElementById(
+      'partnerLogoSelect'
+    ) as HTMLSelectElement;
+    const partnerLogoUrl = document.getElementById(
+      'partnerLogoUrl'
+    ) as HTMLInputElement;
+    const bgImagePreset = document.getElementById(
+      'bgImagePreset'
+    ) as HTMLSelectElement;
+    const bgImageUrl = document.getElementById(
+      'bgImageUrl'
+    ) as HTMLInputElement;
 
-    if (textColorElement && bgColorElement && opacitySlider && textOpacitySlider) {
+    if (
+      textColorElement &&
+      bgColorElement &&
+      opacitySlider &&
+      textOpacitySlider
+    ) {
       let currentPartnerLogo = '';
       if (partnerLogoSelect) {
         if (partnerLogoSelect.value === 'custom' && partnerLogoUrl) {
@@ -4096,7 +4720,10 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Get all toggle states using consistent property names
       const toggleMapping = [
         { toggleId: 'layoutInvertToggle', propertyName: 'layoutInvert' },
-        { toggleId: 'hideZapperContentToggle', propertyName: 'hideZapperContent' },
+        {
+          toggleId: 'hideZapperContentToggle',
+          propertyName: 'hideZapperContent'
+        },
         { toggleId: 'showTopZappersToggle', propertyName: 'showTopZappers' },
         { toggleId: 'podiumToggle', propertyName: 'podium' },
         { toggleId: 'zapGridToggle', propertyName: 'zapGrid' },
@@ -4134,15 +4761,33 @@ export const useLiveFunctionality = (eventId?: string) => {
   const applyAllStyles = () => {
     // Debug log removed
 
-    const textColorElement = document.getElementById('textColorValue') as HTMLInputElement;
-    const bgColorElement = document.getElementById('bgColorValue') as HTMLInputElement;
-    const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
-    const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
+    const textColorElement = document.getElementById(
+      'textColorValue'
+    ) as HTMLInputElement;
+    const bgColorElement = document.getElementById(
+      'bgColorValue'
+    ) as HTMLInputElement;
+    const opacitySlider = document.getElementById(
+      'opacitySlider'
+    ) as HTMLInputElement;
+    const textOpacitySlider = document.getElementById(
+      'textOpacitySlider'
+    ) as HTMLInputElement;
 
     // Debug log removed
 
-    if (!textColorElement || !bgColorElement || !opacitySlider || !textOpacitySlider) {
-      console.error('Style input elements not found:', { textColorElement, bgColorElement, opacitySlider, textOpacitySlider });
+    if (
+      !textColorElement ||
+      !bgColorElement ||
+      !opacitySlider ||
+      !textOpacitySlider
+    ) {
+      console.error('Style input elements not found:', {
+        textColorElement,
+        bgColorElement,
+        opacitySlider,
+        textOpacitySlider
+      });
       return;
     }
 
@@ -4216,7 +4861,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       mainLayout.style.backgroundColor = rgbaColor;
 
       // Apply background image
-      const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
+      const bgImageUrl = document.getElementById(
+        'bgImageUrl'
+      ) as HTMLInputElement;
       // Debug log removed
       if (bgImageUrl && bgImageUrl.value) {
         // Debug log removed
@@ -4227,10 +4874,18 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
 
       // Apply partner logo
-      const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-      const partnerLogoImg = document.getElementById('partnerLogo') as HTMLImageElement;
-      const partnerLogoUrl = document.getElementById('partnerLogoUrl') as HTMLInputElement;
-      const partnerLogoPreview = document.getElementById('partnerLogoPreview') as HTMLImageElement;
+      const partnerLogoSelect = document.getElementById(
+        'partnerLogoSelect'
+      ) as HTMLSelectElement;
+      const partnerLogoImg = document.getElementById(
+        'partnerLogo'
+      ) as HTMLImageElement;
+      const partnerLogoUrl = document.getElementById(
+        'partnerLogoUrl'
+      ) as HTMLInputElement;
+      const partnerLogoPreview = document.getElementById(
+        'partnerLogoPreview'
+      ) as HTMLImageElement;
 
       if (partnerLogoSelect && partnerLogoImg) {
         let currentPartnerLogo = '';
@@ -4291,8 +4946,12 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     } else if (property === 'backgroundColor') {
       // For background color, update the main-layout with current opacity
-      const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
-      const currentOpacity = opacitySlider ? parseFloat(opacitySlider.value) : 1.0;
+      const opacitySlider = document.getElementById(
+        'opacitySlider'
+      ) as HTMLInputElement;
+      const currentOpacity = opacitySlider
+        ? parseFloat(opacitySlider.value)
+        : 1.0;
       const rgbaColor = hexToRgba(color, currentOpacity);
 
       if (mainLayout) {
@@ -4308,7 +4967,9 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const updateBackgroundImage = (url: string) => {
     // Debug log removed
-    const liveZapOverlay = document.querySelector('.liveZapOverlay') as HTMLElement;
+    const liveZapOverlay = document.querySelector(
+      '.liveZapOverlay'
+    ) as HTMLElement;
     if (liveZapOverlay) {
       if (url) {
         // Debug log removed
@@ -4328,8 +4989,12 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const updateBlendMode = () => {
     // Debug log removed
-    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
-    const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
+    const qrScreenBlendToggle = document.getElementById(
+      'qrScreenBlendToggle'
+    ) as HTMLInputElement;
+    const qrMultiplyBlendToggle = document.getElementById(
+      'qrMultiplyBlendToggle'
+    ) as HTMLInputElement;
 
     // Debug log removed
 
@@ -4523,18 +5188,31 @@ export const useLiveFunctionality = (eventId?: string) => {
         zapGrid: false,
         opacity: 0.7,
         textOpacity: 1.0,
-        partnerLogo: 'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg'
+        partnerLogo:
+          'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg'
       }
     };
 
     const presetData = presets[preset];
     if (presetData) {
-      const textColorPicker = document.getElementById('textColorPicker') as HTMLInputElement;
-      const bgColorPicker = document.getElementById('bgColorPicker') as HTMLInputElement;
-      const textColorValue = document.getElementById('textColorValue') as HTMLInputElement;
-      const bgColorValue = document.getElementById('bgColorValue') as HTMLInputElement;
-      const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
-      const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
+      const textColorPicker = document.getElementById(
+        'textColorPicker'
+      ) as HTMLInputElement;
+      const bgColorPicker = document.getElementById(
+        'bgColorPicker'
+      ) as HTMLInputElement;
+      const textColorValue = document.getElementById(
+        'textColorValue'
+      ) as HTMLInputElement;
+      const bgColorValue = document.getElementById(
+        'bgColorValue'
+      ) as HTMLInputElement;
+      const textOpacitySlider = document.getElementById(
+        'textOpacitySlider'
+      ) as HTMLInputElement;
+      const opacitySlider = document.getElementById(
+        'opacitySlider'
+      ) as HTMLInputElement;
       const textOpacityValue = document.getElementById('textOpacityValue');
       const opacityValue = document.getElementById('opacityValue');
 
@@ -4542,15 +5220,24 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (textColorValue) textColorValue.value = presetData.textColor;
       if (bgColorPicker) bgColorPicker.value = presetData.bgColor;
       if (bgColorValue) bgColorValue.value = presetData.bgColor;
-      if (textOpacitySlider) textOpacitySlider.value = presetData.textOpacity.toString();
+      if (textOpacitySlider)
+        textOpacitySlider.value = presetData.textOpacity.toString();
       if (opacitySlider) opacitySlider.value = presetData.opacity.toString();
-      if (textOpacityValue) textOpacityValue.textContent = `${Math.round(presetData.textOpacity * 100)}%`;
-      if (opacityValue) opacityValue.textContent = `${Math.round(presetData.opacity * 100)}%`;
+      if (textOpacityValue)
+        textOpacityValue.textContent = `${Math.round(presetData.textOpacity * 100)}%`;
+      if (opacityValue)
+        opacityValue.textContent = `${Math.round(presetData.opacity * 100)}%`;
 
       // Update background image
-      const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
-      const bgImagePreset = document.getElementById('bgImagePreset') as HTMLSelectElement;
-      const bgPresetPreview = document.getElementById('bgPresetPreview') as HTMLImageElement;
+      const bgImageUrl = document.getElementById(
+        'bgImageUrl'
+      ) as HTMLInputElement;
+      const bgImagePreset = document.getElementById(
+        'bgImagePreset'
+      ) as HTMLSelectElement;
+      const bgPresetPreview = document.getElementById(
+        'bgPresetPreview'
+      ) as HTMLImageElement;
       const customUrlGroup = document.getElementById('customUrlGroup');
 
       if (bgImageUrl) bgImageUrl.value = presetData.bgImage;
@@ -4558,7 +5245,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (presetData.bgImage === '') {
           bgImagePreset.value = '';
         } else {
-          const matchingOption = Array.from(bgImagePreset.options).find(option => option.value === presetData.bgImage);
+          const matchingOption = Array.from(bgImagePreset.options).find(
+            option => option.value === presetData.bgImage
+          );
           if (matchingOption) {
             bgImagePreset.value = presetData.bgImage;
           } else {
@@ -4570,20 +5259,31 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Update background preview image
       if (bgPresetPreview) {
         bgPresetPreview.src = presetData.bgImage;
-        bgPresetPreview.alt = presetData.bgImage ? 'Background preview' : 'No background';
+        bgPresetPreview.alt = presetData.bgImage
+          ? 'Background preview'
+          : 'No background';
       }
 
       // Show/hide custom URL group based on preset selection
       if (customUrlGroup) {
-        customUrlGroup.style.display = bgImagePreset?.value === 'custom' ? 'block' : 'none';
+        customUrlGroup.style.display =
+          bgImagePreset?.value === 'custom' ? 'block' : 'none';
       }
 
       // Update toggles - process zapGridToggle before podiumToggle to ensure correct state
       const toggleIds = [
-        'qrInvertToggle', 'qrScreenBlendToggle', 'qrMultiplyBlendToggle',
-        'qrShowWebLinkToggle', 'qrShowNeventToggle', 'qrShowNoteToggle',
-        'layoutInvertToggle', 'hideZapperContentToggle', 'showTopZappersToggle',
-        'zapGridToggle', 'podiumToggle', 'lightningToggle'
+        'qrInvertToggle',
+        'qrScreenBlendToggle',
+        'qrMultiplyBlendToggle',
+        'qrShowWebLinkToggle',
+        'qrShowNeventToggle',
+        'qrShowNoteToggle',
+        'layoutInvertToggle',
+        'hideZapperContentToggle',
+        'showTopZappersToggle',
+        'zapGridToggle',
+        'podiumToggle',
+        'lightningToggle'
       ];
 
       toggleIds.forEach(toggleId => {
@@ -4591,7 +5291,10 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (toggle) {
           const propertyName = toggleId.replace('Toggle', '');
           // If preset defines this property, use its value; otherwise, set to false (untoggle)
-          const value = presetData[propertyName] !== undefined ? presetData[propertyName] : false;
+          const value =
+            presetData[propertyName] !== undefined
+              ? presetData[propertyName]
+              : false;
           toggle.checked = value;
           // Debug log removed
 
@@ -4617,27 +5320,38 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       // Apply partner logo if present
       if (presetData.partnerLogo !== undefined) {
-        const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-        const partnerLogoUrl = document.getElementById('partnerLogoUrl') as HTMLInputElement;
-        const customPartnerLogoGroup = document.getElementById('customPartnerLogoGroup');
+        const partnerLogoSelect = document.getElementById(
+          'partnerLogoSelect'
+        ) as HTMLSelectElement;
+        const partnerLogoUrl = document.getElementById(
+          'partnerLogoUrl'
+        ) as HTMLInputElement;
+        const customPartnerLogoGroup = document.getElementById(
+          'customPartnerLogoGroup'
+        );
 
         if (partnerLogoSelect) {
           if (presetData.partnerLogo) {
             // Check if it's a predefined option
-            const matchingOption = Array.from(partnerLogoSelect.options).find(option => option.value === presetData.partnerLogo);
+            const matchingOption = Array.from(partnerLogoSelect.options).find(
+              option => option.value === presetData.partnerLogo
+            );
             if (matchingOption) {
               partnerLogoSelect.value = presetData.partnerLogo;
-              if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+              if (customPartnerLogoGroup)
+                customPartnerLogoGroup.style.display = 'none';
             } else {
               // It's a custom URL
               partnerLogoSelect.value = 'custom';
-              if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'block';
+              if (customPartnerLogoGroup)
+                customPartnerLogoGroup.style.display = 'block';
               if (partnerLogoUrl) partnerLogoUrl.value = presetData.partnerLogo;
             }
           } else {
             // No logo
             partnerLogoSelect.value = '';
-            if (customPartnerLogoGroup) customPartnerLogoGroup.style.display = 'none';
+            if (customPartnerLogoGroup)
+              customPartnerLogoGroup.style.display = 'none';
             if (partnerLogoUrl) partnerLogoUrl.value = '';
           }
         }
@@ -4647,7 +5361,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       applyAllStyles();
 
       // Update active preset button
-      document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+      document
+        .querySelectorAll('.preset-btn')
+        .forEach(btn => btn.classList.remove('active'));
       const activeBtn = document.querySelector(`[data-preset="${preset}"]`);
       if (activeBtn) activeBtn.classList.add('active');
 
@@ -4701,10 +5417,18 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Debug log removed
 
     // Get toggle states
-    const webLinkToggle = document.getElementById('qrShowWebLinkToggle') as HTMLInputElement;
-    const neventToggle = document.getElementById('qrShowNeventToggle') as HTMLInputElement;
-    const noteToggle = document.getElementById('qrShowNoteToggle') as HTMLInputElement;
-    const lightningToggle = document.getElementById('lightningToggle') as HTMLInputElement;
+    const webLinkToggle = document.getElementById(
+      'qrShowWebLinkToggle'
+    ) as HTMLInputElement;
+    const neventToggle = document.getElementById(
+      'qrShowNeventToggle'
+    ) as HTMLInputElement;
+    const noteToggle = document.getElementById(
+      'qrShowNoteToggle'
+    ) as HTMLInputElement;
+    const lightningToggle = document.getElementById(
+      'lightningToggle'
+    ) as HTMLInputElement;
 
     const showWebLink = webLinkToggle?.checked ?? false;
     const showNevent = neventToggle?.checked ?? true;
@@ -4714,10 +5438,18 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Debug log removed
 
     // Get all existing slides using the same selectors as original
-    const webLinkSlide = document.querySelector('.swiper-slide:has(#qrCode)') as HTMLElement;
-    let neventSlide = document.querySelector('.swiper-slide:has(#qrCodeNevent)') as HTMLElement;
-    const noteSlide = document.querySelector('.swiper-slide:has(#qrCodeNote)') as HTMLElement;
-    const lightningSlide = document.getElementById('lightningQRSlide') as HTMLElement;
+    const webLinkSlide = document.querySelector(
+      '.swiper-slide:has(#qrCode)'
+    ) as HTMLElement;
+    let neventSlide = document.querySelector(
+      '.swiper-slide:has(#qrCodeNevent)'
+    ) as HTMLElement;
+    const noteSlide = document.querySelector(
+      '.swiper-slide:has(#qrCodeNote)'
+    ) as HTMLElement;
+    const lightningSlide = document.getElementById(
+      'lightningQRSlide'
+    ) as HTMLElement;
 
     // Fallback: if :has() doesn't work, find the slide containing qrCodeNevent manually
     if (!neventSlide) {
@@ -4731,7 +5463,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Debug log removed
 
     // Create or get hidden slides container
-    let hiddenSlidesContainer = document.getElementById('hiddenSlidesContainer');
+    let hiddenSlidesContainer = document.getElementById(
+      'hiddenSlidesContainer'
+    );
     if (!hiddenSlidesContainer) {
       hiddenSlidesContainer = document.createElement('div');
       hiddenSlidesContainer.id = 'hiddenSlidesContainer';
@@ -4739,7 +5473,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       document.body.appendChild(hiddenSlidesContainer);
     }
 
-    const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper') as HTMLElement;
+    const swiperWrapper = document.querySelector(
+      '.qr-swiper .swiper-wrapper'
+    ) as HTMLElement;
 
     // If swiper wrapper doesn't exist (e.g., on note loader page), return early
     if (!swiperWrapper) {
@@ -4810,7 +5546,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Debug log removed
 
     // Show/hide swiper container
-    const qrSwiperContainer = document.querySelector('.qr-swiper') as HTMLElement;
+    const qrSwiperContainer = document.querySelector(
+      '.qr-swiper'
+    ) as HTMLElement;
     if (qrSwiperContainer && visibleSlides.length > 0) {
       qrSwiperContainer.style.display = 'block';
 
@@ -4822,7 +5560,10 @@ export const useLiveFunctionality = (eventId?: string) => {
           // Update swiper behavior based on visible slides
           if (visibleSlides.length === 1) {
             (window as any).qrSwiper.allowTouchMove = false;
-            if ((window as any).qrSwiper.autoplay && (window as any).qrSwiper.autoplay.stop) {
+            if (
+              (window as any).qrSwiper.autoplay &&
+              (window as any).qrSwiper.autoplay.stop
+            ) {
               (window as any).qrSwiper.autoplay.stop();
             }
             // Clear progress tracking for single slide
@@ -4879,7 +5620,9 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     if (visibleSlides.length === 0) {
       // Debug log removed
-      const qrSwiperContainer = document.querySelector('.qr-swiper') as HTMLElement;
+      const qrSwiperContainer = document.querySelector(
+        '.qr-swiper'
+      ) as HTMLElement;
       if (qrSwiperContainer) {
         qrSwiperContainer.style.display = 'none';
       }
@@ -4890,10 +5633,13 @@ export const useLiveFunctionality = (eventId?: string) => {
     try {
       (window as any).qrSwiper = new (window as any).Swiper('.qr-swiper', {
         loop: visibleSlides.length > 1,
-        autoplay: visibleSlides.length > 1 ? {
-          delay: 10000,
-          disableOnInteraction: false
-        } : false,
+        autoplay:
+          visibleSlides.length > 1
+            ? {
+                delay: 10000,
+                disableOnInteraction: false
+              }
+            : false,
         allowTouchMove: visibleSlides.length > 1,
         pagination: {
           el: '.swiper-pagination',
@@ -4905,10 +5651,12 @@ export const useLiveFunctionality = (eventId?: string) => {
             if (!swiperEl) return;
 
             // Reset all progress bars
-            swiperEl.querySelectorAll('.swiper-pagination-bullet').forEach((bullet: HTMLElement) => {
-              bullet.classList.remove('progress-animating');
-              bullet.style.setProperty('--progress', '0%');
-            });
+            swiperEl
+              .querySelectorAll('.swiper-pagination-bullet')
+              .forEach((bullet: HTMLElement) => {
+                bullet.classList.remove('progress-animating');
+                bullet.style.setProperty('--progress', '0%');
+              });
 
             // Reset paused progress for initial slide
             pausedProgress = 0;
@@ -4916,7 +5664,9 @@ export const useLiveFunctionality = (eventId?: string) => {
             // Debug log removed
 
             // Start animation for active slide immediately
-            const activeBullet = swiperEl.querySelector('.swiper-pagination-bullet-active');
+            const activeBullet = swiperEl.querySelector(
+              '.swiper-pagination-bullet-active'
+            );
             if (activeBullet) {
               activeBullet.classList.add('progress-animating');
               startProgressTracking();
@@ -4927,10 +5677,12 @@ export const useLiveFunctionality = (eventId?: string) => {
             if (!swiperEl) return;
 
             // Reset all progress bars
-            swiperEl.querySelectorAll('.swiper-pagination-bullet').forEach((bullet: HTMLElement) => {
-              bullet.style.setProperty('--progress', '0%');
-              bullet.classList.remove('progress-animating');
-            });
+            swiperEl
+              .querySelectorAll('.swiper-pagination-bullet')
+              .forEach((bullet: HTMLElement) => {
+                bullet.style.setProperty('--progress', '0%');
+                bullet.classList.remove('progress-animating');
+              });
 
             // Reset paused progress for new slide
             pausedProgress = 0;
@@ -4938,7 +5690,9 @@ export const useLiveFunctionality = (eventId?: string) => {
             // Debug log removed
 
             // Start progress tracking for new slide immediately
-            const activeBullet = swiperEl.querySelector('.swiper-pagination-bullet-active');
+            const activeBullet = swiperEl.querySelector(
+              '.swiper-pagination-bullet-active'
+            );
             if (activeBullet) {
               activeBullet.classList.add('progress-animating');
               startProgressTracking();
@@ -4950,7 +5704,9 @@ export const useLiveFunctionality = (eventId?: string) => {
 
             // Remove paused class and resume progress animation
             swiperEl.classList.remove('swiper-paused');
-            const activeBullet = swiperEl.querySelector('.swiper-pagination-bullet-active');
+            const activeBullet = swiperEl.querySelector(
+              '.swiper-pagination-bullet-active'
+            );
             if (activeBullet) {
               activeBullet.classList.add('progress-animating');
               startProgressTracking();
@@ -5002,7 +5758,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       return;
     }
 
-    const activeBullet = qrSwiper.el.querySelector('.swiper-pagination-bullet-active');
+    const activeBullet = qrSwiper.el.querySelector(
+      '.swiper-pagination-bullet-active'
+    );
     if (!activeBullet) {
       // Debug log removed
       return;
@@ -5053,7 +5811,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       return;
     }
 
-    const activeBullet = qrSwiper.el.querySelector('.swiper-pagination-bullet-active');
+    const activeBullet = qrSwiper.el.querySelector(
+      '.swiper-pagination-bullet-active'
+    );
     if (!activeBullet) {
       // Debug log removed
       return;
@@ -5070,12 +5830,13 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Debug log removed
 
     // Calculate remaining time based on paused progress
-    const remainingTime = (100 - pausedProgress) / 100 * autoplayDelay;
+    const remainingTime = ((100 - pausedProgress) / 100) * autoplayDelay;
     const resumeTime = Date.now();
 
     progressInterval = setInterval(() => {
       const elapsed = Date.now() - resumeTime;
-      const progress = pausedProgress + (elapsed / remainingTime) * (100 - pausedProgress);
+      const progress =
+        pausedProgress + (elapsed / remainingTime) * (100 - pausedProgress);
       const finalProgress = Math.min(progress, 100);
 
       // Set CSS custom property for progress
@@ -5109,9 +5870,12 @@ export const useLiveFunctionality = (eventId?: string) => {
         progressPauseTime = Date.now();
 
         // Store current progress percentage
-        const activeBullet = (window as any).qrSwiper?.el?.querySelector('.swiper-pagination-bullet-active');
+        const activeBullet = (window as any).qrSwiper?.el?.querySelector(
+          '.swiper-pagination-bullet-active'
+        );
         if (activeBullet) {
-          const currentProgress = activeBullet.style.getPropertyValue('--progress') || '0%';
+          const currentProgress =
+            activeBullet.style.getPropertyValue('--progress') || '0%';
           pausedProgress = parseFloat(currentProgress.replace('%', ''));
           // Debug log removed
         }
@@ -5129,8 +5893,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         resumeProgressTracking();
 
         // Calculate remaining time and manually trigger slide change when progress completes
-        const autoplayDelay = (window as any).qrSwiper?.params?.autoplay?.delay || 10000;
-        const remainingTime = (100 - pausedProgress) / 100 * autoplayDelay;
+        const autoplayDelay =
+          (window as any).qrSwiper?.params?.autoplay?.delay || 10000;
+        const remainingTime = ((100 - pausedProgress) / 100) * autoplayDelay;
 
         // Debug log removed
 
@@ -5141,7 +5906,6 @@ export const useLiveFunctionality = (eventId?: string) => {
             (window as any).qrSwiper.slideNext();
           }
         }, remainingTime);
-
       } else {
         // Debug log removed
 
@@ -5175,7 +5939,6 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   // Top zappers management functions
-
 
   // Cleanup function
   const cleanup = () => {

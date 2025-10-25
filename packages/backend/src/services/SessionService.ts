@@ -25,12 +25,15 @@ export class SessionService {
 
   private constructor() {
     this.logger = new Logger('SessionService');
-    
+
     // Start cleanup interval (every 5 minutes)
-    this.cleanupInterval = setInterval(() => {
-      this.cleanupInactiveSessions();
-    }, 5 * 60 * 1000);
-    
+    this.cleanupInterval = setInterval(
+      () => {
+        this.cleanupInactiveSessions();
+      },
+      5 * 60 * 1000
+    );
+
     this.logger.info('SessionService initialized with cleanup interval');
   }
 
@@ -47,20 +50,25 @@ export class SessionService {
   /**
    * Create or update a Lightning session
    */
-  createOrUpdateSession(frontendSessionId: string, eventId: string, lnurl: string, lnurlpId?: string): void {
+  createOrUpdateSession(
+    frontendSessionId: string,
+    eventId: string,
+    lnurl: string,
+    lnurlpId?: string
+  ): void {
     let session = this.sessions.get(frontendSessionId);
-    
+
     if (!session) {
       session = { events: {} };
       this.sessions.set(frontendSessionId, session);
     }
-    
+
     session.events[eventId] = {
       lnurl,
       lastSeen: Date.now(),
       active: true
     };
-    
+
     // Use provided LNURL-pay ID or try to extract from LNURL
     const id = lnurlpId || this.extractLNURLPayId(lnurl);
     if (id) {
@@ -68,12 +76,14 @@ export class SessionService {
         frontendSessionId,
         eventId
       });
-      
-      this.logger.info(`Created LNURL mapping: ${id} -> ${frontendSessionId}/${eventId}`);
+
+      this.logger.info(
+        `Created LNURL mapping: ${id} -> ${frontendSessionId}/${eventId}`
+      );
     } else {
       this.logger.warn('No LNURL-pay ID available for mapping');
     }
-    
+
     this.logger.info(`Session updated: ${frontendSessionId}/${eventId}`, {
       lnurl,
       active: true,
@@ -94,16 +104,22 @@ export class SessionService {
    */
   getLNURLMapping(lnurlpId: string): LNURLMapping | undefined {
     this.logger.info(`🔍 Looking up LNURL-pay ID: "${lnurlpId}"`);
-    this.logger.info(`📋 Available mappings:`, Array.from(this.lnurlpMappings.keys()));
-    
+    this.logger.info(
+      `📋 Available mappings:`,
+      Array.from(this.lnurlpMappings.keys())
+    );
+
     const mapping = this.lnurlpMappings.get(lnurlpId);
     if (mapping) {
       this.logger.info(`✅ Found mapping:`, mapping);
     } else {
       this.logger.warn(`❌ No mapping found for: "${lnurlpId}"`);
-      this.logger.info(`🔍 All mappings:`, Array.from(this.lnurlpMappings.entries()));
+      this.logger.info(
+        `🔍 All mappings:`,
+        Array.from(this.lnurlpMappings.entries())
+      );
     }
-    
+
     return mapping;
   }
 
@@ -114,7 +130,9 @@ export class SessionService {
     const session = this.sessions.get(frontendSessionId);
     if (session && session.events[eventId]) {
       session.events[eventId].lastSeen = Date.now();
-      this.logger.debug(`Updated last seen for ${frontendSessionId}/${eventId}`);
+      this.logger.debug(
+        `Updated last seen for ${frontendSessionId}/${eventId}`
+      );
     }
   }
 
@@ -127,11 +145,13 @@ export class SessionService {
       const wasActive = session.events[eventId].active;
       session.events[eventId].active = false;
       session.events[eventId].lastSeen = Date.now();
-      
-      this.logger.info(`Deactivated session: ${frontendSessionId}/${eventId} (was active: ${wasActive})`);
+
+      this.logger.info(
+        `Deactivated session: ${frontendSessionId}/${eventId} (was active: ${wasActive})`
+      );
       return wasActive;
     }
-    
+
     return false;
   }
 
@@ -157,14 +177,14 @@ export class SessionService {
       // LNURL format: https://domain.com/lnurlp/abc123
       const url = new URL(lnurl);
       const pathParts = url.pathname.split('/');
-      
+
       // Find the lnurlp part and get the ID after it
       const lnurlpIndex = pathParts.indexOf('lnurlp');
       if (lnurlpIndex !== -1 && lnurlpIndex + 1 < pathParts.length) {
         const id = pathParts[lnurlpIndex + 1];
         return id || null;
       }
-      
+
       return null;
     } catch (error) {
       this.logger.warn('Failed to extract LNURL-pay ID from:', lnurl);
@@ -178,46 +198,54 @@ export class SessionService {
   private cleanupInactiveSessions(): void {
     const now = Date.now();
     const cleanupThreshold = 60 * 60 * 1000; // 1 hour
-    
+
     let cleanedSessions = 0;
     let cleanedMappings = 0;
-    
+
     for (const [frontendSessionId, session] of this.sessions.entries()) {
       let hasActiveEvents = false;
-      
+
       for (const [eventId, eventData] of Object.entries(session.events)) {
         if (now - eventData.lastSeen > cleanupThreshold) {
           // Remove inactive event
           delete session.events[eventId];
           cleanedSessions++;
-          
+
           // Remove corresponding LNURL mapping
           for (const [lnurlpId, mapping] of this.lnurlpMappings.entries()) {
-            if (mapping.frontendSessionId === frontendSessionId && mapping.eventId === eventId) {
+            if (
+              mapping.frontendSessionId === frontendSessionId &&
+              mapping.eventId === eventId
+            ) {
               this.lnurlpMappings.delete(lnurlpId);
               cleanedMappings++;
               break;
             }
           }
-          
-          this.logger.debug(`Cleaned up event ${eventId} from session: ${frontendSessionId}`);
+
+          this.logger.debug(
+            `Cleaned up event ${eventId} from session: ${frontendSessionId}`
+          );
         } else if (eventData.active) {
           hasActiveEvents = true;
         }
       }
-      
+
       // Remove session if no active events
       if (!hasActiveEvents && Object.keys(session.events).length === 0) {
         this.sessions.delete(frontendSessionId);
         this.logger.debug(`Cleaned up empty session: ${frontendSessionId}`);
       }
     }
-    
+
     if (cleanedSessions > 0 || cleanedMappings > 0) {
-      this.logger.info(`Cleanup completed: ${cleanedSessions} events, ${cleanedMappings} mappings`, {
-        remainingSessions: this.sessions.size,
-        remainingMappings: this.lnurlpMappings.size
-      });
+      this.logger.info(
+        `Cleanup completed: ${cleanedSessions} events, ${cleanedMappings} mappings`,
+        {
+          remainingSessions: this.sessions.size,
+          remainingMappings: this.lnurlpMappings.size
+        }
+      );
     }
   }
 
@@ -236,14 +264,14 @@ export class SessionService {
     let activeEvents = 0;
     let oldestEvent = Date.now();
     let newestEvent = 0;
-    
+
     for (const session of this.sessions.values()) {
       for (const eventData of Object.values(session.events)) {
         totalEvents++;
         if (eventData.active) {
           activeEvents++;
         }
-        
+
         if (eventData.lastSeen < oldestEvent) {
           oldestEvent = eventData.lastSeen;
         }
@@ -252,7 +280,7 @@ export class SessionService {
         }
       }
     }
-    
+
     return {
       totalSessions: this.sessions.size,
       totalEvents,
@@ -270,10 +298,10 @@ export class SessionService {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
     }
-    
+
     this.sessions.clear();
     this.lnurlpMappings.clear();
-    
+
     this.logger.info('SessionService destroyed and cleaned up');
   }
 }

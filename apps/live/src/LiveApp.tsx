@@ -12,5 +12,3 @@ export const LiveApp: React.FC = () => {
     </Routes>
   );
 };
-
-

@@ -74,7 +74,11 @@ export class RelayManager {
   /**
    * Update relay connection status
    */
-  updateConnectionStatus(relayUrl: string, status: RelayConnection['status'], error?: string): void {
+  updateConnectionStatus(
+    relayUrl: string,
+    status: RelayConnection['status'],
+    error?: string
+  ): void {
     const connection = this.connections.get(relayUrl);
     if (connection) {
       connection.status = status;
@@ -141,7 +145,7 @@ export class RelayManager {
     disconnected: number;
     healthy: number;
     averageLatency: number;
-    } {
+  } {
     const connections = Array.from(this.connections.values());
     const connected = connections.filter(c => c.status === 'connected');
     const healthy = this.getHealthyRelays().length;
@@ -154,9 +158,10 @@ export class RelayManager {
       connected: connected.length,
       disconnected: connections.length - connected.length,
       healthy,
-      averageLatency: latencies.length > 0
-        ? latencies.reduce((a, b) => a + b, 0) / latencies.length
-        : 0
+      averageLatency:
+        latencies.length > 0
+          ? latencies.reduce((a, b) => a + b, 0) / latencies.length
+          : 0
     };
   }
 
@@ -167,14 +172,18 @@ export class RelayManager {
     try {
       // This would implement actual relay testing
       // For now, simulate a test
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         setTimeout(() => {
           this.updateConnectionStatus(relayUrl, 'connected');
           resolve(true);
         }, 1000);
       });
     } catch (error) {
-      this.updateConnectionStatus(relayUrl, 'error', error instanceof Error ? error.message : 'Unknown error');
+      this.updateConnectionStatus(
+        relayUrl,
+        'error',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
       return false;
     }
   }
@@ -201,7 +210,11 @@ export class RelayManager {
         url: relayUrl,
         connection: connections.get(relayUrl)!
       }))
-      .sort((a, b) => (a.connection.latency || Infinity) - (b.connection.latency || Infinity))
+      .sort(
+        (a, b) =>
+          (a.connection.latency || Infinity) -
+          (b.connection.latency || Infinity)
+      )
       .slice(0, limit)
       .map(relay => relay.url);
   }
@@ -225,7 +238,7 @@ export class RelayManager {
     status: 'healthy' | 'degraded' | 'unhealthy';
     message: string;
     details: RelayConnection[];
-    } {
+  } {
     const stats = this.getRelayStats();
     const connections = this.getConnections();
 
@@ -237,7 +250,8 @@ export class RelayManager {
       message = 'All relays are healthy';
     } else if (stats.connected >= 2) {
       status = 'degraded';
-      message = 'Some relays are disconnected but core functionality is available';
+      message =
+        'Some relays are disconnected but core functionality is available';
     } else {
       status = 'unhealthy';
       message = 'Most relays are disconnected - functionality may be limited';

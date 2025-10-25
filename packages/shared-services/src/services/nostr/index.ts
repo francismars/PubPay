@@ -5,5 +5,11 @@ export { RelayManager } from './RelayManager';
 export { ProfileService } from './ProfileService';
 
 // Re-export types for convenience
-export type { NostrEvent, NostrFilter, RelayConnection, EventHandler, Subscription } from '@pubpay/shared-types';
+export type {
+  NostrEvent,
+  NostrFilter,
+  RelayConnection,
+  EventHandler,
+  Subscription
+} from '@pubpay/shared-types';
 export type { LiveEvent, Zap, User } from '@pubpay/shared-types';

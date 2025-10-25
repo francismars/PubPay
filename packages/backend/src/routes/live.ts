@@ -9,7 +9,7 @@ export class LiveRouter {
   constructor() {
     this.router = Router();
     this.logger = new Logger('LiveRouter');
-    
+
     this.initializeRoutes();
   }
 
@@ -23,7 +23,7 @@ export class LiveRouter {
   private async getLiveEvents(_req: Request, res: Response): Promise<void> {
     try {
       this.logger.info('Getting live events');
-      
+
       // Placeholder implementation
       res.json({
         success: true,
@@ -45,7 +45,7 @@ export class LiveRouter {
     try {
       const { eventId } = req.params;
       this.logger.info(`Getting live event: ${eventId}`);
-      
+
       // Placeholder implementation
       res.json({
         success: true,
@@ -69,9 +69,12 @@ export class LiveRouter {
     try {
       const { eventId } = req.params;
       const { amount, comment } = req.body;
-      
-      this.logger.info(`Creating zap for event ${eventId}:`, { amount, comment });
-      
+
+      this.logger.info(`Creating zap for event ${eventId}:`, {
+        amount,
+        comment
+      });
+
       // Placeholder implementation
       res.json({
         success: true,

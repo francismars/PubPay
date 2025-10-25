@@ -164,15 +164,18 @@ export class ErrorService {
     byLevel: Record<ErrorLevel, number>;
     recent: number;
     critical: number;
-    } {
+  } {
     const now = Date.now();
     const oneHour = 60 * 60 * 1000;
     const recent = this.logs.filter(log => now - log.timestamp < oneHour);
 
-    const byLevel = this.logs.reduce((acc, log) => {
-      acc[log.level] = (acc[log.level] || 0) + 1;
-      return acc;
-    }, {} as Record<ErrorLevel, number>);
+    const byLevel = this.logs.reduce(
+      (acc, log) => {
+        acc[log.level] = (acc[log.level] || 0) + 1;
+        return acc;
+      },
+      {} as Record<ErrorLevel, number>
+    );
 
     return {
       total: this.logs.length,
@@ -201,7 +204,7 @@ export class ErrorService {
    */
   private setupGlobalErrorHandlers(): void {
     // Handle uncaught errors
-    window.addEventListener('error', (event) => {
+    window.addEventListener('error', event => {
       this.handleError(event.error, {
         type: 'uncaught',
         filename: event.filename,
@@ -211,11 +214,8 @@ export class ErrorService {
     });
 
     // Handle unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
-      this.handleError(
-        new Error(event.reason),
-        { type: 'unhandledrejection' }
-      );
+    window.addEventListener('unhandledrejection', event => {
+      this.handleError(new Error(event.reason), { type: 'unhandledrejection' });
     });
   }
 
@@ -227,19 +227,19 @@ export class ErrorService {
     const prefix = `[${timestamp}] [${log.level.toUpperCase()}]`;
 
     switch (log.level) {
-    case ErrorLevel.DEBUG:
-      console.debug(prefix, log.message, log.context);
-      break;
-    case ErrorLevel.INFO:
-      console.info(prefix, log.message, log.context);
-      break;
-    case ErrorLevel.WARN:
-      console.warn(prefix, log.message, log.error, log.context);
-      break;
-    case ErrorLevel.ERROR:
-    case ErrorLevel.CRITICAL:
-      console.error(prefix, log.message, log.error, log.context);
-      break;
+      case ErrorLevel.DEBUG:
+        console.debug(prefix, log.message, log.context);
+        break;
+      case ErrorLevel.INFO:
+        console.info(prefix, log.message, log.context);
+        break;
+      case ErrorLevel.WARN:
+        console.warn(prefix, log.message, log.error, log.context);
+        break;
+      case ErrorLevel.ERROR:
+      case ErrorLevel.CRITICAL:
+        console.error(prefix, log.message, log.error, log.context);
+        break;
     }
   }
 

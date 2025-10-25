@@ -68,13 +68,17 @@ export class PaymentAPI {
   /**
    * Get Lightning payment status
    */
-  async getLightningStatus(sessionId: string): Promise<ApiResponse<{
-    enabled: boolean;
-    lnurl?: string;
-    eventId?: string;
-  }>> {
+  async getLightningStatus(sessionId: string): Promise<
+    ApiResponse<{
+      enabled: boolean;
+      lnurl?: string;
+      eventId?: string;
+    }>
+  > {
     try {
-      const response = await fetch(`${this.baseUrl}/lightning/status/${sessionId}`);
+      const response = await fetch(
+        `${this.baseUrl}/lightning/status/${sessionId}`
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -93,17 +97,21 @@ export class PaymentAPI {
   /**
    * Get payment history
    */
-  async getPaymentHistory(params: {
-    page?: number;
-    limit?: number;
-    eventId?: string;
-  } = {}): Promise<PaginatedResponse<{
-    id: string;
-    amount: number;
-    description: string;
-    status: string;
-    createdAt: number;
-  }>> {
+  async getPaymentHistory(
+    params: {
+      page?: number;
+      limit?: number;
+      eventId?: string;
+    } = {}
+  ): Promise<
+    PaginatedResponse<{
+      id: string;
+      amount: number;
+      description: string;
+      status: string;
+      createdAt: number;
+    }>
+  > {
     try {
       const searchParams = new URLSearchParams();
       if (params.page) searchParams.set('page', params.page.toString());
@@ -142,11 +150,13 @@ export class PaymentAPI {
     description: string;
     eventId: string;
     comment?: string;
-  }): Promise<ApiResponse<{
-    paymentRequest: string;
-    paymentHash: string;
-    expiresAt: number;
-  }>> {
+  }): Promise<
+    ApiResponse<{
+      paymentRequest: string;
+      paymentHash: string;
+      expiresAt: number;
+    }>
+  > {
     try {
       const response = await fetch(`${this.baseUrl}/payments/request`, {
         method: 'POST',
@@ -171,13 +181,17 @@ export class PaymentAPI {
   /**
    * Check payment status
    */
-  async checkPaymentStatus(paymentHash: string): Promise<ApiResponse<{
-    status: string;
-    paidAt?: number;
-    amount?: number;
-  }>> {
+  async checkPaymentStatus(paymentHash: string): Promise<
+    ApiResponse<{
+      status: string;
+      paidAt?: number;
+      amount?: number;
+    }>
+  > {
     try {
-      const response = await fetch(`${this.baseUrl}/payments/status/${paymentHash}`);
+      const response = await fetch(
+        `${this.baseUrl}/payments/status/${paymentHash}`
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -217,7 +231,9 @@ export class PaymentAPI {
   /**
    * Update Lightning configuration
    */
-  async updateLightningConfig(config: Partial<LightningConfig>): Promise<ApiResponse<LightningConfig>> {
+  async updateLightningConfig(
+    config: Partial<LightningConfig>
+  ): Promise<ApiResponse<LightningConfig>> {
     try {
       const response = await fetch(`${this.baseUrl}/lightning/config`, {
         method: 'PUT',

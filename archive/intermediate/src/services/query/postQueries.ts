@@ -4,16 +4,23 @@ import { NostrClient } from '../nostr/NostrClient';
 
 export type PostsParams = { until?: number; limit?: number };
 
-export const postsKey = (params: PostsParams) => ['posts', params.until ?? null, params.limit ?? 21];
+export const postsKey = (params: PostsParams) => [
+  'posts',
+  params.until ?? null,
+  params.limit ?? 21
+];
 
-export const fetchPosts = async (client: NostrClient, params: PostsParams): Promise<Kind1Event[]> => {
+export const fetchPosts = async (
+  client: NostrClient,
+  params: PostsParams
+): Promise<Kind1Event[]> => {
   const filter: NostrFilter = {
     kinds: [1],
     '#t': ['pubpay'],
     limit: params.limit ?? 21,
     ...(params.until ? { until: params.until } : {})
   };
-  return await client.getEvents([filter]) as Kind1Event[];
+  return (await client.getEvents([filter])) as Kind1Event[];
 };
 
 export const ensurePosts = async (
@@ -27,5 +34,3 @@ export const ensurePosts = async (
     staleTime: 10_000
   });
 };
-
-

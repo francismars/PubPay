@@ -81,74 +81,83 @@ export const useAppStore = create<AppState>()(
     theme: 'light',
 
     // Actions
-    setConfig: (config) => set((state) => ({
-      config: { ...state.config, ...config }
-    })),
+    setConfig: config =>
+      set(state => ({
+        config: { ...state.config, ...config }
+      })),
 
-    setLightningConfig: (config) => set((state) => ({
-      lightningConfig: { ...state.lightningConfig, ...config }
-    })),
+    setLightningConfig: config =>
+      set(state => ({
+        lightningConfig: { ...state.lightningConfig, ...config }
+      })),
 
-    setCurrentUser: (user) => set({
-      currentUser: user,
-      isAuthenticated: user !== null
-    }),
+    setCurrentUser: user =>
+      set({
+        currentUser: user,
+        isAuthenticated: user !== null
+      }),
 
-    setAuthenticated: (authenticated) => set({
-      isAuthenticated: authenticated,
-      currentUser: authenticated ? get().currentUser : null
-    }),
+    setAuthenticated: authenticated =>
+      set({
+        isAuthenticated: authenticated,
+        currentUser: authenticated ? get().currentUser : null
+      }),
 
-    setCurrentEvent: (event) => set({ currentEvent: event }),
+    setCurrentEvent: event => set({ currentEvent: event }),
 
-    addEvent: (event) => set((state) => {
-      const newEvents = new Map(state.events);
-      newEvents.set(event.id, event);
-      return { events: newEvents };
-    }),
+    addEvent: event =>
+      set(state => {
+        const newEvents = new Map(state.events);
+        newEvents.set(event.id, event);
+        return { events: newEvents };
+      }),
 
-    updateEvent: (eventId, updates) => set((state) => {
-      const newEvents = new Map(state.events);
-      const existingEvent = newEvents.get(eventId);
-      if (existingEvent) {
-        newEvents.set(eventId, { ...existingEvent, ...updates });
-      }
-      return { events: newEvents };
-    }),
+    updateEvent: (eventId, updates) =>
+      set(state => {
+        const newEvents = new Map(state.events);
+        const existingEvent = newEvents.get(eventId);
+        if (existingEvent) {
+          newEvents.set(eventId, { ...existingEvent, ...updates });
+        }
+        return { events: newEvents };
+      }),
 
-    removeEvent: (eventId) => set((state) => {
-      const newEvents = new Map(state.events);
-      newEvents.delete(eventId);
-      return { events: newEvents };
-    }),
+    removeEvent: eventId =>
+      set(state => {
+        const newEvents = new Map(state.events);
+        newEvents.delete(eventId);
+        return { events: newEvents };
+      }),
 
-    setLightningEnabled: (enabled) => set({ lightningEnabled: enabled }),
+    setLightningEnabled: enabled => set({ lightningEnabled: enabled }),
 
-    setLightningSession: (sessionId, lnurl) => set({
-      lightningSessionId: sessionId,
-      lightningLNURL: lnurl
-    }),
+    setLightningSession: (sessionId, lnurl) =>
+      set({
+        lightningSessionId: sessionId,
+        lightningLNURL: lnurl
+      }),
 
-    setLoading: (loading) => set({ isLoading: loading }),
+    setLoading: loading => set({ isLoading: loading }),
 
-    setError: (error) => set({ error }),
+    setError: error => set({ error }),
 
-    setTheme: (theme) => set({ theme }),
+    setTheme: theme => set({ theme }),
 
     clearError: () => set({ error: null }),
 
-    reset: () => set({
-      currentUser: null,
-      isAuthenticated: false,
-      currentEvent: null,
-      events: new Map(),
-      lightningEnabled: false,
-      lightningSessionId: null,
-      lightningLNURL: null,
-      isLoading: false,
-      error: null,
-      theme: 'light'
-    })
+    reset: () =>
+      set({
+        currentUser: null,
+        isAuthenticated: false,
+        currentEvent: null,
+        events: new Map(),
+        lightningEnabled: false,
+        lightningSessionId: null,
+        lightningLNURL: null,
+        isLoading: false,
+        error: null,
+        theme: 'light'
+      })
   }))
 );
 
@@ -156,7 +165,8 @@ export const useAppStore = create<AppState>()(
 export const selectCurrentUser = (state: AppState) => state.currentUser;
 export const selectIsAuthenticated = (state: AppState) => state.isAuthenticated;
 export const selectCurrentEvent = (state: AppState) => state.currentEvent;
-export const selectLightningEnabled = (state: AppState) => state.lightningEnabled;
+export const selectLightningEnabled = (state: AppState) =>
+  state.lightningEnabled;
 export const selectIsLoading = (state: AppState) => state.isLoading;
 export const selectError = (state: AppState) => state.error;
 export const selectTheme = (state: AppState) => state.theme;

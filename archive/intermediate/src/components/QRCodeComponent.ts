@@ -213,7 +213,7 @@ export class QRCodeComponent extends BaseComponent {
    */
   private truncateValue(value: string, maxLength: number): string {
     if (value.length <= maxLength) return value;
-    return `${value.substring(0, maxLength)  }...`;
+    return `${value.substring(0, maxLength)}...`;
   }
 
   /**

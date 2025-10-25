@@ -58,17 +58,22 @@ export class ProfileAPI {
   /**
    * Search profiles
    */
-  async searchProfiles(query: string, params: {
-    page?: number;
-    limit?: number;
-  } = {}): Promise<PaginatedResponse<User>> {
+  async searchProfiles(
+    query: string,
+    params: {
+      page?: number;
+      limit?: number;
+    } = {}
+  ): Promise<PaginatedResponse<User>> {
     try {
       const searchParams = new URLSearchParams();
       searchParams.set('q', query);
       if (params.page) searchParams.set('page', params.page.toString());
       if (params.limit) searchParams.set('limit', params.limit.toString());
 
-      const response = await fetch(`${this.baseUrl}/profiles/search?${searchParams}`);
+      const response = await fetch(
+        `${this.baseUrl}/profiles/search?${searchParams}`
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -95,7 +100,10 @@ export class ProfileAPI {
   /**
    * Update user profile
    */
-  async updateProfile(pubkey: string, profileData: Partial<User>): Promise<ApiResponse<User>> {
+  async updateProfile(
+    pubkey: string,
+    profileData: Partial<User>
+  ): Promise<ApiResponse<User>> {
     try {
       const response = await fetch(`${this.baseUrl}/profiles/${pubkey}`, {
         method: 'PUT',
@@ -120,13 +128,15 @@ export class ProfileAPI {
   /**
    * Get profile statistics
    */
-  async getProfileStats(pubkey: string): Promise<ApiResponse<{
-    totalEvents: number;
-    totalZaps: number;
-    totalZapped: number;
-    followers: number;
-    following: number;
-  }>> {
+  async getProfileStats(pubkey: string): Promise<
+    ApiResponse<{
+      totalEvents: number;
+      totalZaps: number;
+      totalZapped: number;
+      followers: number;
+      following: number;
+    }>
+  > {
     try {
       const response = await fetch(`${this.baseUrl}/profiles/${pubkey}/stats`);
 
@@ -147,24 +157,31 @@ export class ProfileAPI {
   /**
    * Get user's events
    */
-  async getUserEvents(pubkey: string, params: {
-    page?: number;
-    limit?: number;
-    kinds?: number[];
-  } = {}): Promise<PaginatedResponse<{
-    id: string;
-    kind: number;
-    content: string;
-    created_at: number;
-    tags: string[][];
-  }>> {
+  async getUserEvents(
+    pubkey: string,
+    params: {
+      page?: number;
+      limit?: number;
+      kinds?: number[];
+    } = {}
+  ): Promise<
+    PaginatedResponse<{
+      id: string;
+      kind: number;
+      content: string;
+      created_at: number;
+      tags: string[][];
+    }>
+  > {
     try {
       const searchParams = new URLSearchParams();
       if (params.page) searchParams.set('page', params.page.toString());
       if (params.limit) searchParams.set('limit', params.limit.toString());
       if (params.kinds) searchParams.set('kinds', params.kinds.join(','));
 
-      const response = await fetch(`${this.baseUrl}/profiles/${pubkey}/events?${searchParams}`);
+      const response = await fetch(
+        `${this.baseUrl}/profiles/${pubkey}/events?${searchParams}`
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -191,25 +208,32 @@ export class ProfileAPI {
   /**
    * Get user's zaps
    */
-  async getUserZaps(pubkey: string, params: {
-    page?: number;
-    limit?: number;
-    direction?: 'sent' | 'received';
-  } = {}): Promise<PaginatedResponse<{
-    id: string;
-    amount: number;
-    content: string;
-    created_at: number;
-    payer?: User;
-    recipient?: User;
-  }>> {
+  async getUserZaps(
+    pubkey: string,
+    params: {
+      page?: number;
+      limit?: number;
+      direction?: 'sent' | 'received';
+    } = {}
+  ): Promise<
+    PaginatedResponse<{
+      id: string;
+      amount: number;
+      content: string;
+      created_at: number;
+      payer?: User;
+      recipient?: User;
+    }>
+  > {
     try {
       const searchParams = new URLSearchParams();
       if (params.page) searchParams.set('page', params.page.toString());
       if (params.limit) searchParams.set('limit', params.limit.toString());
       if (params.direction) searchParams.set('direction', params.direction);
 
-      const response = await fetch(`${this.baseUrl}/profiles/${pubkey}/zaps?${searchParams}`);
+      const response = await fetch(
+        `${this.baseUrl}/profiles/${pubkey}/zaps?${searchParams}`
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -238,9 +262,12 @@ export class ProfileAPI {
    */
   async followUser(pubkey: string): Promise<ApiResponse<{ message: string }>> {
     try {
-      const response = await fetch(`${this.baseUrl}/profiles/${pubkey}/follow`, {
-        method: 'POST'
-      });
+      const response = await fetch(
+        `${this.baseUrl}/profiles/${pubkey}/follow`,
+        {
+          method: 'POST'
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -259,11 +286,16 @@ export class ProfileAPI {
   /**
    * Unfollow a user
    */
-  async unfollowUser(pubkey: string): Promise<ApiResponse<{ message: string }>> {
+  async unfollowUser(
+    pubkey: string
+  ): Promise<ApiResponse<{ message: string }>> {
     try {
-      const response = await fetch(`${this.baseUrl}/profiles/${pubkey}/follow`, {
-        method: 'DELETE'
-      });
+      const response = await fetch(
+        `${this.baseUrl}/profiles/${pubkey}/follow`,
+        {
+          method: 'DELETE'
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -282,16 +314,21 @@ export class ProfileAPI {
   /**
    * Get following list
    */
-  async getFollowing(pubkey: string, params: {
-    page?: number;
-    limit?: number;
-  } = {}): Promise<PaginatedResponse<User>> {
+  async getFollowing(
+    pubkey: string,
+    params: {
+      page?: number;
+      limit?: number;
+    } = {}
+  ): Promise<PaginatedResponse<User>> {
     try {
       const searchParams = new URLSearchParams();
       if (params.page) searchParams.set('page', params.page.toString());
       if (params.limit) searchParams.set('limit', params.limit.toString());
 
-      const response = await fetch(`${this.baseUrl}/profiles/${pubkey}/following?${searchParams}`);
+      const response = await fetch(
+        `${this.baseUrl}/profiles/${pubkey}/following?${searchParams}`
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -318,16 +355,21 @@ export class ProfileAPI {
   /**
    * Get followers list
    */
-  async getFollowers(pubkey: string, params: {
-    page?: number;
-    limit?: number;
-  } = {}): Promise<PaginatedResponse<User>> {
+  async getFollowers(
+    pubkey: string,
+    params: {
+      page?: number;
+      limit?: number;
+    } = {}
+  ): Promise<PaginatedResponse<User>> {
     try {
       const searchParams = new URLSearchParams();
       if (params.page) searchParams.set('page', params.page.toString());
       if (params.limit) searchParams.set('limit', params.limit.toString());
 
-      const response = await fetch(`${this.baseUrl}/profiles/${pubkey}/followers?${searchParams}`);
+      const response = await fetch(
+        `${this.baseUrl}/profiles/${pubkey}/followers?${searchParams}`
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

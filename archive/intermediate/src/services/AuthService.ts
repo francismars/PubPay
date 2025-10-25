@@ -8,7 +8,11 @@ export interface AuthResult {
 }
 
 export class AuthService {
-  private static readonly METHODS = ['extension', 'externalSigner', 'nsec'] as const;
+  private static readonly METHODS = [
+    'extension',
+    'externalSigner',
+    'nsec'
+  ] as const;
 
   /**
    * Sign in with Nostr extension
@@ -18,13 +22,18 @@ export class AuthService {
       if (!(window as any).nostr) {
         return {
           success: false,
-          error: 'Nostr extension not found. Please install a Nostr extension like Alby or nos2x.'
+          error:
+            'Nostr extension not found. Please install a Nostr extension like Alby or nos2x.'
         };
       }
 
       const publicKey = await (window as any).nostr.getPublicKey();
 
-      if (!publicKey || typeof publicKey !== 'string' || publicKey.length !== 64) {
+      if (
+        !publicKey ||
+        typeof publicKey !== 'string' ||
+        publicKey.length !== 64
+      ) {
         return {
           success: false,
           error: 'Invalid public key received from extension'
@@ -40,7 +49,8 @@ export class AuthService {
       console.error('Extension sign in failed:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Extension sign in failed'
+        error:
+          error instanceof Error ? error.message : 'Extension sign in failed'
       };
     }
   }
@@ -48,16 +58,19 @@ export class AuthService {
   /**
    * Sign in with external signer (nostrsigner)
    */
-  static async signInWithExternalSigner(rememberMe: boolean = false): Promise<AuthResult> {
+  static async signInWithExternalSigner(
+    rememberMe: boolean = false
+  ): Promise<AuthResult> {
     try {
       // Store sign in data for when user returns
       sessionStorage.setItem('signIn', JSON.stringify({ rememberMe }));
 
       // Navigate to external signer
-      const nostrSignerURL = 'nostrsigner:?compressionType=none&returnType=signature&type=get_public_key';
+      const nostrSignerURL =
+        'nostrsigner:?compressionType=none&returnType=signature&type=get_public_key';
 
       // Set up visibility change listener to detect when external signer opens
-      const navigationAttempted = await new Promise<boolean>((resolve) => {
+      const navigationAttempted = await new Promise<boolean>(resolve => {
         let attempted = false;
         const handleVisibilityChange = () => {
           if (document.visibilityState === 'hidden') {
@@ -71,7 +84,10 @@ export class AuthService {
 
         // Timeout after 3 seconds if no navigation occurs
         setTimeout(() => {
-          document.removeEventListener('visibilitychange', handleVisibilityChange);
+          document.removeEventListener(
+            'visibilitychange',
+            handleVisibilityChange
+          );
           resolve(false);
         }, 3000);
       });
@@ -80,7 +96,7 @@ export class AuthService {
         sessionStorage.removeItem('signIn');
         return {
           success: false,
-          error: 'Failed to launch \'nostrsigner\': Redirection did not occur.'
+          error: "Failed to launch 'nostrsigner': Redirection did not occur."
         };
       }
 
@@ -106,7 +122,8 @@ export class AuthService {
       if (!(window as any).NostrTools) {
         return {
           success: false,
-          error: 'NostrTools not available. Please ensure nostrtools.min.js is loaded.'
+          error:
+            'NostrTools not available. Please ensure nostrtools.min.js is loaded.'
         };
       }
 
@@ -128,7 +145,11 @@ export class AuthService {
 
       const publicKey = (window as any).NostrTools.getPublicKey(data);
 
-      if (!publicKey || typeof publicKey !== 'string' || publicKey.length !== 64) {
+      if (
+        !publicKey ||
+        typeof publicKey !== 'string' ||
+        publicKey.length !== 64
+      ) {
         return {
           success: false,
           error: 'Failed to derive public key from nsec'
@@ -171,7 +192,11 @@ export class AuthService {
         const decodedNPUB = (window as any).NostrTools.nip19.decode(npub);
         const publicKey = decodedNPUB.data;
 
-        if (!publicKey || typeof publicKey !== 'string' || publicKey.length !== 64) {
+        if (
+          !publicKey ||
+          typeof publicKey !== 'string' ||
+          publicKey.length !== 64
+        ) {
           return {
             success: false,
             error: 'Invalid public key from clipboard'
@@ -193,7 +218,10 @@ export class AuthService {
       console.error('External signer return failed:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to process external signer return'
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to process external signer return'
       };
     }
   }
@@ -258,9 +286,14 @@ export class AuthService {
     privateKey: string | null;
     method: string | null;
   } {
-    const publicKey = localStorage.getItem('publicKey') || sessionStorage.getItem('publicKey');
-    const privateKey = localStorage.getItem('privateKey') || sessionStorage.getItem('privateKey');
-    const method = localStorage.getItem('signInMethod') || sessionStorage.getItem('signInMethod');
+    const publicKey =
+      localStorage.getItem('publicKey') || sessionStorage.getItem('publicKey');
+    const privateKey =
+      localStorage.getItem('privateKey') ||
+      sessionStorage.getItem('privateKey');
+    const method =
+      localStorage.getItem('signInMethod') ||
+      sessionStorage.getItem('signInMethod');
 
     return {
       publicKey,
@@ -288,7 +321,11 @@ export class AuthService {
   static validateStoredAuthData(): boolean {
     const { publicKey, method } = this.getStoredAuthData();
 
-    if (!publicKey || typeof publicKey !== 'string' || publicKey.length !== 64) {
+    if (
+      !publicKey ||
+      typeof publicKey !== 'string' ||
+      publicKey.length !== 64
+    ) {
       this.clearAuthData();
       return false;
     }

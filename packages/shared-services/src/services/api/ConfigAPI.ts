@@ -33,7 +33,9 @@ export class ConfigAPI {
   /**
    * Update application configuration
    */
-  async updateAppConfig(config: Partial<AppConfig>): Promise<ApiResponse<AppConfig>> {
+  async updateAppConfig(
+    config: Partial<AppConfig>
+  ): Promise<ApiResponse<AppConfig>> {
     try {
       const response = await fetch(`${this.baseUrl}/config`, {
         method: 'PUT',
@@ -79,7 +81,9 @@ export class ConfigAPI {
   /**
    * Update Lightning configuration
    */
-  async updateLightningConfig(config: Partial<LightningConfig>): Promise<ApiResponse<LightningConfig>> {
+  async updateLightningConfig(
+    config: Partial<LightningConfig>
+  ): Promise<ApiResponse<LightningConfig>> {
     try {
       const response = await fetch(`${this.baseUrl}/config/lightning`, {
         method: 'PUT',
@@ -125,7 +129,9 @@ export class ConfigAPI {
   /**
    * Update feature flags
    */
-  async updateFeatureFlags(flags: Partial<FeatureFlags>): Promise<ApiResponse<FeatureFlags>> {
+  async updateFeatureFlags(
+    flags: Partial<FeatureFlags>
+  ): Promise<ApiResponse<FeatureFlags>> {
     try {
       const response = await fetch(`${this.baseUrl}/config/features`, {
         method: 'PUT',
@@ -150,11 +156,13 @@ export class ConfigAPI {
   /**
    * Get relay configuration
    */
-  async getRelayConfig(): Promise<ApiResponse<{
-    relays: string[];
-    recommended: string[];
-    custom: string[];
-  }>> {
+  async getRelayConfig(): Promise<
+    ApiResponse<{
+      relays: string[];
+      recommended: string[];
+      custom: string[];
+    }>
+  > {
     try {
       const response = await fetch(`${this.baseUrl}/config/relays`);
 
@@ -178,11 +186,13 @@ export class ConfigAPI {
   async updateRelayConfig(config: {
     relays?: string[];
     custom?: string[];
-  }): Promise<ApiResponse<{
-    relays: string[];
-    recommended: string[];
-    custom: string[];
-  }>> {
+  }): Promise<
+    ApiResponse<{
+      relays: string[];
+      recommended: string[];
+      custom: string[];
+    }>
+  > {
     try {
       const response = await fetch(`${this.baseUrl}/config/relays`, {
         method: 'PUT',
@@ -207,16 +217,18 @@ export class ConfigAPI {
   /**
    * Get system status
    */
-  async getSystemStatus(): Promise<ApiResponse<{
-    status: 'healthy' | 'degraded' | 'unhealthy';
-    services: {
-      nostr: 'up' | 'down' | 'degraded';
-      lightning: 'up' | 'down' | 'degraded';
-      database: 'up' | 'down' | 'degraded';
-    };
-    uptime: number;
-    version: string;
-  }>> {
+  async getSystemStatus(): Promise<
+    ApiResponse<{
+      status: 'healthy' | 'degraded' | 'unhealthy';
+      services: {
+        nostr: 'up' | 'down' | 'degraded';
+        lightning: 'up' | 'down' | 'degraded';
+        database: 'up' | 'down' | 'degraded';
+      };
+      uptime: number;
+      version: string;
+    }>
+  > {
     try {
       const response = await fetch(`${this.baseUrl}/status`);
 
@@ -237,12 +249,14 @@ export class ConfigAPI {
   /**
    * Get application version
    */
-  async getVersion(): Promise<ApiResponse<{
-    version: string;
-    build: string;
-    commit: string;
-    timestamp: number;
-  }>> {
+  async getVersion(): Promise<
+    ApiResponse<{
+      version: string;
+      build: string;
+      commit: string;
+      timestamp: number;
+    }>
+  > {
     try {
       const response = await fetch(`${this.baseUrl}/version`);
 

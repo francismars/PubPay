@@ -153,7 +153,7 @@ export class LocalStorage {
     publicKey: string | null;
     privateKey: string | null;
     signInMethod: string | null;
-    } {
+  } {
     return {
       publicKey: this.getItem(STORAGE_KEYS.PUBLIC_KEY),
       privateKey: this.getItem(STORAGE_KEYS.PRIVATE_KEY),
@@ -204,7 +204,7 @@ export class LocalStorage {
    */
   exportData(): {
     [key: string]: any;
-    } {
+  } {
     const data: { [key: string]: any } = {};
     const keys = this.getKeys();
     keys.forEach(key => {

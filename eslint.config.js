@@ -12,15 +12,20 @@ export default [
       'no-undef': 'off'
     }
   },
-  
+
   // TypeScript files configuration
   {
-    files: ['apps/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}', 'tools/**/*.{ts,tsx}', 'scripts/**/*.{ts,tsx}'],
+    files: [
+      'apps/**/*.{ts,tsx}',
+      'packages/**/*.{ts,tsx}',
+      'tools/**/*.{ts,tsx}',
+      'scripts/**/*.{ts,tsx}'
+    ],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
         ecmaVersion: 'latest',
-        sourceType: 'module',
+        sourceType: 'module'
         // Disable project-level type-aware linting for speed and fewer parser issues
         // project: './tsconfig.json'
       },
@@ -48,12 +53,15 @@ export default [
     },
     rules: {
       // TypeScript specific rules
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
+      ],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-inferrable-types': 'off',
-      
+
       // General rules
       'no-console': 'off', // Disabled for now - lots of console statements
       'no-debugger': 'error',
@@ -63,11 +71,11 @@ export default [
       'no-var': 'error',
       'object-shorthand': 'error',
       'prefer-template': 'error',
-      
+
       // Code style (use Prettier for formatting; disable core indent which is unstable in TSX)
-      'indent': 'off',
-      'quotes': ['error', 'single'],
-      'semi': ['error', 'always'],
+      indent: 'off',
+      quotes: ['error', 'single'],
+      semi: ['error', 'always'],
       'comma-dangle': ['error', 'never'],
       'no-trailing-spaces': 'error',
       'eol-last': 'error'
@@ -81,15 +89,9 @@ export default [
       '@typescript-eslint/no-unused-vars': 'off'
     }
   },
-  
+
   // Ignore patterns
   {
-    ignores: [
-      'dist/',
-      'node_modules/',
-      'archive/',
-      '*.js',
-      'eslint.config.js'
-    ]
+    ignores: ['dist/', 'node_modules/', 'archive/', '*.js', 'eslint.config.js']
   }
 ];

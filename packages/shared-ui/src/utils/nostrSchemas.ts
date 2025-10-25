@@ -28,12 +28,18 @@ export type Kind1Event = z.infer<typeof Kind1Schema>;
 export const Kind9735Schema = BaseEventSchema.extend({ kind: z.literal(9735) });
 export type Kind9735Event = z.infer<typeof Kind9735Schema>;
 
-export function safeParseEvent<T extends BaseEvent>(schema: z.ZodType<T>, data: unknown): T | null {
+export function safeParseEvent<T extends BaseEvent>(
+  schema: z.ZodType<T>,
+  data: unknown
+): T | null {
   const res = schema.safeParse(data);
   return res.success ? res.data : null;
 }
 
-export function safeJson<T = unknown>(input: string | null | undefined, fallback: T): T {
+export function safeJson<T = unknown>(
+  input: string | null | undefined,
+  fallback: T
+): T {
   if (!input) return fallback;
   try {
     return JSON.parse(input) as T;
@@ -42,7 +48,10 @@ export function safeJson<T = unknown>(input: string | null | undefined, fallback
   }
 }
 
-export function getFirstTagValue(tags: string[][], key: string): string | undefined {
+export function getFirstTagValue(
+  tags: string[][],
+  key: string
+): string | undefined {
   for (const tag of tags) {
     if (Array.isArray(tag) && tag[0] === key) return tag[1];
   }
@@ -52,7 +61,8 @@ export function getFirstTagValue(tags: string[][], key: string): string | undefi
 export function getAllTagValues(tags: string[][], key: string): string[] {
   const values: string[] = [];
   for (const tag of tags) {
-    if (Array.isArray(tag) && tag[0] === key && typeof tag[1] === 'string') values.push(tag[1]);
+    if (Array.isArray(tag) && tag[0] === key && typeof tag[1] === 'string')
+      values.push(tag[1]);
   }
   return values;
 }
@@ -64,7 +74,9 @@ export const ZapDescriptionSchema = z.object({
 });
 export type ZapDescription = z.infer<typeof ZapDescriptionSchema>;
 
-export function parseZapDescription(input: string | undefined): ZapDescription | null {
+export function parseZapDescription(
+  input: string | undefined
+): ZapDescription | null {
   if (!input) return null;
   try {
     const data = JSON.parse(input);
@@ -74,5 +86,3 @@ export function parseZapDescription(input: string | undefined): ZapDescription |
     return null;
   }
 }
-
-

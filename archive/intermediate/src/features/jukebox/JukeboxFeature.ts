@@ -1,6 +1,10 @@
 // JukeboxFeature - Main feature module for jukebox functionality
 import { ErrorService } from '../../services/ErrorService';
-import { NostrClient, EventManager, ProfileService } from '../../services/nostr';
+import {
+  NostrClient,
+  EventManager,
+  ProfileService
+} from '../../services/nostr';
 import { LightningService } from '../../services/lightning';
 import { LocalStorage, SessionStorage } from '../../services/storage';
 import { BaseComponent } from '../../components/BaseComponent';
@@ -94,9 +98,11 @@ export class JukeboxFeature {
 
       this.isInitialized = true;
       this.errorService.info('Jukebox feature initialized successfully');
-
     } catch (error) {
-      this.errorService.error('Failed to initialize jukebox feature', error as Error);
+      this.errorService.error(
+        'Failed to initialize jukebox feature',
+        error as Error
+      );
       throw error;
     }
   }
@@ -185,7 +191,9 @@ export class JukeboxFeature {
     // Track request form
     const trackRequestForm = document.getElementById('trackRequestForm');
     if (trackRequestForm) {
-      trackRequestForm.addEventListener('submit', (e) => this.handleTrackRequestForm(e));
+      trackRequestForm.addEventListener('submit', e =>
+        this.handleTrackRequestForm(e)
+      );
     }
   }
 
@@ -194,7 +202,10 @@ export class JukeboxFeature {
    */
   private async loadSavedTracks(): Promise<void> {
     try {
-      const savedTracks = this.localStorage.getItem<JukeboxTrack[]>('jukeboxTracks', []);
+      const savedTracks = this.localStorage.getItem<JukeboxTrack[]>(
+        'jukeboxTracks',
+        []
+      );
       if (Array.isArray(savedTracks)) {
         savedTracks.forEach((trackData: JukeboxTrack) => {
           const track: JukeboxTrack = {
@@ -234,31 +245,45 @@ export class JukeboxFeature {
   private setupSubscriptions(): void {
     try {
       // Subscribe to jukebox events (kind 1 with #j tag)
-      this.nostrClient.subscribeToEvents([{
-        kinds: [1],
-        '#j': ['jukebox']
-      }], async (event) => {
-        const noteData = await this.eventManager.handleNoteEvent(event as any);
-        if (noteData) {
-          this.handleJukeboxEvent(event, noteData.content);
+      this.nostrClient.subscribeToEvents(
+        [
+          {
+            kinds: [1],
+            '#j': ['jukebox']
+          }
+        ],
+        async event => {
+          const noteData = await this.eventManager.handleNoteEvent(
+            event as any
+          );
+          if (noteData) {
+            this.handleJukeboxEvent(event, noteData.content);
+          }
         }
-      });
+      );
 
       // Subscribe to zaps for jukebox
-      this.nostrClient.subscribeToEvents([{
-        kinds: [9735],
-        '#j': ['jukebox']
-      }], async (event) => {
-        const zap = await this.eventManager.handleZapEvent(event);
-        if (zap) {
-          this.handleJukeboxZap(zap);
+      this.nostrClient.subscribeToEvents(
+        [
+          {
+            kinds: [9735],
+            '#j': ['jukebox']
+          }
+        ],
+        async event => {
+          const zap = await this.eventManager.handleZapEvent(event);
+          if (zap) {
+            this.handleJukeboxZap(zap);
+          }
         }
-      });
+      );
 
       this.errorService.info('Jukebox subscriptions setup successfully');
-
     } catch (error) {
-      this.errorService.error('Failed to setup jukebox subscriptions', error as Error);
+      this.errorService.error(
+        'Failed to setup jukebox subscriptions',
+        error as Error
+      );
     }
   }
 
@@ -272,21 +297,21 @@ export class JukeboxFeature {
       if (!command) return;
 
       switch (command.type) {
-      case 'request':
-        this.handleTrackRequest(command.data);
-        break;
-      case 'play':
-        this.handlePlayCommand(command.data);
-        break;
-      case 'pause':
-        this.handlePauseCommand();
-        break;
-      case 'next':
-        this.handleNextCommand();
-        break;
-      case 'clear':
-        this.handleClearCommand();
-        break;
+        case 'request':
+          this.handleTrackRequest(command.data);
+          break;
+        case 'play':
+          this.handlePlayCommand(command.data);
+          break;
+        case 'pause':
+          this.handlePauseCommand();
+          break;
+        case 'next':
+          this.handleNextCommand();
+          break;
+        case 'clear':
+          this.handleClearCommand();
+          break;
       }
     } catch (error) {
       this.errorService.error('Failed to handle jukebox event', error as Error);
@@ -296,7 +321,9 @@ export class JukeboxFeature {
   /**
    * Parse jukebox command from content
    */
-  private parseJukeboxCommand(content: string): { type: string; data: any } | null {
+  private parseJukeboxCommand(
+    content: string
+  ): { type: string; data: any } | null {
     const lines = content.split('\n');
     for (const line of lines) {
       if (line.startsWith('jukebox:')) {
@@ -305,16 +332,16 @@ export class JukeboxFeature {
         const type = parts[0];
 
         switch (type) {
-        case 'request':
-          const title = parts.slice(1, -2).join(' ');
-          const artist = parts[parts.length - 2];
-          const url = parts[parts.length - 1];
-          return { type, data: { title, artist, url } };
-        case 'play':
-        case 'pause':
-        case 'next':
-        case 'clear':
-          return { type, data: {} };
+          case 'request':
+            const title = parts.slice(1, -2).join(' ');
+            const artist = parts[parts.length - 2];
+            const url = parts[parts.length - 1];
+            return { type, data: { title, artist, url } };
+          case 'play':
+          case 'pause':
+          case 'next':
+          case 'clear':
+            return { type, data: {} };
         }
       }
     }
@@ -324,7 +351,11 @@ export class JukeboxFeature {
   /**
    * Handle track request
    */
-  private async handleTrackRequest(data: { title: string; artist: string; url: string }): Promise<void> {
+  private async handleTrackRequest(data: {
+    title: string;
+    artist: string;
+    url: string;
+  }): Promise<void> {
     try {
       const track: JukeboxTrack = {
         id: `track_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -342,8 +373,10 @@ export class JukeboxFeature {
       this.updateQueueDisplay();
       this.saveTracks();
 
-      this.errorService.info('Track added to queue', { title: track.title, artist: track.artist });
-
+      this.errorService.info('Track added to queue', {
+        title: track.title,
+        artist: track.artist
+      });
     } catch (error) {
       this.errorService.error('Failed to handle track request', error as Error);
     }
@@ -408,7 +441,9 @@ export class JukeboxFeature {
       this.isPlaying = true;
       this.updatePlayPauseButton();
       this.updateCurrentTrackDisplay();
-      this.errorService.info('Playing track', { title: this.currentTrack.title });
+      this.errorService.info('Playing track', {
+        title: this.currentTrack.title
+      });
     }
   }
 
@@ -511,7 +546,8 @@ export class JukeboxFeature {
 
     const form = e.target as HTMLFormElement;
     const title = (form.querySelector('#trackTitle') as HTMLInputElement).value;
-    const artist = (form.querySelector('#trackArtist') as HTMLInputElement).value;
+    const artist = (form.querySelector('#trackArtist') as HTMLInputElement)
+      .value;
     const url = (form.querySelector('#trackUrl') as HTMLInputElement).value;
 
     if (title && artist && url) {
@@ -559,7 +595,7 @@ export class JukeboxFeature {
     currentTrack: JukeboxTrack | null;
     queueLength: number;
     totalTracks: number;
-    } {
+  } {
     return {
       initialized: this.isInitialized,
       isPlaying: this.isPlaying,

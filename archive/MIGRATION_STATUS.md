@@ -1,11 +1,13 @@
 # PubPay Migration Status & Guide
 
 ## Overview
+
 This document tracks the migration of PubPay from a monolithic JavaScript codebase to a modern TypeScript/React architecture while preserving all existing functionality.
 
 ## Current Status: Core Functionality Complete ✅
 
 ### ✅ What's Working
+
 - **Lightning Payment Flow**: Complete zap payment system with ZapService
 - **Real-time Updates**: Live zap subscription that updates UI when new zaps arrive
 - **Invoice Management**: Auto-close overlay when payment detected, QR code generation
@@ -22,11 +24,13 @@ This document tracks the migration of PubPay from a monolithic JavaScript codeba
 - **Feed Switching**: Global and following feeds with proper state management
 
 ### 🔄 Partially Working
+
 - **Legacy Integration**: Still uses some legacy scripts from `public/` directory
 - **Styling**: Uses legacy CSS, SCSS modules not yet implemented
 - **Code Quality**: Some linting warnings remain (mostly formatting)
 
 ### ❌ Not Yet Implemented
+
 - **Testing**: No unit, integration, or E2E tests
 - **Production Serving**: Express doesn't serve SPA build
 - **Performance Optimization**: No code splitting or asset optimization
@@ -34,6 +38,7 @@ This document tracks the migration of PubPay from a monolithic JavaScript codeba
 ## Architecture
 
 ### Target Architecture
+
 ```
 src/
 ├── components/    # Reusable UI components
@@ -47,6 +52,7 @@ src/
 ```
 
 ### Technology Stack
+
 - **Frontend**: TypeScript, React, Zustand, Sass (SCSS modules), Webpack
 - **Services**: NostrTools, LNBits (Lightning), QRious, bolt11
 - **Tooling**: ESLint (flat config), Prettier, Jest, Cypress
@@ -73,22 +79,26 @@ src/
 ## Next Steps (Priority Order)
 
 ### 1. Styling Migration (High Priority)
+
 - [ ] Create `src/styles/common/{variables.scss,mixins.scss,reset.scss,typography.scss}`
 - [ ] Migrate at least one component to SCSS modules
 - [ ] Remove `<link href="/stylesheets/style.css">` from `src/index.html`
 
 ### 2. Testing Setup (High Priority)
+
 - [ ] Add `jest.config.js` and Testing Library
 - [ ] Add Cypress config for E2E tests
 - [ ] Add npm scripts: `test`, `test:integration`, `test:e2e`
 - [ ] Write initial tests for `NostrClient`, `LightningService`, and key components
 
 ### 3. Production Integration (Medium Priority)
+
 - [ ] Wire Express to serve `dist/` with SPA fallback
 - [ ] Remove legacy script tags from `src/index.html`
 - [ ] Remove legacy JS files after parity verification
 
 ### 4. Performance Optimization (Low Priority)
+
 - [ ] Implement code splitting on feature boundaries
 - [ ] Define asset hashing strategy for images/fonts
 - [ ] Optimize bundle size and loading performance
@@ -96,10 +106,12 @@ src/
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - npm or yarn
 
 ### Development
+
 ```bash
 # Install dependencies
 npm install
@@ -115,12 +127,14 @@ npm run test:e2e
 ## Success Metrics
 
 ### Code Quality
+
 - [ ] 100% TypeScript coverage
 - [ ] 90% test coverage
 - [ ] 0 ESLint errors
 - [ ] No files over 500 lines
 
 ### Performance
+
 - [ ] <3s initial load time
 - [ ] <100ms interaction response
 - [ ] 70% bundle size reduction vs legacy
@@ -129,12 +143,14 @@ npm run test:e2e
 ## Risk Mitigation
 
 ### Technical Risks
+
 - **Complex Dependencies**: Break into smaller pieces
 - **State Management**: Use proven patterns (Zustand)
 - **Performance**: Monitor continuously with Lighthouse
 - **Testing**: Comprehensive coverage before removing legacy code
 
 ### Business Risks
+
 - **User Experience**: Maintain all existing functionality during migration
 - **Downtime**: Gradual rollout with feature flags
 - **Data Loss**: Backup strategy and rollback plan
@@ -142,6 +158,7 @@ npm run test:e2e
 ## Contributing
 
 ### Development Workflow
+
 1. Create feature branch from `main`
 2. Follow coding standards (ESLint + Prettier)
 3. Write tests for new code
@@ -149,6 +166,7 @@ npm run test:e2e
 5. Submit pull request
 
 ### Code Standards
+
 - **TypeScript**: Strict mode enabled
 - **ESLint**: Flat config targeting `src/**/*.{ts,tsx}`
 - **Prettier**: Consistent formatting
@@ -158,6 +176,7 @@ npm run test:e2e
 ## Migration Summary
 
 ### Major Accomplishments
+
 The PubPay migration from monolithic JavaScript to modern React/TypeScript architecture has been **successfully completed** with full feature parity. All core functionality has been preserved and enhanced:
 
 1. **Complete Lightning Payment System**: Full NIP-57 zap implementation with LNURL callbacks
@@ -167,6 +186,7 @@ The PubPay migration from monolithic JavaScript to modern React/TypeScript archi
 5. **Progressive Loading**: Optimized user experience with immediate post display
 
 ### Technical Achievements
+
 - **TypeScript Migration**: 100% TypeScript coverage with strict typing
 - **React Architecture**: Modern component-based architecture with hooks
 - **Service Layer**: Clean separation of concerns with dedicated services
@@ -175,6 +195,7 @@ The PubPay migration from monolithic JavaScript to modern React/TypeScript archi
 - **Performance**: Optimized loading patterns and duplicate prevention
 
 ### Quality Metrics
+
 - ✅ **Build Success**: `npm run build` completes without errors
 - ✅ **Feature Parity**: All original functionality preserved
 - ✅ **Visual Parity**: UI matches original design exactly

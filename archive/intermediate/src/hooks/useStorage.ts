@@ -64,7 +64,10 @@ export class UseStorage {
     try {
       return this.localStorage.removeItem(key);
     } catch (err) {
-      this.errorService.error('Failed to remove local storage item', err as Error);
+      this.errorService.error(
+        'Failed to remove local storage item',
+        err as Error
+      );
       return false;
     }
   }
@@ -74,7 +77,10 @@ export class UseStorage {
     try {
       return this.sessionStorage.setItem(key, value);
     } catch (err) {
-      this.errorService.error('Failed to set session storage item', err as Error);
+      this.errorService.error(
+        'Failed to set session storage item',
+        err as Error
+      );
       return false;
     }
   }
@@ -83,7 +89,10 @@ export class UseStorage {
     try {
       return this.sessionStorage.getItem(key, defaultValue);
     } catch (err) {
-      this.errorService.error('Failed to get session storage item', err as Error);
+      this.errorService.error(
+        'Failed to get session storage item',
+        err as Error
+      );
       return defaultValue || null;
     }
   }
@@ -92,7 +101,10 @@ export class UseStorage {
     try {
       return this.sessionStorage.removeItem(key);
     } catch (err) {
-      this.errorService.error('Failed to remove session storage item', err as Error);
+      this.errorService.error(
+        'Failed to remove session storage item',
+        err as Error
+      );
       return false;
     }
   }
@@ -283,11 +295,21 @@ export class UseStorage {
   }
 
   // Getters
-  get ready(): boolean { return this.isReady; }
-  get lastError(): string | null { return this.error; }
-  get local(): LocalStorage { return this.localStorage; }
-  get session(): SessionStorage { return this.sessionStorage; }
-  get errorServiceInstance(): ErrorService { return this.errorService; }
+  get ready(): boolean {
+    return this.isReady;
+  }
+  get lastError(): string | null {
+    return this.error;
+  }
+  get local(): LocalStorage {
+    return this.localStorage;
+  }
+  get session(): SessionStorage {
+    return this.sessionStorage;
+  }
+  get errorServiceInstance(): ErrorService {
+    return this.errorService;
+  }
 
   // Cleanup
   destroy(): void {

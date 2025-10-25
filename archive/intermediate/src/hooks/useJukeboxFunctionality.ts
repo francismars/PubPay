@@ -6,7 +6,9 @@ export const useJukeboxFunctionality = () => {
   const [error, setError] = useState<string | null>(null);
   const [noteContent, setNoteContent] = useState<string>('');
   const [authorName, setAuthorName] = useState<string>('Author');
-  const [authorImage, setAuthorImage] = useState<string>('/images/gradient_color.gif');
+  const [authorImage, setAuthorImage] = useState<string>(
+    '/images/gradient_color.gif'
+  );
   const [queue, setQueue] = useState<any[]>([]);
   const [currentTrack, setCurrentTrack] = useState<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -30,7 +32,11 @@ export const useJukeboxFunctionality = () => {
 
         setIsLoading(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to initialize jukebox functionality');
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to initialize jukebox functionality'
+        );
         setIsLoading(false);
       }
     };
@@ -39,7 +45,9 @@ export const useJukeboxFunctionality = () => {
   }, []);
 
   const handleJukeboxSubmit = async () => {
-    const input = document.getElementById('note1LoaderInput') as HTMLInputElement;
+    const input = document.getElementById(
+      'note1LoaderInput'
+    ) as HTMLInputElement;
     const noteId = input?.value?.trim();
 
     if (noteId) {
@@ -61,7 +69,9 @@ export const useJukeboxFunctionality = () => {
       // Initialize the jukebox
       await initializeJukebox();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load jukebox content');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load jukebox content'
+      );
     }
   };
 

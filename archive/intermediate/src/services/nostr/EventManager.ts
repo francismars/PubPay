@@ -1,5 +1,11 @@
 // EventManager - Handles event processing and business logic
-import { NostrEvent, Kind0Event, Kind1Event, Kind9735Event, Kind30311Event } from '../../types/nostr';
+import {
+  NostrEvent,
+  Kind0Event,
+  Kind1Event,
+  Kind9735Event,
+  Kind30311Event
+} from '../../types/nostr';
 import { LiveEvent, Zap, User } from '../../types/common';
 import { NostrClient } from './NostrClient';
 import { validateEventData } from '../../utils/validation';
@@ -84,7 +90,7 @@ export class EventManager {
         amount: this.extractZapAmount(bolt11),
         content: descriptionTag ? descriptionTag[1] : '',
         created_at: event.created_at,
-        profile: await this.getProfile(payerPubkey) || undefined
+        profile: (await this.getProfile(payerPubkey)) || undefined
       };
 
       return zap;
@@ -134,7 +140,9 @@ export class EventManager {
   /**
    * Handle note event (kind 1)
    */
-  async handleNoteEvent(event: Kind1Event): Promise<{ content: string; author: User | null } | null> {
+  async handleNoteEvent(
+    event: Kind1Event
+  ): Promise<{ content: string; author: User | null } | null> {
     try {
       const validation = validateEventData(event);
       if (!validation.isValid) {
@@ -164,10 +172,12 @@ export class EventManager {
 
     try {
       // Fetch profile from relays
-      const events = await this.nostrClient.getEvents([{
-        authors: [pubkey],
-        kinds: [0]
-      }]);
+      const events = await this.nostrClient.getEvents([
+        {
+          authors: [pubkey],
+          kinds: [0]
+        }
+      ]);
 
       if (events.length > 0) {
         const profile = await this.handleProfileEvent(events[0] as Kind0Event);
@@ -195,7 +205,7 @@ export class EventManager {
       .filter((pubkey): pubkey is string => pubkey !== undefined);
 
     if (pubkeys.length > 0) {
-      this.nostrClient.subscribeToProfiles(pubkeys, async (event) => {
+      this.nostrClient.subscribeToProfiles(pubkeys, async event => {
         const profile = await this.handleProfileEvent(event as Kind0Event);
         if (profile) {
           onProfile(profile);
@@ -229,7 +239,9 @@ export class EventManager {
     try {
       // This would need proper event creation with signing
       // For now, return null as this requires private key access
-      console.warn('Event creation requires private key access - not implemented yet');
+      console.warn(
+        'Event creation requires private key access - not implemented yet'
+      );
       return null;
     } catch (error) {
       console.error('Error creating live event:', error);
@@ -249,7 +261,9 @@ export class EventManager {
     try {
       // This would need proper event creation with signing
       // For now, return null as this requires private key access
-      console.warn('Zap creation requires private key access - not implemented yet');
+      console.warn(
+        'Zap creation requires private key access - not implemented yet'
+      );
       return null;
     } catch (error) {
       console.error('Error creating zap event:', error);

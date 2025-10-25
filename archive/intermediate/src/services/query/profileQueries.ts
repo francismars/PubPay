@@ -26,7 +26,9 @@ export const ensureProfiles = async (
   }
 
   if (uncached.length > 0) {
-    const fetched = await client.getEvents([{ kinds: [0], authors: uncached }]) as Kind0Event[];
+    const fetched = (await client.getEvents([
+      { kinds: [0], authors: uncached }
+    ])) as Kind0Event[];
     // Write-through cache per pubkey and populate result
     for (const evt of fetched) {
       qc.setQueryData(profileKey(evt.pubkey), evt, { updatedAt: Date.now() });
@@ -43,5 +45,3 @@ export const ensureProfiles = async (
 
   return result;
 };
-
-

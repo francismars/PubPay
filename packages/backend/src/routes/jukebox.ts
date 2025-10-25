@@ -9,7 +9,7 @@ export class JukeboxRouter {
   constructor() {
     this.router = Router();
     this.logger = new Logger('JukeboxRouter');
-    
+
     this.initializeRoutes();
   }
 
@@ -23,7 +23,7 @@ export class JukeboxRouter {
   private async getJukeboxStatus(_req: Request, res: Response): Promise<void> {
     try {
       this.logger.info('Getting jukebox status');
-      
+
       // Placeholder implementation
       res.json({
         success: true,
@@ -46,9 +46,9 @@ export class JukeboxRouter {
   private async playTrack(req: Request, res: Response): Promise<void> {
     try {
       const { trackId, amount } = req.body;
-      
+
       this.logger.info(`Playing track ${trackId} with amount ${amount}`);
-      
+
       // Placeholder implementation
       res.json({
         success: true,
@@ -70,7 +70,7 @@ export class JukeboxRouter {
   private async skipTrack(_req: Request, res: Response): Promise<void> {
     try {
       this.logger.info('Skipping current track');
-      
+
       // Placeholder implementation
       res.json({
         success: true,

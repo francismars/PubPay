@@ -1,5 +1,11 @@
 // LightningService - Handles Lightning Network payments
-import { LightningInvoice, LightningPayment, LightningConfig, LightningSession, WebhookData } from '@pubpay/shared-types';
+import {
+  LightningInvoice,
+  LightningPayment,
+  LightningConfig,
+  LightningSession,
+  WebhookData
+} from '@pubpay/shared-types';
 import { ApiResponse } from '@pubpay/shared-types';
 import { API_ENDPOINTS } from '../../utils/constants';
 
@@ -55,7 +61,8 @@ export class LightningService {
       // Debug log removed
       // Debug log removed
 
-      const data: ApiResponse<{ lnurl: string; existing: boolean }> = await response.json();
+      const data: ApiResponse<{ lnurl: string; existing: boolean }> =
+        await response.json();
       // Debug log removed
 
       if (data.success && data.data) {
@@ -65,7 +72,7 @@ export class LightningService {
           eventId,
           lnurlpId: data.data.lnurl,
           createdAt: Date.now(),
-          expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
           status: 'active'
         };
 
@@ -152,7 +159,7 @@ export class LightningService {
     enabled: boolean;
     sessionId: string | null;
     activeSessions: number;
-    } {
+  } {
     return {
       enabled: this.config.enabled,
       sessionId: this.frontendSessionId,
@@ -206,7 +213,7 @@ export class LightningService {
         amount_msat: amount * 1000,
         amount_sat: amount,
         created_at: Date.now(),
-        expires_at: Date.now() + (60 * 60 * 1000), // 1 hour
+        expires_at: Date.now() + 60 * 60 * 1000, // 1 hour
         status: 'pending'
       };
 
@@ -310,7 +317,7 @@ export class LightningService {
   validateConfig(): {
     valid: boolean;
     errors: string[];
-    } {
+  } {
     const errors: string[] = [];
 
     if (!this.config.lnbitsUrl) {
@@ -362,7 +369,7 @@ export class LightningService {
    * Generate unique frontend session ID
    */
   private generateFrontendSessionId(): string {
-    return `frontend_${  crypto.randomUUID()}`;
+    return `frontend_${crypto.randomUUID()}`;
   }
 
   /**
@@ -371,7 +378,9 @@ export class LightningService {
   private generatePaymentHash(): string {
     const array = new Uint8Array(32);
     crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join(
+      ''
+    );
   }
 
   /**

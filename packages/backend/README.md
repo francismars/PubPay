@@ -14,23 +14,25 @@ Modern TypeScript Express server providing API endpoints for PubPay's Lightning 
 ## Quick Start
 
 1. **Install dependencies** (from project root):
+
    ```bash
    pnpm install
    ```
 
 2. **Configure environment variables**:
    Create a `.env` file in the backend folder (`packages/backend/.env`):
+
    ```env
    # Server Configuration
    PORT=3002
    NODE_ENV=development
    FRONTEND_URL=http://localhost:3000
-   
+
    # Lightning Configuration
    LNBITS_URL=https://legend.lnbits.com
    LNBITS_API_KEY=your_lnbits_api_key_here
    WEBHOOK_URL=https://yourdomain.com/lightning/webhook
-   
+
    # Frontend Configuration (for React apps)
    REACT_APP_API_BASE_URL=http://localhost:3002
    REACT_APP_LNBITS_URL=https://legend.lnbits.com
@@ -48,9 +50,11 @@ The server will start on `http://localhost:3002`
 ## API Endpoints
 
 ### Health Check
+
 - `GET /health` - Server health status
 
 ### Lightning Payments
+
 - `POST /lightning/enable` - Enable Lightning payments for a session
 - `POST /lightning/disable` - Disable Lightning payments for a session
 - `POST /lightning/webhook` - LNBits webhook for payment notifications
@@ -58,11 +62,13 @@ The server will start on `http://localhost:3002`
 - `GET /lightning/health` - Lightning service health check
 
 ### Live Events
+
 - `GET /live/events/:eventId` - Get live event details
 - `POST /live/events` - Create new live event
 - `GET /live/events/:eventId/zaps` - Get zaps for an event
 
 ### Jukebox
+
 - `GET /jukebox/queue/:eventId` - Get current music queue
 - `POST /jukebox/queue/:eventId` - Add song to queue
 - `DELETE /jukebox/queue/:eventId/:songId` - Remove song from queue
@@ -96,12 +102,14 @@ The server will start on `http://localhost:3002`
 ## Architecture
 
 ### Services
+
 - **LightningService**: LNBits API integration and LNURL generation
 - **NostrService**: Relay management and zap processing
 - **SessionService**: Frontend session tracking and persistence
 - **WebhookService**: Payment webhook processing and zap creation
 
 ### Middleware
+
 - **ErrorHandler**: Centralized error handling and logging
 - **CORS**: Cross-origin resource sharing configuration
 - **Security**: Helmet for security headers
@@ -110,6 +118,7 @@ The server will start on `http://localhost:3002`
 ## Development
 
 ### Project Structure
+
 ```
 packages/backend/
 ├── .env                    # Environment variables
@@ -125,6 +134,7 @@ packages/backend/
 ```
 
 ### Scripts
+
 - `pnpm dev` - Start development server with hot reload
 - `pnpm build` - Compile TypeScript to JavaScript
 - `pnpm start` - Start production server
@@ -132,18 +142,18 @@ packages/backend/
 
 ### Environment Variables
 
-| Variable | Description | Default | Used By |
-|----------|-------------|---------|---------|
-| `PORT` | Server port | `3002` | Backend |
-| `NODE_ENV` | Environment mode | `development` | Backend |
-| `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:3000` | Backend |
-| `LNBITS_URL` | LNBits API base URL | `https://legend.lnbits.com` | Backend |
-| `LNBITS_API_KEY` | LNBits API key | Required | Backend |
-| `WEBHOOK_URL` | Webhook callback URL | Required | Backend |
-| `REACT_APP_API_BASE_URL` | Backend API URL | `http://localhost:3002` | Frontend |
-| `REACT_APP_LNBITS_URL` | LNBits URL for frontend | `https://legend.lnbits.com` | Frontend |
-| `REACT_APP_LNBITS_API_KEY` | LNBits API key for frontend | Required | Frontend |
-| `REACT_APP_WEBHOOK_URL` | Webhook URL for frontend | Required | Frontend |
+| Variable                   | Description                 | Default                     | Used By  |
+| -------------------------- | --------------------------- | --------------------------- | -------- |
+| `PORT`                     | Server port                 | `3002`                      | Backend  |
+| `NODE_ENV`                 | Environment mode            | `development`               | Backend  |
+| `FRONTEND_URL`             | Frontend URL for CORS       | `http://localhost:3000`     | Backend  |
+| `LNBITS_URL`               | LNBits API base URL         | `https://legend.lnbits.com` | Backend  |
+| `LNBITS_API_KEY`           | LNBits API key              | Required                    | Backend  |
+| `WEBHOOK_URL`              | Webhook callback URL        | Required                    | Backend  |
+| `REACT_APP_API_BASE_URL`   | Backend API URL             | `http://localhost:3002`     | Frontend |
+| `REACT_APP_LNBITS_URL`     | LNBits URL for frontend     | `https://legend.lnbits.com` | Frontend |
+| `REACT_APP_LNBITS_API_KEY` | LNBits API key for frontend | Required                    | Frontend |
+| `REACT_APP_WEBHOOK_URL`    | Webhook URL for frontend    | Required                    | Frontend |
 
 **Note**: Some frontend services (`JukeboxApiService`, `LightningApiService`) currently use hardcoded `http://localhost:3002` as the default API base URL. The `REACT_APP_API_BASE_URL` environment variable is available for configuration but not yet implemented in all services.
 

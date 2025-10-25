@@ -47,7 +47,14 @@ function startServiceInNewTerminal(service) {
     case 'win32':
       // Windows
       command = 'cmd';
-      args = ['/c', 'start', `"PubPay - ${service.name}"`, 'cmd', '/k', `${service.command} ${service.args.join(' ')}`];
+      args = [
+        '/c',
+        'start',
+        `"PubPay - ${service.name}"`,
+        'cmd',
+        '/k',
+        `${service.command} ${service.args.join(' ')}`
+      ];
       break;
     case 'darwin':
       // macOS
@@ -60,7 +67,12 @@ function startServiceInNewTerminal(service) {
     default:
       // Linux
       command = 'gnome-terminal';
-      args = ['--', 'bash', '-c', `cd ${process.cwd()} && ${service.command} ${service.args.join(' ')}; exec bash`];
+      args = [
+        '--',
+        'bash',
+        '-c',
+        `cd ${process.cwd()} && ${service.command} ${service.args.join(' ')}; exec bash`
+      ];
       break;
   }
 
@@ -70,7 +82,7 @@ function startServiceInNewTerminal(service) {
   });
 
   child.unref();
-  
+
   console.log(`${service.color}✅ Started ${service.name}${'\x1b[0m'}`);
 }
 
@@ -82,12 +94,17 @@ services.forEach((service, index) => {
 });
 
 // Show final information
-setTimeout(() => {
-  console.log('\n✅ All services started in separate windows!');
-  console.log('\n🌐 Service URLs:');
-  services.forEach(service => {
-    console.log(`  • ${service.name.split(' ')[0]}: ${service.url}`);
-  });
-  console.log('\n💡 Each service runs in its own window - close individual windows to stop specific services');
-  console.log('🛑 To stop all services, close all the opened windows\n');
-}, services.length * 1000 + 1000);
+setTimeout(
+  () => {
+    console.log('\n✅ All services started in separate windows!');
+    console.log('\n🌐 Service URLs:');
+    services.forEach(service => {
+      console.log(`  • ${service.name.split(' ')[0]}: ${service.url}`);
+    });
+    console.log(
+      '\n💡 Each service runs in its own window - close individual windows to stop specific services'
+    );
+    console.log('🛑 To stop all services, close all the opened windows\n');
+  },
+  services.length * 1000 + 1000
+);

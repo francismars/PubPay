@@ -23,13 +23,19 @@ export class InvoiceService {
     }
 
     const paymentHash = this.generatePaymentHash();
-    const paymentRequest = this.generatePaymentRequest(amount, description, paymentHash);
+    const paymentRequest = this.generatePaymentRequest(
+      amount,
+      description,
+      paymentHash
+    );
     const now = Date.now();
 
     const invoice: LightningInvoice = {
       payment_hash: paymentHash,
       payment_request: paymentRequest,
-      description: options.comment ? `${description} - ${options.comment}` : description,
+      description: options.comment
+        ? `${description} - ${options.comment}`
+        : description,
       amount_msat: amount * 1000,
       amount_sat: amount,
       created_at: now,
@@ -161,7 +167,7 @@ export class InvoiceService {
     expired: number;
     totalAmount: number;
     totalPaid: number;
-    } {
+  } {
     const invoices = Array.from(this.invoices.values());
     const payments = Array.from(this.payments.values());
 
@@ -220,7 +226,9 @@ export class InvoiceService {
   private generatePaymentHash(): string {
     const array = new Uint8Array(32);
     crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join(
+      ''
+    );
   }
 
   /**
@@ -246,7 +254,9 @@ export class InvoiceService {
   private hashDescription(description: string): string {
     const encoder = new TextEncoder();
     const data = encoder.encode(description);
-    return Array.from(data, byte => byte.toString(16).padStart(2, '0')).join('');
+    return Array.from(data, byte => byte.toString(16).padStart(2, '0')).join(
+      ''
+    );
   }
 
   /**

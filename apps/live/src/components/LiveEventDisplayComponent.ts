@@ -159,7 +159,9 @@ export class LiveEventDisplayComponent extends BaseComponent {
     // Create timestamp
     const timestamp = document.createElement('div');
     timestamp.className = 'event-timestamp';
-    timestamp.textContent = new Date(this.event!.created_at * 1000).toLocaleString();
+    timestamp.textContent = new Date(
+      this.event!.created_at * 1000
+    ).toLocaleString();
     metadata.appendChild(timestamp);
 
     // Create event ID
@@ -258,7 +260,8 @@ export class LiveEventDisplayComponent extends BaseComponent {
     const messagesContainer = document.createElement('div');
     messagesContainer.id = 'zaps';
     messagesContainer.className = 'chat-messages loading';
-    messagesContainer.innerHTML = '<div class="loading-text">Loading messages...</div>';
+    messagesContainer.innerHTML =
+      '<div class="loading-text">Loading messages...</div>';
     chatSection.appendChild(messagesContainer);
 
     // Create activity list for live events
@@ -337,11 +340,14 @@ export class LiveEventDisplayComponent extends BaseComponent {
         relays: []
       });
 
-      const njumpUrl = `https://njump.me/${  naddrId}`;
-      const nostrNaddr = `nostr:${  naddrId}`;
+      const njumpUrl = `https://njump.me/${naddrId}`;
+      const nostrNaddr = `nostr:${naddrId}`;
 
       // Calculate QR size
-      const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
+      const qrSize = Math.min(
+        window.innerWidth * 0.6,
+        window.innerHeight * 0.7
+      );
 
       // Generate QR codes
       this.generateQRCode('qrCode', njumpUrl, qrSize);
@@ -353,7 +359,6 @@ export class LiveEventDisplayComponent extends BaseComponent {
 
       // Update previews
       this.updateQRPreviews(njumpUrl, nostrNaddr, naddrId);
-
     } catch (error) {
       this.errorService.error('Error generating QR codes', error as Error);
     }
@@ -373,17 +378,28 @@ export class LiveEventDisplayComponent extends BaseComponent {
         size
       });
     } catch (error) {
-      this.errorService.error(`Error generating QR code for ${elementId}`, error as Error);
+      this.errorService.error(
+        `Error generating QR code for ${elementId}`,
+        error as Error
+      );
     }
   }
 
   /**
    * Update QR links
    */
-  private updateQRLinks(njumpUrl: string, nostrNaddr: string, naddrId: string): void {
+  private updateQRLinks(
+    njumpUrl: string,
+    nostrNaddr: string,
+    naddrId: string
+  ): void {
     const qrLink = document.getElementById('qrLink') as HTMLAnchorElement;
-    const qrNeventLink = document.getElementById('qrNeventLink') as HTMLAnchorElement;
-    const qrNoteLink = document.getElementById('qrNoteLink') as HTMLAnchorElement;
+    const qrNeventLink = document.getElementById(
+      'qrNeventLink'
+    ) as HTMLAnchorElement;
+    const qrNoteLink = document.getElementById(
+      'qrNoteLink'
+    ) as HTMLAnchorElement;
 
     if (qrLink) qrLink.href = njumpUrl;
     if (qrNeventLink) qrNeventLink.href = nostrNaddr;
@@ -393,7 +409,11 @@ export class LiveEventDisplayComponent extends BaseComponent {
   /**
    * Update QR previews
    */
-  private updateQRPreviews(njumpUrl: string, nostrNaddr: string, naddrId: string): void {
+  private updateQRPreviews(
+    njumpUrl: string,
+    nostrNaddr: string,
+    naddrId: string
+  ): void {
     const preview1 = document.getElementById('qrDataPreview1');
     const preview2 = document.getElementById('qrDataPreview2');
     const preview3 = document.getElementById('qrDataPreview3');
@@ -434,12 +454,19 @@ export class LiveEventDisplayComponent extends BaseComponent {
   /**
    * Insert message in chronological order
    */
-  private insertMessageInOrder(container: HTMLElement, messageElement: HTMLElement): void {
-    const existingMessages = Array.from(container.querySelectorAll('.live-chat-message, .live-event-zap'));
+  private insertMessageInOrder(
+    container: HTMLElement,
+    messageElement: HTMLElement
+  ): void {
+    const existingMessages = Array.from(
+      container.querySelectorAll('.live-chat-message, .live-event-zap')
+    );
     const messageTimestamp = parseInt(messageElement.dataset.timestamp || '0');
 
-    const insertPosition = existingMessages.findIndex(msg =>
-      parseInt((msg as HTMLElement).dataset.timestamp || '0') < messageTimestamp
+    const insertPosition = existingMessages.findIndex(
+      msg =>
+        parseInt((msg as HTMLElement).dataset.timestamp || '0') <
+        messageTimestamp
     );
 
     if (insertPosition === -1) {
@@ -525,7 +552,7 @@ export class LiveEventDisplayComponent extends BaseComponent {
     if (!this.event) return 'Unknown';
 
     // This would get from profile service
-    return `${this.event.pubkey.slice(0, 8)  }...`;
+    return `${this.event.pubkey.slice(0, 8)}...`;
   }
 
   /**

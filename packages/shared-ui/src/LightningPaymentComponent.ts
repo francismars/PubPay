@@ -115,7 +115,8 @@ export class LightningPaymentComponent extends BaseComponent {
     const status = document.createElement('div');
     status.id = 'paymentStatus';
     status.className = 'payment-status';
-    status.innerHTML = '<div class="status-disabled">🔒 Lightning disabled</div>';
+    status.innerHTML =
+      '<div class="status-disabled">🔒 Lightning disabled</div>';
 
     return status;
   }
@@ -162,7 +163,8 @@ export class LightningPaymentComponent extends BaseComponent {
         return;
       }
 
-      const result = await this.lightningService.enableLightningPayments(eventId);
+      const result =
+        await this.lightningService.enableLightningPayments(eventId);
 
       if (result.success && result.lnurl) {
         this.isEnabled = true;
@@ -171,10 +173,16 @@ export class LightningPaymentComponent extends BaseComponent {
         this.showQRCode(result.lnurl);
         this.errorService.info('Lightning payments enabled');
       } else {
-        this.errorService.error('Failed to enable Lightning payments', new Error(result.error));
+        this.errorService.error(
+          'Failed to enable Lightning payments',
+          new Error(result.error)
+        );
       }
     } catch (error) {
-      this.errorService.error('Error enabling Lightning payments', error as Error);
+      this.errorService.error(
+        'Error enabling Lightning payments',
+        error as Error
+      );
     }
   }
 
@@ -186,7 +194,8 @@ export class LightningPaymentComponent extends BaseComponent {
       const eventId = this.getCurrentEventId();
       if (!eventId) return;
 
-      const result = await this.lightningService.disableLightningPayments(eventId);
+      const result =
+        await this.lightningService.disableLightningPayments(eventId);
 
       if (result.success) {
         this.isEnabled = false;
@@ -195,10 +204,16 @@ export class LightningPaymentComponent extends BaseComponent {
         this.hideQRCode();
         this.errorService.info('Lightning payments disabled');
       } else {
-        this.errorService.error('Failed to disable Lightning payments', new Error(result.error));
+        this.errorService.error(
+          'Failed to disable Lightning payments',
+          new Error(result.error)
+        );
       }
     } catch (error) {
-      this.errorService.error('Error disabling Lightning payments', error as Error);
+      this.errorService.error(
+        'Error disabling Lightning payments',
+        error as Error
+      );
     }
   }
 
@@ -216,9 +231,11 @@ export class LightningPaymentComponent extends BaseComponent {
 
     if (status) {
       if (this.isEnabled) {
-        status.innerHTML = '<div class="status-waiting">⚡ Lightning enabled - scan QR to pay</div>';
+        status.innerHTML =
+          '<div class="status-waiting">⚡ Lightning enabled - scan QR to pay</div>';
       } else {
-        status.innerHTML = '<div class="status-disabled">🔒 Lightning disabled</div>';
+        status.innerHTML =
+          '<div class="status-disabled">🔒 Lightning disabled</div>';
       }
     }
   }
@@ -302,7 +319,7 @@ export class LightningPaymentComponent extends BaseComponent {
 
     // Create LNURL preview
     const preview = document.createElement('div');
-    preview.textContent = `${lnurl.substring(0, 30)  }...`;
+    preview.textContent = `${lnurl.substring(0, 30)}...`;
     preview.style.cssText = `
       font-family: monospace;
       font-size: 12px;
@@ -337,7 +354,9 @@ export class LightningPaymentComponent extends BaseComponent {
       <div class="qr-preview">${lnurl.substring(0, 30)}...</div>
     `;
 
-    const qrContainer = qrDisplay.querySelector('#lightningQRCodeInline') as HTMLElement;
+    const qrContainer = qrDisplay.querySelector(
+      '#lightningQRCodeInline'
+    ) as HTMLElement;
     if (qrContainer) {
       this.generateQRCode(qrContainer, lnurl);
     }
@@ -375,7 +394,10 @@ export class LightningPaymentComponent extends BaseComponent {
 
       this.errorService.debug('Lightning QR code generated', { lnurl });
     } catch (error) {
-      this.errorService.error('Error generating Lightning QR code', error as Error);
+      this.errorService.error(
+        'Error generating Lightning QR code',
+        error as Error
+      );
       container.innerHTML = `<div style="padding: 20px; font-family: monospace; word-break: break-all; background: #f0f0f0; border: 2px solid #ccc; border-radius: 8px;">${lnurl}</div>`;
     }
   }

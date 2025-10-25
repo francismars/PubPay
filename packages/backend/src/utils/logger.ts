@@ -10,11 +10,11 @@ export class Logger {
     const timestamp = new Date().toISOString();
     const contextStr = `[${this.context}]`;
     const levelStr = `[${level}]`;
-    
+
     if (data) {
       return `${timestamp} ${levelStr} ${contextStr} ${message} ${JSON.stringify(data)}`;
     }
-    
+
     return `${timestamp} ${levelStr} ${contextStr} ${message}`;
   }
 

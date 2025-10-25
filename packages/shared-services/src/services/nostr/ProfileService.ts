@@ -33,15 +33,19 @@ export class ProfileService {
 
     try {
       // Fetch profile from relays
-      const events = await this.nostrClient.getEvents([{
-        authors: [pubkey],
-        kinds: [0]
-      }]);
+      const events = await this.nostrClient.getEvents([
+        {
+          authors: [pubkey],
+          kinds: [0]
+        }
+      ]);
 
       if (events.length > 0) {
         const event = events[0];
         if (event && event.kind === 0) {
-          const profile = await this.eventManager.handleProfileEvent(event as Kind0Event);
+          const profile = await this.eventManager.handleProfileEvent(
+            event as Kind0Event
+          );
           if (profile) {
             this.cacheProfile(profile);
             return profile;
@@ -86,15 +90,19 @@ export class ProfileService {
     // Fetch uncached profiles
     if (uncachedPubkeys.length > 0) {
       try {
-        const events = await this.nostrClient.getEvents([{
-          authors: uncachedPubkeys,
-          kinds: [0]
-        }]);
+        const events = await this.nostrClient.getEvents([
+          {
+            authors: uncachedPubkeys,
+            kinds: [0]
+          }
+        ]);
 
         // Process each event
         for (const event of events) {
           if (event.kind === 0) {
-            const profile = await this.eventManager.handleProfileEvent(event as Kind0Event);
+            const profile = await this.eventManager.handleProfileEvent(
+              event as Kind0Event
+            );
             if (profile) {
               profiles.set(profile.publicKey, profile);
               this.cacheProfile(profile);
@@ -132,9 +140,11 @@ export class ProfileService {
     pubkeys: string[],
     onProfileUpdate: (profile: User) => void
   ): void {
-    this.nostrClient.subscribeToProfiles(pubkeys, async (event) => {
+    this.nostrClient.subscribeToProfiles(pubkeys, async event => {
       if (event.kind === 0) {
-        const profile = await this.eventManager.handleProfileEvent(event as Kind0Event);
+        const profile = await this.eventManager.handleProfileEvent(
+          event as Kind0Event
+        );
         if (profile) {
           this.cacheProfile(profile);
           onProfileUpdate(profile);
@@ -192,7 +202,11 @@ export class ProfileService {
    * Get profile display name
    */
   getDisplayName(profile: User): string {
-    return profile.displayName || profile.name || `${profile.publicKey.slice(0, 8)  }...`;
+    return (
+      profile.displayName ||
+      profile.name ||
+      `${profile.publicKey.slice(0, 8)}...`
+    );
   }
 
   /**
@@ -211,9 +225,11 @@ export class ProfileService {
    */
   private isProfileCached(pubkey: string): boolean {
     const expiry = this.cacheExpiry.get(pubkey);
-    return this.profileCache.has(pubkey) &&
-           expiry !== undefined &&
-           Date.now() < expiry;
+    return (
+      this.profileCache.has(pubkey) &&
+      expiry !== undefined &&
+      Date.now() < expiry
+    );
   }
 
   /**
@@ -236,9 +252,11 @@ export class ProfileService {
       const displayName = profile.displayName?.toLowerCase() || '';
       const about = profile.about?.toLowerCase() || '';
 
-      if (name.includes(lowercaseQuery) ||
-          displayName.includes(lowercaseQuery) ||
-          about.includes(lowercaseQuery)) {
+      if (
+        name.includes(lowercaseQuery) ||
+        displayName.includes(lowercaseQuery) ||
+        about.includes(lowercaseQuery)
+      ) {
         results.push(profile);
       }
     });
@@ -253,7 +271,7 @@ export class ProfileService {
     totalCached: number;
     expiredCount: number;
     cacheHitRate: number;
-    } {
+  } {
     const now = Date.now();
     let expiredCount = 0;
 
@@ -266,7 +284,8 @@ export class ProfileService {
     return {
       totalCached: this.profileCache.size,
       expiredCount,
-      cacheHitRate: this.profileCache.size / (this.profileCache.size + expiredCount)
+      cacheHitRate:
+        this.profileCache.size / (this.profileCache.size + expiredCount)
     };
   }
 }

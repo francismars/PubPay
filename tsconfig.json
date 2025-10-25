@@ -15,9 +15,5 @@
     "jsx": "react-jsx",
     "module": "esnext"
   },
-  "exclude": [
-    "node_modules",
-    "dist",
-    "archive"
-  ]
+  "exclude": ["node_modules", "dist", "archive"]
 }

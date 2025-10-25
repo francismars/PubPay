@@ -76,7 +76,7 @@ export const HomePage: React.FC = () => {
       try {
         await navigator.share({
           title: 'Check out this PubPay!',
-          text: 'Here\'s a PubPay I want to share with you:',
+          text: "Here's a PubPay I want to share with you:",
           url: shareURL
         });
       } catch (error) {
@@ -103,7 +103,8 @@ export const HomePage: React.FC = () => {
 
   const handleScannedContent = async (decodedText: string) => {
     try {
-      const regex = /(note1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|nevent1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/i;
+      const regex =
+        /(note1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|nevent1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/i;
       const match = decodedText.match(regex);
       if (!match) return;
 
@@ -119,7 +120,9 @@ export const HomePage: React.FC = () => {
           const note1 = (window as any).NostrTools.nip19.noteEncode(noteID);
           window.location.href = `/?note=${note1}`;
         } else {
-          console.error('Invalid QR code content. Expected \'note\' or \'nevent\'.');
+          console.error(
+            "Invalid QR code content. Expected 'note' or 'nevent'."
+          );
         }
       }
     } catch (error) {
@@ -275,10 +278,12 @@ export const HomePage: React.FC = () => {
       if (document.visibilityState === 'visible') {
         // Wait for page to have focus
         while (!document.hasFocus()) {
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        const signInData = JSON.parse(sessionStorage.getItem('signIn') || 'null');
+        const signInData = JSON.parse(
+          sessionStorage.getItem('signIn') || 'null'
+        );
         if (signInData && signInData.rememberMe !== undefined) {
           sessionStorage.removeItem('signIn');
 
@@ -324,7 +329,12 @@ export const HomePage: React.FC = () => {
 
   // Initialize QR scanner when overlay opens
   useEffect(() => {
-    if (showQRScanner && !qrScanner && typeof window !== 'undefined' && (window as any).Html5Qrcode) {
+    if (
+      showQRScanner &&
+      !qrScanner &&
+      typeof window !== 'undefined' &&
+      (window as any).Html5Qrcode
+    ) {
       // Add a small delay to ensure DOM element is ready
       setTimeout(() => {
         const readerElement = document.getElementById('reader');
@@ -332,25 +342,27 @@ export const HomePage: React.FC = () => {
           const html5QrCode = new (window as any).Html5Qrcode('reader');
           setQrScanner(html5QrCode);
 
-          html5QrCode.start(
-            { facingMode: 'environment' },
-            {
-              fps: 10,
-              qrbox: { width: 250, height: 250 }
-            },
-            async (decodedText: string) => {
-              console.log('QR Code scanned:', decodedText);
-              html5QrCode.stop().then(() => {
-                setShowQRScanner(false);
-              });
-              await handleScannedContent(decodedText);
-            },
-            (errorMessage: string) => {
-              console.error('QR Code scanning error:', errorMessage);
-            }
-          ).catch((error: any) => {
-            console.error('Failed to start QR scanner:', error);
-          });
+          html5QrCode
+            .start(
+              { facingMode: 'environment' },
+              {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+              },
+              async (decodedText: string) => {
+                console.log('QR Code scanned:', decodedText);
+                html5QrCode.stop().then(() => {
+                  setShowQRScanner(false);
+                });
+                await handleScannedContent(decodedText);
+              },
+              (errorMessage: string) => {
+                console.error('QR Code scanning error:', errorMessage);
+              }
+            )
+            .catch((error: any) => {
+              console.error('Failed to start QR scanner:', error);
+            });
         }
       }, 100);
     }
@@ -360,16 +372,20 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     if (!showQRScanner && qrScanner) {
       // Check if scanner is running before trying to stop it
-      qrScanner.getState().then((state: any) => {
-        if (state === 'ACTIVE' || state === 'PAUSED') {
-          return qrScanner.stop();
-        }
-      }).then(() => {
-        setQrScanner(null);
-      }).catch((error: any) => {
-        console.error('Error stopping QR scanner:', error);
-        setQrScanner(null);
-      });
+      qrScanner
+        .getState()
+        .then((state: any) => {
+          if (state === 'ACTIVE' || state === 'PAUSED') {
+            return qrScanner.stop();
+          }
+        })
+        .then(() => {
+          setQrScanner(null);
+        })
+        .catch((error: any) => {
+          console.error('Error stopping QR scanner:', error);
+          setQrScanner(null);
+        });
     }
   }, [showQRScanner, qrScanner]);
 
@@ -377,13 +393,16 @@ export const HomePage: React.FC = () => {
   useEffect(() => {
     return () => {
       if (qrScanner) {
-        qrScanner.getState().then((state: any) => {
-          if (state === 'ACTIVE' || state === 'PAUSED') {
-            return qrScanner.stop();
-          }
-        }).catch((error: any) => {
-          console.error('Error stopping QR scanner on unmount:', error);
-        });
+        qrScanner
+          .getState()
+          .then((state: any) => {
+            if (state === 'ACTIVE' || state === 'PAUSED') {
+              return qrScanner.stop();
+            }
+          })
+          .catch((error: any) => {
+            console.error('Error stopping QR scanner on unmount:', error);
+          });
       }
     };
   }, [qrScanner]);
@@ -392,38 +411,71 @@ export const HomePage: React.FC = () => {
 
   return (
     <div>
-
       <div id="nav">
         <div id="navInner">
           <a id="logo" href="/">
-            PUB<span style={{color: '#000'}}>PAY</span><span style={{color: '#0000001c'}}>.me</span><span className="version">alpha 0.02</span>
+            PUB<span style={{ color: '#000' }}>PAY</span>
+            <span style={{ color: '#0000001c' }}>.me</span>
+            <span className="version">alpha 0.02</span>
           </a>
           <div id="navActions">
-            <a id="scanQrCode" className="topAction" title="Scan QR Code" onClick={handleQRScannerOpen}>
+            <a
+              id="scanQrCode"
+              className="topAction"
+              title="Scan QR Code"
+              onClick={handleQRScannerOpen}
+            >
               <span className="material-symbols-outlined">photo_camera</span>
             </a>
-            <a id="settings" href="#" style={{display: 'none'}} className="topAction disabled" title="coming soon">
+            <a
+              id="settings"
+              href="#"
+              style={{ display: 'none' }}
+              className="topAction disabled"
+              title="coming soon"
+            >
               <span className="material-symbols-outlined">settings</span>
             </a>
-            <a id="login" href="#" className="topAction" onClick={handleLoginOpen}>
+            <a
+              id="login"
+              href="#"
+              className="topAction"
+              onClick={handleLoginOpen}
+            >
               {authState.isLoggedIn && authState.userProfile ? (
                 <img
                   className="userImg currentUserImg"
-                  src={((() => { try { return JSON.parse(authState.userProfile.content || '{}').picture; } catch { return undefined; } })()) || '/images/generic-user-icon.svg'}
+                  src={
+                    (() => {
+                      try {
+                        return JSON.parse(authState.userProfile.content || '{}')
+                          .picture;
+                      } catch {
+                        return undefined;
+                      }
+                    })() || '/images/generic-user-icon.svg'
+                  }
                   alt="Profile"
                 />
               ) : (
-                <span className="material-symbols-outlined">account_circle</span>
+                <span className="material-symbols-outlined">
+                  account_circle
+                </span>
               )}
             </a>
-            <a id="newPayNote" className="cta" href="#" onClick={() => {
-              if (authState.isLoggedIn) {
-                setShowNewPayNoteForm(true);
-                setPaymentType('fixed');
-              } else {
-                handleNewPayNote();
-              }
-            }}>
+            <a
+              id="newPayNote"
+              className="cta"
+              href="#"
+              onClick={() => {
+                if (authState.isLoggedIn) {
+                  setShowNewPayNoteForm(true);
+                  setPaymentType('fixed');
+                } else {
+                  handleNewPayNote();
+                }
+              }}
+            >
               New <span className="hideOnMobile">Paynote</span>
             </a>
           </div>
@@ -431,11 +483,24 @@ export const HomePage: React.FC = () => {
       </div>
 
       <div id="container">
-        <div id="feedSelector" style={singleNoteMode ? {display: 'none'} : undefined}>
-          <a href="#" id="feedGlobal" className={`feedSelectorLink ${activeFeed === 'global' ? 'active' : ''}`} onClick={() => handleFeedChange('global')}>
+        <div
+          id="feedSelector"
+          style={singleNoteMode ? { display: 'none' } : undefined}
+        >
+          <a
+            href="#"
+            id="feedGlobal"
+            className={`feedSelectorLink ${activeFeed === 'global' ? 'active' : ''}`}
+            onClick={() => handleFeedChange('global')}
+          >
             Global
           </a>
-          <a href="#" id="feedFollowing" className={`feedSelectorLink ${activeFeed === 'following' ? 'active' : ''}`} onClick={() => handleFeedChange('following')}>
+          <a
+            href="#"
+            id="feedFollowing"
+            className={`feedSelectorLink ${activeFeed === 'following' ? 'active' : ''}`}
+            onClick={() => handleFeedChange('following')}
+          >
             Following
           </a>
           <a href="#" className="feedSelectorLink disabled" title="coming soon">
@@ -443,7 +508,13 @@ export const HomePage: React.FC = () => {
           </a>
         </div>
 
-        <div id="main" style={{display: activeFeed === 'global' || singleNoteMode ? 'block' : 'none'}}>
+        <div
+          id="main"
+          style={{
+            display:
+              activeFeed === 'global' || singleNoteMode ? 'block' : 'none'
+          }}
+        >
           {isLoading && posts.length === 0 ? (
             // Show dummy posts while loading
             <>
@@ -460,17 +531,27 @@ export const HomePage: React.FC = () => {
                   <div className="noteHeader">
                     <div className="noteAuthor">
                       <div className="noteDisplayName">
-                        <a href="#" className="noteAuthorLink disabled" target="_blank">Loading...</a>
+                        <a
+                          href="#"
+                          className="noteAuthorLink disabled"
+                          target="_blank"
+                        >
+                          Loading...
+                        </a>
                       </div>
                       <div className="noteNIP05 label">
                         <a href="#" target="_blank">
-                          <span className="material-symbols-outlined">check_circle</span>
+                          <span className="material-symbols-outlined">
+                            check_circle
+                          </span>
                           loading@example.com
                         </a>
                       </div>
                       <div className="noteLNAddress label">
                         <a href="#" target="_blank">
-                          <span className="material-symbols-outlined">bolt</span>
+                          <span className="material-symbols-outlined">
+                            bolt
+                          </span>
                           loading@example.com
                         </a>
                       </div>
@@ -481,11 +562,19 @@ export const HomePage: React.FC = () => {
                   <div className="noteValues">
                     <div className="zapMin">
                       <span className="zapMinVal disabled">Loading...</span>
-                      <span className="label">sats<br />Min</span>
+                      <span className="label">
+                        sats
+                        <br />
+                        Min
+                      </span>
                     </div>
                     <div className="zapMax">
                       <span className="zapMaxVal disabled">Loading...</span>
-                      <span className="label">sats<br />Max</span>
+                      <span className="label">
+                        sats
+                        <br />
+                        Max
+                      </span>
                     </div>
                     <div className="zapUses">
                       <span className="zapUsesCurrent disabled">0</span>
@@ -503,14 +592,20 @@ export const HomePage: React.FC = () => {
                         <span className="material-symbols-outlined">bolt</span>
                       </a>
                       <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">favorite</span>
+                        <span className="material-symbols-outlined">
+                          favorite
+                        </span>
                       </a>
                       <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">ios_share</span>
+                        <span className="material-symbols-outlined">
+                          ios_share
+                        </span>
                       </a>
                       <div className="noteAction dropdown">
                         <button className="dropbtn">
-                          <span className="material-symbols-outlined disabled">more_horiz</span>
+                          <span className="material-symbols-outlined disabled">
+                            more_horiz
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -532,32 +627,52 @@ export const HomePage: React.FC = () => {
                       <div className="noteHeader">
                         <div className="noteAuthor">
                           <div className="noteDisplayName">
-                            <a href="#" className="noteAuthorLink disabled" target="_blank">Loading...</a>
+                            <a
+                              href="#"
+                              className="noteAuthorLink disabled"
+                              target="_blank"
+                            >
+                              Loading...
+                            </a>
                           </div>
                           <div className="noteNIP05 label">
                             <a href="#" target="_blank">
-                              <span className="material-symbols-outlined">check_circle</span>
+                              <span className="material-symbols-outlined">
+                                check_circle
+                              </span>
                               loading@example.com
                             </a>
                           </div>
                           <div className="noteLNAddress label">
                             <a href="#" target="_blank">
-                              <span className="material-symbols-outlined">bolt</span>
+                              <span className="material-symbols-outlined">
+                                bolt
+                              </span>
                               loading@example.com
                             </a>
                           </div>
                         </div>
                         <div className="noteDate label">Loading...</div>
                       </div>
-                      <div className="noteContent disabled">Loading posts...</div>
+                      <div className="noteContent disabled">
+                        Loading posts...
+                      </div>
                       <div className="noteValues">
                         <div className="zapMin">
                           <span className="zapMinVal disabled">Loading...</span>
-                          <span className="label">sats<br />Min</span>
+                          <span className="label">
+                            sats
+                            <br />
+                            Min
+                          </span>
                         </div>
                         <div className="zapMax">
                           <span className="zapMaxVal disabled">Loading...</span>
-                          <span className="label">sats<br />Max</span>
+                          <span className="label">
+                            sats
+                            <br />
+                            Max
+                          </span>
                         </div>
                         <div className="zapUses">
                           <span className="zapUsesCurrent disabled">0</span>
@@ -566,23 +681,33 @@ export const HomePage: React.FC = () => {
                         </div>
                       </div>
                       <div className="noteCTA">
-                        <button className="noteMainCTA cta disabled">Pay</button>
+                        <button className="noteMainCTA cta disabled">
+                          Pay
+                        </button>
                       </div>
                       <div className="noteActionsReactions">
                         <div className="noteZaps noteZapReactions"></div>
                         <div className="noteActions">
                           <a className="noteAction disabled">
-                            <span className="material-symbols-outlined">bolt</span>
+                            <span className="material-symbols-outlined">
+                              bolt
+                            </span>
                           </a>
                           <a className="noteAction disabled">
-                            <span className="material-symbols-outlined">favorite</span>
+                            <span className="material-symbols-outlined">
+                              favorite
+                            </span>
                           </a>
                           <a className="noteAction disabled">
-                            <span className="material-symbols-outlined">ios_share</span>
+                            <span className="material-symbols-outlined">
+                              ios_share
+                            </span>
                           </a>
                           <div className="noteAction dropdown">
                             <button className="dropbtn">
-                              <span className="material-symbols-outlined disabled">more_horiz</span>
+                              <span className="material-symbols-outlined disabled">
+                                more_horiz
+                              </span>
                             </button>
                           </div>
                         </div>
@@ -601,32 +726,52 @@ export const HomePage: React.FC = () => {
                       <div className="noteHeader">
                         <div className="noteAuthor">
                           <div className="noteDisplayName">
-                            <a href="#" className="noteAuthorLink disabled" target="_blank">Loading...</a>
+                            <a
+                              href="#"
+                              className="noteAuthorLink disabled"
+                              target="_blank"
+                            >
+                              Loading...
+                            </a>
                           </div>
                           <div className="noteNIP05 label">
                             <a href="#" target="_blank">
-                              <span className="material-symbols-outlined">check_circle</span>
+                              <span className="material-symbols-outlined">
+                                check_circle
+                              </span>
                               loading@example.com
                             </a>
                           </div>
                           <div className="noteLNAddress label">
                             <a href="#" target="_blank">
-                              <span className="material-symbols-outlined">bolt</span>
+                              <span className="material-symbols-outlined">
+                                bolt
+                              </span>
                               loading@example.com
                             </a>
                           </div>
                         </div>
                         <div className="noteDate label">Loading...</div>
                       </div>
-                      <div className="noteContent disabled">Loading posts...</div>
+                      <div className="noteContent disabled">
+                        Loading posts...
+                      </div>
                       <div className="noteValues">
                         <div className="zapMin">
                           <span className="zapMinVal disabled">Loading...</span>
-                          <span className="label">sats<br />Min</span>
+                          <span className="label">
+                            sats
+                            <br />
+                            Min
+                          </span>
                         </div>
                         <div className="zapMax">
                           <span className="zapMaxVal disabled">Loading...</span>
-                          <span className="label">sats<br />Max</span>
+                          <span className="label">
+                            sats
+                            <br />
+                            Max
+                          </span>
                         </div>
                         <div className="zapUses">
                           <span className="zapUsesCurrent disabled">0</span>
@@ -635,23 +780,33 @@ export const HomePage: React.FC = () => {
                         </div>
                       </div>
                       <div className="noteCTA">
-                        <button className="noteMainCTA cta disabled">Pay</button>
+                        <button className="noteMainCTA cta disabled">
+                          Pay
+                        </button>
                       </div>
                       <div className="noteActionsReactions">
                         <div className="noteZaps noteZapReactions"></div>
                         <div className="noteActions">
                           <a className="noteAction disabled">
-                            <span className="material-symbols-outlined">bolt</span>
+                            <span className="material-symbols-outlined">
+                              bolt
+                            </span>
                           </a>
                           <a className="noteAction disabled">
-                            <span className="material-symbols-outlined">favorite</span>
+                            <span className="material-symbols-outlined">
+                              favorite
+                            </span>
                           </a>
                           <a className="noteAction disabled">
-                            <span className="material-symbols-outlined">ios_share</span>
+                            <span className="material-symbols-outlined">
+                              ios_share
+                            </span>
                           </a>
                           <div className="noteAction dropdown">
                             <button className="dropbtn">
-                              <span className="material-symbols-outlined disabled">more_horiz</span>
+                              <span className="material-symbols-outlined disabled">
+                                more_horiz
+                              </span>
                             </button>
                           </div>
                         </div>
@@ -662,11 +817,13 @@ export const HomePage: React.FC = () => {
               )}
             </>
           ) : posts.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+            <div
+              style={{ textAlign: 'center', padding: '40px', color: '#666' }}
+            >
               No posts found
             </div>
           ) : (
-            posts.map((post) => (
+            posts.map(post => (
               <PayNoteComponent
                 key={post.id}
                 post={post}
@@ -680,41 +837,50 @@ export const HomePage: React.FC = () => {
           )}
 
           {isLoadingMore && (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#666' }}>
+            <div
+              style={{ textAlign: 'center', padding: '20px', color: '#666' }}
+            >
               Loading more posts...
             </div>
           )}
 
           {/* Debug info for infinite scroll */}
           {!singleNoteMode && posts.length > 0 && (
-            <div style={{
-              textAlign: 'center',
-              padding: '10px',
-              fontSize: '12px',
-              color: '#999',
-              borderTop: '1px solid #eee',
-              marginTop: '20px'
-            }}>
-              Posts loaded: {posts.length} | Scroll to load more (100px from bottom)
+            <div
+              style={{
+                textAlign: 'center',
+                padding: '10px',
+                fontSize: '12px',
+                color: '#999',
+                borderTop: '1px solid #eee',
+                marginTop: '20px'
+              }}
+            >
+              Posts loaded: {posts.length} | Scroll to load more (100px from
+              bottom)
             </div>
           )}
 
           {/* Render replies when in single note mode (match legacy wrapper and disabled Pay) */}
-          {singleNoteMode && replies.map((reply) => (
-            <PayNoteComponent
-              key={reply.id}
-              post={reply}
-              onPay={handlePayWithExtension}
-              onPayAnonymously={handlePayAnonymously}
-              onShare={handleSharePost}
-              onViewRaw={handleViewRaw}
-              isLoggedIn={authState.isLoggedIn}
-              isReply={true}
-            />
-          ))}
+          {singleNoteMode &&
+            replies.map(reply => (
+              <PayNoteComponent
+                key={reply.id}
+                post={reply}
+                onPay={handlePayWithExtension}
+                onPayAnonymously={handlePayAnonymously}
+                onShare={handleSharePost}
+                onViewRaw={handleViewRaw}
+                isLoggedIn={authState.isLoggedIn}
+                isReply={true}
+              />
+            ))}
         </div>
 
-        <div id="following" style={{display: activeFeed === 'following' ? 'block' : 'none'}}>
+        <div
+          id="following"
+          style={{ display: activeFeed === 'following' ? 'block' : 'none' }}
+        >
           {isLoading && followingPosts.length === 0 ? (
             // Show dummy posts while loading following
             <>
@@ -730,32 +896,52 @@ export const HomePage: React.FC = () => {
                   <div className="noteHeader">
                     <div className="noteAuthor">
                       <div className="noteDisplayName">
-                        <a href="#" className="noteAuthorLink disabled" target="_blank">Loading...</a>
+                        <a
+                          href="#"
+                          className="noteAuthorLink disabled"
+                          target="_blank"
+                        >
+                          Loading...
+                        </a>
                       </div>
                       <div className="noteNIP05 label">
                         <a href="#" target="_blank">
-                          <span className="material-symbols-outlined">check_circle</span>
+                          <span className="material-symbols-outlined">
+                            check_circle
+                          </span>
                           loading@example.com
                         </a>
                       </div>
                       <div className="noteLNAddress label">
                         <a href="#" target="_blank">
-                          <span className="material-symbols-outlined">bolt</span>
+                          <span className="material-symbols-outlined">
+                            bolt
+                          </span>
                           loading@example.com
                         </a>
                       </div>
                     </div>
                     <div className="noteDate label">Loading...</div>
                   </div>
-                  <div className="noteContent disabled">Loading following posts...</div>
+                  <div className="noteContent disabled">
+                    Loading following posts...
+                  </div>
                   <div className="noteValues">
                     <div className="zapMin">
                       <span className="zapMinVal disabled">Loading...</span>
-                      <span className="label">sats<br />Min</span>
+                      <span className="label">
+                        sats
+                        <br />
+                        Min
+                      </span>
                     </div>
                     <div className="zapMax">
                       <span className="zapMaxVal disabled">Loading...</span>
-                      <span className="label">sats<br />Max</span>
+                      <span className="label">
+                        sats
+                        <br />
+                        Max
+                      </span>
                     </div>
                     <div className="zapUses">
                       <span className="zapUsesCurrent disabled">0</span>
@@ -773,14 +959,20 @@ export const HomePage: React.FC = () => {
                         <span className="material-symbols-outlined">bolt</span>
                       </a>
                       <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">favorite</span>
+                        <span className="material-symbols-outlined">
+                          favorite
+                        </span>
                       </a>
                       <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">ios_share</span>
+                        <span className="material-symbols-outlined">
+                          ios_share
+                        </span>
                       </a>
                       <div className="noteAction dropdown">
                         <button className="dropbtn">
-                          <span className="material-symbols-outlined disabled">more_horiz</span>
+                          <span className="material-symbols-outlined disabled">
+                            more_horiz
+                          </span>
                         </button>
                       </div>
                     </div>
@@ -789,11 +981,13 @@ export const HomePage: React.FC = () => {
               </div>
             </>
           ) : followingPosts.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+            <div
+              style={{ textAlign: 'center', padding: '40px', color: '#666' }}
+            >
               No following posts found
             </div>
           ) : (
-            followingPosts.map((post) => (
+            followingPosts.map(post => (
               <PayNoteComponent
                 key={post.id}
                 post={post}
@@ -809,41 +1003,70 @@ export const HomePage: React.FC = () => {
       </div>
 
       {/* QR Scanner Overlay */}
-      <div className="overlayContainer" id="qrScanner" style={{display: showQRScanner ? 'flex' : 'none'}}>
+      <div
+        className="overlayContainer"
+        id="qrScanner"
+        style={{ display: showQRScanner ? 'flex' : 'none' }}
+      >
         <div className="overlayInner">
-          <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
-          <p className="label" id="titleScanner">Scan note1 or nevent1 QR code</p>
+          <div className="brand">
+            PUB<span style={{ color: '#cecece' }}>PAY</span>
+            <span style={{ color: '#00000014' }}>.me</span>
+          </div>
+          <p className="label" id="titleScanner">
+            Scan note1 or nevent1 QR code
+          </p>
           <div id="reader"></div>
-          <a id="stopScanner" href="#" className="label" onClick={() => {
-            if (qrScanner) {
-              qrScanner.getState().then((state: any) => {
-                if (state === 'ACTIVE' || state === 'PAUSED') {
-                  return qrScanner.stop();
-                }
-              }).then(() => {
+          <a
+            id="stopScanner"
+            href="#"
+            className="label"
+            onClick={() => {
+              if (qrScanner) {
+                qrScanner
+                  .getState()
+                  .then((state: any) => {
+                    if (state === 'ACTIVE' || state === 'PAUSED') {
+                      return qrScanner.stop();
+                    }
+                  })
+                  .then(() => {
+                    setShowQRScanner(false);
+                  })
+                  .catch((error: any) => {
+                    console.error('Error stopping QR scanner:', error);
+                    setShowQRScanner(false);
+                  });
+              } else {
                 setShowQRScanner(false);
-              }).catch((error: any) => {
-                console.error('Error stopping QR scanner:', error);
-                setShowQRScanner(false);
-              });
-            } else {
-              setShowQRScanner(false);
-            }
-          }}>cancel</a>
+              }
+            }}
+          >
+            cancel
+          </a>
         </div>
       </div>
 
       {/* Login Form Overlay */}
-      <div className="overlayContainer" id="loginForm" style={{display: showLoginForm ? 'flex' : 'none'}}>
+      <div
+        className="overlayContainer"
+        id="loginForm"
+        style={{ display: showLoginForm ? 'flex' : 'none' }}
+      >
         <div className="overlayInner">
-          <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
-          <p className="label" id="titleSignin">Choose Sign-in Method</p>
+          <div className="brand">
+            PUB<span style={{ color: '#cecece' }}>PAY</span>
+            <span style={{ color: '#00000014' }}>.me</span>
+          </div>
+          <p className="label" id="titleSignin">
+            Choose Sign-in Method
+          </p>
           <div className="formFieldGroup" id="loginFormGroup">
             <a
               href="#"
               id="signInExtension"
               className={`cta ${!extensionAvailable ? 'disabled red' : ''}`}
-              onClick={async (e) => {
+              onClick={async e => {
                 if (!extensionAvailable) {
                   e.preventDefault();
                   return;
@@ -869,7 +1092,7 @@ export const HomePage: React.FC = () => {
               href="#"
               id="signInexternalSigner"
               className={`cta ${!externalSignerAvailable ? 'disabled red' : ''}`}
-              onClick={async (e) => {
+              onClick={async e => {
                 if (!externalSignerAvailable || externalSignerLoading) {
                   e.preventDefault();
                   return;
@@ -892,90 +1115,161 @@ export const HomePage: React.FC = () => {
                 }
               }}
             >
-              {!externalSignerAvailable ? 'Not found' : externalSignerLoading ? 'Loading...' : 'Signer'}
+              {!externalSignerAvailable
+                ? 'Not found'
+                : externalSignerLoading
+                  ? 'Loading...'
+                  : 'Signer'}
             </a>
-            <a href="#" id="signInNsec" className="cta" onClick={() => {
-              setShowNsecGroup(true);
-            }}>NSEC</a>
+            <a
+              href="#"
+              id="signInNsec"
+              className="cta"
+              onClick={() => {
+                setShowNsecGroup(true);
+              }}
+            >
+              NSEC
+            </a>
           </div>
-          <div id="nsecInputGroup" style={{display: showNsecGroup ? 'block' : 'none'}}>
-            <form onSubmit={(e) => { e.preventDefault(); handleNsecContinue(); }}>
+          <div
+            id="nsecInputGroup"
+            style={{ display: showNsecGroup ? 'block' : 'none' }}
+          >
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                handleNsecContinue();
+              }}
+            >
               <input
                 type="password"
                 id="nsecInput"
                 placeholder="Enter your nsec"
                 className="inputField"
                 value={nsecInput}
-                onChange={(e) => setNsecInput(e.target.value)}
+                onChange={e => setNsecInput(e.target.value)}
                 required
               />
-              <button id="continueWithNsec" className="cta" type="submit" onClick={async () => {
-                await handleContinueWithNsec(nsecInput, rememberMe);
-                closeLogin();
-              }}>Continue</button>
+              <button
+                id="continueWithNsec"
+                className="cta"
+                type="submit"
+                onClick={async () => {
+                  await handleContinueWithNsec(nsecInput, rememberMe);
+                  closeLogin();
+                }}
+              >
+                Continue
+              </button>
             </form>
           </div>
           <div className="rememberPK">
-            <label htmlFor="rememberMe" className="label">Remember</label>
+            <label htmlFor="rememberMe" className="label">
+              Remember
+            </label>
             <input
               type="checkbox"
               className="checkBoxRemember"
               id="rememberMe"
               checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
+              onChange={e => setRememberMe(e.target.checked)}
             />
           </div>
-            <a id="cancelLogin" href="#" className="label" onClick={() => {
-            resetLoginForm();
-            closeLogin();
-          }}>cancel</a>
+          <a
+            id="cancelLogin"
+            href="#"
+            className="label"
+            onClick={() => {
+              resetLoginForm();
+              closeLogin();
+            }}
+          >
+            cancel
+          </a>
         </div>
       </div>
 
       {/* Logged In Form Overlay */}
-      <div className="overlayContainer" id="loggedInForm" style={{display: showLoggedInForm ? 'flex' : 'none'}}>
+      <div
+        className="overlayContainer"
+        id="loggedInForm"
+        style={{ display: showLoggedInForm ? 'flex' : 'none' }}
+      >
         <div className="overlayInner">
-          <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
+          <div className="brand">
+            PUB<span style={{ color: '#cecece' }}>PAY</span>
+            <span style={{ color: '#00000014' }}>.me</span>
+          </div>
           <p className="label">You are logged in as:</p>
           <p id="loggedInPublicKey">
             {authState.publicKey ? (
               <a
-                href={`https://next.nostrudel.ninja/#/u/${(typeof window !== 'undefined' && (window as any).NostrTools ?
-                  (window as any).NostrTools.nip19.npubEncode(authState.publicKey) :
-                  authState.publicKey
-                )}`}
+                href={`https://next.nostrudel.ninja/#/u/${
+                  typeof window !== 'undefined' && (window as any).NostrTools
+                    ? (window as any).NostrTools.nip19.npubEncode(
+                        authState.publicKey
+                      )
+                    : authState.publicKey
+                }`}
                 className="userMention"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 {authState.displayName ||
-                 (typeof window !== 'undefined' && (window as any).NostrTools ?
-                   (window as any).NostrTools.nip19.npubEncode(authState.publicKey) :
-                   authState.publicKey
-                 )
-                }
+                  (typeof window !== 'undefined' && (window as any).NostrTools
+                    ? (window as any).NostrTools.nip19.npubEncode(
+                        authState.publicKey
+                      )
+                    : authState.publicKey)}
               </a>
-            ) : 'Unknown'}
+            ) : (
+              'Unknown'
+            )}
           </p>
           <p className="label">Sign-in Method:</p>
           <span id="loggedInMethod">{authState.signInMethod || 'Unknown'}</span>
-          <a href="" id="logoutButton" className="cta" onClick={handleLogout}>Logout</a>
-          <a id="cancelLoggedin" href="#" className="label" onClick={() => setShowLoggedInForm(false)}>cancel</a>
+          <a href="" id="logoutButton" className="cta" onClick={handleLogout}>
+            Logout
+          </a>
+          <a
+            id="cancelLoggedin"
+            href="#"
+            className="label"
+            onClick={() => setShowLoggedInForm(false)}
+          >
+            cancel
+          </a>
         </div>
       </div>
 
       {/* Invoice Overlay */}
-      <div className="overlayContainer" id="invoiceOverlay" style={{display: showInvoiceOverlay ? 'flex' : 'none'}}>
+      <div
+        className="overlayContainer"
+        id="invoiceOverlay"
+        style={{ display: showInvoiceOverlay ? 'flex' : 'none' }}
+      >
         <div className="overlayInner">
-          <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
-          <p id="qrcodeTitle" className="label">Scan Invoice to Pay Zap</p>
+          <div className="brand">
+            PUB<span style={{ color: '#cecece' }}>PAY</span>
+            <span style={{ color: '#00000014' }}>.me</span>
+          </div>
+          <p id="qrcodeTitle" className="label">
+            Scan Invoice to Pay Zap
+          </p>
           {useUIStore.getState().invoiceOverlay.amount > 0 && (
-            <p className="label" style={{fontSize: '18px', fontWeight: 'bold', color: '#4a75ff'}}>
-              {useUIStore.getState().invoiceOverlay.amount.toLocaleString()} sats
+            <p
+              className="label"
+              style={{ fontSize: '18px', fontWeight: 'bold', color: '#4a75ff' }}
+            >
+              {useUIStore.getState().invoiceOverlay.amount.toLocaleString()}{' '}
+              sats
             </p>
           )}
           <InvoiceQR bolt11={useUIStore.getState().invoiceOverlay.bolt11} />
-          <p id="qrcodeTitle" className="label">Otherwise:</p>
+          <p id="qrcodeTitle" className="label">
+            Otherwise:
+          </p>
           <div className="formFieldGroup">
             <button
               id="payWithExtension"
@@ -986,7 +1280,9 @@ export const HomePage: React.FC = () => {
                   // This would trigger the extension to pay the invoice
                   console.log('Paying with extension:', bolt11);
                   // For now, just show a message
-                  alert('Extension payment not yet implemented. Please scan the QR code with your Lightning wallet.');
+                  alert(
+                    'Extension payment not yet implemented. Please scan the QR code with your Lightning wallet.'
+                  );
                 } else {
                   alert('No invoice available to pay');
                 }
@@ -1054,26 +1350,58 @@ export const HomePage: React.FC = () => {
               Copy Invoice
             </button>
           </div>
-          <a id="closeInvoiceOverlay" href="#" className="label" onClick={() => closeInvoice()}>Close</a>
+          <a
+            id="closeInvoiceOverlay"
+            href="#"
+            className="label"
+            onClick={() => closeInvoice()}
+          >
+            Close
+          </a>
         </div>
       </div>
 
       {/* JSON Viewer Overlay */}
-      <div className="overlayContainer" id="viewJSON" style={{display: showJSON ? 'flex' : 'none'}}>
+      <div
+        className="overlayContainer"
+        id="viewJSON"
+        style={{ display: showJSON ? 'flex' : 'none' }}
+      >
         <div className="overlayInner">
           <pre id="noteJSON">{jsonContent}</pre>
-          <a id="closeJSON" href="#" className="label" onClick={() => setShowJSON(false)}>close</a>
+          <a
+            id="closeJSON"
+            href="#"
+            className="label"
+            onClick={() => setShowJSON(false)}
+          >
+            close
+          </a>
         </div>
       </div>
 
       {/* New Pay Note Form Overlay */}
-      <div className="overlayContainer" id="newPayNoteForm" style={{display: showNewPayNoteForm ? 'flex' : 'none'}}>
+      <div
+        className="overlayContainer"
+        id="newPayNoteForm"
+        style={{ display: showNewPayNoteForm ? 'flex' : 'none' }}
+      >
         <div className="overlayInner">
-          <div className="brand">PUB<span style={{color: '#cecece'}}>PAY</span><span style={{color: '#00000014'}}>.me</span></div>
+          <div className="brand">
+            PUB<span style={{ color: '#cecece' }}>PAY</span>
+            <span style={{ color: '#00000014' }}>.me</span>
+          </div>
           <form id="newKind1" onSubmit={handlePostNoteSubmit}>
             <div className="formField">
-              <label htmlFor="payNoteContent" className="label">Your Payment Request</label>
-              <textarea id="payNoteContent" name="payNoteContent" rows={4} placeholder="Payment Request Description"></textarea>
+              <label htmlFor="payNoteContent" className="label">
+                Your Payment Request
+              </label>
+              <textarea
+                id="payNoteContent"
+                name="payNoteContent"
+                rows={4}
+                placeholder="Payment Request Description"
+              ></textarea>
             </div>
 
             <fieldset className="formField formSelector">
@@ -1085,7 +1413,9 @@ export const HomePage: React.FC = () => {
                   name="paymentType"
                   value="fixed"
                   checked={paymentType === 'fixed'}
-                  onChange={(e) => { if (e.target.checked) setPaymentType('fixed'); }}
+                  onChange={e => {
+                    if (e.target.checked) setPaymentType('fixed');
+                  }}
                 />
                 <label htmlFor="fixedFlow">Fixed</label>
               </div>
@@ -1096,66 +1426,161 @@ export const HomePage: React.FC = () => {
                   name="paymentType"
                   value="range"
                   checked={paymentType === 'range'}
-                  onChange={(e) => { if (e.target.checked) setPaymentType('range'); }}
+                  onChange={e => {
+                    if (e.target.checked) setPaymentType('range');
+                  }}
                 />
                 <label htmlFor="rangeFlow">Range</label>
               </div>
               <div className="disabled">
-                <input type="radio" id="targetFlow" name="paymentType" value="target" disabled />
+                <input
+                  type="radio"
+                  id="targetFlow"
+                  name="paymentType"
+                  value="target"
+                  disabled
+                />
                 <label htmlFor="targetFlow">Target</label>
               </div>
             </fieldset>
 
-            <div className="formFieldGroup" id="fixedInterface" style={{display: paymentType === 'fixed' ? 'block' : 'none'}}>
+            <div
+              className="formFieldGroup"
+              id="fixedInterface"
+              style={{ display: paymentType === 'fixed' ? 'block' : 'none' }}
+            >
               <div className="formField">
-                <label htmlFor="zapFixed" className="label">Fixed Amount* <span className="tagName">zap-min = zap-max</span></label>
-                <input type="number" min={1} id="zapFixed" placeholder="1" name="zapFixed" required={paymentType === 'fixed'} />
+                <label htmlFor="zapFixed" className="label">
+                  Fixed Amount*{' '}
+                  <span className="tagName">zap-min = zap-max</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  id="zapFixed"
+                  placeholder="1"
+                  name="zapFixed"
+                  required={paymentType === 'fixed'}
+                />
               </div>
             </div>
 
-            <div className="formFieldGroup" id="rangeInterface" style={{display: paymentType === 'range' ? 'flex' : 'none'}}>
+            <div
+              className="formFieldGroup"
+              id="rangeInterface"
+              style={{ display: paymentType === 'range' ? 'flex' : 'none' }}
+            >
               <div className="formField">
-                <label htmlFor="zapMin" className="label">Minimum* <span className="tagName">zap-min</span></label>
-                <input type="number" min={1} id="zapMin" placeholder="1" name="zapMin" required={paymentType === 'range'} />
+                <label htmlFor="zapMin" className="label">
+                  Minimum* <span className="tagName">zap-min</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  id="zapMin"
+                  placeholder="1"
+                  name="zapMin"
+                  required={paymentType === 'range'}
+                />
               </div>
               <div className="formField">
-                <label htmlFor="zapMax" className="label">Maximum* <span className="tagName">zap-max</span></label>
-                <input type="number" min={1} id="zapMax" placeholder="1000000000" name="zapMax" required={paymentType === 'range'} />
+                <label htmlFor="zapMax" className="label">
+                  Maximum* <span className="tagName">zap-max</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  id="zapMax"
+                  placeholder="1000000000"
+                  name="zapMax"
+                  required={paymentType === 'range'}
+                />
               </div>
             </div>
 
             <details className="formField">
-              <summary className="legend summaryOptions">Advanced Options</summary>
+              <summary className="legend summaryOptions">
+                Advanced Options
+              </summary>
 
               <div className="formFieldGroup">
                 <div className="formField">
-                  <label htmlFor="zapUses" className="label">Uses <span className="tagName">zap-uses</span></label>
-                  <input type="number" min={1} id="zapUses" placeholder="1" name="zapUses" />
+                  <label htmlFor="zapUses" className="label">
+                    Uses <span className="tagName">zap-uses</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    id="zapUses"
+                    placeholder="1"
+                    name="zapUses"
+                  />
                 </div>
                 <div className="formField disabled">
-                  <label htmlFor="zapIncrement" className="label">Increment <span className="tagName"></span></label>
-                  <input type="text" id="zapIncrement" placeholder="0" name="zapIncrement" disabled />
+                  <label htmlFor="zapIncrement" className="label">
+                    Increment <span className="tagName"></span>
+                  </label>
+                  <input
+                    type="text"
+                    id="zapIncrement"
+                    placeholder="0"
+                    name="zapIncrement"
+                    disabled
+                  />
                 </div>
               </div>
 
               <div className="formField">
-                <label htmlFor="zapPayer" className="label">Payer <span className="tagName">zap-payer</span></label>
-                <input type="text" id="zapPayer" placeholder="npub1..." name="zapPayer" />
+                <label htmlFor="zapPayer" className="label">
+                  Payer <span className="tagName">zap-payer</span>
+                </label>
+                <input
+                  type="text"
+                  id="zapPayer"
+                  placeholder="npub1..."
+                  name="zapPayer"
+                />
               </div>
 
               <div className="formField">
-                <label htmlFor="overrideLNURL" className="label">Override receiving address<span className="tagName"> zap-lnurl</span></label>
-                <input type="email" id="overrideLNURL" placeholder="address@lnprovider.net" name="overrideLNURL" />
+                <label htmlFor="overrideLNURL" className="label">
+                  Override receiving address
+                  <span className="tagName"> zap-lnurl</span>
+                </label>
+                <input
+                  type="email"
+                  id="overrideLNURL"
+                  placeholder="address@lnprovider.net"
+                  name="overrideLNURL"
+                />
               </div>
 
               <div className="formField disabled">
-                <label htmlFor="redirectToNote" className="label">Redirect payment to note <span className="tagName">zap-redirect</span> </label>
-                <input type="text" id="redirectToNote" placeholder="note1..." name="redirectToNote" disabled />
+                <label htmlFor="redirectToNote" className="label">
+                  Redirect payment to note{' '}
+                  <span className="tagName">zap-redirect</span>{' '}
+                </label>
+                <input
+                  type="text"
+                  id="redirectToNote"
+                  placeholder="note1..."
+                  name="redirectToNote"
+                  disabled
+                />
               </div>
             </details>
-            <button type="submit" id="postNote" className="cta">{isPublishing ? 'Publishing...' : 'Publish'}</button>
+            <button type="submit" id="postNote" className="cta">
+              {isPublishing ? 'Publishing...' : 'Publish'}
+            </button>
           </form>
-          <a id="cancelNewNote" href="#" className="label" onClick={() => setShowNewPayNoteForm(false)}>cancel</a>
+          <a
+            id="cancelNewNote"
+            href="#"
+            className="label"
+            onClick={() => setShowNewPayNoteForm(false)}
+          >
+            cancel
+          </a>
         </div>
       </div>
     </div>

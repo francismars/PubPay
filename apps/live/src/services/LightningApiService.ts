@@ -36,12 +36,15 @@ export class LightningApiService {
   }
 
   // Enable Lightning payments for an event
-  async enableLightning(eventId: string, frontendSessionId: string): Promise<LightningApiResponse & { lnurl?: string }> {
+  async enableLightning(
+    eventId: string,
+    frontendSessionId: string
+  ): Promise<LightningApiResponse & { lnurl?: string }> {
     try {
       const response = await fetch(`${this.baseUrl}/lightning/enable`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           eventId,
@@ -60,12 +63,15 @@ export class LightningApiService {
   }
 
   // Disable Lightning payments for an event
-  async disableLightning(eventId: string, frontendSessionId: string): Promise<LightningApiResponse> {
+  async disableLightning(
+    eventId: string,
+    frontendSessionId: string
+  ): Promise<LightningApiResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/lightning/disable`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           eventId,
@@ -98,12 +104,14 @@ export class LightningApiService {
   }
 
   // Get payment history
-  async getPaymentHistory(eventId?: string): Promise<LightningApiResponse<LightningPayment[]>> {
+  async getPaymentHistory(
+    eventId?: string
+  ): Promise<LightningApiResponse<LightningPayment[]>> {
     try {
-      const url = eventId 
+      const url = eventId
         ? `${this.baseUrl}/lightning/payments?eventId=${eventId}`
         : `${this.baseUrl}/lightning/payments`;
-      
+
       const response = await fetch(url);
       const data = await response.json();
       return data;
@@ -116,7 +124,9 @@ export class LightningApiService {
   }
 
   // Health check
-  async healthCheck(): Promise<LightningApiResponse<{ healthy: boolean; config: any }>> {
+  async healthCheck(): Promise<
+    LightningApiResponse<{ healthy: boolean; config: any }>
+  > {
     try {
       const response = await fetch(`${this.baseUrl}/lightning/health`);
       const data = await response.json();
