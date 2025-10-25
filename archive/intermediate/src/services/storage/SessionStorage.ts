@@ -116,7 +116,7 @@ export class SessionStorage {
     eventId: string | null;
     lightningEnabled: boolean | null;
     lastActivity: number | null;
-    } {
+  } {
     return {
       sessionId: this.getItem('sessionId'),
       eventId: this.getItem('eventId'),
@@ -169,7 +169,7 @@ export class SessionStorage {
    */
   exportSessionData(): {
     [key: string]: any;
-    } {
+  } {
     const data: { [key: string]: any } = {};
     const keys = this.getKeys();
     keys.forEach(key => {

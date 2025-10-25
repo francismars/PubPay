@@ -5,8 +5,16 @@ declare global {
       getPublicKey: () => Promise<string>;
       signEvent: (event: any) => Promise<any>;
       nip04: {
-        encrypt: (pubkey: string, plaintext: string, sk: string) => Promise<string>;
-        decrypt: (pubkey: string, ciphertext: string, sk: string) => Promise<string>;
+        encrypt: (
+          pubkey: string,
+          plaintext: string,
+          sk: string
+        ) => Promise<string>;
+        decrypt: (
+          pubkey: string,
+          ciphertext: string,
+          sk: string
+        ) => Promise<string>;
       };
     };
   }

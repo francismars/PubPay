@@ -23,7 +23,12 @@ declare global {
       toDataURL: () => string;
     };
     Html5Qrcode: new (elementId: string) => {
-      start: (cameraId: any, config: any, onSuccess: (text: string) => void, onError: (error: string) => void) => Promise<void>;
+      start: (
+        cameraId: any,
+        config: any,
+        onSuccess: (text: string) => void,
+        onError: (error: string) => void
+      ) => Promise<void>;
       stop: () => Promise<void>;
     };
   }

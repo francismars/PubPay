@@ -27,7 +27,7 @@ export class BackendServer {
     this.app = express();
     this.port = parseInt(process.env['PORT'] || '3002', 10);
     this.logger = new Logger('BackendServer');
-    
+
     this.initializeMiddleware();
     this.initializeRoutes();
     this.initializeErrorHandling();
@@ -35,20 +35,30 @@ export class BackendServer {
 
   private initializeMiddleware(): void {
     // Security middleware
-    this.app.use(helmet({
-      contentSecurityPolicy: false, // Disable CSP for development
-      crossOriginEmbedderPolicy: false
-    }));
+    this.app.use(
+      helmet({
+        contentSecurityPolicy: false, // Disable CSP for development
+        crossOriginEmbedderPolicy: false
+      })
+    );
 
     // CORS configuration
-    this.app.use(cors({
-      origin: process.env['NODE_ENV'] === 'production' 
-        ? process.env['FRONTEND_URL'] 
-        : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:8080'],
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-    }));
+    this.app.use(
+      cors({
+        origin:
+          process.env['NODE_ENV'] === 'production'
+            ? process.env['FRONTEND_URL']
+            : [
+                'http://localhost:3000',
+                'http://localhost:3001',
+                'http://localhost:3002',
+                'http://localhost:8080'
+              ],
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+      })
+    );
 
     // Compression and logging
     // this.app.use(compression()); // Temporarily disabled due to type issues
@@ -96,17 +106,21 @@ export class BackendServer {
     });
 
     // Global error handler
-    this.app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
-      new ErrorHandler().getHandler()(error, req, res, next);
-    });
+    this.app.use(
+      (error: Error, req: Request, res: Response, next: NextFunction) => {
+        new ErrorHandler().getHandler()(error, req, res, next);
+      }
+    );
   }
 
   public start(): void {
     this.app.listen(this.port, () => {
       this.logger.info(`🚀 Backend server started on port ${this.port}`);
-      this.logger.info(`📊 Environment: ${process.env['NODE_ENV'] || 'development'}`);
+      this.logger.info(
+        `📊 Environment: ${process.env['NODE_ENV'] || 'development'}`
+      );
       this.logger.info(`🔗 Health check: http://localhost:${this.port}/health`);
-      
+
       // Log configuration status
       this.logConfiguration();
     });
@@ -123,11 +137,15 @@ export class BackendServer {
     this.logger.info('Configuration status:', config);
 
     if (!config.LNBITS_API_KEY) {
-      this.logger.warn('⚠️  LNBITS_API_KEY not configured - Lightning payments will be disabled');
+      this.logger.warn(
+        '⚠️  LNBITS_API_KEY not configured - Lightning payments will be disabled'
+      );
     }
 
     if (!config.WEBHOOK_URL) {
-      this.logger.warn('⚠️  WEBHOOK_URL not configured - Webhook processing may fail');
+      this.logger.warn(
+        '⚠️  WEBHOOK_URL not configured - Webhook processing may fail'
+      );
     }
   }
 

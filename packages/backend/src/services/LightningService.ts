@@ -21,9 +21,9 @@ export class LightningService {
       apiKey: process.env['LNBITS_API_KEY'] || '',
       webhookUrl: process.env['WEBHOOK_URL'] || ''
     };
-    
+
     this.logger = new Logger('LightningService');
-    
+
     // Validate configuration
     this.validateConfig();
   }
@@ -31,13 +31,19 @@ export class LightningService {
   private validateConfig(): void {
     if (!this.config.apiKey) {
       this.logger.error('❌ LNBITS_API_KEY environment variable is not set!');
-      this.logger.error('Please create a .env file with your LNBits configuration.');
+      this.logger.error(
+        'Please create a .env file with your LNBits configuration.'
+      );
       this.config.enabled = false;
     }
 
     if (!this.config.webhookUrl) {
-      this.logger.warn('⚠️  WEBHOOK_URL environment variable is not set, using default fallback');
-      this.logger.warn('This will not work for production. Please set WEBHOOK_URL in your .env file.');
+      this.logger.warn(
+        '⚠️  WEBHOOK_URL environment variable is not set, using default fallback'
+      );
+      this.logger.warn(
+        'This will not work for production. Please set WEBHOOK_URL in your .env file.'
+      );
     }
 
     this.logger.info('Lightning configuration:', {
@@ -51,7 +57,10 @@ export class LightningService {
   /**
    * Enable Lightning payments for a live event
    */
-  async enableLightningPayments(eventId: string, frontendSessionId: string): Promise<LNURLResult> {
+  async enableLightningPayments(
+    eventId: string,
+    frontendSessionId: string
+  ): Promise<LNURLResult> {
     if (!this.config.enabled) {
       return {
         success: false,
@@ -76,7 +85,7 @@ export class LightningService {
       });
 
       const result = await this.createLNBitsLNURL(eventId, frontendSessionId);
-      
+
       return {
         success: true,
         lnurl: result.lnurl,
@@ -95,7 +104,10 @@ export class LightningService {
   /**
    * Create LNURL-pay link using LNBits API
    */
-  private async createLNBitsLNURL(eventId: string, _frontendSessionId: string): Promise<{ lnurl: string; id: string }> {
+  private async createLNBitsLNURL(
+    eventId: string,
+    _frontendSessionId: string
+  ): Promise<{ lnurl: string; id: string }> {
     const requestBody = {
       description: `PubPay Live - Real-time Tip Tracker`,
       min: 1000, // 1 sat minimum
@@ -108,14 +120,17 @@ export class LightningService {
 
     this.logger.info('LNBits request body:', requestBody);
 
-    const response = await fetch(`${this.config.lnbitsUrl}/lnurlp/api/v1/links`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Api-Key': this.config.apiKey
-      },
-      body: JSON.stringify(requestBody)
-    });
+    const response = await fetch(
+      `${this.config.lnbitsUrl}/lnurlp/api/v1/links`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': this.config.apiKey
+        },
+        body: JSON.stringify(requestBody)
+      }
+    );
 
     this.logger.info('LNBits API response:', {
       status: response.status,
@@ -130,12 +145,14 @@ export class LightningService {
         statusText: response.statusText,
         error: errorText
       });
-      throw new Error(`LNBits API error: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(
+        `LNBits API error: ${response.status} ${response.statusText} - ${errorText}`
+      );
     }
 
-    const data = await response.json() as any;
+    const data = (await response.json()) as any;
     this.logger.info('LNBits API response data:', data);
-    
+
     if (!data.lnurl) {
       this.logger.error('No LNURL in LNBits response:', data);
       throw new Error('No LNURL returned from LNBits API');
@@ -143,7 +160,7 @@ export class LightningService {
 
     this.logger.info(`✅ Created LNURL for event ${eventId}: ${data.lnurl}`);
     this.logger.info(`📋 LNURL-pay ID: ${data.id}`);
-    
+
     return {
       lnurl: data.lnurl,
       id: data.id // Include the LNURL-pay ID for webhook mapping
@@ -184,7 +201,7 @@ export class LightningService {
 
     try {
       const startTime = Date.now();
-      
+
       const response = await fetch(`${this.config.lnbitsUrl}/api/v1/wallet`, {
         method: 'GET',
         headers: {

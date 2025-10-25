@@ -65,19 +65,21 @@ export const isValidYouTubeId = (id: string): boolean => {
 };
 
 export const sanitizeString = (str: string): string => {
-  return str.replace(/[<>\"'&]/g, (match) => {
+  return str.replace(/[<>\"'&]/g, match => {
     const escapeMap: Record<string, string> = {
       '<': '&lt;',
       '>': '&gt;',
       '"': '&quot;',
-      '\'': '&#x27;',
+      "'": '&#x27;',
       '&': '&amp;'
     };
     return escapeMap[match] || match;
   });
 };
 
-export const validateEventData = (event: any): { isValid: boolean; errors: string[] } => {
+export const validateEventData = (
+  event: any
+): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
 
   if (!event.id || !isValidEventId(event.id)) {

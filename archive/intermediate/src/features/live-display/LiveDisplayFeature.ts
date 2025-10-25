@@ -1,10 +1,20 @@
 // LiveDisplayFeature - Main feature module for live event display
 import { ErrorService } from '../../services/ErrorService';
-import { NostrClient, EventManager, ProfileService } from '../../services/nostr';
+import {
+  NostrClient,
+  EventManager,
+  ProfileService
+} from '../../services/nostr';
 import { LightningService } from '../../services/lightning';
 import { LocalStorage, SessionStorage } from '../../services/storage';
-import { LiveEventDisplayComponent, LiveEventDisplayOptions } from '../../components/LiveEventDisplayComponent';
-import { LightningPaymentComponent, LightningPaymentOptions } from '../../components/LightningPaymentComponent';
+import {
+  LiveEventDisplayComponent,
+  LiveEventDisplayOptions
+} from '../../components/LiveEventDisplayComponent';
+import {
+  LightningPaymentComponent,
+  LightningPaymentOptions
+} from '../../components/LightningPaymentComponent';
 import { LiveEvent, User, Zap } from '../../types/common';
 
 export interface LiveDisplayConfig {
@@ -61,7 +71,9 @@ export class LiveDisplayFeature {
     if (this.isInitialized) return;
 
     try {
-      this.errorService.info('Initializing live display feature', { eventId: this.config.eventId });
+      this.errorService.info('Initializing live display feature', {
+        eventId: this.config.eventId
+      });
 
       // Initialize components
       await this.initializeComponents();
@@ -77,9 +89,11 @@ export class LiveDisplayFeature {
 
       this.isInitialized = true;
       this.errorService.info('Live display feature initialized successfully');
-
     } catch (error) {
-      this.errorService.error('Failed to initialize live display feature', error as Error);
+      this.errorService.error(
+        'Failed to initialize live display feature',
+        error as Error
+      );
       throw error;
     }
   }
@@ -140,10 +154,12 @@ export class LiveDisplayFeature {
       }
 
       // Load event from Nostr
-      const events = await this.nostrClient.getEvents([{
-        ids: [eventId],
-        kinds: [30311] // Live event kind
-      }]);
+      const events = await this.nostrClient.getEvents([
+        {
+          ids: [eventId],
+          kinds: [30311] // Live event kind
+        }
+      ]);
 
       if (events.length === 0) {
         throw new Error('Event not found');
@@ -164,8 +180,9 @@ export class LiveDisplayFeature {
       // Load participants
       await this.loadParticipants();
 
-      this.errorService.info('Event data loaded successfully', { eventId: event.id });
-
+      this.errorService.info('Event data loaded successfully', {
+        eventId: event.id
+      });
     } catch (error) {
       this.errorService.error('Failed to load event data', error as Error);
       throw error;
@@ -179,7 +196,9 @@ export class LiveDisplayFeature {
     if (!this.currentEvent) return;
 
     try {
-      const participantTags = this.currentEvent.tags.filter(tag => tag[0] === 'p');
+      const participantTags = this.currentEvent.tags.filter(
+        tag => tag[0] === 'p'
+      );
       const pubkeys = participantTags
         .map(tag => tag[1])
         .filter((pubkey): pubkey is string => pubkey !== undefined);
@@ -192,7 +211,6 @@ export class LiveDisplayFeature {
           }
         });
       }
-
     } catch (error) {
       this.errorService.error('Failed to load participants', error as Error);
     }
@@ -209,7 +227,7 @@ export class LiveDisplayFeature {
       this.nostrClient.subscribeToLiveEvents(
         this.currentEvent.pubkey,
         this.currentEvent.identifier || '',
-        async (event) => {
+        async event => {
           const liveEvent = await this.eventManager.handleLiveEvent(event);
           if (liveEvent && this.liveEventComponent) {
             this.liveEventComponent.update(liveEvent);
@@ -221,8 +239,10 @@ export class LiveDisplayFeature {
       this.nostrClient.subscribeToLiveChat(
         this.currentEvent.pubkey,
         this.currentEvent.identifier || '',
-        async (event) => {
-          const noteData = await this.eventManager.handleNoteEvent(event as any);
+        async event => {
+          const noteData = await this.eventManager.handleNoteEvent(
+            event as any
+          );
           if (noteData && this.liveEventComponent) {
             const chatMessage = {
               id: event.id,
@@ -237,18 +257,14 @@ export class LiveDisplayFeature {
       );
 
       // Subscribe to zaps
-      this.nostrClient.subscribeToZaps(
-        this.currentEvent.id,
-        async (event) => {
-          const zap = await this.eventManager.handleZapEvent(event);
-          if (zap) {
-            this.handleZap(zap);
-          }
+      this.nostrClient.subscribeToZaps(this.currentEvent.id, async event => {
+        const zap = await this.eventManager.handleZapEvent(event);
+        if (zap) {
+          this.handleZap(zap);
         }
-      );
+      });
 
       this.errorService.info('Subscriptions setup successfully');
-
     } catch (error) {
       this.errorService.error('Failed to setup subscriptions', error as Error);
     }
@@ -309,11 +325,13 @@ export class LiveDisplayFeature {
       }
 
       if (options.textOpacity !== undefined) {
-        root.style.setProperty('--text-opacity', options.textOpacity.toString());
+        root.style.setProperty(
+          '--text-opacity',
+          options.textOpacity.toString()
+        );
       }
 
       this.errorService.debug('Style options applied', options);
-
     } catch (error) {
       this.errorService.error('Failed to apply style options', error as Error);
     }
@@ -332,7 +350,10 @@ export class LiveDisplayFeature {
       await this.lightningComponent.enableLightning();
       this.errorService.info('Lightning payments enabled');
     } catch (error) {
-      this.errorService.error('Failed to enable Lightning payments', error as Error);
+      this.errorService.error(
+        'Failed to enable Lightning payments',
+        error as Error
+      );
     }
   }
 
@@ -349,7 +370,10 @@ export class LiveDisplayFeature {
       await this.lightningComponent.disableLightning();
       this.errorService.info('Lightning payments disabled');
     } catch (error) {
-      this.errorService.error('Failed to disable Lightning payments', error as Error);
+      this.errorService.error(
+        'Failed to disable Lightning payments',
+        error as Error
+      );
     }
   }
 
@@ -385,7 +409,7 @@ export class LiveDisplayFeature {
     eventLoaded: boolean;
     lightningEnabled: boolean;
     participantsCount: number;
-    } {
+  } {
     return {
       initialized: this.isInitialized,
       eventLoaded: this.currentEvent !== null,

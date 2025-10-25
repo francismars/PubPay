@@ -1,22 +1,22 @@
 export async function plot(json9735List, iskind3filter) {
   for (let json9735 of json9735List) {
     const parentDiv = iskind3filter
-      ? document.getElementById("following")
-      : document.getElementById("main");
-    let parentNote = parentDiv.querySelector("#_" + json9735.e);
-    const invoiceOverlay = document.getElementById("invoiceOverlay");
-    const overlayEventID = invoiceOverlay.getAttribute("data-event-id");
+      ? document.getElementById('following')
+      : document.getElementById('main');
+    let parentNote = parentDiv.querySelector('#_' + json9735.e);
+    const invoiceOverlay = document.getElementById('invoiceOverlay');
+    const overlayEventID = invoiceOverlay.getAttribute('data-event-id');
     if (overlayEventID === json9735.id9734) {
-      invoiceOverlay.style.display = "none";
-      const invoiceQR = document.getElementById("invoiceQR");
-      invoiceQR.innerHTML = "";
-      console.log("Overlay closed for event:", json9735.e);
+      invoiceOverlay.style.display = 'none';
+      const invoiceQR = document.getElementById('invoiceQR');
+      invoiceQR.innerHTML = '';
+      console.log('Overlay closed for event:', json9735.e);
     }
 
-    if (!json9735.picture) json9735.picture = "";
+    if (!json9735.picture) json9735.picture = '';
     const profileImage =
-      json9735.picture == ""
-        ? "https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg"
+      json9735.picture == ''
+        ? 'https://icon-library.com/images/generic-user-icon/generic-user-icon-10.jpg'
         : json9735.picture;
 
     let zapPayerLink =
@@ -30,7 +30,7 @@ export async function plot(json9735List, iskind3filter) {
       json9735.zapEventID +
       '" target="_blank" class="zapReactionAmount">' +
       json9735.amount.toLocaleString() +
-      "</a>";
+      '</a>';
 
     /*
       't', 'pubpay'
@@ -41,7 +41,7 @@ export async function plot(json9735List, iskind3filter) {
       'zap-forward', 'a2f6faac5990a9bfb6e47a3d4b6c204592eb6c642563dbdada6512a84'
       */
 
-    let tagZapMin = json9735.tags.find((tag) => tag[0] == "zap-min");
+    let tagZapMin = json9735.tags.find(tag => tag[0] == 'zap-min');
     if (tagZapMin) {
       const zapMinParsed = parseInt(tagZapMin[1]);
       if (Number.isInteger(zapMinParsed) && zapMinParsed > 0) {
@@ -49,7 +49,7 @@ export async function plot(json9735List, iskind3filter) {
       } else tagZapMin = undefined;
     }
 
-    let tagZapMax = json9735.tags.find((tag) => tag[0] == "zap-max");
+    let tagZapMax = json9735.tags.find(tag => tag[0] == 'zap-max');
     if (tagZapMax) {
       const zapMaxParsed = parseInt(tagZapMax[1]);
       if (Number.isInteger(zapMaxParsed) && zapMaxParsed > 0) {
@@ -57,7 +57,7 @@ export async function plot(json9735List, iskind3filter) {
       } else tagZapMax = undefined;
     }
 
-    let tagZapUses = json9735.tags.find((tag) => tag[0] == "zap-uses");
+    let tagZapUses = json9735.tags.find(tag => tag[0] == 'zap-uses');
     if (tagZapUses) {
       const zapUsesParsed = parseInt(tagZapUses[1]);
       if (Number.isInteger(zapUsesParsed) && zapUsesParsed > 0) {
@@ -71,12 +71,12 @@ export async function plot(json9735List, iskind3filter) {
 
     let zapTarget = (tagZapMin / 1000) * tagZapUses;
 
-    let tagZapPayer = json9735.tags.find((tag) => tag[0] == "zap-payer");
+    let tagZapPayer = json9735.tags.find(tag => tag[0] == 'zap-payer');
     if (tagZapPayer) {
       tagZapPayer = tagZapPayer[1];
     }
 
-    let tagZapForward = json9735.tags.find((tag) => tag[0] == "zap-forward");
+    let tagZapForward = json9735.tags.find(tag => tag[0] == 'zap-forward');
     if (tagZapForward) {
       tagZapForward = tagZapForward[1];
     }
@@ -104,45 +104,45 @@ export async function plot(json9735List, iskind3filter) {
     ) {
       if (tagZapPayer == json9735.pubKey) {
         // Zap payer match
-        console.log("tagZapPayer", tagZapPayer);
-        console.log("json9735.pubKey", json9735.pubKey);
-        console.log("entras aqui");
-        let zapPayer = parentNote.querySelector(".zapPayer");
-        const zapReaction = document.createElement("div");
-        zapReaction.className = "zapReaction";
+        console.log('tagZapPayer', tagZapPayer);
+        console.log('json9735.pubKey', json9735.pubKey);
+        console.log('entras aqui');
+        let zapPayer = parentNote.querySelector('.zapPayer');
+        const zapReaction = document.createElement('div');
+        zapReaction.className = 'zapReaction';
         zapReaction.innerHTML = zapPayerLink + zapEventLink;
         zapPayer.appendChild(zapReaction);
         // Reached target, disable button
-        let noteMainCTA = parentNote.querySelector(".noteMainCTA");
-        noteMainCTA.classList.add("disabled");
-        noteMainCTA.innerHTML = "Paid";
+        let noteMainCTA = parentNote.querySelector('.noteMainCTA');
+        noteMainCTA.classList.add('disabled');
+        noteMainCTA.innerHTML = 'Paid';
         //noteMainCTA.removeEventListener('click', payNote)
-        let zapSlider = parentNote.querySelector(".zapSliderContainer");
+        let zapSlider = parentNote.querySelector('.zapSliderContainer');
         if (zapSlider != null) {
           zapSlider.removeChild();
         }
       } else if (tagZapUses != -1) {
         // Has use target
-        let zapUsesCurrent = parentNote.querySelector(".zapUsesCurrent");
+        let zapUsesCurrent = parentNote.querySelector('.zapUsesCurrent');
         useIncrement = parseInt(zapUsesCurrent.textContent) + 1;
 
         if (useIncrement <= tagZapUses) {
           // Still bellow the use target
-          const noteHeroZaps = parentNote.querySelector(".noteHeroZaps");
-          const zapReaction = document.createElement("div");
-          zapReaction.className = "zapReaction";
+          const noteHeroZaps = parentNote.querySelector('.noteHeroZaps');
+          const zapReaction = document.createElement('div');
+          zapReaction.className = 'zapReaction';
           zapReaction.innerHTML = zapPayerLink + zapEventLink;
           noteHeroZaps.appendChild(zapReaction);
           zapUsesCurrent.textContent = parseInt(zapUsesCurrent.textContent) + 1;
 
           if (useIncrement == tagZapUses) {
             // Reached target, disable button
-            let noteMainCTA = parentNote.querySelector(".noteMainCTA");
+            let noteMainCTA = parentNote.querySelector('.noteMainCTA');
             if (noteMainCTA) {
-              noteMainCTA.classList.add("disabled");
-              noteMainCTA.innerHTML = "Paid";
+              noteMainCTA.classList.add('disabled');
+              noteMainCTA.innerHTML = 'Paid';
               //noteMainCTA.removeEventListener('click', payNote)
-              let zapSlider = parentNote.querySelector(".zapSliderContainer");
+              let zapSlider = parentNote.querySelector('.zapSliderContainer');
               if (zapSlider != null) {
                 zapSlider.remove();
               }
@@ -150,25 +150,25 @@ export async function plot(json9735List, iskind3filter) {
           }
         } else {
           // Above minimum, but target already reached
-          const payNoteReactions = parentNote.querySelector(".noteZaps");
-          const zapReaction = document.createElement("div");
-          zapReaction.className = "zapReaction";
+          const payNoteReactions = parentNote.querySelector('.noteZaps');
+          const zapReaction = document.createElement('div');
+          zapReaction.className = 'zapReaction';
           zapReaction.innerHTML = zapPayerLink + zapEventLink;
           payNoteReactions.appendChild(zapReaction);
         }
       } else {
         // Above min and no uses. Everyzap is included on hero
-        const noteHeroZaps = parentNote.querySelector(".noteHeroZaps");
-        const zapReaction = document.createElement("div");
-        zapReaction.className = "zapReaction";
+        const noteHeroZaps = parentNote.querySelector('.noteHeroZaps');
+        const zapReaction = document.createElement('div');
+        zapReaction.className = 'zapReaction';
         zapReaction.innerHTML = zapPayerLink + zapEventLink;
         noteHeroZaps.appendChild(zapReaction);
       }
     } else {
       // Bellow the minimum,
-      const payNoteReactions = parentNote.querySelector(".noteZaps");
-      const zapReaction = document.createElement("div");
-      zapReaction.className = "zapReaction";
+      const payNoteReactions = parentNote.querySelector('.noteZaps');
+      const zapReaction = document.createElement('div');
+      zapReaction.className = 'zapReaction';
       zapReaction.innerHTML = zapPayerLink + zapEventLink;
       payNoteReactions.appendChild(zapReaction);
     }

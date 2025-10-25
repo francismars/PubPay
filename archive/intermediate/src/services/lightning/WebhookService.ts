@@ -8,7 +8,10 @@ export class WebhookService {
   private invoiceService: InvoiceService;
   private webhookHandlers: Map<string, (data: WebhookData) => void> = new Map();
 
-  constructor(lightningService: LightningService, invoiceService: InvoiceService) {
+  constructor(
+    lightningService: LightningService,
+    invoiceService: InvoiceService
+  ) {
     this.lightningService = lightningService;
     this.invoiceService = invoiceService;
   }
@@ -125,7 +128,9 @@ export class WebhookService {
   /**
    * Find matching session for webhook data
    */
-  private findMatchingSession(webhookData: WebhookData): LightningSession | null {
+  private findMatchingSession(
+    webhookData: WebhookData
+  ): LightningSession | null {
     const sessions = this.lightningService.getActiveSessions();
 
     // Try to match by description (event ID)
@@ -168,12 +173,18 @@ export class WebhookService {
         return true;
       } else if (webhookData.status === 'expired') {
         // Mark invoice as expired
-        this.invoiceService.updateInvoiceStatus(webhookData.payment_hash, 'expired');
+        this.invoiceService.updateInvoiceStatus(
+          webhookData.payment_hash,
+          'expired'
+        );
         // Debug log removed
         return true;
       } else if (webhookData.status === 'cancelled') {
         // Mark invoice as cancelled
-        this.invoiceService.updateInvoiceStatus(webhookData.payment_hash, 'cancelled');
+        this.invoiceService.updateInvoiceStatus(
+          webhookData.payment_hash,
+          'cancelled'
+        );
         // Debug log removed
         return true;
       }
@@ -205,7 +216,7 @@ export class WebhookService {
     totalHandlers: number;
     activeSessions: number;
     recentWebhooks: number;
-    } {
+  } {
     return {
       totalHandlers: this.webhookHandlers.size,
       activeSessions: this.lightningService.getActiveSessions().length,

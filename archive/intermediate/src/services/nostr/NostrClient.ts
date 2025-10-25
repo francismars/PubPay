@@ -1,5 +1,11 @@
 // NostrClient - Handles all Nostr protocol interactions
-import { NostrEvent, NostrFilter, RelayConnection, EventHandler, Subscription } from '../../types/nostr';
+import {
+  NostrEvent,
+  NostrFilter,
+  RelayConnection,
+  EventHandler,
+  Subscription
+} from '../../types/nostr';
 import { RELAYS } from '../../utils/constants';
 import { QueryClient } from '@tanstack/react-query';
 
@@ -20,7 +26,9 @@ export class NostrClient {
     if (typeof window !== 'undefined' && (window as any).NostrTools) {
       this.pool = new (window as any).NostrTools.SimplePool();
     } else {
-      throw new Error('NostrTools not available. Make sure nostrtools.min.js is loaded.');
+      throw new Error(
+        'NostrTools not available. Make sure nostrtools.min.js is loaded.'
+      );
     }
   }
 
@@ -179,7 +187,9 @@ export class NostrClient {
       const msg = String(error?.message || error || '');
       // Ignore NIP-13 PoW requirement errors if at least one relay accepts elsewhere
       if (msg.includes('pow:') || msg.toLowerCase().includes('proof-of-work')) {
-        console.warn('Publish encountered PoW requirement; treating as non-fatal');
+        console.warn(
+          'Publish encountered PoW requirement; treating as non-fatal'
+        );
         return; // soft-success
       }
       console.error('Failed to publish event:', error);
@@ -231,41 +241,54 @@ export class NostrClient {
         console.log('Filter structure:', JSON.stringify(filters, null, 2));
 
         // Ensure filters are plain objects
-        const cleanFilters = filters.map(filter => JSON.parse(JSON.stringify(filter)));
+        const cleanFilters = filters.map(filter =>
+          JSON.parse(JSON.stringify(filter))
+        );
         console.log('Clean filters:', cleanFilters);
 
         const events: NostrEvent[] = [];
         let isComplete = false;
 
-        const subscription = this.pool.subscribeMany(this.relays, cleanFilters, {
-          onevent(event: NostrEvent) {
-            events.push(event);
-          },
-          oneose() {
-            if (!isComplete) {
-              isComplete = true;
-              resolve(events);
-            }
-          },
-          onclosed() {
-            if (!isComplete) {
-              isComplete = true;
-              console.log('Subscription closed, resolving with', events.length, 'events');
-              resolve(events);
+        const subscription = this.pool.subscribeMany(
+          this.relays,
+          cleanFilters,
+          {
+            onevent(event: NostrEvent) {
+              events.push(event);
+            },
+            oneose() {
+              if (!isComplete) {
+                isComplete = true;
+                resolve(events);
+              }
+            },
+            onclosed() {
+              if (!isComplete) {
+                isComplete = true;
+                console.log(
+                  'Subscription closed, resolving with',
+                  events.length,
+                  'events'
+                );
+                resolve(events);
+              }
             }
           }
-        });
+        );
 
         // Timeout after 10 seconds
         setTimeout(() => {
           if (!isComplete) {
             isComplete = true;
             subscription.close();
-            console.log('Timeout reached, resolving with', events.length, 'events');
+            console.log(
+              'Timeout reached, resolving with',
+              events.length,
+              'events'
+            );
             resolve(events);
           }
         }, 10000);
-
       } catch (error) {
         console.error('Failed to get events:', error);
         reject(new Error(`Failed to get events: ${error}`));
@@ -295,7 +318,7 @@ export class NostrClient {
    * Unsubscribe from all subscriptions
    */
   unsubscribeAll(): void {
-    this.subscriptions.forEach((subscription) => {
+    this.subscriptions.forEach(subscription => {
       subscription.unsubscribe();
     });
     this.subscriptions.clear();

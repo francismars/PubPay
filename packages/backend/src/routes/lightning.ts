@@ -19,28 +19,31 @@ export class LightningRouter {
     this.webhookService = new WebhookService();
     this.sessionService = SessionService.getInstance();
     this.logger = new Logger('LightningRouter');
-    
+
     this.initializeRoutes();
   }
 
   private initializeRoutes(): void {
     // Enable Lightning payments
     this.router.post('/enable', this.enableLightningPayments.bind(this));
-    
+
     // Disable Lightning payments
     this.router.post('/disable', this.disableLightningPayments.bind(this));
-    
+
     // Webhook endpoint for payment notifications
     this.router.post('/webhook', this.processWebhook.bind(this));
-    
+
     // Debug endpoint
     this.router.get('/debug/sessions', this.debugSessions.bind(this));
-    
+
     // Health check for Lightning service
     this.router.get('/health', this.healthCheck.bind(this));
   }
 
-  private async enableLightningPayments(req: Request, res: Response): Promise<void> {
+  private async enableLightningPayments(
+    req: Request,
+    res: Response
+  ): Promise<void> {
     try {
       this.logger.info('⚡ Lightning enable endpoint called:', {
         frontendSessionId: req.body.frontendSessionId,
@@ -54,13 +57,18 @@ export class LightningRouter {
 
       // Validate required parameters
       if (!frontendSessionId || !eventId) {
-        const errorMsg = 'Missing required parameters: frontendSessionId and eventId are both required';
-        this.logger.warn('❌ Validation failed:', { frontendSessionId, eventId });
-        
+        const errorMsg =
+          'Missing required parameters: frontendSessionId and eventId are both required';
+        this.logger.warn('❌ Validation failed:', {
+          frontendSessionId,
+          eventId
+        });
+
         res.status(400).json({
           success: false,
           error: errorMsg,
-          details: 'Please provide both frontendSessionId and eventId in the request body'
+          details:
+            'Please provide both frontendSessionId and eventId in the request body'
         });
         return;
       }
@@ -75,13 +83,15 @@ export class LightningRouter {
         eventActive: existingSession?.events?.[eventId]?.active,
         allSessions: this.sessionService.getAllSessions().length
       });
-      
+
       if (existingSession?.events[eventId]?.active) {
         // Update last seen and return existing LNURL
         this.sessionService.updateLastSeen(frontendSessionId, eventId);
-        
-        this.logger.info(`✅ Session validation successful - reusing existing LNURL for session: ${frontendSessionId}, event: ${eventId}`);
-        
+
+        this.logger.info(
+          `✅ Session validation successful - reusing existing LNURL for session: ${frontendSessionId}, event: ${eventId}`
+        );
+
         const response = {
           success: true,
           message: 'Lightning payments enabled (reusing existing link)',
@@ -94,24 +104,36 @@ export class LightningRouter {
             status: 'active'
           }
         };
-        
+
         this.logger.info('📤 Sending response:', response);
         res.json(response);
         return;
       }
 
       // Create new Lightning session (session not found or expired)
-      this.logger.info('🔄 Session not found or expired - creating new Lightning session...');
-      const result = await this.lightningService.enableLightningPayments(eventId, frontendSessionId);
-      
+      this.logger.info(
+        '🔄 Session not found or expired - creating new Lightning session...'
+      );
+      const result = await this.lightningService.enableLightningPayments(
+        eventId,
+        frontendSessionId
+      );
+
       this.logger.info('📥 LightningService result:', result);
-      
+
       if (result.success && result.lnurl) {
         // Store session data with both LNURL and ID
-        this.sessionService.createOrUpdateSession(frontendSessionId, eventId, result.lnurl, result.id);
-        
-        this.logger.info(`✅ Successfully created new LNURL for session: ${frontendSessionId}, event: ${eventId}`);
-        
+        this.sessionService.createOrUpdateSession(
+          frontendSessionId,
+          eventId,
+          result.lnurl,
+          result.id
+        );
+
+        this.logger.info(
+          `✅ Successfully created new LNURL for session: ${frontendSessionId}, event: ${eventId}`
+        );
+
         const response = {
           success: true,
           message: 'Lightning payments enabled with new payment link',
@@ -124,11 +146,14 @@ export class LightningRouter {
             status: 'active'
           }
         };
-        
+
         this.logger.info('📤 Sending response:', response);
         res.json(response);
       } else {
-        this.logger.error('❌ Failed to enable Lightning payments:', result.error);
+        this.logger.error(
+          '❌ Failed to enable Lightning payments:',
+          result.error
+        );
         const errorResponse = {
           success: false,
           error: result.error || 'Failed to enable Lightning payments',
@@ -137,7 +162,7 @@ export class LightningRouter {
             checkNetwork: 'Ensure server can reach LNBits API'
           }
         };
-        
+
         this.logger.info('📤 Sending error response:', errorResponse);
         res.status(500).json(errorResponse);
       }
@@ -148,13 +173,16 @@ export class LightningRouter {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       };
-      
+
       this.logger.info('📤 Sending error response:', errorResponse);
       res.status(500).json(errorResponse);
     }
   }
 
-  private async disableLightningPayments(req: Request, res: Response): Promise<void> {
+  private async disableLightningPayments(
+    req: Request,
+    res: Response
+  ): Promise<void> {
     try {
       this.logger.info('🔌 Lightning disable endpoint called:', {
         frontendSessionId: req.body.frontendSessionId,
@@ -166,21 +194,31 @@ export class LightningRouter {
 
       // Validate required parameters
       if (!frontendSessionId || !eventId) {
-        const errorMsg = 'Missing required parameters: frontendSessionId and eventId are both required';
-        this.logger.warn('❌ Validation failed:', { frontendSessionId, eventId });
-        
+        const errorMsg =
+          'Missing required parameters: frontendSessionId and eventId are both required';
+        this.logger.warn('❌ Validation failed:', {
+          frontendSessionId,
+          eventId
+        });
+
         res.status(400).json({
           success: false,
           error: errorMsg,
-          details: 'Please provide both frontendSessionId and eventId in the request body'
+          details:
+            'Please provide both frontendSessionId and eventId in the request body'
         });
         return;
       }
 
       // Deactivate session
-      const wasActive = this.sessionService.deactivateSession(frontendSessionId, eventId);
-      
-      this.logger.info(`🔌 Disabled Lightning payments for session: ${frontendSessionId}, event: ${eventId} (was active: ${wasActive})`);
+      const wasActive = this.sessionService.deactivateSession(
+        frontendSessionId,
+        eventId
+      );
+
+      this.logger.info(
+        `🔌 Disabled Lightning payments for session: ${frontendSessionId}, event: ${eventId} (was active: ${wasActive})`
+      );
 
       res.json({
         success: true,
@@ -220,9 +258,9 @@ export class LightningRouter {
       // Process webhook through WebhookService
       this.logger.info('🔄 Processing webhook through WebhookService...');
       const result = await this.webhookService.processWebhook(paymentData);
-      
+
       this.logger.info('📥 WebhookService result:', result);
-      
+
       if (result.success) {
         this.logger.info('✅ Webhook processed successfully:', result.message);
         this.logger.info('📤 Sending success response:', result);
@@ -239,7 +277,7 @@ export class LightningRouter {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       };
-      
+
       this.logger.info('📤 Sending error response:', errorResponse);
       res.status(500).json(errorResponse);
     }
@@ -248,34 +286,47 @@ export class LightningRouter {
   private debugSessions(_req: Request, res: Response): void {
     try {
       this.logger.info('🔍 Debug sessions endpoint called');
-      
+
       const sessions = this.sessionService.getAllSessions();
       const lnurlpMappings = this.sessionService.getAllLNURLMappings();
-      
+
       res.json({
         success: true,
         data: {
           sessions: sessions.map(([id, session]: [string, any]) => ({
             frontendSessionId: id,
-            events: Object.entries(session.events).map(([eventId, eventData]: [string, any]) => ({
-              eventId,
-              lnurl: eventData.lnurl,
-              active: eventData.active,
-              lastSeen: new Date(eventData.lastSeen).toISOString(),
-              ageMinutes: Math.round((Date.now() - eventData.lastSeen) / 60000)
-            })),
+            events: Object.entries(session.events).map(
+              ([eventId, eventData]: [string, any]) => ({
+                eventId,
+                lnurl: eventData.lnurl,
+                active: eventData.active,
+                lastSeen: new Date(eventData.lastSeen).toISOString(),
+                ageMinutes: Math.round(
+                  (Date.now() - eventData.lastSeen) / 60000
+                )
+              })
+            ),
             totalEvents: Object.keys(session.events).length,
-            activeEvents: Object.values(session.events).filter((e: any) => e.active).length
+            activeEvents: Object.values(session.events).filter(
+              (e: any) => e.active
+            ).length
           })),
-          lnurlpMappings: lnurlpMappings.map(([lnurlpId, mapping]: [string, any]) => ({
-            lnurlpId,
-            frontendSessionId: mapping.frontendSessionId,
-            eventId: mapping.eventId
-          })),
+          lnurlpMappings: lnurlpMappings.map(
+            ([lnurlpId, mapping]: [string, any]) => ({
+              lnurlpId,
+              frontendSessionId: mapping.frontendSessionId,
+              eventId: mapping.eventId
+            })
+          ),
           summary: {
             totalSessions: sessions.length,
-            totalActiveEvents: sessions.reduce((sum: number, [, session]: [string, any]) => 
-              sum + Object.values(session.events).filter((e: any) => e.active).length, 0),
+            totalActiveEvents: sessions.reduce(
+              (sum: number, [, session]: [string, any]) =>
+                sum +
+                Object.values(session.events).filter((e: any) => e.active)
+                  .length,
+              0
+            ),
             totalLNURLMappings: lnurlpMappings.length
           }
         },

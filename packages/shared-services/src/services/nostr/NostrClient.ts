@@ -1,5 +1,11 @@
 // NostrClient - Handles all Nostr protocol interactions
-import { NostrEvent, NostrFilter, RelayConnection, EventHandler, Subscription } from '@pubpay/shared-types';
+import {
+  NostrEvent,
+  NostrFilter,
+  RelayConnection,
+  EventHandler,
+  Subscription
+} from '@pubpay/shared-types';
 import { RELAYS } from '../../utils/constants';
 import { QueryClient } from '@tanstack/react-query';
 import * as NostrTools from 'nostr-tools';
@@ -188,7 +194,9 @@ export class NostrClient {
       const msg = String(error?.message || error || '');
       // Ignore NIP-13 PoW requirement errors if at least one relay accepts elsewhere
       if (msg.includes('pow:') || msg.toLowerCase().includes('proof-of-work')) {
-        console.warn('Publish encountered PoW requirement; treating as non-fatal');
+        console.warn(
+          'Publish encountered PoW requirement; treating as non-fatal'
+        );
         return; // soft-success
       }
       console.error('Failed to publish event:', error);
@@ -240,44 +248,58 @@ export class NostrClient {
         console.log('Filter structure:', JSON.stringify(filters, null, 2));
 
         // Ensure filters are plain objects and properly format hashtag properties
-        const cleanFilters = filters.map(filter => {
-          const cleanFilter: any = {};
-          
-          // Copy standard properties
-          if (filter.kinds) cleanFilter.kinds = filter.kinds;
-          if (filter.authors) cleanFilter.authors = filter.authors;
-          if (filter.ids) cleanFilter.ids = filter.ids;
-          if (filter.limit) cleanFilter.limit = filter.limit;
-          if (filter.until) cleanFilter.until = filter.until;
-          if (filter.since) cleanFilter.since = filter.since;
-          
-          // Handle hashtag properties properly - ensure they are arrays
-          if ((filter as any)['#t']) {
-            cleanFilter['#t'] = Array.isArray((filter as any)['#t']) ? (filter as any)['#t'] : [(filter as any)['#t']];
-          }
-          if ((filter as any)['#e']) {
-            cleanFilter['#e'] = Array.isArray((filter as any)['#e']) ? (filter as any)['#e'] : [(filter as any)['#e']];
-          }
-          if ((filter as any)['#p']) {
-            cleanFilter['#p'] = Array.isArray((filter as any)['#p']) ? (filter as any)['#p'] : [(filter as any)['#p']];
-          }
-          if ((filter as any)['#a']) {
-            cleanFilter['#a'] = Array.isArray((filter as any)['#a']) ? (filter as any)['#a'] : [(filter as any)['#a']];
-          }
-          
-          return cleanFilter;
-        }).filter(filter => {
-          // Filter out empty filters
-          const hasKinds = filter.kinds && filter.kinds.length > 0;
-          const hasAuthors = filter.authors && filter.authors.length > 0;
-          const hasIds = filter.ids && filter.ids.length > 0;
-          const hasTags = filter['#t'] || filter['#e'] || filter['#p'] || filter['#a'];
-          
-          // Additional validation: ensure filter is a proper object
-          const isValidObject = filter && typeof filter === 'object' && !Array.isArray(filter);
-          
-          return isValidObject && hasKinds && (hasAuthors || hasIds || hasTags);
-        });
+        const cleanFilters = filters
+          .map(filter => {
+            const cleanFilter: any = {};
+
+            // Copy standard properties
+            if (filter.kinds) cleanFilter.kinds = filter.kinds;
+            if (filter.authors) cleanFilter.authors = filter.authors;
+            if (filter.ids) cleanFilter.ids = filter.ids;
+            if (filter.limit) cleanFilter.limit = filter.limit;
+            if (filter.until) cleanFilter.until = filter.until;
+            if (filter.since) cleanFilter.since = filter.since;
+
+            // Handle hashtag properties properly - ensure they are arrays
+            if ((filter as any)['#t']) {
+              cleanFilter['#t'] = Array.isArray((filter as any)['#t'])
+                ? (filter as any)['#t']
+                : [(filter as any)['#t']];
+            }
+            if ((filter as any)['#e']) {
+              cleanFilter['#e'] = Array.isArray((filter as any)['#e'])
+                ? (filter as any)['#e']
+                : [(filter as any)['#e']];
+            }
+            if ((filter as any)['#p']) {
+              cleanFilter['#p'] = Array.isArray((filter as any)['#p'])
+                ? (filter as any)['#p']
+                : [(filter as any)['#p']];
+            }
+            if ((filter as any)['#a']) {
+              cleanFilter['#a'] = Array.isArray((filter as any)['#a'])
+                ? (filter as any)['#a']
+                : [(filter as any)['#a']];
+            }
+
+            return cleanFilter;
+          })
+          .filter(filter => {
+            // Filter out empty filters
+            const hasKinds = filter.kinds && filter.kinds.length > 0;
+            const hasAuthors = filter.authors && filter.authors.length > 0;
+            const hasIds = filter.ids && filter.ids.length > 0;
+            const hasTags =
+              filter['#t'] || filter['#e'] || filter['#p'] || filter['#a'];
+
+            // Additional validation: ensure filter is a proper object
+            const isValidObject =
+              filter && typeof filter === 'object' && !Array.isArray(filter);
+
+            return (
+              isValidObject && hasKinds && (hasAuthors || hasIds || hasTags)
+            );
+          });
         console.log('Clean filters:', cleanFilters);
 
         // If no valid filters remain, return empty array
@@ -300,16 +322,26 @@ export class NostrClient {
             },
             oneose() {
               completedSubscriptions++;
-              if (completedSubscriptions === totalSubscriptions && !isComplete) {
+              if (
+                completedSubscriptions === totalSubscriptions &&
+                !isComplete
+              ) {
                 isComplete = true;
                 resolve(events);
               }
             },
             onclosed() {
               completedSubscriptions++;
-              if (completedSubscriptions === totalSubscriptions && !isComplete) {
+              if (
+                completedSubscriptions === totalSubscriptions &&
+                !isComplete
+              ) {
                 isComplete = true;
-                console.log('All subscriptions closed, resolving with', events.length, 'events');
+                console.log(
+                  'All subscriptions closed, resolving with',
+                  events.length,
+                  'events'
+                );
                 resolve(events);
               }
             }
@@ -328,11 +360,14 @@ export class NostrClient {
           if (!isComplete) {
             isComplete = true;
             subscription.close();
-            console.log('Timeout reached, resolving with', events.length, 'events');
+            console.log(
+              'Timeout reached, resolving with',
+              events.length,
+              'events'
+            );
             resolve(events);
           }
         }, 10000);
-
       } catch (error) {
         console.error('Failed to get events:', error);
         reject(new Error(`Failed to get events: ${error}`));
@@ -362,7 +397,7 @@ export class NostrClient {
    * Unsubscribe from all subscriptions
    */
   unsubscribeAll(): void {
-    this.subscriptions.forEach((subscription) => {
+    this.subscriptions.forEach(subscription => {
       subscription.unsubscribe();
     });
     this.subscriptions.clear();

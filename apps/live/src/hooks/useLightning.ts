@@ -1,6 +1,11 @@
 // useLightning - Custom hook for Lightning functionality
 // Updated to use the new backend API endpoints
-import { LightningApiService, LightningApiResponse, LightningStatus, LightningPayment } from '../services/LightningApiService';
+import {
+  LightningApiService,
+  LightningApiResponse,
+  LightningStatus,
+  LightningPayment
+} from '../services/LightningApiService';
 
 export interface UseLightningOptions {
   autoEnable?: boolean;
@@ -37,8 +42,11 @@ export class UseLightning {
     try {
       // Generate a frontend session ID
       const frontendSessionId = this.generateSessionId();
-      
-      const result = await this.apiService.enableLightning(targetEventId, frontendSessionId);
+
+      const result = await this.apiService.enableLightning(
+        targetEventId,
+        frontendSessionId
+      );
 
       if (result.success && result.lnurl) {
         this.isEnabled = true;
@@ -73,7 +81,10 @@ export class UseLightning {
 
     try {
       const frontendSessionId = this.sessionId || this.generateSessionId();
-      const result = await this.apiService.disableLightning(targetEventId, frontendSessionId);
+      const result = await this.apiService.disableLightning(
+        targetEventId,
+        frontendSessionId
+      );
 
       if (result.success) {
         this.isEnabled = false;
@@ -170,7 +181,7 @@ export class UseLightning {
     if (existingSessionId) {
       return existingSessionId;
     }
-    
+
     // Generate new session ID and store it
     const newSessionId = `frontend_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     localStorage.setItem('lightningSessionId', newSessionId);
@@ -178,10 +189,22 @@ export class UseLightning {
   }
 
   // Getters
-  get enabled(): boolean { return this.isEnabled; }
-  get loading(): boolean { return this.isLoading; }
-  get lastError(): string | null { return this.error; }
-  get currentLnurl(): string | null { return this.lnurl; }
-  get currentSessionId(): string | null { return this.sessionId; }
-  get apiServiceInstance(): LightningApiService { return this.apiService; }
+  get enabled(): boolean {
+    return this.isEnabled;
+  }
+  get loading(): boolean {
+    return this.isLoading;
+  }
+  get lastError(): string | null {
+    return this.error;
+  }
+  get currentLnurl(): string | null {
+    return this.lnurl;
+  }
+  get currentSessionId(): string | null {
+    return this.sessionId;
+  }
+  get apiServiceInstance(): LightningApiService {
+    return this.apiService;
+  }
 }

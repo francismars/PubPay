@@ -29,17 +29,22 @@ export class ZapService {
       console.log('getInvoiceCallBack called with:', { eventData, authorData });
 
       // Check for zap-lnurl tag first, then fall back to author's lud16
-      const zapLNURL = (eventData as any).tags.find((tag: any) => tag[0] === 'zap-lnurl');
+      const zapLNURL = (eventData as any).tags.find(
+        (tag: any) => tag[0] === 'zap-lnurl'
+      );
       let eventCreatorProfileContent: any = {};
       try {
-        eventCreatorProfileContent = JSON.parse((authorData as any)?.content || '{}');
+        eventCreatorProfileContent = JSON.parse(
+          (authorData as any)?.content || '{}'
+        );
       } catch {
         eventCreatorProfileContent = {};
       }
 
-      const lud16 = zapLNURL && zapLNURL.length > 0
-        ? zapLNURL[1]
-        : eventCreatorProfileContent.lud16;
+      const lud16 =
+        zapLNURL && zapLNURL.length > 0
+          ? zapLNURL[1]
+          : eventCreatorProfileContent.lud16;
 
       if (!lud16) {
         console.error('No LUD16 address found for author');
@@ -60,11 +65,11 @@ export class ZapService {
           `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`
         );
       } catch {
-        errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
+        errorResponse = "CAN'T PAY: Failed to fetch lud16";
       }
 
       if (!response || response === undefined) {
-        errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
+        errorResponse = "CAN'T PAY: Failed to fetch lud16";
       }
 
       if (errorResponse) {
@@ -74,7 +79,7 @@ export class ZapService {
 
       const lnurlinfo = await response!.json();
       if (!(lnurlinfo.allowsNostr === true)) {
-        errorResponse = 'CAN\'T PAY: No nostr support';
+        errorResponse = "CAN'T PAY: No nostr support";
       }
 
       if (errorResponse) {
@@ -103,9 +108,14 @@ export class ZapService {
   ): Promise<ZapEventData | null> {
     try {
       // Find zap-min tag for minimum amount
-      const zapMintag = (eventData as any).tags.find((tag: any) => tag[0] === 'zap-min');
+      const zapMintag = (eventData as any).tags.find(
+        (tag: any) => tag[0] === 'zap-min'
+      );
       const zapTagAmount = zapMintag ? zapMintag[1] : 1000;
-      const amountPay = rangeValue !== -1 ? parseInt(rangeValue.toString()) * 1000 : Math.floor(parseInt(zapTagAmount));
+      const amountPay =
+        rangeValue !== -1
+          ? parseInt(rangeValue.toString()) * 1000
+          : Math.floor(parseInt(zapTagAmount));
 
       // Create zap request using NostrTools.nip57.makeZapRequest
       const zapEvent = await NostrTools.nip57.makeZapRequest({
@@ -157,10 +167,16 @@ export class ZapService {
   ): Promise<boolean> {
     try {
       // Check for authentication state in localStorage/sessionStorage (React app)
-      const publicKey = localStorage.getItem('publicKey') || sessionStorage.getItem('publicKey');
-      const signInMethod = localStorage.getItem('signInMethod') || sessionStorage.getItem('signInMethod');
-      const privateKey = localStorage.getItem('privateKey') || sessionStorage.getItem('privateKey');
-      
+      const publicKey =
+        localStorage.getItem('publicKey') ||
+        sessionStorage.getItem('publicKey');
+      const signInMethod =
+        localStorage.getItem('signInMethod') ||
+        sessionStorage.getItem('signInMethod');
+      const privateKey =
+        localStorage.getItem('privateKey') ||
+        sessionStorage.getItem('privateKey');
+
       console.log('Sign in method:', signInMethod);
       console.log('Public key:', publicKey);
       console.log('Has private key:', !!privateKey);
@@ -197,9 +213,14 @@ export class ZapService {
           return false;
         }
         const { data } = NostrTools.nip19.decode(privateKey);
-        zapFinalized = NostrTools.finalizeEvent(zapEvent as any, data as unknown as Uint8Array);
+        zapFinalized = NostrTools.finalizeEvent(
+          zapEvent as any,
+          data as unknown as Uint8Array
+        );
       } else {
-        console.log('No valid signing method found, falling back to anonymous zap');
+        console.log(
+          'No valid signing method found, falling back to anonymous zap'
+        );
         const privateKey = NostrTools.generateSecretKey();
         zapFinalized = NostrTools.finalizeEvent(zapEvent as any, privateKey);
       }
@@ -250,7 +271,11 @@ export class ZapService {
 
       if (!responseFinal.ok) {
         const errorText = await responseFinal.text();
-        console.error('Failed to get invoice from callback:', responseFinal.status, errorText);
+        console.error(
+          'Failed to get invoice from callback:',
+          responseFinal.status,
+          errorText
+        );
         return;
       }
 
@@ -272,14 +297,22 @@ export class ZapService {
   /**
    * Handle fetched invoice (matches original handleFetchedInvoice)
    */
-          async handleFetchedInvoice(invoice: string, zapEventID: string): Promise<void> {
-            console.log('handleFetchedInvoice called with:', { invoice: `${invoice.substring(0, 50)  }...`, zapEventID });
-            // Open invoice overlay via UI store
-            try {
-              const { useUIStore } = await import('../state/uiStore');
-              useUIStore.getState().openInvoice({ bolt11: invoice, amount: 0, eventId: zapEventID });
-            } catch (e) {
-              console.error('Failed to open invoice overlay via store:', e);
-            }
-          }
+  async handleFetchedInvoice(
+    invoice: string,
+    zapEventID: string
+  ): Promise<void> {
+    console.log('handleFetchedInvoice called with:', {
+      invoice: `${invoice.substring(0, 50)}...`,
+      zapEventID
+    });
+    // Open invoice overlay via UI store
+    try {
+      const { useUIStore } = await import('../state/uiStore');
+      useUIStore
+        .getState()
+        .openInvoice({ bolt11: invoice, amount: 0, eventId: zapEventID });
+    } catch (e) {
+      console.error('Failed to open invoice overlay via store:', e);
+    }
+  }
 }

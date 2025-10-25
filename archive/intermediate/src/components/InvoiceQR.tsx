@@ -21,5 +21,3 @@ export const InvoiceQR: React.FC<InvoiceQRProps> = ({ bolt11 }) => {
 
   return <canvas id="invoiceQR" ref={canvasRef}></canvas>;
 };
-
-

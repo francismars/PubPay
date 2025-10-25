@@ -8,5 +8,3 @@ export const getQueryClient = (): QueryClient => {
   }
   return client;
 };
-
-

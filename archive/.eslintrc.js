@@ -4,19 +4,14 @@ module.exports = {
     es2021: true,
     node: true
   },
-  extends: [
-    'eslint:recommended',
-    '@typescript-eslint/recommended'
-  ],
+  extends: ['eslint:recommended', '@typescript-eslint/recommended'],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
     project: './tsconfig.json'
   },
-  plugins: [
-    '@typescript-eslint'
-  ],
+  plugins: ['@typescript-eslint'],
   rules: {
     // TypeScript specific rules
     '@typescript-eslint/no-unused-vars': 'error',
@@ -24,7 +19,7 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     '@typescript-eslint/no-inferrable-types': 'off',
-    
+
     // General rules
     'no-console': 'warn',
     'no-debugger': 'error',
@@ -32,19 +27,14 @@ module.exports = {
     'no-var': 'error',
     'object-shorthand': 'error',
     'prefer-template': 'error',
-    
+
     // Code style
-    'indent': ['error', 2],
-    'quotes': ['error', 'single'],
-    'semi': ['error', 'always'],
+    indent: ['error', 2],
+    quotes: ['error', 'single'],
+    semi: ['error', 'always'],
     'comma-dangle': ['error', 'never'],
     'no-trailing-spaces': 'error',
     'eol-last': 'error'
   },
-  ignorePatterns: [
-    'dist/',
-    'node_modules/',
-    'public/',
-    '*.js'
-  ]
+  ignorePatterns: ['dist/', 'node_modules/', 'public/', '*.js']
 };

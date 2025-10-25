@@ -165,13 +165,15 @@ export class ChatMessageComponent extends BaseComponent {
 
     // Truncate content if too long
     let displayContent = this.message.content;
-    if (this.options.maxLength && displayContent.length > this.options.maxLength) {
-      displayContent = `${displayContent.substring(0, this.options.maxLength)  }...`;
+    if (
+      this.options.maxLength &&
+      displayContent.length > this.options.maxLength
+    ) {
+      displayContent = `${displayContent.substring(0, this.options.maxLength)}...`;
     }
 
     // Escape HTML and preserve line breaks
-    displayContent = this.escapeHtml(displayContent)
-      .replace(/\n/g, '<br>');
+    displayContent = this.escapeHtml(displayContent).replace(/\n/g, '<br>');
 
     content.innerHTML = displayContent;
     return content;
@@ -187,7 +189,7 @@ export class ChatMessageComponent extends BaseComponent {
     if (this.message.author?.name) {
       return this.message.author.name;
     }
-    return `${this.message.pubkey.slice(0, 8)  }...`;
+    return `${this.message.pubkey.slice(0, 8)}...`;
   }
 
   /**

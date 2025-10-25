@@ -53,7 +53,10 @@ export class WebhookService {
       // Find matching session
       const mapping = this.sessionService.getLNURLMapping(webhookData.lnurlp);
       if (!mapping) {
-        this.logger.error('LNURL-pay ID not found in mappings:', webhookData.lnurlp);
+        this.logger.error(
+          'LNURL-pay ID not found in mappings:',
+          webhookData.lnurlp
+        );
         return {
           success: false,
           error: 'Payment session not found',
@@ -62,11 +65,17 @@ export class WebhookService {
       }
 
       const { frontendSessionId, eventId } = mapping;
-      this.logger.info(`Found mapping: ${webhookData.lnurlp} -> ${frontendSessionId}/${eventId}`);
+      this.logger.info(
+        `Found mapping: ${webhookData.lnurlp} -> ${frontendSessionId}/${eventId}`
+      );
 
       // Verify session is active
       const session = this.sessionService.getSession(frontendSessionId);
-      if (!session || !session.events[eventId] || !session.events[eventId].active) {
+      if (
+        !session ||
+        !session.events[eventId] ||
+        !session.events[eventId].active
+      ) {
         this.logger.error('Invalid or inactive session:', {
           frontendSessionId,
           eventId,
@@ -74,11 +83,12 @@ export class WebhookService {
           eventExists: session?.events?.[eventId] ? true : false,
           eventActive: session?.events?.[eventId]?.active
         });
-        
+
         return {
           success: false,
           error: 'Invalid or inactive session',
-          message: 'The payment session is either not found, inactive, or does not match the event ID'
+          message:
+            'The payment session is either not found, inactive, or does not match the event ID'
         };
       }
 
@@ -88,13 +98,17 @@ export class WebhookService {
       // Process payment and create zap
       const amount = webhookData.amount || 1000; // Default to 1 sat if not provided
       const comment = webhookData.comment || 'Lightning payment';
-      
-      this.logger.info(`⚡ Processing Lightning payment: ${amount} sats for event ${eventId} with comment: "${comment}"`);
-      
+
+      this.logger.info(
+        `⚡ Processing Lightning payment: ${amount} sats for event ${eventId} with comment: "${comment}"`
+      );
+
       try {
         await this.nostrService.sendAnonymousZap(eventId, amount, comment);
-        this.logger.info(`✅ Successfully published anonymous zap: ${amount} sats for event ${eventId}`);
-        
+        this.logger.info(
+          `✅ Successfully published anonymous zap: ${amount} sats for event ${eventId}`
+        );
+
         return {
           success: true,
           message: 'Payment processed and zap published successfully',
@@ -107,7 +121,9 @@ export class WebhookService {
           zapStatus: 'Published to Nostr relays'
         };
       } catch (error) {
-        this.logger.error(`❌ Failed to publish zap: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        this.logger.error(
+          `❌ Failed to publish zap: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
         // Don't fail the webhook response, just log the error
         return {
           success: true,
@@ -127,7 +143,7 @@ export class WebhookService {
         webhookData,
         stack: error instanceof Error ? error.stack : undefined
       });
-      
+
       return {
         success: false,
         error: 'Failed to process webhook',
@@ -139,7 +155,10 @@ export class WebhookService {
   /**
    * Validate webhook data structure
    */
-  private validateWebhookData(webhookData: any): { valid: boolean; errors: string[] } {
+  private validateWebhookData(webhookData: any): {
+    valid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!webhookData) {
@@ -151,7 +170,10 @@ export class WebhookService {
       errors.push('Missing LNURL-pay ID');
     }
 
-    if (webhookData.amount && (typeof webhookData.amount !== 'number' || webhookData.amount < 0)) {
+    if (
+      webhookData.amount &&
+      (typeof webhookData.amount !== 'number' || webhookData.amount < 0)
+    ) {
       errors.push('Invalid amount');
     }
 
