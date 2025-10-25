@@ -14,8 +14,8 @@ import { Logger } from './utils/logger';
 
 import path from 'path';
 
-// Load environment variables from project root
-const envPath = path.resolve(__dirname, '../../../.env');
+// Load environment variables from backend folder
+const envPath = path.resolve(__dirname, '../.env');
 dotenv.config({ path: envPath });
 
 export class BackendServer {
