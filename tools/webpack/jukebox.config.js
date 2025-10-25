@@ -1,6 +1,5 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   mode: 'development',
@@ -38,7 +37,7 @@ module.exports = {
         use: ['style-loader', 'css-loader'],
       },
       {
-        test: /\.(png|jpe?g|gif|svg|webp)$/i,
+        test: /\.(png|jpe?g|gif|svg|webp|ico)$/i,
         type: 'asset/resource',
         generator: {
           filename: 'images/[name][ext]',
@@ -50,14 +49,6 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: '../../apps/jukebox/src/index.html',
       filename: 'index.html',
-    }),
-    new CopyWebpackPlugin({
-      patterns: [
-        {
-          from: path.resolve(__dirname, '../../public/images'),
-          to: path.resolve(__dirname, '../../dist/jukebox/images'),
-        },
-      ],
     }),
     new (require('webpack')).DefinePlugin({
       'process.env': JSON.stringify(process.env),

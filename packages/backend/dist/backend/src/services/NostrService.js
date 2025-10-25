@@ -59,34 +59,86 @@ class NostrService {
      */
     async sendAnonymousZap(eventId, amount, comment) {
         try {
-            this.logger.info(`Creating zap request for event ${eventId} with amount ${amount} sats`);
+            this.logger.info(`⚡ Creating zap request:`, {
+                eventId,
+                amount,
+                comment,
+                timestamp: new Date().toISOString()
+            });
             // Generate anonymous key pair
+            this.logger.info('🔑 Generating anonymous key pair...');
             const privateKey = crypto.randomBytes(32);
             const publicKey = this.getPublicKeyFromPrivate(privateKey);
+            this.logger.info('✅ Anonymous key pair generated:', {
+                publicKey: publicKey.substring(0, 16) + '...'
+            });
             // Decode event ID if it's encoded (note1... or nevent1...)
+            this.logger.info('🔍 Decoding event ID...');
             const rawEventId = this.decodeEventId(eventId);
+            this.logger.info('✅ Event ID decoded:', {
+                original: eventId,
+                decoded: rawEventId
+            });
             // Get recipient public key from event
+            this.logger.info('🔍 Getting recipient public key from event...');
             const recipientPubkey = await this.getRecipientPubkey(rawEventId);
             if (!recipientPubkey) {
+                this.logger.error('❌ Could not determine recipient public key');
                 throw new Error('Could not determine recipient public key');
             }
+            this.logger.info('✅ Recipient public key found:', {
+                pubkey: recipientPubkey.substring(0, 16) + '...'
+            });
+            // Get recipient's Lightning address from profile
+            this.logger.info('🔍 Getting recipient Lightning address...');
+            const lightningAddress = await this.getLightningAddress(recipientPubkey);
+            if (!lightningAddress) {
+                this.logger.error('❌ No Lightning address found in recipient profile');
+                throw new Error('Recipient has no Lightning address configured');
+            }
+            this.logger.info('✅ Lightning address found:', lightningAddress);
+            // Get LNURL callback URL
+            this.logger.info('🔍 Getting LNURL callback URL...');
+            const lnurlCallback = await this.getLNURLCallback(lightningAddress);
+            this.logger.info('✅ LNURL callback URL:', lnurlCallback);
             // Create zap request (kind 9734)
+            this.logger.info('🔄 Creating zap request (kind 9734)...');
             const zapRequest = this.createZapRequest(recipientPubkey, rawEventId, amount, comment, publicKey);
-            // Create zap receipt (kind 9735)
-            const zapReceipt = this.createZapReceipt(recipientPubkey, rawEventId, amount, comment, zapRequest);
-            // Sign the zap receipt
-            const signedEvent = this.signEvent(zapReceipt, privateKey);
-            // Publish to relays
-            const publishedRelays = await this.publishToRelays(signedEvent);
-            this.logger.info(`✅ Zap published successfully to ${publishedRelays.length} relays`);
+            this.logger.info('✅ Zap request created:', {
+                kind: zapRequest.kind,
+                content: zapRequest.content,
+                tagsCount: zapRequest.tags.length
+            });
+            // Sign the zap request
+            this.logger.info('🔐 Signing zap request...');
+            const signedEvent = this.signEvent(zapRequest, privateKey);
+            this.logger.info('✅ Zap request signed:', {
+                eventId: signedEvent.id,
+                signature: signedEvent.sig.substring(0, 16) + '...'
+            });
+            // Send zap request to LNURL callback (NOT publish to relays)
+            this.logger.info('📡 Sending zap request to LNURL callback...');
+            const zapResult = await this.sendZapRequestToCallback(signedEvent, lnurlCallback, amount);
+            this.logger.info(`✅ Zap request sent successfully:`, {
+                amount,
+                eventId: signedEvent.id,
+                callbackUrl: lnurlCallback,
+                result: zapResult
+            });
             return {
                 success: true,
                 eventId: signedEvent.id,
-                relays: publishedRelays
+                relays: [lnurlCallback] // LNURL callback instead of Nostr relays
             };
         }
         catch (error) {
-            this.logger.error('Error sending anonymous zap:', error);
+            this.logger.error('💥 Error sending anonymous zap:', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                eventId,
+                amount,
+                comment,
+                stack: error instanceof Error ? error.stack : undefined
+            });
             return {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error'
@@ -97,22 +149,29 @@ class NostrService {
      * Decode event ID from note1... or nevent1... format
      */
     decodeEventId(eventId) {
+        this.logger.info('🔍 Decoding event ID:', eventId);
         if (eventId.startsWith('note1') || eventId.startsWith('nevent1')) {
             try {
                 const decoded = nostr_tools_1.nip19.decode(eventId);
+                this.logger.info('✅ Event ID decoded successfully:', decoded);
                 if (eventId.startsWith('note1')) {
                     // note1... decodes to raw hex event ID
-                    return decoded.data;
+                    const rawId = decoded.data;
+                    this.logger.info('📝 note1 decoded to:', rawId);
+                    return rawId;
                 }
                 else if (eventId.startsWith('nevent1')) {
                     // nevent1... decodes to object with id field
-                    return decoded.data.id;
+                    const rawId = decoded.data.id;
+                    this.logger.info('📝 nevent1 decoded to:', rawId);
+                    return rawId;
                 }
             }
             catch (error) {
-                this.logger.warn('Failed to decode event ID, using as-is:', eventId);
+                this.logger.warn('❌ Failed to decode event ID, using as-is:', eventId, error);
             }
         }
+        this.logger.info('📝 Using event ID as-is:', eventId);
         return eventId;
     }
     /**
@@ -143,36 +202,48 @@ class NostrService {
     /**
      * Create zap request (kind 9734)
      */
-    createZapRequest(recipientPubkey, eventId, _amount, comment, senderPubkey) {
-        return {
+    createZapRequest(recipientPubkey, eventId, amount, comment, _senderPubkey) {
+        // Validate all parameters before calling makeZapRequest
+        this.logger.info('🔍 Validating zap request parameters:', {
+            recipientPubkey: recipientPubkey ? `${recipientPubkey.substring(0, 16)}...` : 'UNDEFINED',
+            eventId: eventId ? `${eventId.substring(0, 16)}...` : 'UNDEFINED',
+            amount: amount,
+            comment: comment,
+            relays: this.relays ? this.relays.length : 'UNDEFINED'
+        });
+        // Check for undefined values
+        if (!recipientPubkey) {
+            throw new Error('recipientPubkey is undefined');
+        }
+        if (!eventId) {
+            throw new Error('eventId is undefined');
+        }
+        if (!amount || amount <= 0) {
+            throw new Error(`Invalid amount: ${amount}`);
+        }
+        if (!this.relays || this.relays.length === 0) {
+            throw new Error('No relays configured');
+        }
+        // Create zap request manually instead of using makeZapRequest
+        // This avoids the nostr-tools makeZapRequest bug
+        this.logger.info('🔍 Creating zap request manually (avoiding makeZapRequest bug)');
+        const zapRequest = {
             kind: 9734,
-            content: comment,
+            content: String(comment || ''),
             tags: [
                 ['p', recipientPubkey],
                 ['e', eventId],
                 ['relays', ...this.relays]
             ],
-            pubkey: senderPubkey,
             created_at: Math.floor(Date.now() / 1000)
         };
-    }
-    /**
-     * Create zap receipt (kind 9735)
-     */
-    createZapReceipt(recipientPubkey, eventId, amount, _comment, zapRequest) {
-        // Create a mock invoice for the zap receipt
-        const mockInvoice = `lnbc${amount}u1p0...`; // Simplified mock invoice
-        return {
-            kind: 9735,
-            content: '',
-            tags: [
-                ['p', recipientPubkey],
-                ['e', eventId],
-                ['bolt11', mockInvoice],
-                ['description', JSON.stringify(zapRequest)]
-            ],
-            created_at: Math.floor(Date.now() / 1000)
-        };
+        this.logger.info('✅ Zap request created manually:', {
+            kind: zapRequest.kind,
+            content: zapRequest.content,
+            tagsCount: zapRequest.tags.length,
+            tags: zapRequest.tags
+        });
+        return zapRequest;
     }
     /**
      * Sign event with private key
@@ -183,37 +254,118 @@ class NostrService {
         return (0, nostr_tools_1.finalizeEvent)(event, privateKeyUint8);
     }
     /**
-     * Publish event to relays
+     * Get Lightning address from profile
      */
-    async publishToRelays(event) {
-        const publishedRelays = [];
+    async getLightningAddress(pubkey) {
         try {
-            const publishPromises = this.relays.map(async (relay) => {
-                try {
-                    await this.pool.publish([relay], event);
-                    publishedRelays.push(relay);
-                    this.logger.debug(`Published to relay: ${relay}`);
-                }
-                catch (error) {
-                    this.logger.warn(`Failed to publish to relay ${relay}:`, error);
-                }
+            const profile = await this.pool.get(this.relays, {
+                kinds: [0],
+                authors: [pubkey]
             });
-            await Promise.allSettled(publishPromises);
-            return publishedRelays;
+            if (!profile || !profile.content) {
+                return null;
+            }
+            const profileData = JSON.parse(profile.content);
+            return profileData.lud16 || profileData.lud06 || null;
         }
         catch (error) {
-            this.logger.error('Error publishing to relays:', error);
-            throw error;
+            this.logger.error('Error getting Lightning address:', error);
+            return null;
         }
+    }
+    /**
+     * Get LNURL callback URL from Lightning address
+     */
+    async getLNURLCallback(lightningAddress) {
+        const ludSplit = lightningAddress.split('@');
+        if (ludSplit.length !== 2) {
+            throw new Error(`Invalid Lightning address format: ${lightningAddress}`);
+        }
+        const lnurlDiscoveryUrl = `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`;
+        const response = await fetch(lnurlDiscoveryUrl);
+        if (!response.ok) {
+            throw new Error(`LNURL discovery failed: ${response.status}`);
+        }
+        const data = await response.json();
+        if (!data.callback) {
+            throw new Error('No callback URL found in LNURL discovery');
+        }
+        return data.callback;
+    }
+    /**
+     * Send zap request to LNURL callback and pay the invoice
+     */
+    async sendZapRequestToCallback(zapRequest, callbackUrl, amount) {
+        const zapRequestUrl = `${callbackUrl}?nostr=${encodeURIComponent(JSON.stringify(zapRequest))}&amount=${amount}`;
+        this.logger.info('📡 Sending zap request to LNURL callback:', {
+            url: zapRequestUrl,
+            amount: amount
+        });
+        const response = await fetch(zapRequestUrl);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`LNURL callback error: ${response.status} - ${errorText}`);
+        }
+        const responseData = await response.json();
+        if (!responseData.pr) {
+            throw new Error(`LNURL callback error: ${responseData.reason || 'No invoice returned'}`);
+        }
+        this.logger.info('✅ Received Lightning invoice from LNURL callback:', {
+            invoice: responseData.pr.substring(0, 50) + '...',
+            amount: amount
+        });
+        // Pay the invoice using LNBits API (this is the missing step!)
+        this.logger.info('💳 Paying Lightning invoice using LNBits...');
+        const lnbitsConfig = {
+            baseUrl: process.env['LNBITS_URL'] || 'https://legend.lnbits.com',
+            apiKey: process.env['LNBITS_API_KEY']
+        };
+        if (!lnbitsConfig.apiKey) {
+            throw new Error('LNBITS_API_KEY not configured - cannot pay invoice');
+        }
+        const paymentResponse = await fetch(`${lnbitsConfig.baseUrl}/api/v1/payments`, {
+            method: 'POST',
+            headers: {
+                'X-Api-Key': lnbitsConfig.apiKey,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                out: true,
+                bolt11: responseData.pr
+            })
+        });
+        if (!paymentResponse.ok) {
+            const errorData = await paymentResponse.json();
+            throw new Error(`Failed to pay invoice: ${errorData.detail || 'Unknown error'}`);
+        }
+        const paymentData = await paymentResponse.json();
+        this.logger.info('✅ Lightning invoice paid successfully!', {
+            paymentId: paymentData.payment_hash,
+            amount: amount,
+            status: paymentData.status
+        });
+        this.logger.info('🎉 Zap flow completed - recipient will publish zap receipt (kind 9735)');
+        return {
+            invoice: responseData.pr,
+            paymentData: paymentData,
+            success: true
+        };
     }
     /**
      * Get public key from private key
      */
     getPublicKeyFromPrivate(privateKey) {
-        // This is a simplified implementation
-        // In a real implementation, you'd use proper secp256k1 operations
-        const hash = crypto.createHash('sha256').update(privateKey).digest();
-        return Buffer.from(hash).toString('hex');
+        // Use proper secp256k1 key generation from nostr-tools
+        const { getPublicKey } = require('nostr-tools');
+        // Convert Buffer to hex string
+        const privateKeyHex = privateKey.toString('hex');
+        // Generate public key using nostr-tools
+        const publicKey = getPublicKey(privateKeyHex);
+        this.logger.info('🔑 Generated public key:', {
+            privateKeyLength: privateKey.length,
+            publicKey: publicKey.substring(0, 16) + '...'
+        });
+        return publicKey;
     }
     /**
      * Test relay connectivity

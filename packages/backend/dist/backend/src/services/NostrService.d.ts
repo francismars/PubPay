@@ -26,17 +26,21 @@ export declare class NostrService {
      */
     private createZapRequest;
     /**
-     * Create zap receipt (kind 9735)
-     */
-    private createZapReceipt;
-    /**
      * Sign event with private key
      */
     private signEvent;
     /**
-     * Publish event to relays
+     * Get Lightning address from profile
      */
-    private publishToRelays;
+    private getLightningAddress;
+    /**
+     * Get LNURL callback URL from Lightning address
+     */
+    private getLNURLCallback;
+    /**
+     * Send zap request to LNURL callback and pay the invoice
+     */
+    private sendZapRequestToCallback;
     /**
      * Get public key from private key
      */

@@ -6,7 +6,7 @@ echo.
 start "PubPay - Backend (Port 3002)" cmd /k "pnpm dev:backend"
 timeout /t 2 /nobreak >nul
 
-start "PubPay - Homepage (Port 3000)" cmd /k "pnpm dev:homepage"
+start "PubPay - PUBPAY (Port 3000)" cmd /k "pnpm dev:pubpay"
 timeout /t 1 /nobreak >nul
 
 start "PubPay - Live App (Port 3001)" cmd /k "pnpm dev:live"
