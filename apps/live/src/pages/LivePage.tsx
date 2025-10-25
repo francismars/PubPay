@@ -666,7 +666,7 @@ export const LivePage: React.FC = () => {
                     </div>
                   </div>
                   <div className="preset-preview-container">
-                    <img id="bgPresetPreview" src="" alt="No background" />
+                    <img id="bgPresetPreview" alt="No background" />
                   </div>
                 </div>
               </div>
