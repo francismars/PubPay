@@ -1121,6 +1121,15 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Update total zapped amount
     updateLiveEventZapTotal();
+    
+    // Apply fiat conversion if enabled
+    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+    if (showFiatToggle && showFiatToggle.checked) {
+      // Use setTimeout to ensure DOM is updated before applying fiat conversion
+      setTimeout(() => {
+        debouncedUpdateFiatAmounts();
+      }, 100);
+    }
   };
 
   const subscribeChatAuthorProfile = async (pubkey: string) => {
@@ -1163,6 +1172,15 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
     if (totalCountElement) {
       totalCountElement.innerText = numberWithCommas(totalCount);
+    }
+    
+    // Apply fiat conversion to total if enabled
+    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+    if (showFiatToggle && showFiatToggle.checked) {
+      // Use setTimeout to ensure DOM is updated before applying fiat conversion
+      setTimeout(() => {
+        debouncedUpdateFiatAmounts();
+      }, 50);
     }
   };
 

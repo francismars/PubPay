@@ -1495,6 +1495,7 @@ body.style-panel-open .style-toggle-btn {
   padding: 20px 20px 0px 30px;
   border-radius: 12px;
   margin: 0;
+  overflow: hidden;
 }
 
 .zaps-container::-webkit-scrollbar {
@@ -2799,7 +2800,7 @@ body.style-panel-open .style-toggle-btn {
 .live #noteContent {
   font-size: max(1.8vw, 16px);
   font-weight: 400;
-  height: 32.5vw;
+  
   min-height: 5vw;
   text-overflow: ellipsis;
   overflow-wrap: break-word;
@@ -2915,7 +2916,7 @@ body.style-panel-open .style-toggle-btn {
 .chat-message-header {
   display: flex;
   align-items: center;
-  margin-bottom: 5px;
+  margin-bottom: -4px;
 }
 
 .chat-author-img {
@@ -2948,6 +2949,7 @@ body.style-panel-open .style-toggle-btn {
   line-height: 1.4;
   color: var(--text-color);
   word-wrap: break-word;
+  padding-left: 32px;
 }
 
 /* ===== LIVE EVENT ZAP STYLES ===== */
