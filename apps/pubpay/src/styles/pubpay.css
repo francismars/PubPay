@@ -816,7 +816,7 @@ button.noteMainCTA.cta.disabled.red,
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   animation: fadeIn 0.3s ease-out;
   overflow-y: auto;

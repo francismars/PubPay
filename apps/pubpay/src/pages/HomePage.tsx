@@ -1,5 +1,5 @@
 // Home page component - matches original index.html design exactly
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useUIStore } from '@pubpay/shared-services';
 import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { PayNoteComponent } from '../components/PayNoteComponent';
@@ -25,6 +25,7 @@ export const HomePage: React.FC = () => {
   const [nsecInput, setNsecInput] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [qrScanner, setQrScanner] = useState<any>(null);
+  const [isScannerRunning, setIsScannerRunning] = useState(false);
   const [extensionAvailable, setExtensionAvailable] = useState(true);
   const [externalSignerAvailable, setExternalSignerAvailable] = useState(true);
   const [externalSignerLoading, setExternalSignerLoading] = useState(false);
@@ -33,6 +34,7 @@ export const HomePage: React.FC = () => {
   const [singleNoteId, setSingleNoteId] = useState<string>('');
 
   const qrReaderRef = useRef<HTMLDivElement>(null);
+  const isStoppingScannerRef = useRef(false);
 
   const {
     isLoading,
@@ -172,6 +174,36 @@ export const HomePage: React.FC = () => {
       setIsPublishing(false);
     }
   };
+
+  // Helper function to safely stop the QR scanner
+  const safelyStopScanner = useCallback(async () => {
+    // Prevent multiple simultaneous stop attempts
+    if (isStoppingScannerRef.current) {
+      return;
+    }
+    
+    if (!qrScanner || !isScannerRunning) {
+      // Scanner not running, just clear state
+      setQrScanner(null);
+      setIsScannerRunning(false);
+      return;
+    }
+
+    isStoppingScannerRef.current = true;
+    
+    try {
+      await qrScanner.stop();
+      setIsScannerRunning(false);
+      setQrScanner(null);
+    } catch (error) {
+      // Ignore errors - scanner might already be stopped or in transition
+      console.log('Scanner stop attempted (already stopped or in transition):', error);
+      setIsScannerRunning(false);
+      setQrScanner(null);
+    } finally {
+      isStoppingScannerRef.current = false;
+    }
+  }, [qrScanner, isScannerRunning]);
 
   // Initialize button states on mount
   useEffect(() => {
@@ -339,8 +371,8 @@ export const HomePage: React.FC = () => {
         const readerElement = document.getElementById('reader');
         if (readerElement) {
           const html5QrCode = new (window as any).Html5Qrcode('reader');
-          setQrScanner(html5QrCode);
 
+          // Start the scanner FIRST, then store it in state
           html5QrCode
             .start(
               { facingMode: 'environment' },
@@ -350,8 +382,11 @@ export const HomePage: React.FC = () => {
               },
               async (decodedText: string) => {
                 console.log('QR Code scanned:', decodedText);
-                html5QrCode.stop().then(() => {
-                  setShowQRScanner(false);
+                setIsScannerRunning(false);
+                setShowQRScanner(false);
+                // Don't await stop - just try to stop in background
+                html5QrCode.stop().catch(() => {
+                  // Ignore errors when stopping after scan
                 });
                 await handleScannedContent(decodedText);
               },
@@ -359,8 +394,16 @@ export const HomePage: React.FC = () => {
                 console.error('QR Code scanning error:', errorMessage);
               }
             )
+            .then(() => {
+              // Only set qrScanner and isScannerRunning AFTER scanner successfully starts
+              setQrScanner(html5QrCode);
+              setIsScannerRunning(true);
+              isStoppingScannerRef.current = false; // Reset ref when scanner starts
+            })
             .catch((error: any) => {
               console.error('Failed to start QR scanner:', error);
+              setIsScannerRunning(false);
+              isStoppingScannerRef.current = false; // Reset ref if starting fails
             });
         }
       }, 100);
@@ -369,31 +412,23 @@ export const HomePage: React.FC = () => {
 
   // Cleanup QR scanner when overlay closes
   useEffect(() => {
-    if (!showQRScanner && qrScanner) {
-      // Always try to stop the scanner when overlay closes
-      qrScanner
-        .stop()
-        .then(() => {
-          setQrScanner(null);
-        })
-        .catch((error: any) => {
-          console.error('Error stopping QR scanner:', error);
-          setQrScanner(null);
-        });
+    // Only stop scanner when overlay is closed AND scanner is running
+    if (!showQRScanner && qrScanner && isScannerRunning) {
+      safelyStopScanner();
     }
-  }, [showQRScanner, qrScanner]);
+  }, [showQRScanner, qrScanner, isScannerRunning, safelyStopScanner]);
 
   // Cleanup QR scanner on unmount
   useEffect(() => {
     return () => {
       if (qrScanner) {
-        // Always try to stop the scanner on unmount
-        qrScanner.stop().catch((error: any) => {
-          console.error('Error stopping QR scanner on unmount:', error);
+        // Use the safe stop function but don't await it
+        safelyStopScanner().catch(() => {
+          // Ignore any errors during cleanup
         });
       }
     };
-  }, [qrScanner]);
+  }, [qrScanner, safelyStopScanner]);
 
   // No CustomEvent listener needed; login opens via store
 
@@ -1017,20 +1052,8 @@ export const HomePage: React.FC = () => {
             href="#"
             className="label"
             onClick={() => {
-              if (qrScanner) {
-                // Always try to stop the scanner when close button is clicked
-                qrScanner
-                  .stop()
-                  .then(() => {
-                    setShowQRScanner(false);
-                  })
-                  .catch((error: any) => {
-                    console.error('Error stopping QR scanner:', error);
-                    setShowQRScanner(false);
-                  });
-              } else {
-                setShowQRScanner(false);
-              }
+              // Just close the overlay - useEffect will handle stopping scanner
+              setShowQRScanner(false);
             }}
           >
             cancel
