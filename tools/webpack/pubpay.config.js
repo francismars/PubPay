@@ -81,6 +81,8 @@ module.exports = {
     ],
     compress: true,
     port: 3000,
+    //for ngrok
+    allowedHosts: 'all',
     hot: true,
     historyApiFallback: {
       index: '/index.html'
