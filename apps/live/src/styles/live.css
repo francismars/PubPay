@@ -891,6 +891,8 @@ body {
 .author-image {
   width: 4vw;
   height: 4vw;
+  min-width: 30px;
+  min-height: 30px;
   border-radius: 50%;
   object-fit: cover;
   margin: 0 0.5vw 0 0;
@@ -2380,12 +2382,12 @@ body.style-panel-open .style-toggle-btn {
   }
 
   .qr-swiper {
-    min-height: 180px;
+    min-height: 140px;
     padding-top: 20px;
   }
 
   .qr-swiper .swiper-wrapper {
-    min-height: 180px;
+    min-height: 140px;
   }
 
   .qr-section {
@@ -2400,12 +2402,12 @@ body.style-panel-open .style-toggle-btn {
   }
 
   .qr-swiper {
-    min-height: 150px;
+    min-height: 120px;
     padding-top: 15px;
   }
 
   .qr-swiper .swiper-wrapper {
-    min-height: 150px;
+    min-height: 120px;
   }
 
   .zapper-name {
@@ -3138,7 +3140,32 @@ body.style-panel-open .main-layout {
   }
 
   .live #zappedTotalCount {
-    font-size: max(1.2vw, 10px);
+    font-size: max(1.2vw, 12px);
+  }
+
+  /* Reduce zapperName and zapperAmountSats on mobile */
+  .live .zap:nth-child(1) .zapperName {
+    font-size: max(2.4vw, 18px);
+  }
+
+  .live .zap:nth-child(2) .zapperName {
+    font-size: max(2vw, 16px);
+  }
+
+  .live .zap:nth-child(3) .zapperName {
+    font-size: max(1.6vw, 14px);
+  }
+
+  .live .zap:nth-child(1) .zapperAmountSats {
+    font-size: max(2.2vw, 18px);
+  }
+
+  .live .zap:nth-child(2) .zapperAmountSats {
+    font-size: max(1.8vw, 16px);
+  }
+
+  .live .zap:nth-child(3) .zapperAmountSats {
+    font-size: max(1.4vw, 14px);
   }
 }
 
@@ -3161,7 +3188,32 @@ body.style-panel-open .main-layout {
   }
 
   .live #zappedTotalCount {
-    font-size: max(1vw, 8px);
+    font-size: max(1vw, 10px);
+  }
+
+  /* Further reduce zapperName and zapperAmountSats on small mobile */
+  .live .zap:nth-child(1) .zapperName {
+    font-size: max(2vw, 16px);
+  }
+
+  .live .zap:nth-child(2) .zapperName {
+    font-size: max(1.6vw, 14px);
+  }
+
+  .live .zap:nth-child(3) .zapperName {
+    font-size: max(1.2vw, 12px);
+  }
+
+  .live .zap:nth-child(1) .zapperAmountSats {
+    font-size: max(1.8vw, 16px);
+  }
+
+  .live .zap:nth-child(2) .zapperAmountSats {
+    font-size: max(1.4vw, 14px);
+  }
+
+  .live .zap:nth-child(3) .zapperAmountSats {
+    font-size: max(1vw, 12px);
   }
 }
 
@@ -3854,7 +3906,6 @@ body.flex-direction-invert .live .right-side {
 
 .live #zappedTotalCount {
   font-weight: 600;
-  font-size: 1.5vw;
   line-height: 1.2vw;
   color: var(--text-color);
 }
