@@ -400,7 +400,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       const qrElement = lightningSlide.querySelector('#lightningQRCode');
 
       if (qrElement && QRious) {
-        qrElement.innerHTML = '';
         try {
           // Calculate QR size to match other QR codes
           const qrSize = Math.min(
@@ -408,16 +407,8 @@ export const useLiveFunctionality = (eventId?: string) => {
             window.innerHeight * 0.7
           );
 
-          // Try creating a canvas element explicitly with proper styling
-          const canvas = document.createElement('canvas');
-          canvas.className = 'qr-code'; // Apply the same CSS class as other QR codes
-          qrElement.appendChild(canvas);
-
-          const qrInstance = new QRious({
-            element: canvas,
-            size: qrSize,
-            value: lnurl
-          });
+          // Use unified QR code generation function
+          generateQRCode('lightningQRCode', lnurl, qrSize);
 
           // Set the Lightning QR link href (same as legacy implementation)
           const lightningQRLink = document.getElementById(
@@ -445,11 +436,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Now create the QR code
         const newQrElement = document.getElementById('lightningQRCode');
         if (newQrElement && QRious) {
-          new QRious({
-            element: newQrElement,
-            size: 200,
-            value: lnurl
-          });
+          const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
           updateBlendMode();
         } else {
           console.error(
@@ -484,9 +471,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       const qrElement = document.getElementById('lightningQRCode');
 
       if (qrElement) {
-        // Clear any existing content
-        qrElement.innerHTML = '';
-
         try {
           // Calculate QR size to match other QR codes
           const qrSize = Math.min(
@@ -494,16 +478,8 @@ export const useLiveFunctionality = (eventId?: string) => {
             window.innerHeight * 0.7
           );
 
-          // Try creating a canvas element explicitly with proper styling
-          const canvas = document.createElement('canvas');
-          canvas.className = 'qr-code'; // Apply the same CSS class as other QR codes
-          qrElement.appendChild(canvas);
-
-          const qrInstance = new QRious({
-            element: canvas,
-            size: qrSize,
-            value: lnurl
-          });
+          // Use unified QR code generation function
+          generateQRCode('lightningQRCode', lnurl, qrSize);
 
           // Set the Lightning QR link href (same as legacy implementation)
           const lightningQRLink = document.getElementById(
@@ -580,12 +556,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     qrcodeContainers.forEach(({ element, value, link, preview }) => {
       if (element && QRious) {
-        element.innerHTML = '';
-        new QRious({
-          element,
-          size: qrSize,
-          value
-        });
+        generateQRCode(element.id, value, qrSize);
 
         if (link) {
           (link as HTMLAnchorElement).href = value;
@@ -775,6 +746,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Store event info globally at the beginning to prevent duplicate calls
     (window as any).currentLiveEvent = liveEvent;
     (window as any).currentEventType = 'live-event';
+
+    // Add livestream class to body for livestream events
+    document.body.classList.add('livestream');
 
     // Hide note content loading animation
     const noteContent = document.querySelector('.note-content');
@@ -1858,7 +1832,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       element.innerHTML = '';
       new QRious({
         element,
-        size,
+        size: size * 0.9,
         value
       });
     }
@@ -3540,6 +3514,10 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Store note ID globally for QR regeneration
     (window as any).currentNoteId = kind1.id;
 
+    // Set event type to regular note and remove livestream class
+    (window as any).currentEventType = 'note';
+    document.body.classList.remove('livestream');
+
     const noteContent = document.getElementById('noteContent');
     // Debug log removed
 
@@ -3602,12 +3580,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     qrcodeContainers.forEach(({ element, value, link, preview }) => {
       if (element) {
-        element.innerHTML = '';
-        new QRious({
-          element,
-          size: qrSize,
-          value
-        });
+        generateQRCode(element.id, value, qrSize);
 
         // Set link href
         if (link) (link as HTMLAnchorElement).href = value;
@@ -6606,26 +6579,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       qrCodes.forEach((qrCode, index) => {
         const qrComputedStyle = window.getComputedStyle(qrCode);
 
-        // Test: manually apply blend mode to see if it works
-        if (qrScreenBlendToggle?.checked) {
-          (qrCode as HTMLElement).style.mixBlendMode = 'screen';
-        } else if (qrMultiplyBlendToggle?.checked) {
-          (qrCode as HTMLElement).style.mixBlendMode = 'multiply';
-        } else {
-          (qrCode as HTMLElement).style.mixBlendMode = 'normal';
-        }
-
-        // Also try applying to the parent slide
-        const parentSlide = qrCode.closest('.swiper-slide');
-        if (parentSlide) {
-          if (qrScreenBlendToggle?.checked) {
-            (parentSlide as HTMLElement).style.mixBlendMode = 'screen';
-          } else if (qrMultiplyBlendToggle?.checked) {
-            (parentSlide as HTMLElement).style.mixBlendMode = 'multiply';
-          } else {
-            (parentSlide as HTMLElement).style.mixBlendMode = 'normal';
-          }
-        }
+        // Blend mode is now handled by CSS classes on the body element
       });
     } else {
     }
