@@ -20,6 +20,13 @@ export const LivePage: React.FC = () => {
     };
   }, []);
 
+  // Cleanup: remove livestream class when component unmounts
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('livestream');
+    };
+  }, []);
+
   const {
     isLoading,
     error,
@@ -566,7 +573,6 @@ export const LivePage: React.FC = () => {
                         <img id="qrCode" className="qr-code" />
                       </a>
                       <div className="qr-slide-title">
-                        Web{' '}
                         <span
                           className="qr-data-preview"
                           id="qrDataPreview1"
@@ -579,7 +585,6 @@ export const LivePage: React.FC = () => {
                         <img id="qrCodeNevent" className="qr-code" />
                       </a>
                       <div className="qr-slide-title">
-                        Nostr{' '}
                         <span
                           className="qr-data-preview"
                           id="qrDataPreview2"
@@ -594,7 +599,6 @@ export const LivePage: React.FC = () => {
                         <img id="qrCodeNote" className="qr-code" />
                       </a>
                       <div className="qr-slide-title">
-                        Nostr{' '}
                         <span
                           className="qr-data-preview"
                           id="qrDataPreview3"
@@ -614,7 +618,6 @@ export const LivePage: React.FC = () => {
                         <div id="lightningQRCode" className="qr-code"></div>
                       </a>
                       <div className="qr-slide-title">
-                        Lightning{' '}
                         <span
                           className="qr-data-preview"
                           id="qrDataPreview4"
