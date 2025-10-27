@@ -1765,3 +1765,286 @@ textarea:focus::placeholder {
     padding: 12px;
   }
 }
+
+/* Profile Page Styles */
+.profilePage {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.profilePageTitle {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.profileSection {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  border: 1px solid #e9ecef;
+}
+
+.profileUserInfo {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.profileAvatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #4a75ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 15px;
+  color: white;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.profileUserDetails h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.profileUserDetails p {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 0;
+}
+
+.profilePublicKey {
+  margin-bottom: 15px;
+}
+
+.profilePublicKey label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.profilePublicKey code {
+  font-size: 12px;
+  background-color: #f1f3f4;
+  padding: 8px;
+  border-radius: 4px;
+  display: block;
+  word-break: break-all;
+  color: #333;
+}
+
+.profileStatsSection {
+  margin-bottom: 30px;
+}
+
+.profileStatsTitle {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.profileStatsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+}
+
+.profileStatCard {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  text-align: center;
+}
+
+.profileStatValue {
+  font-size: 24px;
+  font-weight: 600;
+  color: #4a75ff;
+  margin-bottom: 5px;
+}
+
+.profileStatLabel {
+  font-size: 14px;
+  color: #666;
+}
+
+.profileSettingsSection {
+  margin-bottom: 0;
+}
+
+.profileSettingsTitle {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.profileSettingsCard {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.profileFormField {
+  margin-bottom: 15px;
+}
+
+.profileFormField label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  display: block;
+  margin-bottom: 5px;
+}
+
+.profileFormInput {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  background: #fff;
+  transition: all 0.2s ease;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.profileFormInput:focus {
+  border-color: #4a75ff;
+  box-shadow: 0 0 0 3px rgba(74, 117, 255, 0.1);
+  background: #fafbff;
+}
+
+.profileFormInput:hover {
+  border-color: #d1d5db;
+}
+
+.profileFormTextarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  background: #fff;
+  transition: all 0.2s ease;
+  outline: none;
+  box-sizing: border-box;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.profileFormTextarea:focus {
+  border-color: #4a75ff;
+  box-shadow: 0 0 0 3px rgba(74, 117, 255, 0.1);
+  background: #fafbff;
+}
+
+.profileFormTextarea:hover {
+  border-color: #d1d5db;
+}
+
+.profileSaveButton {
+  background-color: #4a75ff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.profileSaveButton:hover {
+  background-color: #3b5bdb;
+  transform: translateY(-1px);
+}
+
+.profileNotLoggedIn {
+  background-color: #f8f9fa;
+  padding: 40px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid #e9ecef;
+}
+
+.profileNotLoggedInTitle {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.profileNotLoggedInText {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 20px;
+}
+
+.profileLoginButton {
+  background-color: #4a75ff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.profileLoginButton:hover {
+  background-color: #3b5bdb;
+  transform: translateY(-1px);
+}
+
+/* Mobile responsive adjustments for profile page */
+@media screen and (max-width: 630px) {
+  .profilePage {
+    padding: 15px;
+  }
+
+  .profilePageTitle {
+    font-size: 24px;
+  }
+
+  .profileUserInfo {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .profileAvatar {
+    margin-right: 0;
+    margin-bottom: 15px;
+  }
+
+  .profileStatsGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .profileStatCard {
+    padding: 15px;
+  }
+
+  .profileNotLoggedIn {
+    padding: 30px 20px;
+  }
+}
