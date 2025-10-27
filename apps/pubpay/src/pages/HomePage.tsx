@@ -466,569 +466,591 @@ export const HomePage: React.FC = () => {
               onClick={handleLoginOpen}
             >
               {authState.isLoggedIn && authState.userProfile ? (
-                <img
-                  className="userImg currentUserImg"
-                  src={
-                    (() => {
-                      try {
-                        return JSON.parse(authState.userProfile.content || '{}')
-                          .picture;
-                      } catch {
-                        return undefined;
-                      }
-                    })() || genericUserIcon
-                  }
-                  alt="Profile"
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <img
+                    className="userImg currentUserImg"
+                    src={
+                      (() => {
+                        try {
+                          return JSON.parse(authState.userProfile.content || '{}')
+                            .picture;
+                        } catch {
+                          return undefined;
+                        }
+                      })() || genericUserIcon
+                    }
+                    alt="Profile"
+                  />
+                  <span style={{ fontSize: '14px', fontWeight: '500', color: '#333' }}>
+                    {authState.displayName || 
+                     (typeof window !== 'undefined' && (window as any).NostrTools
+                       ? (window as any).NostrTools.nip19.npubEncode(authState.publicKey).substring(0, 12) + '...'
+                       : authState.publicKey?.substring(0, 12) + '...')}
+                  </span>
+                </div>
               ) : (
                 <span className="material-symbols-outlined">
                   account_circle
                 </span>
               )}
             </a>
-            <a
-              id="newPayNote"
-              className="cta"
-              href="#"
-              onClick={() => {
-                if (authState.isLoggedIn) {
-                  setShowNewPayNoteForm(true);
-                  setPaymentType('fixed');
-                } else {
-                  handleNewPayNote();
-                }
-              }}
-            >
-              New <span className="hideOnMobile">Paynote</span>
-            </a>
           </div>
         </div>
       </div>
 
       <div id="container">
-        <div
-          id="feedSelector"
-          style={singleNoteMode ? { display: 'none' } : undefined}
-        >
-          <a
-            href="#"
-            id="feedGlobal"
-            className={`feedSelectorLink ${activeFeed === 'global' ? 'active' : ''}`}
-            onClick={() => handleFeedChange('global')}
-          >
-            Global
-          </a>
-          <a
-            href="#"
-            id="feedFollowing"
-            className={`feedSelectorLink ${activeFeed === 'following' ? 'active' : ''}`}
-            onClick={() => handleFeedChange('following')}
-          >
-            Following
-          </a>
-          <a href="#" className="feedSelectorLink disabled" title="coming soon">
-            High Rollers
-          </a>
-        </div>
-
-        <div
-          id="main"
-          style={{
-            display:
-              activeFeed === 'global' || singleNoteMode ? 'block' : 'none'
-          }}
-        >
-          {isLoading && posts.length === 0 ? (
-            // Show dummy posts while loading
-            <>
-              {/* First dummy post - always show */}
-              <div className="paynote blink">
-                <div className="noteProfileImg">
-                  <img
-                    className="userImg"
-                    src={genericUserIcon}
-                    alt="Profile"
-                  />
-                </div>
-                <div className="noteData">
-                  <div className="noteHeader">
-                    <div className="noteAuthor">
-                      <div className="noteDisplayName">
-                        <a
-                          href="#"
-                          className="noteAuthorLink disabled"
-                          target="_blank"
-                        >
-                          Loading...
-                        </a>
-                      </div>
-                      <div className="noteNIP05 label">
-                        <a href="#" target="_blank">
-                          <span className="material-symbols-outlined">
-                            check_circle
-                          </span>
-                          loading@example.com
-                        </a>
-                      </div>
-                      <div className="noteLNAddress label">
-                        <a href="#" target="_blank">
-                          <span className="material-symbols-outlined">
-                            bolt
-                          </span>
-                          loading@example.com
-                        </a>
-                      </div>
-                    </div>
-                    <div className="noteDate label">Loading...</div>
-                  </div>
-                  <div className="noteContent disabled">Loading posts...</div>
-                  <div className="noteValues">
-                    <div className="zapMinContainer">
-                      <div className="zapMin">
-                        <span className="zapMinVal disabled">Loading...</span>
-                        <span className="label">sats</span>
-                      </div>
-                      <div className="zapMinLabel">Min</div>
-                    </div>
-                    <div className="zapMaxContainer">
-                      <div className="zapMax">
-                        <span className="zapMaxVal disabled">Loading...</span>
-                        <span className="label">sats</span>
-                      </div>
-                      <div className="zapMaxLabel">Max</div>
-                    </div>
-                    <div className="zapUsesContainer">
-                      <div className="zapUses">
-                        <span className="zapUsesCurrent disabled">0</span>
-                        <span className="label">of</span>
-                        <span className="zapUsesTotal disabled">5</span>
-                      </div>
-                      <div className="zapUsesLabel">Uses</div>
-                    </div>
-                  </div>
-                  <div className="noteCTA">
-                    <button className="noteMainCTA cta disabled">Pay</button>
-                  </div>
-                  <div className="noteActionsReactions">
-                    <div className="noteZaps noteZapReactions"></div>
-                    <div className="noteActions">
-                      <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">bolt</span>
-                      </a>
-                      <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">
-                          favorite
-                        </span>
-                      </a>
-                      <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">
-                          ios_share
-                        </span>
-                      </a>
-                      <button className="noteAction dropdown disabled">
-                        <span className="material-symbols-outlined disabled">
-                          more_horiz
-                        </span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* Close conditional rendering for normal mode dummy posts */}
-              {!singleNoteMode && (
-                <>
-                  <div className="paynote blink">
-                    <div className="noteProfileImg">
-                      <img
-                        className="userImg"
-                        src={genericUserIcon}
-                        alt="Profile"
-                      />
-                    </div>
-                    <div className="noteData">
-                      <div className="noteHeader">
-                        <div className="noteAuthor">
-                          <div className="noteDisplayName">
-                            <a
-                              href="#"
-                              className="noteAuthorLink disabled"
-                              target="_blank"
-                            >
-                              Loading...
-                            </a>
-                          </div>
-                          <div className="noteNIP05 label">
-                            <a href="#" target="_blank">
-                              <span className="material-symbols-outlined">
-                                check_circle
-                              </span>
-                              loading@example.com
-                            </a>
-                          </div>
-                          <div className="noteLNAddress label">
-                            <a href="#" target="_blank">
-                              <span className="material-symbols-outlined">
-                                bolt
-                              </span>
-                              loading@example.com
-                            </a>
-                          </div>
-                        </div>
-                        <div className="noteDate label">Loading...</div>
-                      </div>
-                      <div className="noteContent disabled">
-                        Loading posts...
-                      </div>
-                      <div className="noteValues">
-                        <div className="zapMinContainer">
-                          <div className="zapMin">
-                            <span className="zapMinVal disabled">
-                              Loading...
-                            </span>
-                            <span className="label">sats</span>
-                          </div>
-                          <div className="zapMinLabel">Min</div>
-                        </div>
-                        <div className="zapMaxContainer">
-                          <div className="zapMax">
-                            <span className="zapMaxVal disabled">
-                              Loading...
-                            </span>
-                            <span className="label">sats</span>
-                          </div>
-                          <div className="zapMaxLabel">Max</div>
-                        </div>
-                        <div className="zapUsesContainer">
-                          <div className="zapUses">
-                            <span className="zapUsesCurrent disabled">0</span>
-                            <span className="label">of</span>
-                            <span className="zapUsesTotal disabled">5</span>
-                          </div>
-                          <div className="zapUsesLabel">Uses</div>
-                        </div>
-                      </div>
-                      <div className="noteCTA">
-                        <button className="noteMainCTA cta disabled">
-                          Pay
-                        </button>
-                      </div>
-                      <div className="noteActionsReactions">
-                        <div className="noteZaps noteZapReactions"></div>
-                        <div className="noteActions">
-                          <a className="noteAction disabled">
-                            <span className="material-symbols-outlined">
-                              bolt
-                            </span>
-                          </a>
-                          <a className="noteAction disabled">
-                            <span className="material-symbols-outlined">
-                              favorite
-                            </span>
-                          </a>
-                          <a className="noteAction disabled">
-                            <span className="material-symbols-outlined">
-                              ios_share
-                            </span>
-                          </a>
-                          <button className="noteAction dropdown disabled">
-                            <span className="material-symbols-outlined disabled">
-                              more_horiz
-                            </span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="paynote blink">
-                    <div className="noteProfileImg">
-                      <img
-                        className="userImg"
-                        src={genericUserIcon}
-                        alt="Profile"
-                      />
-                    </div>
-                    <div className="noteData">
-                      <div className="noteHeader">
-                        <div className="noteAuthor">
-                          <div className="noteDisplayName">
-                            <a
-                              href="#"
-                              className="noteAuthorLink disabled"
-                              target="_blank"
-                            >
-                              Loading...
-                            </a>
-                          </div>
-                          <div className="noteNIP05 label">
-                            <a href="#" target="_blank">
-                              <span className="material-symbols-outlined">
-                                check_circle
-                              </span>
-                              loading@example.com
-                            </a>
-                          </div>
-                          <div className="noteLNAddress label">
-                            <a href="#" target="_blank">
-                              <span className="material-symbols-outlined">
-                                bolt
-                              </span>
-                              loading@example.com
-                            </a>
-                          </div>
-                        </div>
-                        <div className="noteDate label">Loading...</div>
-                      </div>
-                      <div className="noteContent disabled">
-                        Loading posts...
-                      </div>
-                      <div className="noteValues">
-                        <div className="zapMinContainer">
-                          <div className="zapMin">
-                            <span className="zapMinVal disabled">
-                              Loading...
-                            </span>
-                            <span className="label">sats</span>
-                          </div>
-                          <div className="zapMinLabel">Min</div>
-                        </div>
-                        <div className="zapMaxContainer">
-                          <div className="zapMax">
-                            <span className="zapMaxVal disabled">
-                              Loading...
-                            </span>
-                            <span className="label">sats</span>
-                          </div>
-                          <div className="zapMaxLabel">Max</div>
-                        </div>
-                        <div className="zapUsesContainer">
-                          <div className="zapUses">
-                            <span className="zapUsesCurrent disabled">0</span>
-                            <span className="label">of</span>
-                            <span className="zapUsesTotal disabled">5</span>
-                          </div>
-                          <div className="zapUsesLabel">Uses</div>
-                        </div>
-                      </div>
-                      <div className="noteCTA">
-                        <button className="noteMainCTA cta disabled">
-                          Pay
-                        </button>
-                      </div>
-                      <div className="noteActionsReactions">
-                        <div className="noteZaps noteZapReactions"></div>
-                        <div className="noteActions">
-                          <a className="noteAction disabled">
-                            <span className="material-symbols-outlined">
-                              bolt
-                            </span>
-                          </a>
-                          <a className="noteAction disabled">
-                            <span className="material-symbols-outlined">
-                              favorite
-                            </span>
-                          </a>
-                          <a className="noteAction disabled">
-                            <span className="material-symbols-outlined">
-                              ios_share
-                            </span>
-                          </a>
-                          <button className="noteAction dropdown disabled">
-                            <span className="material-symbols-outlined disabled">
-                              more_horiz
-                            </span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </>
-          ) : posts.length === 0 ? (
-            <div
-              style={{ textAlign: 'center', padding: '40px', color: '#666' }}
-            >
-              No posts found
+        <div id="containerInner">
+          <div id="sideNav">
+            <div id="navInner">
+              <a href="/live" className="sideNavLink " title="PubPay Live">Live</a>
+              <a href="/profile" className="sideNavLink" title="Your PubPay Profile">Profile</a>
+              <a href="/splits" className="sideNavLink disabled" title="coming soon">Splits</a>
+              <a href="/notifications" className="sideNavLink disabled" title="coming soon">Notifications</a>
+              <a href="/settings" className="sideNavLink disabled" title="coming soon">Settings</a>
+              <a href="/about" className="sideNavLink" title="About PubPay">About</a>
+              <a
+                id="newPayNote"
+                className="sideNavLink cta"
+                href="#"
+                onClick={() => {
+                  if (authState.isLoggedIn) {
+                    setShowNewPayNoteForm(true);
+                    setPaymentType('fixed');
+                  } else {
+                    handleNewPayNote();
+                  }
+                }}
+              >
+                New Paynote
+              </a>
             </div>
-          ) : (
-            posts.map((post: PubPayPost) => (
-              <PayNoteComponent
-                key={post.id}
-                post={post}
-                onPay={handlePayWithExtension}
-                onPayAnonymously={handlePayAnonymously}
-                onShare={handleSharePost}
-                onViewRaw={handleViewRaw}
-                isLoggedIn={authState.isLoggedIn}
-                nostrClient={nostrClient}
-              />
-            ))
-          )}
-
-          {isLoadingMore && (
+          </div>
+          <div id="feeds">
             <div
-              style={{ textAlign: 'center', padding: '20px', color: '#666' }}
+              id="feedSelector"
+              style={singleNoteMode ? { display: 'none' } : undefined}
             >
-              Loading more posts...
+              <a
+                href="#"
+                id="feedGlobal"
+                className={`feedSelectorLink ${activeFeed === 'global' ? 'active' : ''}`}
+                onClick={() => handleFeedChange('global')}
+              >
+                Global
+              </a>
+              <a
+                href="#"
+                id="feedFollowing"
+                className={`feedSelectorLink ${activeFeed === 'following' ? 'active' : ''}`}
+                onClick={() => handleFeedChange('following')}
+              >
+                Following
+              </a>
+              <a href="#" className="feedSelectorLink disabled" title="coming soon">
+                High Rollers
+              </a>
             </div>
-          )}
 
-          {/* Debug info for infinite scroll */}
-          {!singleNoteMode && posts.length > 0 && (
             <div
+              id="main"
               style={{
-                textAlign: 'center',
-                padding: '10px',
-                fontSize: '12px',
-                color: '#999',
-                borderTop: '1px solid #eee',
-                marginTop: '20px'
+                display:
+                  activeFeed === 'global' || singleNoteMode ? 'block' : 'none'
               }}
             >
-              Posts loaded: {posts.length} | Scroll to load more (100px from
-              bottom)
-            </div>
-          )}
-
-          {/* Render replies when in single note mode (match legacy wrapper and disabled Pay) */}
-          {singleNoteMode &&
-            replies.map((reply: PubPayPost) => (
-              <PayNoteComponent
-                key={reply.id}
-                post={reply}
-                onPay={handlePayWithExtension}
-                onPayAnonymously={handlePayAnonymously}
-                onShare={handleSharePost}
-                onViewRaw={handleViewRaw}
-                isLoggedIn={authState.isLoggedIn}
-                isReply={true}
-                nostrClient={nostrClient}
-              />
-            ))}
-        </div>
-
-        <div
-          id="following"
-          style={{ display: activeFeed === 'following' ? 'block' : 'none' }}
-        >
-          {isLoading && followingPosts.length === 0 ? (
-            // Show dummy posts while loading following
-            <>
-              <div className="paynote blink">
-                <div className="noteProfileImg">
-                  <img
-                    className="userImg"
-                    src={genericUserIcon}
-                    alt="Profile"
-                  />
-                </div>
-                <div className="noteData">
-                  <div className="noteHeader">
-                    <div className="noteAuthor">
-                      <div className="noteDisplayName">
-                        <a
-                          href="#"
-                          className="noteAuthorLink disabled"
-                          target="_blank"
-                        >
-                          Loading...
-                        </a>
+            {isLoading && posts.length === 0 ? (
+              // Show dummy posts while loading
+              <>
+                {/* First dummy post - always show */}
+                <div className="paynote blink">
+                  <div className="noteProfileImg">
+                    <img
+                      className="userImg"
+                      src={genericUserIcon}
+                      alt="Profile"
+                    />
+                  </div>
+                  <div className="noteData">
+                    <div className="noteHeader">
+                      <div className="noteAuthor">
+                        <div className="noteDisplayName">
+                          <a
+                            href="#"
+                            className="noteAuthorLink disabled"
+                            target="_blank"
+                          >
+                            Loading...
+                          </a>
+                        </div>
+                        <div className="noteNIP05 label">
+                          <a href="#" target="_blank">
+                            <span className="material-symbols-outlined">
+                              check_circle
+                            </span>
+                            loading@example.com
+                          </a>
+                        </div>
+                        <div className="noteLNAddress label">
+                          <a href="#" target="_blank">
+                            <span className="material-symbols-outlined">
+                              bolt
+                            </span>
+                            loading@example.com
+                          </a>
+                        </div>
                       </div>
-                      <div className="noteNIP05 label">
-                        <a href="#" target="_blank">
+                      <div className="noteDate label">Loading...</div>
+                    </div>
+                    <div className="noteContent disabled">Loading posts...</div>
+                    <div className="noteValues">
+                      <div className="zapMinContainer">
+                        <div className="zapMin">
+                          <span className="zapMinVal disabled">Loading...</span>
+                          <span className="label">sats</span>
+                        </div>
+                        <div className="zapMinLabel">Min</div>
+                      </div>
+                      <div className="zapMaxContainer">
+                        <div className="zapMax">
+                          <span className="zapMaxVal disabled">Loading...</span>
+                          <span className="label">sats</span>
+                        </div>
+                        <div className="zapMaxLabel">Max</div>
+                      </div>
+                      <div className="zapUsesContainer">
+                        <div className="zapUses">
+                          <span className="zapUsesCurrent disabled">0</span>
+                          <span className="label">of</span>
+                          <span className="zapUsesTotal disabled">5</span>
+                        </div>
+                        <div className="zapUsesLabel">Uses</div>
+                      </div>
+                    </div>
+                    <div className="noteCTA">
+                      <button className="noteMainCTA cta disabled">Pay</button>
+                    </div>
+                    <div className="noteActionsReactions">
+                      <div className="noteZaps noteZapReactions"></div>
+                      <div className="noteActions">
+                        <a className="noteAction disabled">
+                          <span className="material-symbols-outlined">bolt</span>
+                        </a>
+                        <a className="noteAction disabled">
                           <span className="material-symbols-outlined">
-                            check_circle
+                            favorite
                           </span>
-                          loading@example.com
                         </a>
-                      </div>
-                      <div className="noteLNAddress label">
-                        <a href="#" target="_blank">
+                        <a className="noteAction disabled">
                           <span className="material-symbols-outlined">
-                            bolt
+                            ios_share
                           </span>
-                          loading@example.com
                         </a>
+                        <button className="noteAction dropdown disabled">
+                          <span className="material-symbols-outlined disabled">
+                            more_horiz
+                          </span>
+                        </button>
                       </div>
-                    </div>
-                    <div className="noteDate label">Loading...</div>
-                  </div>
-                  <div className="noteContent disabled">
-                    Loading following posts...
-                  </div>
-                  <div className="noteValues">
-                    <div className="zapMinContainer">
-                      <div className="zapMin">
-                        <span className="zapMinVal disabled">Loading...</span>
-                        <span className="label">sats</span>
-                      </div>
-                      <div className="zapMinLabel">Min</div>
-                    </div>
-                    <div className="zapMaxContainer">
-                      <div className="zapMax">
-                        <span className="zapMaxVal disabled">Loading...</span>
-                        <span className="label">sats</span>
-                      </div>
-                      <div className="zapMaxLabel">Max</div>
-                    </div>
-                    <div className="zapUsesContainer">
-                      <div className="zapUses">
-                        <span className="zapUsesCurrent disabled">0</span>
-                        <span className="label">of</span>
-                        <span className="zapUsesTotal disabled">5</span>
-                      </div>
-                      <div className="zapUsesLabel">Uses</div>
-                    </div>
-                  </div>
-                  <div className="noteCTA">
-                    <button className="noteMainCTA cta disabled">Pay</button>
-                  </div>
-                  <div className="noteActionsReactions">
-                    <div className="noteZaps noteZapReactions"></div>
-                    <div className="noteActions">
-                      <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">bolt</span>
-                      </a>
-                      <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">
-                          favorite
-                        </span>
-                      </a>
-                      <a className="noteAction disabled">
-                        <span className="material-symbols-outlined">
-                          ios_share
-                        </span>
-                      </a>
-                      <button className="noteAction dropdown disabled">
-                        <span className="material-symbols-outlined disabled">
-                          more_horiz
-                        </span>
-                      </button>
                     </div>
                   </div>
                 </div>
+                {/* Close conditional rendering for normal mode dummy posts */}
+                {!singleNoteMode && (
+                  <>
+                    <div className="paynote blink">
+                      <div className="noteProfileImg">
+                        <img
+                          className="userImg"
+                          src={genericUserIcon}
+                          alt="Profile"
+                        />
+                      </div>
+                      <div className="noteData">
+                        <div className="noteHeader">
+                          <div className="noteAuthor">
+                            <div className="noteDisplayName">
+                              <a
+                                href="#"
+                                className="noteAuthorLink disabled"
+                                target="_blank"
+                              >
+                                Loading...
+                              </a>
+                            </div>
+                            <div className="noteNIP05 label">
+                              <a href="#" target="_blank">
+                                <span className="material-symbols-outlined">
+                                  check_circle
+                                </span>
+                                loading@example.com
+                              </a>
+                            </div>
+                            <div className="noteLNAddress label">
+                              <a href="#" target="_blank">
+                                <span className="material-symbols-outlined">
+                                  bolt
+                                </span>
+                                loading@example.com
+                              </a>
+                            </div>
+                          </div>
+                          <div className="noteDate label">Loading...</div>
+                        </div>
+                        <div className="noteContent disabled">
+                          Loading posts...
+                        </div>
+                        <div className="noteValues">
+                          <div className="zapMinContainer">
+                            <div className="zapMin">
+                              <span className="zapMinVal disabled">
+                                Loading...
+                              </span>
+                              <span className="label">sats</span>
+                            </div>
+                            <div className="zapMinLabel">Min</div>
+                          </div>
+                          <div className="zapMaxContainer">
+                            <div className="zapMax">
+                              <span className="zapMaxVal disabled">
+                                Loading...
+                              </span>
+                              <span className="label">sats</span>
+                            </div>
+                            <div className="zapMaxLabel">Max</div>
+                          </div>
+                          <div className="zapUsesContainer">
+                            <div className="zapUses">
+                              <span className="zapUsesCurrent disabled">0</span>
+                              <span className="label">of</span>
+                              <span className="zapUsesTotal disabled">5</span>
+                            </div>
+                            <div className="zapUsesLabel">Uses</div>
+                          </div>
+                        </div>
+                        <div className="noteCTA">
+                          <button className="noteMainCTA cta disabled">
+                            Pay
+                          </button>
+                        </div>
+                        <div className="noteActionsReactions">
+                          <div className="noteZaps noteZapReactions"></div>
+                          <div className="noteActions">
+                            <a className="noteAction disabled">
+                              <span className="material-symbols-outlined">
+                                bolt
+                              </span>
+                            </a>
+                            <a className="noteAction disabled">
+                              <span className="material-symbols-outlined">
+                                favorite
+                              </span>
+                            </a>
+                            <a className="noteAction disabled">
+                              <span className="material-symbols-outlined">
+                                ios_share
+                              </span>
+                            </a>
+                            <button className="noteAction dropdown disabled">
+                              <span className="material-symbols-outlined disabled">
+                                more_horiz
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="paynote blink">
+                      <div className="noteProfileImg">
+                        <img
+                          className="userImg"
+                          src={genericUserIcon}
+                          alt="Profile"
+                        />
+                      </div>
+                      <div className="noteData">
+                        <div className="noteHeader">
+                          <div className="noteAuthor">
+                            <div className="noteDisplayName">
+                              <a
+                                href="#"
+                                className="noteAuthorLink disabled"
+                                target="_blank"
+                              >
+                                Loading...
+                              </a>
+                            </div>
+                            <div className="noteNIP05 label">
+                              <a href="#" target="_blank">
+                                <span className="material-symbols-outlined">
+                                  check_circle
+                                </span>
+                                loading@example.com
+                              </a>
+                            </div>
+                            <div className="noteLNAddress label">
+                              <a href="#" target="_blank">
+                                <span className="material-symbols-outlined">
+                                  bolt
+                                </span>
+                                loading@example.com
+                              </a>
+                            </div>
+                          </div>
+                          <div className="noteDate label">Loading...</div>
+                        </div>
+                        <div className="noteContent disabled">
+                          Loading posts...
+                        </div>
+                        <div className="noteValues">
+                          <div className="zapMinContainer">
+                            <div className="zapMin">
+                              <span className="zapMinVal disabled">
+                                Loading...
+                              </span>
+                              <span className="label">sats</span>
+                            </div>
+                            <div className="zapMinLabel">Min</div>
+                          </div>
+                          <div className="zapMaxContainer">
+                            <div className="zapMax">
+                              <span className="zapMaxVal disabled">
+                                Loading...
+                              </span>
+                              <span className="label">sats</span>
+                            </div>
+                            <div className="zapMaxLabel">Max</div>
+                          </div>
+                          <div className="zapUsesContainer">
+                            <div className="zapUses">
+                              <span className="zapUsesCurrent disabled">0</span>
+                              <span className="label">of</span>
+                              <span className="zapUsesTotal disabled">5</span>
+                            </div>
+                            <div className="zapUsesLabel">Uses</div>
+                          </div>
+                        </div>
+                        <div className="noteCTA">
+                          <button className="noteMainCTA cta disabled">
+                            Pay
+                          </button>
+                        </div>
+                        <div className="noteActionsReactions">
+                          <div className="noteZaps noteZapReactions"></div>
+                          <div className="noteActions">
+                            <a className="noteAction disabled">
+                              <span className="material-symbols-outlined">
+                                bolt
+                              </span>
+                            </a>
+                            <a className="noteAction disabled">
+                              <span className="material-symbols-outlined">
+                                favorite
+                              </span>
+                            </a>
+                            <a className="noteAction disabled">
+                              <span className="material-symbols-outlined">
+                                ios_share
+                              </span>
+                            </a>
+                            <button className="noteAction dropdown disabled">
+                              <span className="material-symbols-outlined disabled">
+                                more_horiz
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </>
+            ) : posts.length === 0 ? (
+              <div
+                style={{ textAlign: 'center', padding: '40px', color: '#666' }}
+              >
+                No posts found
               </div>
-            </>
-          ) : followingPosts.length === 0 ? (
-            <div
-              style={{ textAlign: 'center', padding: '40px', color: '#666' }}
-            >
-              No following posts found
-            </div>
-          ) : (
-            followingPosts.map((post: PubPayPost) => (
-              <PayNoteComponent
-                key={post.id}
-                post={post}
-                onPay={handlePayWithExtension}
-                onPayAnonymously={handlePayAnonymously}
-                onShare={handleSharePost}
-                onViewRaw={handleViewRaw}
-                isLoggedIn={authState.isLoggedIn}
-                nostrClient={nostrClient}
-              />
-            ))
-          )}
+            ) : (
+              posts.map((post: PubPayPost) => (
+                <PayNoteComponent
+                  key={post.id}
+                  post={post}
+                  onPay={handlePayWithExtension}
+                  onPayAnonymously={handlePayAnonymously}
+                  onShare={handleSharePost}
+                  onViewRaw={handleViewRaw}
+                  isLoggedIn={authState.isLoggedIn}
+                  nostrClient={nostrClient}
+                />
+              ))
+            )}
+
+            {isLoadingMore && (
+              <div
+                style={{ textAlign: 'center', padding: '20px', color: '#666' }}
+              >
+                Loading more posts...
+              </div>
+            )}
+
+            {/* Debug info for infinite scroll */}
+            {!singleNoteMode && posts.length > 0 && (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '10px',
+                  fontSize: '12px',
+                  color: '#999',
+                  borderTop: '1px solid #eee',
+                  marginTop: '20px'
+                }}
+              >
+                Posts loaded: {posts.length} | Scroll to load more (100px from
+                bottom)
+              </div>
+            )}
+
+            {/* Render replies when in single note mode (match legacy wrapper and disabled Pay) */}
+            {singleNoteMode &&
+              replies.map((reply: PubPayPost) => (
+                <PayNoteComponent
+                  key={reply.id}
+                  post={reply}
+                  onPay={handlePayWithExtension}
+                  onPayAnonymously={handlePayAnonymously}
+                  onShare={handleSharePost}
+                  onViewRaw={handleViewRaw}
+                  isLoggedIn={authState.isLoggedIn}
+                  isReply={true}
+                  nostrClient={nostrClient}
+                />
+              ))}
+          </div>
+
+          <div
+            id="following"
+            style={{ display: activeFeed === 'following' ? 'block' : 'none' }}
+          >
+            {isLoading && followingPosts.length === 0 ? (
+              // Show dummy posts while loading following
+              <>
+                <div className="paynote blink">
+                  <div className="noteProfileImg">
+                    <img
+                      className="userImg"
+                      src={genericUserIcon}
+                      alt="Profile"
+                    />
+                  </div>
+                  <div className="noteData">
+                    <div className="noteHeader">
+                      <div className="noteAuthor">
+                        <div className="noteDisplayName">
+                          <a
+                            href="#"
+                            className="noteAuthorLink disabled"
+                            target="_blank"
+                          >
+                            Loading...
+                          </a>
+                        </div>
+                        <div className="noteNIP05 label">
+                          <a href="#" target="_blank">
+                            <span className="material-symbols-outlined">
+                              check_circle
+                            </span>
+                            loading@example.com
+                          </a>
+                        </div>
+                        <div className="noteLNAddress label">
+                          <a href="#" target="_blank">
+                            <span className="material-symbols-outlined">
+                              bolt
+                            </span>
+                            loading@example.com
+                          </a>
+                        </div>
+                      </div>
+                      <div className="noteDate label">Loading...</div>
+                    </div>
+                    <div className="noteContent disabled">
+                      Loading following posts...
+                    </div>
+                    <div className="noteValues">
+                      <div className="zapMinContainer">
+                        <div className="zapMin">
+                          <span className="zapMinVal disabled">Loading...</span>
+                          <span className="label">sats</span>
+                        </div>
+                        <div className="zapMinLabel">Min</div>
+                      </div>
+                      <div className="zapMaxContainer">
+                        <div className="zapMax">
+                          <span className="zapMaxVal disabled">Loading...</span>
+                          <span className="label">sats</span>
+                        </div>
+                        <div className="zapMaxLabel">Max</div>
+                      </div>
+                      <div className="zapUsesContainer">
+                        <div className="zapUses">
+                          <span className="zapUsesCurrent disabled">0</span>
+                          <span className="label">of</span>
+                          <span className="zapUsesTotal disabled">5</span>
+                        </div>
+                        <div className="zapUsesLabel">Uses</div>
+                      </div>
+                    </div>
+                    <div className="noteCTA">
+                      <button className="noteMainCTA cta disabled">Pay</button>
+                    </div>
+                    <div className="noteActionsReactions">
+                      <div className="noteZaps noteZapReactions"></div>
+                      <div className="noteActions">
+                        <a className="noteAction disabled">
+                          <span className="material-symbols-outlined">bolt</span>
+                        </a>
+                        <a className="noteAction disabled">
+                          <span className="material-symbols-outlined">
+                            favorite
+                          </span>
+                        </a>
+                        <a className="noteAction disabled">
+                          <span className="material-symbols-outlined">
+                            ios_share
+                          </span>
+                        </a>
+                        <button className="noteAction dropdown disabled">
+                          <span className="material-symbols-outlined disabled">
+                            more_horiz
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : followingPosts.length === 0 ? (
+              <div
+                style={{ textAlign: 'center', padding: '40px', color: '#666' }}
+              >
+                No following posts found
+              </div>
+            ) : (
+              followingPosts.map((post: PubPayPost) => (
+                <PayNoteComponent
+                  key={post.id}
+                  post={post}
+                  onPay={handlePayWithExtension}
+                  onPayAnonymously={handlePayAnonymously}
+                  onShare={handleSharePost}
+                  onViewRaw={handleViewRaw}
+                  isLoggedIn={authState.isLoggedIn}
+                  nostrClient={nostrClient}
+                />
+              ))
+            )}
+          </div>
+          </div>
         </div>
       </div>
 
