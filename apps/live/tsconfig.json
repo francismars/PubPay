@@ -4,6 +4,8 @@
     "rootDir": "../../",
     "baseUrl": "../../",
     "noEmit": false,
+    "jsx": "react-jsx",
+    "moduleResolution": "node",
     "paths": {
       "@pubpay/shared-services": ["packages/shared-services/src"],
       "@pubpay/shared-ui": ["packages/shared-ui/src"],
