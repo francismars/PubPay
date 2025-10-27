@@ -555,7 +555,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     <span className="label">of</span>
                     <span className="zapUsesTotal">{post.zapUses}</span>
                   </div>
-                  <div className="zapUsesLabel">Uses</div>
                 </div>
               )}
             </div>
