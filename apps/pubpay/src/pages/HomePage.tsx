@@ -7,6 +7,8 @@ import { InvoiceQR } from '@pubpay/shared-ui';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../assets/images';
 import * as NostrTools from 'nostr-tools';
+import AboutPage from './AboutPage';
+import ProfilePage from './ProfilePage';
 
 export const HomePage: React.FC = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
@@ -18,6 +20,7 @@ export const HomePage: React.FC = () => {
   const openLogin = useUIStore(s => s.openLogin);
   const closeLogin = useUIStore(s => s.closeLogin);
   const [showJSON, setShowJSON] = useState(false);
+  const [currentPage, setCurrentPage] = useState<'home' | 'about' | 'profile'>('home');
   const [jsonContent, setJsonContent] = useState('');
   const [showNewPayNoteForm, setShowNewPayNoteForm] = useState(false);
   const [paymentType, setPaymentType] = useState<'fixed' | 'range'>('fixed');
@@ -63,6 +66,11 @@ export const HomePage: React.FC = () => {
     loadSingleNote,
     loadReplies
   } = useHomeFunctionality();
+
+  // Navigation handler
+  const handleNavigation = (page: 'home' | 'about' | 'profile') => {
+    setCurrentPage(page);
+  };
 
   // Reset login form to main state
   const resetLoginForm = () => {
@@ -516,12 +524,13 @@ export const HomePage: React.FC = () => {
         <div id="containerInner">
           <div id="sideNav">
             <div id="navInner">
-              <a href="/profile" className="sideNavLink" title="Your PubPay Profile">Profile</a>
+              <a href="#" className="sideNavLink" title="Home Feed" onClick={(e) => { e.preventDefault(); handleNavigation('home'); }}>Home</a>
+              <a href="#" className="sideNavLink" title="Your PubPay Profile" onClick={(e) => { e.preventDefault(); handleNavigation('profile'); }}>Profile</a>
               <a href="/splits" className="sideNavLink disabled" title="coming soon">Splits</a>
               <a href="/notifications" className="sideNavLink disabled" title="coming soon">Notifications</a>
               <a href="/settings" className="sideNavLink disabled" title="coming soon">Settings</a>
               <a href="/live" className="sideNavLink " title="PubPay Live">Live</a>
-              <a href="/about" className="sideNavLink" title="About PubPay">About</a>
+              <a href="#" className="sideNavLink" title="About PubPay" onClick={(e) => { e.preventDefault(); handleNavigation('about'); }}>About</a>
               <a
                 id="newPayNote"
                 className="sideNavLink cta"
@@ -539,39 +548,35 @@ export const HomePage: React.FC = () => {
               </a>
             </div>
           </div>
-          <div id="feeds">
-            <div
-              id="feedSelector"
-              style={singleNoteMode ? { display: 'none' } : undefined}
-            >
-              <a
-                href="#"
-                id="feedGlobal"
-                className={`feedSelectorLink ${activeFeed === 'global' ? 'active' : ''}`}
-                onClick={() => handleFeedChange('global')}
-              >
-                Global
-              </a>
-              <a
-                href="#"
-                id="feedFollowing"
-                className={`feedSelectorLink ${activeFeed === 'following' ? 'active' : ''}`}
-                onClick={() => handleFeedChange('following')}
-              >
-                Following
-              </a>
-              <a href="#" className="feedSelectorLink disabled" title="coming soon">
-                High Rollers
-              </a>
-            </div>
+          <div id="mainContent">
+            {currentPage === 'home' && (
+              <div id="feeds">
+                <div
+                  id="feedSelector"
+                  style={singleNoteMode ? { display: 'none' } : undefined}
+                >
+                  <a
+                    href="#"
+                    id="feedGlobal"
+                    className={`feedSelectorLink ${activeFeed === 'global' ? 'active' : ''}`}
+                    onClick={() => handleFeedChange('global')}
+                  >
+                    Global
+                  </a>
+                  <a
+                    href="#"
+                    id="feedFollowing"
+                    className={`feedSelectorLink ${activeFeed === 'following' ? 'active' : ''}`}
+                    onClick={() => handleFeedChange('following')}
+                  >
+                    Following
+                  </a>
+                  <a href="#" className="feedSelectorLink disabled" title="coming soon">
+                    High Rollers
+                  </a>
+                </div>
 
-            <div
-              id="main"
-              style={{
-                display:
-                  activeFeed === 'global' || singleNoteMode ? 'block' : 'none'
-              }}
-            >
+                <div id="main">
             {isLoading && posts.length === 0 ? (
               // Show dummy posts while loading
               <>
@@ -940,7 +945,7 @@ export const HomePage: React.FC = () => {
                 />
               ))}
           </div>
-
+          
           <div
             id="following"
             style={{ display: activeFeed === 'following' ? 'block' : 'none' }}
@@ -1063,7 +1068,20 @@ export const HomePage: React.FC = () => {
                 />
               ))
             )}
-          </div>
+              </div>
+            </div>
+            )}
+
+            {/* About Page */}
+            {currentPage === 'about' && (
+              <AboutPage />
+            )}
+
+            {/* Profile Page */}
+            {currentPage === 'profile' && (
+              <ProfilePage authState={authState} />
+            )}
+
           </div>
         </div>
       </div>
