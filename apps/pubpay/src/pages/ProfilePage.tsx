@@ -11,97 +11,35 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ authState }) => {
   const publicKey = authState?.publicKey;
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1
-        style={{
-          fontSize: '28px',
-          fontWeight: '600',
-          marginBottom: '20px',
-          color: '#333'
-        }}
-      >
+    <div className="profilePage">
+      <h1 className="profilePageTitle">
         Profile
       </h1>
 
       {isLoggedIn ? (
         <div>
           {/* User Profile Section */}
-          <div
-            style={{
-              backgroundColor: '#f8f9fa',
-              padding: '20px',
-              borderRadius: '12px',
-              marginBottom: '30px',
-              border: '1px solid #e9ecef'
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '20px'
-              }}
-            >
-              <div
-                style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '50%',
-                  backgroundColor: '#4a75ff',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: '15px',
-                  color: 'white',
-                  fontSize: '24px',
-                  fontWeight: '600'
-                }}
-              >
+          <div className="profileSection">
+            <div className="profileUserInfo">
+              <div className="profileAvatar">
                 {displayName ? displayName.charAt(0).toUpperCase() : 'U'}
               </div>
-              <div>
-                <h2
-                  style={{
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    marginBottom: '5px',
-                    color: '#333'
-                  }}
-                >
+              <div className="profileUserDetails">
+                <h2>
                   {displayName || 'Anonymous User'}
                 </h2>
-                <p
-                  style={{ fontSize: '14px', color: '#666', marginBottom: '0' }}
-                >
+                <p>
                   PubPay User
                 </p>
               </div>
             </div>
 
             {publicKey && (
-              <div style={{ marginBottom: '15px' }}>
-                <label
-                  style={{
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    color: '#666',
-                    display: 'block',
-                    marginBottom: '5px'
-                  }}
-                >
+              <div className="profilePublicKey">
+                <label>
                   Public Key
                 </label>
-                <code
-                  style={{
-                    fontSize: '12px',
-                    backgroundColor: '#f1f3f4',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    display: 'block',
-                    wordBreak: 'break-all',
-                    color: '#333'
-                  }}
-                >
+                <code>
                   {publicKey}
                 </code>
               </div>
@@ -109,90 +47,32 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ authState }) => {
           </div>
 
           {/* Stats Section */}
-          <div style={{ marginBottom: '30px' }}>
-            <h2
-              style={{
-                fontSize: '22px',
-                fontWeight: '600',
-                marginBottom: '15px',
-                color: '#333'
-              }}
-            >
+          <div className="profileStatsSection">
+            <h2 className="profileStatsTitle">
               Activity Stats
             </h2>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-                gap: '15px'
-              }}
-            >
-              <div
-                style={{
-                  backgroundColor: '#fff',
-                  padding: '20px',
-                  borderRadius: '8px',
-                  border: '1px solid #e9ecef',
-                  textAlign: 'center'
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '24px',
-                    fontWeight: '600',
-                    color: '#4a75ff',
-                    marginBottom: '5px'
-                  }}
-                >
+            <div className="profileStatsGrid">
+              <div className="profileStatCard">
+                <div className="profileStatValue">
                   0
                 </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>
+                <div className="profileStatLabel">
                   Paynotes Sent
                 </div>
               </div>
-              <div
-                style={{
-                  backgroundColor: '#fff',
-                  padding: '20px',
-                  borderRadius: '8px',
-                  border: '1px solid #e9ecef',
-                  textAlign: 'center'
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '24px',
-                    fontWeight: '600',
-                    color: '#4a75ff',
-                    marginBottom: '5px'
-                  }}
-                >
+              <div className="profileStatCard">
+                <div className="profileStatValue">
                   0
                 </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>
+                <div className="profileStatLabel">
                   Paynotes Received
                 </div>
               </div>
-              <div
-                style={{
-                  backgroundColor: '#fff',
-                  padding: '20px',
-                  borderRadius: '8px',
-                  border: '1px solid #e9ecef',
-                  textAlign: 'center'
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '24px',
-                    fontWeight: '600',
-                    color: '#4a75ff',
-                    marginBottom: '5px'
-                  }}
-                >
+              <div className="profileStatCard">
+                <div className="profileStatValue">
                   0
                 </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>
+                <div className="profileStatLabel">
                   Total Transactions
                 </div>
               </div>
@@ -200,127 +80,46 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ authState }) => {
           </div>
 
           {/* Settings Section */}
-          <div>
-            <h2
-              style={{
-                fontSize: '22px',
-                fontWeight: '600',
-                marginBottom: '15px',
-                color: '#333'
-              }}
-            >
+          <div className="profileSettingsSection">
+            <h2 className="profileSettingsTitle">
               Account Settings
             </h2>
-            <div
-              style={{
-                backgroundColor: '#fff',
-                padding: '20px',
-                borderRadius: '8px',
-                border: '1px solid #e9ecef'
-              }}
-            >
-              <div style={{ marginBottom: '15px' }}>
-                <label
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#333',
-                    display: 'block',
-                    marginBottom: '5px'
-                  }}
-                >
+            <div className="profileSettingsCard">
+              <div className="profileFormField">
+                <label>
                   Display Name
                 </label>
                 <input
                   type="text"
                   defaultValue={displayName || ''}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px'
-                  }}
+                  className="profileFormInput"
                   placeholder="Enter your display name"
                 />
               </div>
-              <div style={{ marginBottom: '15px' }}>
-                <label
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#333',
-                    display: 'block',
-                    marginBottom: '5px'
-                  }}
-                >
+              <div className="profileFormField">
+                <label>
                   Bio
                 </label>
                 <textarea
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #ddd',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    minHeight: '80px',
-                    resize: 'vertical'
-                  }}
+                  className="profileFormTextarea"
                   placeholder="Tell us about yourself..."
                 />
               </div>
-              <button
-                style={{
-                  backgroundColor: '#4a75ff',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
+              <button className="profileSaveButton">
                 Save Changes
               </button>
             </div>
           </div>
         </div>
       ) : (
-        <div
-          style={{
-            backgroundColor: '#f8f9fa',
-            padding: '40px',
-            borderRadius: '12px',
-            textAlign: 'center',
-            border: '1px solid #e9ecef'
-          }}
-        >
-          <h2
-            style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              marginBottom: '15px',
-              color: '#333'
-            }}
-          >
+        <div className="profileNotLoggedIn">
+          <h2 className="profileNotLoggedInTitle">
             Not Logged In
           </h2>
-          <p style={{ fontSize: '16px', color: '#666', marginBottom: '20px' }}>
+          <p className="profileNotLoggedInText">
             Please log in to view your profile and manage your account settings.
           </p>
-          <button
-            style={{
-              backgroundColor: '#4a75ff',
-              color: 'white',
-              border: 'none',
-              padding: '12px 24px',
-              borderRadius: '6px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
+          <button className="profileLoginButton">
             Log In
           </button>
         </div>
