@@ -436,11 +436,25 @@ export const HomePage: React.FC = () => {
     <div>
       <div id="nav">
         <div id="navInner">
-          <a id="logo" href="/">
-            PUB<span style={{ color: '#000' }}>PAY</span>
-            <span style={{ color: '#0000001c' }}>.me</span>
-            <span className="version">alpha 0.02</span>
-          </a>
+          <div className="navLeft">
+            <button className="hamburger" onClick={() => {
+              const sideNav = document.getElementById('sideNav');
+              const hamburger = document.querySelector('.hamburger');
+              if (sideNav && hamburger) {
+                sideNav.classList.toggle('open');
+                hamburger.classList.toggle('open');
+              }
+            }}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+            <a id="logo" href="/">
+              PUB<span style={{ color: '#000' }}>PAY</span>
+              <span style={{ color: '#0000001c' }}>.me</span>
+              <span className="version">alpha 0.02</span>
+            </a>
+          </div>
           <div id="navActions">
             <a
               id="scanQrCode"
@@ -502,11 +516,11 @@ export const HomePage: React.FC = () => {
         <div id="containerInner">
           <div id="sideNav">
             <div id="navInner">
-              <a href="/live" className="sideNavLink " title="PubPay Live">Live</a>
               <a href="/profile" className="sideNavLink" title="Your PubPay Profile">Profile</a>
               <a href="/splits" className="sideNavLink disabled" title="coming soon">Splits</a>
               <a href="/notifications" className="sideNavLink disabled" title="coming soon">Notifications</a>
               <a href="/settings" className="sideNavLink disabled" title="coming soon">Settings</a>
+              <a href="/live" className="sideNavLink " title="PubPay Live">Live</a>
               <a href="/about" className="sideNavLink" title="About PubPay">About</a>
               <a
                 id="newPayNote"
@@ -1628,6 +1642,21 @@ export const HomePage: React.FC = () => {
           </a>
         </div>
       </div>
+
+      {/* Mobile Floating Action Button */}
+      <button 
+        className="mobile-fab"
+        onClick={() => {
+          if (authState.isLoggedIn) {
+            setShowNewPayNoteForm(true);
+            setPaymentType('fixed');
+          } else {
+            handleNewPayNote();
+          }
+        }}
+      >
+        <span className="material-symbols-outlined">add</span>
+      </button>
     </div>
   );
 };
