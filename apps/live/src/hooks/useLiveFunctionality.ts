@@ -436,7 +436,10 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Now create the QR code
         const newQrElement = document.getElementById('lightningQRCode');
         if (newQrElement && QRious) {
-          const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
+          const qrSize = Math.min(
+            window.innerWidth * 0.6,
+            window.innerHeight * 0.7
+          );
           updateBlendMode();
         } else {
           console.error(

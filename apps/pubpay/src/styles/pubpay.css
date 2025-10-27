@@ -1569,7 +1569,7 @@ textarea:focus::placeholder {
     background: white;
     z-index: 10001;
     transition: left 0.3s ease;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
     order: 2;
   }
 
@@ -1629,7 +1629,8 @@ textarea:focus::placeholder {
     font-size: 16px;
   }
 
-  .zapMaxLabel, .zapMinLabel {
+  .zapMaxLabel,
+  .zapMinLabel {
     font-size: 10px;
   }
 
@@ -1662,7 +1663,7 @@ textarea:focus::placeholder {
   }
 
   .hamburger.open span:nth-child(1) {
-    transform: rotate(45deg) translate(4px, 4px)
+    transform: rotate(45deg) translate(4px, 4px);
   }
 
   .hamburger.open span:nth-child(2) {
@@ -1670,7 +1671,7 @@ textarea:focus::placeholder {
   }
 
   .hamburger.open span:nth-child(3) {
-    transform: rotate(-45deg) translate(4px, -4px)
+    transform: rotate(-45deg) translate(4px, -4px);
   }
 
   /* Mobile Floating Action Button */
@@ -1710,7 +1711,7 @@ textarea:focus::placeholder {
   .hamburger {
     display: none;
   }
-  
+
   .mobile-fab {
     display: none;
   }
