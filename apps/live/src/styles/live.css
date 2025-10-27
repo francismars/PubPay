@@ -2,6 +2,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Russo+One&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
+body.livestream .live-event-status .status-indicator.status-live {
+  animation: livestream-pulse 2s infinite;
+}
+
+@keyframes livestream-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
 /* Essential Swiper CSS Classes */
 .swiper {
   margin-left: auto;
@@ -73,7 +83,7 @@
 }
 
 /* Mobile responsive adjustments for noteLoader */
-@media (max-width: 665px) {
+@media (max-width: 768px) {
   .live #noteLoaderContainer {
     padding: 0;
     box-sizing: border-box;
@@ -349,37 +359,6 @@
   }
 }
 
-/* Mobile responsive adjustments for noteLoader */
-@media (max-width: 665px) {
-  .live #noteLoaderContainer {
-    padding: 0;
-    box-sizing: border-box;
-    overflow-x: hidden;
-    overflow-y: auto;
-    width: 100vw;
-    position: fixed;
-    top: 0;
-    left: 0;
-  }
-
-  .live #noteLoader {
-    width: 100vw;
-    max-width: 100vw;
-    min-height: 100vh;
-    padding: 0;
-    border-radius: 0;
-    overflow: visible;
-    position: relative;
-  }
-
-  /* Ensure no horizontal overflow */
-  .live #noteLoader * {
-    max-width: 100%;
-    box-sizing: border-box;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-  }
-}
 
 @media (max-width: 480px) {
   .live #noteLoader .note-loader-footer .footer-links {
@@ -635,14 +614,6 @@
   color: #e0e0e0;
 }
 
-/* Mobile responsive adjustments for button container */
-@media (max-width: 665px) {
-  /* Make button-container stack vertically on mobile */
-  .live #noteLoader .button-container {
-    flex-direction: column;
-    gap: 10px;
-  }
-}
 
 /* CSS Variables */
 :root {
@@ -807,9 +778,6 @@ body {
   object-fit: cover;
 }
 
-/* Footer */
-.live .note-loader-footer {
-}
 
 .live .footer-links {
   display: flex;
@@ -923,6 +891,8 @@ body {
 .author-image {
   width: 4vw;
   height: 4vw;
+  min-width: 30px;
+  min-height: 30px;
   border-radius: 50%;
   object-fit: cover;
   margin: 0 0.5vw 0 0;
@@ -1030,7 +1000,7 @@ body {
   margin: 0;
   padding: 0;
   min-height: 250px;
-  position: static;
+  position: relative;
 }
 
 .qr-swiper .swiper-slide {
@@ -1091,7 +1061,7 @@ body {
 .qr-swiper .swiper-slide {
   isolation: auto;
   transform-style: flat;
-  position: static;
+  position: relative;
 }
 
 .qr-swiper .swiper-wrapper {
@@ -1108,10 +1078,10 @@ body {
 .qr-swiper .swiper-slide {
   isolation: auto;
   transform-style: flat;
-  position: static;
+  position: relative;
 }
 
-/* Apply blend mode to swiper container instead of individual images */
+/* Apply blend mode to swiper container - exactly like legacy */
 body.qr-blend-active .qr-swiper {
   mix-blend-mode: screen;
 }
@@ -1120,15 +1090,16 @@ body.qr-blend-active.qr-multiply-active .qr-swiper {
   mix-blend-mode: multiply;
 }
 
-/* Also apply blend mode to individual QR code elements */
-body.qr-blend-active .qr-swiper img,
-body.qr-blend-active .qr-swiper canvas {
-  mix-blend-mode: screen;
+/* Protect text elements from blend mode effects */
+body.qr-blend-active .qr-swiper .qr-slide-title,
+body.qr-blend-active .qr-swiper .qr-slide-label {
+  mix-blend-mode: normal;
+  isolation: isolate;
 }
 
-body.qr-blend-active.qr-multiply-active .qr-swiper img,
-body.qr-blend-active.qr-multiply-active .qr-swiper canvas {
-  mix-blend-mode: multiply;
+/* Fix blend mode issues - disable backdrop filter when QR blend is active */
+body.qr-blend-active .left-side {
+  backdrop-filter: none !important;
 }
 
 /* Responsive progress bar adjustments */
@@ -1232,6 +1203,7 @@ body.qr-blend-active.qr-multiply-active .qr-swiper canvas {
   justify-content: space-between;
   align-items: flex-end;
   gap: 5vw;
+  border-bottom: 1px solid color-mix(in srgb, var(--text-color) 20%, transparent);
 }
 
 /* Section Labels Toggle States */
@@ -1496,8 +1468,12 @@ body.style-panel-open .style-toggle-btn {
   padding: 20px 20px 0px 30px;
   border-radius: 12px;
   margin: 0;
+}
+
+.livestream .zaps-container {
   overflow: hidden;
 }
+
 
 .zaps-container::-webkit-scrollbar {
   width: 6px;
@@ -1730,7 +1706,7 @@ body.style-panel-open .style-toggle-btn {
 }
 
 /* Live-specific responsive zapperContent and zapperMessage font sizes */
-@media (max-width: 665px) {
+@media (max-width: 768px) {
   .live .zapperContent {
     font-size: 1.4vw;
   }
@@ -1831,7 +1807,7 @@ body.style-panel-open .style-toggle-btn {
   min-width: 0;
 }
 
-@media (max-width: 665px) {
+@media (max-width: 768px) {
   .live .zapperName,
   .live .zapperMessage {
     max-width: 150px;
@@ -2055,45 +2031,6 @@ body.style-panel-open .style-toggle-btn {
   transform: translateY(-1px);
 }
 
-/* Responsive Design */
-@media (max-width: 665px) {
-  .live .zapperContent {
-    font-size: 1.4vw;
-  }
-  .live .zapperMessage {
-    font-size: 1.3vw;
-  }
-  .live .zapperName,
-  .live .zapperMessage {
-    max-width: 150px;
-  }
-}
-
-@media (max-width: 480px) {
-  .live .zapperContent {
-    font-size: 1.6vw;
-  }
-  .live .zapperMessage {
-    font-size: 1.5vw;
-  }
-  .live .zapperName,
-  .live .zapperMessage {
-    max-width: 120px;
-  }
-}
-
-@media (min-width: 1200px) {
-  .live .zapperContent {
-    font-size: 0.9vw;
-  }
-  .live .zapperMessage {
-    font-size: 0.8vw;
-  }
-  .live .zapperName,
-  .live .zapperMessage {
-    max-width: 460px;
-  }
-}
 
 @media (max-width: 768px) {
   .main-layout,
@@ -2272,7 +2209,7 @@ body.style-panel-open .style-toggle-btn {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .zaps-list.grid-layout .zap.row-1 {
     min-height: 90px;
   }
@@ -2386,7 +2323,7 @@ body.style-panel-open .style-toggle-btn {
   }
 }
 
-@media (max-width: 665px) {
+@media (max-width: 768px) {
   .main-layout,
   .live {
     flex-direction: column;
@@ -2432,16 +2369,25 @@ body.style-panel-open .style-toggle-btn {
   }
 
   .zapper-name {
-    font-size: 0.85em;
+    font-size: 0.75em;
   }
 
   .zapper-total {
-    font-size: 0.75em;
+    font-size: 0.65em;
   }
 
   .qr-code,
   .lightning-qr-slide .qr-code {
-    max-width: 200px;
+    max-width: 120px;
+  }
+
+  .qr-swiper {
+    min-height: 140px;
+    padding-top: 20px;
+  }
+
+  .qr-swiper .swiper-wrapper {
+    min-height: 140px;
   }
 
   .qr-section {
@@ -2452,7 +2398,24 @@ body.style-panel-open .style-toggle-btn {
 @media (max-width: 480px) {
   .qr-code,
   .lightning-qr-slide .qr-code {
-    max-width: 150px;
+    max-width: 100px;
+  }
+
+  .qr-swiper {
+    min-height: 120px;
+    padding-top: 15px;
+  }
+
+  .qr-swiper .swiper-wrapper {
+    min-height: 120px;
+  }
+
+  .zapper-name {
+    font-size: 0.7em;
+  }
+
+  .zapper-total {
+    font-size: 0.6em;
   }
 
   .note-content {
@@ -2687,7 +2650,7 @@ body.style-panel-open .main-layout {
 }
 
 /* Mobile responsive adjustments for portrait swiper */
-@media (max-width: 665px) {
+@media (max-width: 768px) {
   .live #noteLoader .portrait-swiper {
     height: 60vw;
     max-height: 500px;
@@ -3118,13 +3081,7 @@ body.style-panel-open .main-layout {
 }
 
 /* ===== RESPONSIVE ADJUSTMENTS FOR LIVE STYLES ===== */
-@media (max-width: 665px) {
-  .live .zapperContent {
-    font-size: 1.4vw;
-  }
-  .live .zapperMessage {
-    font-size: 1.3vw;
-  }
+@media (max-width: 768px) {
   .main-layout .left-side,
   .live .left-side {
     min-height: 50vh;
@@ -3139,17 +3096,6 @@ body.style-panel-open .main-layout {
   }
 }
 
-/* Responsive adjustments for note-content and note-section */
-@media (max-width: 900px) {
-  .note-content {
-    font-size: max(1vw, 12px);
-    line-height: 1.4;
-  }
-
-  .note-section {
-    max-height: 30vh;
-  }
-}
 
 /* Aspect ratio adjustments for wide screens */
 @media (min-aspect-ratio: 16/10) {
@@ -3175,7 +3121,7 @@ body.style-panel-open .main-layout {
 }
 
 /* Responsive adjustments for total elements */
-@media (max-width: 665px) {
+@media (max-width: 768px) {
   .total-label {
     font-size: max(1.8vw, 12px);
   }
@@ -3191,6 +3137,35 @@ body.style-panel-open .main-layout {
   .total-zaps {
     font-size: max(1vw, 12px);
     color: var(--text-color);
+  }
+
+  .live #zappedTotalCount {
+    font-size: max(1.2vw, 12px);
+  }
+
+  /* Reduce zapperName and zapperAmountSats on mobile */
+  .live .zap:nth-child(1) .zapperName {
+    font-size: max(2.4vw, 18px);
+  }
+
+  .live .zap:nth-child(2) .zapperName {
+    font-size: max(2vw, 16px);
+  }
+
+  .live .zap:nth-child(3) .zapperName {
+    font-size: max(1.6vw, 14px);
+  }
+
+  .live .zap:nth-child(1) .zapperAmountSats {
+    font-size: max(2.2vw, 18px);
+  }
+
+  .live .zap:nth-child(2) .zapperAmountSats {
+    font-size: max(1.8vw, 16px);
+  }
+
+  .live .zap:nth-child(3) .zapperAmountSats {
+    font-size: max(1.4vw, 14px);
   }
 }
 
@@ -3210,6 +3185,35 @@ body.style-panel-open .main-layout {
   .total-zaps {
     font-size: max(1.2vw, 10px);
     color: var(--text-color);
+  }
+
+  .live #zappedTotalCount {
+    font-size: max(1vw, 10px);
+  }
+
+  /* Further reduce zapperName and zapperAmountSats on small mobile */
+  .live .zap:nth-child(1) .zapperName {
+    font-size: max(2vw, 16px);
+  }
+
+  .live .zap:nth-child(2) .zapperName {
+    font-size: max(1.6vw, 14px);
+  }
+
+  .live .zap:nth-child(3) .zapperName {
+    font-size: max(1.2vw, 12px);
+  }
+
+  .live .zap:nth-child(1) .zapperAmountSats {
+    font-size: max(1.8vw, 16px);
+  }
+
+  .live .zap:nth-child(2) .zapperAmountSats {
+    font-size: max(1.4vw, 14px);
+  }
+
+  .live .zap:nth-child(3) .zapperAmountSats {
+    font-size: max(1vw, 12px);
   }
 }
 
@@ -3233,7 +3237,7 @@ body.style-panel-open .main-layout {
 }
 
 /* Responsive adjustments for zaps-header-right elements */
-@media (max-width: 665px) {
+@media (max-width: 768px) {
   .style-toggle-btn {
     font-size: 1.5vw;
     width: 3vw;
@@ -3898,6 +3902,12 @@ body.flex-direction-invert .live .right-side {
   line-height: 1.5vw;
   color: var(--text-color);
   padding: 0 0.5vw 0 0;
+}
+
+.live #zappedTotalCount {
+  font-weight: 600;
+  line-height: 1.2vw;
+  color: var(--text-color);
 }
 
 /* Live-specific color overrides for zap header elements - match legacy black colors */
@@ -4668,6 +4678,22 @@ input:checked + .toggle-slider:before {
     width: 100vw;
   }
 
+  /* Make modal full width on mobile */
+  #styleOptionsModal.show {
+    width: 100vw;
+    left: 0;
+    right: 0;
+  }
+
+  .style-options-content {
+    width: 100vw;
+    transform: translateX(100%);
+  }
+
+  #styleOptionsModal.show .style-options-content {
+    transform: translateX(0);
+  }
+
   .colors-container {
     flex-direction: column;
     gap: 15px;
@@ -4698,7 +4724,12 @@ input:checked + .toggle-slider:before {
   }
 
   .action-btn {
-    width: 100%;
+    width: auto;
+    min-width: 80px;
+    height: 36px;
+    padding: 8px 16px;
+    font-size: 12px;
+    flex: 1;
   }
 }
 
@@ -4723,8 +4754,9 @@ input:checked + .toggle-slider:before {
 
 @media (max-width: 768px) {
   .style-actions {
-    flex-direction: column;
-    padding: 15px;
+    flex-direction: row;
+    padding: 10px 15px;
+    gap: 8px;
   }
 }
 
