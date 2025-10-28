@@ -3,9 +3,34 @@ import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { useUIStore, ensureProfiles, getQueryClient } from '@pubpay/shared-services';
 import * as NostrTools from 'nostr-tools';
 
-// Validation function for pubkeys
+// Validation function for pubkeys and npubs/nprofiles
 const isValidPublicKey = (pubkey: string): boolean => {
-  return /^[0-9a-f]{64}$/i.test(pubkey);
+  // Check for hex pubkey format (64 characters)
+  if (/^[0-9a-f]{64}$/i.test(pubkey)) {
+    return true;
+  }
+  
+  // Check for npub format
+  if (pubkey.startsWith('npub1')) {
+    try {
+      const decoded = NostrTools.nip19.decode(pubkey);
+      return decoded.type === 'npub';
+    } catch {
+      return false;
+    }
+  }
+  
+  // Check for nprofile format
+  if (pubkey.startsWith('nprofile1')) {
+    try {
+      const decoded = NostrTools.nip19.decode(pubkey);
+      return decoded.type === 'nprofile';
+    } catch {
+      return false;
+    }
+  }
+  
+  return false;
 };
 
 interface ProfilePageProps {
@@ -24,7 +49,34 @@ const ProfilePage: React.FC = () => {
 
   // Determine if we're viewing own profile or another user's profile
   const isOwnProfile = !pubkey || pubkey === publicKey;
-  const targetPubkey = pubkey || publicKey;
+  
+  // Extract hex pubkey from npub/nprofile for profile loading
+  const getHexPubkey = (pubkeyOrNpub: string): string => {
+    if (!pubkeyOrNpub) return '';
+    
+    // If it's already a hex pubkey, return it
+    if (/^[0-9a-f]{64}$/i.test(pubkeyOrNpub)) {
+      return pubkeyOrNpub;
+    }
+    
+    // If it's an npub or nprofile, decode it
+    if (pubkeyOrNpub.startsWith('npub1') || pubkeyOrNpub.startsWith('nprofile1')) {
+      try {
+        const decoded = NostrTools.nip19.decode(pubkeyOrNpub);
+        if (decoded.type === 'npub') {
+          return decoded.data;
+        } else if (decoded.type === 'nprofile') {
+          return decoded.data.pubkey;
+        }
+      } catch (error) {
+        console.error('Failed to decode npub/nprofile:', error);
+      }
+    }
+    
+    return pubkeyOrNpub;
+  };
+  
+  const targetPubkey = getHexPubkey(pubkey || publicKey);
 
   // Profile data state
   const [profileData, setProfileData] = useState({
@@ -69,8 +121,8 @@ const ProfilePage: React.FC = () => {
           }
         }
       } else if (targetPubkey && nostrClient) {
-        // Validate pubkey format
-        if (!isValidPublicKey(targetPubkey)) {
+        // Validate pubkey format (use original pubkey parameter for validation)
+        if (!isValidPublicKey(pubkey || publicKey)) {
           setProfileError('Invalid public key format');
           return;
         }
@@ -142,13 +194,21 @@ const ProfilePage: React.FC = () => {
 
   // Convert public key to npub format
   const getNpubFromPublicKey = (pubkey?: string): string => {
-    const keyToConvert = pubkey || targetPubkey;
+    const keyToConvert = pubkey || publicKey;
     if (!keyToConvert) return '';
     
     try {
       // If it's already an npub, return it
       if (keyToConvert.startsWith('npub1')) {
         return keyToConvert;
+      }
+      
+      // If it's an nprofile, extract the pubkey and convert to npub
+      if (keyToConvert.startsWith('nprofile1')) {
+        const decoded = NostrTools.nip19.decode(keyToConvert);
+        if ((decoded as any).type === 'nprofile') {
+          return NostrTools.nip19.npubEncode((decoded.data as any).pubkey);
+        }
       }
       
       // If it's a hex string, convert to npub
@@ -249,28 +309,38 @@ const ProfilePage: React.FC = () => {
 
                 {/* Profile Details */}
             <div className="profileDetails">
-              {profileData.lightningAddress && (
-                <div className="profileDetailItem">
-                  <label>Lightning Address</label>
-                  <div className="profileDetailValue">
-                    <a href={`lightning:${profileData.lightningAddress}`} className="profileLightningLink">
-                      {profileData.lightningAddress}
-                    </a>
+                {(isOwnProfile || profileData.lightningAddress) && (
+                  <div className="profileDetailItem">
+                    <label>Lightning Address</label>
+                    <div className="profileDetailValue">
+                      {profileData.lightningAddress ? (
+                        <a href={`lightning:${profileData.lightningAddress}`} className="profileLightningLink">
+                          {profileData.lightningAddress}
+                        </a>
+                      ) : (
+                        <span className="profileEmptyField">Not set</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
               
-              {profileData.nip05 && (
+              {(isOwnProfile || profileData.nip05) && (
                 <div className="profileDetailItem">
                   <label>NIP-05 Identifier</label>
                   <div className="profileDetailValue">
-                    <code className="profileNip05">{profileData.nip05}</code>
-                    <button 
-                      className="profileCopyButton"
-                      onClick={() => handleCopyToClipboard(profileData.nip05, 'NIP-05 Identifier')}
-                    >
-                      Copy
-                    </button>
+                    {profileData.nip05 ? (
+                      <>
+                        <code className="profileNip05">{profileData.nip05}</code>
+                        <button 
+                          className="profileCopyButton"
+                          onClick={() => handleCopyToClipboard(profileData.nip05, 'NIP-05 Identifier')}
+                        >
+                          Copy
+                        </button>
+                      </>
+                    ) : (
+                      <span className="profileEmptyField">Not set</span>
+                    )}
                   </div>
                 </div>
               )}
@@ -279,10 +349,10 @@ const ProfilePage: React.FC = () => {
                 <div className="profileDetailItem">
                   <label>User ID (npub)</label>
                   <div className="profileDetailValue">
-                    <code className="profilePublicKey">{getNpubFromPublicKey()}</code>
+                    <code className="profilePublicKey">{getNpubFromPublicKey(pubkey)}</code>
                     <button 
                       className="profileCopyButton"
-                      onClick={() => handleCopyToClipboard(getNpubFromPublicKey(), 'Public Key')}
+                      onClick={() => handleCopyToClipboard(getNpubFromPublicKey(pubkey), 'Public Key')}
                     >
                       Copy
                     </button>
