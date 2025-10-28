@@ -25,7 +25,43 @@ export class NostrClient {
   private initializePool(): void {
     // Initialize NostrTools.SimplePool using npm package
     this.pool = new NostrTools.SimplePool();
+    
+    // Add error handling to the pool's internal relay connections
+    this.setupPoolErrorHandling();
   }
+
+  /**
+   * Setup error handling for the pool's internal relay connections
+   */
+  private setupPoolErrorHandling(): void {
+    // Override the pool's publish method to catch errors
+    const originalPublish = this.pool.publish.bind(this.pool);
+    
+    this.pool.publish = async (relays: string[], event: any) => {
+      try {
+        return await originalPublish(relays, event);
+      } catch (error: any) {
+        const errorMessage = error?.message || error?.toString() || '';
+        
+        // Handle known relay response errors gracefully
+        if (errorMessage.includes('pow:') || 
+            errorMessage.includes('duplicate:') ||
+            errorMessage.includes('blocked:') ||
+            errorMessage.includes('invalid:') ||
+            errorMessage.includes('pubkey not admitted') ||
+            errorMessage.includes('admission')) {
+          
+          
+          // Don't re-throw these errors
+          return;
+        }
+        
+        // Re-throw other errors
+        throw error;
+      }
+    };
+  }
+
 
   /**
    * Subscribe to events with the given filters
@@ -51,7 +87,6 @@ export class NostrClient {
     let timeoutId: NodeJS.Timeout | null = null;
     if (options.timeout) {
       timeoutId = setTimeout(() => {
-        console.log(`Subscription ${subscriptionId} timeout - keeping alive`);
       }, options.timeout);
     }
 
@@ -190,18 +225,135 @@ export class NostrClient {
   async publishEvent(event: NostrEvent): Promise<void> {
     try {
       await this.pool.publish(this.relays, event);
+      
+      
     } catch (error: any) {
       const msg = String(error?.message || error || '');
-      // Ignore NIP-13 PoW requirement errors if at least one relay accepts elsewhere
+      
+      
+      // Check for PoW requirements and treat as non-fatal
       if (msg.includes('pow:') || msg.toLowerCase().includes('proof-of-work')) {
-        console.warn(
-          'Publish encountered PoW requirement; treating as non-fatal'
-        );
         return; // soft-success
       }
-      console.error('Failed to publish event:', error);
-      throw new Error(`Failed to publish event: ${error}`);
+      
+      throw new Error(`Failed to publish event ${event.id}: ${msg}`);
     }
+  }
+
+  /**
+   * Test publishing to individual relays for debugging
+   */
+  async testRelayPublish(event: NostrEvent, relayUrl: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Don't modify the event - just test with the original event
+      // The duplicate errors are expected and don't indicate failure
+      await this.pool.publish([relayUrl], event);
+      return { success: true };
+    } catch (error: any) {
+      const msg = String(error?.message || error || '');
+      
+      // Ignore duplicate errors as they're expected when testing
+      if (msg.includes('duplicate')) {
+        return { success: true };
+      }
+      return { success: false, error: msg };
+    }
+  }
+
+  /**
+   * Get a summary of relay health and status
+   */
+  async getRelayHealthSummary(event: NostrEvent): Promise<{
+    totalRelays: number;
+    workingRelays: string[];
+    failedRelays: { relay: string; error: string }[];
+    powRelays: { relay: string; bits: number }[];
+    issues: string[];
+  }> {
+    const results = await this.testAllRelays(event);
+    
+    const workingRelays = results.filter(r => r.success).map(r => r.relay);
+    const failedRelays = results.filter(r => !r.success).map(r => ({ relay: r.relay, error: r.error || 'Unknown error' }));
+    
+    // Extract PoW requirements
+    const powRelays = failedRelays
+      .filter(failed => failed.error.includes('pow:'))
+      .map(failed => {
+        const bitsMatch = failed.error.match(/pow:\s*(\d+)\s*bits/);
+        return {
+          relay: failed.relay,
+          bits: bitsMatch ? parseInt(bitsMatch[1]) : 0
+        };
+      });
+    
+    const issues: string[] = [];
+    
+    // Categorize common issues
+    failedRelays.forEach(failed => {
+      if (failed.error.includes('pubkey not admitted') || failed.error.includes('blocked')) {
+        issues.push(`${failed.relay}: Admission policy (new users not allowed)`);
+      } else if (failed.error.includes('pow:')) {
+        const bitsMatch = failed.error.match(/pow:\s*(\d+)\s*bits/);
+        const bits = bitsMatch ? bitsMatch[1] : 'unknown';
+        issues.push(`${failed.relay}: Requires ${bits}-bit proof-of-work`);
+      } else if (failed.error.includes('WebSocket') || failed.error.includes('connection')) {
+        issues.push(`${failed.relay}: Connection failed (relay may be down)`);
+      } else {
+        issues.push(`${failed.relay}: ${failed.error}`);
+      }
+    });
+    
+    const summary = {
+      totalRelays: this.relays.length,
+      workingRelays,
+      failedRelays,
+      powRelays,
+      issues
+    };
+    
+    
+    return summary;
+  }
+
+  /**
+   * Test specifically for PoW requirements across all relays
+   */
+  async testPowRequirements(event: NostrEvent): Promise<{ relay: string; bits: number; error: string }[]> {
+    const results = await this.testAllRelays(event);
+    
+    const powResults = results
+      .filter(r => r.error?.includes('pow:'))
+      .map(r => {
+        const bitsMatch = r.error?.match(/pow:\s*(\d+)\s*bits/);
+        return {
+          relay: r.relay,
+          bits: bitsMatch ? parseInt(bitsMatch[1]) : 0,
+          error: r.error || 'Unknown PoW error'
+        };
+      });
+    
+    
+    return powResults;
+  }
+
+ 
+
+  /**
+   * Test all relays individually to identify which ones are blocking
+   */
+  async testAllRelays(event: NostrEvent): Promise<{ relay: string; success: boolean; error?: string }[]> {
+    const results = [];
+    
+    for (const relay of this.relays) {
+      const result = await this.testRelayPublish(event, relay);
+      results.push({
+        relay,
+        success: result.success,
+        error: result.error
+      });
+    }
+    
+    return results;
   }
 
   /**
@@ -244,8 +396,6 @@ export class NostrClient {
           }
         }
 
-        console.log('Getting events with filters:', filters);
-        console.log('Filter structure:', JSON.stringify(filters, null, 2));
 
         // Ensure filters are plain objects and properly format hashtag properties
         const cleanFilters = filters
@@ -300,11 +450,9 @@ export class NostrClient {
               isValidObject && hasKinds && (hasAuthors || hasIds || hasTags)
             );
           });
-        console.log('Clean filters:', cleanFilters);
 
         // If no valid filters remain, return empty array
         if (cleanFilters.length === 0) {
-          console.log('No valid filters after cleaning, returning empty array');
           resolve([]);
           return;
         }
@@ -337,11 +485,6 @@ export class NostrClient {
                 !isComplete
               ) {
                 isComplete = true;
-                console.log(
-                  'All subscriptions closed, resolving with',
-                  events.length,
-                  'events'
-                );
                 resolve(events);
               }
             }
@@ -360,16 +503,10 @@ export class NostrClient {
           if (!isComplete) {
             isComplete = true;
             subscription.close();
-            console.log(
-              'Timeout reached, resolving with',
-              events.length,
-              'events'
-            );
             resolve(events);
           }
         }, 10000);
       } catch (error) {
-        console.error('Failed to get events:', error);
         reject(new Error(`Failed to get events: ${error}`));
       }
     });
@@ -445,6 +582,7 @@ export class NostrClient {
    */
   destroy(): void {
     this.unsubscribeAll();
+    
     if (this.pool && typeof this.pool.close === 'function') {
       try {
         this.pool.close();

@@ -1,6 +1,7 @@
 // Export all services
 export * from './services/AuthService';
 export * from './services/ErrorService';
+export * from './services/BlossomService';
 export * from './services/index';
 
 // Export API services
@@ -18,6 +19,7 @@ export * from './services/nostr/EventManager';
 export * from './services/nostr/NostrClient';
 export * from './services/nostr/ProfileService';
 export * from './services/nostr/RelayManager';
+export * from './services/NostrRegistrationService';
 
 // Export Query services
 export * from './services/query/postQueries';

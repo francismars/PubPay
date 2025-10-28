@@ -7,9 +7,15 @@ body.livestream .live-event-status .status-indicator.status-live {
 }
 
 @keyframes livestream-pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.7; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 /* Essential Swiper CSS Classes */
@@ -359,7 +365,6 @@ body.livestream .live-event-status .status-indicator.status-live {
   }
 }
 
-
 @media (max-width: 480px) {
   .live #noteLoader .note-loader-footer .footer-links {
     gap: 20px;
@@ -614,7 +619,6 @@ body.livestream .live-event-status .status-indicator.status-live {
   color: #e0e0e0;
 }
 
-
 /* CSS Variables */
 :root {
   --text-color: #333;
@@ -777,7 +781,6 @@ body {
   border-radius: 50%;
   object-fit: cover;
 }
-
 
 .live .footer-links {
   display: flex;
@@ -1203,7 +1206,8 @@ body.qr-blend-active .left-side {
   justify-content: space-between;
   align-items: flex-end;
   gap: 5vw;
-  border-bottom: 1px solid color-mix(in srgb, var(--text-color) 20%, transparent);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--text-color) 20%, transparent);
 }
 
 /* Section Labels Toggle States */
@@ -1473,7 +1477,6 @@ body.style-panel-open .style-toggle-btn {
 .livestream .zaps-container {
   overflow: hidden;
 }
-
 
 .zaps-container::-webkit-scrollbar {
   width: 6px;
@@ -2030,7 +2033,6 @@ body.style-panel-open .style-toggle-btn {
   background: #3a65ef;
   transform: translateY(-1px);
 }
-
 
 @media (max-width: 768px) {
   .main-layout,
@@ -3095,7 +3097,6 @@ body.style-panel-open .main-layout {
     padding-bottom: 30px;
   }
 }
-
 
 /* Aspect ratio adjustments for wide screens */
 @media (min-aspect-ratio: 16/10) {

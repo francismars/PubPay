@@ -3,8 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../assets/images';
 import * as NostrTools from 'nostr-tools';
-import { ensureProfiles } from '@pubpay/shared-services';
-import { getQueryClient } from '@pubpay/shared-services';
+import { formatContent } from '../utils/contentFormatter';
 
 // Define ProcessedZap interface locally since it's not exported
 interface ProcessedZap {
@@ -61,7 +60,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       const formatPostContent = async () => {
         if (post.event.content && nostrClient) {
           try {
-            const formatted = await formatContent(post.event.content);
+            const formatted = await formatContent(post.event.content, nostrClient);
             setFormattedContent(formatted);
           } catch (error) {
             console.error('Error formatting content:', error);
@@ -147,131 +146,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       }
     };
 
-    // Get user display name for npub mention
-    const getMentionUserName = async (npub: string): Promise<string> => {
-      try {
-        const decoded = NostrTools.nip19.decode(npub);
-        if (decoded.type !== 'npub' && decoded.type !== 'nprofile') {
-          console.error('Invalid npub format');
-          return npub.length > 35
-            ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4)}`
-            : npub;
-        }
-
-        const pubkey =
-          decoded.type === 'npub' ? decoded.data : decoded.data.pubkey;
-
-        // Use the existing profile system to get user data
-        const queryClient = getQueryClient();
-        const profileMap = await ensureProfiles(queryClient, nostrClient, [
-          pubkey
-        ]);
-        const profile = profileMap.get(pubkey);
-
-        if (profile && profile.content) {
-          try {
-            const profileData = JSON.parse(profile.content);
-            const displayName =
-              profileData.display_name ||
-              profileData.displayName ||
-              profileData.name;
-            if (displayName) {
-              return displayName;
-            }
-          } catch (error) {
-            console.error('Error parsing profile data:', error);
-          }
-        }
-
-        // Fallback to shortened npub
-        return npub.length > 35
-          ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4)}`
-          : npub;
-      } catch (error) {
-        console.error('Error in getMentionUserName:', error);
-        return npub.length > 35
-          ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4)}`
-          : npub;
-      }
-    };
-
-    // Format content with mentions and links (async version)
-    const formatContent = async (content: string): Promise<string> => {
-      // First, handle npub mentions (before URL processing to avoid conflicts)
-      const npubMatches = content.match(
-        /(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
-      );
-
-      if (npubMatches) {
-        const replacements = await Promise.all(
-          npubMatches.map(async match => {
-            const cleanMatch = match.replace(/^(nostr:|@)/, '');
-            const displayName = await getMentionUserName(cleanMatch);
-            return {
-              match,
-              replacement: `<a href="https://next.nostrudel.ninja/#/u/${cleanMatch}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${displayName}</a>`
-            };
-          })
-        );
-
-        replacements.forEach(({ match, replacement }) => {
-          content = content.replace(match, replacement);
-        });
-      }
-
-      // Handle image URLs
-      content = content.replace(
-        /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(gif|png|jpg|jpeg)/gi,
-        match =>
-          `<img src="${match}" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;">`
-      );
-
-      // Handle video URLs
-      content = content.replace(
-        /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(mp4|webm|ogg|mov)/gi,
-        match => `<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 8px 0;">
-        <video src="${match}" controls style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;">
-          Your browser does not support the video tag.
-        </video>
-      </div>`
-      );
-
-      // Handle YouTube URLs
-      content = content.replace(
-        /(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([\w\-]+)|https?:\/\/youtu\.be\/([\w\-]+))/gi,
-        (match, p1, p2) => {
-          const videoId = p2 || p1;
-          return `<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 8px 0;">
-          <iframe src="https://www.youtube.com/embed/${videoId}" 
-                  style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;"
-                  frameborder="0" allowfullscreen>
-          </iframe>
-        </div>`;
-        }
-      );
-
-      // Handle regular URLs (but skip if already processed as images/videos or npubs)
-      content = content.replace(
-        /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+|www\.[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)/gi,
-        match => {
-          // Skip if already processed as image, video, or npub
-          if (
-            content.includes(`src="${match}"`) ||
-            content.includes(`href="https://next.nostrudel.ninja/#/u/`) ||
-            content.includes(`href="https://www.youtube.com/embed/`)
-          ) {
-            return match;
-          }
-          const url = match.startsWith('http') ? match : `http://${match}`;
-          return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${match}</a>`;
-        }
-      );
-
-      // Convert newlines to breaks
-      content = content.replace(/\n/g, '<br />');
-
-      return content;
-    };
 
     // Handle zap slider change
     const handleZapSliderChange = (value: number) => {
@@ -447,10 +321,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             <div className="noteAuthor">
               <div className="noteDisplayName">
                 <a
-                  href={`https://next.nostrudel.ninja/#/u/${post.event.pubkey}`}
+                  href={`/profile/${post.event.pubkey}`}
                   className="noteAuthorLink"
-                  target="_blank"
-                  rel="noopener noreferrer"
                 >
                   {displayName}
                 </a>
@@ -510,7 +382,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 // Navigate to single note view using NIP-19 encoding
                 const nevent = NostrTools.nip19.noteEncode(post.id);
                 console.log('Navigating to single note:', nevent);
-                window.location.href = `/?note=${nevent}`;
+                window.location.href = `/note/${nevent}`;
               }
             }}
             style={{ cursor: 'pointer' }}
@@ -555,7 +427,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     <span className="label">of</span>
                     <span className="zapUsesTotal">{post.zapUses}</span>
                   </div>
-                  <div className="zapUsesLabel">Uses</div>
                 </div>
               )}
             </div>
@@ -810,15 +681,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     }}
                   >
                     View Raw
-                  </a>
-
-                  <a
-                    href={`https://next.nostrudel.ninja/#/n/${post.id}`}
-                    className="toolTipLink dropdown-element"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View on nostrudel
                   </a>
 
                   <a

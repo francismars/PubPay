@@ -138,7 +138,7 @@ export class RelayManager {
         try {
             // This would implement actual relay testing
             // For now, simulate a test
-            return new Promise((resolve) => {
+            return new Promise(resolve => {
                 setTimeout(() => {
                     this.updateConnectionStatus(relayUrl, 'connected');
                     resolve(true);
@@ -168,7 +168,8 @@ export class RelayManager {
             url: relayUrl,
             connection: connections.get(relayUrl)
         }))
-            .sort((a, b) => (a.connection.latency || Infinity) - (b.connection.latency || Infinity))
+            .sort((a, b) => (a.connection.latency || Infinity) -
+            (b.connection.latency || Infinity))
             .slice(0, limit)
             .map(relay => relay.url);
     }
@@ -197,7 +198,8 @@ export class RelayManager {
         }
         else if (stats.connected >= 2) {
             status = 'degraded';
-            message = 'Some relays are disconnected but core functionality is available';
+            message =
+                'Some relays are disconnected but core functionality is available';
         }
         else {
             status = 'unhealthy';

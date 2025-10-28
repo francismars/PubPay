@@ -5,3 +5,4 @@ export * from './api';
 export * from './storage';
 export * from './zap';
 export { ErrorService, ErrorLevel } from './ErrorService';
+export { BlossomService } from './BlossomService';

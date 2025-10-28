@@ -155,7 +155,8 @@ class SessionService {
                     cleanedSessions++;
                     // Remove corresponding LNURL mapping
                     for (const [lnurlpId, mapping] of this.lnurlpMappings.entries()) {
-                        if (mapping.frontendSessionId === frontendSessionId && mapping.eventId === eventId) {
+                        if (mapping.frontendSessionId === frontendSessionId &&
+                            mapping.eventId === eventId) {
                             this.lnurlpMappings.delete(lnurlpId);
                             cleanedMappings++;
                             break;

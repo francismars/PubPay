@@ -68,7 +68,7 @@ export class EventManager {
                 amount: this.extractZapAmount(bolt11),
                 content: descriptionTag ? descriptionTag[1] : '',
                 created_at: event.created_at,
-                profile: await this.getProfile(payerPubkey) || undefined
+                profile: (await this.getProfile(payerPubkey)) || undefined
             };
             return zap;
         }
@@ -143,10 +143,12 @@ export class EventManager {
         }
         try {
             // Fetch profile from relays
-            const events = await this.nostrClient.getEvents([{
+            const events = await this.nostrClient.getEvents([
+                {
                     authors: [pubkey],
                     kinds: [0]
-                }]);
+                }
+            ]);
             if (events.length > 0) {
                 const profile = await this.handleProfileEvent(events[0]);
                 return profile;

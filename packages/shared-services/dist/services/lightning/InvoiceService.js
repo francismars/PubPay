@@ -17,7 +17,9 @@ export class InvoiceService {
         const invoice = {
             payment_hash: paymentHash,
             payment_request: paymentRequest,
-            description: options.comment ? `${description} - ${options.comment}` : description,
+            description: options.comment
+                ? `${description} - ${options.comment}`
+                : description,
             amount_msat: amount * 1000,
             amount_sat: amount,
             created_at: now,

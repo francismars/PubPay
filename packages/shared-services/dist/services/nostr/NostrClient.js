@@ -11,6 +11,35 @@ export class NostrClient {
     initializePool() {
         // Initialize NostrTools.SimplePool using npm package
         this.pool = new NostrTools.SimplePool();
+        // Add error handling to the pool's internal relay connections
+        this.setupPoolErrorHandling();
+    }
+    /**
+     * Setup error handling for the pool's internal relay connections
+     */
+    setupPoolErrorHandling() {
+        // Override the pool's publish method to catch errors
+        const originalPublish = this.pool.publish.bind(this.pool);
+        this.pool.publish = async (relays, event) => {
+            try {
+                return await originalPublish(relays, event);
+            }
+            catch (error) {
+                const errorMessage = error?.message || error?.toString() || '';
+                // Handle known relay response errors gracefully
+                if (errorMessage.includes('pow:') ||
+                    errorMessage.includes('duplicate:') ||
+                    errorMessage.includes('blocked:') ||
+                    errorMessage.includes('invalid:') ||
+                    errorMessage.includes('pubkey not admitted') ||
+                    errorMessage.includes('admission')) {
+                    // Don't re-throw these errors
+                    return;
+                }
+                // Re-throw other errors
+                throw error;
+            }
+        };
     }
     /**
      * Subscribe to events with the given filters
@@ -26,7 +55,6 @@ export class NostrClient {
         let timeoutId = null;
         if (options.timeout) {
             timeoutId = setTimeout(() => {
-                console.log(`Subscription ${subscriptionId} timeout - keeping alive`);
             }, options.timeout);
         }
         // Subscribe to each filter individually to avoid subscribeMany issues
@@ -126,14 +154,107 @@ export class NostrClient {
         }
         catch (error) {
             const msg = String(error?.message || error || '');
-            // Ignore NIP-13 PoW requirement errors if at least one relay accepts elsewhere
+            // Check for PoW requirements and treat as non-fatal
             if (msg.includes('pow:') || msg.toLowerCase().includes('proof-of-work')) {
-                console.warn('Publish encountered PoW requirement; treating as non-fatal');
                 return; // soft-success
             }
-            console.error('Failed to publish event:', error);
-            throw new Error(`Failed to publish event: ${error}`);
+            throw new Error(`Failed to publish event ${event.id}: ${msg}`);
         }
+    }
+    /**
+     * Test publishing to individual relays for debugging
+     */
+    async testRelayPublish(event, relayUrl) {
+        try {
+            // Don't modify the event - just test with the original event
+            // The duplicate errors are expected and don't indicate failure
+            await this.pool.publish([relayUrl], event);
+            return { success: true };
+        }
+        catch (error) {
+            const msg = String(error?.message || error || '');
+            // Ignore duplicate errors as they're expected when testing
+            if (msg.includes('duplicate')) {
+                return { success: true };
+            }
+            return { success: false, error: msg };
+        }
+    }
+    /**
+     * Get a summary of relay health and status
+     */
+    async getRelayHealthSummary(event) {
+        const results = await this.testAllRelays(event);
+        const workingRelays = results.filter(r => r.success).map(r => r.relay);
+        const failedRelays = results.filter(r => !r.success).map(r => ({ relay: r.relay, error: r.error || 'Unknown error' }));
+        // Extract PoW requirements
+        const powRelays = failedRelays
+            .filter(failed => failed.error.includes('pow:'))
+            .map(failed => {
+            const bitsMatch = failed.error.match(/pow:\s*(\d+)\s*bits/);
+            return {
+                relay: failed.relay,
+                bits: bitsMatch ? parseInt(bitsMatch[1]) : 0
+            };
+        });
+        const issues = [];
+        // Categorize common issues
+        failedRelays.forEach(failed => {
+            if (failed.error.includes('pubkey not admitted') || failed.error.includes('blocked')) {
+                issues.push(`${failed.relay}: Admission policy (new users not allowed)`);
+            }
+            else if (failed.error.includes('pow:')) {
+                const bitsMatch = failed.error.match(/pow:\s*(\d+)\s*bits/);
+                const bits = bitsMatch ? bitsMatch[1] : 'unknown';
+                issues.push(`${failed.relay}: Requires ${bits}-bit proof-of-work`);
+            }
+            else if (failed.error.includes('WebSocket') || failed.error.includes('connection')) {
+                issues.push(`${failed.relay}: Connection failed (relay may be down)`);
+            }
+            else {
+                issues.push(`${failed.relay}: ${failed.error}`);
+            }
+        });
+        const summary = {
+            totalRelays: this.relays.length,
+            workingRelays,
+            failedRelays,
+            powRelays,
+            issues
+        };
+        return summary;
+    }
+    /**
+     * Test specifically for PoW requirements across all relays
+     */
+    async testPowRequirements(event) {
+        const results = await this.testAllRelays(event);
+        const powResults = results
+            .filter(r => r.error?.includes('pow:'))
+            .map(r => {
+            const bitsMatch = r.error?.match(/pow:\s*(\d+)\s*bits/);
+            return {
+                relay: r.relay,
+                bits: bitsMatch ? parseInt(bitsMatch[1]) : 0,
+                error: r.error || 'Unknown PoW error'
+            };
+        });
+        return powResults;
+    }
+    /**
+     * Test all relays individually to identify which ones are blocking
+     */
+    async testAllRelays(event) {
+        const results = [];
+        for (const relay of this.relays) {
+            const result = await this.testRelayPublish(event, relay);
+            results.push({
+                relay,
+                success: result.success,
+                error: result.error
+            });
+        }
+        return results;
     }
     /**
      * Get events from relays using subscribeMany pattern
@@ -171,10 +292,9 @@ export class NostrClient {
                         throw new Error('Invalid filter: missing kinds');
                     }
                 }
-                console.log('Getting events with filters:', filters);
-                console.log('Filter structure:', JSON.stringify(filters, null, 2));
                 // Ensure filters are plain objects and properly format hashtag properties
-                const cleanFilters = filters.map(filter => {
+                const cleanFilters = filters
+                    .map(filter => {
                     const cleanFilter = {};
                     // Copy standard properties
                     if (filter.kinds)
@@ -191,19 +311,28 @@ export class NostrClient {
                         cleanFilter.since = filter.since;
                     // Handle hashtag properties properly - ensure they are arrays
                     if (filter['#t']) {
-                        cleanFilter['#t'] = Array.isArray(filter['#t']) ? filter['#t'] : [filter['#t']];
+                        cleanFilter['#t'] = Array.isArray(filter['#t'])
+                            ? filter['#t']
+                            : [filter['#t']];
                     }
                     if (filter['#e']) {
-                        cleanFilter['#e'] = Array.isArray(filter['#e']) ? filter['#e'] : [filter['#e']];
+                        cleanFilter['#e'] = Array.isArray(filter['#e'])
+                            ? filter['#e']
+                            : [filter['#e']];
                     }
                     if (filter['#p']) {
-                        cleanFilter['#p'] = Array.isArray(filter['#p']) ? filter['#p'] : [filter['#p']];
+                        cleanFilter['#p'] = Array.isArray(filter['#p'])
+                            ? filter['#p']
+                            : [filter['#p']];
                     }
                     if (filter['#a']) {
-                        cleanFilter['#a'] = Array.isArray(filter['#a']) ? filter['#a'] : [filter['#a']];
+                        cleanFilter['#a'] = Array.isArray(filter['#a'])
+                            ? filter['#a']
+                            : [filter['#a']];
                     }
                     return cleanFilter;
-                }).filter(filter => {
+                })
+                    .filter(filter => {
                     // Filter out empty filters
                     const hasKinds = filter.kinds && filter.kinds.length > 0;
                     const hasAuthors = filter.authors && filter.authors.length > 0;
@@ -211,12 +340,10 @@ export class NostrClient {
                     const hasTags = filter['#t'] || filter['#e'] || filter['#p'] || filter['#a'];
                     // Additional validation: ensure filter is a proper object
                     const isValidObject = filter && typeof filter === 'object' && !Array.isArray(filter);
-                    return isValidObject && hasKinds && (hasAuthors || hasIds || hasTags);
+                    return (isValidObject && hasKinds && (hasAuthors || hasIds || hasTags));
                 });
-                console.log('Clean filters:', cleanFilters);
                 // If no valid filters remain, return empty array
                 if (cleanFilters.length === 0) {
-                    console.log('No valid filters after cleaning, returning empty array');
                     resolve([]);
                     return;
                 }
@@ -232,16 +359,17 @@ export class NostrClient {
                         },
                         oneose() {
                             completedSubscriptions++;
-                            if (completedSubscriptions === totalSubscriptions && !isComplete) {
+                            if (completedSubscriptions === totalSubscriptions &&
+                                !isComplete) {
                                 isComplete = true;
                                 resolve(events);
                             }
                         },
                         onclosed() {
                             completedSubscriptions++;
-                            if (completedSubscriptions === totalSubscriptions && !isComplete) {
+                            if (completedSubscriptions === totalSubscriptions &&
+                                !isComplete) {
                                 isComplete = true;
-                                console.log('All subscriptions closed, resolving with', events.length, 'events');
                                 resolve(events);
                             }
                         }
@@ -258,13 +386,11 @@ export class NostrClient {
                     if (!isComplete) {
                         isComplete = true;
                         subscription.close();
-                        console.log('Timeout reached, resolving with', events.length, 'events');
                         resolve(events);
                     }
                 }, 10000);
             }
             catch (error) {
-                console.error('Failed to get events:', error);
                 reject(new Error(`Failed to get events: ${error}`));
             }
         });
@@ -289,7 +415,7 @@ export class NostrClient {
      * Unsubscribe from all subscriptions
      */
     unsubscribeAll() {
-        this.subscriptions.forEach((subscription) => {
+        this.subscriptions.forEach(subscription => {
             subscription.unsubscribe();
         });
         this.subscriptions.clear();
