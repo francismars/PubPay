@@ -150,7 +150,7 @@ export class ErrorService {
      */
     setupGlobalErrorHandlers() {
         // Handle uncaught errors
-        window.addEventListener('error', (event) => {
+        window.addEventListener('error', event => {
             this.handleError(event.error, {
                 type: 'uncaught',
                 filename: event.filename,
@@ -159,7 +159,7 @@ export class ErrorService {
             });
         });
         // Handle unhandled promise rejections
-        window.addEventListener('unhandledrejection', (event) => {
+        window.addEventListener('unhandledrejection', event => {
             this.handleError(new Error(event.reason), { type: 'unhandledrejection' });
         });
     }

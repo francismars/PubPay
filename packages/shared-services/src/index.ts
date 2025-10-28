@@ -18,6 +18,7 @@ export * from './services/nostr/EventManager';
 export * from './services/nostr/NostrClient';
 export * from './services/nostr/ProfileService';
 export * from './services/nostr/RelayManager';
+export * from './services/NostrRegistrationService';
 
 // Export Query services
 export * from './services/query/postQueries';

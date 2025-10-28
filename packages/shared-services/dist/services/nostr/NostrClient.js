@@ -174,7 +174,8 @@ export class NostrClient {
                 console.log('Getting events with filters:', filters);
                 console.log('Filter structure:', JSON.stringify(filters, null, 2));
                 // Ensure filters are plain objects and properly format hashtag properties
-                const cleanFilters = filters.map(filter => {
+                const cleanFilters = filters
+                    .map(filter => {
                     const cleanFilter = {};
                     // Copy standard properties
                     if (filter.kinds)
@@ -191,19 +192,28 @@ export class NostrClient {
                         cleanFilter.since = filter.since;
                     // Handle hashtag properties properly - ensure they are arrays
                     if (filter['#t']) {
-                        cleanFilter['#t'] = Array.isArray(filter['#t']) ? filter['#t'] : [filter['#t']];
+                        cleanFilter['#t'] = Array.isArray(filter['#t'])
+                            ? filter['#t']
+                            : [filter['#t']];
                     }
                     if (filter['#e']) {
-                        cleanFilter['#e'] = Array.isArray(filter['#e']) ? filter['#e'] : [filter['#e']];
+                        cleanFilter['#e'] = Array.isArray(filter['#e'])
+                            ? filter['#e']
+                            : [filter['#e']];
                     }
                     if (filter['#p']) {
-                        cleanFilter['#p'] = Array.isArray(filter['#p']) ? filter['#p'] : [filter['#p']];
+                        cleanFilter['#p'] = Array.isArray(filter['#p'])
+                            ? filter['#p']
+                            : [filter['#p']];
                     }
                     if (filter['#a']) {
-                        cleanFilter['#a'] = Array.isArray(filter['#a']) ? filter['#a'] : [filter['#a']];
+                        cleanFilter['#a'] = Array.isArray(filter['#a'])
+                            ? filter['#a']
+                            : [filter['#a']];
                     }
                     return cleanFilter;
-                }).filter(filter => {
+                })
+                    .filter(filter => {
                     // Filter out empty filters
                     const hasKinds = filter.kinds && filter.kinds.length > 0;
                     const hasAuthors = filter.authors && filter.authors.length > 0;
@@ -211,7 +221,7 @@ export class NostrClient {
                     const hasTags = filter['#t'] || filter['#e'] || filter['#p'] || filter['#a'];
                     // Additional validation: ensure filter is a proper object
                     const isValidObject = filter && typeof filter === 'object' && !Array.isArray(filter);
-                    return isValidObject && hasKinds && (hasAuthors || hasIds || hasTags);
+                    return (isValidObject && hasKinds && (hasAuthors || hasIds || hasTags));
                 });
                 console.log('Clean filters:', cleanFilters);
                 // If no valid filters remain, return empty array
@@ -232,14 +242,16 @@ export class NostrClient {
                         },
                         oneose() {
                             completedSubscriptions++;
-                            if (completedSubscriptions === totalSubscriptions && !isComplete) {
+                            if (completedSubscriptions === totalSubscriptions &&
+                                !isComplete) {
                                 isComplete = true;
                                 resolve(events);
                             }
                         },
                         onclosed() {
                             completedSubscriptions++;
-                            if (completedSubscriptions === totalSubscriptions && !isComplete) {
+                            if (completedSubscriptions === totalSubscriptions &&
+                                !isComplete) {
                                 isComplete = true;
                                 console.log('All subscriptions closed, resolving with', events.length, 'events');
                                 resolve(events);
@@ -289,7 +301,7 @@ export class NostrClient {
      * Unsubscribe from all subscriptions
      */
     unsubscribeAll() {
-        this.subscriptions.forEach((subscription) => {
+        this.subscriptions.forEach(subscription => {
             subscription.unsubscribe();
         });
         this.subscriptions.clear();

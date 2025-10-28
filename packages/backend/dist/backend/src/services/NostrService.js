@@ -205,7 +205,9 @@ class NostrService {
     createZapRequest(recipientPubkey, eventId, amount, comment, _senderPubkey) {
         // Validate all parameters before calling makeZapRequest
         this.logger.info('🔍 Validating zap request parameters:', {
-            recipientPubkey: recipientPubkey ? `${recipientPubkey.substring(0, 16)}...` : 'UNDEFINED',
+            recipientPubkey: recipientPubkey
+                ? `${recipientPubkey.substring(0, 16)}...`
+                : 'UNDEFINED',
             eventId: eventId ? `${eventId.substring(0, 16)}...` : 'UNDEFINED',
             amount: amount,
             comment: comment,

@@ -21,10 +21,12 @@ export class ProfileService {
         }
         try {
             // Fetch profile from relays
-            const events = await this.nostrClient.getEvents([{
+            const events = await this.nostrClient.getEvents([
+                {
                     authors: [pubkey],
                     kinds: [0]
-                }]);
+                }
+            ]);
             if (events.length > 0) {
                 const event = events[0];
                 if (event && event.kind === 0) {
@@ -70,10 +72,12 @@ export class ProfileService {
         // Fetch uncached profiles
         if (uncachedPubkeys.length > 0) {
             try {
-                const events = await this.nostrClient.getEvents([{
+                const events = await this.nostrClient.getEvents([
+                    {
                         authors: uncachedPubkeys,
                         kinds: [0]
-                    }]);
+                    }
+                ]);
                 // Process each event
                 for (const event of events) {
                     if (event.kind === 0) {
@@ -164,7 +168,9 @@ export class ProfileService {
      * Get profile display name
      */
     getDisplayName(profile) {
-        return profile.displayName || profile.name || `${profile.publicKey.slice(0, 8)}...`;
+        return (profile.displayName ||
+            profile.name ||
+            `${profile.publicKey.slice(0, 8)}...`);
     }
     /**
      * Get profile avatar URL
@@ -181,9 +187,9 @@ export class ProfileService {
      */
     isProfileCached(pubkey) {
         const expiry = this.cacheExpiry.get(pubkey);
-        return this.profileCache.has(pubkey) &&
+        return (this.profileCache.has(pubkey) &&
             expiry !== undefined &&
-            Date.now() < expiry;
+            Date.now() < expiry);
     }
     /**
      * Cache profile with expiry

@@ -47,7 +47,7 @@ export class LightningService {
                     eventId,
                     lnurlpId: data.data.lnurl,
                     createdAt: Date.now(),
-                    expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours
+                    expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
                     status: 'active'
                 };
                 this.sessions.set(this.frontendSessionId, session);
@@ -162,7 +162,7 @@ export class LightningService {
                 amount_msat: amount * 1000,
                 amount_sat: amount,
                 created_at: Date.now(),
-                expires_at: Date.now() + (60 * 60 * 1000), // 1 hour
+                expires_at: Date.now() + 60 * 60 * 1000, // 1 hour
                 status: 'pending'
             };
             return {

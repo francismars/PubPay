@@ -11,7 +11,9 @@ export class AuthService {
                 };
             }
             const publicKey = await window.nostr.getPublicKey();
-            if (!publicKey || typeof publicKey !== 'string' || publicKey.length !== 64) {
+            if (!publicKey ||
+                typeof publicKey !== 'string' ||
+                publicKey.length !== 64) {
                 return {
                     success: false,
                     error: 'Invalid public key received from extension'
@@ -41,7 +43,7 @@ export class AuthService {
             // Navigate to external signer
             const nostrSignerURL = 'nostrsigner:?compressionType=none&returnType=signature&type=get_public_key';
             // Set up visibility change listener to detect when external signer opens
-            const navigationAttempted = await new Promise((resolve) => {
+            const navigationAttempted = await new Promise(resolve => {
                 let attempted = false;
                 const handleVisibilityChange = () => {
                     if (document.visibilityState === 'hidden') {
@@ -61,7 +63,7 @@ export class AuthService {
                 sessionStorage.removeItem('signIn');
                 return {
                     success: false,
-                    error: 'Failed to launch \'nostrsigner\': Redirection did not occur.'
+                    error: "Failed to launch 'nostrsigner': Redirection did not occur."
                 };
             }
             // This will redirect, so we return a pending state
@@ -103,7 +105,9 @@ export class AuthService {
                 };
             }
             const publicKey = window.NostrTools.getPublicKey(data);
-            if (!publicKey || typeof publicKey !== 'string' || publicKey.length !== 64) {
+            if (!publicKey ||
+                typeof publicKey !== 'string' ||
+                publicKey.length !== 64) {
                 return {
                     success: false,
                     error: 'Failed to derive public key from nsec'
@@ -142,7 +146,9 @@ export class AuthService {
                 }
                 const decodedNPUB = window.NostrTools.nip19.decode(npub);
                 const publicKey = decodedNPUB.data;
-                if (!publicKey || typeof publicKey !== 'string' || publicKey.length !== 64) {
+                if (!publicKey ||
+                    typeof publicKey !== 'string' ||
+                    publicKey.length !== 64) {
                     return {
                         success: false,
                         error: 'Invalid public key from clipboard'
@@ -163,7 +169,9 @@ export class AuthService {
             console.error('External signer return failed:', error);
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Failed to process external signer return'
+                error: error instanceof Error
+                    ? error.message
+                    : 'Failed to process external signer return'
             };
         }
     }
@@ -217,8 +225,10 @@ export class AuthService {
      */
     static getStoredAuthData() {
         const publicKey = localStorage.getItem('publicKey') || sessionStorage.getItem('publicKey');
-        const privateKey = localStorage.getItem('privateKey') || sessionStorage.getItem('privateKey');
-        const method = localStorage.getItem('signInMethod') || sessionStorage.getItem('signInMethod');
+        const privateKey = localStorage.getItem('privateKey') ||
+            sessionStorage.getItem('privateKey');
+        const method = localStorage.getItem('signInMethod') ||
+            sessionStorage.getItem('signInMethod');
         return {
             publicKey,
             privateKey,
@@ -242,7 +252,9 @@ export class AuthService {
      */
     static validateStoredAuthData() {
         const { publicKey, method } = this.getStoredAuthData();
-        if (!publicKey || typeof publicKey !== 'string' || publicKey.length !== 64) {
+        if (!publicKey ||
+            typeof publicKey !== 'string' ||
+            publicKey.length !== 64) {
             this.clearAuthData();
             return false;
         }
@@ -280,4 +292,8 @@ export class AuthService {
         return this.validateStoredAuthData() ? method : null;
     }
 }
-AuthService.METHODS = ['extension', 'externalSigner', 'nsec'];
+AuthService.METHODS = [
+    'extension',
+    'externalSigner',
+    'nsec'
+];

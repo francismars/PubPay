@@ -1,14 +1,17 @@
 import React from 'react';
+import { useUIStore } from '@pubpay/shared-services';
 
 interface ProfilePageProps {
   authState?: any;
+  onNavigateToRegister?: () => void;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ authState }) => {
+const ProfilePage: React.FC<ProfilePageProps> = ({ authState, onNavigateToRegister }) => {
   const isLoggedIn = authState?.isLoggedIn;
   const userProfile = authState?.userProfile;
   const displayName = authState?.displayName;
   const publicKey = authState?.publicKey;
+  const openLogin = useUIStore(s => s.openLogin);
 
   return (
     <div className="profilePage">
@@ -119,9 +122,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ authState }) => {
           <p className="profileNotLoggedInText">
             Please log in to view your profile and manage your account settings.
           </p>
-          <button className="profileLoginButton">
-            Log In
-          </button>
+          <div className="profileButtonGroup">
+            <button className="profileLoginButton" onClick={openLogin}>
+              Log In
+            </button>
+            <button className="profileRegisterButton" onClick={onNavigateToRegister}>
+              Register
+            </button>
+          </div>
         </div>
       )}
     </div>
