@@ -867,6 +867,7 @@ export const Layout: React.FC = () => {
         onClose={handleCloseNewPayNoteForm}
         onSubmit={handlePostNoteSubmit}
         isPublishing={isPublishing}
+        nostrClient={nostrClient}
       />
     </div>
   );
