@@ -3,10 +3,15 @@ import { Link } from 'react-router-dom';
 
 const AboutPage: React.FC = () => {
   return (
-    <div style={{ padding: '40px 20px', maxWidth: '900px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '36px', fontWeight: '700', marginBottom: '10px', color: '#4a75ff' }}>
-        Request Payments, Get Paid Instantly
+    <div className="profilePage">
+      <h1 className="profilePageTitle">
+        About
       </h1>
+      
+      <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+        <h2 style={{ fontSize: '36px', fontWeight: '700', marginBottom: '10px', color: '#4a75ff' }}>
+          Request Payments, Get Paid Instantly
+        </h2>
       <p style={{ fontSize: '20px', color: '#666', marginBottom: '40px', lineHeight: '1.5' }}>
         PubPay lets you create payment requests that anyone can pay with just a few clicks. Whether you're collecting donations, splitting bills, or selling services — get paid instantly with Bitcoin via the Lightning Network.
       </p>
@@ -195,6 +200,7 @@ const AboutPage: React.FC = () => {
             Built with ❤️ on Nostr Protocol • Decentralized • Censorship-Resistant
           </p>
         </div>
+      </div>
       </div>
     </div>
   );
