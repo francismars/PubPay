@@ -2195,14 +2195,51 @@ textarea:focus::placeholder {
   padding: 20px;
   text-align: center;
   color: #64748b;
-  font-size: 14px;
-  font-weight: 500;
 }
 
-.nostrKeyActions {
+/* Advanced Options Styling */
+.advancedOptions {
+  padding: 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+
+.advancedOptionLabel {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: #495057;
+  cursor: pointer;
+  margin: 0;
+  user-select: none;
+}
+
+.advancedOptionLabel input[type="checkbox"] {
+  cursor: pointer;
+  margin-right: 8px;
+  margin-left: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: #4a75ff;
+}
+
+/* Nostr Key Display Styling */
+.nostrKeyDisplay {
+  flex: 1;
+  display: flex;
   flex-direction: column;
+  gap: 4px;
+}
+
+.nostrKeyFormat {
+  font-size: 11px;
+  color: #6c757d;
+  font-style: italic;
+  margin-top: 2px;
 }
 
 .nostrKeyCopyButton {
