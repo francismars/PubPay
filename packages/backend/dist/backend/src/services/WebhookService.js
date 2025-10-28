@@ -48,7 +48,9 @@ class WebhookService {
             this.logger.info(`Found mapping: ${webhookData.lnurlp} -> ${frontendSessionId}/${eventId}`);
             // Verify session is active
             const session = this.sessionService.getSession(frontendSessionId);
-            if (!session || !session.events[eventId] || !session.events[eventId].active) {
+            if (!session ||
+                !session.events[eventId] ||
+                !session.events[eventId].active) {
                 this.logger.error('Invalid or inactive session:', {
                     frontendSessionId,
                     eventId,
@@ -124,7 +126,8 @@ class WebhookService {
         if (!webhookData.lnurlp) {
             errors.push('Missing LNURL-pay ID');
         }
-        if (webhookData.amount && (typeof webhookData.amount !== 'number' || webhookData.amount < 0)) {
+        if (webhookData.amount &&
+            (typeof webhookData.amount !== 'number' || webhookData.amount < 0)) {
             errors.push('Invalid amount');
         }
         // Handle comments flexibly like legacy - convert arrays to strings, allow any format

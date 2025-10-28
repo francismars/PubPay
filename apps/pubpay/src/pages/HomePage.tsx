@@ -8,6 +8,7 @@ import { genericUserIcon } from '../assets/images';
 import * as NostrTools from 'nostr-tools';
 import AboutPage from './AboutPage';
 import ProfilePage from './ProfilePage';
+import RegisterPage from './RegisterPage';
 import { FeedsPage } from './FeedsPage';
 
 export const HomePage: React.FC = () => {
@@ -19,7 +20,7 @@ export const HomePage: React.FC = () => {
   const closeInvoice = useUIStore(s => s.closeInvoice);
   const openLogin = useUIStore(s => s.openLogin);
   const closeLogin = useUIStore(s => s.closeLogin);
-  const [currentPage, setCurrentPage] = useState<'home' | 'about' | 'profile'>(
+  const [currentPage, setCurrentPage] = useState<'home' | 'about' | 'profile' | 'register'>(
     'home'
   );
   const [showNsecGroup, setShowNsecGroup] = useState(false);
@@ -54,7 +55,7 @@ export const HomePage: React.FC = () => {
   } = useHomeFunctionality();
 
   // Navigation handler
-  const handleNavigation = (page: 'home' | 'about' | 'profile') => {
+  const handleNavigation = (page: 'home' | 'about' | 'profile' | 'register') => {
     setCurrentPage(page);
   };
 
@@ -504,7 +505,20 @@ export const HomePage: React.FC = () => {
             {currentPage === 'about' && <AboutPage />}
 
             {/* Profile Page */}
-            {currentPage === 'profile' && <ProfilePage authState={authState} />}
+            {currentPage === 'profile' && (
+              <ProfilePage 
+                authState={authState} 
+                onNavigateToRegister={() => handleNavigation('register')}
+              />
+            )}
+
+            {/* Register Page */}
+            {currentPage === 'register' && (
+              <RegisterPage 
+                authState={authState} 
+                onNavigateToLogin={() => handleNavigation('profile')}
+              />
+            )}
           </div>
         </div>
       </div>

@@ -1794,6 +1794,98 @@ textarea:focus::placeholder {
   margin-bottom: 20px;
 }
 
+/* Profile Preview Styles */
+#profilePreview {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  color: white;
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 30px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.profileBanner {
+  width: 100%;
+  height: 120px;
+  overflow: hidden;
+  position: relative;
+}
+
+.profileBannerImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#profilePreview .profileUserInfo {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  gap: 15px;
+  margin-bottom: 0;
+}
+
+#profilePreview .profileAvatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  position: relative;
+  overflow: hidden;
+}
+
+.profileAvatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.profileAvatarFallback {
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  background-image: url('../assets/images/gradient_color.gif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+#profilePreview .profileUserDetails h2 {
+  margin: 0 0 5px 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+#profilePreview .profileUserDetails p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.profileWebsite {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.profileWebsite:hover {
+  color: white;
+  text-decoration: underline;
+}
+
 .profileAvatar {
   width: 60px;
   height: 60px;
@@ -2015,6 +2107,197 @@ textarea:focus::placeholder {
   transform: translateY(-1px);
 }
 
+.profileRegisterButton {
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.profileRegisterButton:hover {
+  background-color: #4b5563;
+  transform: translateY(-1px);
+}
+
+.profileButtonGroup {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+/* Nostr Key Display Styles */
+.nostrKeysDisplay {
+  margin-top: 20px;
+}
+
+.nostrKeyItem {
+  margin-bottom: 20px;
+}
+
+.nostrKeyLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.nostrKeyValue {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.nostrKeyCode {
+  flex: 1;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  font-size: 12px;
+  color: #333;
+  background: transparent;
+  border: none;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.nostrMnemonicCode {
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 12px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.nostrQRCode {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-right: 8px;
+}
+
+.nostrQRPlaceholder {
+  padding: 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.nostrKeyActions {
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+}
+
+.nostrKeyCopyButton {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.nostrKeyCopyButton:hover {
+  background: #4b5563;
+}
+
+.nostrKeyActions {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+  justify-content: center;
+}
+
+.nostrKeyWarning {
+  background: #fef3cd;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.nostrKeyWarning strong {
+  color: #92400e;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.nostrKeyWarning ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #92400e;
+}
+
+.nostrKeyWarning li {
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.nostrEventInfo {
+  background: #d1fae5;
+  border: 1px solid #a7f3d0;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.nostrEventInfo strong {
+  color: #065f46;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.nostrEventInfo p {
+  color: #065f46;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.nostrEventId {
+  margin-top: 12px;
+}
+
+.nostrPublishError {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.nostrPublishError strong {
+  color: #dc2626;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.nostrPublishError p {
+  color: #dc2626;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
 /* Mobile responsive adjustments for profile page */
 @media screen and (max-width: 630px) {
   .profilePage {
@@ -2028,6 +2311,22 @@ textarea:focus::placeholder {
   .profileUserInfo {
     flex-direction: column;
     text-align: center;
+  }
+
+  #profilePreview .profileUserInfo {
+    flex-direction: column;
+    text-align: center;
+    padding: 15px;
+  }
+
+  #profilePreview .profileAvatar {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+
+  .profileBanner {
+    height: 80px;
   }
 
   .profileAvatar {
@@ -2046,5 +2345,46 @@ textarea:focus::placeholder {
 
   .profileNotLoggedIn {
     padding: 30px 20px;
+  }
+
+  .profileButtonGroup {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .profileLoginButton,
+  .profileRegisterButton {
+    width: 100%;
+  }
+
+  .nostrKeyValue {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .nostrKeyCode {
+    font-size: 11px;
+    text-align: center;
+  }
+
+  .nostrKeyCopyButton {
+    width: 100%;
+    padding: 8px 12px;
+  }
+
+  .nostrKeyActions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .nostrKeyActions button {
+    width: 100%;
+  }
+
+  .nostrQRCode {
+    min-height: 150px;
+    margin-right: 0;
+    margin-bottom: 8px;
   }
 }

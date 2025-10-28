@@ -65,7 +65,10 @@ class LiveRouter {
         try {
             const { eventId } = req.params;
             const { amount, comment } = req.body;
-            this.logger.info(`Creating zap for event ${eventId}:`, { amount, comment });
+            this.logger.info(`Creating zap for event ${eventId}:`, {
+                amount,
+                comment
+            });
             // Placeholder implementation
             res.json({
                 success: true,
