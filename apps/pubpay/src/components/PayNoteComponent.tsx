@@ -542,11 +542,30 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             <div className="noteCTA">
               <button
                 className={`noteMainCTA cta ${!isPayable || !isLoggedIn || isReply ? 'disabled' : ''}`}
-                onClick={() => !isReply && isPayable && onPay(post, zapAmount)}
+                onClick={() => {
+                  // Early return if disabled
+                  if (!isPayable || !isLoggedIn || isReply) {
+                    return;
+                  }
+                  onPay(post, zapAmount);
+                }}
                 disabled={!isPayable || !isLoggedIn || isReply}
+                title={
+                  isReply 
+                    ? 'Cannot pay replies' 
+                    : !isLoggedIn 
+                    ? 'Please sign in to pay' 
+                    : !isPayable 
+                    ? 'This post is not payable' 
+                    : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
+                    ? 'This post has been fully paid'
+                    : ''
+                }
               >
                 {post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
                   ? 'Paid'
+                  : !isPayable || !isLoggedIn || isReply
+                  ? 'Not Payable'
                   : 'Pay'}
               </button>
             </div>
@@ -588,13 +607,14 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               {/* Zap Menu */}
               <a
                 ref={zapActionRef}
-                className={`noteAction zapMenuAction ${!isPayable ? 'disabled' : ''}`}
+                className={`noteAction zapMenuAction ${!isPayable || !isLoggedIn ? 'disabled' : ''}`}
                 onClick={e => {
                   e.preventDefault();
-                  if (!isPayable) return;
+                  if (!isPayable || !isLoggedIn) return;
                   setShowZapMenu(!showZapMenu);
                 }}
                 style={{ position: 'relative' }}
+                title={!isPayable ? 'This post is not payable' : !isLoggedIn ? 'Please sign in to zap' : ''}
               >
                 <span className="material-symbols-outlined">bolt</span>
                 <div
