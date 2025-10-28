@@ -923,7 +923,9 @@ export const useHomeFunctionality = () => {
   };
 
   const handleFeedChange = (feed: 'global' | 'following') => {
-    if (feed === 'following' && !authState.isLoggedIn) {
+    // Check auth status from AuthService to ensure it's current
+    const isAuthenticated = AuthService.isAuthenticated();
+    if (feed === 'following' && !isAuthenticated) {
       handleLogin();
       return;
     }
