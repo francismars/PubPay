@@ -37,10 +37,10 @@ export class ZapService {
                 response = await fetch(`https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`);
             }
             catch {
-                errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
+                errorResponse = "CAN'T PAY: Failed to fetch lud16";
             }
             if (!response || response === undefined) {
-                errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
+                errorResponse = "CAN'T PAY: Failed to fetch lud16";
             }
             if (errorResponse) {
                 console.error(errorResponse);
@@ -48,7 +48,7 @@ export class ZapService {
             }
             const lnurlinfo = await response.json();
             if (!(lnurlinfo.allowsNostr === true)) {
-                errorResponse = 'CAN\'T PAY: No nostr support';
+                errorResponse = "CAN'T PAY: No nostr support";
             }
             if (errorResponse) {
                 console.error(errorResponse);
@@ -72,7 +72,9 @@ export class ZapService {
             // Find zap-min tag for minimum amount
             const zapMintag = eventData.tags.find((tag) => tag[0] === 'zap-min');
             const zapTagAmount = zapMintag ? zapMintag[1] : 1000;
-            const amountPay = rangeValue !== -1 ? parseInt(rangeValue.toString()) * 1000 : Math.floor(parseInt(zapTagAmount));
+            const amountPay = rangeValue !== -1
+                ? parseInt(rangeValue.toString()) * 1000
+                : Math.floor(parseInt(zapTagAmount));
             // Create zap request using NostrTools.nip57.makeZapRequest
             const zapEvent = await NostrTools.nip57.makeZapRequest({
                 event: eventData,
@@ -113,9 +115,12 @@ export class ZapService {
     async signZapEvent(zapEvent, callbackToZap, amountPay, lud16ToZap, eventoToZapID, anonymousZap = false) {
         try {
             // Check for authentication state in localStorage/sessionStorage (React app)
-            const publicKey = localStorage.getItem('publicKey') || sessionStorage.getItem('publicKey');
-            const signInMethod = localStorage.getItem('signInMethod') || sessionStorage.getItem('signInMethod');
-            const privateKey = localStorage.getItem('privateKey') || sessionStorage.getItem('privateKey');
+            const publicKey = localStorage.getItem('publicKey') ||
+                sessionStorage.getItem('publicKey');
+            const signInMethod = localStorage.getItem('signInMethod') ||
+                sessionStorage.getItem('signInMethod');
+            const privateKey = localStorage.getItem('privateKey') ||
+                sessionStorage.getItem('privateKey');
             console.log('Sign in method:', signInMethod);
             console.log('Public key:', publicKey);
             console.log('Has private key:', !!privateKey);
@@ -208,11 +213,16 @@ export class ZapService {
      * Handle fetched invoice (matches original handleFetchedInvoice)
      */
     async handleFetchedInvoice(invoice, zapEventID) {
-        console.log('handleFetchedInvoice called with:', { invoice: `${invoice.substring(0, 50)}...`, zapEventID });
+        console.log('handleFetchedInvoice called with:', {
+            invoice: `${invoice.substring(0, 50)}...`,
+            zapEventID
+        });
         // Open invoice overlay via UI store
         try {
             const { useUIStore } = await import('../state/uiStore');
-            useUIStore.getState().openInvoice({ bolt11: invoice, amount: 0, eventId: zapEventID });
+            useUIStore
+                .getState()
+                .openInvoice({ bolt11: invoice, amount: 0, eventId: zapEventID });
         }
         catch (e) {
             console.error('Failed to open invoice overlay via store:', e);

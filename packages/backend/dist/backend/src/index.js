@@ -16,8 +16,8 @@ const jukebox_1 = require("./routes/jukebox");
 const errorHandler_1 = require("./middleware/errorHandler");
 const logger_1 = require("./utils/logger");
 const path_1 = __importDefault(require("path"));
-// Load environment variables from project root
-const envPath = path_1.default.resolve(__dirname, '../../../.env');
+// Load environment variables from backend folder
+const envPath = path_1.default.resolve(__dirname, '../.env');
 dotenv_1.default.config({ path: envPath });
 class BackendServer {
     app;
@@ -41,7 +41,12 @@ class BackendServer {
         this.app.use((0, cors_1.default)({
             origin: process.env['NODE_ENV'] === 'production'
                 ? process.env['FRONTEND_URL']
-                : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:8080'],
+                : [
+                    'http://localhost:3000',
+                    'http://localhost:3001',
+                    'http://localhost:3002',
+                    'http://localhost:8080'
+                ],
             credentials: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
             allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']

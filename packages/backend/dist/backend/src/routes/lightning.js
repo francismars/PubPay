@@ -47,7 +47,10 @@ class LightningRouter {
             // Validate required parameters
             if (!frontendSessionId || !eventId) {
                 const errorMsg = 'Missing required parameters: frontendSessionId and eventId are both required';
-                this.logger.warn('❌ Validation failed:', { frontendSessionId, eventId });
+                this.logger.warn('❌ Validation failed:', {
+                    frontendSessionId,
+                    eventId
+                });
                 res.status(400).json({
                     success: false,
                     error: errorMsg,
@@ -144,7 +147,10 @@ class LightningRouter {
             // Validate required parameters
             if (!frontendSessionId || !eventId) {
                 const errorMsg = 'Missing required parameters: frontendSessionId and eventId are both required';
-                this.logger.warn('❌ Validation failed:', { frontendSessionId, eventId });
+                this.logger.warn('❌ Validation failed:', {
+                    frontendSessionId,
+                    eventId
+                });
                 res.status(400).json({
                     success: false,
                     error: errorMsg,
@@ -242,7 +248,9 @@ class LightningRouter {
                     })),
                     summary: {
                         totalSessions: sessions.length,
-                        totalActiveEvents: sessions.reduce((sum, [, session]) => sum + Object.values(session.events).filter((e) => e.active).length, 0),
+                        totalActiveEvents: sessions.reduce((sum, [, session]) => sum +
+                            Object.values(session.events).filter((e) => e.active)
+                                .length, 0),
                         totalLNURLMappings: lnurlpMappings.length
                     }
                 },

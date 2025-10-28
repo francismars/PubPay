@@ -1,6 +1,7 @@
 ## PubPay
 
 Francis:
+
 - change links to njump ?
 - adapt\correct live links
 - sigin with signer not working (mobile)
@@ -8,12 +9,14 @@ Francis:
 - update note1 url
 
 Pedro:
+
 - top bar too big?
 - smaller zaps overlay like cards?
-- responsive loading 
+- responsive loading
 - single note too close to top
 
 Both:
+
 - target for fundraising? senseless to be separate type
 - make register page
 - loading more design

@@ -1,5 +1,6 @@
 export * from './services/AuthService';
 export * from './services/ErrorService';
+export * from './services/BlossomService';
 export * from './services/index';
 export * from './services/api/ConfigAPI';
 export * from './services/api/PaymentAPI';
@@ -11,6 +12,7 @@ export * from './services/nostr/EventManager';
 export * from './services/nostr/NostrClient';
 export * from './services/nostr/ProfileService';
 export * from './services/nostr/RelayManager';
+export * from './services/NostrRegistrationService';
 export * from './services/query/postQueries';
 export * from './services/query/profileQueries';
 export * from './services/query/queryClient';

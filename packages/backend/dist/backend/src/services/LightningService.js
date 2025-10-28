@@ -110,7 +110,7 @@ class LightningService {
             });
             throw new Error(`LNBits API error: ${response.status} ${response.statusText} - ${errorText}`);
         }
-        const data = await response.json();
+        const data = (await response.json());
         this.logger.info('LNBits API response data:', data);
         if (!data.lnurl) {
             this.logger.error('No LNURL in LNBits response:', data);

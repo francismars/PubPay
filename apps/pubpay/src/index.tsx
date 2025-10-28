@@ -1,6 +1,11 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { HomePage } from './pages/HomePage';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Layout } from './components/Layout';
+import { FeedsPage } from './pages/FeedsPage';
+import AboutPage from './pages/AboutPage';
+import ProfilePage from './pages/ProfilePage';
+import RegisterPage from './pages/RegisterPage';
 
 // Import CSS
 import './styles/pubpay.css';
@@ -37,8 +42,25 @@ import './assets/images/icon/ms-icon-144x144.png';
 import './assets/images/icon/ms-icon-150x150.png';
 import './assets/images/icon/ms-icon-310x310.png';
 
+const App: React.FC = () => {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<FeedsPage />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="profile/:pubkey" element={<ProfilePage />} />
+          <Route path="register" element={<RegisterPage />} />
+          <Route path="note/:noteId" element={<FeedsPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+};
+
 const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);
-  root.render(<HomePage />);
+  root.render(<App />);
 }
