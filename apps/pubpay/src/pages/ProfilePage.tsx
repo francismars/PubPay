@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useUIStore } from '@pubpay/shared-services';
 import * as NostrTools from 'nostr-tools';
 
 interface ProfilePageProps {
   authState?: any;
-  onNavigateToRegister?: () => void;
 }
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ authState, onNavigateToRegister }) => {
+const ProfilePage: React.FC = () => {
+  const navigate = useNavigate();
+  const { authState } = useOutletContext<{ authState: any }>();
   const isLoggedIn = authState?.isLoggedIn;
   const userProfile = authState?.userProfile;
   const displayName = authState?.displayName;
@@ -347,7 +349,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ authState, onNavigateToRegist
             <button className="profileLoginButton" onClick={openLogin}>
               Log In
             </button>
-            <button className="profileRegisterButton" onClick={onNavigateToRegister}>
+            <button className="profileRegisterButton" onClick={() => navigate('/register')}>
               Register
             </button>
           </div>
