@@ -313,15 +313,49 @@ export const useHomeFunctionality = () => {
         }
       }
       // Fetch posts via react-query ensure
-      const kind1Events = await ensurePosts(
-        getQueryClient(),
-        nostrClientRef.current!,
-        {
-          until: params.until,
-          limit: params.limit,
-          authors: params.authors
+      // If following too many authors, batch the queries to avoid relay errors
+      let kind1Events: Kind1Event[];
+      if (feed === 'following' && params.authors && params.authors.length > 100) {
+        console.log(`Batching ${params.authors.length} authors into queries of 100`);
+        const batchSize = 100;
+        const batches: Kind1Event[] = [];
+        
+        for (let i = 0; i < params.authors.length; i += batchSize) {
+          const authorBatch = params.authors.slice(i, i + batchSize);
+          console.log(`Loading batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(params.authors.length / batchSize)}: ${authorBatch.length} authors`);
+          
+          try {
+            const events = await ensurePosts(
+              getQueryClient(),
+              nostrClientRef.current!,
+              {
+                until: params.until,
+                limit: params.limit,
+                authors: authorBatch
+              }
+            );
+            batches.push(...events);
+          } catch (err) {
+            console.warn(`Failed to load batch ${i / batchSize + 1}:`, err);
+          }
         }
-      );
+        
+        // Deduplicate events by ID
+        const uniqueEvents = new Map<string, Kind1Event>();
+        batches.forEach(event => uniqueEvents.set(event.id, event));
+        kind1Events = Array.from(uniqueEvents.values());
+      } else {
+        // Fetch posts via react-query ensure
+        kind1Events = await ensurePosts(
+          getQueryClient(),
+          nostrClientRef.current!,
+          {
+            until: params.until,
+            limit: params.limit,
+            authors: params.authors
+          }
+        );
+      }
 
       if (!kind1Events || kind1Events.length === 0) {
         if (loadMore) {
@@ -938,9 +972,15 @@ export const useHomeFunctionality = () => {
       handleLogin();
       return;
     }
+    
+    // Switch active feed
     setActiveFeed(feed);
+    
+    // Load the appropriate feed if needed
     if (feed === 'following' && followingPosts.length === 0) {
       loadFollowingPosts();
+    } else if (feed === 'global' && posts.length === 0) {
+      loadPosts('global');
     }
   };
 
@@ -967,6 +1007,15 @@ export const useHomeFunctionality = () => {
       }
 
       followingPubkeysRef.current = followingPubkeys;
+      
+      // If user follows nobody, set empty array and don't load posts
+      if (followingPubkeys.length === 0) {
+        console.log('User follows nobody, setting empty following posts');
+        setFollowingPosts([]);
+        setIsLoading(false);
+        return;
+      }
+      
       await loadPosts('following');
     } catch (err) {
       console.error('Failed to load following posts:', err);
@@ -1709,22 +1758,50 @@ export const useHomeFunctionality = () => {
 
   // Subscribe to new posts in real-time (only posts created after we started loading)
   useEffect(() => {
-    if (!nostrClientRef.current || isLoading || posts.length === 0) {
+    if (!nostrClientRef.current || isLoading) {
+      return () => {}; // Return empty cleanup function
+    }
+
+    // Determine which posts to subscribe to based on active feed
+    const currentPosts = activeFeed === 'following' ? followingPosts : posts;
+    
+    // If in following mode and user follows nobody, don't set up subscription
+    if (activeFeed === 'following' && followingPubkeysRef.current.length === 0) {
+      console.log('Following feed with 0 follows - no subscription needed');
+      return () => {}; // Return empty cleanup function
+    }
+    
+    // Skip subscription if following too many people (relay will reject)
+    if (activeFeed === 'following' && followingPubkeysRef.current.length > 100) {
+      console.log(`Following ${followingPubkeysRef.current.length} authors - skipping real-time subscription to avoid relay errors`);
+      return () => {}; // Return empty cleanup function
+    }
+    
+    if (currentPosts.length === 0) {
       return () => {}; // Return empty cleanup function
     }
 
     // Determine the cutoff time: only listen to posts NEWER than our newest post
     const cutoffTime = newestPostTimestampRef.current || Math.floor(Date.now() / 1000);
     
-    console.log('Setting up new post subscription since:', cutoffTime);
+    console.log('Setting up new post subscription since:', cutoffTime, 'for feed:', activeFeed);
+    
+    // Build filter based on active feed
+    const filter: any = {
+      kinds: [1],
+      '#t': ['pubpay'],
+      since: cutoffTime + 1 // Only posts created AFTER our newest post
+    };
+    
+    // If in following mode, only subscribe to posts from followed authors
+    if (activeFeed === 'following' && followingPubkeysRef.current.length > 0) {
+      filter.authors = [...followingPubkeysRef.current];
+      console.log('Filtering by followed authors:', followingPubkeysRef.current.length);
+    }
     
     // Subscribe to new kind 1 events with 'pubpay' tag created after our newest post
     const notesSub = nostrClientRef.current.subscribeToEvents(
-      [{ 
-        kinds: [1],
-        '#t': ['pubpay'], // Only subscribe to posts with the 'pubpay' tag
-        since: cutoffTime + 1 // Only posts created AFTER our newest post
-      }],
+      [filter],
       async (noteEvent: NostrEvent) => {
         // Type guard to ensure this is a note event
         if (noteEvent.kind !== 1) return;
@@ -1747,8 +1824,8 @@ export const useHomeFunctionality = () => {
 
     // Subscribe to new zaps for all current posts
     let zapsSub: any = null;
-    if (posts.length > 0) {
-      const eventIds = posts.map(post => post.id);
+    if (currentPosts.length > 0) {
+      const eventIds = currentPosts.map(post => post.id);
 
       zapsSub = nostrClientRef.current.subscribeToEvents(
         [
@@ -1803,7 +1880,7 @@ export const useHomeFunctionality = () => {
         zapsSub.unsubscribe();
       }
     };
-  }, [posts.length, isLoading]); // Re-subscribe when posts change or loading state changes
+  }, [activeFeed, posts.length, followingPosts.length, isLoading]); // Re-subscribe when feed changes or posts change or loading state changes
 
   // Process zaps in batches to reduce relay load
   const processZapBatch = async (zapEvents: Kind9735Event[]) => {

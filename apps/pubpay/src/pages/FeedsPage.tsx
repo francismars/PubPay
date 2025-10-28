@@ -250,7 +250,12 @@ export const FeedsPage: React.FC = () => {
         </a>
       </div>
 
-      <div id="main">
+      <div
+        id="main"
+        style={{
+          display: activeFeed === 'global' ? 'block' : 'none'
+        }}
+      >
         {isLoading && posts.length === 0 ? (
           // Show dummy posts while loading
           <>
