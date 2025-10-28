@@ -1189,7 +1189,6 @@ legend {
 #cancelNewNote,
 #cancelLogin,
 #cancelLoggedin,
-#logoutButton,
 #titleSignin,
 #titleScanner,
 #stopScanner,
@@ -1208,13 +1207,18 @@ legend {
 #cancelNewNote:hover,
 #cancelLogin:hover,
 #cancelLoggedin:hover,
-#logoutButton:hover,
 #titleSignin:hover,
 #titleScanner:hover,
 #stopScanner:hover,
 #closeInvoiceOverlay:hover,
 #qrcodeTitle:hover {
   color: #374151;
+}
+
+#logoutButton{
+  width: 100%;
+  display: block;
+  margin-top: 30px;
 }
 
 #reader {

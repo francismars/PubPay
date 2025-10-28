@@ -171,7 +171,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ authState, onNavigateToRegist
 
               {publicKey && (
                 <div className="profileDetailItem">
-                  <label>Public Key (npub)</label>
+                  <label>User ID (npub)</label>
                   <div className="profileDetailValue">
                     <code className="profilePublicKey">{getNpubFromPublicKey(publicKey)}</code>
                     <button 
