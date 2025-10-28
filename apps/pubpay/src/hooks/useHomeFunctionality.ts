@@ -85,6 +85,8 @@ export const useHomeFunctionality = () => {
   const zapServiceRef = useRef<ZapService | null>(null);
   const followingPubkeysRef = useRef<string[]>([]);
   const didLoadInitialRef = useRef<boolean>(false);
+  const newestPostTimestampRef = useRef<number>(0); // Track newest post time for subscriptions
+  const subscriptionRef = useRef<any>(null); // Track the new post subscription
 
   // Profile cache to prevent duplicate requests
   const profileCacheRef = useRef<Map<string, Kind0Event>>(new Map());
@@ -918,8 +920,15 @@ export const useHomeFunctionality = () => {
       });
     }
 
-    // Sort by creation time (newest first)
-    return posts.sort((a, b) => b.createdAt - a.createdAt);
+      // Sort by creation time (newest first)
+      const sortedPosts = posts.sort((a, b) => b.createdAt - a.createdAt);
+      
+      // Update newest post timestamp for subscription management
+      if (sortedPosts.length > 0) {
+        newestPostTimestampRef.current = sortedPosts[0].createdAt;
+      }
+      
+      return sortedPosts;
   };
 
   const handleFeedChange = (feed: 'global' | 'following') => {
@@ -1416,8 +1425,8 @@ export const useHomeFunctionality = () => {
 
       console.log('Event published successfully');
 
-      // Reload posts to show the new one (since real-time subscription is disabled)
-      await loadPosts(activeFeed);
+      // The real-time subscription will pick up this post automatically
+      // No need to manually add it
     } catch (err) {
       console.error('Failed to post note:', err);
       console.error(
@@ -1698,16 +1707,43 @@ export const useHomeFunctionality = () => {
     }
   };
 
-  // Subscribe to new zaps in real-time (disable note subscription for now)
+  // Subscribe to new posts in real-time (only posts created after we started loading)
   useEffect(() => {
-    if (!nostrClientRef.current || isLoading) {
+    if (!nostrClientRef.current || isLoading || posts.length === 0) {
       return () => {}; // Return empty cleanup function
     }
 
-    // Temporarily disable real-time note subscription to fix loading issues
-    // The legacy code works fine without real-time note subscriptions
-    // Only real-time zap subscriptions are needed
-    const notesSub = null; // Disabled for now
+    // Determine the cutoff time: only listen to posts NEWER than our newest post
+    const cutoffTime = newestPostTimestampRef.current || Math.floor(Date.now() / 1000);
+    
+    console.log('Setting up new post subscription since:', cutoffTime);
+    
+    // Subscribe to new kind 1 events with 'pubpay' tag created after our newest post
+    const notesSub = nostrClientRef.current.subscribeToEvents(
+      [{ 
+        kinds: [1],
+        '#t': ['pubpay'], // Only subscribe to posts with the 'pubpay' tag
+        since: cutoffTime + 1 // Only posts created AFTER our newest post
+      }],
+      async (noteEvent: NostrEvent) => {
+        // Type guard to ensure this is a note event
+        if (noteEvent.kind !== 1) return;
+        
+        console.log('Received new post in real-time:', noteEvent.id);
+        // Process and add to feed (duplicate check is inside processNewNote)
+        await processNewNote(noteEvent as Kind1Event);
+      },
+      {
+        oneose: () => {
+          console.log('New post subscription EOS');
+        },
+        onclosed: () => {
+          console.log('New post subscription closed');
+        }
+      }
+    );
+    
+    subscriptionRef.current = notesSub;
 
     // Subscribe to new zaps for all current posts
     let zapsSub: any = null;
@@ -1760,7 +1796,9 @@ export const useHomeFunctionality = () => {
     }
 
     return () => {
-      // notesSub is disabled for now
+      if (notesSub) {
+        notesSub.unsubscribe();
+      }
       if (zapsSub) {
         zapsSub.unsubscribe();
       }

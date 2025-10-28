@@ -23,6 +23,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
   const [previewContent, setPreviewContent] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const blossomService = new BlossomService();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,8 +119,17 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
   // Update preview when textarea content changes
   const handleTextareaChange = async (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const content = e.target.value;
-    const formatted = await formatContent(content, nostrClient);
-    setPreviewContent(formatted);
+    
+    // Clear previous timeout
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+    }
+    
+    // Debounce the formatting to avoid excessive calls
+    previewTimeoutRef.current = setTimeout(async () => {
+      const formatted = await formatContent(content, nostrClient);
+      setPreviewContent(formatted);
+    }, 300);
   };
 
   return (
