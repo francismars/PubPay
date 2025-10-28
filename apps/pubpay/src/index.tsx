@@ -50,6 +50,7 @@ const App: React.FC = () => {
           <Route index element={<FeedsPage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="profile/:pubkey" element={<ProfilePage />} />
           <Route path="register" element={<RegisterPage />} />
         </Route>
       </Routes>

@@ -447,10 +447,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             <div className="noteAuthor">
               <div className="noteDisplayName">
                 <a
-                  href={`https://next.nostrudel.ninja/#/u/${post.event.pubkey}`}
+                  href={`/profile/${post.event.pubkey}`}
                   className="noteAuthorLink"
-                  target="_blank"
-                  rel="noopener noreferrer"
                 >
                   {displayName}
                 </a>
