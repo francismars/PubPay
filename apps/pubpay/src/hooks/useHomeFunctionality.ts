@@ -139,56 +139,35 @@ export const useHomeFunctionality = () => {
     initializeServices();
   }, []);
 
-  // Load initial posts (only if not in single note mode)
+  // Track pathname changes to reload posts when exiting single note mode
   useEffect(() => {
-    const loadInitialPosts = () => {
-      if (didLoadInitialRef.current) return; // guard against StrictMode double-invoke
-      didLoadInitialRef.current = true;
-      // Check if we're in single note mode first
-      const queryParams = new URLSearchParams(window.location.search);
-      const queryNote = queryParams.get('note');
+    const checkAndLoadPosts = () => {
+      const pathname = window.location.pathname;
+      const isInNotePage = pathname.startsWith('/note/');
 
-      if (queryNote) {
-        // Don't load global posts if we're in single note mode
-        console.log('Single note mode detected, skipping global feed load');
+      if (isInNotePage) {
+        console.log('On note page, skipping global feed load');
         return;
       }
 
-      if (nostrClientRef.current) {
-        // Add a small delay to ensure everything is ready
-        setTimeout(() => {
-          loadPosts('global');
-        }, 1000);
-      } else {
-        // Retry loading posts when client becomes available
-        const retryInterval = setInterval(() => {
-          if (nostrClientRef.current) {
-            // Check again for single note mode before loading
-            const queryParams = new URLSearchParams(window.location.search);
-            const queryNote = queryParams.get('note');
-            if (!queryNote) {
-              loadPosts('global');
-            }
-            clearInterval(retryInterval);
-          }
-        }, 1000);
-
-        // Cleanup interval after 30 seconds
-        setTimeout(() => clearInterval(retryInterval), 30000);
+      // Not on note page and no posts loaded - load them
+      if (posts.length === 0 && activeFeed === 'global' && nostrClientRef.current) {
+        console.log('Loading global feed after exiting note page');
+        loadPosts('global');
       }
     };
 
-    // Add a small delay to ensure HomePage has a chance to set single note mode
-    setTimeout(() => {
-      loadInitialPosts();
-    }, 100);
+    // Initial check
+    const timer = setTimeout(checkAndLoadPosts, 100);
 
-    // Cleanup: allow re-run only after full unmount
+    // Listen for popstate (back/forward buttons and programmatic navigation)
+    window.addEventListener('popstate', checkAndLoadPosts);
+
     return () => {
-      didLoadInitialRef.current = false;
-      nostrClientRef.current?.unsubscribeAll?.();
+      clearTimeout(timer);
+      window.removeEventListener('popstate', checkAndLoadPosts);
     };
-  }, []);
+  }, [posts.length, activeFeed]);
 
   // Check authentication status
   useEffect(() => {
@@ -2307,6 +2286,12 @@ export const useHomeFunctionality = () => {
     };
   }, []);
 
+  const clearPosts = () => {
+    setPosts([]);
+    setFollowingPosts([]);
+    setReplies([]);
+  };
+
   return {
     isLoading,
     activeFeed,
@@ -2332,6 +2317,7 @@ export const useHomeFunctionality = () => {
     handlePostNote,
     loadMorePosts,
     loadSingleNote,
-    loadReplies
+    loadReplies,
+    clearPosts
   };
 };

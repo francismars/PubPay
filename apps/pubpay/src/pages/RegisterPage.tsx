@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { useUIStore, NostrRegistrationService, NostrKeyPair, ProfileData } from '@pubpay/shared-services';
+import { useUIStore, NostrRegistrationService, NostrKeyPair, ProfileData, BlossomService } from '@pubpay/shared-services';
 
 interface RegisterPageProps {
   authState?: any;
@@ -31,7 +31,21 @@ const RegisterPage: React.FC = () => {
   const [showManualPublish, setShowManualPublish] = useState(false);
   const [showNsecQR, setShowNsecQR] = useState(false);
   const [showHexValues, setShowHexValues] = useState(false);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const pictureInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const openLogin = useUIStore(s => s.openLogin);
+
+  // Generate keys on component mount so user can upload images immediately
+  React.useEffect(() => {
+    if (!generatedKeys) {
+      const result = NostrRegistrationService.generateKeyPairWithMnemonic();
+      if (result.success && result.keyPair) {
+        setGeneratedKeys(result.keyPair);
+      }
+    }
+  }, []);
 
   const handleGenerateKeys = async () => {
     setIsGeneratingKeys(true);
@@ -219,8 +233,81 @@ const RegisterPage: React.FC = () => {
     }));
   };
 
+  // Handle profile picture upload
+  const handlePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
+    // Can only upload after keys are generated
+    if (!generatedKeys || !generatedKeys.rawPrivateKey || !generatedKeys.rawPublicKey) {
+      alert('Please wait for keys to be generated');
+      return;
+    }
+
+    setUploadingPicture(true);
+    try {
+      const blossomService = new BlossomService();
+      const hash = await blossomService.uploadFileWithKey(file, generatedKeys.rawPrivateKey, generatedKeys.rawPublicKey);
+      const imageUrl = blossomService.getFileUrl(hash);
+      setFormData(prev => ({ ...prev, picture: imageUrl }));
+    } catch (error) {
+      console.error('Failed to upload picture:', error);
+      alert(`Failed to upload picture: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setUploadingPicture(false);
+      if (pictureInputRef.current) {
+        pictureInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Handle banner upload
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file');
+      return;
+    }
+
+    // Can only upload after keys are generated
+    if (!generatedKeys || !generatedKeys.rawPrivateKey || !generatedKeys.rawPublicKey) {
+      alert('Please wait for keys to be generated');
+      return;
+    }
+
+    setUploadingBanner(true);
+    try {
+      const blossomService = new BlossomService();
+      const hash = await blossomService.uploadFileWithKey(file, generatedKeys.rawPrivateKey, generatedKeys.rawPublicKey);
+      const imageUrl = blossomService.getFileUrl(hash);
+      setFormData(prev => ({ ...prev, banner: imageUrl }));
+    } catch (error) {
+      console.error('Failed to upload banner:', error);
+      alert(`Failed to upload banner: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setUploadingBanner(false);
+      if (bannerInputRef.current) {
+        bannerInputRef.current.value = '';
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Ensure keys are generated
+    if (!generatedKeys || !generatedKeys.rawPrivateKey) {
+      alert('Please wait for keys to be generated');
+      return;
+    }
+    
     setIsSubmitting(true);
     setIsPublishing(true);
     
@@ -237,40 +324,28 @@ const RegisterPage: React.FC = () => {
         nip05: formData.nip05 || ''
       };
       
-      // Use the complete registration process
-      const result = await NostrRegistrationService.completeRegistration(profileData);
+      // Publish profile with the already-generated keys
+      const publishResult = await NostrRegistrationService.publishProfileEvent(
+        generatedKeys.rawPrivateKey,
+        profileData
+      );
       
-      if (result.success && result.keyPair) {
-        setGeneratedKeys(result.keyPair);
-        setShowKeys(true);
-        setPublishedEventId(result.eventId || null);
+      if (publishResult.success) {
+        setPublishedEventId(publishResult.eventId || null);
         setPublishError(null);
         setIsRegistrationComplete(true);
-        
-        // Show success message with event ID
-        const successMessage = result.eventId 
-          ? `Account created successfully! Your Nostr profile has been published to relays.\n\nEvent ID: ${result.eventId}\n\nPlease save your keys securely.`
-          : 'Account created successfully! Your Nostr keys have been generated. Please save them securely.';
-        
-        // Remove alert - success is shown in the UI
+        setShowKeys(true);
       } else {
-        // If publishing failed but keys were generated, show keys anyway
-        if (result.keyPair) {
-          setGeneratedKeys(result.keyPair);
-          setShowKeys(true);
-          setPublishError(result.error || 'Failed to publish profile');
-          setIsRegistrationComplete(true);
-          // Remove alert - error is shown in the UI
-        } else {
-          // Remove alert - error is shown in the UI
-          setPublishError(result.error || 'Registration failed');
-        }
+        setPublishError(publishResult.error || 'Failed to publish profile');
+        setIsRegistrationComplete(true);
+        setShowKeys(true);
       }
       
     } catch (error) {
       console.error('Registration failed:', error);
-      // Remove alert - error is shown in the UI
       setPublishError('Registration failed. Please try again.');
+      setIsRegistrationComplete(true);
+      setShowKeys(true);
     } finally {
       setIsSubmitting(false);
       setIsPublishing(false);
@@ -357,33 +432,63 @@ const RegisterPage: React.FC = () => {
             </div>
             
             <div className="profileFormField">
-              <label htmlFor="website">
-                Website
+              <label htmlFor="lightningAddress">
+                Lightning Address
               </label>
               <input
-                type="url"
-                id="website"
-                name="website"
-                value={formData.website}
+                type="text"
+                id="lightningAddress"
+                name="lightningAddress"
+                value={formData.lightningAddress}
                 onChange={handleInputChange}
                 className="profileFormInput"
-                placeholder="https://your-website.com (optional)"
+                placeholder="yourname@domain.com (optional)"
               />
             </div>
             
             <div className="profileFormField">
               <label htmlFor="picture">
-                Profile Picture URL
+                Profile Picture {generatedKeys ? '(Blossom upload available)' : ''}
               </label>
-              <input
-                type="url"
-                id="picture"
-                name="picture"
-                value={formData.picture}
-                onChange={handleInputChange}
-                className="profileFormInput"
-                placeholder="https://example.com/profile.jpg (optional)"
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="url"
+                  id="picture"
+                  name="picture"
+                  value={formData.picture}
+                  onChange={handleInputChange}
+                  className="profileFormInput"
+                  placeholder="https://example.com/profile.jpg or upload from Blossom"
+                />
+                <input
+                  type="file"
+                  ref={pictureInputRef}
+                  accept="image/*"
+                  onChange={handlePictureUpload}
+                  style={{ display: 'none' }}
+                />
+                {generatedKeys && (
+                  <button
+                    type="button"
+                    onClick={() => pictureInputRef.current?.click()}
+                    disabled={uploadingPicture}
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      cursor: uploadingPicture ? 'wait' : 'pointer',
+                      backgroundColor: '#4a75ff',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    {uploadingPicture ? 'Uploading...' : '📷 Upload'}
+                  </button>
+                )}
+              </div>
             </div>
             
             <div className="profileFormField">
@@ -403,31 +508,61 @@ const RegisterPage: React.FC = () => {
             
             <div className="profileFormField">
               <label htmlFor="banner">
-                Banner Image URL
+                Banner Image {generatedKeys ? '(Blossom upload available)' : ''}
               </label>
-              <input
-                type="url"
-                id="banner"
-                name="banner"
-                value={formData.banner}
-                onChange={handleInputChange}
-                className="profileFormInput"
-                placeholder="https://example.com/banner.jpg (optional)"
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="url"
+                  id="banner"
+                  name="banner"
+                  value={formData.banner}
+                  onChange={handleInputChange}
+                  className="profileFormInput"
+                  placeholder="https://example.com/banner.jpg or upload from Blossom"
+                />
+                <input
+                  type="file"
+                  ref={bannerInputRef}
+                  accept="image/*"
+                  onChange={handleBannerUpload}
+                  style={{ display: 'none' }}
+                />
+                {generatedKeys && (
+                  <button
+                    type="button"
+                    onClick={() => bannerInputRef.current?.click()}
+                    disabled={uploadingBanner}
+                    style={{
+                      position: 'absolute',
+                      top: '4px',
+                      right: '4px',
+                      padding: '8px 12px',
+                      fontSize: '12px',
+                      cursor: uploadingBanner ? 'wait' : 'pointer',
+                      backgroundColor: '#4a75ff',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    {uploadingBanner ? 'Uploading...' : '📷 Upload'}
+                  </button>
+                )}
+              </div>
             </div>
             
             <div className="profileFormField">
-              <label htmlFor="lightningAddress">
-                Lightning Address
+              <label htmlFor="website">
+                Website
               </label>
               <input
-                type="text"
-                id="lightningAddress"
-                name="lightningAddress"
-                value={formData.lightningAddress}
+                type="url"
+                id="website"
+                name="website"
+                value={formData.website}
                 onChange={handleInputChange}
                 className="profileFormInput"
-                placeholder="yourname@domain.com (optional)"
+                placeholder="https://your-website.com (optional)"
               />
             </div>
             

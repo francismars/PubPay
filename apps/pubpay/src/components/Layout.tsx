@@ -676,6 +676,18 @@ export const Layout: React.FC = () => {
               onChange={e => setRememberMe(e.target.checked)}
             />
           </div>
+          <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '13px' }}>
+            <Link
+              to="/register"
+              className="label"
+              style={{ textDecoration: 'none', color: '#6b7280' }}
+              onClick={() => {
+                closeLogin();
+              }}
+            >
+              Don't have an account? Sign up
+            </Link>
+          </div>
           <a
             id="cancelLogin"
             href="#"

@@ -52,6 +52,7 @@ const App: React.FC = () => {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="profile/:pubkey" element={<ProfilePage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="note/:noteId" element={<FeedsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
