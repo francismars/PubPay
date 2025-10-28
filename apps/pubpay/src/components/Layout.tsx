@@ -139,6 +139,16 @@ export const Layout: React.FC = () => {
     window.dispatchEvent(new CustomEvent('openNewPayNoteForm'));
   };
 
+  // Handler to close mobile menu when a link is clicked
+  const closeMobileMenu = () => {
+    const sideNav = document.getElementById('sideNav');
+    const hamburger = document.querySelector('.hamburger');
+    if (sideNav && hamburger) {
+      sideNav.classList.remove('open');
+      hamburger.classList.remove('open');
+    }
+  };
+
   // Handler for opening new pay note form
   const handleOpenNewPayNoteForm = () => {
     if (authState.isLoggedIn) {
@@ -446,6 +456,7 @@ export const Layout: React.FC = () => {
                 to="/"
                 className="sideNavLink"
                 title="Home Feed"
+                onClick={closeMobileMenu}
               >
                 Home
               </Link>
@@ -453,6 +464,7 @@ export const Layout: React.FC = () => {
                 to="/profile"
                 className="sideNavLink"
                 title="Your PubPay Profile"
+                onClick={closeMobileMenu}
               >
                 Profile
               </Link>
@@ -460,6 +472,7 @@ export const Layout: React.FC = () => {
                 href="/splits"
                 className="sideNavLink disabled"
                 title="coming soon"
+                onClick={closeMobileMenu}
               >
                 Splits
               </a>
@@ -467,6 +480,7 @@ export const Layout: React.FC = () => {
                 href="/notifications"
                 className="sideNavLink disabled"
                 title="coming soon"
+                onClick={closeMobileMenu}
               >
                 Notifications
               </a>
@@ -474,16 +488,18 @@ export const Layout: React.FC = () => {
                 href="/settings"
                 className="sideNavLink disabled"
                 title="coming soon"
+                onClick={closeMobileMenu}
               >
                 Settings
               </a>
-              <a href="/live" className="sideNavLink " title="PubPay Live">
+              <a href="/live" className="sideNavLink " title="PubPay Live" onClick={closeMobileMenu}>
                 Live
               </a>
               <Link
                 to="/about"
                 className="sideNavLink"
                 title="About PubPay"
+                onClick={closeMobileMenu}
               >
                 About
               </Link>
@@ -497,6 +513,7 @@ export const Layout: React.FC = () => {
                   } else {
                     handleNewPayNote();
                   }
+                  closeMobileMenu();
                 }}
               >
                 New Paynote
