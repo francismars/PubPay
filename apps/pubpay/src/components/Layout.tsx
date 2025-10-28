@@ -1,28 +1,24 @@
-// Home page component - matches original index.html design exactly
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useUIStore } from '@pubpay/shared-services';
 import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { InvoiceQR } from '@pubpay/shared-ui';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../assets/images';
 import * as NostrTools from 'nostr-tools';
-import AboutPage from './AboutPage';
-import ProfilePage from './ProfilePage';
-import RegisterPage from './RegisterPage';
-import { FeedsPage } from './FeedsPage';
+import { NewPayNoteOverlay } from './NewPayNoteOverlay';
 
-export const HomePage: React.FC = () => {
+export const Layout: React.FC = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const showLoginForm = useUIStore(s => s.loginForm.show);
   const [showLoggedInForm, setShowLoggedInForm] = useState(false);
   const showInvoiceOverlay = useUIStore(s => s.invoiceOverlay.show);
+  const [showNewPayNoteForm, setShowNewPayNoteForm] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const openInvoice = useUIStore(s => s.openInvoice);
   const closeInvoice = useUIStore(s => s.closeInvoice);
   const openLogin = useUIStore(s => s.openLogin);
   const closeLogin = useUIStore(s => s.closeLogin);
-  const [currentPage, setCurrentPage] = useState<'home' | 'about' | 'profile' | 'register'>(
-    'home'
-  );
   const [showNsecGroup, setShowNsecGroup] = useState(false);
   const [nsecInput, setNsecInput] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -31,10 +27,10 @@ export const HomePage: React.FC = () => {
   const [extensionAvailable, setExtensionAvailable] = useState(true);
   const [externalSignerAvailable, setExternalSignerAvailable] = useState(true);
   const [externalSignerLoading, setExternalSignerLoading] = useState(false);
-  // Invoice state now read from UI store
 
   const qrReaderRef = useRef<HTMLDivElement>(null);
   const isStoppingScannerRef = useRef(false);
+  const location = useLocation();
 
   const {
     authState,
@@ -53,11 +49,6 @@ export const HomePage: React.FC = () => {
     handleCopyInvoice,
     handlePostNote
   } = useHomeFunctionality();
-
-  // Navigation handler
-  const handleNavigation = (page: 'home' | 'about' | 'profile' | 'register') => {
-    setCurrentPage(page);
-  };
 
   // Reset login form to main state
   const resetLoginForm = () => {
@@ -130,7 +121,7 @@ export const HomePage: React.FC = () => {
       try {
         await navigator.clipboard.writeText(shareURL);
         alert('Link copied to clipboard!');
-    } catch (error) {
+      } catch (error) {
         console.error('Failed to copy the link:', error);
       }
     }
@@ -146,6 +137,31 @@ export const HomePage: React.FC = () => {
   const handleNewPayNoteFromNav = () => {
     // Dispatch custom event to FeedsPage
     window.dispatchEvent(new CustomEvent('openNewPayNoteForm'));
+  };
+
+  // Handler for opening new pay note form
+  const handleOpenNewPayNoteForm = () => {
+    if (authState.isLoggedIn) {
+      setShowNewPayNoteForm(true);
+    }
+  };
+
+  // Handler for closing new pay note form
+  const handleCloseNewPayNoteForm = () => {
+    setShowNewPayNoteForm(false);
+  };
+
+  // Handler for posting a new note
+  const handlePostNoteSubmit = async (formData: Record<string, string>) => {
+    setIsPublishing(true);
+    try {
+      await handlePostNote(formData);
+      setShowNewPayNoteForm(false);
+    } catch (error) {
+      console.error('Failed to post note:', error);
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   // Helper function to safely stop the QR scanner
@@ -180,6 +196,19 @@ export const HomePage: React.FC = () => {
       isStoppingScannerRef.current = false;
     }
   }, [qrScanner, isScannerRunning]);
+
+  // Listen for custom event to open new pay note form
+  useEffect(() => {
+    const handleOpenNewPayNoteFormEvent = () => {
+      handleOpenNewPayNoteForm();
+    };
+
+    window.addEventListener('openNewPayNoteForm', handleOpenNewPayNoteFormEvent);
+
+    return () => {
+      window.removeEventListener('openNewPayNoteForm', handleOpenNewPayNoteFormEvent);
+    };
+  }, [authState.isLoggedIn]);
 
   // Initialize button states on mount
   useEffect(() => {
@@ -314,8 +343,6 @@ export const HomePage: React.FC = () => {
     };
   }, [qrScanner, safelyStopScanner]);
 
-  // No CustomEvent listener needed; login opens via store
-
   return (
     <div>
       <div id="nav">
@@ -336,11 +363,11 @@ export const HomePage: React.FC = () => {
               <span></span>
               <span></span>
             </button>
-            <a id="logo" href="/">
+            <Link id="logo" to="/">
               PUB<span style={{ color: '#000' }}>PAY</span>
               <span style={{ color: '#0000001c' }}>.me</span>
               <span className="version">alpha 0.02</span>
-            </a>
+            </Link>
           </div>
           <div id="navActions">
             <a
@@ -415,28 +442,20 @@ export const HomePage: React.FC = () => {
         <div id="containerInner">
           <div id="sideNav">
             <div id="navInner">
-              <a
-                href="#"
+              <Link
+                to="/"
                 className="sideNavLink"
                 title="Home Feed"
-                onClick={e => {
-                  e.preventDefault();
-                  handleNavigation('home');
-                }}
               >
                 Home
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                to="/profile"
                 className="sideNavLink"
                 title="Your PubPay Profile"
-                onClick={e => {
-                  e.preventDefault();
-                  handleNavigation('profile');
-                }}
               >
                 Profile
-              </a>
+              </Link>
               <a
                 href="/splits"
                 className="sideNavLink disabled"
@@ -461,17 +480,13 @@ export const HomePage: React.FC = () => {
               <a href="/live" className="sideNavLink " title="PubPay Live">
                 Live
               </a>
-              <a
-                href="#"
+              <Link
+                to="/about"
                 className="sideNavLink"
                 title="About PubPay"
-                onClick={e => {
-                  e.preventDefault();
-                  handleNavigation('about');
-                }}
               >
                 About
-              </a>
+              </Link>
               <a
                 id="newPayNote"
                 className="sideNavLink cta"
@@ -489,36 +504,7 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
           <div id="mainContent">
-            {currentPage === 'home' && (
-              <FeedsPage
-                authState={authState}
-                        nostrClient={nostrClient}
-                onPayWithExtension={handlePayWithExtension}
-                        onPayAnonymously={handlePayAnonymously}
-                        onShare={handleSharePost}
-                onPostNote={handlePostNote}
-                onNewPayNote={handleNewPayNote}
-              />
-            )}
-
-            {/* About Page */}
-            {currentPage === 'about' && <AboutPage />}
-
-            {/* Profile Page */}
-            {currentPage === 'profile' && (
-              <ProfilePage 
-                authState={authState} 
-                onNavigateToRegister={() => handleNavigation('register')}
-              />
-            )}
-
-            {/* Register Page */}
-            {currentPage === 'register' && (
-              <RegisterPage 
-                authState={authState} 
-                onNavigateToLogin={() => handleNavigation('profile')}
-              />
-            )}
+            <Outlet context={{ authState, nostrClient, handlePayWithExtension, handlePayAnonymously, handleSharePost, handlePostNote, handleNewPayNote, showNewPayNoteForm, handleCloseNewPayNoteForm, isPublishing }} />
           </div>
         </div>
       </div>
@@ -875,6 +861,13 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
 
+      {/* New Pay Note Overlay */}
+      <NewPayNoteOverlay
+        isVisible={showNewPayNoteForm}
+        onClose={handleCloseNewPayNoteForm}
+        onSubmit={handlePostNoteSubmit}
+        isPublishing={isPublishing}
+      />
     </div>
   );
 };

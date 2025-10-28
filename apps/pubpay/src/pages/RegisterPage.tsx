@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useUIStore, NostrRegistrationService, NostrKeyPair, ProfileData } from '@pubpay/shared-services';
 
 interface RegisterPageProps {
   authState?: any;
-  onNavigateToLogin?: () => void;
 }
 
-const RegisterPage: React.FC<RegisterPageProps> = ({ authState, onNavigateToLogin }) => {
+const RegisterPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { authState } = useOutletContext<{ authState: any }>();
   const [formData, setFormData] = useState({
     displayName: '',
     bio: '',
@@ -710,7 +712,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ authState, onNavigateToLogi
         <p className="profileNotLoggedInText">
           Sign in to access your existing profile and settings.
         </p>
-        <button className="profileLoginButton" onClick={onNavigateToLogin}>
+        <button className="profileLoginButton" onClick={() => navigate('/profile')}>
           Sign In
         </button>
       </div>
