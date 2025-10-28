@@ -306,6 +306,12 @@ body.jukebox {
   padding: 20px 0;
 }
 
+#mainContent {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
 #sideNav #navInner {
   display: flex;
   flex-direction: column;
@@ -1552,9 +1558,14 @@ textarea:focus::placeholder {
     padding: 15px 0;
   }
 
+  #mainContent{
+    width: 100%;
+  }
+
   #feedSelector {
     padding: 10px;
   }
+  
 
   /* Hide username on mobile */
   #login span {
@@ -1628,6 +1639,11 @@ textarea:focus::placeholder {
 
   #main {
     padding: 0 10px;
+  }
+
+  #mainContent {
+    width: 100%;
+    flex: none;
   }
 
   /* Mobile font sizes */
