@@ -382,7 +382,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 // Navigate to single note view using NIP-19 encoding
                 const nevent = NostrTools.nip19.noteEncode(post.id);
                 console.log('Navigating to single note:', nevent);
-                window.location.href = `/?note=${nevent}`;
+                window.location.href = `/note/${nevent}`;
               }
             }}
             style={{ cursor: 'pointer' }}

@@ -1,6 +1,6 @@
 // FeedsPage component - handles all feed-related functionality
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useLocation } from 'react-router-dom';
 import { useUIStore } from '@pubpay/shared-services';
 import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { PayNoteComponent } from '../components/PayNoteComponent';
@@ -29,6 +29,7 @@ interface FeedsPageProps {
 }
 
 export const FeedsPage: React.FC = () => {
+  const location = useLocation();
   const {
     authState,
     nostrClient,
@@ -74,8 +75,25 @@ export const FeedsPage: React.FC = () => {
     handleFeedChange,
     loadMorePosts,
     loadSingleNote,
-    loadReplies
+    loadReplies,
+    clearPosts
   } = useHomeFunctionality();
+
+  // Track previous path to detect when exiting single note mode
+  const prevPathRef = useRef(location.pathname);
+
+  // Detect when exiting single note mode and clear posts to reload feed
+  useEffect(() => {
+    const wasInNoteMode = prevPathRef.current.startsWith('/note/');
+    const isInNoteMode = location.pathname.startsWith('/note/');
+    prevPathRef.current = location.pathname;
+
+    if (wasInNoteMode && !isInNoteMode) {
+      // Just exited single note mode - clear posts and let the hook reload the feed
+      console.log('Exiting single note mode, clearing posts');
+      clearPosts();
+    }
+  }, [location.pathname, clearPosts]);
 
   const handleViewRaw = (post: PubPayPost) => {
     setJsonContent(JSON.stringify(post.event, null, 2));
@@ -135,56 +153,71 @@ export const FeedsPage: React.FC = () => {
   }, [isLoadingMore, singleNoteMode, posts.length]);
 
 
-  // Check for single note URL parameter on load
+  // Check for single note in URL path on load and when pathname changes
   useEffect(() => {
     const checkForSingleNote = () => {
-      const queryParams = new URLSearchParams(window.location.search);
-      const queryNote = queryParams.get('note');
+      const pathname = window.location.pathname;
+      console.log('Checking pathname:', pathname);
+      
+      // Check if pathname matches /note/:noteId pattern
+      if (pathname.startsWith('/note/')) {
+        // Extract the note identifier (everything after /note/)
+        const identifier = pathname.substring(6);
+        
+        console.log('Note identifier:', identifier);
+        // Check if it looks like a note identifier (starts with note1 or nevent1)
+        if (identifier.startsWith('note1') || identifier.startsWith('nevent1')) {
+          try {
+            console.log('Decoding identifier:', identifier);
+            // Decode the note
+            const decoded = NostrTools.nip19.decode(identifier);
+            console.log('Decoded:', decoded);
+            if (decoded.type === 'note' || decoded.type === 'nevent') {
+              let eventId: string;
+              
+              if (decoded.type === 'note') {
+                eventId = decoded.data;
+              } else {
+                // For nevent, extract the id
+                eventId = (decoded.data as any).id;
+              }
+              
+              console.log('Event ID:', eventId);
+              if (!/^[0-9a-f]{64}$/.test(eventId)) {
+                console.error('Invalid event ID format.');
+                return;
+              }
 
-      if (queryNote) {
-        try {
-          // Decode the note parameter
-          const decoded = NostrTools.nip19.decode(queryNote);
-          if (decoded.type !== 'note') {
-            console.error('Invalid type.');
-            return;
+              // Set single note mode immediately to prevent other loading
+              console.log('Setting single note mode with ID:', eventId);
+              setSingleNoteMode(true);
+              setSingleNoteId(eventId);
+
+              // Load the single note
+              loadSingleNote(eventId);
+            } else {
+              console.log('Not a note or nevent type:', decoded.type);
+            }
+          } catch (error) {
+            console.error('Failed to decode note:', error);
           }
-          if (!/^[0-9a-f]{64}$/.test(decoded.data)) {
-            console.error('Invalid event ID format.');
-            return;
-          }
-
-          // Set single note mode immediately to prevent other loading
-          setSingleNoteMode(true);
-          setSingleNoteId(decoded.data);
-
-          // Load the single note
-          loadSingleNote(decoded.data);
-        } catch (error) {
-          console.error('Failed to decode note parameter:', error);
+        } else {
+          console.log('Not a note identifier:', identifier);
+          // Reset single note mode if we're not viewing a note
+          setSingleNoteMode(false);
+          setSingleNoteId('');
         }
+      } else {
+        console.log('Not on /note/ path, resetting single note mode');
+        // Reset single note mode if we're not on a note page
+        setSingleNoteMode(false);
+        setSingleNoteId('');
       }
     };
 
     // Check immediately on mount
     checkForSingleNote();
-
-    // Wait for NostrTools to be available if not already
-    if (typeof window !== 'undefined' && (window as any).NostrTools) {
-      // Already checked above
-    } else {
-      // Retry when NostrTools becomes available
-      const retryInterval = setInterval(() => {
-        if (typeof window !== 'undefined' && (window as any).NostrTools) {
-          checkForSingleNote();
-          clearInterval(retryInterval);
-        }
-      }, 1000);
-
-      // Cleanup interval after 30 seconds
-      setTimeout(() => clearInterval(retryInterval), 30000);
-    }
-  }, []);
+  }, [location.pathname]); // Re-run when pathname changes
 
   return (
     <div id="feeds">

@@ -137,6 +137,96 @@ export class BlossomService {
   }
 
   /**
+   * Upload a file to Blossom using provided keys (for registration flow)
+   */
+  async uploadFileWithKey(file: File, rawPrivateKey: Uint8Array, rawPublicKey: Uint8Array | string): Promise<string> {
+    try {
+      const authEvent = await this.createAuthEventWithKey(rawPrivateKey, rawPublicKey, 'upload', file);
+      
+      const response = await fetch(`${this.serverUrl}/upload`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Nostr ${btoa(JSON.stringify(authEvent))}`,
+          'Content-Type': file.type || 'application/octet-stream'
+        },
+        body: file
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Upload failed: ${text}`);
+      }
+
+      const blob = await response.json();
+      return blob.sha256 || blob.hash;
+    } catch (error) {
+      console.error('Blossom upload error:', error);
+      throw new Error(`Failed to upload to Blossom: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Create auth event with specific keys (for registration)
+   */
+  private async createAuthEventWithKey(
+    rawPrivateKey: Uint8Array,
+    rawPublicKey: Uint8Array | string,
+    action: 'upload' | 'delete',
+    file?: File,
+    hash?: string
+  ): Promise<any> {
+    // Compute file hash if provided
+    let fileHash: string | undefined;
+    if (action === 'upload' && file) {
+      fileHash = await this.computeFileHash(file);
+    } else if (hash) {
+      fileHash = hash;
+    }
+
+    // Calculate expiration (24 hours from now)
+    const expiration = Math.floor(Date.now() / 1000) + (24 * 60 * 60);
+
+    // Build tags according to spec
+    const tags: string[][] = [
+      ['t', action],
+      ['expiration', expiration.toString()]
+    ];
+
+    // Add x tag with hash for upload and delete
+    if (fileHash) {
+      tags.push(['x', fileHash]);
+    }
+
+    // Create descriptive content
+    const content = action === 'upload' 
+      ? `Upload ${file?.name || 'file'} to Blossom` 
+      : `Delete ${hash} from Blossom`;
+
+    // Convert public key to hex if needed
+    let pubkey: string;
+    if (typeof rawPublicKey === 'string') {
+      pubkey = rawPublicKey;
+    } else {
+      pubkey = Array.from(rawPublicKey)
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+
+    const authEvent: any = {
+      kind: 24242,
+      created_at: Math.floor(Date.now() / 1000),
+      tags,
+      content,
+      pubkey
+    };
+
+    // Sign with the provided private key
+    const signedEvent = NostrTools.finalizeEvent(authEvent, rawPrivateKey);
+
+    return signedEvent;
+  }
+
+  /**
    * Download a file from Blossom by hash
    */
   async downloadFile(hash: string): Promise<Blob> {
