@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
-import { useUIStore } from '@pubpay/shared-services';
+import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { useUIStore, ensureProfiles, getQueryClient } from '@pubpay/shared-services';
 import * as NostrTools from 'nostr-tools';
+
+// Validation function for pubkeys
+const isValidPublicKey = (pubkey: string): boolean => {
+  return /^[0-9a-f]{64}$/i.test(pubkey);
+};
 
 interface ProfilePageProps {
   authState?: any;
@@ -9,12 +14,17 @@ interface ProfilePageProps {
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { authState } = useOutletContext<{ authState: any }>();
+  const { pubkey } = useParams<{ pubkey?: string }>();
+  const { authState, nostrClient } = useOutletContext<{ authState: any; nostrClient: any }>();
   const isLoggedIn = authState?.isLoggedIn;
   const userProfile = authState?.userProfile;
   const displayName = authState?.displayName;
   const publicKey = authState?.publicKey;
   const openLogin = useUIStore(s => s.openLogin);
+
+  // Determine if we're viewing own profile or another user's profile
+  const isOwnProfile = !pubkey || pubkey === publicKey;
+  const targetPubkey = pubkey || publicKey;
 
   // Profile data state
   const [profileData, setProfileData] = useState({
@@ -27,28 +37,93 @@ const ProfilePage: React.FC = () => {
     nip05: ''
   });
 
-  // Load profile data from userProfile
+  // Loading state for external profiles
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  // Load profile data - either from own profile or fetch external profile
   useEffect(() => {
-    if (userProfile?.content) {
-      try {
-        const content = typeof userProfile.content === 'string' 
-          ? JSON.parse(userProfile.content) 
-          : userProfile.content;
+    const loadProfileData = async () => {
+      setIsLoadingProfile(false);
+      setProfileError(null);
+      
+      if (isOwnProfile) {
+        // Load own profile from userProfile
+        if (userProfile?.content) {
+          try {
+            const content = typeof userProfile.content === 'string' 
+              ? JSON.parse(userProfile.content) 
+              : userProfile.content;
+            
+            setProfileData({
+              displayName: content.display_name || content.displayName || content.name || '',
+              bio: content.about || '',
+              website: content.website || '',
+              banner: content.banner || '',
+              picture: content.picture || '',
+              lightningAddress: content.lud16 || '',
+              nip05: content.nip05 || ''
+            });
+          } catch (error) {
+            console.error('Failed to parse profile content:', error);
+          }
+        }
+      } else if (targetPubkey && nostrClient) {
+        // Validate pubkey format
+        if (!isValidPublicKey(targetPubkey)) {
+          setProfileError('Invalid public key format');
+          return;
+        }
         
-        setProfileData({
-          displayName: content.display_name || content.displayName || content.name || '',
-          bio: content.about || '',
-          website: content.website || '',
-          banner: content.banner || '',
-          picture: content.picture || '',
-          lightningAddress: content.lud16 || '',
-          nip05: content.nip05 || ''
-        });
-      } catch (error) {
-        console.error('Failed to parse profile content:', error);
+        // Load external profile using ensureProfiles
+        setIsLoadingProfile(true);
+        try {
+          console.log('Loading profile for pubkey:', targetPubkey);
+          const profileMap = await ensureProfiles(
+            getQueryClient(),
+            nostrClient,
+            [targetPubkey]
+          );
+          const profileEvent = profileMap.get(targetPubkey);
+          console.log('Profile event received:', profileEvent);
+          
+          if (profileEvent?.content) {
+            const content = typeof profileEvent.content === 'string' 
+              ? JSON.parse(profileEvent.content) 
+              : profileEvent.content;
+            
+            setProfileData({
+              displayName: content.display_name || content.displayName || content.name || '',
+              bio: content.about || '',
+              website: content.website || '',
+              banner: content.banner || '',
+              picture: content.picture || '',
+              lightningAddress: content.lud16 || '',
+              nip05: content.nip05 || ''
+            });
+          } else {
+            // Profile not found, show minimal profile
+            setProfileData({
+              displayName: '',
+              bio: '',
+              website: '',
+              banner: '',
+              picture: '',
+              lightningAddress: '',
+              nip05: ''
+            });
+          }
+        } catch (error) {
+          console.error('Failed to load external profile:', error);
+          setProfileError('Failed to load profile');
+        } finally {
+          setIsLoadingProfile(false);
+        }
       }
-    }
-  }, [userProfile]);
+    };
+
+    loadProfileData();
+  }, [isOwnProfile, targetPubkey, userProfile, nostrClient]);
 
   // Copy to clipboard function
   const handleCopyToClipboard = (text: string, label: string) => {
@@ -66,33 +141,62 @@ const ProfilePage: React.FC = () => {
   };
 
   // Convert public key to npub format
-  const getNpubFromPublicKey = (pubkey: string): string => {
+  const getNpubFromPublicKey = (pubkey?: string): string => {
+    const keyToConvert = pubkey || targetPubkey;
+    if (!keyToConvert) return '';
+    
     try {
       // If it's already an npub, return it
-      if (pubkey.startsWith('npub1')) {
-        return pubkey;
+      if (keyToConvert.startsWith('npub1')) {
+        return keyToConvert;
       }
       
       // If it's a hex string, convert to npub
-      if (pubkey.length === 64 && /^[0-9a-fA-F]+$/.test(pubkey)) {
-        return NostrTools.nip19.npubEncode(pubkey);
+      if (keyToConvert.length === 64 && /^[0-9a-fA-F]+$/.test(keyToConvert)) {
+        return NostrTools.nip19.npubEncode(keyToConvert);
       }
       
       // If it's already a string, try to encode it directly
-      return NostrTools.nip19.npubEncode(pubkey);
+      return NostrTools.nip19.npubEncode(keyToConvert);
     } catch (error) {
       console.error('Failed to convert public key to npub:', error);
-      return pubkey; // Return original if conversion fails
+      return keyToConvert; // Return original if conversion fails
     }
   };
 
   return (
     <div className="profilePage">
       <h1 className="profilePageTitle">
-        Profile
+        {isOwnProfile ? 'Profile' : 'User Profile'}
       </h1>
 
-      {isLoggedIn ? (
+      {isLoadingProfile ? (
+        <div className="profileLoading">
+          <p>Loading profile...</p>
+        </div>
+      ) : profileError ? (
+        <div className="profileError">
+          <h2>Error</h2>
+          <p>{profileError}</p>
+        </div>
+      ) : isOwnProfile && !isLoggedIn ? (
+        <div className="profileNotLoggedIn">
+          <h2 className="profileNotLoggedInTitle">
+            Not Logged In
+          </h2>
+          <p className="profileNotLoggedInText">
+            Please log in to view your profile and manage your account settings.
+          </p>
+          <div className="profileButtonGroup">
+            <button className="profileLoginButton" onClick={openLogin}>
+              Log In
+            </button>
+            <button className="profileRegisterButton" onClick={() => navigate('/register')}>
+              Register
+            </button>
+          </div>
+        </div>
+      ) : (
         <div>
           {/* User Profile Section */}
           <div className="profileSection" id="profilePreview">
@@ -171,14 +275,14 @@ const ProfilePage: React.FC = () => {
                 </div>
               )}
 
-              {publicKey && (
+              {targetPubkey && (
                 <div className="profileDetailItem">
                   <label>User ID (npub)</label>
                   <div className="profileDetailValue">
-                    <code className="profilePublicKey">{getNpubFromPublicKey(publicKey)}</code>
+                    <code className="profilePublicKey">{getNpubFromPublicKey()}</code>
                     <button 
                       className="profileCopyButton"
-                      onClick={() => handleCopyToClipboard(getNpubFromPublicKey(publicKey), 'Public Key')}
+                      onClick={() => handleCopyToClipboard(getNpubFromPublicKey(), 'Public Key')}
                     >
                       Copy
                     </button>
@@ -227,11 +331,12 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Settings Section */}
-          <div className="profileSettingsSection">
-            <h2 className="profileSettingsTitle">
-              Edit Profile
-            </h2>
+          {/* Settings Section - Only show for own profile */}
+          {isOwnProfile && (
+            <div className="profileSettingsSection">
+              <h2 className="profileSettingsTitle">
+                Edit Profile
+              </h2>
             <div className="profileSettingsCard">
               <div className="profileFormField">
                 <label htmlFor="editDisplayName">
@@ -335,24 +440,8 @@ const ProfilePage: React.FC = () => {
                 Save Changes
               </button>
             </div>
-          </div>
-        </div>
-      ) : (
-        <div className="profileNotLoggedIn">
-          <h2 className="profileNotLoggedInTitle">
-            Not Logged In
-          </h2>
-          <p className="profileNotLoggedInText">
-            Please log in to view your profile and manage your account settings.
-          </p>
-          <div className="profileButtonGroup">
-            <button className="profileLoginButton" onClick={openLogin}>
-              Log In
-            </button>
-            <button className="profileRegisterButton" onClick={() => navigate('/register')}>
-              Register
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       )}
     </div>
