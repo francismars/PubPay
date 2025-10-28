@@ -1,5 +1,6 @@
 export * from './services/AuthService';
 export * from './services/ErrorService';
+export * from './services/BlossomService';
 export * from './services/index';
 export * from './services/api/ConfigAPI';
 export * from './services/api/PaymentAPI';
