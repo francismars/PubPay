@@ -1,4 +1,6 @@
 // AuthService - Handles authentication methods
+import * as NostrTools from 'nostr-tools';
+
 export interface AuthResult {
   success: boolean;
   publicKey?: string;
@@ -119,14 +121,6 @@ export class AuthService {
    */
   static async signInWithNsec(nsec: string): Promise<AuthResult> {
     try {
-      if (!(window as any).NostrTools) {
-        return {
-          success: false,
-          error:
-            'NostrTools not available. Please ensure nostrtools.min.js is loaded.'
-        };
-      }
-
       if (!nsec || typeof nsec !== 'string') {
         return {
           success: false,
@@ -134,7 +128,7 @@ export class AuthService {
         };
       }
 
-      const { type, data } = (window as any).NostrTools.nip19.decode(nsec);
+      const { type, data } = NostrTools.nip19.decode(nsec);
 
       if (type !== 'nsec') {
         return {
@@ -143,7 +137,7 @@ export class AuthService {
         };
       }
 
-      const publicKey = (window as any).NostrTools.getPublicKey(data);
+      const publicKey = NostrTools.getPublicKey(data);
 
       if (
         !publicKey ||
@@ -189,7 +183,7 @@ export class AuthService {
           };
         }
 
-        const decodedNPUB = (window as any).NostrTools.nip19.decode(npub);
+        const decodedNPUB = NostrTools.nip19.decode(npub);
         const publicKey = decodedNPUB.data;
 
         if (
