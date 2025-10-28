@@ -548,7 +548,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ authState, onNavigateToLogi
               
               <div className="nostrKeyItem">
                 <label className="nostrKeyLabel">
-                  Public Key (npub)
+                  Public Key (npub)34
                 </label>
                 <div className="nostrKeyValue">
                   <div className="nostrKeyDisplay">
