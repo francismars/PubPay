@@ -28,6 +28,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ authState, onNavigateToLogi
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
   const [showManualPublish, setShowManualPublish] = useState(false);
   const [showNsecQR, setShowNsecQR] = useState(false);
+  const [showHexValues, setShowHexValues] = useState(false);
   const openLogin = useUIStore(s => s.openLogin);
 
   const handleGenerateKeys = async () => {
@@ -76,6 +77,46 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ authState, onNavigateToLogi
     }).catch(() => {
       alert(`Failed to copy ${label}`);
     });
+  };
+
+  // Helper function to convert npub/nsec to hex format
+  const convertToHex = (encodedKey: string): string => {
+    try {
+      if (typeof window !== 'undefined' && (window as any).NostrTools) {
+        const decoded = (window as any).NostrTools.nip19.decode(encodedKey);
+        console.log('Decoded key:', decoded); // Debug log
+        
+        if (decoded && decoded.data) {
+          const hexString = Array.from(decoded.data as Uint8Array)
+            .map(byte => byte.toString(16).padStart(2, '0'))
+            .join('');
+          console.log('Converted to hex:', hexString); // Debug log
+          return hexString;
+        }
+      }
+      console.warn('NostrTools not available or failed to decode');
+      return encodedKey; // Fallback if NostrTools not available
+    } catch (error) {
+      console.error('Failed to convert to hex:', error);
+      return encodedKey; // Fallback on error
+    }
+  };
+
+  // Helper function to get hex from raw key data
+  const getHexFromRawKey = (rawKey: Uint8Array | string): string => {
+    try {
+      if (rawKey instanceof Uint8Array) {
+        return Array.from(rawKey)
+          .map(byte => byte.toString(16).padStart(2, '0'))
+          .join('');
+      } else if (typeof rawKey === 'string') {
+        return rawKey;
+      }
+      return '';
+    } catch (error) {
+      console.error('Failed to convert raw key to hex:', error);
+      return '';
+    }
   };
 
   const handleRecoveryFromMnemonic = async () => {
@@ -427,6 +468,18 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ authState, onNavigateToLogi
               Your Nostr private key (nsec) and public key (npub) for decentralized identity.
             </p>
             
+            {/* Advanced Options */}
+            <div className="advancedOptions" style={{ marginBottom: '20px' }}>
+              <label className="advancedOptionLabel">
+                <input
+                  type="checkbox"
+                  checked={showHexValues}
+                  onChange={(e) => setShowHexValues(e.target.checked)}
+                />
+                Show hex values (advanced)
+              </label>
+            </div>
+            
             <div className="nostrKeysDisplay">
               <div className="nostrKeyItem">
                 <label className="nostrKeyLabel">
@@ -434,9 +487,16 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ authState, onNavigateToLogi
                 </label>
                 <div className="nostrKeyValue">
                   {!showNsecQR ? (
-                    <code className="nostrKeyCode">
-                      {generatedKeys?.privateKey}
-                    </code>
+                    <div className="nostrKeyDisplay">
+                      <code className="nostrKeyCode">
+                        {showHexValues ? getHexFromRawKey(generatedKeys?.rawPrivateKey || new Uint8Array()) : generatedKeys?.privateKey}
+                      </code>
+                      {showHexValues && (
+                        <div className="nostrKeyFormat">
+                          <small>Hex format</small>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     <div className="nostrQRCode">
                       <div className="nostrQRPlaceholder">
@@ -447,7 +507,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ authState, onNavigateToLogi
                   <div className="nostrKeyActions">
                     <button 
                       className="nostrKeyCopyButton"
-                      onClick={() => handleCopyToClipboard(generatedKeys?.privateKey || '', 'Private Key')}
+                      onClick={() => handleCopyToClipboard(
+                        showHexValues ? getHexFromRawKey(generatedKeys?.rawPrivateKey || new Uint8Array()) : generatedKeys?.privateKey || '', 
+                        'Private Key'
+                      )}
                     >
                       Copy
                     </button>
@@ -488,12 +551,22 @@ const RegisterPage: React.FC<RegisterPageProps> = ({ authState, onNavigateToLogi
                   Public Key (npub)
                 </label>
                 <div className="nostrKeyValue">
-                  <code className="nostrKeyCode">
-                    {generatedKeys?.publicKey}
-                  </code>
+                  <div className="nostrKeyDisplay">
+                    <code className="nostrKeyCode">
+                      {showHexValues ? getHexFromRawKey(generatedKeys?.rawPublicKey || '') : generatedKeys?.publicKey}
+                    </code>
+                    {showHexValues && (
+                      <div className="nostrKeyFormat">
+                        <small>Hex format</small>
+                      </div>
+                    )}
+                  </div>
                   <button 
                     className="nostrKeyCopyButton"
-                    onClick={() => handleCopyToClipboard(generatedKeys?.publicKey || '', 'Public Key')}
+                    onClick={() => handleCopyToClipboard(
+                      showHexValues ? getHexFromRawKey(generatedKeys?.rawPublicKey || '') : generatedKeys?.publicKey || '', 
+                      'Public Key'
+                    )}
                   >
                     Copy
                   </button>
