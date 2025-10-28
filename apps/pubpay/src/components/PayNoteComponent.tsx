@@ -515,9 +515,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   className={`zapReaction ${zap.isNewZap ? 'newZap' : ''}`}
                 >
                   <a
-                    href={`https://next.nostrudel.ninja/#/u/${zap.zapPayerNpub}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={`/profile/${zap.zapPayerPubkey}`}
                   >
                     <img
                       className="userImg"
@@ -581,9 +579,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     className={`zapReaction ${zap.isNewZap ? 'newZap' : ''}`}
                   >
                     <a
-                      href={`https://next.nostrudel.ninja/#/u/${zap.zapPayerNpub}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href={`/profile/${zap.zapPayerPubkey}`}
                     >
                       <img
                         className="userImg"
