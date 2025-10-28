@@ -147,19 +147,29 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       }
     };
 
-    // Get user display name for npub mention
-    const getMentionUserName = async (npub: string): Promise<string> => {
+    // Get user display name for npub or hex pubkey mention
+    const getMentionUserName = async (pubkeyOrNpub: string): Promise<string> => {
       try {
-        const decoded = NostrTools.nip19.decode(npub);
-        if (decoded.type !== 'npub' && decoded.type !== 'nprofile') {
-          console.error('Invalid npub format');
-          return npub.length > 35
-            ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4)}`
-            : npub;
-        }
+        let pubkey: string;
+        let displayKey: string;
 
-        const pubkey =
-          decoded.type === 'npub' ? decoded.data : decoded.data.pubkey;
+        // Check if it's a hex pubkey (64 characters)
+        if (pubkeyOrNpub.length === 64 && /^[0-9a-fA-F]+$/.test(pubkeyOrNpub)) {
+          pubkey = pubkeyOrNpub;
+          displayKey = NostrTools.nip19.npubEncode(pubkey);
+        } else {
+          // Assume it's an npub/nprofile
+          const decoded = NostrTools.nip19.decode(pubkeyOrNpub);
+          if (decoded.type !== 'npub' && decoded.type !== 'nprofile') {
+            console.error('Invalid npub format');
+            return pubkeyOrNpub.length > 35
+              ? `${pubkeyOrNpub.substr(0, 4)}...${pubkeyOrNpub.substr(pubkeyOrNpub.length - 4)}`
+              : pubkeyOrNpub;
+          }
+
+          pubkey = decoded.type === 'npub' ? decoded.data : decoded.data.pubkey;
+          displayKey = pubkeyOrNpub;
+        }
 
         // Use the existing profile system to get user data
         const queryClient = getQueryClient();
@@ -183,15 +193,15 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           }
         }
 
-        // Fallback to shortened npub
-        return npub.length > 35
-          ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4)}`
-          : npub;
+        // Fallback to shortened display key
+        return displayKey.length > 35
+          ? `${displayKey.substr(0, 4)}...${displayKey.substr(displayKey.length - 4)}`
+          : displayKey;
       } catch (error) {
         console.error('Error in getMentionUserName:', error);
-        return npub.length > 35
-          ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4)}`
-          : npub;
+        return pubkeyOrNpub.length > 35
+          ? `${pubkeyOrNpub.substr(0, 4)}...${pubkeyOrNpub.substr(pubkeyOrNpub.length - 4)}`
+          : pubkeyOrNpub;
       }
     };
 
@@ -209,7 +219,33 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             const displayName = await getMentionUserName(cleanMatch);
             return {
               match,
-              replacement: `<a href="https://next.nostrudel.ninja/#/u/${cleanMatch}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${displayName}</a>`
+              replacement: `<a href="/profile/${cleanMatch}" style="color: #0066cc; text-decoration: underline;">${displayName}</a>`
+            };
+          })
+        );
+
+        replacements.forEach(({ match, replacement }) => {
+          content = content.replace(match, replacement);
+        });
+      }
+
+      // Handle hex pubkey mentions (64-character hex strings)
+      const hexMatches = content.match(
+        /\b([0-9a-fA-F]{64})\b/g
+      );
+
+      if (hexMatches) {
+        const replacements = await Promise.all(
+          hexMatches.map(async match => {
+            // Skip if this looks like a URL or other hex string that's not a pubkey
+            if (content.includes(`http`) || content.includes(`0x${match}`)) {
+              return { match, replacement: match };
+            }
+            
+            const displayName = await getMentionUserName(match);
+            return {
+              match,
+              replacement: `<a href="/profile/${match}" style="color: #0066cc; text-decoration: underline;">${displayName}</a>`
             };
           })
         );
@@ -807,15 +843,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     }}
                   >
                     View Raw
-                  </a>
-
-                  <a
-                    href={`https://next.nostrudel.ninja/#/n/${post.id}`}
-                    className="toolTipLink dropdown-element"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    View on nostrudel
                   </a>
 
                   <a
