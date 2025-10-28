@@ -205,8 +205,8 @@ export const HomePage: React.FC = () => {
           try {
             // Get the public key from clipboard (external signer puts it there)
             const npub = await navigator.clipboard.readText();
-            const decodedNPUB = window.NostrTools.nip19.decode(npub);
-            const pubKey = decodedNPUB.data;
+            const decodedNPUB = NostrTools.nip19.decode(npub);
+            const pubKey = decodedNPUB.data as string;
 
             // Store authentication data
             if (signInData.rememberMe === true) {

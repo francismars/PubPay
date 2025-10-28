@@ -8,6 +8,10 @@ export declare class NostrClient {
     constructor(relays?: string[]);
     private initializePool;
     /**
+     * Setup error handling for the pool's internal relay connections
+     */
+    private setupPoolErrorHandling;
+    /**
      * Subscribe to events with the given filters
      */
     subscribeToEvents(filters: NostrFilter[], eventHandler: EventHandler, options?: {
@@ -47,6 +51,45 @@ export declare class NostrClient {
      * Publish an event to relays
      */
     publishEvent(event: NostrEvent): Promise<void>;
+    /**
+     * Test publishing to individual relays for debugging
+     */
+    testRelayPublish(event: NostrEvent, relayUrl: string): Promise<{
+        success: boolean;
+        error?: string;
+    }>;
+    /**
+     * Get a summary of relay health and status
+     */
+    getRelayHealthSummary(event: NostrEvent): Promise<{
+        totalRelays: number;
+        workingRelays: string[];
+        failedRelays: {
+            relay: string;
+            error: string;
+        }[];
+        powRelays: {
+            relay: string;
+            bits: number;
+        }[];
+        issues: string[];
+    }>;
+    /**
+     * Test specifically for PoW requirements across all relays
+     */
+    testPowRequirements(event: NostrEvent): Promise<{
+        relay: string;
+        bits: number;
+        error: string;
+    }[]>;
+    /**
+     * Test all relays individually to identify which ones are blocking
+     */
+    testAllRelays(event: NostrEvent): Promise<{
+        relay: string;
+        success: boolean;
+        error?: string;
+    }[]>;
     /**
      * Get events from relays using subscribeMany pattern
      */

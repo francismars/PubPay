@@ -1,3 +1,5 @@
+// AuthService - Handles authentication methods
+import * as NostrTools from 'nostr-tools';
 export class AuthService {
     /**
      * Sign in with Nostr extension
@@ -85,26 +87,20 @@ export class AuthService {
      */
     static async signInWithNsec(nsec) {
         try {
-            if (!window.NostrTools) {
-                return {
-                    success: false,
-                    error: 'NostrTools not available. Please ensure nostrtools.min.js is loaded.'
-                };
-            }
             if (!nsec || typeof nsec !== 'string') {
                 return {
                     success: false,
                     error: 'No nsec provided'
                 };
             }
-            const { type, data } = window.NostrTools.nip19.decode(nsec);
+            const { type, data } = NostrTools.nip19.decode(nsec);
             if (type !== 'nsec') {
                 return {
                     success: false,
                     error: 'Invalid nsec format. Please provide a valid nsec string.'
                 };
             }
-            const publicKey = window.NostrTools.getPublicKey(data);
+            const publicKey = NostrTools.getPublicKey(data);
             if (!publicKey ||
                 typeof publicKey !== 'string' ||
                 publicKey.length !== 64) {
@@ -144,7 +140,7 @@ export class AuthService {
                         error: 'No public key found in clipboard'
                     };
                 }
-                const decodedNPUB = window.NostrTools.nip19.decode(npub);
+                const decodedNPUB = NostrTools.nip19.decode(npub);
                 const publicKey = decodedNPUB.data;
                 if (!publicKey ||
                     typeof publicKey !== 'string' ||

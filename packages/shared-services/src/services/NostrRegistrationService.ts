@@ -515,6 +515,7 @@ export class NostrRegistrationService {
       
       // Publish the event to relays with simplified error handling
       try {
+        console.log('Publishing profile event:', profileEvent);
         await client.publishEvent(profileEvent);
         
         
