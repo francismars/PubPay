@@ -154,6 +154,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
 
     // Handle custom zap
     const handleCustomZap = () => {
+      if (!isLoggedIn) {
+        return; // Require login for non-anonymous zaps
+      }
       const amount = parseInt(customZapAmount);
       if (amount > 0) {
         onPay(post, amount);
@@ -551,8 +554,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 title={
                   isReply 
                     ? 'Cannot pay replies' 
-                    : !isLoggedIn 
-                    ? 'Please sign in to pay' 
+                    : !isLoggedIn && isPayable
+                    ? 'Please sign in to pay'
                     : !isPayable 
                     ? 'This post is not payable' 
                     : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
@@ -562,7 +565,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               >
                 {post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
                   ? 'Paid'
-                  : !isPayable || !isLoggedIn || isReply
+                  : !isPayable || isReply
                   ? 'Not Payable'
                   : 'Pay'}
               </button>
@@ -603,14 +606,14 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               {/* Zap Menu */}
               <a
                 ref={zapActionRef}
-                className={`noteAction zapMenuAction ${!isPayable || !isLoggedIn ? 'disabled' : ''}`}
+                className={`noteAction zapMenuAction ${!isPayable ? 'disabled' : ''}`}
                 onClick={e => {
                   e.preventDefault();
-                  if (!isPayable || !isLoggedIn) return;
+                  if (!isPayable) return;
                   setShowZapMenu(!showZapMenu);
                 }}
                 style={{ position: 'relative' }}
-                title={!isPayable ? 'This post is not payable' : !isLoggedIn ? 'Please sign in to zap' : ''}
+                title={!isPayable ? 'This post is not payable' : ''}
               >
                 <span className="material-symbols-outlined">bolt</span>
                 <div
@@ -634,6 +637,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                         e.stopPropagation();
                         handleCustomZap();
                       }}
+                      disabled={!isLoggedIn}
+                      style={{ opacity: !isLoggedIn ? 0.5 : 1 }}
+                      title={!isLoggedIn ? 'Please sign in to zap' : ''}
                     >
                       Zap
                     </button>

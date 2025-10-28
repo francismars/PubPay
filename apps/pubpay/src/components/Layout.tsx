@@ -881,9 +881,12 @@ export const Layout: React.FC = () => {
           </div>
           <a
             id="closeInvoiceOverlay"
-            href="#"
+            href="javascript:void(0)"
             className="label"
-            onClick={() => closeInvoice()}
+            onClick={(e) => {
+              e.preventDefault();
+              closeInvoice();
+            }}
           >
             Close
           </a>
