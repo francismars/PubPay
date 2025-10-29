@@ -1,16 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 const AboutPage: React.FC = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   return (
     <div className="profilePage">
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '48px', fontWeight: '700', marginBottom: '20px', color: '#4a75ff', letterSpacing: '-1px', lineHeight: '1.2' }}>
+        <h2 style={{ fontSize: isMobile ? '32px' : '48px', fontWeight: '700', marginBottom: '20px', color: '#4a75ff', letterSpacing: '-1px', lineHeight: '1.2' }}>
           Request Payments,
           <br />
           Get Paid Instantly
         </h2>
-        <p style={{ fontSize: '18px', color: '#555', marginBottom: '60px', lineHeight: '1.7', maxWidth: '720px' }}>
+        <p style={{ fontSize: isMobile ? '16px' : '18px', color: '#555', marginBottom: '60px', lineHeight: '1.7', maxWidth: '720px' }}>
           PubPay lets you create payment requests that anyone can pay with just a few clicks. Whether you're collecting donations, splitting bills, or selling services — get paid instantly with Bitcoin via the Lightning Network.
         </p>
 
@@ -86,7 +97,7 @@ const AboutPage: React.FC = () => {
             Use Cases
           </h2>
           
-          <div style={{ display: 'grid', gap: '24px', gridTemplateColumns: 'repeat(2, 1fr)' }}>
+          <div style={{ display: 'grid', gap: '24px', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)' }}>
             <div style={{ background: '#fff', padding: '28px', borderRadius: '12px', border: '1px solid #e9ecef', boxShadow: '0 2px 4px rgba(0,0,0,0.04)', transition: 'box-shadow 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(74, 117, 255, 0.08)'} onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.04)'}>
               <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '12px', color: '#4a75ff', letterSpacing: '-0.2px' }}>Donations</h3>
               <p style={{ margin: '0', color: '#555', lineHeight: '1.6', fontSize: '15px' }}>Create public donation requests with fixed or range payment amounts, allowing supporters to contribute easily.</p>
