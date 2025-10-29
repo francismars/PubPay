@@ -469,26 +469,35 @@ export const Layout: React.FC = () => {
                 Profile
               </Link>
               <a
-                href="/splits"
+                href="javascript:void(0)"
                 className="sideNavLink disabled"
                 title="coming soon"
-                onClick={closeMobileMenu}
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                }}
               >
                 Splits
               </a>
               <a
-                href="/notifications"
+                href="javascript:void(0)"
                 className="sideNavLink disabled"
                 title="coming soon"
-                onClick={closeMobileMenu}
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                }}
               >
                 Notifications
               </a>
               <a
-                href="/settings"
+                href="javascript:void(0)"
                 className="sideNavLink disabled"
                 title="coming soon"
-                onClick={closeMobileMenu}
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                }}
               >
                 Settings
               </a>

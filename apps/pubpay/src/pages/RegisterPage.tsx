@@ -25,14 +25,13 @@ const RegisterPage: React.FC = () => {
   const [publishedEventId, setPublishedEventId] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
-  const [showRecoveryForm, setShowRecoveryForm] = useState(false);
-  const [recoveryMnemonic, setRecoveryMnemonic] = useState('');
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
   const [showManualPublish, setShowManualPublish] = useState(false);
   const [showNsecQR, setShowNsecQR] = useState(false);
   const [showHexValues, setShowHexValues] = useState(false);
   const [uploadingPicture, setUploadingPicture] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(true);
   const pictureInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const openLogin = useUIStore(s => s.openLogin);
@@ -132,31 +131,6 @@ const RegisterPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to convert raw key to hex:', error);
       return '';
-    }
-  };
-
-  const handleRecoveryFromMnemonic = async () => {
-    if (!recoveryMnemonic.trim()) {
-      alert('Please enter your 12-word mnemonic phrase');
-      return;
-    }
-
-    try {
-      const result = NostrRegistrationService.recoverKeyPairFromMnemonic(recoveryMnemonic.trim());
-      
-      if (result.success && result.keyPair) {
-        setGeneratedKeys(result.keyPair);
-        setShowKeys(true);
-        setShowRecoveryForm(false);
-        setRecoveryMnemonic('');
-        setIsRegistrationComplete(true);
-        alert('Keys recovered successfully from mnemonic!');
-      } else {
-        alert('Failed to recover keys: ' + (result.error || 'Invalid mnemonic'));
-      }
-    } catch (error) {
-      console.error('Recovery failed:', error);
-      alert('Failed to recover keys. Please check your mnemonic phrase.');
     }
   };
 
@@ -409,10 +383,11 @@ const RegisterPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="profileSettingsSection">
-        <h2 className="profileSettingsTitle">
-          Account Information
-        </h2>
+      {!isRegistrationComplete && (
+        <div className="profileSettingsSection">
+          <h2 className="profileSettingsTitle">
+            Account Information
+          </h2>
         <div className="profileSettingsCard">
           <form onSubmit={handleSubmit}>
             <div className="profileFormField">
@@ -592,11 +567,52 @@ const RegisterPage: React.FC = () => {
             </div>
           </form>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Nostr Key Generation Section - Only show after registration is complete */}
       {isRegistrationComplete && (
-        <div className="profileSection">
+        <>
+          {publishedEventId && showSuccessMessage && (
+            <div className="nostrEventInfo" style={{ marginBottom: '20px', position: 'relative' }}>
+              <button
+                onClick={() => setShowSuccessMessage(false)}
+                style={{
+                  position: 'absolute',
+                  top: '10px',
+                  right: '10px',
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: '20px',
+                  cursor: 'pointer',
+                  color: '#666',
+                  padding: '5px',
+                  lineHeight: '1'
+                }}
+                title="Close"
+              >
+                ×
+              </button>
+              <strong>✅ Profile Published Successfully!</strong>
+              <p>Your profile has been published to Nostr relays.</p>
+              <div className="nostrEventId">
+                <label className="nostrKeyLabel">Event ID:</label>
+                <div className="nostrKeyValue">
+                  <code className="nostrKeyCode">
+                    {publishedEventId}
+                  </code>
+                  <button 
+                    className="nostrKeyCopyButton"
+                    onClick={() => handleCopyToClipboard(publishedEventId, 'Event ID')}
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="profileSection">
           <h2 className="profileSettingsTitle">
             Nostr Keys
           </h2>
@@ -763,84 +779,13 @@ const RegisterPage: React.FC = () => {
                   <li>If you lose your private key, you cannot recover your account</li>
                 </ul>
               </div>
-              
-              {publishedEventId && (
-                <div className="nostrEventInfo">
-                  <strong>✅ Profile Published Successfully!</strong>
-                  <p>Your profile has been published to Nostr relays.</p>
-                  <div className="nostrEventId">
-                    <label className="nostrKeyLabel">Event ID:</label>
-                    <div className="nostrKeyValue">
-                      <code className="nostrKeyCode">
-                        {publishedEventId}
-                      </code>
-                      <button 
-                        className="nostrKeyCopyButton"
-                        onClick={() => handleCopyToClipboard(publishedEventId, 'Event ID')}
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-        </div>
-      </div>
-      )}
-
-      {/* Recovery Section */}
-      <div className="profileSection">
-        <h2 className="profileSectionTitle">
-          Recover Existing Account
-        </h2>
-        <p className="profileSectionDescription">
-          If you have a 12-word recovery phrase from a previous account, you can recover your keys here.
-        </p>
-        
-        {!showRecoveryForm ? (
-          <button 
-            className="profileSaveButton"
-            onClick={() => setShowRecoveryForm(true)}
-          >
-            Recover from Mnemonic
-          </button>
-        ) : (
-          <div className="profileFormField">
-            <label htmlFor="recoveryMnemonic">
-              12-Word Recovery Phrase
-            </label>
-            <textarea
-              id="recoveryMnemonic"
-              value={recoveryMnemonic}
-              onChange={(e) => setRecoveryMnemonic(e.target.value)}
-              className="profileFormTextarea"
-              placeholder="Enter your 12-word recovery phrase separated by spaces..."
-              rows={3}
-            />
-            <div className="nostrKeyActions">
-              <button 
-                className="nostrKeyCopyButton"
-                onClick={handleRecoveryFromMnemonic}
-                disabled={!recoveryMnemonic.trim()}
-              >
-                Recover Keys
-              </button>
-              <button 
-                className="nostrKeyCopyButton"
-                onClick={() => {
-                  setShowRecoveryForm(false);
-                  setRecoveryMnemonic('');
-                }}
-              >
-                Cancel
-              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+        </>
+      )}
 
-      <div className="profileNotLoggedIn">
+      <div className="profileNotLoggedIn" style={{ marginTop: '40px' }}>
         <h2 className="profileNotLoggedInTitle">
           Already have an account?
         </h2>
