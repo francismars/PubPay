@@ -46,6 +46,7 @@ export interface PubPayPost {
   zapUsesCurrent: number;
   zapPayer?: string;
   zapPayerPicture?: string;
+  zapPayerName?: string;
   content: string;
   isPayable: boolean;
   hasZapTags?: boolean;
@@ -561,6 +562,10 @@ export const useHomeFunctionality = () => {
             );
             post.zapPayerPicture =
               (profileData as any).picture || genericUserIcon;
+            post.zapPayerName =
+              (profileData as any).display_name ||
+              (profileData as any).name ||
+              undefined;
           } catch {
             post.zapPayerPicture = genericUserIcon;
           }
@@ -737,8 +742,8 @@ export const useHomeFunctionality = () => {
           };
         });
 
-        // Sort zaps by amount (highest first)
-        processedZaps.sort((a, b) => b.zapAmount - a.zapAmount);
+        // Preserve chronological order (oldest first) established by postZaps.reverse() above
+        // Do not sort by amount, to keep arrival order stable
 
         // Filter zaps by amount limits for usage counting (matches legacy behavior)
         const zapsWithinLimits = processedZaps.filter(zap => {
@@ -766,7 +771,11 @@ export const useHomeFunctionality = () => {
           (sum, zap) => sum + zap.zapAmount,
           0
         );
-        const zapUsesCurrent = zapsWithinLimits.length;
+        // Cap uses at declared zapUses so extra in-range payments beyond cap do not count
+        const zapUsesCurrent =
+          post.zapUses && post.zapUses > 0
+            ? Math.min(zapsWithinLimits.length, post.zapUses)
+            : zapsWithinLimits.length;
 
         return {
           ...post,
@@ -1762,6 +1771,31 @@ export const useHomeFunctionality = () => {
       return () => {}; // Return empty cleanup function
     }
 
+    // Detect single-post mode via URL (?note=...)
+    let singlePostMode = false;
+    let singlePostEventId: string | null = null;
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const qNote = params.get('note');
+        const path = window.location.pathname || '';
+        let noteRef: string | null = null;
+        if (qNote) noteRef = qNote;
+        else if (path.startsWith('/note/')) noteRef = path.split('/note/')[1] || null;
+
+        if (noteRef) {
+          try {
+            const decoded = NostrTools.nip19.decode(noteRef);
+            if (decoded.type === 'note' || decoded.type === 'nevent') {
+              // note: decoded.data is id; nevent: decoded.data.id
+              singlePostEventId = (decoded as any).data?.id || (decoded as any).data || null;
+              singlePostMode = !!singlePostEventId;
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+
     // Determine which posts to subscribe to based on active feed
     const currentPosts = activeFeed === 'following' ? followingPosts : posts;
     
@@ -1799,33 +1833,38 @@ export const useHomeFunctionality = () => {
       console.log('Filtering by followed authors:', followingPubkeysRef.current.length);
     }
     
-    // Subscribe to new kind 1 events with 'pubpay' tag created after our newest post
-    const notesSub = nostrClientRef.current.subscribeToEvents(
-      [filter],
-      async (noteEvent: NostrEvent) => {
-        // Type guard to ensure this is a note event
-        if (noteEvent.kind !== 1) return;
-        
-        console.log('Received new post in real-time:', noteEvent.id);
-        // Process and add to feed (duplicate check is inside processNewNote)
-        await processNewNote(noteEvent as Kind1Event);
-      },
-      {
-        oneose: () => {
-          console.log('New post subscription EOS');
+    // In single-post mode we do NOT subscribe to new posts
+    let notesSub: any = null;
+    if (!singlePostMode) {
+      // Subscribe to new kind 1 events with 'pubpay' tag created after our newest post
+      notesSub = nostrClientRef.current.subscribeToEvents(
+        [filter],
+        async (noteEvent: NostrEvent) => {
+          // Type guard to ensure this is a note event
+          if (noteEvent.kind !== 1) return;
+          
+          console.log('Received new post in real-time:', noteEvent.id);
+          // Process and add to feed (duplicate check is inside processNewNote)
+          await processNewNote(noteEvent as Kind1Event);
         },
-        onclosed: () => {
-          console.log('New post subscription closed');
+        {
+          oneose: () => {
+            console.log('New post subscription EOS');
+          },
+          onclosed: () => {
+            console.log('New post subscription closed');
+          }
         }
-      }
-    );
-    
-    subscriptionRef.current = notesSub;
+      );
+      subscriptionRef.current = notesSub;
+    }
 
     // Subscribe to new zaps for all current posts
     let zapsSub: any = null;
-    if (currentPosts.length > 0) {
-      const eventIds = currentPosts.map(post => post.id);
+    if ((singlePostMode && singlePostEventId) || currentPosts.length > 0) {
+      const eventIds = singlePostMode && singlePostEventId
+        ? [singlePostEventId]
+        : currentPosts.map(post => post.id);
 
       zapsSub = nostrClientRef.current.subscribeToEvents(
         [
@@ -1837,7 +1876,11 @@ export const useHomeFunctionality = () => {
         async (zapEvent: NostrEvent) => {
           // Type guard to ensure this is a zap event
           if (zapEvent.kind !== 9735) return;
-
+          // Extra guard in single post mode: ensure zap references our event id
+          if (singlePostMode && singlePostEventId) {
+            const eTag = zapEvent.tags.find(t => t[0] === 'e');
+            if (!eTag || eTag[1] !== singlePostEventId) return;
+          }
           // Add to batch for processing
           zapBatchRef.current.push(zapEvent as Kind9735Event);
 
@@ -2150,17 +2193,8 @@ export const useHomeFunctionality = () => {
         zapPayerPubkey = zapEvent.pubkey;
       }
 
-      // Check if this zap is for a post with zap-payer tag
-      const eventTag = zapEvent.tags.find(tag => tag[0] === 'e');
-      if (eventTag && eventTag[1]) {
-        const targetPost = posts.find(post => post.id === eventTag[1]);
-        if (targetPost && targetPost.zapPayer) {
-          // This post has a zap-payer tag, only process if zap is from that payer
-          if (zapPayerPubkey !== targetPost.zapPayer) {
-            return null;
-          }
-        }
-      }
+      // Do not filter out non-matching zap-payer zaps here; classification happens in component
+      // Keep all zaps so UI can show in-range (hero) vs out-of-restriction (actions)
 
       // Get zap payer profile from pre-loaded profiles
       const zapPayerProfile = zapPayerPubkey
@@ -2244,22 +2278,8 @@ export const useHomeFunctionality = () => {
         zapPayerPubkey = zapEvent.pubkey;
       }
 
-      // Check if this zap is for a post with zap-payer tag
-      const eventTag = zapEvent.tags.find(tag => tag[0] === 'e');
-      if (eventTag && eventTag[1]) {
-        const targetPost = posts.find(post => post.id === eventTag[1]);
-        if (targetPost && targetPost.zapPayer) {
-          // This post has a zap-payer tag, only process if zap is from that payer
-          if (zapPayerPubkey !== targetPost.zapPayer) {
-            console.log('Zap ignored - not from specified zap-payer:', {
-              zapPayerPubkey,
-              expectedPayer: targetPost.zapPayer,
-              postId: targetPost.id
-            });
-            return null;
-          }
-        }
-      }
+      // Do not filter out non-matching zap-payer zaps here; classification happens in component
+      // Keep all zaps so UI can show in-range (hero) vs out-of-restriction (actions)
 
       // Get zap payer profile using batched loading
       let zapPayerProfile = null;

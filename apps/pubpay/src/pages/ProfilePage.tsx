@@ -133,6 +133,14 @@ const ProfilePage: React.FC = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
+  // Activity stats (counts only for now)
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityStats, setActivityStats] = useState({
+    paynotesCreated: 0,
+    pubpaysReceived: 0,
+    zapsReceived: 0
+  });
+
   // Load profile data - either from own profile or fetch external profile
   useEffect(() => {
     const loadProfileData = async () => {
@@ -216,6 +224,189 @@ const ProfilePage: React.FC = () => {
 
     loadProfileData();
   }, [isOwnProfile, targetPubkey, userProfile, nostrClient]);
+
+  // Load activity stats (frontend-only, counts)
+  useEffect(() => {
+    const loadActivityStats = async () => {
+      if (!targetPubkey || !nostrClient) return;
+
+      setActivityLoading(true);
+      try {
+        // Helper function to paginate and get all events
+        const getAllEvents = async (
+          filter: any,
+          description: string
+        ): Promise<any[]> => {
+          const allEvents: any[] = [];
+          let until: number | undefined = undefined;
+          const limit = 500;
+          let hasMore = true;
+          let batchCount = 0;
+
+          console.log(`[${description}] Starting to fetch all events with filter:`, filter);
+
+          while (hasMore) {
+            batchCount++;
+            try {
+              const batchFilter = {
+                ...filter,
+                limit,
+                ...(until ? { until } : {})
+              };
+              
+              console.log(`[${description}] Batch ${batchCount} - Filter:`, batchFilter);
+              const batch = (await nostrClient.getEvents([batchFilter])) as any[];
+
+              console.log(`[${description}] Batch ${batchCount} - Received ${batch.length} events`);
+
+              if (batch.length === 0) {
+                console.log(`[${description}] No more events found`);
+                hasMore = false;
+                break;
+              }
+
+              // Sort batch by created_at descending (newest first) to ensure consistent ordering
+              batch.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+
+              allEvents.push(...batch);
+
+              console.log(`[${description}] Total events so far: ${allEvents.length}`);
+
+              // If we got fewer events than the limit, we've reached the end
+              if (batch.length < limit) {
+                console.log(`[${description}] Got fewer events than limit (${batch.length} < ${limit}), reached end`);
+                hasMore = false;
+              } else {
+                // Set until to the oldest event's timestamp for next batch
+                const oldestEvent = batch[batch.length - 1]; // Last event is oldest (after sorting)
+                const oldestTimestamp = oldestEvent.created_at || 0;
+                until = oldestTimestamp - 1; // Subtract 1 to avoid overlap
+                console.log(`[${description}] Setting until to ${until} (oldest: ${oldestTimestamp})`);
+              }
+
+              // Safety limit to prevent infinite loops
+              if (batchCount > 50) {
+                console.warn(`[${description}] Reached safety limit of 50 batches, stopping`);
+                hasMore = false;
+              }
+            } catch (error) {
+              console.error(`[${description}] Error fetching batch ${batchCount}:`, error);
+              hasMore = false;
+            }
+          }
+
+          // Deduplicate by event ID
+          const uniqueEvents = new Map<string, any>();
+          for (const event of allEvents) {
+            if (event && event.id) {
+              uniqueEvents.set(event.id, event);
+            }
+          }
+
+          const finalCount = uniqueEvents.size;
+          console.log(`[${description}] Final count after deduplication: ${finalCount} unique events`);
+
+          return Array.from(uniqueEvents.values());
+        };
+
+        // Fetch all kind:1 events by this user first (more reliable than filtering by tag on relay side)
+        let allNotes: any[] = [];
+        try {
+          allNotes = await getAllEvents(
+            {
+              kinds: [1],
+              authors: [targetPubkey]
+            },
+            'all notes'
+          );
+          console.log(`[stats] Fetched ${allNotes.length} total kind:1 events`);
+        } catch (error) {
+          console.error('Error fetching all notes:', error);
+          allNotes = [];
+        }
+
+        // Filter for paynotes client-side (more reliable than relay tag filtering)
+        const paynotes = allNotes.filter((event: any) => {
+          if (!event || !event.tags) return false;
+          const hasPubpayTag = event.tags.some((tag: any[]) => 
+            Array.isArray(tag) && tag[0] === 't' && tag[1] === 'pubpay'
+          );
+          return hasPubpayTag;
+        });
+
+        console.log(`[stats] Found ${paynotes.length} paynotes out of ${allNotes.length} total notes`);
+
+        // Create Set for fast lookup
+        const paynoteIdsSet = new Set<string>(paynotes.map((e: any) => e.id).filter(Boolean));
+
+        // Create Set of all note IDs (includes paynotes)
+        const allNoteIdsSet = new Set<string>(allNotes.map(e => e.id).filter(Boolean));
+
+        // 3) Count zaps where:
+        //    - #e tag references one of the event IDs
+        //    - #p tag matches targetPubkey (user is the recipient)
+        const countZapsForEventIds = async (
+          eventIdsSet: Set<string>,
+          description: string
+        ): Promise<number> => {
+          if (eventIdsSet.size === 0) return 0;
+          
+          // Query zaps where recipient is targetPubkey
+          // Then filter by event IDs
+          const seen = new Set<string>();
+          
+          // Query zaps received by this user (p tag = targetPubkey)
+          try {
+            // Get zaps where p tag matches targetPubkey
+            const receipts = (await nostrClient.getEvents([
+              { kinds: [9735], '#p': [targetPubkey], limit: 5000 }
+            ])) as any[];
+            
+            // Filter to only zaps that reference events in our set
+            for (const receipt of receipts) {
+              if (!receipt || !receipt.id || !receipt.tags) continue;
+              
+              // Check if this zap references one of our events
+              const eventTag = receipt.tags.find((tag: any[]) => tag[0] === 'e');
+              if (!eventTag || !eventTag[1]) continue;
+              
+              const referencedEventId = eventTag[1];
+              if (eventIdsSet.has(referencedEventId)) {
+                seen.add(receipt.id);
+              }
+            }
+          } catch (error) {
+            console.error(`Error counting ${description}:`, error);
+          }
+          
+          return seen.size;
+        };
+
+        const [pubpaysReceived, zapsReceived] = await Promise.all([
+          countZapsForEventIds(paynoteIdsSet, 'pubpays received'),
+          countZapsForEventIds(allNoteIdsSet, 'zaps received')
+        ]);
+
+        setActivityStats({
+          paynotesCreated: paynoteIdsSet.size,
+          pubpaysReceived,
+          zapsReceived
+        });
+      } catch (error) {
+        console.error('Error loading activity stats:', error);
+        // Set to zero on error
+        setActivityStats({
+          paynotesCreated: 0,
+          pubpaysReceived: 0,
+          zapsReceived: 0
+        });
+      } finally {
+        setActivityLoading(false);
+      }
+    };
+
+    loadActivityStats();
+  }, [targetPubkey, nostrClient]);
 
   // Copy to clipboard function
   const handleCopyToClipboard = (text: string, label: string) => {
@@ -469,26 +660,26 @@ const ProfilePage: React.FC = () => {
             <div className="profileStatsGrid">
               <div className="profileStatCard">
                 <div className="profileStatValue">
-                  0
+                  {activityLoading ? '—' : activityStats.paynotesCreated}
                 </div>
                 <div className="profileStatLabel">
-                  Paynotes Sent
+                  Paynotes Created
                 </div>
               </div>
               <div className="profileStatCard">
                 <div className="profileStatValue">
-                  0
+                  {activityLoading ? '—' : activityStats.pubpaysReceived}
                 </div>
                 <div className="profileStatLabel">
-                  Paynotes Received
+                  PubPays Received
                 </div>
               </div>
               <div className="profileStatCard">
                 <div className="profileStatValue">
-                  0
+                  {activityLoading ? '—' : activityStats.zapsReceived}
                 </div>
                 <div className="profileStatLabel">
-                  Total Transactions
+                  Zaps Received
                 </div>
               </div>
             </div>

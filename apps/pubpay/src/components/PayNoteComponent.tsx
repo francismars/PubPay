@@ -22,10 +22,10 @@ interface ProcessedZap {
 
 interface PayNoteComponentProps {
   post: PubPayPost & { replyLevel?: number };
-  onPay: (post: PubPayPost, amount: number) => void;
-  onPayAnonymously: (post: PubPayPost, amount: number) => void;
-  onShare: (post: PubPayPost) => void;
-  onViewRaw: (post: PubPayPost) => void;
+  onPay: any;
+  onPayAnonymously: any;
+  onShare: any;
+  onViewRaw: any;
   isLoggedIn: boolean;
   isReply?: boolean;
   nostrClient: any; // NostrClient type
@@ -122,6 +122,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const profilePicture = authorData?.picture || genericUserIcon;
     const nip05 = authorData?.nip05;
     const lud16 = authorData?.lud16;
+    const hasValidLightning = !!lud16 && /.+@.+\..+/.test(lud16);
 
     // Check if note is payable - must have lud16 AND not reached zap uses target
     const isPayable =
@@ -191,34 +192,54 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         return;
       }
 
-      const heroZapsList: ProcessedZap[] = [];
-      const overflowZapsList: ProcessedZap[] = [];
+      const zapMin = post.zapMin;
+      const zapMax = post.zapMax;
+      const hasZapPayerRestriction = !!post.zapPayer;
 
-      post.zaps.forEach((zap, index) => {
-        // Check if this zap amount is within the zap min/max range
-        const zapAmount = zap.zapAmount;
-        const zapMin = post.zapMin;
-        const zapMax = post.zapMax;
+      // Classify zaps based on tag restrictions: amount range and zap-payer (if present)
+      const withinRestrictions: ProcessedZap[] = [];
+      const outsideRestrictions: ProcessedZap[] = [];
 
-        // Check if zap amount is within the valid range
-        const isWithinRange = zapAmount >= zapMin && zapAmount <= zapMax;
+      for (const zap of post.zaps) {
+        const isWithinRange = zap.zapAmount >= zapMin && zap.zapAmount <= zapMax;
+        const matchesPayer = !hasZapPayerRestriction || zap.zapPayerPubkey === post.zapPayer;
 
-        if (isWithinRange) {
-          // This is a hero zap (within amount range)
-          heroZapsList.push(zap);
+        if (isWithinRange && matchesPayer) {
+          withinRestrictions.push(zap);
         } else {
-          // This is an overflow zap (outside amount range)
-          overflowZapsList.push(zap);
+          outsideRestrictions.push(zap);
         }
+      }
+
+      // Debug counts
+      console.log('Zap classification', {
+        postId: post.id,
+        total: post.zaps.length,
+        withinRestrictions: withinRestrictions.length,
+        outsideRestrictions: outsideRestrictions.length,
+        zapMin,
+        zapMax,
+        zapPayer: post.zapPayer || null,
+        zapUses: post.zapUses
       });
 
-      // Sort zaps by date chronologically (oldest first)
-      heroZapsList.sort((a, b) => a.created_at - b.created_at);
-      overflowZapsList.sort((a, b) => a.created_at - b.created_at);
+      // Keep original arrival order (post.zaps already oldest-first; new zaps append at end)
+
+      // Apply zap-uses cap: only first N within restrictions count as hero
+      const usesCap = post.zapUses && post.zapUses > 0 ? post.zapUses : undefined;
+      const heroZapsList = usesCap
+        ? withinRestrictions.slice(0, usesCap)
+        : withinRestrictions.slice();
+
+      // Remaining within-restriction zaps beyond uses go to overflow along with all outside-restriction zaps
+      const overflowZapsList = [
+        ...(usesCap ? withinRestrictions.slice(usesCap) : []),
+        ...outsideRestrictions
+      ];
 
       setHeroZaps(heroZapsList);
       setOverflowZaps(overflowZapsList);
-    }, [post.zaps, post.zapUsesCurrent, post.zapUses]);
+    }, [post.zaps, post.zapUses, post.zapMin, post.zapMax, post.zapPayer]);
 
     // Clear isNewZap flag after animation completes
     useEffect(() => {
@@ -448,19 +469,17 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   src={post.zapPayerPicture || genericUserIcon}
                 />
                 <div className="userName">
-                  {(() => {
-                    if (post.zapPayer) {
-                      const npub = NostrTools.nip19.npubEncode(post.zapPayer);
-                      // Use start_and_end formatting: first 4 chars + "..." + last 4 chars
-                      return npub.length > 35
-                        ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4, npub.length)}`
-                        : npub;
-                    }
-                    // Fallback to pubkey formatting
-                    return post.zapPayer
-                      ? `${post.zapPayer.substr(0, 8)}...${post.zapPayer.substr(-8)}`
-                      : 'Unknown';
-                  })()}
+                  {post.zapPayerName && post.zapPayerName.trim() !== ''
+                    ? post.zapPayerName
+                    : (() => {
+                        if (post.zapPayer) {
+                          const npub = NostrTools.nip19.npubEncode(post.zapPayer);
+                          return npub.length > 35
+                            ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4, npub.length)}`
+                            : npub;
+                        }
+                        return 'Unknown';
+                      })()}
                 </div>
               </div>
             </div>
@@ -552,12 +571,12 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 }}
                 disabled={!isPayable || !isLoggedIn || isReply}
                 title={
-                  isReply 
-                    ? 'Cannot pay replies' 
+                  isReply
+                    ? 'Cannot pay replies'
                     : !isLoggedIn && isPayable
                     ? 'Please sign in to pay'
-                    : !isPayable 
-                    ? 'This post is not payable' 
+                    : !isPayable
+                    ? 'This post is not payable'
                     : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
                     ? 'This post has been fully paid'
                     : ''
@@ -606,14 +625,14 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               {/* Zap Menu */}
               <a
                 ref={zapActionRef}
-                className={`noteAction zapMenuAction ${!isPayable ? 'disabled' : ''}`}
+                className={`noteAction zapMenuAction ${!hasValidLightning ? 'disabled' : ''}`}
                 onClick={e => {
                   e.preventDefault();
-                  if (!isPayable) return;
+                  if (!hasValidLightning) return;
                   setShowZapMenu(!showZapMenu);
                 }}
                 style={{ position: 'relative' }}
-                title={!isPayable ? 'This post is not payable' : ''}
+                title={!hasValidLightning ? 'Lightning address missing or invalid' : 'Open zap menu'}
               >
                 <span className="material-symbols-outlined">bolt</span>
                 <div
