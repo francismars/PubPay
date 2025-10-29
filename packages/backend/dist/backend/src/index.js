@@ -14,6 +14,7 @@ const lightning_1 = require("./routes/lightning");
 const live_1 = require("./routes/live");
 const jukebox_1 = require("./routes/jukebox");
 const errorHandler_1 = require("./middleware/errorHandler");
+const rooms_1 = require("./routes/rooms");
 const logger_1 = require("./utils/logger");
 const path_1 = __importDefault(require("path"));
 // Load environment variables from backend folder
@@ -64,6 +65,7 @@ class BackendServer {
         // API routes
         this.app.use('/lightning', new lightning_1.LightningRouter().getRouter());
         this.app.use('/live', new live_1.LiveRouter().getRouter());
+        this.app.use('/rooms', new rooms_1.RoomsRouter().getRouter());
         this.app.use('/jukebox', new jukebox_1.JukeboxRouter().getRouter());
         // Health check endpoint
         this.app.get('/health', (_req, res) => {
