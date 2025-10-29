@@ -18,7 +18,7 @@ const AboutPage: React.FC = () => {
 
       <div style={{ fontSize: '16px', lineHeight: '1.8', color: '#333' }}>
         <section style={{ marginBottom: '50px' }}>
-          <h2 style={{ fontSize: '26px', fontWeight: '600', marginBottom: '20px', color: '#333', borderBottom: '2px solid #4a75ff', paddingBottom: '10px' }}>
+          <h2 style={{ fontSize: '26px', fontWeight: '600', marginBottom: '20px', color: '#333'}}>
             Why Use PubPay?
           </h2>
           <p style={{ marginBottom: '15px' }}>
@@ -30,7 +30,7 @@ const AboutPage: React.FC = () => {
         </section>
 
         <section style={{ marginBottom: '50px' }}>
-          <h2 style={{ fontSize: '26px', fontWeight: '600', marginBottom: '20px', color: '#333', borderBottom: '2px solid #4a75ff', paddingBottom: '10px' }}>
+          <h2 style={{ fontSize: '26px', fontWeight: '600', marginBottom: '20px', color: '#333'}}>
             What You Can Do
           </h2>
           
@@ -84,7 +84,7 @@ const AboutPage: React.FC = () => {
         </section>
 
         <section style={{ marginBottom: '50px' }}>
-          <h2 style={{ fontSize: '26px', fontWeight: '600', marginBottom: '20px', color: '#333', borderBottom: '2px solid #4a75ff', paddingBottom: '10px' }}>
+          <h2 style={{ fontSize: '26px', fontWeight: '600', marginBottom: '20px', color: '#333'}}>
             Use Cases
           </h2>
           
@@ -117,7 +117,7 @@ const AboutPage: React.FC = () => {
         </section>
 
         <section style={{ marginBottom: '50px' }}>
-          <h2 style={{ fontSize: '26px', fontWeight: '600', marginBottom: '20px', color: '#333', borderBottom: '2px solid #4a75ff', paddingBottom: '10px' }}>
+          <h2 style={{ fontSize: '26px', fontWeight: '600', marginBottom: '20px', color: '#333'}}>
             Built for Everyone
           </h2>
           
@@ -144,7 +144,7 @@ const AboutPage: React.FC = () => {
         </section>
 
         <section style={{ marginBottom: '50px' }}>
-          <h2 style={{ fontSize: '26px', fontWeight: '600', marginBottom: '20px', color: '#333', borderBottom: '2px solid #4a75ff', paddingBottom: '10px' }}>
+          <h2 style={{ fontSize: '26px', fontWeight: '600', marginBottom: '20px', color: '#333'}}>
             Getting Started
           </h2>
           

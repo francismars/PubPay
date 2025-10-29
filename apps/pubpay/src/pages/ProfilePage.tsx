@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { useUIStore, ensureProfiles, getQueryClient } from '@pubpay/shared-services';
+import { useUIStore, ensureProfiles, getQueryClient, NostrRegistrationService, AuthService } from '@pubpay/shared-services';
 import * as NostrTools from 'nostr-tools';
 
 // Validation function for pubkeys and npubs/nprofiles
@@ -46,6 +46,46 @@ const ProfilePage: React.FC = () => {
   const displayName = authState?.displayName;
   const publicKey = authState?.publicKey;
   const openLogin = useUIStore(s => s.openLogin);
+  
+  // Recovery state
+  const [showRecoveryForm, setShowRecoveryForm] = useState(false);
+  const [recoveryMnemonic, setRecoveryMnemonic] = useState('');
+
+  // Recovery handler
+  const handleRecoveryFromMnemonic = async () => {
+    if (!recoveryMnemonic.trim()) {
+      alert('Please enter your 12-word mnemonic phrase');
+      return;
+    }
+
+    try {
+      const result = NostrRegistrationService.recoverKeyPairFromMnemonic(recoveryMnemonic.trim());
+      
+      if (result.success && result.keyPair && result.keyPair.privateKey) {
+        // Sign in with the recovered private key
+        const signInResult = await AuthService.signInWithNsec(result.keyPair.privateKey);
+        
+        if (signInResult.success && signInResult.publicKey) {
+          AuthService.storeAuthData(
+            signInResult.publicKey,
+            result.keyPair.privateKey,
+            'nsec',
+            true
+          );
+          
+          alert('Account recovered successfully! Please refresh the page to continue.');
+          window.location.reload();
+        } else {
+          alert('Failed to sign in with recovered keys: ' + (signInResult.error || 'Unknown error'));
+        }
+      } else {
+        alert('Failed to recover keys: ' + (result.error || 'Invalid mnemonic'));
+      }
+    } catch (error) {
+      console.error('Recovery failed:', error);
+      alert('Failed to recover keys. Please check your mnemonic phrase.');
+    }
+  };
 
   // Determine if we're viewing own profile or another user's profile
   const isOwnProfile = !pubkey || pubkey === publicKey;
@@ -240,20 +280,73 @@ const ProfilePage: React.FC = () => {
           <p>{profileError}</p>
         </div>
       ) : isOwnProfile && !isLoggedIn ? (
-        <div className="profileNotLoggedIn">
-          <h2 className="profileNotLoggedInTitle">
-            Not Logged In
-          </h2>
-          <p className="profileNotLoggedInText">
-            Please log in to view your profile and manage your account settings.
-          </p>
-          <div className="profileButtonGroup">
-            <button className="profileLoginButton" onClick={openLogin}>
-              Log In
-            </button>
-            <button className="profileRegisterButton" onClick={() => navigate('/register')}>
-              Register
-            </button>
+        <div>
+          <div className="profileNotLoggedIn">
+            <h2 className="profileNotLoggedInTitle">
+              Not Logged In
+            </h2>
+            <p className="profileNotLoggedInText">
+              Please log in to view your profile and manage your account settings.
+            </p>
+            <div className="profileButtonGroup">
+              <button className="profileLoginButton" onClick={openLogin}>
+                Log In
+              </button>
+              <button className="profileRegisterButton" onClick={() => navigate('/register')}>
+                Register
+              </button>
+            </div>
+          </div>
+
+          {/* Recovery Section */}
+          <div className="profileSection" style={{ marginTop: '40px' }}>
+            <h2 className="profileSectionTitle">
+              Recover Existing Account
+            </h2>
+            <p className="profileSectionDescription">
+              If you have a 12-word recovery phrase from a previous account, you can recover your keys here.
+            </p>
+            
+            {!showRecoveryForm ? (
+              <button 
+                className="profileSaveButton"
+                onClick={() => setShowRecoveryForm(true)}
+              >
+                Recover from Mnemonic
+              </button>
+            ) : (
+              <div className="profileFormField">
+                <label htmlFor="recoveryMnemonic">
+                  12-Word Recovery Phrase
+                </label>
+                <textarea
+                  id="recoveryMnemonic"
+                  value={recoveryMnemonic}
+                  onChange={(e) => setRecoveryMnemonic(e.target.value)}
+                  className="profileFormTextarea"
+                  placeholder="Enter your 12-word recovery phrase separated by spaces..."
+                  rows={3}
+                />
+                <div className="nostrKeyActions">
+                  <button 
+                    className="nostrKeyCopyButton"
+                    onClick={handleRecoveryFromMnemonic}
+                    disabled={!recoveryMnemonic.trim()}
+                  >
+                    Recover Keys
+                  </button>
+                  <button 
+                    className="nostrKeyCopyButton"
+                    onClick={() => {
+                      setShowRecoveryForm(false);
+                      setRecoveryMnemonic('');
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : (
