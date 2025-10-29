@@ -2458,7 +2458,7 @@ textarea:focus::placeholder {
 
   .profileUserInfo {
     flex-direction: column;
-    text-align: center;
+    text-align: left;
   }
 
   #profilePreview .profileUserInfo {
