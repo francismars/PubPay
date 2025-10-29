@@ -50,12 +50,12 @@ export const isValidYouTubeId = (id) => {
     return /^[a-zA-Z0-9_-]{11}$/.test(id);
 };
 export const sanitizeString = (str) => {
-    return str.replace(/[<>\"'&]/g, (match) => {
+    return str.replace(/[<>\"'&]/g, match => {
         const escapeMap = {
             '<': '&lt;',
             '>': '&gt;',
             '"': '&quot;',
-            '\'': '&#x27;',
+            "'": '&#x27;',
             '&': '&amp;'
         };
         return escapeMap[match] || match;
