@@ -1,32 +1,13 @@
 // FeedsPage component - handles all feed-related functionality
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useLocation } from 'react-router-dom';
-import { useUIStore } from '@pubpay/shared-services';
-import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
+// import { useUIStore } from '@pubpay/shared-services';
 import { PayNoteComponent } from '../components/PayNoteComponent';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../assets/images';
 import * as NostrTools from 'nostr-tools';
 
-interface FeedsPageProps {
-  authState: {
-    isLoggedIn: boolean;
-    publicKey: string | null;
-    privateKey: string | null;
-    signInMethod: 'extension' | 'externalSigner' | 'nsec' | null;
-    userProfile: any;
-    displayName: string | null;
-  };
-  nostrClient: any;
-  onPayWithExtension: (post: PubPayPost, amount: number) => void;
-  onPayAnonymously: (post: PubPayPost, amount: number) => void;
-  onShare: (post: PubPayPost) => void;
-  onPostNote: (formData: Record<string, string>) => Promise<void>;
-  onNewPayNote: () => void;
-  showNewPayNoteForm: boolean;
-  onCloseNewPayNoteForm: () => void;
-  isPublishing: boolean;
-}
+// FeedsPageProps intentionally omitted; consuming via Outlet context
 
 export const FeedsPage: React.FC = () => {
   const location = useLocation();
@@ -40,7 +21,20 @@ export const FeedsPage: React.FC = () => {
     handleNewPayNote,
     showNewPayNoteForm,
     handleCloseNewPayNoteForm,
-    isPublishing
+    isPublishing,
+    // Hook state via Layout context
+    isLoading,
+    activeFeed,
+    posts,
+    followingPosts,
+    replies,
+    isLoadingMore,
+    nostrReady,
+    handleFeedChange,
+    loadMorePosts,
+    loadSingleNote,
+    loadReplies,
+    clearPosts
   } = useOutletContext<{
     authState: {
       isLoggedIn: boolean;
@@ -59,25 +53,23 @@ export const FeedsPage: React.FC = () => {
     showNewPayNoteForm: boolean;
     handleCloseNewPayNoteForm: () => void;
     isPublishing: boolean;
+    isLoading: boolean;
+    activeFeed: 'global' | 'following';
+    posts: PubPayPost[];
+    followingPosts: PubPayPost[];
+    replies: PubPayPost[];
+    isLoadingMore: boolean;
+    nostrReady: boolean;
+    handleFeedChange: (feed: 'global' | 'following') => void;
+    loadMorePosts: () => Promise<void | unknown>;
+    loadSingleNote: (eventId: string) => Promise<void>;
+    loadReplies: (eventId: string) => Promise<void>;
+    clearPosts: () => void;
   }>();
   const [showJSON, setShowJSON] = useState(false);
   const [jsonContent, setJsonContent] = useState('');
   const [singleNoteMode, setSingleNoteMode] = useState(false);
   const [singleNoteId, setSingleNoteId] = useState<string>('');
-
-  const {
-    isLoading,
-    activeFeed,
-    posts,
-    followingPosts,
-    replies,
-    isLoadingMore,
-    handleFeedChange,
-    loadMorePosts,
-    loadSingleNote,
-    loadReplies,
-    clearPosts
-  } = useHomeFunctionality();
 
   // Track previous path to detect when exiting single note mode
   const prevPathRef = useRef(location.pathname);
@@ -153,11 +145,15 @@ export const FeedsPage: React.FC = () => {
   }, [isLoadingMore, singleNoteMode, posts.length]);
 
 
-  // Check for single note in URL path on load and when pathname changes
+  // Check for single note in URL path; wait for nostr client readiness
   useEffect(() => {
     const checkForSingleNote = () => {
       const pathname = window.location.pathname;
       console.log('Checking pathname:', pathname);
+      if (!nostrReady) {
+        console.log('nostr not ready yet, postponing single-note load');
+        return;
+      }
       
       // Check if pathname matches /note/:noteId pattern
       if (pathname.startsWith('/note/')) {
@@ -215,9 +211,9 @@ export const FeedsPage: React.FC = () => {
       }
     };
 
-    // Check immediately on mount
+    // Check immediately when ready or path changes
     checkForSingleNote();
-  }, [location.pathname]); // Re-run when pathname changes
+  }, [location.pathname, nostrReady]); // Re-run when pathname changes or nostr becomes ready
 
   return (
     <div id="feeds">
@@ -582,6 +578,16 @@ export const FeedsPage: React.FC = () => {
               </>
             )}
           </>
+        ) : singleNoteMode && posts.length === 0 ? (
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '40px',
+              color: '#666'
+            }}
+          >
+            Loading note...
+          </div>
         ) : posts.length === 0 ? (
           <div
             style={{
@@ -603,6 +609,7 @@ export const FeedsPage: React.FC = () => {
               onViewRaw={handleViewRaw}
               isLoggedIn={authState.isLoggedIn}
               nostrClient={nostrClient}
+              nostrReady={nostrReady}
             />
           ))
         )}
@@ -649,6 +656,7 @@ export const FeedsPage: React.FC = () => {
               isLoggedIn={authState.isLoggedIn}
               isReply={true}
               nostrClient={nostrClient}
+              nostrReady={nostrReady}
             />
           ))}
       </div>

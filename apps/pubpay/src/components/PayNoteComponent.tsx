@@ -29,6 +29,7 @@ interface PayNoteComponentProps {
   isLoggedIn: boolean;
   isReply?: boolean;
   nostrClient: any; // NostrClient type
+  nostrReady?: boolean;
 }
 
 export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
@@ -40,7 +41,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     onViewRaw,
     isLoggedIn,
     isReply = false,
-    nostrClient
+    nostrClient,
+    nostrReady
   }) => {
     const [zapAmount, setZapAmount] = useState(post.zapMin);
     const [showZapMenu, setShowZapMenu] = useState(false);
@@ -55,36 +57,34 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const paynoteRef = useRef<HTMLDivElement>(null);
     const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Format content on mount and when content changes
+    // Format content: baseline first, then upgrade when nostr is ready
     useEffect(() => {
-      const formatPostContent = async () => {
-        if (post.event.content && nostrClient) {
-          try {
-            const formatted = await formatContent(post.event.content, nostrClient);
-            setFormattedContent(formatted);
-          } catch (error) {
-            console.error('Error formatting content:', error);
-            // Fallback to basic formatting without async npub resolution
-            const basicFormatted = post.event.content
-              .replace(
-                /(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-                (match, prefix, npub) => {
-                  const cleanNpub = npub.replace('nostr:', '').replace('@', '');
-                  const shortNpub =
-                    cleanNpub.length > 35
-                      ? `${cleanNpub.substr(0, 4)}...${cleanNpub.substr(cleanNpub.length - 4)}`
-                      : cleanNpub;
-                  return `<a href="https://next.nostrudel.ninja/#/u/${cleanNpub}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${shortNpub}</a>`;
-                }
-              )
-              .replace(/\n/g, '<br />');
-            setFormattedContent(basicFormatted);
+      const raw = post.event.content || '';
+      // Baseline formatting: linkify npubs and URLs, no client required
+      const baseline = raw
+        .replace(
+          /(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+          (_m, _p, npub) => {
+            const clean = String(npub).replace('nostr:', '').replace('@', '');
+            const shortId = clean.length > 35 ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}` : clean;
+            return `<a href="/profile/${clean}" style="color: #0066cc; text-decoration: underline;">${shortId}</a>`;
           }
+        )
+        .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
+        .replace(/\n/g, '<br />');
+      setFormattedContent(baseline);
+
+      const upgrade = async () => {
+        if (!nostrClient || !nostrReady) return;
+        try {
+          const rich = await formatContent(raw, nostrClient);
+          setFormattedContent(rich);
+        } catch {
+          // keep baseline
         }
       };
-
-      formatPostContent();
-    }, [post.event.content, nostrClient]);
+      upgrade();
+    }, [post.event.content, nostrClient, nostrReady, post.author, post.zapPayerName]);
 
     // Click outside to close zap menu
     useEffect(() => {
@@ -545,9 +545,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     />
                   </a>
                   <a
-                    href={`https://next.nostrudel.ninja/#/n/${zap.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={`/note/${NostrTools.nip19.noteEncode(zap.id)}`}
                     className="zapReactionAmount"
                   >
                     {zap.zapAmount ? zap.zapAmount.toLocaleString() : '0'}
@@ -609,9 +607,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       />
                     </a>
                     <a
-                      href={`https://next.nostrudel.ninja/#/n/${zap.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href={`/note/${NostrTools.nip19.noteEncode(zap.id)}`}
                       className="zapReactionAmount"
                     >
                       {zap.zapAmount ? zap.zapAmount.toLocaleString() : '0'}

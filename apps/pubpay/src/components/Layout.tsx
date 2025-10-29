@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import { useUIStore } from '@pubpay/shared-services';
 import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { InvoiceQR } from '@pubpay/shared-ui';
@@ -15,7 +15,7 @@ export const Layout: React.FC = () => {
   const showInvoiceOverlay = useUIStore(s => s.invoiceOverlay.show);
   const [showNewPayNoteForm, setShowNewPayNoteForm] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const openInvoice = useUIStore(s => s.openInvoice);
+  // const openInvoice = useUIStore(s => s.openInvoice);
   const closeInvoice = useUIStore(s => s.closeInvoice);
   const openLogin = useUIStore(s => s.openLogin);
   const closeLogin = useUIStore(s => s.closeLogin);
@@ -28,25 +28,32 @@ export const Layout: React.FC = () => {
   const [externalSignerAvailable, setExternalSignerAvailable] = useState(true);
   const [externalSignerLoading, setExternalSignerLoading] = useState(false);
 
-  const qrReaderRef = useRef<HTMLDivElement>(null);
   const isStoppingScannerRef = useRef(false);
-  const location = useLocation();
 
   const {
     authState,
     nostrClient,
-    handleQRScanner,
-    handleLogin,
+    // Hook state
+    isLoading,
+    activeFeed,
+    posts,
+    followingPosts,
+    replies,
+    isLoadingMore,
+    nostrReady,
+    handleFeedChange,
+    loadMorePosts,
+    loadSingleNote,
+    loadReplies,
+    clearPosts,
+    // UI handlers
     handleNewPayNote,
     handleSignInExtension,
     handleSignInExternalSigner,
-    handleSignInNsec,
     handleContinueWithNsec,
     handleLogout,
     handlePayWithExtension,
     handlePayAnonymously,
-    handlePayWithWallet,
-    handleCopyInvoice,
     handlePostNote
   } = useHomeFunctionality();
 
@@ -530,7 +537,33 @@ export const Layout: React.FC = () => {
             </div>
           </div>
           <div id="mainContent">
-            <Outlet context={{ authState, nostrClient, handlePayWithExtension, handlePayAnonymously, handleSharePost, handlePostNote, handleNewPayNote, showNewPayNoteForm, handleCloseNewPayNoteForm, isPublishing }} />
+            <Outlet context={{
+              authState,
+              nostrClient,
+              // Hook state (single source of truth)
+              isLoading,
+              activeFeed,
+              posts,
+              followingPosts,
+              replies,
+              isLoadingMore,
+              nostrReady,
+              // Actions from hook
+              handleFeedChange,
+              loadMorePosts,
+              loadSingleNote,
+              loadReplies,
+              clearPosts,
+              // UI handlers
+              handlePayWithExtension,
+              handlePayAnonymously,
+              handleSharePost,
+              handlePostNote,
+              handleNewPayNote,
+              showNewPayNoteForm,
+              handleCloseNewPayNoteForm,
+              isPublishing
+            }} />
           </div>
         </div>
       </div>
@@ -743,16 +776,8 @@ export const Layout: React.FC = () => {
           <p id="loggedInPublicKey">
             {authState.publicKey ? (
               <a
-                href={`https://next.nostrudel.ninja/#/u/${
-                  typeof window !== 'undefined' && (window as any).NostrTools
-                    ? (window as any).NostrTools.nip19.npubEncode(
-                        authState.publicKey
-                      )
-                    : authState.publicKey
-                }`}
+                href={`/profile`}
                 className="userMention"
-                target="_blank"
-                rel="noopener noreferrer"
               >
                 {authState.displayName ||
                   (typeof window !== 'undefined' && (window as any).NostrTools

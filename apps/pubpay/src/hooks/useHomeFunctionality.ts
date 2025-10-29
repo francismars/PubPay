@@ -65,6 +65,7 @@ interface AuthState {
 
 export const useHomeFunctionality = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [nostrReady, setNostrReady] = useState(false);
   const [activeFeed, setActiveFeed] = useState<'global' | 'following'>(
     'global'
   );
@@ -131,6 +132,7 @@ export const useHomeFunctionality = () => {
         zapServiceRef.current = new ZapService();
 
         console.log('Services initialized');
+        setNostrReady(true);
       } catch (err) {
         console.error('Failed to initialize services:', err);
         console.error(
@@ -393,6 +395,16 @@ export const useHomeFunctionality = () => {
 
       // Extract zap payer pubkeys and load their profiles
       const zapPayerPubkeys = new Set<string>();
+
+      // Also include zap-payer from the note itself (even if there are no zaps yet)
+      try {
+        const zapPayerTagFromNote = kind1Events[0]?.tags?.find(
+          (t: string[]) => t[0] === 'zap-payer' && t[1]
+        );
+        if (zapPayerTagFromNote && zapPayerTagFromNote[1]) {
+          zapPayerPubkeys.add(zapPayerTagFromNote[1]);
+        }
+      } catch {}
       zapEvents.forEach(zap => {
         const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
         let hasPubkeyInDescription = false;
@@ -1625,6 +1637,8 @@ export const useHomeFunctionality = () => {
       await loadReplies(eventId);
 
       setIsLoading(false);
+      // Signal ready after essentials are loaded in single note mode as well
+      setNostrReady(true);
     } catch (err) {
       console.error('Failed to load single note:', err);
       setIsLoading(false);
@@ -2436,6 +2450,7 @@ export const useHomeFunctionality = () => {
     followingPosts,
     replies,
     isLoadingMore,
+    nostrReady,
     authState,
     nostrClient: nostrClientRef.current,
     handleFeedChange,
