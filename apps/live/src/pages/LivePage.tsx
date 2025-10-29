@@ -1,12 +1,13 @@
 // Live page component - matches original live.html design exactly
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveFunctionality } from '@live/hooks/useLiveFunctionality';
 // Temporarily disabled for CSS debugging - import '../styles/live.css';
 import { nip19 } from 'nostr-tools';
 
 export const LivePage: React.FC = () => {
   const { eventId } = useParams<{ eventId?: string }>();
+  const navigate = useNavigate();
   const [showNoteLoader, setShowNoteLoader] = useState(!eventId);
   const [showMainLayout, setShowMainLayout] = useState(!!eventId);
 
@@ -419,9 +420,9 @@ export const LivePage: React.FC = () => {
                 <button id="note1LoaderSubmit" className="button">
                   Load
                 </button>
-                <div className="styleOptionsModalToggle button outline">
-                  Style Options
-                </div>
+                <button className="button outline" onClick={() => navigate('/multi')}>
+                  MULTI
+                </button>
               </div>
 
               <div className="examples-section">

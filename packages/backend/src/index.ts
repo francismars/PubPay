@@ -10,6 +10,7 @@ import { LightningRouter } from './routes/lightning';
 import { LiveRouter } from './routes/live';
 import { JukeboxRouter } from './routes/jukebox';
 import { ErrorHandler } from './middleware/errorHandler';
+import { RoomsRouter } from './routes/rooms';
 import { Logger } from './utils/logger';
 
 import path from 'path';
@@ -76,6 +77,7 @@ export class BackendServer {
     // API routes
     this.app.use('/lightning', new LightningRouter().getRouter());
     this.app.use('/live', new LiveRouter().getRouter());
+    this.app.use('/rooms', new RoomsRouter().getRouter());
     this.app.use('/jukebox', new JukeboxRouter().getRouter());
 
     // Health check endpoint

@@ -1,6 +1,9 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { LivePage } from './pages/LivePage';
+import { RoomViewerPage } from './pages/RoomViewerPage';
+import { RoomAdminPage } from './pages/RoomAdminPage';
+import { RoomCreatePage } from './pages/RoomCreatePage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 export const LiveApp: React.FC = () => {
@@ -8,6 +11,9 @@ export const LiveApp: React.FC = () => {
     <Routes>
       <Route path="/" element={<LivePage />} />
       <Route path="/:eventId" element={<LivePage />} />
+      <Route path="/multi" element={<RoomCreatePage />} />
+      <Route path="/room/:roomId" element={<RoomViewerPage />} />
+      <Route path="/room/:roomId/admin" element={<RoomAdminPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
