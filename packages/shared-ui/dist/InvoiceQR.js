@@ -17,10 +17,10 @@ export const InvoiceQR = ({ bolt11 }) => {
         // Render QR using qrcode npm package
         QRCode.toCanvas(canvas, bolt11, {
             width: 200,
-            margin: 2,
+            margin: 2
         }).catch((error) => {
             console.error('Error generating QR code:', error);
         });
     }, [bolt11]);
-    return _jsx("canvas", { id: "invoiceQR", ref: canvasRef, width: "200", height: "200" });
+    return (_jsx("canvas", { id: "invoiceQR", ref: canvasRef, width: "200", height: "200" }));
 };
