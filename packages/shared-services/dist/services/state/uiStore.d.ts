@@ -6,6 +6,10 @@ type InvoiceOverlayState = {
 };
 type UIState = {
     invoiceOverlay: InvoiceOverlayState;
+    processingOverlay: {
+        show: boolean;
+        message: string;
+    };
     loginForm: {
         show: boolean;
     };
@@ -18,6 +22,8 @@ type UIState = {
         eventId: string;
     }) => void;
     closeInvoice: () => void;
+    openProcessing: (message?: string) => void;
+    closeProcessing: () => void;
     openLogin: () => void;
     closeLogin: () => void;
     openNewPayNote: () => void;
