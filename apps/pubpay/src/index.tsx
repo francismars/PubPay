@@ -5,6 +5,7 @@ import { Layout } from './components/Layout';
 import { FeedsPage } from './pages/FeedsPage';
 import AboutPage from './pages/AboutPage';
 import ProfilePage from './pages/ProfilePage';
+import EditProfilePage from './pages/EditProfilePage';
 import RegisterPage from './pages/RegisterPage';
 
 // Import CSS
@@ -51,6 +52,7 @@ const App: React.FC = () => {
           <Route path="about" element={<AboutPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="profile/:pubkey" element={<ProfilePage />} />
+          <Route path="edit-profile" element={<EditProfilePage />} />
           <Route path="register" element={<RegisterPage />} />
           <Route path="note/:noteId" element={<FeedsPage />} />
         </Route>

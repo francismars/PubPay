@@ -1568,7 +1568,7 @@ textarea:focus::placeholder {
   
 
   /* Hide username on mobile */
-  #login span {
+  #login .profileUserNameNav {
     display: none;
   }
 
@@ -1790,7 +1790,6 @@ textarea:focus::placeholder {
 
 /* Profile Page Styles */
 .profilePage {
-  padding: 20px;
   max-width: 800px;
   margin: 0 auto;
 }
@@ -1841,6 +1840,57 @@ textarea:focus::placeholder {
   object-fit: cover;
 }
 
+.profileBannerPlaceholder {
+  width: 100%;
+  height: 100%;
+  background-color: #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.profileUploadButton {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+  border-radius: 4px;
+}
+
+.profileUploadButton:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.profileInlineLink {
+  background: none;
+  border: none;
+  color: #4a75ff;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  padding: 0;
+}
+
+.profileCloseButton {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  padding: 5px;
+  line-height: 1;
+}
+
 #profilePreview .profileUserInfo {
   display: flex;
   align-items: flex-start;
@@ -1850,22 +1900,26 @@ textarea:focus::placeholder {
 }
 
 #profilePreview .profileAvatar {
-  width: 120px;
-  height: 120px;
+  width: 100%;
+  height: 100%;
   border-radius: 10000px;
   background: rgba(255, 255, 255, 0.2);
-  display: flex
-;
+  display: flex;
   align-items: flex-start;
   justify-content: center;
   font-size: 24px;
   font-weight: bold;
   position: relative;
   overflow: hidden;
+  margin-top: -40px;
+  margin-right: 0px;
+  border: 1px solid #e9ecef;
+  max-width: 120px;
 }
 
 .profileAvatarImage {
   width: 100%;
+  height: 100%;
   aspect-ratio: 1/1;
   object-fit: cover;
   border-radius: 50%;
@@ -1874,6 +1928,7 @@ textarea:focus::placeholder {
 .profileAvatarFallback {
   width: 100%;
   height: 100%;
+  aspect-ratio: 1/1;
   align-items: center;
   justify-content: center;
   font-size: 24px;
@@ -1892,21 +1947,42 @@ textarea:focus::placeholder {
 
 #profilePreview .profileUserDetails p {
   margin: 0 0 8px 0;
-  font-size: 14px;
+  font-size: 13px;
   opacity: 0.9;
   line-height: 1.4;
 }
 
 .profileWebsite {
-  color: rgba(255, 255, 255, 0.8);
+  color: #4a75ff;
   text-decoration: none;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
+  margin-bottom: 5px;
+  margin-top: -5px;
+  display: block;
 }
 
 .profileWebsite:hover {
-  color: white;
+  color: #3a5ce6;
   text-decoration: underline;
+}
+
+.profileLoading {
+  background-color: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  border: 1px solid #e9ecef;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.profileLoading p {
+  font-size: 16px;
+  color: #666;
+  margin: 0;
 }
 
 .profileAvatar {
@@ -1923,6 +1999,10 @@ textarea:focus::placeholder {
   font-weight: 600;
 }
 
+.profileUserDetails {
+  width: 100%;
+}
+
 .profileUserDetails h2 {
   font-size: 20px;
   font-weight: 600;
@@ -1936,9 +2016,7 @@ textarea:focus::placeholder {
   margin-bottom: 0;
 }
 
-.profilePublicKey {
-  margin-bottom: 15px;
-}
+
 
 .profilePublicKey label {
   font-size: 12px;
@@ -1980,8 +2058,14 @@ textarea:focus::placeholder {
 .profileDetailValue {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
+  width: 100%;
+  padding: 8px 8px 8px 12px; 
+  border-radius: 4px;
+  background-color: #f2f2f2;
+  box-sizing: border-box;
 }
 
 .profileDetailValue code {
@@ -1998,25 +2082,67 @@ textarea:focus::placeholder {
   min-width: 200px;
 }
 
-.profileCopyButton {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 8px 16px;
+.profilePublicKey {
+  font-size: 14px;
+  color: #333;
+  font-family: inherit;
+  flex: 1;
+  word-break: break-all;
+}
+
+.profileButtonGroup {
+  display: flex;
+  gap: 8px;
+}
+
+.profileEditButton {
+  background-color: transparent;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 6px 12px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s;
+}
+
+.profileEditButton:hover {
+  background-color: #f8f9fa;
+  border-color: #bbb;
+  color: #333;
+}
+
+.profileQRContainer {
+  margin: 0 auto 16px auto;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff;
+}
+
+.profileCopyButton {
+  background-color: #e6e6e6;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 .profileCopyButton:hover {
-  background-color: #0056b3;
+  background-color: #f8f9fa;
+  border-color: #bbb;
+  color: #333;
 }
 
 .profileLightningLink {
-  color: #007bff;
+  color: #4a75ff;
   text-decoration: none;
   font-size: 13px;
 }
@@ -2033,7 +2159,7 @@ textarea:focus::placeholder {
 @media screen and (max-width: 630px) {
   .profileDetailValue {
     flex-direction: column;
-    align-items: stretch;
+    align-items: baseline;
   }
   
   .profileDetailValue code {
@@ -2238,7 +2364,7 @@ textarea:focus::placeholder {
 
 .profileButtonGroup {
   display: flex;
-  gap: 15px;
+  gap: 5px;
   justify-content: center;
 }
 
@@ -2470,8 +2596,8 @@ textarea:focus::placeholder {
   }
 
   #profilePreview .profileAvatar {
-    width: 60px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
     font-size: 20px;
   }
 
@@ -2482,6 +2608,10 @@ textarea:focus::placeholder {
   .profileAvatar {
     margin-right: 0;
     margin-bottom: 15px;
+  }
+
+  .profileUserDetails{
+    width: 100%;
   }
 
   .profileStatsGrid {
@@ -2498,7 +2628,6 @@ textarea:focus::placeholder {
   }
 
   .profileButtonGroup {
-    flex-direction: column;
     gap: 10px;
   }
 

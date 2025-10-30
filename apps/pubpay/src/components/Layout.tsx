@@ -435,6 +435,7 @@ export const Layout: React.FC = () => {
                       fontWeight: '500',
                       color: '#333'
                     }}
+                    className="profileUserNameNav"
                   >
                     {authState.displayName ||
                       (typeof window !== 'undefined' &&
