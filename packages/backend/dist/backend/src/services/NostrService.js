@@ -168,7 +168,7 @@ class NostrService {
                 }
             }
             catch (error) {
-                this.logger.warn('❌ Failed to decode event ID, using as-is:', eventId, error);
+                this.logger.warn(`❌ Failed to decode event ID, using as-is: ${eventId} - ${error}`);
             }
         }
         this.logger.info('📝 Using event ID as-is:', eventId);

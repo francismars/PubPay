@@ -334,8 +334,8 @@ const RegisterPage: React.FC = () => {
 
       <div className="profileSection" id="profilePreview">
         {/* Banner Image */}
-        {formData.banner && (
-          <div className="profileBanner">
+        <div className="profileBanner">
+          {formData.banner ? (
             <img 
               src={formData.banner} 
               alt="Profile banner" 
@@ -344,8 +344,12 @@ const RegisterPage: React.FC = () => {
                 e.currentTarget.style.display = 'none';
               }}
             />
-          </div>
-        )}
+          ) : (
+            <div className="profileBannerPlaceholder">
+              Banner image
+            </div>
+          )}
+        </div>
         
         <div className="profileUserInfo">
           <div className="profileAvatar">
@@ -447,20 +451,9 @@ const RegisterPage: React.FC = () => {
                     type="button"
                     onClick={() => pictureInputRef.current?.click()}
                     disabled={uploadingPicture}
-                    style={{
-                      position: 'absolute',
-                      top: '4px',
-                      right: '4px',
-                      padding: '8px 12px',
-                      fontSize: '12px',
-                      cursor: uploadingPicture ? 'wait' : 'pointer',
-                      backgroundColor: '#4a75ff',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '4px'
-                    }}
+                    className="profileUploadButton"
                   >
-                    {uploadingPicture ? 'Uploading...' : '📷 Upload'}
+                    {uploadingPicture ? 'Uploading...' : 'Upload'}
                   </button>
                 )}
               </div>
@@ -507,20 +500,9 @@ const RegisterPage: React.FC = () => {
                     type="button"
                     onClick={() => bannerInputRef.current?.click()}
                     disabled={uploadingBanner}
-                    style={{
-                      position: 'absolute',
-                      top: '4px',
-                      right: '4px',
-                      padding: '8px 12px',
-                      fontSize: '12px',
-                      cursor: uploadingBanner ? 'wait' : 'pointer',
-                      backgroundColor: '#4a75ff',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '4px'
-                    }}
+                    className="profileUploadButton"
                   >
-                    {uploadingBanner ? 'Uploading...' : '📷 Upload'}
+                    {uploadingBanner ? 'Uploading...' : 'Upload'}
                   </button>
                 )}
               </div>
@@ -577,18 +559,7 @@ const RegisterPage: React.FC = () => {
             <div className="nostrEventInfo" style={{ marginBottom: '20px', position: 'relative' }}>
               <button
                 onClick={() => setShowSuccessMessage(false)}
-                style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  background: 'transparent',
-                  border: 'none',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  color: '#666',
-                  padding: '5px',
-                  lineHeight: '1'
-                }}
+                className="profileCloseButton"
                 title="Close"
               >
                 ×
@@ -790,9 +761,9 @@ const RegisterPage: React.FC = () => {
           Already have an account?
         </h2>
         <p className="profileNotLoggedInText">
-          Sign in to access your existing profile and settings.
+            Sign in to access your existing profile and settings.
         </p>
-        <button className="profileLoginButton" onClick={() => navigate('/profile')}>
+        <button className="profileLoginButton" onClick={openLogin}>
           Sign In
         </button>
       </div>

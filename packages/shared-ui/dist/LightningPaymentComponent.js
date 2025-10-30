@@ -81,7 +81,8 @@ export class LightningPaymentComponent extends BaseComponent {
         const status = document.createElement('div');
         status.id = 'paymentStatus';
         status.className = 'payment-status';
-        status.innerHTML = '<div class="status-disabled">🔒 Lightning disabled</div>';
+        status.innerHTML =
+            '<div class="status-disabled">🔒 Lightning disabled</div>';
         return status;
     }
     /**
@@ -174,10 +175,12 @@ export class LightningPaymentComponent extends BaseComponent {
         }
         if (status) {
             if (this.isEnabled) {
-                status.innerHTML = '<div class="status-waiting">⚡ Lightning enabled - scan QR to pay</div>';
+                status.innerHTML =
+                    '<div class="status-waiting">⚡ Lightning enabled - scan QR to pay</div>';
             }
             else {
-                status.innerHTML = '<div class="status-disabled">🔒 Lightning disabled</div>';
+                status.innerHTML =
+                    '<div class="status-disabled">🔒 Lightning disabled</div>';
             }
         }
     }
