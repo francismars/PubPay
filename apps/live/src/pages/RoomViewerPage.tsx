@@ -39,10 +39,12 @@ export const RoomViewerPage: React.FC = () => {
 
 	// Simulation mode state
 	const [isSimulating, setIsSimulating] = useState(false);
-	const [simTime, setSimTime] = useState<string>(new Date().toISOString());
-	const [isPlaying, setIsPlaying] = useState(false);
-	const [simSpeed, setSimSpeed] = useState<number>(1); // 1x, 5x, 15x
-	const simIntervalRef = useRef<number | null>(null);
+    const [simTime, setSimTime] = useState<string>(new Date().toISOString());
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [simSpeed, setSimSpeed] = useState<number>(1); // 1x, 5x, 15x
+    const simIntervalRef = useRef<number | null>(null);
+    // Anchor for continuous simulated time during playback
+    const simAnchorRef = useRef<{ simMs: number; realMs: number } | null>(null);
 
 	const items = view?.items ?? [];
 	const nextRef = useMemo(() => (items.length ? items[(currentIndex + 1) % items.length] : null), [items, currentIndex]);
@@ -251,13 +253,28 @@ export const RoomViewerPage: React.FC = () => {
 		}
 	}, [isSimulating, fetchView]);
 
-	const togglePlay = useCallback(() => {
-		if (!isSimulating) return;
-		setIsPlaying(!isPlaying);
-	}, [isSimulating, isPlaying]);
+    const togglePlay = useCallback(() => {
+        if (!isSimulating) return;
+        setIsPlaying(prev => {
+            const next = !prev;
+            if (next) {
+                // starting playback: set anchor
+                simAnchorRef.current = { simMs: new Date(simTime).getTime(), realMs: Date.now() };
+            } else {
+                // pausing: materialize the progressed sim time into simTime
+                if (simAnchorRef.current) {
+                    const progressed = simAnchorRef.current.simMs + (Date.now() - simAnchorRef.current.realMs) * simSpeed;
+                    const iso = new Date(progressed).toISOString();
+                    setSimTime(iso);
+                }
+                simAnchorRef.current = null;
+            }
+            return next;
+        });
+    }, [isSimulating, simTime, simSpeed]);
 
 	// Play/pause simulation timer
-	useEffect(() => {
+    useEffect(() => {
 		if (!isSimulating || !isPlaying) {
 			if (simIntervalRef.current) {
 				clearInterval(simIntervalRef.current);
@@ -269,7 +286,7 @@ export const RoomViewerPage: React.FC = () => {
 		const intervalMs = (1000 * 60) / simSpeed; // 1 minute per interval at 1x speed
 		simIntervalRef.current = window.setInterval(() => {
 			stepTime(1); // Step forward 1 minute
-		}, intervalMs);
+        }, intervalMs);
 
 		return () => {
 			if (simIntervalRef.current) {
@@ -277,7 +294,14 @@ export const RoomViewerPage: React.FC = () => {
 				simIntervalRef.current = null;
 			}
 		};
-	}, [isSimulating, isPlaying, simSpeed, stepTime]);
+    }, [isSimulating, isPlaying, simSpeed, stepTime]);
+
+    // When simSpeed changes during playback, re-anchor so continuous time stays accurate
+    useEffect(() => {
+        if (isSimulating && isPlaying) {
+            simAnchorRef.current = { simMs: new Date(simTime).getTime(), realMs: Date.now() };
+        }
+    }, [simSpeed]);
 
 	// Update when simTime changes manually
 	useEffect(() => {
@@ -348,7 +372,14 @@ export const RoomViewerPage: React.FC = () => {
 
 	const formatUTC = (iso?: string | null) => (iso ? new Date(iso).toUTCString() : '—');
 	// Get current reference time (simulated or real)
-	const getCurrentTime = () => isSimulating ? new Date(simTime).getTime() : Date.now();
+    const getCurrentTime = () => {
+        if (!isSimulating) return Date.now();
+        if (isPlaying && simAnchorRef.current) {
+            // continuous simulated time = anchor + elapsed*simSpeed
+            return simAnchorRef.current.simMs + (Date.now() - simAnchorRef.current.realMs) * simSpeed;
+        }
+        return new Date(simTime).getTime();
+    };
 	// Calculate countdown - recalculates when tick updates
 	const nextSwitchIn = useMemo(() => {
 		if (!view?.nextSwitchAt) return null;
@@ -359,6 +390,41 @@ export const RoomViewerPage: React.FC = () => {
 		const ss = (s % 60).toString().padStart(2, '0');
 		return `${mm}:${ss}`;
 	}, [view?.nextSwitchAt, isSimulating, simTime, tick]);
+
+  // In simulation mode, switch items locally at the exact simulated nextSwitchAt
+  useEffect(() => {
+    if (!isSimulating) return;
+    if (!view?.nextSwitchAt) return;
+    if (!items || items.length === 0) return;
+
+    const nowMs = getCurrentTime();
+    const nextMs = new Date(view.nextSwitchAt).getTime();
+    const delay = nextMs - nowMs;
+    if (delay <= 0) return; // will be handled on next render tick
+
+    const slotEndMs = view.active ? new Date(view.active.slotEnd).getTime() : Number.POSITIVE_INFINITY;
+
+    const id = window.setTimeout(() => {
+      // If we're hitting the slot boundary, refetch view at the simulated time
+      if (nextMs >= slotEndMs - 1) {
+        const iso = new Date(getCurrentTime()).toISOString();
+        fetchView(iso);
+        return;
+      }
+
+      // Otherwise rotate locally if multiple items
+      if (items.length > 1) {
+        setCurrentIndex(prev => (prev + 1) % items.length);
+        // schedule next local rotation by updating nextSwitchAt so the effect re-arms
+        const intervalSec = view?.policy?.intervalSec || 60;
+        const nowAfter = getCurrentTime();
+        const nextLocal = Math.min(slotEndMs, nowAfter + intervalSec * 1000);
+        setView(prev => prev ? { ...prev, nextSwitchAt: new Date(nextLocal).toISOString() } : prev);
+      }
+    }, delay);
+
+    return () => window.clearTimeout(id);
+  }, [isSimulating, view?.nextSwitchAt, view?.active?.slotEnd, items, getCurrentTime, fetchView]);
 
 	// Convert UTC ISO to local datetime-local format
 	const utcToLocal = (utcISO: string): string => {
