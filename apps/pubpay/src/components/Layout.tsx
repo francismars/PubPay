@@ -634,7 +634,11 @@ export const Layout: React.FC = () => {
           <p className="label" id="titleSignin">
             Choose Sign-in Method
           </p>
-          <div className="formFieldGroup" id="loginFormGroup">
+          <div 
+            className="formFieldGroup" 
+            id="loginFormGroup"
+            style={{ display: showNsecGroup ? 'none' : 'flex' }}
+          >
             <a
               href="#"
               id="signInExtension"
