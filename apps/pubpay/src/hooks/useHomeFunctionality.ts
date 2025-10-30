@@ -188,8 +188,7 @@ export const useHomeFunctionality = () => {
           AuthService.storeAuthData(
             result.publicKey,
             null,
-            'externalSigner',
-            false
+            'externalSigner'
           );
 
           setAuthState({
@@ -1187,7 +1186,7 @@ export const useHomeFunctionality = () => {
     console.log('Opening new pay note form...');
   };
 
-  const handleSignInExtension = async (rememberMe: boolean = true) => {
+  const handleSignInExtension = async () => {
     try {
       const result = await AuthService.signInWithExtension();
 
@@ -1195,8 +1194,7 @@ export const useHomeFunctionality = () => {
         AuthService.storeAuthData(
           result.publicKey,
           result.privateKey || null,
-          'extension',
-          rememberMe
+          'extension'
         );
 
         setAuthState({
@@ -1227,9 +1225,9 @@ export const useHomeFunctionality = () => {
     }
   };
 
-  const handleSignInExternalSigner = async (rememberMe: boolean = true) => {
+  const handleSignInExternalSigner = async () => {
     try {
-      const result = await AuthService.signInWithExternalSigner(rememberMe);
+      const result = await AuthService.signInWithExternalSigner();
 
       if (!result.success) {
         console.error(
@@ -1254,7 +1252,7 @@ export const useHomeFunctionality = () => {
     console.log('Nsec sign in initiated...');
   };
 
-  const handleContinueWithNsec = async (nsec: string, rememberMe: boolean) => {
+  const handleContinueWithNsec = async (nsec: string) => {
     try {
       const result = await AuthService.signInWithNsec(nsec);
 
@@ -1262,8 +1260,7 @@ export const useHomeFunctionality = () => {
         AuthService.storeAuthData(
           result.publicKey,
           result.privateKey || null,
-          'nsec',
-          rememberMe
+          'nsec'
         );
 
         setAuthState({

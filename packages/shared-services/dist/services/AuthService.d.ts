@@ -14,7 +14,7 @@ export declare class AuthService {
     /**
      * Sign in with external signer (nostrsigner)
      */
-    static signInWithExternalSigner(rememberMe?: boolean): Promise<AuthResult>;
+    static signInWithExternalSigner(): Promise<AuthResult>;
     /**
      * Sign in with nsec (private key)
      */
@@ -30,7 +30,7 @@ export declare class AuthService {
     /**
      * Store authentication data
      */
-    static storeAuthData(publicKey: string, privateKey: string | null, method: string, rememberMe: boolean): void;
+    static storeAuthData(publicKey: string, privateKey: string | null, method: string): void;
     /**
      * Get stored authentication data
      */

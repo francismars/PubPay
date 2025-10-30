@@ -60,12 +60,10 @@ export class AuthService {
   /**
    * Sign in with external signer (nostrsigner)
    */
-  static async signInWithExternalSigner(
-    rememberMe: boolean = false
-  ): Promise<AuthResult> {
+  static async signInWithExternalSigner(): Promise<AuthResult> {
     try {
       // Store sign in data for when user returns
-      sessionStorage.setItem('signIn', JSON.stringify({ rememberMe }));
+      sessionStorage.setItem('signIn', JSON.stringify({ flow: 'externalSigner' }));
 
       // Navigate to external signer
       const nostrSignerURL =
@@ -172,7 +170,7 @@ export class AuthService {
     try {
       const signInData = JSON.parse(sessionStorage.getItem('signIn') || '{}');
       // Proceed only if we previously initiated an external signer sign-in
-      if (signInData && signInData.rememberMe !== undefined) {
+      if (signInData && (signInData.flow === 'externalSigner' || signInData.rememberMe !== undefined)) {
         sessionStorage.removeItem('signIn');
 
         // Get the public key from clipboard
@@ -285,16 +283,13 @@ export class AuthService {
   static storeAuthData(
     publicKey: string,
     privateKey: string | null,
-    method: string,
-    rememberMe: boolean
+    method: string
   ): void {
-    const storage = rememberMe ? localStorage : sessionStorage;
-
-    storage.setItem('publicKey', publicKey);
-    storage.setItem('signInMethod', method);
-
+    // Always persist until explicit logout
+    localStorage.setItem('publicKey', publicKey);
+    localStorage.setItem('signInMethod', method);
     if (privateKey) {
-      storage.setItem('privateKey', privateKey);
+      localStorage.setItem('privateKey', privateKey);
     }
   }
 
