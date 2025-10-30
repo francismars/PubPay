@@ -876,14 +876,13 @@ const ProfilePage: React.FC = () => {
                 onClick={(e) => {
                   handleCopyToClipboard(qrCodeData, qrCodeType === 'npub' ? 'Public Key' : 'Lightning Address', e);
                 }}
-                style={{ margin: 0 }}
+                style={{ margin: 0, background: '#4a75ff', color: '#fff' }}
               >
                 Copy {qrCodeType === 'npub' ? 'npub' : 'address'}
               </button>
               <button
                 className="profileCopyButton"
                 onClick={() => setShowQRModal(false)}
-                style={{ margin: 0, backgroundColor: '#6c757d' }}
               >
                 Close
               </button>
@@ -932,7 +931,6 @@ const ProfilePage: React.FC = () => {
                   setShowRecoveryModal(false);
                   setRecoveryMnemonic('');
                 }}
-                style={{ margin: 0, backgroundColor: '#6c757d' }}
               >
                 Cancel
               </button>
