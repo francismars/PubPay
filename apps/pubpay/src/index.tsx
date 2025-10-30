@@ -7,6 +7,7 @@ import AboutPage from './pages/AboutPage';
 import ProfilePage from './pages/ProfilePage';
 import EditProfilePage from './pages/EditProfilePage';
 import RegisterPage from './pages/RegisterPage';
+import SettingsPage from './pages/SettingsPage';
 
 // Import CSS
 import './styles/pubpay.css';
@@ -54,6 +55,7 @@ const App: React.FC = () => {
           <Route path="profile/:pubkey" element={<ProfilePage />} />
           <Route path="edit-profile" element={<EditProfilePage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="note/:noteId" element={<FeedsPage />} />
         </Route>
       </Routes>
