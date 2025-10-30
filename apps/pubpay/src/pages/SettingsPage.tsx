@@ -12,6 +12,21 @@ const SettingsPage: React.FC = () => {
   const [nwcMethods, setNwcMethods] = useState<string[]>([]);
   const [nwcNotifications, setNwcNotifications] = useState<string[]>([]);
   const [nwcError, setNwcError] = useState<string>('');
+  const [relayInfo, setRelayInfo] = useState<Record<string, {
+    ok: boolean;
+    loading: boolean;
+    name?: string;
+    description?: string;
+    software?: string;
+    version?: string;
+    supported_nips?: number[];
+    icon?: string;
+    banner?: string;
+    auth_required?: boolean;
+    payment_required?: boolean;
+    min_pow_difficulty?: number;
+  }>>({});
+  const [expandedRelay, setExpandedRelay] = useState<string | null>(null);
 
   useEffect(() => {
     // Load dark mode preference from localStorage
@@ -48,6 +63,50 @@ const SettingsPage: React.FC = () => {
     } catch {}
   }, []);
 
+  // Fetch NIP-11 info for relays
+  useEffect(() => {
+    let cancelled = false;
+    const fetchInfo = async (url: string) => {
+      setRelayInfo(prev => ({
+        ...prev,
+        [url]: { ...(prev[url] || {}), loading: true }
+      }));
+      try {
+        const httpUrl = url.replace('ws://', 'http://').replace('wss://', 'https://');
+        const resp = await fetch(httpUrl, { headers: { Accept: 'application/nostr+json' } });
+        if (!resp.ok) throw new Error(String(resp.status));
+        const json = await resp.json();
+        if (cancelled) return;
+        setRelayInfo(prev => ({
+          ...prev,
+          [url]: {
+            ok: true,
+            loading: false,
+            name: json.name,
+            description: json.description,
+            software: json.software,
+            version: json.version,
+            supported_nips: json.supported_nips,
+            icon: json.icon,
+            banner: json.banner,
+            auth_required: json?.limitation?.auth_required ?? json.auth_required,
+            payment_required: json?.limitation?.payment_required ?? json.payment_required,
+            min_pow_difficulty: json?.limitation?.min_pow_difficulty ?? json.min_pow_difficulty
+          }
+        }));
+      } catch (_e) {
+        if (cancelled) return;
+        setRelayInfo(prev => ({
+          ...prev,
+          [url]: { ok: false, loading: false }
+        }));
+      }
+    };
+    // kick off fetches for current list
+    relays.forEach(r => fetchInfo(r));
+    return () => { cancelled = true; };
+  }, [relays]);
+
   // Derive a safe display identifier for the current NWC URI (no secrets)
   const nwcDisplayId = (() => {
     try {
@@ -82,6 +141,9 @@ const SettingsPage: React.FC = () => {
       const updatedRelays = [...relays, newRelay];
       setRelays(updatedRelays);
       localStorage.setItem('customRelays', JSON.stringify(updatedRelays));
+      try {
+        window.dispatchEvent(new CustomEvent('relaysUpdated', { detail: { relays: updatedRelays } }));
+      } catch {}
       setNewRelay('');
     }
   };
@@ -90,6 +152,9 @@ const SettingsPage: React.FC = () => {
     const updatedRelays = relays.filter(relay => relay !== relayToRemove);
     setRelays(updatedRelays);
     localStorage.setItem('customRelays', JSON.stringify(updatedRelays));
+    try {
+      window.dispatchEvent(new CustomEvent('relaysUpdated', { detail: { relays: updatedRelays } }));
+    } catch {}
   };
 
   const handleSaveNwc = () => {
@@ -199,19 +264,80 @@ const SettingsPage: React.FC = () => {
               </p>
                 
               <div className="relayList">
-                {relays.map((relay, index) => (
-                  <div key={index} className="relayItem">
-                    <span className="relayUrl">
-                      {relay}
-                    </span>
-                    <button
-                      onClick={() => handleRemoveRelay(relay)}
-                      className="removeButton"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
+                {relays.map((relay, index) => {
+                  const info = relayInfo[relay];
+                  const statusColor = info?.loading ? '#f59e0b' : info?.ok ? '#10b981' : '#ef4444';
+                  const isExpanded = expandedRelay === relay;
+                  return (
+                    <div key={index} className="relayItemCard" style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12, marginBottom: 10 }}>
+                      <div
+                        className="relayItemHeader"
+                        style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                        onClick={() => setExpandedRelay(isExpanded ? null : relay)}
+                      >
+                        <span className="relayUrl" title={relay} style={{ display: 'flex', alignItems: 'center' }}>
+                          <span style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            backgroundColor: statusColor,
+                            display: 'inline-block',
+                            marginRight: 6
+                          }} />
+                          {relay}
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleRemoveRelay(relay); }}
+                          className="removeButton"
+                          style={{ marginLeft: 'auto' }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      {isExpanded && (
+                        <div className="relayItemBody" style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #e5e7eb' }}>
+                          {(info?.name || info?.icon) && (
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                              {info?.icon && (
+                                <img src={info.icon} alt="icon" style={{ width: 24, height: 24, marginRight: 8, borderRadius: 4 }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                              )}
+                              <div style={{ fontWeight: 600 }}>
+                                {info?.name || relay}
+                              </div>
+                            </div>
+                          )}
+                          {info?.banner && (
+                            <div style={{ marginBottom: 8 }}>
+                              <img src={info.banner} alt="banner" style={{ width: '100%', maxHeight: 120, objectFit: 'cover', borderRadius: 6 }} onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                            </div>
+                          )}
+                          {info?.description && (
+                            <div style={{ marginBottom: 8, color: '#374151', fontSize: 14 }}>
+                              {info.description}
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 12, color: '#6b7280' }}>
+                            {info?.supported_nips && (
+                              <div><strong>NIPs:</strong> {info.supported_nips.join(', ')}</div>
+                            )}
+                            {(info?.auth_required !== undefined) && (
+                              <div><strong>Auth:</strong> {info.auth_required ? 'required' : 'not required'}</div>
+                            )}
+                            {(info?.payment_required !== undefined) && (
+                              <div><strong>Payment:</strong> {info.payment_required ? 'required' : 'not required'}</div>
+                            )}
+                            {(typeof info?.min_pow_difficulty === 'number' && (info.min_pow_difficulty as number) > 0) && (
+                              <div><strong>PoW:</strong> difficulty {info.min_pow_difficulty}</div>
+                            )}
+                            {info?.software && (
+                              <div><strong>Software:</strong> {info.software}{info.version ? ` ${info.version}` : ''}</div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
                   
