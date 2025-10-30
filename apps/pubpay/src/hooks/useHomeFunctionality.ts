@@ -210,14 +210,23 @@ export const useHomeFunctionality = () => {
             await new Promise(resolve => setTimeout(resolve, 100));
           }
 
-          // Helper to read signature from clipboard (npub not expected here)
+          // Helper to read signature from clipboard with retries and prompt fallback
           const readClipboard = async (): Promise<string | null> => {
-            try {
-              const text = await navigator.clipboard.readText();
-              return (text || '').trim();
-            } catch (e) {
-              return null;
+            // Try up to 10 times with small delay to allow clipboard to populate
+            for (let i = 0; i < 10; i++) {
+              try {
+                const text = await navigator.clipboard.readText();
+                const val = (text || '').trim();
+                if (val) return val;
+              } catch {}
+              await new Promise(resolve => setTimeout(resolve, 100));
             }
+            // Last resort: prompt user to paste manually (non-blocking UX is preferred, but this ensures progress)
+            try {
+              const manual = window.prompt('Paste signature from signer');
+              if (manual && manual.trim()) return manual.trim();
+            } catch {}
+            return null;
           };
 
           // Handle SignKind1: finalize and publish a note

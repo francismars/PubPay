@@ -237,7 +237,15 @@ export class AuthService {
   private static async accessClipboard(): Promise<string | null> {
     try {
       if (navigator.clipboard && navigator.clipboard.readText) {
-        return await navigator.clipboard.readText();
+        // Try multiple times to accommodate timing after app switch
+        for (let i = 0; i < 10; i++) {
+          try {
+            const txt = await navigator.clipboard.readText();
+            const val = (txt || '').trim();
+            if (val) return val;
+          } catch {}
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       } else {
         // Fallback for older browsers
         const textArea = document.createElement('textarea');
@@ -252,12 +260,19 @@ export class AuthService {
           const result = document.execCommand('paste');
           const text = textArea.value;
           document.body.removeChild(textArea);
-          return result ? text : null;
+          if (result && text && text.trim()) return text.trim();
         } catch (err) {
           document.body.removeChild(textArea);
-          return null;
         }
       }
+
+      // Final fallback: prompt the user to paste manually
+      try {
+        const manual = window.prompt('Paste data from signer');
+        if (manual && manual.trim()) return manual.trim();
+      } catch {}
+
+      return null;
     } catch (error) {
       console.error('Clipboard access failed:', error);
       return null;
