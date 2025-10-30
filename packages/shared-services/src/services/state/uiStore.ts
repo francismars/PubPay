@@ -14,10 +14,18 @@ type StatusToastState = {
   persist: boolean;
 };
 
+type FollowSuggestion = {
+  pubkey: string;
+  npub: string;
+  displayName: string;
+  picture?: string;
+};
+
 type UIState = {
   invoiceOverlay: InvoiceOverlayState;
   processingOverlay: { show: boolean; message: string };
   statusToast: StatusToastState;
+  followSuggestions: FollowSuggestion[];
   loginForm: { show: boolean };
   newPayNoteForm: { show: boolean };
   openInvoice: (payload: {
@@ -39,6 +47,7 @@ type UIState = {
     persist?: boolean
   ) => void;
   closeToast: () => void;
+  setFollowSuggestions: (items: FollowSuggestion[]) => void;
   openLogin: () => void;
   closeLogin: () => void;
   openNewPayNote: () => void;
@@ -49,6 +58,7 @@ export const useUIStore = create<UIState>(set => ({
   invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '' },
   processingOverlay: { show: false, message: '' },
   statusToast: { show: false, message: '', variant: 'info', persist: false },
+  followSuggestions: [],
   loginForm: { show: false },
   newPayNoteForm: { show: false },
   openInvoice: ({ bolt11, amount, eventId }) =>
@@ -68,6 +78,7 @@ export const useUIStore = create<UIState>(set => ({
     set({
       statusToast: { show: false, message: '', variant: 'info', persist: false }
     }),
+  setFollowSuggestions: (items) => set({ followSuggestions: items }),
   openLogin: () => set({ loginForm: { show: true } }),
   closeLogin: () => set({ loginForm: { show: false } }),
   openNewPayNote: () => set({ newPayNoteForm: { show: true } }),

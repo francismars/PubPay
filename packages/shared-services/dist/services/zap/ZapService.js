@@ -37,10 +37,10 @@ export class ZapService {
                 response = await fetch(`https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`);
             }
             catch {
-                errorResponse = "CAN'T PAY: Failed to fetch lud16";
+                errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
             }
             if (!response || response === undefined) {
-                errorResponse = "CAN'T PAY: Failed to fetch lud16";
+                errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
             }
             if (errorResponse) {
                 console.error(errorResponse);
@@ -48,7 +48,7 @@ export class ZapService {
             }
             const lnurlinfo = await response.json();
             if (!(lnurlinfo.allowsNostr === true)) {
-                errorResponse = "CAN'T PAY: No nostr support";
+                errorResponse = 'CAN\'T PAY: No nostr support';
             }
             if (errorResponse) {
                 console.error(errorResponse);
@@ -182,6 +182,8 @@ export class ZapService {
      */
     async getInvoiceandPay(callback, amount, zapFinalized, lud16, _eventID) {
         try {
+            // reference to avoid unused param lint
+            _eventID;
             if (!zapFinalized) {
                 console.error('Cannot get invoice - zapFinalized is undefined');
                 return;
@@ -223,19 +225,67 @@ export class ZapService {
                 (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('nwcConnectionString'));
             if (nwcUri) {
                 const { NwcClient } = await import('../nwc/NwcClient');
+                try {
+                    const { useUIStore } = await import('../state/uiStore');
+                    useUIStore.getState().openToast('Sending invoice to wallet…', 'loading', true);
+                }
+                catch {
+                    void 0; // no-op: UI store not available in this environment
+                }
                 const client = new NwcClient(nwcUri);
                 // Fire-and-forget; don't show overlays, don't fallback
-                client
-                    .payInvoice(invoice)
+                try {
+                    const { useUIStore } = await import('../state/uiStore');
+                    useUIStore.getState().updateToast('Waiting for wallet…', 'loading', true);
+                }
+                catch {
+                    void 0; // no-op: toast not available
+                }
+                const timeoutMs = 45000;
+                const timeoutPromise = new Promise((resolve) => {
+                    setTimeout(() => {
+                        // @ts-expect-error generic shape
+                        resolve({ error: { code: 'timeout', message: 'Wallet not responding' }, result: null, result_type: 'error' });
+                    }, timeoutMs);
+                });
+                Promise.race([
+                    client.payInvoice(invoice),
+                    timeoutPromise
+                ])
                     .then(resp => {
-                    if (!resp.error && resp.result) {
-                        console.log('Paid via NWC. Preimage:', resp.result.preimage);
+                    try {
+                        const { useUIStore } = require('../state/uiStore');
+                        if (resp && !resp.error && resp.result) {
+                            useUIStore.getState().updateToast('Paid via NWC', 'success', false);
+                            setTimeout(() => {
+                                try {
+                                    useUIStore.getState().closeToast();
+                                }
+                                catch {
+                                    void 0; // no-op
+                                }
+                            }, 2000);
+                            console.log('Paid via NWC. Preimage:', resp.result.preimage);
+                        }
+                        else {
+                            const msg = resp && resp.error && resp.error.message ? resp.error.message : 'NWC payment error';
+                            useUIStore.getState().updateToast(msg, 'error', true);
+                        }
                     }
-                    else {
-                        console.warn('NWC payment error:', resp.error);
+                    catch {
+                        void 0; // no-op: UI store not available
                     }
                 })
-                    .catch(err => console.warn('NWC payment exception:', err));
+                    .catch(err => {
+                    console.warn('NWC payment exception:', err);
+                    try {
+                        const { useUIStore } = require('../state/uiStore');
+                        useUIStore.getState().updateToast('NWC payment failed', 'error', true);
+                    }
+                    catch {
+                        void 0; // no-op
+                    }
+                });
                 return;
             }
         }

@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
+import { useUIStore } from '@pubpay/shared-services';
 import { BlossomService } from '@pubpay/shared-services';
 import { formatContent } from '../utils/contentFormatter';
 
@@ -23,8 +24,48 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
   const [previewContent, setPreviewContent] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const zapPayerRef = useRef<HTMLInputElement>(null);
   const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const blossomService = new BlossomService();
+
+  // Follower suggestions from store (populated on login)
+  const followSuggestions = (useUIStore as any)((s: any) => s.followSuggestions) as Array<{
+    pubkey: string;
+    npub: string;
+    displayName: string;
+    picture?: string;
+  }>;
+  // Inline mention suggestion state
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [showMention, setShowMention] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const filteredFollows = useMemo(() => {
+    const q = mentionQuery.trim().toLowerCase();
+    if (!q || q.length < 3) return [] as typeof followSuggestions;
+    return (followSuggestions || []).filter(item => {
+      return (
+        item.displayName?.toLowerCase().includes(q) ||
+        item.npub.toLowerCase().includes(q) ||
+        item.pubkey.toLowerCase().startsWith(q)
+      );
+    }).slice(0, 8);
+  }, [mentionQuery, followSuggestions]);
+
+  // zapPayer inline suggestion state (for dedicated input)
+  const [zpQuery, setZpQuery] = useState('');
+  const [zpShow, setZpShow] = useState(false);
+  const [zpActiveIdx, setZpActiveIdx] = useState(0);
+  const zpFiltered = useMemo(() => {
+    const q = zpQuery.trim().toLowerCase();
+    if (!q || q.length < 2) return [] as typeof followSuggestions;
+    return (followSuggestions || []).filter(item => {
+      return (
+        item.displayName?.toLowerCase().includes(q) ||
+        item.npub.toLowerCase().includes(q) ||
+        item.pubkey.toLowerCase().startsWith(q)
+      );
+    }).slice(0, 8);
+  }, [zpQuery, followSuggestions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,6 +126,37 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
     textarea.focus();
   };
 
+  const detectMention = () => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const value = textarea.value;
+    const caret = textarea.selectionStart || 0;
+    const upto = value.slice(0, caret);
+    const at = upto.lastIndexOf('@');
+    if (at === -1) {
+      setShowMention(false);
+      setMentionQuery('');
+      setActiveIdx(0);
+      return;
+    }
+    if (at > 0 && /\S/.test(upto[at - 1])) {
+      setShowMention(false);
+      setMentionQuery('');
+      setActiveIdx(0);
+      return;
+    }
+    const q = upto.slice(at + 1);
+    if (q.length >= 3) {
+      setMentionQuery(q);
+      setShowMention(true);
+      setActiveIdx(0);
+    } else {
+      setShowMention(false);
+      setMentionQuery('');
+      setActiveIdx(0);
+    }
+  };
+
   // Handle paste event
   const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const items = e.clipboardData.items;
@@ -130,6 +202,8 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
       const formatted = await formatContent(content, nostrClient);
       setPreviewContent(formatted);
     }, 300);
+
+    detectMention();
   };
 
   return (
@@ -156,8 +230,90 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
               placeholder="Payment Request Description"
               onPaste={handlePaste}
               onChange={handleTextareaChange}
+              onKeyDown={(e) => {
+                if (!showMention || filteredFollows.length === 0) return;
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  setActiveIdx(prev => (prev + 1) % filteredFollows.length);
+                } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  setActiveIdx(prev => (prev - 1 + filteredFollows.length) % filteredFollows.length);
+                } else if (e.key === 'Enter' || e.key === 'Tab') {
+                  e.preventDefault();
+                  const choice = filteredFollows[activeIdx];
+                  if (choice) {
+                    // apply mention
+                    const textarea = textareaRef.current;
+                    if (!textarea) return;
+                    const value = textarea.value;
+                    const caret = textarea.selectionStart || 0;
+                    const upto = value.slice(0, caret);
+                    const at = upto.lastIndexOf('@');
+                    if (at !== -1) {
+                      const before = value.slice(0, at);
+                      const after = value.slice(caret);
+                      const insert = `@${choice.npub} `;
+                      textarea.value = before + insert + after;
+                      const newPos = (before + insert).length;
+                      textarea.selectionStart = textarea.selectionEnd = newPos;
+                      textarea.focus();
+                      setShowMention(false);
+                      setMentionQuery('');
+                      setActiveIdx(0);
+                      handleTextareaChange({ target: textarea } as any);
+                    }
+                  }
+                } else if (e.key === 'Escape') {
+                  setShowMention(false);
+                }
+              }}
               disabled={isUploading}
             ></textarea>
+
+            {showMention && filteredFollows.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                marginTop: '4px',
+                border: '1px solid #e5e7eb',
+                background: '#ffffff',
+                borderRadius: '6px',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.08)'
+              }}>
+                {filteredFollows.map((f, idx) => (
+                  <div
+                    key={f.pubkey + idx}
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      const textarea = textareaRef.current;
+                      if (!textarea) return;
+                      const value = textarea.value;
+                      const caret = textarea.selectionStart || 0;
+                      const upto = value.slice(0, caret);
+                      const at = upto.lastIndexOf('@');
+                      if (at === -1) return;
+                      const before = value.slice(0, at);
+                      const after = value.slice(caret);
+                      const insert = `@${f.npub} `;
+                      textarea.value = before + insert + after;
+                      const newPos = (before + insert).length;
+                      textarea.selectionStart = textarea.selectionEnd = newPos;
+                      textarea.focus();
+                      setShowMention(false);
+                      setMentionQuery('');
+                      setActiveIdx(0);
+                      handleTextareaChange({ target: textarea } as any);
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', background: idx === activeIdx ? '#f3f4f6' : '#fff' }}
+                  >
+                    <img src={f.picture || ''} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eee' }} />
+                    <div style={{ fontSize: '13px' }}>
+                      <div style={{ fontWeight: 500 }}>{f.displayName}</div>
+                      <div style={{ color: '#6b7280' }}>{f.npub.substring(0, 12)}…</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             
             {/* Button row below textarea */}
             <div className="payNoteContentButtons">
@@ -337,6 +493,8 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
               Advanced Options
             </summary>
 
+            {/* Inline mentions implemented; dedicated tag UI removed */}
+
             <div className="formFieldGroup">
               <div className="formField">
                 <label htmlFor="zapUses" className="label">
@@ -364,16 +522,84 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
               </div>
             </div>
 
-            <div className="formField">
+            <div className="formField" style={{ position: 'relative' }}>
               <label htmlFor="zapPayer" className="label">
                 Payer <span className="tagName">zap-payer</span>
               </label>
               <input
                 type="text"
+                ref={zapPayerRef}
                 id="zapPayer"
                 placeholder="npub1..."
                 name="zapPayer"
+                onChange={(e) => {
+                  const v = e.target.value || '';
+                  // Only trigger suggestions when using @ prefix to differentiate from pasted values
+                  const q = v.startsWith('@') ? v.slice(1).trim() : '';
+                  setZpQuery(q);
+                  setZpShow(q.length >= 3);
+                  setZpActiveIdx(0);
+                }}
+                onFocus={(e) => {
+                  const v = e.target.value || '';
+                  const q = v.startsWith('@') ? v.slice(1).trim() : '';
+                  setZpQuery(q);
+                  setZpShow(q.length >= 3);
+                  setZpActiveIdx(0);
+                }}
+                onKeyDown={(e) => {
+                  if (!zpShow || zpFiltered.length === 0) return;
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setZpActiveIdx(prev => (prev + 1) % zpFiltered.length);
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setZpActiveIdx(prev => (prev - 1 + zpFiltered.length) % zpFiltered.length);
+                  } else if (e.key === 'Enter' || e.key === 'Tab') {
+                    e.preventDefault();
+                    const choice = zpFiltered[zpActiveIdx];
+                    if (choice && zapPayerRef.current) {
+                      zapPayerRef.current.value = `@${choice.npub}`;
+                      setZpShow(false);
+                    }
+                  } else if (e.key === 'Escape') {
+                    setZpShow(false);
+                  }
+                }}
               />
+              {zpShow && zpFiltered.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  top: '100%',
+                  marginTop: '4px',
+                  border: '1px solid #e5e7eb',
+                  background: '#ffffff',
+                  borderRadius: '6px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.08)'
+                }}>
+                  {zpFiltered.map((f, idx) => (
+                    <div
+                      key={f.pubkey + idx}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        if (zapPayerRef.current) {
+                          zapPayerRef.current.value = `@${f.npub}`;
+                        }
+                        setZpShow(false);
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', background: idx === zpActiveIdx ? '#f3f4f6' : '#fff' }}
+                    >
+                      <img src={f.picture || ''} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eee' }} />
+                      <div style={{ fontSize: '13px' }}>
+                        <div style={{ fontWeight: 500 }}>{f.displayName}</div>
+                        <div style={{ color: '#6b7280' }}>{f.npub.substring(0, 12)}…</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="formField">
