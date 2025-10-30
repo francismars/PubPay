@@ -1,9 +1,44 @@
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #f1f1f1;
+  --text-primary: #333333;
+  --text-secondary: #555555;
+  --text-tertiary: #888888;
+  --border-color: #e5e7eb;
+  --border-light: #e9ecef;
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
+  --hover-bg: #f0f0f0;
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+  --nav-bg: rgba(249, 250, 251, 0.7);
+}
+
+body.dark-mode {
+  --bg-primary: #0d0d0d;
+  --bg-secondary: #131313;
+  --bg-tertiary: #252525;
+  --text-primary: #e5e5e5;
+  --text-secondary: #b8b8b8;
+  --text-tertiary: #888888;
+  --border-color: #2a2a2a;
+  --border-light: #1e1e1e;
+  --card-bg: #1a1a1a;
+  --input-bg: #1a1a1a;
+  --hover-bg: #111111;
+  --overlay-bg: rgba(0, 0, 0, 0.85);
+  --nav-bg: rgba(26, 26, 26, 0.7);
+}
+
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Material Symbols font */
@@ -39,7 +74,7 @@ body {
   position: absolute;
   top: 0px;
   left: -160px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  background: var(--card-bg);
   border-radius: 6px;
   box-shadow:
     0 20px 25px -5px rgba(0, 0, 0, 0.1),
@@ -55,20 +90,20 @@ body {
   z-index: 10000;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-light);
 }
 
 .zapMenuOption {
   padding: 5px 10px;
   cursor: pointer;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   border-radius: 6px;
   transition: background-color 0.2s ease;
 }
 
 .zapMenuOption:hover {
-  background-color: #f0f0f0;
+  background-color: var(--hover-bg);
 }
 
 .zapMenuCustom {
@@ -255,19 +290,19 @@ body.jukebox {
 
 #nav {
   width: 100%;
-  border-bottom: 1px solid #ffffff;
+  border-bottom: 1px solid var(--border-light);
   position: fixed;
   top: 0;
   z-index: 10001;
   --border-bottom-width: 1.5px;
-  --border-color: rgb(255, 255, 255);
+  --border-color: var(--border-light);
   --border-left-width: 1.5px;
   --border-right-width: 1.5px;
   --border-style: solid;
   --border-top-width: 1.5px;
   backdrop-filter: blur(19px);
   -webkit-backdrop-filter: blur(19px);
-  background-color: rgb(249 250 251 / 51%);
+  background-color: var(--nav-bg);
   border-radius: 0 0 6px 6px;
   box-shadow: rgb(47 43 67 / 21%) -2px 3px 20px 0px;
   opacity: 1;
@@ -324,11 +359,11 @@ body.jukebox {
 
 #sideNav .sideNavLink {
   display: flex;
+  color: var(--text-secondary);
   align-items: center;
   padding: 8px 4px;
   border-radius: 6px;
   text-decoration: none;
-  color: #666;
   font-weight: 400;
   font-size: 15px;
   transition: all 0.2s ease;
@@ -339,8 +374,8 @@ body.jukebox {
 }
 
 #sideNav .sideNavLink:hover {
-  background: #f5f5f5;
-  color: #333;
+  background: var(--hover-bg);
+  color: var(--text-primary);
 }
 
 #sideNav .sideNavLink.active {
@@ -350,13 +385,13 @@ body.jukebox {
 }
 
 #sideNav .sideNavLink.disabled {
-  color: #ccc;
+  color: var(--text-tertiary);
   cursor: not-allowed;
 }
 
 #sideNav .sideNavLink.disabled:hover {
   background: transparent;
-  color: #ccc;
+  color: var(--text-tertiary);
 }
 
 /* Simple icons */
@@ -420,13 +455,22 @@ body.jukebox {
   filter: brightness(0) invert(1);
 }
 
+/* Dark mode icon invert */
+body.dark-mode #sideNav .sideNavLink::after {
+  filter: invert(1);
+}
+
+body.dark-mode #sideNav .sideNavLink.active::after {
+  filter: brightness(0) invert(1);
+}
+
 /* New Paynote button styling */
 #sideNav .sideNavLink.cta {
   background: #4a75ff;
   color: white;
   font-weight: 500;
   margin-top: 28px;
-  padding: 14px 24px 14px 12px;
+  padding: 14px 24px 14px 16px;
   border-radius: 6px;
 }
 
@@ -469,6 +513,12 @@ body.jukebox {
   column-gap: 15px;
 }
 
+.profileUserNameNav {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
 #logo,
 .brand {
   font-family: 'Russo One', sans-serif;
@@ -483,8 +533,27 @@ body.jukebox {
   margin-bottom: 20px;
 }
 
+#logo .logoPay {
+  color: var(--text-primary);
+}
+
+#logo .logoMe {
+  color: var(--text-primary);
+  opacity: 0.12;
+}
+
+.brand .logoPay {
+  color: #cecece;
+}
+
+.brand .logoMe {
+  color: var(--text-primary);
+  opacity: 0.08;
+}
+
 #logo .version {
-  color: #acacac96;
+  color: var(--text-tertiary);
+  opacity: 0.6;
   display: block;
   font-size: 10px;
   margin-bottom: -5px;
@@ -506,7 +575,7 @@ body.jukebox {
 
 a.feedSelectorLink:visited,
 a.feedSelectorLink {
-  border-bottom: 1px solid #eaeaea;
+  border-bottom: 1px solid var(--border-light);
   width: 33.333%;
   text-align: center;
   padding: 14px;
@@ -525,18 +594,17 @@ a.feedSelectorLink.active {
 .paynote {
   display: flex;
   padding: 20px 30px 30px 20px;
-  border: 1px solid #ffffff;
+  border: 1px solid var(--border-light);
   margin-top: 30px;
   column-gap: 15px;
-  /* box-shadow: 0px 3px 4px #0000000a; */
-  background: #fafafa;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
   --border-bottom-width: 1.5px;
-  --border-color: rgb(255, 255, 255);
+  --border-color: var(--border-light);
   --border-left-width: 1.5px;
   --border-right-width: 1.5px;
   --border-style: solid;
   --border-top-width: 1.5px;
-  background-color: rgb(249, 250, 251);
   border-radius: 6px;
   box-shadow: rgb(47 43 67 / 21%) -2px 3px 20px 0px;
   opacity: 1;
@@ -544,7 +612,7 @@ a.feedSelectorLink.active {
 }
 
 .paynote:hover {
-  background: #fff;
+  background: var(--hover-bg);
   /*transform: scale(1.01);*/
 }
 
@@ -639,10 +707,10 @@ a.feedSelectorLink.active {
 }
 
 .noteAuthorLink {
-  color: #000;
+  color: var(--text-primary);
 }
 .noteAuthorLink:visited {
-  color: #000;
+  color: var(--text-primary);
 }
 
 .noteAuthor .label a {
@@ -705,7 +773,7 @@ a.feedSelectorLink.active {
   display: flex;
   justify-content: space-between;
   margin: 21px 0 0px 0;
-  border-top: 1px solid #ccc;
+  border-top: 1px solid var(--border-light);
   padding: 8px 0;
   font-size: 20px;
   line-height: 1;
@@ -755,17 +823,16 @@ a.feedSelectorLink.active {
 .zapPayer {
   display: flex;
   margin: 20px 0 20px 0;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-light);
   padding: 15px 10px;
   border-radius: 6px;
-  background: #ffffff;
+  background: var(--card-bg);
   align-items: center;
-  color: #636363;
+  color: var(--text-secondary);
   font-weight: 300;
   word-break: break-word;
   justify-content: space-between;
   column-gap: 9px;
-  color: #a9a9a9;
 }
 
 .zapPayerInner {
@@ -784,6 +851,7 @@ a.feedSelectorLink.active {
   text-align: center;
   font-weight: 600;
   margin-left: 10px;
+  color: var(--text-primary);
 }
 
 .noteActionsReactions {
@@ -838,8 +906,8 @@ a.feedSelectorLink.active {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #f5f5f5;
-  color: #666;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   text-decoration: none;
   transition: all 0.2s ease;
   border: none;
@@ -847,19 +915,19 @@ a.feedSelectorLink.active {
 }
 
 .noteAction:hover {
-  background: #e0e0e0;
-  color: #333;
+  background: var(--hover-bg);
+  color: var(--text-primary);
 }
 
 .noteAction.disabled {
-  background: #f5f5f5;
-  color: #ccc;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
   cursor: not-allowed;
 }
 
 .noteAction.disabled:hover {
-  background: #f5f5f5;
-  color: #ccc;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
 }
 
 .noteAction .material-symbols-outlined {
@@ -867,7 +935,7 @@ a.feedSelectorLink.active {
 }
 
 .noteAction .material-symbols-outlined.disabled {
-  color: #ccc;
+  color: var(--text-tertiary);
 }
 
 .material-symbols-outlined {
@@ -950,10 +1018,11 @@ button.cta:active {
 }
 
 .noteMainCTA.disabled {
-  border: 1px solid #e3e3e3;
-  color: #000000;
-  background: #d3d3d3;
+  border: 1px solid var(--border-light);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
   box-shadow: none;
+  opacity: 0.6;
 }
 
 .paynote .cta.disabled:hover {
@@ -990,7 +1059,7 @@ button.noteMainCTA.cta.disabled.red,
   width: 100vw;
   height: 100vh;
   z-index: 100000;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--overlay-bg);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   align-items: flex-start;
@@ -1338,7 +1407,7 @@ textarea:focus::placeholder {
 
 .dropdown-content {
   position: absolute;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  background: var(--card-bg);
   min-width: 260px;
   overflow: auto;
   box-shadow:
@@ -1358,11 +1427,11 @@ textarea:focus::placeholder {
   pointer-events: none;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-light);
 }
 
 .dropdown-content a {
-  color: #374151;
+  color: var(--text-primary);
   padding: 12px 16px;
   text-decoration: none;
   display: block;
@@ -1376,7 +1445,7 @@ textarea:focus::placeholder {
 }
 
 .dropdown-content a:hover {
-  background-color: rgba(74, 117, 255, 0.08);
+  background-color: var(--hover-bg);
   color: #4a75ff;
   transform: translateX(4px);
 }
@@ -1429,7 +1498,7 @@ textarea:focus::placeholder {
 .dropdown-content .cta + a {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid rgba(229, 231, 235, 0.5);
+  border-top: 1px solid var(--border-light);
 }
 
 .show {
@@ -1475,7 +1544,7 @@ textarea:focus::placeholder {
   width: 100%;
   height: 6px;
   border-radius: 6px;
-  background: #ddd;
+  background: var(--bg-tertiary);
   outline: none;
   -webkit-appearance: none;
   appearance: none;
@@ -1513,13 +1582,13 @@ textarea:focus::placeholder {
   appearance: none;
   width: 100%;
   height: 34px;
-  background: #f1f1f1;
+  background: var(--bg-tertiary);
   outline: none;
   opacity: 1;
   -webkit-transition: 0.2s;
   transition: opacity 0.2s;
   padding: 4px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-light);
   border-radius: 100px;
   box-shadow: inset #00000008 0px 2px 4px 0px;
 }
@@ -1529,7 +1598,7 @@ textarea:focus::placeholder {
 }
 
 .zapSlider::-webkit-slider-thumb {
-  border: 1px solid #ffffffba;
+  border: 1px solid rgba(255, 255, 255, 0.7);
   -webkit-appearance: none;
   appearance: none;
   width: 25px;
@@ -1537,7 +1606,7 @@ textarea:focus::placeholder {
   background: #4a75ff;
   cursor: pointer;
   border-radius: 400px;
-  box-shadow: #0000005c 0px 2px 5px;
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 2px 5px;
 }
 
 .zapSlider::-moz-range-thumb {
@@ -1833,15 +1902,15 @@ textarea:focus::placeholder {
   font-size: 28px;
   font-weight: 600;
   margin-bottom: 20px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .profileSection {
-  background-color: #f8f9fa;
+  background-color: var(--card-bg);
   padding: 20px;
   border-radius: 6px;
   margin-bottom: 30px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-light);
 }
 
 .profileUserInfo {
@@ -1852,8 +1921,8 @@ textarea:focus::placeholder {
 
 /* Profile Preview Styles */
 #profilePreview {
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   color: white;
   border-radius: 6px;
   padding: 0;
@@ -2085,7 +2154,7 @@ textarea:focus::placeholder {
 .profileDetailItem label {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   display: block;
   margin-bottom: 8px;
 }
@@ -2099,19 +2168,20 @@ textarea:focus::placeholder {
   width: 100%;
   padding: 8px 8px 8px 12px; 
   border-radius: 6px;
-  background-color: #f2f2f2;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   box-sizing: border-box;
 }
 
 .profileDetailValue code {
   font-size: 13px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-tertiary);
   padding: 10px 12px;
   border-radius: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-light);
   display: block;
   word-break: break-all;
-  color: #333;
+  color: var(--text-primary);
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   flex: 1;
   min-width: 200px;
@@ -2225,10 +2295,10 @@ textarea:focus::placeholder {
 }
 
 .profileStatCard {
-  background-color: #fff;
+  background-color: var(--card-bg);
   padding: 20px;
   border-radius: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-light);
   text-align: center;
 }
 
@@ -2241,7 +2311,7 @@ textarea:focus::placeholder {
 
 .profileStatLabel {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .profileSettingsSection {
@@ -2252,14 +2322,14 @@ textarea:focus::placeholder {
   font-size: 22px;
   font-weight: 600;
   margin-bottom: 15px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .profileSettingsCard {
-  background-color: #fff;
+  background-color: var(--card-bg);
   padding: 20px;
   border-radius: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-light);
 }
 
 .profileFormField {
@@ -2269,7 +2339,7 @@ textarea:focus::placeholder {
 .profileFormField label {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   display: block;
   margin-bottom: 5px;
 }
@@ -2277,11 +2347,12 @@ textarea:focus::placeholder {
 .profileFormInput {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
-  background: #fff;
+  background: var(--input-bg);
+  color: var(--text-primary);
   transition: all 0.2s ease;
   outline: none;
   box-sizing: border-box;
@@ -2290,21 +2361,22 @@ textarea:focus::placeholder {
 .profileFormInput:focus {
   border-color: #4a75ff;
   box-shadow: 0 0 0 3px rgba(74, 117, 255, 0.1);
-  background: #fafbff;
+  background: var(--bg-secondary);
 }
 
 .profileFormInput:hover {
-  border-color: #d1d5db;
+  border-color: var(--border-color);
 }
 
 .profileFormTextarea {
   width: 100%;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-light);
   border-radius: 6px;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
-  background: #fff;
+  background: var(--input-bg);
+  color: var(--text-primary);
   transition: all 0.2s ease;
   outline: none;
   box-sizing: border-box;
@@ -2315,11 +2387,11 @@ textarea:focus::placeholder {
 .profileFormTextarea:focus {
   border-color: #4a75ff;
   box-shadow: 0 0 0 3px rgba(74, 117, 255, 0.1);
-  background: #fafbff;
+  background: var(--bg-secondary);
 }
 
 .profileFormTextarea:hover {
-  border-color: #d1d5db;
+  border-color: var(--border-color);
 }
 
 .profileSaveButton {
@@ -2779,7 +2851,7 @@ textarea:focus::placeholder {
 .featureBlock {
   margin-bottom: 32px;
   padding-bottom: 32px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .featureBlockLast {
@@ -2887,6 +2959,7 @@ textarea:focus::placeholder {
   font-weight: 600;
   margin-bottom: 12px;
   letter-spacing: -0.3px;
+  color:#fff;
 }
 
 .ctaSubtitle {
@@ -2894,6 +2967,7 @@ textarea:focus::placeholder {
   margin-bottom: 32px;
   opacity: 0.95;
   line-height: 1.6;
+  color:#fff;
 }
 
 .ctaButton {
@@ -3016,15 +3090,15 @@ textarea:focus::placeholder {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-secondary);
   border-radius: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-light);
 }
 
 .relayUrl {
   font-family: monospace;
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
   word-break: break-all;
   flex: 1;
 }
@@ -3056,10 +3130,12 @@ textarea:focus::placeholder {
   flex: 1;
   padding: 12px 16px;
   font-size: 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   outline: none;
   font-family: monospace;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
 }
 
 .addButton {
@@ -3085,4 +3161,103 @@ textarea:focus::placeholder {
 
 .descriptionSmall {
   margin-bottom: 12px;
+}
+
+/* Dark Mode Support for Common Elements */
+.featureTitle {
+  color: var(--text-primary);
+}
+
+.featureDescription {
+  color: var(--text-secondary);
+}
+
+.aboutSectionTitle,
+.aboutSectionTitleLarge,
+.aboutSectionTitleAlt {
+  color: var(--text-primary);
+}
+
+.aboutHeroTitle {
+  color: #4a75ff;
+}
+
+.aboutHeroSubtitle {
+  color: var(--text-secondary);
+}
+
+.useCaseCard {
+  background: var(--card-bg);
+  border: 1px solid var(--border-light);
+}
+
+.useCaseDescription {
+  color: var(--text-secondary);
+}
+
+.gettingStartedList {
+  color: var(--text-secondary);
+}
+
+.aboutFooter {
+  border-top: 1px solid var(--border-light);
+}
+
+.aboutFooterText {
+  color: var(--text-tertiary);
+}
+
+.comingSoonText {
+  color: var(--text-tertiary);
+}
+
+/* Additional dark mode support */
+.label {
+  color: var(--text-secondary);
+}
+
+.brand {
+  color: var(--text-primary);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+}
+
+p {
+  color: var(--text-primary);
+}
+
+.cta {
+  transition: all 0.2s ease;
+}
+
+#customZapInput {
+  background: var(--input-bg);
+  border: 2px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+body.dark-mode .paynote .cta {
+  border: #b2c4ff26 1px solid;
+}
+
+body.dark-mode .profileCopyButton {
+  background-color: #292929;
+  color: #999999;
+  border: 1px solid #363636;
+}
+
+body.dark-mode .profileCopyButton:hover {
+  background-color: #333333;
+  border-color: #444444;
+  color: #b8b8b8;
+}
+
+body.dark-mode .profileDetails {
+  border-top: 1px solid #e9ecef26;
+}
+
+body.dark-mode .profilePublicKey {
+  color: #ffffff;
 }
