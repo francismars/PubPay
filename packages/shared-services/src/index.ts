@@ -37,3 +37,4 @@ export * from './services/storage/SessionStorage';
 
 // Export Zap services
 export * from './services/zap/ZapService';
+export * from './services/nwc';

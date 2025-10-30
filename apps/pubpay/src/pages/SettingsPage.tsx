@@ -9,6 +9,9 @@ const SettingsPage: React.FC = () => {
     'wss://relay.snort.social'
   ]);
   const [newRelay, setNewRelay] = useState('');
+  const [nwcUri, setNwcUri] = useState('');
+  const [nwcValidating, setNwcValidating] = useState<boolean>(false);
+  const [nwcButtonLabel, setNwcButtonLabel] = useState<string>('Save');
 
   useEffect(() => {
     // Load dark mode preference from localStorage
@@ -29,6 +32,10 @@ const SettingsPage: React.FC = () => {
         console.error('Failed to load relays:', e);
       }
     }
+
+    // Load NWC connection string
+    const savedNwc = localStorage.getItem('nwcConnectionString');
+    if (savedNwc) setNwcUri(savedNwc);
   }, []);
 
   const handleDarkModeToggle = () => {
@@ -57,6 +64,39 @@ const SettingsPage: React.FC = () => {
     const updatedRelays = relays.filter(relay => relay !== relayToRemove);
     setRelays(updatedRelays);
     localStorage.setItem('customRelays', JSON.stringify(updatedRelays));
+  };
+
+  const handleSaveNwc = () => {
+    // reset button label
+    setNwcButtonLabel('Save');
+    if (!nwcUri) {
+      localStorage.removeItem('nwcConnectionString');
+      setNwcButtonLabel('Cleared');
+      setTimeout(() => setNwcButtonLabel('Save'), 1500);
+      return;
+    }
+    (async () => {
+      try {
+        setNwcValidating(true);
+        setNwcButtonLabel('Validating...');
+        // Basic format check
+        if (!nwcUri.startsWith('nostr+walletconnect://') && !nwcUri.startsWith('nostrnwc://')) {
+          throw new Error('Invalid NWC URI scheme');
+        }
+        const { NwcClient } = await import('@pubpay/shared-services');
+        const ok = await NwcClient.validate(nwcUri);
+        if (!ok) throw new Error('Could not fetch NWC info from the relay');
+        localStorage.setItem('nwcConnectionString', nwcUri);
+        setNwcButtonLabel('Validated!');
+        setTimeout(() => setNwcButtonLabel('Save'), 1500);
+      } catch (e) {
+        console.error('NWC validation failed:', e);
+        setNwcButtonLabel('Failed');
+        setTimeout(() => setNwcButtonLabel('Save'), 2000);
+      } finally {
+        setNwcValidating(false);
+      }
+    })();
   };
 
   return (
@@ -145,6 +185,34 @@ const SettingsPage: React.FC = () => {
                 </button>
               </div>
             </div>
+
+        <div className="featureBlock">
+          <h3 className="featureTitle">Nostr Wallet Connect (NWC)</h3>
+          <p className="featureDescription descriptionWithMargin">
+            Paste your NWC connection URI to pay zaps directly via your wallet.
+          </p>
+          <div className="addRelayContainer">
+            <input
+              type="text"
+              value={nwcUri}
+              onChange={(e) => setNwcUri(e.target.value)}
+              placeholder="nostr+walletconnect://..."
+              className="relayInput"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleSaveNwc();
+                }
+              }}
+            />
+            <button
+              onClick={handleSaveNwc}
+              className="addButton"
+              disabled={nwcValidating}
+            >
+              {nwcButtonLabel}
+            </button>
+          </div>
+        </div>
           </section>
         </div>
       </div>

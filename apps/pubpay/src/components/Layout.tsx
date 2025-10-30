@@ -11,6 +11,8 @@ import { NewPayNoteOverlay } from './NewPayNoteOverlay';
 export const Layout: React.FC = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const showLoginForm = useUIStore(s => s.loginForm.show);
+  const showProcessing = (useUIStore as any)((s: any) => s.processingOverlay.show);
+  const processingMessage = (useUIStore as any)((s: any) => s.processingOverlay.message);
   const [showLoggedInForm, setShowLoggedInForm] = useState(false);
   const showInvoiceOverlay = useUIStore(s => s.invoiceOverlay.show);
   const [showNewPayNoteForm, setShowNewPayNoteForm] = useState(false);
@@ -951,6 +953,26 @@ export const Layout: React.FC = () => {
           >
             Close
           </a>
+        </div>
+      </div>
+
+      {/* Processing Overlay */}
+      <div
+        className="overlayContainer"
+        id="processingOverlay"
+        style={{ display: showProcessing ? 'flex' : 'none' }}
+      >
+        <div className="overlayInner">
+          <div className="brand">
+            PUB<span className="logoPay">PAY</span>
+            <span className="logoMe">.me</span>
+          </div>
+          <p className="label" style={{ fontSize: '18px', fontWeight: 'bold', color: '#4a75ff' }}>
+            {processingMessage || 'Processing payment...'}
+          </p>
+          <div className="formFieldGroup" style={{ justifyContent: 'center', padding: '24px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '48px', animation: 'spin 1.2s linear infinite' }}>progress_activity</span>
+          </div>
         </div>
       </div>
 

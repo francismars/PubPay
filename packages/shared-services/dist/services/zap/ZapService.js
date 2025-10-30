@@ -217,7 +217,33 @@ export class ZapService {
             invoice: `${invoice.substring(0, 50)}...`,
             zapEventID
         });
-        // Open invoice overlay via UI store
+        // If NWC is configured, pay via NWC and do not open invoice overlay
+        try {
+            const nwcUri = (typeof localStorage !== 'undefined' && localStorage.getItem('nwcConnectionString')) ||
+                (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('nwcConnectionString'));
+            if (nwcUri) {
+                const { NwcClient } = await import('../nwc/NwcClient');
+                const client = new NwcClient(nwcUri);
+                // Fire-and-forget; don't show overlays, don't fallback
+                client
+                    .payInvoice(invoice)
+                    .then(resp => {
+                    if (!resp.error && resp.result) {
+                        console.log('Paid via NWC. Preimage:', resp.result.preimage);
+                    }
+                    else {
+                        console.warn('NWC payment error:', resp.error);
+                    }
+                })
+                    .catch(err => console.warn('NWC payment exception:', err));
+                return;
+            }
+        }
+        catch (e) {
+            console.warn('NWC flow error:', e);
+            return; // Do not fallback to invoice overlay when NWC is configured
+        }
+        // Fallback only when no NWC configuration is present
         try {
             const { useUIStore } = await import('../state/uiStore');
             useUIStore
