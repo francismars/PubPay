@@ -132,9 +132,12 @@ export class RoomsService {
         // - If there is an active slot and it has 0 or 1 item, the next switch is the slot end
         // - If there are multiple items, the next rotation tick occurs at the next interval,
         //   but it should never exceed the slot end (cap to slot end)
-        const nextRotationTick = new Date(
-            Math.floor(now.getTime() / 1000 / intervalSec) * intervalSec * 1000 + intervalSec * 1000
-        );
+        // Next rotation tick should be relative to the active slot start (or now when no slot)
+        const anchor = activeSlot ? new Date(activeSlot.startAt) : now;
+        const elapsedSec = Math.max(0, Math.floor((now.getTime() - anchor.getTime()) / 1000));
+        const ticksPassed = Math.floor(elapsedSec / intervalSec);
+        const nextTickSec = (ticksPassed + 1) * intervalSec;
+        const nextRotationTick = new Date(anchor.getTime() + nextTickSec * 1000);
         let nextSwitchDate: Date;
         if (activeSlot) {
             const slotEnd = new Date(activeSlot.endAt);
