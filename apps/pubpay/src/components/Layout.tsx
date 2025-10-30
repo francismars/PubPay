@@ -154,6 +154,8 @@ export const Layout: React.FC = () => {
       sideNav.classList.remove('open');
       hamburger.classList.remove('open');
     }
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Handler for opening new pay note form
@@ -231,6 +233,14 @@ export const Layout: React.FC = () => {
   useEffect(() => {
     setExtensionAvailable(true);
     setExternalSignerAvailable(true);
+  }, []);
+
+  // Initialize dark mode on mount
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (savedDarkMode) {
+      document.body.classList.add('dark-mode');
+    }
   }, []);
 
   // Handle return from external signer
@@ -381,8 +391,8 @@ export const Layout: React.FC = () => {
               <span></span>
             </button>
             <Link id="logo" to="/">
-              PUB<span style={{ color: '#000' }}>PAY</span>
-              <span style={{ color: '#0000001c' }}>.me</span>
+              PUB<span className="logoPay">PAY</span>
+              <span className="logoMe">.me</span>
               <span className="version">alpha 0.02</span>
             </Link>
           </div>
@@ -429,14 +439,7 @@ export const Layout: React.FC = () => {
                     }
                     alt="Profile"
                   />
-                  <span
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#333'
-                    }}
-                    className="profileUserNameNav"
-                  >
+                  <span className="profileUserNameNav">
                     {authState.displayName ||
                       (typeof window !== 'undefined' &&
                       (window as any).NostrTools
@@ -596,8 +599,8 @@ export const Layout: React.FC = () => {
       >
         <div className="overlayInner">
           <div className="brand">
-            PUB<span style={{ color: '#cecece' }}>PAY</span>
-            <span style={{ color: '#00000014' }}>.me</span>
+            PUB<span className="logoPay">PAY</span>
+            <span className="logoMe">.me</span>
           </div>
           <p className="label" id="titleScanner">
             Scan note1 or nevent1 QR code
@@ -625,8 +628,8 @@ export const Layout: React.FC = () => {
       >
         <div className="overlayInner">
           <div className="brand">
-            PUB<span style={{ color: '#cecece' }}>PAY</span>
-            <span style={{ color: '#00000014' }}>.me</span>
+            PUB<span className="logoPay">PAY</span>
+            <span className="logoMe">.me</span>
           </div>
           <p className="label" id="titleSignin">
             Choose Sign-in Method
@@ -793,8 +796,8 @@ export const Layout: React.FC = () => {
       >
         <div className="overlayInner">
           <div className="brand">
-            PUB<span style={{ color: '#cecece' }}>PAY</span>
-            <span style={{ color: '#00000014' }}>.me</span>
+            PUB<span className="logoPay">PAY</span>
+            <span className="logoMe">.me</span>
           </div>
           <p className="label">You are logged in as:</p>
           <p id="loggedInPublicKey">
@@ -838,8 +841,8 @@ export const Layout: React.FC = () => {
       >
         <div className="overlayInner">
           <div className="brand">
-            PUB<span style={{ color: '#cecece' }}>PAY</span>
-            <span style={{ color: '#00000014' }}>.me</span>
+            PUB<span className="logoPay">PAY</span>
+            <span className="logoMe">.me</span>
           </div>
           <p id="qrcodeTitle" className="label">
             Scan Invoice to Pay Zap

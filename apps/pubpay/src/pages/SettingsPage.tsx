@@ -15,6 +15,11 @@ const SettingsPage: React.FC = () => {
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
     setDarkMode(savedDarkMode);
     
+    // Apply dark mode class on mount
+    if (savedDarkMode) {
+      document.body.classList.add('dark-mode');
+    }
+    
     // Load relays from localStorage
     const savedRelays = localStorage.getItem('customRelays');
     if (savedRelays) {
@@ -30,7 +35,13 @@ const SettingsPage: React.FC = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
     localStorage.setItem('darkMode', String(newDarkMode));
-    // TODO: Apply dark mode to the app
+    
+    // Apply or remove dark mode class
+    if (newDarkMode) {
+      document.body.classList.add('dark-mode');
+    } else {
+      document.body.classList.remove('dark-mode');
+    }
   };
 
   const handleAddRelay = () => {
@@ -78,7 +89,7 @@ const SettingsPage: React.FC = () => {
                 </label>
               </div>
               <p className="featureDescription comingSoonText">
-                Dark mode coming soon
+                Toggle dark mode on/off
               </p>
             </div>
           </section>
