@@ -247,60 +247,7 @@ export const Layout: React.FC = () => {
     }
   }, []);
 
-  // Handle return from external signer
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        // Wait for page to have focus
-        while (!document.hasFocus()) {
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
-        const signInData = JSON.parse(
-          sessionStorage.getItem('signIn') || 'null'
-        );
-        if (signInData && signInData.rememberMe !== undefined) {
-          sessionStorage.removeItem('signIn');
-
-          try {
-            // Get the public key from clipboard (external signer puts it there)
-            const npub = await navigator.clipboard.readText();
-            const decodedNPUB = NostrTools.nip19.decode(npub);
-            const pubKey = decodedNPUB.data as string;
-
-            // Store authentication data
-            if (signInData.rememberMe === true) {
-              localStorage.setItem('publicKey', pubKey);
-              localStorage.setItem('signInMethod', 'externalSigner');
-            } else {
-              sessionStorage.setItem('publicKey', pubKey);
-              sessionStorage.setItem('signInMethod', 'externalSigner');
-            }
-
-            // Reset button state
-            setExternalSignerLoading(false);
-            setExternalSignerAvailable(true);
-
-            // Close login form
-            closeLogin();
-
-            // Reload the page to trigger authentication
-            window.location.reload();
-          } catch (error) {
-            console.error('Failed to process external signer return:', error);
-            setExternalSignerLoading(false);
-            setExternalSignerAvailable(false);
-          }
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, []);
+  // External signer return is handled centrally in useHomeFunctionality
 
   // Initialize QR scanner when overlay opens
   useEffect(() => {
