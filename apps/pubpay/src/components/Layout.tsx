@@ -520,17 +520,14 @@ export const Layout: React.FC = () => {
               >
                 Messages
               </a>
-              <a
-                href="javascript:void(0)"
-                className="sideNavLink disabled"
-                title="coming soon"
-                onClick={(e) => {
-                  e.preventDefault();
-                  closeMobileMenu();
-                }}
+              <Link
+                to="/settings"
+                className="sideNavLink"
+                title="Settings"
+                onClick={closeMobileMenu}
               >
                 Settings
-              </a>
+              </Link>
               <a href="/live" className="sideNavLink " title="PubPay Live" onClick={closeMobileMenu}>
                 Live
               </a>
