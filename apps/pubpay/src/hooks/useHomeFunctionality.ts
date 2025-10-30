@@ -108,8 +108,18 @@ export const useHomeFunctionality = () => {
 
     const initializeServices = () => {
       try {
-        // Initialize Nostr client
-        nostrClientRef.current = new NostrClient();
+        // Initialize Nostr client with user custom relays if present
+        let initialRelays: string[] | undefined = undefined;
+        try {
+          const savedRelays = localStorage.getItem('customRelays');
+          if (savedRelays) {
+            const parsed = JSON.parse(savedRelays);
+            if (Array.isArray(parsed) && parsed.every(r => typeof r === 'string')) {
+              initialRelays = parsed;
+            }
+          }
+        } catch {}
+        nostrClientRef.current = new NostrClient(initialRelays);
 
         // Initialize Lightning service
         const lightningConfig: LightningConfig = {
@@ -143,6 +153,21 @@ export const useHomeFunctionality = () => {
     };
 
     initializeServices();
+
+    // Listen for relay updates from Settings and re-init Nostr client
+    const handleRelaysUpdated = (e: Event) => {
+      try {
+        const detail = (e as CustomEvent).detail as { relays?: string[] } | undefined;
+        const nextRelays = detail && Array.isArray(detail.relays) ? detail.relays : undefined;
+        nostrClientRef.current = new NostrClient(nextRelays);
+        console.log('Nostr client reinitialized with relays:', nextRelays);
+      } catch {}
+    };
+    window.addEventListener('relaysUpdated', handleRelaysUpdated as EventListener);
+
+    return () => {
+      window.removeEventListener('relaysUpdated', handleRelaysUpdated as EventListener);
+    };
   }, []);
 
   // Track pathname changes to reload posts when exiting single note mode
