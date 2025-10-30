@@ -13,6 +13,8 @@ export const Layout: React.FC = () => {
   const showLoginForm = useUIStore(s => s.loginForm.show);
   const showProcessing = (useUIStore as any)((s: any) => s.processingOverlay.show);
   const processingMessage = (useUIStore as any)((s: any) => s.processingOverlay.message);
+  const statusToast = (useUIStore as any)((s: any) => s.statusToast);
+  const closeToast = (useUIStore as any)((s: any) => s.closeToast);
   const [showLoggedInForm, setShowLoggedInForm] = useState(false);
   const showInvoiceOverlay = useUIStore(s => s.invoiceOverlay.show);
   const [showNewPayNoteForm, setShowNewPayNoteForm] = useState(false);
@@ -975,6 +977,68 @@ export const Layout: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Non-blocking Status Toast */}
+      {statusToast?.show && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '16px',
+            right: '16px',
+            zIndex: 100000,
+            maxWidth: '320px',
+            background: '#111827',
+            color: '#e5e7eb',
+            borderRadius: '10px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            padding: '10px 12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            pointerEvents: 'auto'
+          }}
+          role="status"
+          aria-live="polite"
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{
+              fontSize: '20px',
+              color:
+                statusToast.variant === 'success'
+                  ? '#10b981'
+                  : statusToast.variant === 'error'
+                  ? '#ef4444'
+                  : '#60a5fa',
+              animation:
+                statusToast.variant === 'loading'
+                  ? 'spin 1.2s linear infinite'
+                  : 'none'
+            }}
+          >
+            {statusToast.variant === 'success'
+              ? 'check_circle'
+              : statusToast.variant === 'error'
+              ? 'error'
+              : 'progress_activity'}
+          </span>
+          <div style={{ flex: 1, fontSize: '13px' }}>{statusToast.message}</div>
+          <button
+            onClick={() => closeToast()}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#9ca3af',
+              cursor: 'pointer',
+              padding: 0
+            }}
+            aria-label="Dismiss"
+            title="Dismiss"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      )}
 
       {/* New Pay Note Overlay */}
       <NewPayNoteOverlay

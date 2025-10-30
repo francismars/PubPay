@@ -22,6 +22,7 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 	const [timeOffset, setTimeOffset] = useState<number>(0); // Pan offset in milliseconds
 	const [zoomLevel, setZoomLevel] = useState<number>(1.0); // Zoom multiplier (1.0 = normal, 2.0 = 2x zoom, 0.5 = zoomed out)
 	const [newItemRefs, setNewItemRefs] = useState<Record<number, string>>({});
+	const [snapMinutes, setSnapMinutes] = useState<number>(5); // Snap-to grid in minutes (0 = off)
 	const timelineRef = useRef<HTMLDivElement>(null);
 	const timelineScrollRef = useRef<HTMLDivElement>(null);
 	const [panning, setPanning] = useState(false);
@@ -150,6 +151,13 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 		return ((end - start) / timeRange) * 100;
 	};
 
+	// Snap helper
+	const snapTime = useCallback((timeMs: number) => {
+		if (!snapMinutes || snapMinutes <= 0) return timeMs;
+		const intervalMs = snapMinutes * 60 * 1000;
+		return Math.round(timeMs / intervalMs) * intervalMs;
+	}, [snapMinutes]);
+
 	const insertCurrentTime = (isStart: boolean) => {
 		const now = new Date();
 		const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
@@ -218,20 +226,23 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 			const timeDelta = deltaX * timePerPixel;
 
 			if (dragging.type === 'start') {
-				const newStart = dragging.initialSlotStart + timeDelta;
+				let newStart = dragging.initialSlotStart + timeDelta;
+				newStart = snapTime(newStart);
 				const endTime = dragging.initialSlotEnd;
 				if (newStart < endTime - 60000 && newStart >= minTime) { // min 1 minute
 					updateSlot(dragging.slotIndex, { startAt: new Date(newStart).toISOString() });
 				}
 			} else if (dragging.type === 'end') {
-				const newEnd = dragging.initialSlotEnd + timeDelta;
+				let newEnd = dragging.initialSlotEnd + timeDelta;
+				newEnd = snapTime(newEnd);
 				const startTime = dragging.initialSlotStart;
 				if (newEnd > startTime + 60000 && newEnd <= maxTime) { // min 1 minute
 					updateSlot(dragging.slotIndex, { endAt: new Date(newEnd).toISOString() });
 				}
 			} else if (dragging.type === 'move') {
 				const duration = dragging.initialSlotEnd - dragging.initialSlotStart;
-				const newStart = dragging.initialSlotStart + timeDelta;
+				let newStart = dragging.initialSlotStart + timeDelta;
+				newStart = snapTime(newStart);
 				const newEnd = newStart + duration;
 				if (newStart >= minTime && newEnd <= maxTime) {
 					updateSlot(dragging.slotIndex, {
@@ -239,6 +250,18 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 						endAt: new Date(newEnd).toISOString()
 					});
 				}
+			}
+
+			// Auto-pan when dragging near edges
+			const edgeThreshold = 30; // px
+			if (e.clientX - rect.left < edgeThreshold) {
+				const base = getBaseTimeRange();
+				const panAmount = (base.max - base.min) / (zoomLevel * 200); // gentle
+				setTimeOffset(prev => prev - panAmount);
+			} else if (rect.right - e.clientX < edgeThreshold) {
+				const base = getBaseTimeRange();
+				const panAmount = (base.max - base.min) / (zoomLevel * 200);
+				setTimeOffset(prev => prev + panAmount);
 			}
 		};
 
@@ -270,6 +293,26 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 			window.removeEventListener('mouseup', handleMouseUp);
 		};
 	}, [dragging, dragStart, slots, minTime, maxTime, timeRange, updateSlot]);
+
+	// Keyboard nudge for selected slot when editing panel is open
+	useEffect(() => {
+		const handleKey = (e: KeyboardEvent) => {
+			if (editingSlot === null) return;
+			const slot = slots[editingSlot];
+			if (!slot) return;
+			const stepMinutes = e.shiftKey ? 15 : 1;
+			const delta = (e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0) * stepMinutes * 60 * 1000;
+			if (!delta) return;
+			e.preventDefault();
+			const start = new Date(slot.startAt).getTime() + delta;
+			const end = new Date(slot.endAt).getTime() + delta;
+			if (start >= minTime && end <= maxTime) {
+				updateSlot(editingSlot, { startAt: new Date(start).toISOString(), endAt: new Date(end).toISOString() });
+			}
+		};
+		document.addEventListener('keydown', handleKey);
+		return () => document.removeEventListener('keydown', handleKey);
+	}, [editingSlot, slots, minTime, maxTime, updateSlot]);
 
 	// Click outside to close edit overlay
 	useEffect(() => {
@@ -444,6 +487,18 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 						<button onClick={zoomIn} title="Zoom in" style={{ fontSize: '0.9em', padding: '4px 8px', border: 'none', background: 'transparent', cursor: 'pointer' }}>➕</button>
 						<button onClick={resetZoom} title="Reset zoom & pan" style={{ fontSize: '0.75em', padding: '4px 6px', marginLeft: 4, border: 'none', background: 'transparent', cursor: 'pointer' }}>🔄</button>
 					</div>
+				{/* Snap controls */}
+				<div style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '2px 8px', background: '#f0f0f0', borderRadius: 4 }}>
+					<span style={{ fontSize: '0.75em', color: '#666' }}>Snap</span>
+					<select value={snapMinutes} onChange={e => setSnapMinutes(parseInt(e.target.value, 10))} style={{ fontSize: '0.85em' }}>
+						<option value={0}>Off</option>
+						<option value={1}>1m</option>
+						<option value={5}>5m</option>
+						<option value={15}>15m</option>
+						<option value={30}>30m</option>
+						<option value={60}>1h</option>
+					</select>
+				</div>
 					{/* Pan controls */}
 					<div style={{ display: 'flex', gap: 2, alignItems: 'center', padding: '2px 8px', background: '#f0f0f0', borderRadius: 4 }}>
 						<button onClick={panLeft} title="Pan left (Shift+Wheel)" style={{ fontSize: '0.9em', padding: '4px 8px', border: 'none', background: 'transparent', cursor: 'pointer' }}>◀</button>
@@ -460,7 +515,7 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 				</div>
 			</div>
 			<div style={{ fontSize: '0.75em', color: '#666', marginBottom: 8 }}>
-				💡 Ctrl+Wheel = Zoom | Shift+Wheel = Pan | Drag background = Pan | Scroll timeline = Vertical scroll
+				💡 Ctrl+Wheel = Zoom | Shift+Wheel = Pan | Drag background = Pan | Arrows = Nudge (Shift=15m) | Snap editable
 			</div>
 
 			{/* Templates */}

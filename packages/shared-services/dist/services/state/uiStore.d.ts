@@ -10,6 +10,12 @@ type UIState = {
         show: boolean;
         message: string;
     };
+    statusToast: {
+        show: boolean;
+        message: string;
+        variant: 'info' | 'loading' | 'success' | 'error';
+        persist: boolean;
+    };
     loginForm: {
         show: boolean;
     };
@@ -24,6 +30,9 @@ type UIState = {
     closeInvoice: () => void;
     openProcessing: (message?: string) => void;
     closeProcessing: () => void;
+    openToast: (message: string, variant?: 'info' | 'loading' | 'success' | 'error', persist?: boolean) => void;
+    updateToast: (message: string, variant?: 'info' | 'loading' | 'success' | 'error', persist?: boolean) => void;
+    closeToast: () => void;
     openLogin: () => void;
     closeLogin: () => void;
     openNewPayNote: () => void;

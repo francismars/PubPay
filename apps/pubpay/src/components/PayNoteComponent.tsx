@@ -4,6 +4,7 @@ import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../assets/images';
 import * as NostrTools from 'nostr-tools';
 import { formatContent } from '../utils/contentFormatter';
+import { useUIStore } from '@pubpay/shared-services';
 
 // Define ProcessedZap interface locally since it's not exported
 interface ProcessedZap {
@@ -48,6 +49,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const [showZapMenu, setShowZapMenu] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
     const [customZapAmount, setCustomZapAmount] = useState('');
+    const [isPaying, setIsPaying] = useState(false);
+    const [isAnonPaying, setIsAnonPaying] = useState(false);
     const [heroZaps, setHeroZaps] = useState<ProcessedZap[]>([]);
     const [overflowZaps, setOverflowZaps] = useState<ProcessedZap[]>([]);
     const [formattedContent, setFormattedContent] = useState<string>('');
@@ -154,26 +157,56 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     };
 
     // Handle custom zap
-    const handleCustomZap = () => {
+    const handleCustomZap = async () => {
       if (!isLoggedIn) {
         return; // Require login for non-anonymous zaps
       }
       const amount = parseInt(customZapAmount);
       if (amount > 0) {
-        onPay(post, amount);
-        setShowZapMenu(false);
-        setCustomZapAmount('');
+        try {
+          setIsPaying(true);
+          const hasNwc =
+            (typeof localStorage !== 'undefined' &&
+              localStorage.getItem('nwcConnectionString')) ||
+            (typeof sessionStorage !== 'undefined' &&
+              sessionStorage.getItem('nwcConnectionString'));
+          if (hasNwc) {
+            useUIStore.getState().openToast('Preparing payment…', 'loading', true);
+          } else {
+            useUIStore.getState().openToast('Preparing invoice…', 'loading', false);
+            setTimeout(() => {
+              try {
+                useUIStore.getState().closeToast();
+              } catch {}
+            }, 800);
+          }
+          await onPay(post, amount);
+        } finally {
+          setIsPaying(false);
+          setShowZapMenu(false);
+          setCustomZapAmount('');
+        }
       }
     };
 
     // Handle anonymous zap from custom menu
-    const handleAnonZap = () => {
+    const handleAnonZap = async () => {
       const amount = parseInt(customZapAmount);
       if (amount > 0) {
-        // Call anonymous zap handler
-        onPayAnonymously(post, amount);
-        setShowZapMenu(false);
-        setCustomZapAmount('');
+        try {
+          setIsAnonPaying(true);
+          useUIStore.getState().openToast('Preparing anonymous zap…', 'loading', false);
+          setTimeout(() => {
+            try {
+              useUIStore.getState().closeToast();
+            } catch {}
+          }, 800);
+          await onPayAnonymously(post, amount);
+        } finally {
+          setIsAnonPaying(false);
+          setShowZapMenu(false);
+          setCustomZapAmount('');
+        }
       }
     };
 
@@ -563,14 +596,34 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             <div className="noteCTA">
               <button
                 className={`noteMainCTA cta ${!isPayable || !isLoggedIn || isReply ? 'disabled' : ''}`}
-                onClick={() => {
+                onClick={async () => {
                   // Early return if disabled
                   if (!isPayable || !isLoggedIn || isReply) {
                     return;
                   }
-                  onPay(post, zapAmount);
+                  try {
+                    setIsPaying(true);
+                    const hasNwc =
+                      (typeof localStorage !== 'undefined' &&
+                        localStorage.getItem('nwcConnectionString')) ||
+                      (typeof sessionStorage !== 'undefined' &&
+                        sessionStorage.getItem('nwcConnectionString'));
+                    if (hasNwc) {
+                      useUIStore.getState().openToast('Preparing payment…', 'loading', true);
+                    } else {
+                      useUIStore.getState().openToast('Preparing invoice…', 'loading', false);
+                      setTimeout(() => {
+                        try {
+                          useUIStore.getState().closeToast();
+                        } catch {}
+                      }, 800);
+                    }
+                    await onPay(post, zapAmount);
+                  } finally {
+                    setIsPaying(false);
+                  }
                 }}
-                disabled={!isPayable || !isLoggedIn || isReply}
+                disabled={!isPayable || !isLoggedIn || isReply || isPaying}
                 title={
                   isReply
                     ? 'Cannot pay replies'
@@ -583,7 +636,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     : ''
                 }
               >
-                {post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
+                {isPaying
+                  ? 'Paying…'
+                  : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
                   ? 'Paid'
                   : !isPayable || isReply
                   ? 'Not Payable'
@@ -651,24 +706,26 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     />
                     <button
                       id="customZapButton"
-                      onClick={e => {
+                      onClick={async e => {
                         e.stopPropagation();
-                        handleCustomZap();
+                        await handleCustomZap();
                       }}
-                      disabled={!isLoggedIn}
-                      style={{ opacity: !isLoggedIn ? 0.5 : 1 }}
+                      disabled={!isLoggedIn || isPaying}
+                      style={{ opacity: !isLoggedIn || isPaying ? 0.5 : 1 }}
                       title={!isLoggedIn ? 'Please sign in to zap' : ''}
                     >
-                      Zap
+                      {isPaying ? 'Zapping…' : 'Zap'}
                     </button>
                     <button
                       id="customAnonZapButton"
-                      onClick={e => {
+                      onClick={async e => {
                         e.stopPropagation();
-                        handleAnonZap();
+                        await handleAnonZap();
                       }}
+                      disabled={isAnonPaying}
+                      style={{ opacity: isAnonPaying ? 0.5 : 1 }}
                     >
-                      anonZap
+                      {isAnonPaying ? 'anon…' : 'anonZap'}
                     </button>
                   </div>
                 </div>
