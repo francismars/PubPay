@@ -26,6 +26,29 @@ export const RoomAdminPage: React.FC = () => {
 	const [success, setSuccess] = useState<string | null>(null);
 	const [editorMode, setEditorMode] = useState<'json' | 'timeline'>('timeline');
 
+	const importFromPretalx = useCallback(async () => {
+		if (!createdRoomId) return;
+		setBusy(true); setError(null); setSuccess(null);
+		try {
+			const res = await fetch(`${API_BASE}/rooms/${createdRoomId}/import/pretalx`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({}) // rely on backend env PRETALX_* unless overridden
+			});
+			const json = await res.json();
+			if (!res.ok || !json?.success) throw new Error(json?.error || 'Import failed');
+			setSuccess(`Imported ${json.data?.imported ?? 0} slots from Pretalx.`);
+			// Fetch and show the new schedule
+			const roomRes = await fetch(`${API_BASE}/rooms/${createdRoomId}`);
+			const roomJson = await roomRes.json();
+			if (roomJson?.success && roomJson?.data?.schedule) {
+				setScheduleJson(JSON.stringify(roomJson.data.schedule, null, 2));
+			}
+		} catch (e: unknown) {
+			setError(e instanceof Error ? e.message : 'Import error');
+		} finally { setBusy(false); }
+	}, [createdRoomId]);
+
 	// Parse slots from JSON and sync
 	const parsedSlots = useMemo<Slot[]>(() => {
 		try {
@@ -242,7 +265,8 @@ export const RoomAdminPage: React.FC = () => {
 					) : (
 						<>
 							<button onClick={saveSettings} disabled={busy}>Save settings</button>
-							<button onClick={() => navigate(`/room/${createdRoomId}`)}>Open viewer</button>
+						<button onClick={() => window.open(`/room/${createdRoomId}`, '_blank')}>Open viewer</button>
+						<button onClick={importFromPretalx} disabled={busy} title="Import schedule from Pretalx using backend env settings">Import from Pretalx</button>
 							<button onClick={copyRoomId} style={{ fontSize: '0.9em', padding: '4px 8px' }}>Copy Room ID</button>
 							<button onClick={copyViewerUrl} style={{ fontSize: '0.9em', padding: '4px 8px' }}>Copy URL</button>
 						</>

@@ -1,6 +1,7 @@
 // Rooms Router - Create rooms, set schedules, view state, and SSE events
 import { Router, Request, Response } from 'express';
 import { RoomsService } from '../services/RoomsService';
+import { PretalxService } from '../services/PretalxService';
 import { Logger } from '../utils/logger';
 
 export class RoomsRouter {
@@ -19,6 +20,8 @@ export class RoomsRouter {
 		this.router.post('/', this.createRoom.bind(this));
 		this.router.put('/:roomId', this.updateRoom.bind(this));
 		this.router.put('/:roomId/schedule', this.setSchedule.bind(this));
+		this.router.post('/:roomId/import/pretalx', this.importPretalx.bind(this));
+		this.router.get('/pretalx/health', this.pretalxHealth.bind(this));
 		this.router.get('/:roomId', this.getRoom.bind(this));
 		this.router.get('/:roomId/view', this.getView.bind(this));
 		this.router.get('/:roomId/events', this.sseEvents.bind(this));
@@ -54,10 +57,12 @@ export class RoomsRouter {
 			res.json({ success: true, data: updated });
 			// Broadcast config update and fresh snapshot
 			this.broadcast(roomId, 'config-updated', { config: updated });
-			try {
-				const view = this.rooms.getView(roomId);
-				this.broadcast(roomId, 'snapshot', { version: this.rooms.getRoom(roomId)?.version, view });
-			} catch {}
+            try {
+                const view = this.rooms.getView(roomId);
+                this.broadcast(roomId, 'snapshot', { version: this.rooms.getRoom(roomId)?.version, view });
+            } catch (e) {
+                this.logger.warn('Failed to broadcast snapshot after config update', e);
+            }
 		} catch (error) {
 			this.logger.error('Error updating room', error);
 			const message = error instanceof Error ? error.message : 'Failed to update room';
@@ -78,13 +83,71 @@ export class RoomsRouter {
 			res.json({ success: true, data: result });
 			// Broadcast schedule update to connected clients
 			this.broadcast(roomId, 'schedule-updated', { version: result.version });
-			try {
-				const view = this.rooms.getView(roomId);
-				this.broadcast(roomId, 'snapshot', { version: result.version, view });
-			} catch {}
+            try {
+                const view = this.rooms.getView(roomId);
+                this.broadcast(roomId, 'snapshot', { version: result.version, view });
+            } catch (e) {
+                this.logger.warn('Failed to broadcast snapshot after schedule set', e);
+            }
 		} catch (error) {
 			this.logger.error('Error setting schedule', error);
 			res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed to set schedule' });
+		}
+	}
+
+	private async importPretalx(req: Request, res: Response): Promise<void> {
+		try {
+    const { roomId } = req.params;
+    const { baseUrl: bodyBase, event: bodyEvent, token: bodyToken } = req.body || {};
+    const baseUrl = bodyBase || process.env.PRETALX_BASE_URL;
+    const event = bodyEvent || process.env.PRETALX_EVENT;
+    const token = bodyToken || process.env.PRETALX_TOKEN;
+    if (!baseUrl || !event || !token) {
+        res.status(400).json({ success: false, error: 'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)' });
+        return;
+    }
+			this.logger.info(`Pretalx import: baseUrl=${baseUrl} event=${event}`);
+			const room = this.rooms.getRoom(roomId);
+			if (!room) {
+				res.status(404).json({ success: false, error: 'Room not found' });
+				return;
+			}
+			const pretalx = new PretalxService(baseUrl, event, token);
+			const slots = await pretalx.buildSlotsFromPretalx();
+			const result = this.rooms.setSchedule(roomId, { slots });
+			res.json({ success: true, data: { imported: slots.length, version: result.version } });
+			// Broadcast schedule update + snapshot
+			this.broadcast(roomId, 'schedule-updated', { version: result.version });
+            try {
+                const view = this.rooms.getView(roomId);
+                this.broadcast(roomId, 'snapshot', { version: result.version, view });
+            } catch (e) {
+                this.logger.warn('Failed to broadcast snapshot after pretalx import', e);
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to import pretalx schedule';
+            this.logger.error(`Error importing from pretalx: ${message}`);
+            res.status(500).json({ success: false, error: message });
+		}
+	}
+
+	private async pretalxHealth(req: Request, res: Response): Promise<void> {
+		try {
+			const { baseUrl: bodyBase, event: bodyEvent, token: bodyToken } = req.query as Record<string, string>;
+			const baseUrl = bodyBase || process.env.PRETALX_BASE_URL;
+			const event = bodyEvent || process.env.PRETALX_EVENT;
+			const token = bodyToken || process.env.PRETALX_TOKEN;
+			if (!baseUrl || !event || !token) {
+				res.status(400).json({ success: false, error: 'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)' });
+				return;
+			}
+			const pretalx = new PretalxService(baseUrl, event, token);
+			const info = await pretalx.checkEventAccessible();
+			res.json({ success: true, data: info });
+		} catch (error) {
+			const message = error instanceof Error ? error.message : 'Health check failed';
+			this.logger.error(`Pretalx health error: ${message}`);
+			res.status(500).json({ success: false, error: message });
 		}
 	}
 
@@ -177,12 +240,14 @@ export class RoomsRouter {
 	private broadcast(roomId: string, event: string, data: unknown): void {
 		const clients = this.clients.get(roomId);
 		if (!clients || clients.size === 0) return;
-		for (const res of clients) {
-			try {
-				res.write(`event: ${event}\n`);
-				res.write(`data: ${JSON.stringify(data)}\n\n`);
-			} catch {}
-		}
+        for (const res of clients) {
+            try {
+                res.write(`event: ${event}\n`);
+                res.write(`data: ${JSON.stringify(data)}\n\n`);
+            } catch (e) {
+                this.logger.warn('Broadcast error', e);
+            }
+        }
 	}
 
 	public getRouter(): Router {

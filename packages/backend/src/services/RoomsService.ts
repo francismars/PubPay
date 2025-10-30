@@ -43,6 +43,7 @@ export interface ViewPayload {
 	nextSwitchAt: string; // ISO
 	defaultItems: string[];
 	upcomingSlots?: Array<{ startAt: string; endAt: string; items: string[] }>; // optional preview
+	previousSlots?: Array<{ startAt: string; endAt: string; items: string[] }>; // optional previous slots
 }
 
 export class RoomsService {
@@ -126,8 +127,26 @@ export class RoomsService {
 
 		const items = activeSlot?.items?.map(i => i.ref) || room.config.defaultItems || [];
 		const fallbackStart = activeSlot ? new Date(activeSlot.startAt) : now;
-		const rotationIndex = this.computeRotationIndex(policy, fallbackStart, now, items, intervalSec, activeSlot?.items);
-		const nextSwitchDate = new Date(Math.floor(now.getTime() / 1000 / intervalSec) * intervalSec * 1000 + intervalSec * 1000);
+        const rotationIndex = this.computeRotationIndex(policy, fallbackStart, now, items, intervalSec, activeSlot?.items);
+        // Compute next switch time:
+        // - If there is an active slot and it has 0 or 1 item, the next switch is the slot end
+        // - If there are multiple items, the next rotation tick occurs at the next interval,
+        //   but it should never exceed the slot end (cap to slot end)
+        const nextRotationTick = new Date(
+            Math.floor(now.getTime() / 1000 / intervalSec) * intervalSec * 1000 + intervalSec * 1000
+        );
+        let nextSwitchDate: Date;
+        if (activeSlot) {
+            const slotEnd = new Date(activeSlot.endAt);
+            if (items.length <= 1) {
+                nextSwitchDate = slotEnd;
+            } else {
+                nextSwitchDate = nextRotationTick < slotEnd ? nextRotationTick : slotEnd;
+            }
+        } else {
+            // No active slot - use rotation tick for default items
+            nextSwitchDate = nextRotationTick;
+        }
 
 		// Build upcoming slots list (next 5)
 		let upcomingSlots: Array<{ startAt: string; endAt: string; items: string[] }> | undefined;
@@ -140,6 +159,17 @@ export class RoomsService {
 			upcomingSlots = future;
 		}
 
+		// Build previous slots list (last 5)
+		let previousSlots: Array<{ startAt: string; endAt: string; items: string[] }> | undefined;
+		if (schedule?.slots?.length) {
+			const past = schedule.slots
+				.filter(s => new Date(s.endAt) <= now)
+				.sort((a, b) => new Date(b.endAt).getTime() - new Date(a.endAt).getTime()) // Most recent first
+				.slice(0, 5)
+				.map(s => ({ startAt: s.startAt, endAt: s.endAt, items: (s.items || []).map(i => i.ref) }));
+			previousSlots = past.length > 0 ? past : undefined;
+		}
+
 		return {
 			active: activeSlot ? { slotStart: activeSlot.startAt, slotEnd: activeSlot.endAt } : null,
 			items,
@@ -147,7 +177,8 @@ export class RoomsService {
 			index: items.length ? rotationIndex % items.length : 0,
 			nextSwitchAt: nextSwitchDate.toISOString(),
 			defaultItems: room.config.defaultItems,
-			upcomingSlots
+			upcomingSlots,
+			previousSlots
 		};
 	}
 
