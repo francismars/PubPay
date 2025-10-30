@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { useUIStore, ensureProfiles, getQueryClient, NostrRegistrationService, AuthService } from '@pubpay/shared-services';
+import { GenericQR } from '@pubpay/shared-ui';
 import * as NostrTools from 'nostr-tools';
 
 // Validation function for pubkeys and npubs/nprofiles
@@ -48,8 +49,21 @@ const ProfilePage: React.FC = () => {
   const openLogin = useUIStore(s => s.openLogin);
   
   // Recovery state
-  const [showRecoveryForm, setShowRecoveryForm] = useState(false);
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [recoveryMnemonic, setRecoveryMnemonic] = useState('');
+
+  // Tooltip state
+  const [tooltip, setTooltip] = useState<{ show: boolean; message: string; x: number; y: number }>({
+    show: false,
+    message: '',
+    x: 0,
+    y: 0
+  });
+
+  // QR Code modal state
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState('');
+  const [qrCodeType, setQrCodeType] = useState<'npub' | 'lightning'>('npub');
 
   // Recovery handler
   const handleRecoveryFromMnemonic = async () => {
@@ -73,6 +87,8 @@ const ProfilePage: React.FC = () => {
             true
           );
           
+          setRecoveryMnemonic('');
+          setShowRecoveryModal(false);
           alert('Account recovered successfully! Please refresh the page to continue.');
           window.location.reload();
         } else {
@@ -132,6 +148,7 @@ const ProfilePage: React.FC = () => {
   // Loading state for external profiles
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Activity stats (counts only for now)
   const [activityLoading, setActivityLoading] = useState(false);
@@ -146,6 +163,7 @@ const ProfilePage: React.FC = () => {
     const loadProfileData = async () => {
       setIsLoadingProfile(false);
       setProfileError(null);
+      setIsInitialLoad(true);
       
       if (isOwnProfile) {
         // Load own profile from userProfile
@@ -168,6 +186,7 @@ const ProfilePage: React.FC = () => {
             console.error('Failed to parse profile content:', error);
           }
         }
+        setIsInitialLoad(false);
       } else if (targetPubkey && nostrClient) {
         // Validate pubkey format (use original pubkey parameter for validation)
         if (!isValidPublicKey(pubkey || publicKey)) {
@@ -218,6 +237,7 @@ const ProfilePage: React.FC = () => {
           setProfileError('Failed to load profile');
         } finally {
           setIsLoadingProfile(false);
+          setIsInitialLoad(false);
         }
       }
     };
@@ -408,20 +428,57 @@ const ProfilePage: React.FC = () => {
     loadActivityStats();
   }, [targetPubkey, nostrClient]);
 
-  // Copy to clipboard function
-  const handleCopyToClipboard = (text: string, label: string) => {
+  // Copy to clipboard function with tooltip
+  const handleCopyToClipboard = (text: string, label: string, event: React.MouseEvent) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top - 10;
+    
     navigator.clipboard.writeText(text).then(() => {
-      alert(`${label} copied to clipboard!`);
+      setTooltip({
+        show: true,
+        message: `${label} copied to clipboard!`,
+        x,
+        y
+      });
+      
+      // Auto-hide tooltip after 2 seconds
+      setTimeout(() => {
+        setTooltip(prev => ({ ...prev, show: false }));
+      }, 2000);
     }).catch(() => {
-      alert(`Failed to copy ${label}`);
+      setTooltip({
+        show: true,
+        message: `Failed to copy ${label}`,
+        x,
+        y
+      });
+      
+      // Auto-hide tooltip after 2 seconds
+      setTimeout(() => {
+        setTooltip(prev => ({ ...prev, show: false }));
+      }, 2000);
     });
   };
 
-  // Save profile changes (placeholder - would need to implement Nostr profile update)
-  const handleSaveProfile = () => {
-    // TODO: Implement profile update to Nostr relays
-    alert('Profile update functionality will be implemented soon!');
+  // Show QR code modal
+  const handleShowQRCode = (data: string, type: 'npub' | 'lightning' = 'npub') => {
+    setQrCodeData(data);
+    setQrCodeType(type);
+    setShowQRModal(true);
   };
+
+  // Trim npub for display (show first 8 and last 4 characters)
+  const trimNpub = (npub: string): string => {
+    if (!npub || npub.length <= 12) return npub;
+    return `${npub.substring(0, 12)}...${npub.substring(npub.length - 8)}`;
+  };
+
+  const trimWebsiteUrl = (url: string): string => {
+    if (!url) return url;
+    return url.replace(/^https?:\/\//, '');
+  };
+
 
   // Convert public key to npub format
   const getNpubFromPublicKey = (pubkey?: string): string => {
@@ -461,9 +518,49 @@ const ProfilePage: React.FC = () => {
         {isOwnProfile ? 'Profile' : 'User Profile'}
       </h1>
 
-      {isLoadingProfile ? (
-        <div className="profileLoading">
-          <p>Loading profile...</p>
+      {isLoadingProfile || isInitialLoad ? (
+        <div className="profileSection">
+          <div className="profileBanner" style={{ backgroundColor: '#e9ecef' }}>
+          </div>
+          <div className="profileUserInfo">
+            <div className="profileAvatar" style={{ backgroundColor: '#e9ecef' }}>
+              <div style={{ 
+                width: '60px', 
+                height: '60px', 
+                borderRadius: '50%', 
+                backgroundColor: '#dee2e6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '24px',
+                color: '#adb5bd'
+              }}>
+                ...
+              </div>
+            </div>
+            <div className="profileUserDetails" style={{ flex: 1 }}>
+              <div style={{ 
+                height: '24px', 
+                backgroundColor: '#e9ecef', 
+                borderRadius: '4px', 
+                marginBottom: '8px',
+                width: '200px'
+              }}></div>
+              <div style={{ 
+                height: '16px', 
+                backgroundColor: '#e9ecef', 
+                borderRadius: '4px', 
+                marginBottom: '8px',
+                width: '150px'
+              }}></div>
+              <div style={{ 
+                height: '14px', 
+                backgroundColor: '#e9ecef', 
+                borderRadius: '4px',
+                width: '100px'
+              }}></div>
+            </div>
+          </div>
         </div>
       ) : profileError ? (
         <div className="profileError">
@@ -487,66 +584,31 @@ const ProfilePage: React.FC = () => {
                 Register
               </button>
             </div>
-          </div>
-
-          {/* Recovery Section */}
-          <div className="profileSection" style={{ marginTop: '40px' }}>
-            <h2 className="profileSectionTitle">
-              Recover Existing Account
-            </h2>
-            <p className="profileSectionDescription">
-              If you have a 12-word recovery phrase from a previous account, you can recover your keys here.
-            </p>
-            
-            {!showRecoveryForm ? (
+            <div style={{ textAlign: 'center', marginTop: '15px' }}>
               <button 
-                className="profileSaveButton"
-                onClick={() => setShowRecoveryForm(true)}
+                className="profileRecoveryLink"
+                onClick={() => setShowRecoveryModal(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#4a75ff',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
               >
-                Recover from Mnemonic
+                Recover Existing Account
               </button>
-            ) : (
-              <div className="profileFormField">
-                <label htmlFor="recoveryMnemonic">
-                  12-Word Recovery Phrase
-                </label>
-                <textarea
-                  id="recoveryMnemonic"
-                  value={recoveryMnemonic}
-                  onChange={(e) => setRecoveryMnemonic(e.target.value)}
-                  className="profileFormTextarea"
-                  placeholder="Enter your 12-word recovery phrase separated by spaces..."
-                  rows={3}
-                />
-                <div className="nostrKeyActions">
-                  <button 
-                    className="nostrKeyCopyButton"
-                    onClick={handleRecoveryFromMnemonic}
-                    disabled={!recoveryMnemonic.trim()}
-                  >
-                    Recover Keys
-                  </button>
-                  <button 
-                    className="nostrKeyCopyButton"
-                    onClick={() => {
-                      setShowRecoveryForm(false);
-                      setRecoveryMnemonic('');
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         </div>
-      ) : (
+      ) : !isLoadingProfile && !isInitialLoad ? (
         <div>
           {/* User Profile Section */}
           <div className="profileSection" id="profilePreview">
             {/* Banner Image */}
-            {profileData.banner && (
-              <div className="profileBanner">
+            <div className="profileBanner">
+              {profileData.banner && (
                 <img 
                   src={profileData.banner} 
                   alt="Profile banner" 
@@ -555,8 +617,8 @@ const ProfilePage: React.FC = () => {
                     e.currentTarget.style.display = 'none';
                   }}
                 />
-              </div>
-            )}
+              )}
+            </div>
             
             <div className="profileUserInfo">
               <div className="profileAvatar">
@@ -579,17 +641,27 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
               <div className="profileUserDetails">
-                <h2>
-                  {profileData.displayName || displayName || 'Anonymous User'}
-                </h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <h2 style={{ margin: 0 }}>
+                    {profileData.displayName || displayName || 'Anonymous User'}
+                  </h2>
+                  {isOwnProfile && (
+                    <button 
+                      className="profileEditButton"
+                      onClick={() => navigate('/edit-profile')}
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
+                {profileData.website && (
+                  <a href={profileData.website} target="_blank" rel="noopener noreferrer" className="profileWebsite">
+                    {trimWebsiteUrl(profileData.website)}
+                  </a>
+                )}
                 <p>
                   {profileData.bio || 'PubPay User'}
                 </p>
-                {profileData.website && (
-                  <a href={profileData.website} target="_blank" rel="noopener noreferrer" className="profileWebsite">
-                    {profileData.website}
-                  </a>
-                )}
 
                 {/* Profile Details */}
             <div className="profileDetails">
@@ -598,9 +670,25 @@ const ProfilePage: React.FC = () => {
                     <label>Lightning Address</label>
                     <div className="profileDetailValue">
                       {profileData.lightningAddress ? (
-                        <a href={`lightning:${profileData.lightningAddress}`} className="profileLightningLink">
-                          {profileData.lightningAddress}
-                        </a>
+                        <>
+                          <a href={`lightning:${profileData.lightningAddress}`} className="profileLightningLink">
+                            {profileData.lightningAddress}
+                          </a>
+                          <div className="profileButtonGroup">
+                            <button 
+                              className="profileCopyButton"
+                              onClick={(e) => handleCopyToClipboard(profileData.lightningAddress, 'Lightning Address', e)}
+                            >
+                              Copy
+                            </button>
+                            <button 
+                              className="profileCopyButton"
+                              onClick={() => handleShowQRCode(profileData.lightningAddress, 'lightning')}
+                            >
+                              Show QR
+                            </button>
+                          </div>
+                        </>
                       ) : (
                         <span className="profileEmptyField">Not set</span>
                       )}
@@ -614,10 +702,17 @@ const ProfilePage: React.FC = () => {
                   <div className="profileDetailValue">
                     {profileData.nip05 ? (
                       <>
-                        <code className="profileNip05">{profileData.nip05}</code>
+                        <a 
+                          href={`https://${profileData.nip05.split('@')[1]}/.well-known/nostr.json?name=${profileData.nip05.split('@')[0]}`}
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="profileLightningLink"
+                        >
+                          {profileData.nip05}
+                        </a>
                         <button 
                           className="profileCopyButton"
-                          onClick={() => handleCopyToClipboard(profileData.nip05, 'NIP-05 Identifier')}
+                          onClick={(e) => handleCopyToClipboard(profileData.nip05, 'NIP-05 Identifier', e)}
                         >
                           Copy
                         </button>
@@ -633,13 +728,23 @@ const ProfilePage: React.FC = () => {
                 <div className="profileDetailItem">
                   <label>User ID (npub)</label>
                   <div className="profileDetailValue">
-                    <code className="profilePublicKey">{getNpubFromPublicKey(pubkey)}</code>
-                    <button 
-                      className="profileCopyButton"
-                      onClick={() => handleCopyToClipboard(getNpubFromPublicKey(pubkey), 'Public Key')}
-                    >
-                      Copy
-                    </button>
+                    <div className="profilePublicKey" title={getNpubFromPublicKey(pubkey)}>
+                      {trimNpub(getNpubFromPublicKey(pubkey))}
+                    </div>
+                    <div className="profileButtonGroup">
+                      <button 
+                        className="profileCopyButton"
+                        onClick={(e) => handleCopyToClipboard(getNpubFromPublicKey(pubkey), 'Public Key', e)}
+                      >
+                        Copy
+                      </button>
+                      <button 
+                        className="profileCopyButton"
+                        onClick={() => handleShowQRCode(getNpubFromPublicKey(pubkey))}
+                      >
+                        Show QR
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -685,117 +790,152 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Settings Section - Only show for own profile */}
-          {isOwnProfile && (
-            <div className="profileSettingsSection">
-              <h2 className="profileSettingsTitle">
-                Edit Profile
-              </h2>
-            <div className="profileSettingsCard">
-              <div className="profileFormField">
-                <label htmlFor="editDisplayName">
-                  Display Name
-                </label>
-                <input
-                  type="text"
-                  id="editDisplayName"
-                  value={profileData.displayName}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, displayName: e.target.value }))}
-                  className="profileFormInput"
-                  placeholder="Enter your display name"
+        </div>
+      ) : null}
+
+      {/* Tooltip */}
+      {tooltip.show && (
+        <div
+          className="profileTooltip"
+          style={{
+            position: 'fixed',
+            left: tooltip.x,
+            top: tooltip.y,
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            background: '#333',
+            color: 'white',
+            padding: '8px 12px',
+            borderRadius: '4px',
+            fontSize: '14px',
+            pointerEvents: 'none',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {tooltip.message}
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRModal && (
+        <div className="overlayContainer" onClick={() => setShowQRModal(false)}>
+          <div 
+            className="overlayInner" 
+            style={{ textAlign: 'center', maxWidth: '400px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>
+              {qrCodeType === 'npub' ? 'User ID QR Code' : 'Lightning Address QR Code'}
+            </h3>
+
+            <div className="profileQRContainer">
+              {qrCodeData ? (
+                <GenericQR 
+                  data={qrCodeData} 
+                  width={200} 
+                  height={200} 
+                  id="npubQR" 
                 />
-              </div>
-              
-              <div className="profileFormField">
-                <label htmlFor="editWebsite">
-                  Website
-                </label>
-                <input
-                  type="url"
-                  id="editWebsite"
-                  value={profileData.website}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, website: e.target.value }))}
-                  className="profileFormInput"
-                  placeholder="https://your-website.com (optional)"
-                />
-              </div>
-              
-              <div className="profileFormField">
-                <label htmlFor="editPicture">
-                  Profile Picture URL
-                </label>
-                <input
-                  type="url"
-                  id="editPicture"
-                  value={profileData.picture}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, picture: e.target.value }))}
-                  className="profileFormInput"
-                  placeholder="https://example.com/profile.jpg (optional)"
-                />
-              </div>
-              
-              <div className="profileFormField">
-                <label htmlFor="editBio">
-                  Bio
-                </label>
-                <textarea
-                  id="editBio"
-                  value={profileData.bio}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, bio: e.target.value }))}
-                  className="profileFormTextarea"
-                  placeholder="Tell us about yourself..."
-                  rows={4}
-                />
-              </div>
-              
-              <div className="profileFormField">
-                <label htmlFor="editBanner">
-                  Banner Image URL
-                </label>
-                <input
-                  type="url"
-                  id="editBanner"
-                  value={profileData.banner}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, banner: e.target.value }))}
-                  className="profileFormInput"
-                  placeholder="https://example.com/banner.jpg (optional)"
-                />
-              </div>
-              
-              <div className="profileFormField">
-                <label htmlFor="editLightningAddress">
-                  Lightning Address
-                </label>
-                <input
-                  type="text"
-                  id="editLightningAddress"
-                  value={profileData.lightningAddress}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, lightningAddress: e.target.value }))}
-                  className="profileFormInput"
-                  placeholder="yourname@domain.com (optional)"
-                />
-              </div>
-              
-              <div className="profileFormField">
-                <label htmlFor="editNip05">
-                  NIP-05 Identifier
-                </label>
-                <input
-                  type="text"
-                  id="editNip05"
-                  value={profileData.nip05}
-                  onChange={(e) => setProfileData(prev => ({ ...prev, nip05: e.target.value }))}
-                  className="profileFormInput"
-                  placeholder="yourname@domain.com (optional)"
-                />
-              </div>
-              
-              <button className="profileSaveButton" onClick={handleSaveProfile}>
-                Save Changes
+              ) : (
+                <div
+                  style={{
+                    fontSize: '14px',
+                    color: '#666',
+                    textAlign: 'center'
+                  }}
+                >
+                  No data to display
+                </div>
+              )}
+            </div>
+
+            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
+              <code style={{ 
+                fontSize: '12px', 
+                wordBreak: 'break-all',
+                backgroundColor: '#f0f0f0',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                display: 'inline-block'
+              }}>
+                {qrCodeData}
+              </code>
+            </p>
+
+            
+            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
+              {qrCodeType === 'npub' 
+                ? 'Scan this QR code with a Nostr client to add this user'
+                : 'Scan this QR code with a Lightning wallet to send payment'
+              }
+            </p>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <button
+                className="profileCopyButton"
+                onClick={(e) => {
+                  handleCopyToClipboard(qrCodeData, qrCodeType === 'npub' ? 'Public Key' : 'Lightning Address', e);
+                }}
+                style={{ margin: 0, background: '#4a75ff', color: '#fff' }}
+              >
+                Copy {qrCodeType === 'npub' ? 'npub' : 'address'}
+              </button>
+              <button
+                className="profileCopyButton"
+                onClick={() => setShowQRModal(false)}
+              >
+                Close
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Recovery Modal */}
+      {showRecoveryModal && (
+        <div className="overlayContainer" onClick={() => setShowRecoveryModal(false)}>
+          <div className="overlayInner" style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>
+              Recover Existing Account
+            </h3>
+            <p style={{ margin: '0 0 20px 0', color: '#666', fontSize: '14px' }}>
+              If you have a 12-word recovery phrase from a previous account, you can recover your keys here.
+            </p>
+            
+            <div className="profileFormField" style={{ textAlign: 'left' }}>
+              <label htmlFor="recoveryMnemonic">
+                12-Word Recovery Phrase
+              </label>
+              <textarea
+                id="recoveryMnemonic"
+                value={recoveryMnemonic}
+                onChange={(e) => setRecoveryMnemonic(e.target.value)}
+                className="profileFormTextarea"
+                placeholder="Enter your 12-word recovery phrase separated by spaces..."
+                rows={3}
+              />
             </div>
-          )}
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '20px' }}>
+              <button 
+                className="profileCopyButton"
+                onClick={handleRecoveryFromMnemonic}
+                disabled={!recoveryMnemonic.trim()}
+                style={{ margin: 0 }}
+              >
+                Recover Keys
+              </button>
+              <button
+                className="profileCopyButton"
+                onClick={() => {
+                  setShowRecoveryModal(false);
+                  setRecoveryMnemonic('');
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

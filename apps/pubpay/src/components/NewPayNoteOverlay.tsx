@@ -148,30 +148,31 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
             <label htmlFor="payNoteContent" className="label">
               Your Payment Request
             </label>
-            <div style={{ position: 'relative' }}>
-              <textarea
-                ref={textareaRef}
-                id="payNoteContent"
-                name="payNoteContent"
-                rows={4}
-                placeholder="Payment Request Description"
-                onPaste={handlePaste}
-                onChange={handleTextareaChange}
-                disabled={isUploading}
-              ></textarea>
+            <textarea
+              ref={textareaRef}
+              id="payNoteContent"
+              name="payNoteContent"
+              rows={4}
+              placeholder="Payment Request Description"
+              onPaste={handlePaste}
+              onChange={handleTextareaChange}
+              disabled={isUploading}
+            ></textarea>
+            
+            {/* Button row below textarea */}
+            <div className="payNoteContentButtons">
               <button
                 type="button"
                 onClick={() => setShowPreview(!showPreview)}
                 style={{
-                  position: 'absolute',
-                  top: '8px',
-                  right: '44px',
-                  padding: '6px 12px',
-                  fontSize: '12px',
+                  padding: '8px 16px',
+                  fontSize: '14px',
                   cursor: 'pointer',
                   backgroundColor: '#f0f0f0',
                   border: '1px solid #ddd',
-                  borderRadius: '4px'
+                  borderRadius: '6px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease'
                 }}
               >
                 {showPreview ? 'Hide Preview' : 'Preview'}
@@ -188,18 +189,20 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
                 style={{
-                  position: 'absolute',
-                  top: '8px',
-                  right: '8px',
-                  padding: '6px 12px',
+                  padding: '8px 16px',
                   fontSize: '14px',
                   cursor: isUploading ? 'wait' : 'pointer',
                   backgroundColor: isUploading ? '#ccc' : '#f0f0f0',
                   border: '1px solid #ddd',
-                  borderRadius: '4px'
+                  borderRadius: '6px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                {isUploading ? 'Uploading...' : '📷'}
+                {isUploading ? 'Uploading' : 'Upload'}
               </button>
             </div>
             

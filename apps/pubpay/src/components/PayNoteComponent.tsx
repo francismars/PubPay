@@ -385,7 +385,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     {lud16}
                   </a>
                 ) : (
-                  <span>NOT PAYABLE</span>
+                  <span className="unverified label">
+                    <span className="material-symbols-outlined">block</span>
+                    Not Payable
+                  </span>
                 )}
               </div>
             </div>

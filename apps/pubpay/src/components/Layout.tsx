@@ -154,6 +154,8 @@ export const Layout: React.FC = () => {
       sideNav.classList.remove('open');
       hamburger.classList.remove('open');
     }
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Handler for opening new pay note form
@@ -231,6 +233,14 @@ export const Layout: React.FC = () => {
   useEffect(() => {
     setExtensionAvailable(true);
     setExternalSignerAvailable(true);
+  }, []);
+
+  // Initialize dark mode on mount
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (savedDarkMode) {
+      document.body.classList.add('dark-mode');
+    }
   }, []);
 
   // Handle return from external signer
@@ -381,8 +391,8 @@ export const Layout: React.FC = () => {
               <span></span>
             </button>
             <Link id="logo" to="/">
-              PUB<span style={{ color: '#000' }}>PAY</span>
-              <span style={{ color: '#0000001c' }}>.me</span>
+              PUB<span className="logoPay">PAY</span>
+              <span className="logoMe">.me</span>
               <span className="version">alpha 0.02</span>
             </Link>
           </div>
@@ -429,13 +439,7 @@ export const Layout: React.FC = () => {
                     }
                     alt="Profile"
                   />
-                  <span
-                    style={{
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#333'
-                    }}
-                  >
+                  <span className="profileUserNameNav">
                     {authState.displayName ||
                       (typeof window !== 'undefined' &&
                       (window as any).NostrTools
@@ -495,6 +499,17 @@ export const Layout: React.FC = () => {
                   closeMobileMenu();
                 }}
               >
+                Events
+              </a>
+              <a
+                href="javascript:void(0)"
+                className="sideNavLink disabled"
+                title="coming soon"
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                }}
+              >
                 Notifications
               </a>
               <a
@@ -506,8 +521,16 @@ export const Layout: React.FC = () => {
                   closeMobileMenu();
                 }}
               >
-                Settings
+                Messages
               </a>
+              <Link
+                to="/settings"
+                className="sideNavLink"
+                title="Settings"
+                onClick={closeMobileMenu}
+              >
+                Settings
+              </Link>
               <a href="/live" className="sideNavLink " title="PubPay Live" onClick={closeMobileMenu}>
                 Live
               </a>
@@ -576,8 +599,8 @@ export const Layout: React.FC = () => {
       >
         <div className="overlayInner">
           <div className="brand">
-            PUB<span style={{ color: '#cecece' }}>PAY</span>
-            <span style={{ color: '#00000014' }}>.me</span>
+            PUB<span className="logoPay">PAY</span>
+            <span className="logoMe">.me</span>
           </div>
           <p className="label" id="titleScanner">
             Scan note1 or nevent1 QR code
@@ -605,13 +628,17 @@ export const Layout: React.FC = () => {
       >
         <div className="overlayInner">
           <div className="brand">
-            PUB<span style={{ color: '#cecece' }}>PAY</span>
-            <span style={{ color: '#00000014' }}>.me</span>
+            PUB<span className="logoPay">PAY</span>
+            <span className="logoMe">.me</span>
           </div>
           <p className="label" id="titleSignin">
             Choose Sign-in Method
           </p>
-          <div className="formFieldGroup" id="loginFormGroup">
+          <div 
+            className="formFieldGroup" 
+            id="loginFormGroup"
+            style={{ display: showNsecGroup ? 'none' : 'flex' }}
+          >
             <a
               href="#"
               id="signInExtension"
@@ -769,8 +796,8 @@ export const Layout: React.FC = () => {
       >
         <div className="overlayInner">
           <div className="brand">
-            PUB<span style={{ color: '#cecece' }}>PAY</span>
-            <span style={{ color: '#00000014' }}>.me</span>
+            PUB<span className="logoPay">PAY</span>
+            <span className="logoMe">.me</span>
           </div>
           <p className="label">You are logged in as:</p>
           <p id="loggedInPublicKey">
@@ -814,8 +841,8 @@ export const Layout: React.FC = () => {
       >
         <div className="overlayInner">
           <div className="brand">
-            PUB<span style={{ color: '#cecece' }}>PAY</span>
-            <span style={{ color: '#00000014' }}>.me</span>
+            PUB<span className="logoPay">PAY</span>
+            <span className="logoMe">.me</span>
           </div>
           <p id="qrcodeTitle" className="label">
             Scan Invoice to Pay Zap
