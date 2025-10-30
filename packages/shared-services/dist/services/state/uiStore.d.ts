@@ -4,18 +4,26 @@ type InvoiceOverlayState = {
     amount: number;
     eventId: string;
 };
+type StatusToastState = {
+    show: boolean;
+    message: string;
+    variant: 'info' | 'loading' | 'success' | 'error';
+    persist: boolean;
+};
+type FollowSuggestion = {
+    pubkey: string;
+    npub: string;
+    displayName: string;
+    picture?: string;
+};
 type UIState = {
     invoiceOverlay: InvoiceOverlayState;
     processingOverlay: {
         show: boolean;
         message: string;
     };
-    statusToast: {
-        show: boolean;
-        message: string;
-        variant: 'info' | 'loading' | 'success' | 'error';
-        persist: boolean;
-    };
+    statusToast: StatusToastState;
+    followSuggestions: FollowSuggestion[];
     loginForm: {
         show: boolean;
     };
@@ -33,6 +41,7 @@ type UIState = {
     openToast: (message: string, variant?: 'info' | 'loading' | 'success' | 'error', persist?: boolean) => void;
     updateToast: (message: string, variant?: 'info' | 'loading' | 'success' | 'error', persist?: boolean) => void;
     closeToast: () => void;
+    setFollowSuggestions: (items: FollowSuggestion[]) => void;
     openLogin: () => void;
     closeLogin: () => void;
     openNewPayNote: () => void;

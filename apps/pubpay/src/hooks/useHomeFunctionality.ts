@@ -7,8 +7,9 @@ import { ensureZaps } from '@pubpay/shared-services';
 import { ensurePosts } from '@pubpay/shared-services';
 import { getQueryClient } from '@pubpay/shared-services';
 import { LightningService } from '@pubpay/shared-services';
+import { FollowService, useUIStore, NostrUtil } from '@pubpay/shared-services';
 import { AuthService } from '@pubpay/shared-services';
-import { ZapService, useUIStore } from '@pubpay/shared-services';
+import { ZapService } from '@pubpay/shared-services';
 import {
   NostrFilter,
   NostrEvent,
@@ -201,6 +202,14 @@ export const useHomeFunctionality = () => {
           });
 
           await loadUserProfile(result.publicKey);
+          // Load follow suggestions after login via external signer
+          try {
+            const suggestions = await FollowService.getFollowSuggestions(
+              nostrClientRef.current,
+              result.publicKey
+            );
+            useUIStore.getState().setFollowSuggestions(suggestions);
+          } catch {}
         }
 
         // Then, handle pending external-signer operations that require signature
@@ -325,9 +334,18 @@ export const useHomeFunctionality = () => {
         displayName: null
       });
 
-      // Load user profile
+      // Load user profile and follow suggestions
       if (nostrClientRef.current && publicKey) {
         loadUserProfile(publicKey);
+        try {
+          (async () => {
+            const suggestions = await FollowService.getFollowSuggestions(
+              nostrClientRef.current,
+              publicKey
+            );
+            useUIStore.getState().setFollowSuggestions(suggestions);
+          })();
+        } catch {}
       }
     }
   };
@@ -1510,18 +1528,12 @@ export const useHomeFunctionality = () => {
       }
 
       if (zapPayer && zapPayer.trim() !== '') {
-        try {
-          const decoded = NostrTools.nip19.decode(zapPayer);
-          if (decoded.type === 'npub') {
-            tags.push(['zap-payer', decoded.data]);
-          } else {
-            console.error('Invalid payer npub format');
-            return;
-          }
-        } catch {
+        const parsed = NostrUtil.parseNpub(zapPayer);
+        if (!parsed.ok || !parsed.hex) {
           console.error('Invalid payer npub format');
           return;
         }
+        tags.push(['zap-payer', parsed.hex]);
       }
 
       if (overrideLNURL && overrideLNURL.trim() !== '') {

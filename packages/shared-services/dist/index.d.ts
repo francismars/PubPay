@@ -23,3 +23,5 @@ export * from './services/storage/LocalStorage';
 export * from './services/storage/SessionStorage';
 export * from './services/zap/ZapService';
 export * from './services/nwc';
+export * from './services/follow/FollowService';
+export * from './utils/NostrUtil';

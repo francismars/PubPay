@@ -130,18 +130,31 @@ export class AuthService {
     static async handleExternalSignerReturn() {
         try {
             const signInData = JSON.parse(sessionStorage.getItem('signIn') || '{}');
-            if (!signInData.rememberMe !== undefined) {
+            // Proceed only if we previously initiated an external signer sign-in
+            if (signInData && signInData.rememberMe !== undefined) {
                 sessionStorage.removeItem('signIn');
                 // Get the public key from clipboard
-                const npub = await this.accessClipboard();
-                if (!npub) {
+                const clipboardText = await this.accessClipboard();
+                if (!clipboardText) {
                     return {
                         success: false,
                         error: 'No public key found in clipboard'
                     };
                 }
-                const decodedNPUB = NostrTools.nip19.decode(npub);
-                const publicKey = decodedNPUB.data;
+                // Normalize clipboard content (can be npub, nostr:npub, or raw hex pubkey)
+                const trimmed = clipboardText.trim();
+                let publicKey = null;
+                try {
+                    const clean = trimmed.replace(/^nostr:/i, '');
+                    if (/^npub1[0-9a-z]+$/i.test(clean)) {
+                        const decodedNPUB = NostrTools.nip19.decode(clean);
+                        publicKey = decodedNPUB.data;
+                    }
+                    else if (/^[0-9a-f]{64}$/i.test(clean)) {
+                        publicKey = clean.toLowerCase();
+                    }
+                }
+                catch { }
                 if (!publicKey ||
                     typeof publicKey !== 'string' ||
                     publicKey.length !== 64) {
@@ -177,7 +190,17 @@ export class AuthService {
     static async accessClipboard() {
         try {
             if (navigator.clipboard && navigator.clipboard.readText) {
-                return await navigator.clipboard.readText();
+                // Try multiple times to accommodate timing after app switch
+                for (let i = 0; i < 10; i++) {
+                    try {
+                        const txt = await navigator.clipboard.readText();
+                        const val = (txt || '').trim();
+                        if (val)
+                            return val;
+                    }
+                    catch { }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
             }
             else {
                 // Fallback for older browsers
@@ -192,13 +215,21 @@ export class AuthService {
                     const result = document.execCommand('paste');
                     const text = textArea.value;
                     document.body.removeChild(textArea);
-                    return result ? text : null;
+                    if (result && text && text.trim())
+                        return text.trim();
                 }
                 catch (err) {
                     document.body.removeChild(textArea);
-                    return null;
                 }
             }
+            // Final fallback: prompt the user to paste manually
+            try {
+                const manual = window.prompt('Paste data from signer');
+                if (manual && manual.trim())
+                    return manual.trim();
+            }
+            catch { }
+            return null;
         }
         catch (error) {
             console.error('Clipboard access failed:', error);

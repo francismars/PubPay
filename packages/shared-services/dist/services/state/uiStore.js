@@ -3,6 +3,7 @@ export const useUIStore = create(set => ({
     invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '' },
     processingOverlay: { show: false, message: '' },
     statusToast: { show: false, message: '', variant: 'info', persist: false },
+    followSuggestions: [],
     loginForm: { show: false },
     newPayNoteForm: { show: false },
     openInvoice: ({ bolt11, amount, eventId }) => set({ invoiceOverlay: { show: true, bolt11, amount, eventId } }),
@@ -13,7 +14,10 @@ export const useUIStore = create(set => ({
     closeProcessing: () => set({ processingOverlay: { show: false, message: '' } }),
     openToast: (message, variant = 'info', persist = false) => set({ statusToast: { show: true, message, variant, persist } }),
     updateToast: (message, variant = 'info', persist = false) => set({ statusToast: { show: true, message, variant, persist } }),
-    closeToast: () => set({ statusToast: { show: false, message: '', variant: 'info', persist: false } }),
+    closeToast: () => set({
+        statusToast: { show: false, message: '', variant: 'info', persist: false }
+    }),
+    setFollowSuggestions: (items) => set({ followSuggestions: items }),
     openLogin: () => set({ loginForm: { show: true } }),
     closeLogin: () => set({ loginForm: { show: false } }),
     openNewPayNote: () => set({ newPayNoteForm: { show: true } }),
