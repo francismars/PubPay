@@ -18,22 +18,10 @@ const AboutPage: React.FC = () => {
           Get Paid Publicly
         </h2>
         <p className="aboutHeroSubtitle">
-          PubPay lets you create payment requests that anyone can pay with just a few clicks. Whether you're collecting donations, splitting bills, or selling services — get paid instantly with Bitcoin via the Lightning Network.
+          PubPay lets you create payment requests that anyone can pay with just a few clicks. Whether you're collecting donations, splitting bills, or selling services — get paid instantly.
         </p>
 
       <div className="aboutContent">
-        <section className="aboutSection">
-          <h2 className="aboutSectionTitle">
-            Why Use PubPay?
-          </h2>
-          <p className="aboutParagraph">
-            <strong>No sign-ups required for payers.</strong> Share your payment link and anyone can pay you instantly using their Bitcoin Lightning wallet. No complex forms, no waiting—just fast, direct payments.
-          </p>
-          <p className="aboutParagraph">
-            All your payment requests are <strong>public, transparent, and verifiable</strong>. Everyone can see what you're requesting, how much you've received, and who's paid—building trust and credibility in your transactions.
-          </p>
-        </section>
-
         <section className="aboutSection">
           <h2 className="aboutSectionTitle">
             What You Can Do
@@ -44,7 +32,7 @@ const AboutPage: React.FC = () => {
               Create Payment Requests in Seconds
             </h3>
             <p className="featureDescription">
-              Write a description, set an amount (or let people choose), and publish. Your payment request is immediately shareable and ready to receive payments.
+              Write a description, set an amount, and publish. Your payment request is immediately shareable and ready to receive payments.
             </p>
           </div>
 
@@ -83,7 +71,7 @@ const AboutPage: React.FC = () => {
               See Who Paid
             </h3>
             <p className="featureDescription">
-              All payments are visible on your request, so you know who paid, when, and how much. Perfect for tracking donations, splitting bills, or managing group payments.
+              All payments are transparent and verifiable. Perfect for tracking donations, splitting bills, or managing group payments.
             </p>
           </div>
         </section>

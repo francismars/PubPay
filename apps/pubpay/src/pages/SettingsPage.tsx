@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { RELAYS } from '@pubpay/shared-services';
 import { useUIStore } from '@pubpay/shared-services';
 
 const SettingsPage: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
-  const [relays, setRelays] = useState<string[]>([
-    'wss://relay.damus.io',
-    'wss://relay.nostr.band',
-    'wss://nos.lol',
-    'wss://relay.snort.social'
-  ]);
+  const [relays, setRelays] = useState<string[]>([...RELAYS]);
   const [newRelay, setNewRelay] = useState('');
   const [nwcUri, setNwcUri] = useState('');
   const [nwcValidating, setNwcValidating] = useState<boolean>(false);

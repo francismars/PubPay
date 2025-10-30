@@ -1,5 +1,6 @@
 // import { NostrEvent } from '@/types/nostr'; // Unused import
 import * as NostrTools from 'nostr-tools';
+import { RELAYS } from '../../utils/constants';
 export class ZapService {
     constructor(baseUrl = '') {
         this.baseUrl = baseUrl;
@@ -81,13 +82,7 @@ export class ZapService {
                 pubkey: eventData.pubkey,
                 amount: amountPay,
                 comment: '',
-                relays: [
-                    'wss://relay.damus.io',
-                    'wss://relay.primal.net',
-                    'wss://nostr.mutinywallet.com/',
-                    'wss://relay.nostr.band/',
-                    'wss://relay.nostr.nu/'
-                ]
+                relays: RELAYS
             });
             console.log('Created zap event:', zapEvent);
             // Add additional tags
