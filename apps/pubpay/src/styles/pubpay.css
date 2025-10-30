@@ -40,7 +40,7 @@ body {
   top: 0px;
   left: -160px;
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-radius: 16px;
+  border-radius: 6px;
   box-shadow:
     0 20px 25px -5px rgba(0, 0, 0, 0.1),
     0 10px 10px -5px rgba(0, 0, 0, 0.04),
@@ -63,7 +63,7 @@ body {
   cursor: pointer;
   font-size: 14px;
   color: #333;
-  border-radius: 3px;
+  border-radius: 6px;
   transition: background-color 0.2s ease;
 }
 
@@ -89,7 +89,7 @@ body {
   width: 100%;
   padding: 16px 20px 16px 48px;
   border: 2px solid #e5e7eb;
-  border-radius: 12px;
+  border-radius: 6px;
   font-size: 16px;
   font-weight: 500;
   font-family: 'Inter', sans-serif;
@@ -129,7 +129,7 @@ body {
   background: linear-gradient(135deg, #4a75ff 0%, #3b5bdb 100%);
   color: #ffffff;
   border: none;
-  border-radius: 12px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 15px;
   font-weight: 600;
@@ -268,7 +268,7 @@ body.jukebox {
   backdrop-filter: blur(19px);
   -webkit-backdrop-filter: blur(19px);
   background-color: rgb(249 250 251 / 51%);
-  border-radius: 0 0 16px 16px;
+  border-radius: 0 0 6px 6px;
   box-shadow: rgb(47 43 67 / 21%) -2px 3px 20px 0px;
   opacity: 1;
   transition: all 0.1s ease;
@@ -326,7 +326,7 @@ body.jukebox {
   display: flex;
   align-items: center;
   padding: 8px 4px;
-  border-radius: 8px;
+  border-radius: 6px;
   text-decoration: none;
   color: #666;
   font-weight: 400;
@@ -425,7 +425,7 @@ body.jukebox {
   background: #4a75ff;
   color: white;
   font-weight: 500;
-  margin-top: 8px;
+  margin-top: 28px;
   padding: 14px 24px 14px 12px;
   border-radius: 6px;
 }
@@ -537,7 +537,7 @@ a.feedSelectorLink.active {
   --border-style: solid;
   --border-top-width: 1.5px;
   background-color: rgb(249, 250, 251);
-  border-radius: 16px;
+  border-radius: 6px;
   box-shadow: rgb(47 43 67 / 21%) -2px 3px 20px 0px;
   opacity: 1;
   transition: all 0.3s ease;
@@ -599,7 +599,7 @@ a.feedSelectorLink.active {
   left: 5px;
   z-index: 1;
   border: #ccc solid 1px;
-  border-radius: 3px;
+  border-radius: 6px;
   font-weight: 900;
   letter-spacing: 0.03rem;
 }
@@ -670,7 +670,7 @@ a.feedSelectorLink.active {
   letter-spacing: 0.03rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 4px;
   margin: 16px -4px;
 }
@@ -757,7 +757,7 @@ a.feedSelectorLink.active {
   margin: 20px 0 20px 0;
   border: 1px solid #e5e5e5;
   padding: 15px 10px;
-  border-radius: 8px;
+  border-radius: 6px;
   background: #ffffff;
   align-items: center;
   color: #636363;
@@ -1009,7 +1009,7 @@ button.noteMainCTA.cta.disabled.red,
   padding: 40px 35px;
   box-sizing: border-box;
   background: #fff;
-  border-radius: 10px;
+  border-radius: 6px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.2);
   animation: slideUp 0.3s ease-out;
@@ -1247,7 +1247,7 @@ legend {
 
 #reader {
   border: 5px solid #cecece; /* Add a border to make it stand out */
-  border-radius: 10px; /* Rounded corners */
+  border-radius: 6px; /* Rounded corners */
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Subtle shadow for depth */
   background-color: #ffffff; /* White background for contrast */
   display: flex;
@@ -1303,7 +1303,7 @@ textarea {
   font-weight: 500;
   background: #f3f4f6;
   padding: 2px 6px;
-  border-radius: 2px;
+  border-radius: 6px;
   margin-left: 6px;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
 }
@@ -1350,7 +1350,7 @@ textarea:focus::placeholder {
   margin-top: -32px;
   z-index: 10000;
   padding: 24px;
-  border-radius: 16px;
+  border-radius: 6px;
   opacity: 0;
   transform: translateY(-12px) scale(0.95);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1369,7 +1369,7 @@ textarea:focus::placeholder {
   font-size: 15px;
   font-weight: 500;
   font-family: 'Inter', sans-serif;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   margin: 2px 0;
   position: relative;
@@ -1386,7 +1386,7 @@ textarea:focus::placeholder {
   padding: 14px 20px;
   background: linear-gradient(135deg, #4a75ff 0%, #3b5bdb 100%);
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   font-size: 15px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
@@ -1474,7 +1474,7 @@ textarea:focus::placeholder {
 .zapSlider {
   width: 100%;
   height: 6px;
-  border-radius: 3px;
+  border-radius: 6px;
   background: #ddd;
   outline: none;
   -webkit-appearance: none;
@@ -1545,7 +1545,7 @@ textarea:focus::placeholder {
   height: 25px;
   background: #4a75ff;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .currentUserImg {
@@ -1577,7 +1577,7 @@ textarea:focus::placeholder {
     backdrop-filter: blur(19px);
     -webkit-backdrop-filter: blur(19px);
     background-color: rgb(249 250 251 / 51%);
-    border-radius: 0 0 16px 16px;
+    border-radius: 0 0 6px 6px;
     box-shadow: rgb(47 43 67 / 21%) 0px 3px 20px 0px;
     opacity: 1;
     transition: all 0.1s ease;
@@ -1646,7 +1646,7 @@ textarea:focus::placeholder {
     justify-content: flex-start;
     padding: 12px 8px;
     margin-bottom: 8px;
-    border-radius: 8px;
+    border-radius: 6px;
     font-size: 15px;
     font-weight: 400;
     gap: 10px;
@@ -1704,7 +1704,7 @@ textarea:focus::placeholder {
     border: none;
     cursor: pointer;
     padding: 8px;
-    border-radius: 4px;
+    border-radius: 6px;
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(10px);
     margin-right: 0px;
@@ -1801,7 +1801,7 @@ textarea:focus::placeholder {
     max-width: none;
     padding: 30px 20px;
     margin: 10px 0;
-    border-radius: 5px;
+    border-radius: 6px;
   }
 
   .formFieldGroup {
@@ -1839,7 +1839,7 @@ textarea:focus::placeholder {
 .profileSection {
   background-color: #f8f9fa;
   padding: 20px;
-  border-radius: 12px;
+  border-radius: 6px;
   margin-bottom: 30px;
   border: 1px solid #e9ecef;
 }
@@ -1855,7 +1855,7 @@ textarea:focus::placeholder {
   background-color: #f8f9fa;
   border: 1px solid #e9ecef;
   color: white;
-  border-radius: 12px;
+  border-radius: 6px;
   padding: 0;
   overflow: hidden;
   margin-bottom: 30px;
@@ -1894,7 +1894,7 @@ textarea:focus::placeholder {
   font-size: 12px;
   cursor: pointer;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .profileUploadButton:disabled {
@@ -2005,7 +2005,7 @@ textarea:focus::placeholder {
 .profileLoading {
   background-color: #f8f9fa;
   padding: 20px;
-  border-radius: 12px;
+  border-radius: 6px;
   margin-bottom: 30px;
   border: 1px solid #e9ecef;
   display: flex;
@@ -2065,7 +2065,7 @@ textarea:focus::placeholder {
   font-size: 12px;
   background-color: #f1f3f4;
   padding: 8px;
-  border-radius: 4px;
+  border-radius: 6px;
   display: block;
   word-break: break-all;
   color: #333;
@@ -2098,7 +2098,7 @@ textarea:focus::placeholder {
   flex-wrap: wrap;
   width: 100%;
   padding: 8px 8px 8px 12px; 
-  border-radius: 4px;
+  border-radius: 6px;
   background-color: #f2f2f2;
   box-sizing: border-box;
 }
@@ -2135,7 +2135,7 @@ textarea:focus::placeholder {
   color: #666;
   border: 1px solid #ddd;
   padding: 6px 12px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -2150,7 +2150,7 @@ textarea:focus::placeholder {
 
 .profileQRContainer {
   margin: 0 auto 16px auto;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2162,7 +2162,7 @@ textarea:focus::placeholder {
   color: #666;
   border: 1px solid #ddd;
   padding: 4px 8px;
-  border-radius: 3px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -2227,7 +2227,7 @@ textarea:focus::placeholder {
 .profileStatCard {
   background-color: #fff;
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid #e9ecef;
   text-align: center;
 }
@@ -2258,7 +2258,7 @@ textarea:focus::placeholder {
 .profileSettingsCard {
   background-color: #fff;
   padding: 20px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid #e9ecef;
 }
 
@@ -2278,7 +2278,7 @@ textarea:focus::placeholder {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   background: #fff;
@@ -2301,7 +2301,7 @@ textarea:focus::placeholder {
   width: 100%;
   padding: 10px;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   background: #fff;
@@ -2343,7 +2343,7 @@ textarea:focus::placeholder {
 .profileNotLoggedIn {
   background-color: #f8f9fa;
   padding: 40px;
-  border-radius: 12px;
+  border-radius: 6px;
   text-align: center;
   border: 1px solid #e9ecef;
 }
@@ -2519,7 +2519,7 @@ textarea:focus::placeholder {
   color: white;
   border: none;
   padding: 6px 12px;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -2700,5 +2700,244 @@ textarea:focus::placeholder {
     min-height: 150px;
     margin-right: 0;
     margin-bottom: 8px;
+  }
+}
+
+/* About Page Styles */
+.aboutContainer {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.aboutHeroImage {
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.aboutHeroImage img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.aboutHeroTitle {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #4a75ff;
+  letter-spacing: -1px;
+  line-height: 1.2;
+}
+
+.aboutHeroSubtitle {
+  font-size: 18px;
+  color: #555;
+  margin-bottom: 60px;
+  line-height: 1.7;
+  max-width: 720px;
+}
+
+.aboutContent {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #333;
+}
+
+.aboutSection {
+  margin-bottom: 60px;
+}
+
+.aboutSectionTitle {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: #2c3e50;
+  letter-spacing: -0.3px;
+}
+
+.aboutSectionTitleAlt {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 28px;
+  color: #2c3e50;
+  letter-spacing: -0.3px;
+}
+
+.aboutSectionTitleLarge {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 32px;
+  color: #2c3e50;
+  letter-spacing: -0.3px;
+}
+
+.aboutParagraph {
+  margin-bottom: 15px;
+}
+
+.featureBlock {
+  margin-bottom: 32px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.featureBlockLast {
+  margin-bottom: 0;
+}
+
+.featureTitle {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #4a75ff;
+  letter-spacing: -0.2px;
+}
+
+.featureDescription {
+  margin-bottom: 0;
+  color: #555;
+  line-height: 1.7;
+}
+
+.featureList {
+  padding-left: 24px;
+  margin-bottom: 0;
+  color: #555;
+  line-height: 1.8;
+}
+
+.featureListItem {
+  margin-bottom: 8px;
+}
+
+.useCasesGrid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.useCaseCard {
+  background: #fff;
+  padding: 28px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s;
+}
+
+.useCaseCard:hover {
+  box-shadow: 0 4px 12px rgba(74, 117, 255, 0.08);
+}
+
+.useCaseTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #4a75ff;
+  letter-spacing: -0.2px;
+  margin-top: 0;
+}
+
+.useCaseDescription {
+  margin: 0;
+  color: #555;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+.useCaseCode {
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.gettingStartedList {
+  padding-left: 28px;
+  line-height: 1.9;
+  color: #555;
+}
+
+.gettingStartedItem {
+  margin-bottom: 16px;
+}
+
+.gettingStartedItemLast {
+  margin-bottom: 0;
+}
+
+.gettingStartedLink {
+  color: #4a75ff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ctaSection {
+  background: linear-gradient(135deg, #4a75ff 0%, #3b5bdb 100%);
+  padding: 48px 32px;
+  border-radius: 6px;
+  color: #fff;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(74, 117, 255, 0.25);
+}
+
+.ctaTitle {
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  letter-spacing: -0.3px;
+}
+
+.ctaSubtitle {
+  font-size: 17px;
+  margin-bottom: 32px;
+  opacity: 0.95;
+  line-height: 1.6;
+}
+
+.ctaButton {
+  display: inline-block;
+  background: #fff;
+  color: #4a75ff;
+  padding: 14px 36px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.ctaButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.aboutFooter {
+  border-top: 1px solid #e9ecef;
+  padding-top: 28px;
+  margin-top: 60px;
+  font-size: 14px;
+  color: #888;
+  text-align: center;
+}
+
+.aboutFooterText {
+  margin: 0;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .aboutHeroTitle {
+    font-size: 32px;
+  }
+
+  .aboutHeroSubtitle {
+    font-size: 16px;
+  }
+
+  .useCasesGrid {
+    grid-template-columns: 1fr;
   }
 }
