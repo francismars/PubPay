@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { useUIStore, ensureProfiles, getQueryClient, NostrRegistrationService, AuthService } from '@pubpay/shared-services';
+import { useUIStore, ensureProfiles, getQueryClient, NostrRegistrationService, AuthService, FollowService } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 import * as NostrTools from 'nostr-tools';
 
@@ -34,9 +34,7 @@ const isValidPublicKey = (pubkey: string): boolean => {
   return false;
 };
 
-interface ProfilePageProps {
-  authState?: any;
-}
+//
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -83,8 +81,7 @@ const ProfilePage: React.FC = () => {
           AuthService.storeAuthData(
             signInResult.publicKey,
             result.keyPair.privateKey,
-            'nsec',
-            true
+            'nsec'
           );
           
           setRecoveryMnemonic('');
@@ -157,6 +154,35 @@ const ProfilePage: React.FC = () => {
     pubpaysReceived: 0,
     zapsReceived: 0
   });
+
+  const [isFollowing, setIsFollowing] = useState<boolean>(false);
+  const [followBusy, setFollowBusy] = useState<boolean>(false);
+
+  // Check follow status (auth user's contacts)
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!nostrClient || !publicKey || !targetPubkey || publicKey === targetPubkey) return;
+        const following = await FollowService.isFollowing(nostrClient, publicKey, targetPubkey);
+        setIsFollowing(following);
+      } catch (e) {
+        console.warn('Failed to check following status', e);
+      }
+    })();
+  }, [nostrClient, publicKey, targetPubkey]);
+
+  const handleFollow = async () => {
+    try {
+      if (!nostrClient || !publicKey || !targetPubkey) return;
+      setFollowBusy(true);
+      const ok = await FollowService.follow(nostrClient, publicKey, targetPubkey);
+      if (ok) setIsFollowing(true);
+    } catch (e) {
+      console.error('Follow failed:', e);
+    } finally {
+      setFollowBusy(false);
+    }
+  };
 
   // Load profile data - either from own profile or fetch external profile
   useEffect(() => {
@@ -645,13 +671,23 @@ const ProfilePage: React.FC = () => {
                   <h2 style={{ margin: 0 }}>
                     {profileData.displayName || displayName || 'Anonymous User'}
                   </h2>
-                  {isOwnProfile && (
+                  {isOwnProfile ? (
                     <button 
                       className="profileEditButton"
                       onClick={() => navigate('/edit-profile')}
                     >
                       Edit
                     </button>
+                  ) : (
+                    isLoggedIn && (
+                      <button
+                        className="profileEditButton"
+                        onClick={handleFollow}
+                        disabled={isFollowing || followBusy}
+                      >
+                        {isFollowing ? 'Following' : followBusy ? 'Following…' : 'Follow'}
+                      </button>
+                    )
                   )}
                 </div>
                 {profileData.website && (

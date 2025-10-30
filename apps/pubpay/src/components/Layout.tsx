@@ -25,9 +25,19 @@ export const Layout: React.FC = () => {
   const closeLogin = useUIStore(s => s.closeLogin);
   const [showNsecGroup, setShowNsecGroup] = useState(false);
   const [nsecInput, setNsecInput] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  // Remember me removed: always persist until logout
   const [qrScanner, setQrScanner] = useState<any>(null);
   const [isScannerRunning, setIsScannerRunning] = useState(false);
+  const [cameraList, setCameraList] = useState<any[]>([]);
+  const currentCameraIdRef = useRef<string | null>(null);
+  const [zoomSupported, setZoomSupported] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const [zoomMin, setZoomMin] = useState(1);
+  const [zoomMax, setZoomMax] = useState(1);
+  const [zoomStep, setZoomStep] = useState(0.1);
+  const [zoomVal, setZoomVal] = useState(1);
+  const [showCameraPicker, setShowCameraPicker] = useState(false);
   const [extensionAvailable, setExtensionAvailable] = useState(true);
   const [externalSignerAvailable, setExternalSignerAvailable] = useState(true);
   const [externalSignerLoading, setExternalSignerLoading] = useState(false);
@@ -73,23 +83,28 @@ export const Layout: React.FC = () => {
 
   const handleScannedContent = async (decodedText: string) => {
     try {
-      const regex =
-        /(note1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|nevent1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/i;
+      // Accept note/nevent for posts and npub/nprofile for profiles
+      const regex = /(note1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|nevent1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|npub1[0-9a-z]{58,}|nprofile1[0-9a-z]+)/i;
       const match = decodedText.match(regex);
       if (!match) return;
 
-      decodedText = match[0];
-
-      const decoded = NostrTools.nip19.decode(decodedText);
+      const token = match[0];
+      const decoded = NostrTools.nip19.decode(token);
 
       if (decoded.type === 'note') {
-        window.location.href = `/?note=${decodedText}`;
+        window.location.href = `/?note=${token}`;
       } else if (decoded.type === 'nevent') {
-        const noteID = decoded.data.id;
+        const noteID = (decoded.data as any).id;
         const note1 = NostrTools.nip19.noteEncode(noteID);
         window.location.href = `/?note=${note1}`;
+      } else if (decoded.type === 'npub') {
+        const pubkeyHex = decoded.data as string;
+        window.location.href = `/profile/${pubkeyHex}`;
+      } else if (decoded.type === 'nprofile') {
+        const pubkeyHex = (decoded.data as any).pubkey;
+        window.location.href = `/profile/${pubkeyHex}`;
       } else {
-        console.error("Invalid QR code content. Expected 'note' or 'nevent'.");
+        console.error("Invalid QR code content. Expected 'note', 'nevent', 'npub' or 'nprofile'.");
       }
     } catch (error) {
       console.error('Failed to decode QR code content:', error);
@@ -107,7 +122,7 @@ export const Layout: React.FC = () => {
 
   const handleNsecContinue = () => {
     if (nsecInput.trim()) {
-      handleContinueWithNsec(nsecInput, rememberMe);
+      handleContinueWithNsec(nsecInput);
       setNsecInput('');
       closeLogin();
     }
@@ -264,38 +279,70 @@ export const Layout: React.FC = () => {
           const html5QrCode = new (window as any).Html5Qrcode('reader');
 
           // Start the scanner FIRST, then store it in state
-          html5QrCode
-            .start(
-              { facingMode: 'environment' },
-              {
-                fps: 10,
-                qrbox: { width: 250, height: 250 }
-              },
-              async (decodedText: string) => {
-                console.log('QR Code scanned:', decodedText);
-                setIsScannerRunning(false);
-                setShowQRScanner(false);
-                // Don't await stop - just try to stop in background
-                html5QrCode.stop().catch(() => {
-                  // Ignore errors when stopping after scan
-                });
-                await handleScannedContent(decodedText);
-              },
-              (errorMessage: string) => {
-                console.error('QR Code scanning error:', errorMessage);
-              }
-            )
-            .then(() => {
-              // Only set qrScanner and isScannerRunning AFTER scanner successfully starts
+          ;(async () => {
+            try {
+              // enumerate cameras to allow flipping
+              const cams = await (window as any).Html5Qrcode.getCameras();
+              setCameraList(cams || []);
+              // Prefer environment/back camera
+              const saved = localStorage.getItem('qrCameraId');
+              const preferred = (cams || []).find((c: any) => c.id === saved) ||
+                (cams || []).find((c: any) => /back|rear|environment/i.test(c.label)) || (cams || [])[0];
+              currentCameraIdRef.current = preferred ? preferred.id : undefined;
+
+              await html5QrCode.start(
+                currentCameraIdRef.current
+                  ? { deviceId: { exact: currentCameraIdRef.current } }
+                  : { facingMode: 'environment' },
+                {
+                  fps: 10,
+                  qrbox: { width: 250, height: 250 }
+                },
+                async (decodedText: string) => {
+                  console.log('QR Code scanned:', decodedText);
+                  setIsScannerRunning(false);
+                  setShowQRScanner(false);
+                  html5QrCode.stop().catch(() => {});
+                  await handleScannedContent(decodedText);
+                },
+                (errorMessage: string) => {
+                  // noisy errors; keep silent or log
+                }
+              );
+
+              // After start, probe zoom/torch capabilities
+              try {
+                const videoEl = document.querySelector('#reader video') as any;
+                const track = (videoEl?.srcObject as any)?.getVideoTracks?.()[0];
+                const caps = track?.getCapabilities?.();
+                if (caps && typeof caps.zoom !== 'undefined') {
+                  setZoomSupported(true);
+                  const min = caps.zoom.min ?? 1;
+                  const max = caps.zoom.max ?? 1;
+                  const step = caps.zoom.step ?? 0.1;
+                  setZoomMin(min);
+                  setZoomMax(max);
+                  setZoomStep(step);
+                  setZoomVal(Math.min(Math.max(min, 1), max));
+                } else {
+                  setZoomSupported(false);
+                }
+                if (caps && typeof caps.torch !== 'undefined') {
+                  setTorchSupported(true);
+                } else {
+                  setTorchSupported(false);
+                }
+              } catch {}
+
               setQrScanner(html5QrCode);
               setIsScannerRunning(true);
-              isStoppingScannerRef.current = false; // Reset ref when scanner starts
-            })
-            .catch((error: any) => {
+              isStoppingScannerRef.current = false;
+            } catch (error) {
               console.error('Failed to start QR scanner:', error);
               setIsScannerRunning(false);
-              isStoppingScannerRef.current = false; // Reset ref if starting fails
-            });
+              isStoppingScannerRef.current = false;
+            }
+          })();
         }
       }, 100);
     }
@@ -308,6 +355,55 @@ export const Layout: React.FC = () => {
       safelyStopScanner();
     }
   }, [showQRScanner, qrScanner, isScannerRunning, safelyStopScanner]);
+
+  // Removed flip button; use picker instead
+
+  const applyZoom = async (val: number) => {
+    try {
+      setZoomVal(val);
+      const videoEl = document.querySelector('#reader video') as any;
+      const track = (videoEl?.srcObject as any)?.getVideoTracks?.()[0];
+      if (track?.applyConstraints) {
+        await track.applyConstraints({ advanced: [{ zoom: val }] });
+      }
+    } catch {}
+  };
+
+  const selectCamera = async (deviceId: string) => {
+    try {
+      const html5QrCode = qrScanner;
+      if (!html5QrCode) return;
+      await html5QrCode.stop().catch(() => {});
+      currentCameraIdRef.current = deviceId;
+      localStorage.setItem('qrCameraId', deviceId);
+      await html5QrCode.start(
+        { deviceId: { exact: deviceId } },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        async (decodedText: string) => {
+          setIsScannerRunning(false);
+          setShowQRScanner(false);
+          html5QrCode.stop().catch(() => {});
+          await handleScannedContent(decodedText);
+        },
+        () => {}
+      );
+    } catch (e) {
+      console.warn('Select camera failed:', e);
+    }
+  };
+
+  const toggleTorch = async () => {
+    try {
+      const videoEl = document.querySelector('#reader video') as any;
+      const track = (videoEl?.srcObject as any)?.getVideoTracks?.()[0];
+      if (!track?.applyConstraints || !torchSupported) return;
+      const next = !torchOn;
+      await track.applyConstraints({ advanced: [{ torch: next }] });
+      setTorchOn(next);
+    } catch (e) {
+      console.warn('Torch toggle failed:', e);
+    }
+  };
 
   // Cleanup QR scanner on unmount
   useEffect(() => {
@@ -554,9 +650,61 @@ export const Layout: React.FC = () => {
             <span className="logoMe">.me</span>
           </div>
           <p className="label" id="titleScanner">
-            Scan note1 or nevent1 QR code
+            Scan note/nevent or npub/nprofile QR code
           </p>
           <div id="reader"></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
+            {/* iOS-like compact controls */}
+            {cameraList.length > 0 && (
+              <div style={{ position: 'relative' }}>
+                <button
+                  className="label"
+                  onClick={(e) => { e.preventDefault(); setShowCameraPicker(v => !v); }}
+                  title="Switch Camera"
+                >
+                  <span className="material-symbols-outlined">cameraswitch</span>
+                </button>
+                {showCameraPicker && (
+                  <div style={{ position: 'absolute', top: '36px', left: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', minWidth: '220px', zIndex: 10 }}>
+                    {cameraList.map((c: any) => (
+                      <div
+                        key={c.id}
+                        onMouseDown={(e) => { e.preventDefault(); selectCamera(c.id); setShowCameraPicker(false); }}
+                        style={{ padding: '10px 12px', cursor: 'pointer', background: c.id === currentCameraIdRef.current ? '#f3f4f6' : '#fff' }}
+                      >
+                        {c.label || c.id}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {torchSupported && (
+              <button
+                className="label"
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleTorch();
+                }}
+              >
+                {torchOn ? 'Torch Off' : 'Torch On'}
+              </button>
+            )}
+            {zoomSupported && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span className="label">Zoom</span>
+                <input
+                  type="range"
+                  min={zoomMin}
+                  max={zoomMax}
+                  step={zoomStep}
+                  value={zoomVal}
+                  onChange={(e) => applyZoom(parseFloat(e.target.value))}
+                  style={{ width: '160px' }}
+                />
+              </div>
+            )}
+          </div>
           <a
             id="stopScanner"
             href="#"
@@ -600,7 +748,7 @@ export const Layout: React.FC = () => {
                   return;
                 }
                 try {
-                  const result = await handleSignInExtension(rememberMe);
+                  const result = await handleSignInExtension();
                   // Only close the form if sign in was successful
                   if (result && result.success) {
                     closeLogin();
@@ -627,7 +775,7 @@ export const Layout: React.FC = () => {
                 }
                 try {
                   setExternalSignerLoading(true);
-                  const result = await handleSignInExternalSigner(rememberMe);
+                  const result = await handleSignInExternalSigner();
                   // Only close the form if sign in was successful
                   if (result && result.success) {
                     closeLogin();
@@ -693,7 +841,7 @@ export const Layout: React.FC = () => {
                 className="cta"
                 type="submit"
                 onClick={async () => {
-                  await handleContinueWithNsec(nsecInput, rememberMe);
+                  await handleContinueWithNsec(nsecInput);
                   closeLogin();
                 }}
               >
@@ -701,18 +849,7 @@ export const Layout: React.FC = () => {
               </button>
             </form>
           </div>
-          <div className="rememberPK">
-            <label htmlFor="rememberMe" className="label">
-              Remember
-            </label>
-            <input
-              type="checkbox"
-              className="checkBoxRemember"
-              id="rememberMe"
-              checked={rememberMe}
-              onChange={e => setRememberMe(e.target.checked)}
-            />
-          </div>
+          {/* Remember option removed: sessions persist until logout */}
           <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '13px' }}>
             <Link
               to="/register"

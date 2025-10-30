@@ -796,6 +796,7 @@ export const FeedsPage: React.FC = () => {
               onViewRaw={handleViewRaw}
               isLoggedIn={authState.isLoggedIn}
               nostrClient={nostrClient}
+              nostrReady={nostrReady}
             />
           ))
         )}
