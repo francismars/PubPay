@@ -42,3 +42,4 @@ export * from './services/follow/FollowService';
 
 // Export utils
 export * from './utils/NostrUtil';
+export * from './utils/constants';

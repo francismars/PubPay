@@ -1,5 +1,6 @@
 // import { NostrEvent } from '@/types/nostr'; // Unused import
 import * as NostrTools from 'nostr-tools';
+import { RELAYS } from '../../utils/constants';
 
 export interface ZapCallback {
   callbackToZap: string;
@@ -123,13 +124,7 @@ export class ZapService {
         pubkey: (eventData as any).pubkey,
         amount: amountPay,
         comment: '',
-        relays: [
-          'wss://relay.damus.io',
-          'wss://relay.primal.net',
-          'wss://nostr.mutinywallet.com/',
-          'wss://relay.nostr.band/',
-          'wss://relay.nostr.nu/'
-        ]
+        relays: RELAYS
       });
 
       console.log('Created zap event:', zapEvent);
