@@ -171,20 +171,31 @@ export class AuthService {
   static async handleExternalSignerReturn(): Promise<AuthResult> {
     try {
       const signInData = JSON.parse(sessionStorage.getItem('signIn') || '{}');
-      if (!signInData.rememberMe !== undefined) {
+      // Proceed only if we previously initiated an external signer sign-in
+      if (signInData && signInData.rememberMe !== undefined) {
         sessionStorage.removeItem('signIn');
 
         // Get the public key from clipboard
-        const npub = await this.accessClipboard();
-        if (!npub) {
+        const clipboardText = await this.accessClipboard();
+        if (!clipboardText) {
           return {
             success: false,
             error: 'No public key found in clipboard'
           };
         }
 
-        const decodedNPUB = NostrTools.nip19.decode(npub);
-        const publicKey = decodedNPUB.data;
+        // Normalize clipboard content (can be npub, nostr:npub, or raw hex pubkey)
+        const trimmed = clipboardText.trim();
+        let publicKey: string | null = null;
+        try {
+          const clean = trimmed.replace(/^nostr:/i, '');
+          if (/^npub1[0-9a-z]+$/i.test(clean)) {
+            const decodedNPUB = NostrTools.nip19.decode(clean);
+            publicKey = (decodedNPUB.data as any) as string;
+          } else if (/^[0-9a-f]{64}$/i.test(clean)) {
+            publicKey = clean.toLowerCase();
+          }
+        } catch {}
 
         if (
           !publicKey ||

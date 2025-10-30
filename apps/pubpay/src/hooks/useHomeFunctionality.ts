@@ -181,6 +181,7 @@ export const useHomeFunctionality = () => {
     // Handle external signer return
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
+        // First, process sign-in return (npub from clipboard)
         const result = await AuthService.handleExternalSignerReturn();
         if (result.success && result.publicKey) {
           AuthService.storeAuthData(
@@ -200,6 +201,97 @@ export const useHomeFunctionality = () => {
           });
 
           await loadUserProfile(result.publicKey);
+        }
+
+        // Then, handle pending external-signer operations that require signature
+        try {
+          // Ensure page has focus to allow clipboard reads
+          while (!document.hasFocus()) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
+          // Helper to read signature from clipboard (npub not expected here)
+          const readClipboard = async (): Promise<string | null> => {
+            try {
+              const text = await navigator.clipboard.readText();
+              return (text || '').trim();
+            } catch (e) {
+              return null;
+            }
+          };
+
+          // Handle SignKind1: finalize and publish a note
+          try {
+            const kind1Raw = sessionStorage.getItem('SignKind1');
+            if (kind1Raw) {
+              const payload = JSON.parse(kind1Raw) as { event?: any };
+              sessionStorage.removeItem('SignKind1');
+
+              if (payload && payload.event) {
+                const sig = await readClipboard();
+                if (!sig || !/^([0-9a-f]{128})$/i.test(sig)) {
+                  console.error('No valid signature found in clipboard for note');
+                  return;
+                }
+
+                const eventSigned = { ...payload.event, sig };
+                const verified = NostrTools.verifyEvent(eventSigned);
+                if (!verified) {
+                  console.error('Invalid signed event (note)');
+                  return;
+                }
+
+                if (nostrClientRef.current) {
+                  await nostrClientRef.current.publishEvent(eventSigned);
+                  console.log('Note published via external signer');
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('Error handling SignKind1 return:', e);
+          }
+
+          // Handle SignZapEvent: finalize and proceed to get invoice/pay
+          try {
+            const zapRaw = sessionStorage.getItem('SignZapEvent');
+            if (zapRaw) {
+              const payload = JSON.parse(zapRaw) as {
+                callback: string;
+                amount: number;
+                lud16: string;
+                event: any;
+                id: string;
+              };
+              sessionStorage.removeItem('SignZapEvent');
+
+              const sig = await readClipboard();
+              if (!sig || !/^([0-9a-f]{128})$/i.test(sig)) {
+                console.error('No valid signature found in clipboard for zap');
+                return;
+              }
+
+              const eventSigned = { ...payload.event, sig };
+              const verified = NostrTools.verifyEvent(eventSigned);
+              if (!verified) {
+                console.error('Invalid signed event (zap)');
+                return;
+              }
+
+              if (zapServiceRef.current) {
+                await zapServiceRef.current.getInvoiceandPay(
+                  payload.callback,
+                  payload.amount,
+                  eventSigned,
+                  payload.lud16,
+                  payload.id
+                );
+              }
+            }
+          } catch (e) {
+            console.warn('Error handling SignZapEvent return:', e);
+          }
+        } catch (e) {
+          console.warn('External signer return processing error:', e);
         }
       }
     };
@@ -1191,9 +1283,12 @@ export const useHomeFunctionality = () => {
       return;
     }
 
-    if (!window.nostr) {
-      console.error('Nostr extension not available');
-      return;
+    // Only require extension API when sign-in method is actually 'extension'
+    if (authState.signInMethod === 'extension') {
+      if (!window.nostr) {
+        console.error('Nostr extension not available');
+        return;
+      }
     }
 
     if (!zapServiceRef.current) {
@@ -1240,7 +1335,7 @@ export const useHomeFunctionality = () => {
         return;
       }
 
-      // Sign and send zap event
+      // Sign and send zap event (ZapService will branch per sign-in method)
       const success = await zapServiceRef.current.signZapEvent(
         zapEventData.zapEvent,
         callback.callbackToZap,
