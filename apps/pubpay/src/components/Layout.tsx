@@ -496,7 +496,29 @@ export const Layout: React.FC = () => {
                   closeMobileMenu();
                 }}
               >
+                Events
+              </a>
+              <a
+                href="javascript:void(0)"
+                className="sideNavLink disabled"
+                title="coming soon"
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                }}
+              >
                 Notifications
+              </a>
+              <a
+                href="javascript:void(0)"
+                className="sideNavLink disabled"
+                title="coming soon"
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                }}
+              >
+                Messages
               </a>
               <a
                 href="javascript:void(0)"
