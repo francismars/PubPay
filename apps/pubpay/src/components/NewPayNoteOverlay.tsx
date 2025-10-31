@@ -100,7 +100,13 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
     setIsUploading(true);
     try {
       const hash = await blossomService.uploadImageFromClipboard(file);
-      const imageUrl = blossomService.getFileUrl(hash);
+      // Extract extension from filename or MIME type
+      const extension = file.name ? file.name.split('.').pop()?.toLowerCase() : 
+        (file.type === 'image/jpeg' ? 'jpg' : 
+         file.type === 'image/png' ? 'png' : 
+         file.type === 'image/gif' ? 'gif' : 
+         file.type === 'image/webp' ? 'webp' : null);
+      const imageUrl = blossomService.getFileUrl(hash, extension || undefined);
       
       // Insert image URL at cursor position in textarea
       insertTextAtCursor(`\n${imageUrl}\n`);

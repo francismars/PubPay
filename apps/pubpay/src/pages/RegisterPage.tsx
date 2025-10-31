@@ -227,7 +227,13 @@ const RegisterPage: React.FC = () => {
     try {
       const blossomService = new BlossomService();
       const hash = await blossomService.uploadFileWithKey(file, generatedKeys.rawPrivateKey, generatedKeys.rawPublicKey);
-      const imageUrl = blossomService.getFileUrl(hash);
+      // Extract extension from filename or MIME type
+      const extension = file.name ? file.name.split('.').pop()?.toLowerCase() : 
+        (file.type === 'image/jpeg' ? 'jpg' : 
+         file.type === 'image/png' ? 'png' : 
+         file.type === 'image/gif' ? 'gif' : 
+         file.type === 'image/webp' ? 'webp' : null);
+      const imageUrl = blossomService.getFileUrl(hash, extension || undefined);
       setFormData(prev => ({ ...prev, picture: imageUrl }));
     } catch (error) {
       console.error('Failed to upload picture:', error);
@@ -260,7 +266,13 @@ const RegisterPage: React.FC = () => {
     try {
       const blossomService = new BlossomService();
       const hash = await blossomService.uploadFileWithKey(file, generatedKeys.rawPrivateKey, generatedKeys.rawPublicKey);
-      const imageUrl = blossomService.getFileUrl(hash);
+      // Extract extension from filename or MIME type
+      const extension = file.name ? file.name.split('.').pop()?.toLowerCase() : 
+        (file.type === 'image/jpeg' ? 'jpg' : 
+         file.type === 'image/png' ? 'png' : 
+         file.type === 'image/gif' ? 'gif' : 
+         file.type === 'image/webp' ? 'webp' : null);
+      const imageUrl = blossomService.getFileUrl(hash, extension || undefined);
       setFormData(prev => ({ ...prev, banner: imageUrl }));
     } catch (error) {
       console.error('Failed to upload banner:', error);

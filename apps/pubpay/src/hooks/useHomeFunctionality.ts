@@ -2193,14 +2193,31 @@ export const useHomeFunctionality = () => {
     }
 
     return () => {
+      // Clean up existing subscriptions before creating new ones
+      if (subscriptionRef.current) {
+        try {
+          subscriptionRef.current.unsubscribe();
+        } catch (e) {
+          console.warn('Error unsubscribing from notes subscription:', e);
+        }
+        subscriptionRef.current = null;
+      }
       if (notesSub) {
-        notesSub.unsubscribe();
+        try {
+          notesSub.unsubscribe();
+        } catch (e) {
+          console.warn('Error unsubscribing from new notes subscription:', e);
+        }
       }
       if (zapsSub) {
-        zapsSub.unsubscribe();
+        try {
+          zapsSub.unsubscribe();
+        } catch (e) {
+          console.warn('Error unsubscribing from zaps subscription:', e);
+        }
       }
     };
-  }, [activeFeed, posts.length, followingPosts.length, isLoading]); // Re-subscribe when feed changes or posts change or loading state changes
+  }, [activeFeed, isLoading, nostrReady]); // Only re-subscribe when feed changes, loading state changes, or nostr client becomes ready
 
   // Process zaps in batches to reduce relay load
   const processZapBatch = async (zapEvents: Kind9735Event[]) => {

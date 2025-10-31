@@ -254,12 +254,13 @@ export class BlossomService {
         console.log('Upload successful, result:', result);
         sessionStorage.removeItem('BlossomAuth');
         
-        // Return the file URL
+        // Return the file URL with extension
         const hash = result.sha256 || result.hash;
         if (!hash) {
           throw new Error('No hash returned from upload');
         }
-        return `${url}/${hash}`;
+        const extension = BlossomService.getFileExtension(file);
+        return extension ? `${url}/${hash}.${extension}` : `${url}/${hash}`;
       } catch (fileError) {
         console.error('Error reconstructing file or uploading:', fileError);
         sessionStorage.removeItem('BlossomAuth');
@@ -343,9 +344,49 @@ export class BlossomService {
   }
 
   /**
-   * Get file URL (for displaying in img tags, etc)
+   * Extract file extension from filename or MIME type
    */
-  getFileUrl(hash: string): string {
+  private static getFileExtension(file: { name?: string; type?: string }): string | null {
+    // Try to get extension from filename
+    if (file.name) {
+      const lastDot = file.name.lastIndexOf('.');
+      if (lastDot > 0 && lastDot < file.name.length - 1) {
+        return file.name.substring(lastDot + 1).toLowerCase();
+      }
+    }
+    
+    // Fallback to MIME type mapping
+    const mimeToExt: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+      'image/svg+xml': 'svg',
+      'video/mp4': 'mp4',
+      'video/webm': 'webm',
+      'video/ogg': 'ogv',
+      'audio/mpeg': 'mp3',
+      'audio/ogg': 'ogg',
+      'audio/wav': 'wav'
+    };
+    
+    if (file.type && mimeToExt[file.type]) {
+      return mimeToExt[file.type];
+    }
+    
+    return null;
+  }
+
+  /**
+   * Get file URL (for displaying in img tags, etc)
+   * @param hash - The file hash from Blossom
+   * @param extension - Optional file extension (e.g., 'jpg', 'png')
+   */
+  getFileUrl(hash: string, extension?: string | null): string {
+    if (extension) {
+      return `${this.serverUrl}/${hash}.${extension}`;
+    }
     return `${this.serverUrl}/${hash}`;
   }
 

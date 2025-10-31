@@ -123,14 +123,6 @@ export async function formatContent(
     });
   }
 
-  // Handle Blossom URLs (hash-based without extension)
-  // Pattern: https://blossom.*/ followed by 64-char hex hash
-  content = content.replace(
-    /(https?:\/\/(blossom\.[^\s)]+\/)([a-fA-F0-9]{64}))/gi,
-    (match, baseUrl, hash) =>
-      `<img src="${match}" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; display: block;" onerror="this.style.display='none';">`
-  );
-
   // Handle image URLs with extensions
   content = content.replace(
     /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(gif|png|jpg|jpeg|webp)/gi,
