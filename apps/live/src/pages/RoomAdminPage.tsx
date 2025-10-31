@@ -16,7 +16,7 @@ export const RoomAdminPage: React.FC = () => {
     {
       "startAt": "${new Date(Date.now() + 5 * 60 * 1000).toISOString()}",
       "endAt": "${new Date(Date.now() + 35 * 60 * 1000).toISOString()}",
-      "items": [ { "ref": "note1example..." }, { "ref": "nevent1example..." } ]
+      "lives": [ { "ref": "note1example..." }, { "ref": "nevent1example..." } ]
     }
   ]
 }`);
@@ -26,6 +26,8 @@ export const RoomAdminPage: React.FC = () => {
 	const [success, setSuccess] = useState<string | null>(null);
 	const [scheduleError, setScheduleError] = useState<string | null>(null);
 	const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null);
+	const [showIdCopied, setShowIdCopied] = useState(false);
+	const [showUrlCopied, setShowUrlCopied] = useState(false);
 // Deprecated single-field import path retained for compatibility; not used in new UI
 // const [pretalxVersion] = useState<string>('');
 	const [pretalxSchedules, setPretalxSchedules] = useState<Array<{ id?: string | number; version?: string; published?: string | null }>>([]);
@@ -33,7 +35,7 @@ export const RoomAdminPage: React.FC = () => {
 	const [availableStages, setAvailableStages] = useState<Array<{ id?: string | number; name?: string | number }>>([]);
 	const [selectedStageId, setSelectedStageId] = useState<string>('');
 	const [pretalxRawResponse, setPretalxRawResponse] = useState<unknown | null>(null);
-	const [loadedSlots, setLoadedSlots] = useState<Array<{ startAt: string; endAt: string; items: Array<{ ref: string }>; title?: string; speakers?: string[]; code?: string; room?: { name?: string } }>>([]);
+	const [loadedSlots, setLoadedSlots] = useState<Array<{ startAt: string; endAt: string; items: Array<{ ref: string }>; title?: string; speakers?: string[] }>>([]);
 	const [availableDates, setAvailableDates] = useState<string[]>([]);
 	const [selectedDate, setSelectedDate] = useState<string>('all');
 	const [showPretalxModal, setShowPretalxModal] = useState(false);
@@ -43,15 +45,13 @@ export const RoomAdminPage: React.FC = () => {
 	const [newSlotStart, setNewSlotStart] = useState('');
 	const [newSlotEnd, setNewSlotEnd] = useState('');
 	const [newSlotTitle, setNewSlotTitle] = useState('');
-	const [newSlotCode, setNewSlotCode] = useState('');
 	const [newSlotSpeakers, setNewSlotSpeakers] = useState('');
-	const [newSlotRoomName, setNewSlotRoomName] = useState('');
 	const [newSlotItems, setNewSlotItems] = useState<string[]>(['']);
 
 	const fetchPretalxSchedules = useCallback(async () => {
 		setBusy(true); setError(null); setSuccess(null); setPretalxRawResponse(null);
 		try {
-			const res = await fetch(`${API_BASE}/rooms/pretalx/schedules`);
+			const res = await fetch(`${API_BASE}/multi/pretalx/schedules`);
 			const json = await res.json();
 			setPretalxRawResponse(json); // Store raw response for debugging
 			if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to fetch schedules');
@@ -71,7 +71,7 @@ export const RoomAdminPage: React.FC = () => {
 		setBusy(true); setError(null); setSuccess(null); setPretalxRawResponse(null);
 		try {
 			const params = new URLSearchParams({ version: selectedVersion });
-			const res = await fetch(`${API_BASE}/rooms/pretalx/preview?${params.toString()}`);
+			const res = await fetch(`${API_BASE}/multi/pretalx/preview?${params.toString()}`);
 			const json = await res.json();
 			setPretalxRawResponse(json); // Store raw response for debugging
 			if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to load preview');
@@ -105,11 +105,11 @@ const loadStageToTimeline = useCallback(async () => {
 		setBusy(true); setError(null); setSuccess(null); setPretalxRawResponse(null);
 		try {
 			const params = new URLSearchParams({ version: selectedVersion, roomId: selectedStageId });
-			const res = await fetch(`${API_BASE}/rooms/pretalx/preview?${params.toString()}`);
+			const res = await fetch(`${API_BASE}/multi/pretalx/preview?${params.toString()}`);
 			const json = await res.json();
 			setPretalxRawResponse(json); // Store raw response for debugging
 			if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to load stage slots');
-			const slots = (json.data?.slots || []) as Array<{ startAt: string; endAt: string; items: Array<{ ref: string }>; title?: string; speakers?: string[]; code?: string; room?: { name?: string } }>;
+			const slots = (json.data?.slots || []) as Array<{ startAt: string; endAt: string; items: Array<{ ref: string }>; title?: string; speakers?: string[] }>;
 
 			// Extract unique dates from slots using original timezone (extract date part directly from ISO string)
 			const dateSet = new Set<string>();
@@ -157,7 +157,13 @@ const loadStageToTimeline = useCallback(async () => {
 			});
 		}
 
-		const timelineSlots: Slot[] = filteredSlots.map(s => ({ startAt: s.startAt, endAt: s.endAt, items: s.items, title: s.title, speakers: s.speakers, code: s.code, roomName: (s.room?.name as string | undefined) }));
+			const timelineSlots: Slot[] = filteredSlots.map(s => ({
+				startAt: s.startAt,
+				endAt: s.endAt,
+				lives: s.items.map(item => ({ ref: item.ref })),
+				title: s.title,
+				speakers: s.speakers
+			}));
 		updateSlotsFromTimeline(timelineSlots);
 		if (selectedDate !== 'all') {
 			const dateObj = new Date(selectedDate);
@@ -182,7 +188,12 @@ const loadStageToTimeline = useCallback(async () => {
 	const parsedSlots = useMemo<Slot[]>(() => {
 		try {
 			const parsed = JSON.parse(scheduleJson);
-			return parsed.slots || [];
+			const slots = parsed.slots || [];
+			// Normalize slots: ensure they have 'lives' (convert from 'items' if needed, or default to empty array)
+			return slots.map((slot: Partial<Slot> & { items?: Array<{ ref: string }> }) => ({
+				...slot,
+				lives: slot.lives || slot.items || []
+			}));
 		} catch {
 			return [];
 		}
@@ -215,14 +226,14 @@ const loadStageToTimeline = useCallback(async () => {
 
 				if (storedPassword) {
 					// Use POST with password if we have one stored
-					res = await fetch(`${API_BASE}/rooms/${roomId}`, {
+					res = await fetch(`${API_BASE}/multi/${roomId}`, {
 						method: 'POST',
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify({ password: storedPassword })
 					});
 				} else {
 					// Use GET if no password
-					res = await fetch(`${API_BASE}/rooms/${roomId}`);
+					res = await fetch(`${API_BASE}/multi/${roomId}`);
 				}
 
 				if (cancelled) return;
@@ -267,7 +278,7 @@ const loadStageToTimeline = useCallback(async () => {
 			const payload = {
 				name: name || 'Untitled Room'
 			};
-			const res = await fetch(`${API_BASE}/rooms`, {
+			const res = await fetch(`${API_BASE}/multi`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload)
@@ -286,10 +297,12 @@ const loadStageToTimeline = useCallback(async () => {
 			if (!Array.isArray(schedule.slots)) return { valid: false, error: 'schedule.slots must be an array' };
 			for (const slot of schedule.slots) {
 				if (!slot.startAt || !slot.endAt) return { valid: false, error: 'Each slot must have startAt and endAt (UTC ISO)' };
-				if (!Array.isArray(slot.items)) return { valid: false, error: 'Each slot.items must be an array' };
-				for (const item of slot.items) {
-					if (!item.ref || (!item.ref.startsWith('note1') && !item.ref.startsWith('nevent1'))) {
-						return { valid: false, error: 'Each item must have a valid ref (note1... or nevent1...)' };
+				// Support both 'lives' (new format) and 'items' (legacy format)
+				const lives = slot.lives || slot.items;
+				if (!Array.isArray(lives)) return { valid: false, error: 'Each slot.lives must be an array' };
+				for (const live of lives) {
+					if (!live.ref || (!live.ref.startsWith('note1') && !live.ref.startsWith('nevent1'))) {
+						return { valid: false, error: 'Each live must have a valid ref (note1... or nevent1...)' };
 					}
 				}
 				const start = new Date(slot.startAt);
@@ -313,10 +326,17 @@ const loadStageToTimeline = useCallback(async () => {
 		setBusy(true); setScheduleError(null); setScheduleSuccess(null);
 		try {
 			const schedule = JSON.parse(scheduleJson);
-			const res = await fetch(`${API_BASE}/rooms/${createdRoomId}/schedule`, {
+			// Normalize schedule: ensure all slots have 'lives' (convert from 'items' if needed)
+			const normalizedSchedule = {
+				slots: (schedule.slots || []).map((slot: Partial<Slot> & { items?: Array<{ ref: string }> }) => ({
+					...slot,
+					lives: slot.lives || slot.items || []
+				}))
+			};
+			const res = await fetch(`${API_BASE}/multi/${createdRoomId}/schedule`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(schedule)
+				body: JSON.stringify(normalizedSchedule)
 			});
 			const json = await res.json();
 			if (!json.success) throw new Error(json.error || 'Failed to set schedule');
@@ -337,7 +357,7 @@ const loadStageToTimeline = useCallback(async () => {
 				rotationIntervalSec,
 				defaultItems: defaultItems.split(/\n|,/) .map(s => s.trim()).filter(Boolean)
 			};
-			const res = await fetch(`${API_BASE}/rooms/${createdRoomId}`, {
+			const res = await fetch(`${API_BASE}/multi/${createdRoomId}`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload)
@@ -354,16 +374,16 @@ const loadStageToTimeline = useCallback(async () => {
 	const copyRoomId = useCallback(() => {
 		if (!createdRoomId) return;
 		navigator.clipboard.writeText(createdRoomId);
-		setSuccess('Room ID copied!');
-		setTimeout(() => setSuccess(null), 2000);
+		setShowIdCopied(true);
+		setTimeout(() => setShowIdCopied(false), 2000);
 	}, [createdRoomId]);
 
 	const copyViewerUrl = useCallback(() => {
 		if (!createdRoomId) return;
-		const url = `${window.location.origin}/room/${createdRoomId}`;
+		const url = `${window.location.origin}/multi/${createdRoomId}`;
 		navigator.clipboard.writeText(url);
-		setSuccess('Viewer URL copied!');
-		setTimeout(() => setSuccess(null), 2000);
+		setShowUrlCopied(true);
+		setTimeout(() => setShowUrlCopied(false), 2000);
 	}, [createdRoomId]);
 
 	const exportSchedule = useCallback(() => {
@@ -398,26 +418,26 @@ const loadStageToTimeline = useCallback(async () => {
 
 	const loadProvidedSchedule = useCallback(() => {
 		const templateSlots = [
-			{ startAt: '2025-11-14T09:00:00Z', endAt: '2025-11-14T09:30:00Z', items: [ { ref: 'note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7' } ] },
-			{ startAt: '2025-11-14T09:30:00Z', endAt: '2025-11-14T10:00:00Z', items: [ { ref: 'note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu' } ] },
-			{ startAt: '2025-11-14T10:00:00Z', endAt: '2025-11-14T10:30:00Z', items: [ { ref: 'note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv' } ] },
-			{ startAt: '2025-11-14T10:30:00Z', endAt: '2025-11-14T11:00:00Z', items: [ { ref: 'nevent1qqsphk43g2pzpwfr8qcp5zdx8ftgaj7gvxk682y4sedjvscrsm0lpssc96mm3' } ] },
-			{ startAt: '2025-11-14T11:00:00Z', endAt: '2025-11-14T11:30:00Z', items: [
+			{ startAt: '2025-11-14T09:00:00Z', endAt: '2025-11-14T09:30:00Z', lives: [ { ref: 'note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7' } ] },
+			{ startAt: '2025-11-14T09:30:00Z', endAt: '2025-11-14T10:00:00Z', lives: [ { ref: 'note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu' } ] },
+			{ startAt: '2025-11-14T10:00:00Z', endAt: '2025-11-14T10:30:00Z', lives: [ { ref: 'note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv' } ] },
+			{ startAt: '2025-11-14T10:30:00Z', endAt: '2025-11-14T11:00:00Z', lives: [ { ref: 'nevent1qqsphk43g2pzpwfr8qcp5zdx8ftgaj7gvxk682y4sedjvscrsm0lpssc96mm3' } ] },
+			{ startAt: '2025-11-14T11:00:00Z', endAt: '2025-11-14T11:30:00Z', lives: [
 				{ ref: 'nevent1qvzqqqqqqypzqlea4mfml7qvctjsypywae5g5ra8zj6t3f8sqcuj53h9xq9nn6pjqqsffzd548j3gtkck0hemn9jqgqfpdttatwhpg3vd3plhghlhatzw6cpmvz4r' },
 				{ ref: 'nevent1qvzqqqqqqypzqpxfzhdwlm3cx9l6wdzyft8w8y9gy607tqgtyfq7tekaxs7lhmxfqqsygu0jcvwfp7p3hhe42stxu44dcuz5zt9cy052qfg2ea98gxy2sfq2wh7j0' },
 				{ ref: 'nevent1qvzqqqqqqypzqy9kvcxtqa2tlwyjv4r46ancxk00ghk9yaudzsnp697s60942p7lqqs0sqpv028v3xy6z27qx8sfukgl5wn2z7j4u8ylrs8w5gfmp44j0rc4avhey' }
 			] },
-			{ startAt: '2025-11-14T11:30:00Z', endAt: '2025-11-14T12:00:00Z', items: [ { ref: 'nevent1qvzqqqqqqypzpw9fm7ppszzwfyxc3q6z482g3d70p7eqkxseh93mantga44ttjaaqy2hwumn8ghj7un9d3shjtnyv9kh2uewd9hj7qghdehhxarj945kgc369uhkxctrdpjj6un9d3shjqpq04k2daej76pv0nfrefuwp0xm4gjmqqwx0vc6yhsq9jkr956879ds4tsslp' } ] },
-			{ startAt: '2025-11-14T12:00:00Z', endAt: '2025-11-14T12:30:00Z', items: [ { ref: 'nevent1qqsdz8sqytjeum0utxvkvknyp9a7t0twv976tuuyzf3ngwc3572tltct2ek8j' } ] },
-			{ startAt: '2025-11-14T12:30:00Z', endAt: '2025-11-14T13:00:00Z', items: [ { ref: 'nevent1qqs0sqpv028v3xy6z27qx8sfukgl5wn2z7j4u8ylrs8w5gfmp44j0rceyfxj5' } ] },
-			{ startAt: '2025-11-14T14:00:00Z', endAt: '2025-11-14T14:30:00Z', items: [ { ref: 'nevent1qqs8t9m7rcgnjj35ekvcrgpxt78t0u9a7yyp5pkjmmkae4kg7d8s5sqd7u960' } ] },
-			{ startAt: '2025-11-14T14:30:00Z', endAt: '2025-11-14T15:00:00Z', items: [ { ref: 'nevent1qqsre8grh4vyyhlsnp7wy5r8xrvsffzeg7w4tz5mr0t6fhd6x77fexcrl34gy' } ] },
-			{ startAt: '2025-11-14T15:00:00Z', endAt: '2025-11-14T15:30:00Z', items: [ { ref: 'nevent1qqsv4jk2xzhkfh6kk3uwfwf2xjvpl4qsne435njml08kr7pnhpcfhxq8k43rt' } ] },
-			{ startAt: '2025-11-14T15:30:00Z', endAt: '2025-11-14T16:00:00Z', items: [ { ref: 'nevent1qqsf6r5v9n6kj6mhjruylugz55gac44tzfyyh884rdvfasls0yujgqsl9vkqe' } ] },
-			{ startAt: '2025-11-14T16:00:00Z', endAt: '2025-11-14T16:30:00Z', items: [ { ref: 'nevent1qqsxnzdah0x9sp75ajrzve4aehacqt9rzepjcfkrfrllr65h6v542ksrhyy82' } ] },
-			{ startAt: '2025-11-14T16:30:00Z', endAt: '2025-11-14T17:00:00Z', items: [ { ref: 'nevent1qqsrc4h3a7063fxn2lwt5ven9dyv949k9yeh3rju0z2p7t2shmp0zfc44nm74' } ] },
-			{ startAt: '2025-11-14T17:00:00Z', endAt: '2025-11-14T17:30:00Z', items: [ { ref: 'nevent1qqs90rz4e4prc909h6f9cn30872h9rk4etqfqw3xrrgpd7waennjg2s9mc0jn' } ] },
-			{ startAt: '2025-11-14T17:30:00Z', endAt: '2025-11-14T18:00:00Z', items: [] }
+			{ startAt: '2025-11-14T11:30:00Z', endAt: '2025-11-14T12:00:00Z', lives: [ { ref: 'nevent1qvzqqqqqqypzpw9fm7ppszzwfyxc3q6z482g3d70p7eqkxseh93mantga44ttjaaqy2hwumn8ghj7un9d3shjtnyv9kh2uewd9hj7qghdehhxarj945kgc369uhkxctrdpjj6un9d3shjqpq04k2daej76pv0nfrefuwp0xm4gjmqqwx0vc6yhsq9jkr956879ds4tsslp' } ] },
+			{ startAt: '2025-11-14T12:00:00Z', endAt: '2025-11-14T12:30:00Z', lives: [ { ref: 'nevent1qqsdz8sqytjeum0utxvkvknyp9a7t0twv976tuuyzf3ngwc3572tltct2ek8j' } ] },
+			{ startAt: '2025-11-14T12:30:00Z', endAt: '2025-11-14T13:00:00Z', lives: [ { ref: 'nevent1qqs0sqpv028v3xy6z27qx8sfukgl5wn2z7j4u8ylrs8w5gfmp44j0rceyfxj5' } ] },
+			{ startAt: '2025-11-14T14:00:00Z', endAt: '2025-11-14T14:30:00Z', lives: [ { ref: 'nevent1qqs8t9m7rcgnjj35ekvcrgpxt78t0u9a7yyp5pkjmmkae4kg7d8s5sqd7u960' } ] },
+			{ startAt: '2025-11-14T14:30:00Z', endAt: '2025-11-14T15:00:00Z', lives: [ { ref: 'nevent1qqsre8grh4vyyhlsnp7wy5r8xrvsffzeg7w4tz5mr0t6fhd6x77fexcrl34gy' } ] },
+			{ startAt: '2025-11-14T15:00:00Z', endAt: '2025-11-14T15:30:00Z', lives: [ { ref: 'nevent1qqsv4jk2xzhkfh6kk3uwfwf2xjvpl4qsne435njml08kr7pnhpcfhxq8k43rt' } ] },
+			{ startAt: '2025-11-14T15:30:00Z', endAt: '2025-11-14T16:00:00Z', lives: [ { ref: 'nevent1qqsf6r5v9n6kj6mhjruylugz55gac44tzfyyh884rdvfasls0yujgqsl9vkqe' } ] },
+			{ startAt: '2025-11-14T16:00:00Z', endAt: '2025-11-14T16:30:00Z', lives: [ { ref: 'nevent1qqsxnzdah0x9sp75ajrzve4aehacqt9rzepjcfkrfrllr65h6v542ksrhyy82' } ] },
+			{ startAt: '2025-11-14T16:30:00Z', endAt: '2025-11-14T17:00:00Z', lives: [ { ref: 'nevent1qqsrc4h3a7063fxn2lwt5ven9dyv949k9yeh3rju0z2p7t2shmp0zfc44nm74' } ] },
+			{ startAt: '2025-11-14T17:00:00Z', endAt: '2025-11-14T17:30:00Z', lives: [ { ref: 'nevent1qqs90rz4e4prc909h6f9cn30872h9rk4etqfqw3xrrgpd7waennjg2s9mc0jn' } ] },
+			{ startAt: '2025-11-14T17:30:00Z', endAt: '2025-11-14T18:00:00Z', lives: [] }
 		];
 		const newSchedule = { slots: templateSlots };
 		setScheduleJson(JSON.stringify(newSchedule, null, 2));
@@ -455,24 +475,22 @@ const loadStageToTimeline = useCallback(async () => {
 			return;
 		}
 
-		// Filter out empty items and validate refs
-		const items = newSlotItems
+		// Filter out empty lives and validate refs
+		const lives = newSlotItems
 			.filter(item => item.trim())
 			.map(item => ({ ref: item.trim() }));
 
-		if (items.length === 0) {
-			setScheduleError('Please add at least one item (note1... or nevent1...)');
+		if (lives.length === 0) {
+			setScheduleError('Please add at least one live (note1... or nevent1...)');
 			return;
 		}
 
 		const newSlot: Slot = {
 			startAt: start.toISOString(),
 			endAt: end.toISOString(),
-			items,
+			lives,
 			...(newSlotTitle.trim() && { title: newSlotTitle.trim() }),
-			...(newSlotCode.trim() && { code: newSlotCode.trim() }),
-			...(newSlotSpeakers.trim() && { speakers: newSlotSpeakers.split(',').map(s => s.trim()).filter(Boolean) }),
-			...(newSlotRoomName.trim() && { roomName: newSlotRoomName.trim() })
+			...(newSlotSpeakers.trim() && { speakers: newSlotSpeakers.split(',').map(s => s.trim()).filter(Boolean) })
 		};
 		const updatedSlots = [...parsedSlots, newSlot].sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
 		updateSlotsFromTimeline(updatedSlots);
@@ -481,15 +499,13 @@ const loadStageToTimeline = useCallback(async () => {
 		setNewSlotStart('');
 		setNewSlotEnd('');
 		setNewSlotTitle('');
-		setNewSlotCode('');
 		setNewSlotSpeakers('');
-		setNewSlotRoomName('');
 		setNewSlotItems(['']);
 		setShowAddSlotModal(false);
 		setScheduleError(null);
 		setScheduleSuccess('Slot added successfully!');
 		setTimeout(() => setScheduleSuccess(null), 2000);
-	}, [newSlotStart, newSlotEnd, newSlotTitle, newSlotCode, newSlotSpeakers, newSlotRoomName, newSlotItems, parsedSlots, updateSlotsFromTimeline]);
+	}, [newSlotStart, newSlotEnd, newSlotTitle, newSlotSpeakers, newSlotItems, parsedSlots, updateSlotsFromTimeline]);
 
 	return (
 		<div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, height: '100vh', background: '#ffffff', overflow: 'hidden' }}>
@@ -501,17 +517,17 @@ const loadStageToTimeline = useCallback(async () => {
 						</h2>
 						{createdRoomId && (
 							<div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '6px 8px' }}>
-								<span style={{ fontSize: 10, color: '#4b5563', marginRight: 4 }}>Room ID:</span>
+								<span style={{ fontSize: 10, color: '#4b5563', marginRight: 4 }}>ID:</span>
 								<span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', fontSize: 10, color: '#374151' }}>{createdRoomId}</span>
-								<button onClick={copyRoomId} aria-label="Copy Room ID" title="Copy Room ID" style={{ width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', fontSize: 10 }}>📋</button>
+								<button onClick={copyRoomId} aria-label="Copy ID" title="Copy ID" style={{ width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', fontSize: 10, transition: 'all 0.2s' }}>{showIdCopied ? '✓' : '📋'}</button>
 							</div>
 						)}
 					</div>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 						{createdRoomId ? (
 							<>
-								<button onClick={copyViewerUrl} aria-label="Copy Viewer URL" title="Copy Viewer URL" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>🔗</button>
-								<button onClick={() => window.open(`/room/${createdRoomId}`, '_blank')} aria-label="Open Viewer" title="Open Viewer" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>↗</button>
+								<button onClick={copyViewerUrl} aria-label="Copy Viewer URL" title="Copy Viewer URL" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 14, transition: 'all 0.2s', color: showUrlCopied ? '#10b981' : 'inherit' }}>{showUrlCopied ? '✓' : '🔗'}</button>
+								<button onClick={() => window.open(`/multi/${createdRoomId}`, '_blank')} aria-label="Open Viewer" title="Open Viewer" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>↗</button>
 								<button onClick={() => setShowSettingsModal(true)} aria-label="Settings" title="Settings" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>⚙️</button>
 								<img src="/images/powered_by_white_bg.png" alt="Powered by PubPay" style={{ height: '3.5vw', marginLeft: 8 }} />
 							</>
@@ -650,15 +666,7 @@ const loadStageToTimeline = useCallback(async () => {
 								<input value={name} onChange={e => setName(e.target.value)} placeholder="Room name" style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, marginTop: 6 }} />
 							</div>
 							<div>
-								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151' }}>Rotation policy</label>
-								<select value={rotationPolicy} onChange={e => setPolicy(e.target.value as 'round_robin' | 'random' | 'weighted')} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, marginTop: 6 }}>
-									<option value="round_robin">round_robin</option>
-									<option value="random">random</option>
-									<option value="weighted">weighted</option>
-								</select>
-							</div>
-							<div>
-								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151' }}>Rotation interval (sec)</label>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151' }}>Same slot rotation interval (sec)</label>
 								<input type="number" value={rotationIntervalSec} onChange={e => setIntervalSec(parseInt(e.target.value || '60', 10))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, marginTop: 6 }} />
 							</div>
 							<div>
@@ -684,7 +692,7 @@ const loadStageToTimeline = useCallback(async () => {
 					<div style={{ width: 'min(600px, 94vw)', background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 10px 32px rgba(0,0,0,0.2)', padding: 16, maxHeight: '90vh', overflow: 'auto' }}>
 						<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
 							<h3 style={{ margin: 0 }}>Add Slot</h3>
-							<button onClick={() => { setShowAddSlotModal(false); setNewSlotStart(''); setNewSlotEnd(''); setNewSlotTitle(''); setNewSlotCode(''); setNewSlotSpeakers(''); setNewSlotRoomName(''); setNewSlotItems(['']); setError(null); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18 }}>✕</button>
+							<button onClick={() => { setShowAddSlotModal(false); setNewSlotStart(''); setNewSlotEnd(''); setNewSlotTitle(''); setNewSlotSpeakers(''); setNewSlotItems(['']); setError(null); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18 }}>✕</button>
 						</div>
 						<div style={{ display: 'grid', gap: 12 }}>
 							{error && (
@@ -725,16 +733,6 @@ const loadStageToTimeline = useCallback(async () => {
 								/>
 							</div>
 							<div>
-								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151', display: 'block', marginBottom: 6 }}>Code</label>
-								<input
-									type="text"
-									value={newSlotCode}
-									onChange={e => setNewSlotCode(e.target.value)}
-									placeholder="Optional slot code"
-									style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8 }}
-								/>
-							</div>
-							<div>
 								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151', display: 'block', marginBottom: 6 }}>Speakers</label>
 								<input
 									type="text"
@@ -745,17 +743,7 @@ const loadStageToTimeline = useCallback(async () => {
 								/>
 							</div>
 							<div>
-								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151', display: 'block', marginBottom: 6 }}>Room Name</label>
-								<input
-									type="text"
-									value={newSlotRoomName}
-									onChange={e => setNewSlotRoomName(e.target.value)}
-									placeholder="Optional room name"
-									style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8 }}
-								/>
-							</div>
-							<div>
-								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151', display: 'block', marginBottom: 6 }}>Items (note1... or nevent1...) *</label>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151', display: 'block', marginBottom: 6 }}>Lives (note1... or nevent1...) *</label>
 								<div style={{ display: 'grid', gap: 6 }}>
 									{newSlotItems.map((item, idx) => (
 										<div key={idx} style={{ display: 'flex', gap: 6 }}>
@@ -776,10 +764,10 @@ const loadStageToTimeline = useCallback(async () => {
 										</div>
 									))}
 								</div>
-								<button onClick={addItemToSlot} style={{ marginTop: 6, padding: '6px 12px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: '0.85em' }}>+ Add Item</button>
+								<button onClick={addItemToSlot} style={{ marginTop: 6, padding: '6px 12px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: '0.85em' }}>+ Add Live</button>
 							</div>
 							<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
-								<button onClick={() => { setShowAddSlotModal(false); setNewSlotStart(''); setNewSlotEnd(''); setNewSlotTitle(''); setNewSlotCode(''); setNewSlotSpeakers(''); setNewSlotRoomName(''); setNewSlotItems(['']); setError(null); }} style={{ background: '#f3f4f6', color: '#111827', border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+								<button onClick={() => { setShowAddSlotModal(false); setNewSlotStart(''); setNewSlotEnd(''); setNewSlotTitle(''); setNewSlotSpeakers(''); setNewSlotItems(['']); setError(null); }} style={{ background: '#f3f4f6', color: '#111827', border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
 								<button onClick={addSlot} disabled={!newSlotStart || !newSlotEnd || newSlotItems.filter(i => i.trim()).length === 0} style={{ background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', opacity: (!newSlotStart || !newSlotEnd || newSlotItems.filter(i => i.trim()).length === 0) ? 0.7 : 1 }}>Add Slot</button>
 							</div>
 						</div>

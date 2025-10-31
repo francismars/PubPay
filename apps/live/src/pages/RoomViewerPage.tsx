@@ -103,7 +103,7 @@ export const RoomViewerPage: React.FC = () => {
 	const fetchView = useCallback(async (atTime?: string) => {
 		if (!roomId) return;
 		try {
-			const url = `${API_BASE}/rooms/${roomId}/view${atTime ? `?at=${encodeURIComponent(atTime)}` : ''}`;
+			const url = `${API_BASE}/multi/${roomId}/view${atTime ? `?at=${encodeURIComponent(atTime)}` : ''}`;
 			const res = await fetch(url);
 			if (!res.ok) {
 				if (res.status === 404) {
@@ -158,7 +158,7 @@ export const RoomViewerPage: React.FC = () => {
 			esRef.current = null;
 		}
 		// open SSE connection
-		const es = new EventSource(`${API_BASE}/rooms/${roomId}/events`);
+		const es = new EventSource(`${API_BASE}/multi/${roomId}/events`);
 		esRef.current = es;
 		const handleSnapshot = (e: MessageEvent) => {
 			try {
@@ -339,7 +339,7 @@ export const RoomViewerPage: React.FC = () => {
 		if (delayMs <= 0 || !isFinite(delayMs)) return;
 		switchTimerRef.current = window.setTimeout(async () => {
 			try {
-				const res = await fetch(`${API_BASE}/rooms/${roomId}/view`);
+				const res = await fetch(`${API_BASE}/multi/${roomId}/view`);
 				if (res.ok) {
 					const json = await res.json();
 					if (json?.success && json?.data) {
