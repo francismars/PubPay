@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { useUIStore } from '@pubpay/shared-services';
-
-interface EditProfilePageProps {
-  authState?: any;
-}
+import { useUIStore, getQueryClient, BlossomService } from '@pubpay/shared-services';
+import * as NostrTools from 'nostr-tools';
 
 const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { authState } = useOutletContext<{ authState: any }>();
+  const { authState, nostrClient, loadUserProfile } = useOutletContext<{ authState: any; nostrClient: any; loadUserProfile: (pubkey: string) => Promise<void> }>();
   const isLoggedIn = authState?.isLoggedIn;
   const userProfile = authState?.userProfile;
   const openLogin = useUIStore(s => s.openLogin);
+  const updateToast = useUIStore(s => s.updateToast);
+  const closeToast = useUIStore(s => s.closeToast);
 
   // Profile form state
   const [profileData, setProfileData] = useState({
@@ -25,9 +24,12 @@ const EditProfilePage: React.FC = () => {
   });
 
   // Form state
-  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [uploadingPicture, setUploadingPicture] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const pictureInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const uploadTypeRef = useRef<'picture' | 'banner' | null>(null);
 
   // Load current profile data
   useEffect(() => {
@@ -52,40 +54,272 @@ const EditProfilePage: React.FC = () => {
     }
   }, [userProfile]);
 
+  // Listen for Blossom upload completion (for external signer)
+  useEffect(() => {
+    const handleUploadComplete = (event: CustomEvent) => {
+      const { imageUrl } = event.detail;
+      const uploadType = sessionStorage.getItem('BlossomUploadType');
+      sessionStorage.removeItem('BlossomUploadType');
+      
+      if (uploadType === 'picture') {
+        setProfileData(prev => ({ ...prev, picture: imageUrl }));
+        setUploadingPicture(false);
+        updateToast('Picture uploaded successfully!', 'success', false);
+        setTimeout(() => closeToast(), 2000);
+        if (pictureInputRef.current) {
+          pictureInputRef.current.value = '';
+        }
+      } else if (uploadType === 'banner') {
+        setProfileData(prev => ({ ...prev, banner: imageUrl }));
+        setUploadingBanner(false);
+        updateToast('Banner uploaded successfully!', 'success', false);
+        setTimeout(() => closeToast(), 2000);
+        if (bannerInputRef.current) {
+          bannerInputRef.current.value = '';
+        }
+      }
+      uploadTypeRef.current = null;
+    };
+
+    const handleUploadError = (event: CustomEvent) => {
+      const { error } = event.detail;
+      const uploadType = sessionStorage.getItem('BlossomUploadType');
+      sessionStorage.removeItem('BlossomUploadType');
+      
+      if (uploadType === 'picture') {
+        setUploadingPicture(false);
+      } else if (uploadType === 'banner') {
+        setUploadingBanner(false);
+      }
+      uploadTypeRef.current = null;
+      updateToast(`Upload failed: ${error}`, 'error', true);
+    };
+
+    window.addEventListener('blossomUploadComplete', handleUploadComplete as EventListener);
+    window.addEventListener('blossomUploadError', handleUploadError as EventListener);
+
+    return () => {
+      window.removeEventListener('blossomUploadComplete', handleUploadComplete as EventListener);
+      window.removeEventListener('blossomUploadError', handleUploadError as EventListener);
+    };
+  }, [updateToast, closeToast]);
+
   // Handle form input changes
   const handleInputChange = (field: string, value: string) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
-    // Clear save message when user starts typing
-    if (saveMessage) {
-      setSaveMessage(null);
+  };
+
+  // Handle profile picture upload
+  const handlePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      updateToast('Please upload an image file', 'error', true);
+      return;
+    }
+
+    setUploadingPicture(true);
+    uploadTypeRef.current = 'picture';
+    // Store upload type for external signer return
+    if (authState?.signInMethod === 'externalSigner') {
+      sessionStorage.setItem('BlossomUploadType', 'picture');
+    }
+    updateToast('Uploading picture...', 'loading', false);
+    try {
+      const blossomService = new BlossomService();
+      const hash = await blossomService.uploadFile(file);
+      const imageUrl = blossomService.getFileUrl(hash);
+      setProfileData(prev => ({ ...prev, picture: imageUrl }));
+      updateToast('Picture uploaded successfully!', 'success', false);
+      setTimeout(() => closeToast(), 2000);
+      uploadTypeRef.current = null;
+    } catch (error) {
+      console.error('Failed to upload picture:', error);
+      // Don't show error if it's external signer redirect (will be handled on return)
+      if (!(error instanceof Error && error.message.includes('redirect'))) {
+        updateToast(`Failed to upload picture: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error', true);
+      }
+      // If external signer, keep uploading state true - will be cleared on return
+      if (authState?.signInMethod !== 'externalSigner') {
+        setUploadingPicture(false);
+        uploadTypeRef.current = null;
+      }
+    } finally {
+      if (authState?.signInMethod !== 'externalSigner') {
+        if (pictureInputRef.current) {
+          pictureInputRef.current.value = '';
+        }
+      }
+    }
+  };
+
+  // Handle banner upload
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      updateToast('Please upload an image file', 'error', true);
+      return;
+    }
+
+    setUploadingBanner(true);
+    uploadTypeRef.current = 'banner';
+    // Store upload type for external signer return
+    if (authState?.signInMethod === 'externalSigner') {
+      sessionStorage.setItem('BlossomUploadType', 'banner');
+    }
+    updateToast('Uploading banner...', 'loading', false);
+    try {
+      const blossomService = new BlossomService();
+      const hash = await blossomService.uploadFile(file);
+      const imageUrl = blossomService.getFileUrl(hash);
+      setProfileData(prev => ({ ...prev, banner: imageUrl }));
+      updateToast('Banner uploaded successfully!', 'success', false);
+      setTimeout(() => closeToast(), 2000);
+      uploadTypeRef.current = null;
+    } catch (error) {
+      console.error('Failed to upload banner:', error);
+      // Don't show error if it's external signer redirect (will be handled on return)
+      if (!(error instanceof Error && error.message.includes('redirect'))) {
+        updateToast(`Failed to upload banner: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error', true);
+      }
+      // If external signer, keep uploading state true - will be cleared on return
+      if (authState?.signInMethod !== 'externalSigner') {
+        setUploadingBanner(false);
+        uploadTypeRef.current = null;
+      }
+    } finally {
+      if (authState?.signInMethod !== 'externalSigner') {
+        if (bannerInputRef.current) {
+          bannerInputRef.current.value = '';
+        }
+      }
     }
   };
 
   // Handle form submission
   const handleSaveProfile = async () => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn || !authState?.publicKey || !nostrClient) {
       openLogin();
       return;
     }
 
     setIsSaving(true);
-    setSaveMessage(null);
+    updateToast('Saving profile...', 'loading', false);
 
     try {
-      // TODO: Implement actual profile update to Nostr relays
-      // For now, just simulate a save
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setSaveMessage({
-        type: 'success',
-        text: 'Profile updated successfully! (Note: This is a placeholder - actual Nostr profile update will be implemented)'
+      // Load existing profile content to preserve fields we're not editing
+      let existingProfile: Record<string, any> = {};
+      if (userProfile?.content) {
+        try {
+          const content = typeof userProfile.content === 'string' 
+            ? JSON.parse(userProfile.content) 
+            : userProfile.content;
+          existingProfile = content || {};
+        } catch (e) {
+          console.warn('Failed to parse existing profile, starting fresh:', e);
+        }
+      }
+
+      // Merge: start with existing profile, then update only the fields we're editing
+      const profileDataForNostr: Record<string, any> = {
+        ...existingProfile, // Preserve all existing fields
+        ...(profileData.displayName ? { 
+          name: profileData.displayName,
+          display_name: profileData.displayName 
+        } : {}),
+        ...(profileData.bio !== undefined ? { about: profileData.bio } : {}),
+        ...(profileData.picture !== undefined ? { picture: profileData.picture } : {}),
+        ...(profileData.banner !== undefined ? { banner: profileData.banner } : {}),
+        ...(profileData.website !== undefined ? { website: profileData.website } : {}),
+        ...(profileData.lightningAddress !== undefined ? { lud16: profileData.lightningAddress } : {}),
+        ...(profileData.nip05 !== undefined ? { nip05: profileData.nip05 } : {})
+      };
+
+      // Remove empty strings to keep JSON clean (but preserve other falsy values like false, 0, etc.)
+      Object.keys(profileDataForNostr).forEach(key => {
+        if (profileDataForNostr[key] === '' || profileDataForNostr[key] === null) {
+          delete profileDataForNostr[key];
+        }
       });
+
+      // Create event template
+      const eventTemplate: any = {
+        kind: 0,
+        pubkey: authState.publicKey,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [],
+        content: JSON.stringify(profileDataForNostr)
+      };
+
+      // Sign the event based on sign-in method
+      let signedEvent;
+      if (authState.signInMethod === 'extension') {
+        if (!(window as any).nostr) {
+          throw new Error('Nostr extension not available');
+        }
+        signedEvent = await (window as any).nostr.signEvent(eventTemplate);
+      } else if (authState.signInMethod === 'nsec') {
+        if (!authState.privateKey) {
+          throw new Error('Private key not available');
+        }
+        const decoded = NostrTools.nip19.decode(authState.privateKey);
+        signedEvent = NostrTools.finalizeEvent(eventTemplate, decoded.data as unknown as Uint8Array);
+      } else if (authState.signInMethod === 'externalSigner') {
+        // For external signer, compute event ID first, then store event and redirect
+        eventTemplate.id = NostrTools.getEventHash(eventTemplate);
+        const eventString = JSON.stringify(eventTemplate);
+        sessionStorage.setItem('SignProfileUpdate', eventString);
+        window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
+        updateToast('Please sign the profile update in your external signer app', 'info', false);
+        setIsSaving(false);
+        return;
+      } else {
+        throw new Error('No valid signing method available');
+      }
+
+      // Verify the event
+      if (!NostrTools.verifyEvent(signedEvent)) {
+        throw new Error('Failed to create valid signed event');
+      }
+
+      // Publish the event
+      await nostrClient.publishEvent(signedEvent);
+      
+      // Remove cached profile and invalidate queries to force fresh fetch
+      if (authState.publicKey) {
+        const queryClient = getQueryClient();
+        // Remove the cached value entirely
+        queryClient.removeQueries({ queryKey: ['profile', authState.publicKey] });
+        // Also invalidate for good measure
+        queryClient.invalidateQueries({ queryKey: ['profile', authState.publicKey] });
+      }
+      
+      updateToast('Profile updated successfully!', 'success', false);
+
+      // Reload profile to reflect changes before navigating
+      if (authState.publicKey && loadUserProfile) {
+        // Wait for event to propagate to relays, then reload profile
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        await loadUserProfile(authState.publicKey);
+        // Auto-close toast after a short delay
+        setTimeout(() => {
+          closeToast();
+        }, 2000);
+        // Navigate with state to indicate profile was just updated
+        navigate('/profile', { state: { profileUpdated: true } });
+      } else {
+        setTimeout(() => {
+          closeToast();
+        }, 2000);
+        navigate('/profile');
+      }
     } catch (error) {
       console.error('Error saving profile:', error);
-      setSaveMessage({
-        type: 'error',
-        text: 'Failed to save profile. Please try again.'
-      });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save profile. Please try again.';
+      updateToast(errorMessage, 'error', true);
     } finally {
       setIsSaving(false);
     }
@@ -134,23 +368,6 @@ const EditProfilePage: React.FC = () => {
             Edit Profile
           </h1>
         </div>
-
-        {/* Save Message */}
-        {saveMessage && (
-          <div 
-            className="profileSaveMessage"
-            style={{
-              padding: '12px 16px',
-              borderRadius: '6px',
-              marginBottom: '20px',
-              backgroundColor: saveMessage.type === 'success' ? '#d4edda' : '#f8d7da',
-              color: saveMessage.type === 'success' ? '#155724' : '#721c24',
-              border: `1px solid ${saveMessage.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`
-            }}
-          >
-            {saveMessage.text}
-          </div>
-        )}
 
         {/* Preview Section */}
         <div style={{ marginBottom: '30px' }}>
@@ -279,16 +496,33 @@ const EditProfilePage: React.FC = () => {
               </div>
             )}
             <label htmlFor="editPicture">
-              Profile Picture URL
+              Profile Picture (Blossom upload available)
             </label>
-            <input
-              type="url"
-              id="editPicture"
-              value={profileData.picture}
-              onChange={(e) => handleInputChange('picture', e.target.value)}
-              className="profileFormInput"
-              placeholder="https://example.com/profile.jpg"
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type="url"
+                id="editPicture"
+                value={profileData.picture}
+                onChange={(e) => handleInputChange('picture', e.target.value)}
+                className="profileFormInput"
+                placeholder="https://example.com/profile.jpg or upload from Blossom"
+              />
+              <input
+                type="file"
+                ref={pictureInputRef}
+                accept="image/*"
+                onChange={handlePictureUpload}
+                style={{ display: 'none' }}
+              />
+              <button
+                type="button"
+                onClick={() => pictureInputRef.current?.click()}
+                disabled={uploadingPicture}
+                className="profileUploadButton"
+              >
+                {uploadingPicture ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
           </div>
           
           <div className="profileFormField">
@@ -318,16 +552,33 @@ const EditProfilePage: React.FC = () => {
               </div>
             )}
             <label htmlFor="editBanner">
-              Banner Image URL
+              Banner Image (Blossom upload available)
             </label>
-            <input
-              type="url"
-              id="editBanner"
-              value={profileData.banner}
-              onChange={(e) => handleInputChange('banner', e.target.value)}
-              className="profileFormInput"
-              placeholder="https://example.com/banner.jpg"
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type="url"
+                id="editBanner"
+                value={profileData.banner}
+                onChange={(e) => handleInputChange('banner', e.target.value)}
+                className="profileFormInput"
+                placeholder="https://example.com/banner.jpg or upload from Blossom"
+              />
+              <input
+                type="file"
+                ref={bannerInputRef}
+                accept="image/*"
+                onChange={handleBannerUpload}
+                style={{ display: 'none' }}
+              />
+              <button
+                type="button"
+                onClick={() => bannerInputRef.current?.click()}
+                disabled={uploadingBanner}
+                className="profileUploadButton"
+              >
+                {uploadingBanner ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
           </div>
           
           <div className="profileFormField">

@@ -10,6 +10,7 @@ import { LightningService } from '@pubpay/shared-services';
 import { FollowService, useUIStore, NostrUtil } from '@pubpay/shared-services';
 import { AuthService } from '@pubpay/shared-services';
 import { ZapService } from '@pubpay/shared-services';
+import { BlossomService } from '@pubpay/shared-services';
 import {
   NostrFilter,
   NostrEvent,
@@ -331,6 +332,130 @@ export const useHomeFunctionality = () => {
             }
           } catch (e) {
             console.warn('Error handling SignZapEvent return:', e);
+          }
+
+          // Handle SignProfileUpdate: finalize and publish profile update
+          try {
+            const profileRaw = sessionStorage.getItem('SignProfileUpdate');
+            if (profileRaw) {
+              console.log('Found SignProfileUpdate data, processing profile update...');
+              const eventTemplate = JSON.parse(profileRaw);
+              sessionStorage.removeItem('SignProfileUpdate');
+
+              console.log('Reading signature from clipboard for profile update...');
+              let sig = await readClipboard();
+              if (sig) {
+                sig = sig.trim();
+              }
+              console.log('Signature read, length:', sig?.length, 'first 20 chars:', sig?.substring(0, 20));
+
+              if (!sig || !/^([0-9a-f]{128})$/i.test(sig)) {
+                console.error('No valid signature found in clipboard for profile update. Signature:', sig?.substring(0, 40));
+                try {
+                  const { useUIStore } = await import('@pubpay/shared-services');
+                  useUIStore.getState().updateToast('No valid signature found. Please try saving again.', 'error', true);
+                } catch {}
+                return;
+              }
+
+              const eventSigned = { ...eventTemplate, sig };
+              const verified = NostrTools.verifyEvent(eventSigned);
+              if (!verified) {
+                console.error('Invalid signed event (profile update)');
+                try {
+                  const { useUIStore } = await import('@pubpay/shared-services');
+                  useUIStore.getState().updateToast('Invalid signature. Please try saving again.', 'error', true);
+                } catch {}
+                return;
+              }
+
+              console.log('Event verified, publishing profile update...');
+              if (nostrClientRef.current) {
+                await nostrClientRef.current.publishEvent(eventSigned);
+                console.log('Profile updated via external signer');
+                
+                // Show success toast
+                try {
+                  const { useUIStore } = await import('@pubpay/shared-services');
+                  useUIStore.getState().updateToast('Profile updated successfully!', 'success', false);
+                  setTimeout(() => {
+                    try {
+                      useUIStore.getState().closeToast();
+                    } catch {}
+                  }, 2000);
+                } catch {}
+
+                // Invalidate cache and reload profile to reflect changes
+                if (authState.publicKey) {
+                  const pubkey = authState.publicKey;
+                  const queryClient = getQueryClient();
+                  queryClient.removeQueries({ queryKey: ['profile', pubkey] });
+                  queryClient.invalidateQueries({ queryKey: ['profile', pubkey] });
+                  setTimeout(async () => {
+                    await loadUserProfile(pubkey);
+                  }, 500);
+                }
+                
+                // Wait a bit for profile to reload, then navigate
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                window.location.href = '/profile';
+              }
+            }
+          } catch (e) {
+            console.error('Error handling SignProfileUpdate return:', e);
+            try {
+              const { useUIStore } = await import('@pubpay/shared-services');
+              useUIStore.getState().updateToast(
+                `Failed to save profile: ${e instanceof Error ? e.message : 'Unknown error'}`,
+                'error',
+                true
+              );
+            } catch {}
+          }
+
+          // Handle BlossomAuth: complete file upload
+          try {
+            const blossomData = sessionStorage.getItem('BlossomAuth');
+            if (blossomData) {
+              console.log('Found BlossomAuth data, processing upload...');
+              
+              console.log('Reading signature from clipboard...');
+              let sig = await readClipboard();
+              if (sig) {
+                sig = sig.trim();
+              }
+              console.log('Signature read, length:', sig?.length, 'first 20 chars:', sig?.substring(0, 20));
+              
+              if (!sig || !/^([0-9a-f]{128})$/i.test(sig)) {
+                console.error('No valid signature found in clipboard for Blossom upload. Signature:', sig?.substring(0, 40));
+                window.dispatchEvent(new CustomEvent('blossomUploadError', { 
+                  detail: { error: 'No valid signature found in clipboard. Expected 128 hex characters.' } 
+                }));
+                return;
+              }
+
+              console.log('Completing external signer upload...');
+              const imageUrl = await BlossomService.completeExternalSignerUpload(sig);
+              
+              if (imageUrl) {
+                console.log('Blossom upload completed via external signer:', imageUrl);
+                // Dispatch custom event with the uploaded image URL
+                window.dispatchEvent(new CustomEvent('blossomUploadComplete', { 
+                  detail: { imageUrl } 
+                }));
+              } else {
+                console.warn('Blossom upload returned null');
+                window.dispatchEvent(new CustomEvent('blossomUploadError', { 
+                  detail: { error: 'Upload returned no result' } 
+                }));
+              }
+            }
+          } catch (e) {
+            console.error('Error handling BlossomAuth return:', e);
+            // Dispatch error event
+            window.dispatchEvent(new CustomEvent('blossomUploadError', { 
+              detail: { error: e instanceof Error ? e.message : 'Unknown error' } 
+            }));
           }
         } catch (e) {
           console.warn('External signer return processing error:', e);
@@ -2608,6 +2733,7 @@ export const useHomeFunctionality = () => {
     loadMorePosts,
     loadSingleNote,
     loadReplies,
-    clearPosts
+    clearPosts,
+    loadUserProfile
   };
 };

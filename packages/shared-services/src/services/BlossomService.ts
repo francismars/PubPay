@@ -87,11 +87,26 @@ export class BlossomService {
       authEvent.pubkey = publicKey;
       authEvent.id = NostrTools.getEventHash(authEvent);
       
-      // Store event for signing
+      // Store file data if uploading (need to store before redirect)
+      let fileData: any = null;
+      if (action === 'upload' && file) {
+        // Convert file to base64 for storage
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        fileData = {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: base64
+        };
+      }
+      
+      // Store event and file data for signing
       sessionStorage.setItem('BlossomAuth', JSON.stringify({
         action,
         url: this.serverUrl,
-        event: authEvent
+        event: authEvent,
+        file: fileData
       }));
       
       const eventString = JSON.stringify(authEvent);
@@ -162,6 +177,98 @@ export class BlossomService {
     } catch (error) {
       console.error('Blossom upload error:', error);
       throw new Error(`Failed to upload to Blossom: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Complete upload after external signer returns (called from visibilitychange handler)
+   */
+  static async completeExternalSignerUpload(signature: string): Promise<string | null> {
+    try {
+      const blossomData = sessionStorage.getItem('BlossomAuth');
+      if (!blossomData) {
+        console.warn('No BlossomAuth data found in sessionStorage');
+        return null;
+      }
+
+      const { action, url, event, file } = JSON.parse(blossomData);
+      
+      if (action !== 'upload' || !file) {
+        console.warn('Invalid BlossomAuth data:', { action, hasFile: !!file });
+        sessionStorage.removeItem('BlossomAuth');
+        return null;
+      }
+
+      // Finalize event with signature
+      const signedEvent = { ...event, sig: signature };
+      
+      // Verify the signed event
+      const isValid = NostrTools.verifyEvent(signedEvent);
+      if (!isValid) {
+        console.error('Invalid signed event signature');
+        sessionStorage.removeItem('BlossomAuth');
+        throw new Error('Invalid event signature');
+      }
+
+      console.log('Verifying signed event, reconstructing file...');
+      
+      // Reconstruct file from base64
+      try {
+        console.log('Decoding base64, length:', file.data.length);
+        const binaryString = atob(file.data);
+        console.log('Base64 decoded, binary string length:', binaryString.length);
+        
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: file.type });
+        const reconstructedFile = new File([blob], file.name, { type: file.type });
+        console.log('File reconstructed, size:', reconstructedFile.size, 'type:', file.type);
+
+        // Complete upload with timeout
+        console.log('Starting upload to:', `${url}/upload`);
+        const uploadPromise = fetch(`${url}/upload`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Nostr ${btoa(JSON.stringify(signedEvent))}`,
+            'Content-Type': file.type || 'application/octet-stream'
+          },
+          body: reconstructedFile
+        });
+
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Upload timeout after 60 seconds')), 60000)
+        );
+
+        const response = await Promise.race([uploadPromise, timeoutPromise]);
+        console.log('Upload response status:', response.status);
+
+        if (!response.ok) {
+          const text = await response.text();
+          console.error('Upload failed with response:', text);
+          throw new Error(`Upload failed: ${text}`);
+        }
+
+        const result = await response.json();
+        console.log('Upload successful, result:', result);
+        sessionStorage.removeItem('BlossomAuth');
+        
+        // Return the file URL
+        const hash = result.sha256 || result.hash;
+        if (!hash) {
+          throw new Error('No hash returned from upload');
+        }
+        return `${url}/${hash}`;
+      } catch (fileError) {
+        console.error('Error reconstructing file or uploading:', fileError);
+        sessionStorage.removeItem('BlossomAuth');
+        throw fileError;
+      }
+    } catch (error) {
+      console.error('Blossom external signer upload error:', error);
+      sessionStorage.removeItem('BlossomAuth');
+      throw error;
     }
   }
 

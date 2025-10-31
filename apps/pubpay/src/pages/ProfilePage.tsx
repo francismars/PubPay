@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { useNavigate, useOutletContext, useParams, useLocation } from 'react-router-dom';
 import { useUIStore, ensureProfiles, getQueryClient, NostrRegistrationService, AuthService, FollowService } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 import * as NostrTools from 'nostr-tools';
@@ -38,6 +38,7 @@ const isValidPublicKey = (pubkey: string): boolean => {
 
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { pubkey } = useParams<{ pubkey?: string }>();
   const { authState, nostrClient } = useOutletContext<{ authState: any; nostrClient: any }>();
   const isLoggedIn = authState?.isLoggedIn;
@@ -183,6 +184,45 @@ const ProfilePage: React.FC = () => {
       setFollowBusy(false);
     }
   };
+
+  // Handle profile updates from edit page - force refetch and update
+  useEffect(() => {
+    if ((location.state as any)?.profileUpdated && publicKey && nostrClient && isOwnProfile) {
+      // Clear cache and force fresh fetch
+      const queryClient = getQueryClient();
+      queryClient.removeQueries({ queryKey: ['profile', publicKey] });
+      // Force refetch own profile from relays and update local state
+      (async () => {
+        try {
+          await new Promise(resolve => setTimeout(resolve, 500)); // Small delay to ensure relays have the event
+          const profileMap = await ensureProfiles(
+            getQueryClient(),
+            nostrClient,
+            [publicKey]
+          );
+          const profileEvent = profileMap.get(publicKey);
+          if (profileEvent?.content) {
+            const content = typeof profileEvent.content === 'string' 
+              ? JSON.parse(profileEvent.content) 
+              : profileEvent.content;
+            setProfileData({
+              displayName: content.display_name || content.displayName || content.name || '',
+              bio: content.about || '',
+              website: content.website || '',
+              banner: content.banner || '',
+              picture: content.picture || '',
+              lightningAddress: content.lud16 || '',
+              nip05: content.nip05 || ''
+            });
+          }
+        } catch (error) {
+          console.error('Failed to refresh profile after update:', error);
+        }
+      })();
+      // Clear location state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, publicKey, navigate, location.pathname, nostrClient, isOwnProfile]);
 
   // Load profile data - either from own profile or fetch external profile
   useEffect(() => {
