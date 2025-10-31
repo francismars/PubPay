@@ -4,6 +4,7 @@ import { SimplePool, nip19 } from 'nostr-tools';
 const QRious = require('qrious') as any;
 const bolt11 = require('bolt11') as any;
 import { UseLightning } from './useLightning';
+import { ZapNotification } from '@live/types';
 
 // Flag to prevent multiple simultaneous calls to setupNoteLoaderListeners
 let setupNoteLoaderListenersInProgress = false;
@@ -25,6 +26,7 @@ const DEFAULT_STYLES = {
   podium: false,
   zapGrid: false,
   sectionLabels: true, // Default to showing section labels
+  qrOnly: false, // Default to showing full layout
   showFiat: false, // Default to hiding fiat amounts
   showHistoricalPrice: false, // Default to hiding historical prices
   showHistoricalChange: false, // Default to hiding historical change percentage
@@ -60,6 +62,11 @@ export const useLiveFunctionality = (eventId?: string) => {
   const [lightningLNURL, setLightningLNURL] = useState<string>('');
 
   const liveDisplayRef = useRef<any>(null);
+
+  // Zap notification state
+  const [zapNotification, setZapNotification] = useState<ZapNotification | null>(null);
+  const initialZapsLoadedRef = useRef(false);
+  const pendingZapNotificationsRef = useRef<Map<string, any>>(new Map());
 
   // Update top zappers display when topZappers changes
   useEffect(() => {
@@ -673,6 +680,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const subscribeLiveEventZaps = async (pubkey: string, identifier: string) => {
     // Debug log removed
+    console.log('🔌 subscribeLiveEventZaps called for:', { pubkey: pubkey.slice(0, 8), identifier });
 
     // Reset zap list when starting a new live event (like legacy)
     resetZapList();
@@ -684,6 +692,8 @@ export const useLiveFunctionality = (eventId?: string) => {
       '#a': [aTag]
     };
 
+    console.log('🔌 Subscribing to zaps with filter:', filter);
+
     const sub = (window as any).pool.subscribe((window as any).relays, filter, {
       onevent(zapReceipt: any) {
         processLiveEventZap(zapReceipt, pubkey, identifier);
@@ -691,6 +701,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       oneose() {
         // Debug log removed
         // Keep subscription alive for new zaps
+        // Mark that initial zaps have been loaded
+        initialZapsLoadedRef.current = true;
+        console.log('✅ Initial zaps loaded (oneose), will show notifications for new zaps. Flag set to:', initialZapsLoadedRef.current);
       },
       onclosed() {
         // Debug log removed
@@ -1045,6 +1058,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     eventIdentifier: string
   ) => {
     // Debug log removed
+    console.log('🔄 processLiveEventZap called for receipt:', zapReceipt.id.slice(0, 8));
 
     try {
       // Extract zap information from the receipt
@@ -1096,6 +1110,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       addZapToTotals(zapperPubkey, amount);
 
       // Display the zap
+      console.log('📞 About to call displayLiveEventZap with zapData:', { id: zapData.id.slice(0, 8), amount: zapData.amount, pubkey: zapData.pubkey.slice(0, 8) });
       displayLiveEventZap(zapData);
     } catch (error) {
       console.error('Error processing live event zap:', error);
@@ -1103,13 +1118,17 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const displayLiveEventZap = (zapData: any) => {
-    // Debug log removed
-
     // Check if this zap is already displayed to prevent duplicates
     const existingZap = document.querySelector(`[data-zap-id="${zapData.id}"]`);
     if (existingZap) {
-      // Debug log removed
       return;
+    }
+
+    // Trigger notification for new zaps (not initial/historical ones)
+    if (initialZapsLoadedRef.current) {
+      // Store as pending - subscribeChatAuthorProfile already called in processLiveEventZap
+      // When profile arrives, updateProfile will trigger the notification
+      pendingZapNotificationsRef.current.set(zapData.pubkey, zapData);
     }
 
     const zapsContainer = document.getElementById('zaps');
@@ -1436,8 +1455,6 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const updateProfile = (profile: any) => {
-    // Debug log removed
-
     const profileData = JSON.parse(profile.content || '{}');
     const name =
       profileData.display_name ||
@@ -1477,6 +1494,35 @@ export const useLiveFunctionality = (eventId?: string) => {
         element.textContent = name;
       }
     });
+
+    // Check for pending zap notifications for this profile
+    if (pendingZapNotificationsRef.current.has(profile.pubkey)) {
+      const zapData = pendingZapNotificationsRef.current.get(profile.pubkey);
+      pendingZapNotificationsRef.current.delete(profile.pubkey);
+      
+      console.log('🏆 Processing notification for zap:', {
+        amount: zapData.amount,
+        pubkey: profile.pubkey.slice(0, 8),
+        currentZapsCount: zaps.length
+      });
+      
+      // Get rank based on this single zap's amount (1-3 for top 3 individual zaps)
+      const zapperRank = getSingleZapRank(zapData.amount);
+      
+      // Trigger the notification now that we have the profile
+      const notificationData: ZapNotification = {
+        id: zapData.id,
+        zapperName: name,
+        zapperImage: picture,
+        content: zapData.content || '',
+        amount: zapData.amount,
+        timestamp: zapData.timestamp,
+        zapperRank
+      };
+      
+      console.log('🏆 Setting notification with rank:', zapperRank);
+      setZapNotification(notificationData);
+    }
   };
 
   const setupLiveEventTwoColumnLayout = () => {
@@ -2283,6 +2329,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       sectionLabels:
         (document.getElementById('sectionLabelsToggle') as HTMLInputElement)
           ?.checked ?? true,
+      qrOnly:
+        (document.getElementById('qrOnlyToggle') as HTMLInputElement)
+          ?.checked || false,
       showFiat:
         (document.getElementById('showFiatToggle') as HTMLInputElement)
           ?.checked || false,
@@ -2645,6 +2694,20 @@ export const useLiveFunctionality = (eventId?: string) => {
       document.body.classList.add('show-total-labels');
     }
 
+    // Apply QR only toggle (set to default if not specified in URL)
+    const qrOnly = params.has('qrOnly')
+      ? params.get('qrOnly') === 'true'
+      : false;
+    const qrOnlyToggle = document.getElementById(
+      'qrOnlyToggle'
+    ) as HTMLInputElement;
+    if (qrOnlyToggle) qrOnlyToggle.checked = qrOnly;
+    if (qrOnly) {
+      document.body.classList.add('qr-only-mode');
+    } else {
+      document.body.classList.remove('qr-only-mode');
+    }
+
     // Apply fiat toggle (set to default if not specified in URL)
     const showFiat = params.has('showFiat')
       ? params.get('showFiat') === 'true'
@@ -2724,7 +2787,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       'currencySelector'
     ) as HTMLSelectElement;
     if (currencySelector) currencySelector.value = selectedCurrency;
-    selectedFiatCurrency = selectedCurrency;
+    selectedFiatCurrencyRef.current = selectedCurrency;
 
     // Apply all styles to ensure everything is synchronized
     applyAllStyles();
@@ -2813,8 +2876,20 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (styles.sectionLabels !== DEFAULT_STYLES.sectionLabels) {
           params.set('sectionLabels', styles.sectionLabels);
         }
+        if (styles.qrOnly !== DEFAULT_STYLES.qrOnly) {
+          params.set('qrOnly', styles.qrOnly);
+        }
         if (styles.showFiat !== DEFAULT_STYLES.showFiat) {
           params.set('showFiat', styles.showFiat);
+        }
+        if (styles.showHistoricalPrice !== DEFAULT_STYLES.showHistoricalPrice) {
+          params.set('showHistoricalPrice', styles.showHistoricalPrice);
+        }
+        if (styles.showHistoricalChange !== DEFAULT_STYLES.showHistoricalChange) {
+          params.set('showHistoricalChange', styles.showHistoricalChange);
+        }
+        if (styles.fiatOnly !== DEFAULT_STYLES.fiatOnly) {
+          params.set('fiatOnly', styles.fiatOnly);
         }
         if (styles.lightning !== DEFAULT_STYLES.lightning) {
           params.set('lightning', styles.lightning);
@@ -2958,10 +3033,50 @@ export const useLiveFunctionality = (eventId?: string) => {
     );
   };
 
+  const processNewZapForNotification = async (kind9735: any) => {
+    try {
+      // Extract zap data
+      const description9735 = kind9735.tags.find((tag: any) => tag[0] === 'description')?.[1];
+      if (!description9735) {
+        console.log('⚠️ No description found in zap');
+        return;
+      }
+
+      const zapRequest = JSON.parse(description9735);
+      const zapperPubkey = zapRequest.pubkey;
+      const zapContent = zapRequest.content || '';
+      
+      const bolt11Tag = kind9735.tags.find((tag: any) => tag[0] === 'bolt11')?.[1];
+      if (!bolt11Tag) {
+        console.log('⚠️ No bolt11 found in zap');
+        return;
+      }
+
+      let amount = 0;
+      try {
+        const decoded = bolt11?.decode(bolt11Tag);
+        amount = decoded?.satoshis || 0;
+      } catch (error) {
+        console.log('⚠️ Failed to decode bolt11');
+        return;
+      }
+
+      // Store as pending - subscribeKind0fromKinds9735 will fetch profile
+      // When profile arrives, updateProfile will trigger the notification
+      pendingZapNotificationsRef.current.set(zapperPubkey, {
+        id: kind9735.id,
+        pubkey: zapperPubkey,
+        content: zapContent,
+        amount,
+        timestamp: kind9735.created_at
+      });
+    } catch (error) {
+      console.error('❌ Error processing new zap for notification:', error);
+    }
+  };
+
   const subscribeKind9735fromKind1 = async (kind1: any) => {
-    // Debug log removed
     if (!(window as any).pool || !(window as any).relays) {
-      // Debug log removed
       return;
     }
 
@@ -2975,6 +3090,11 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (!kind1id || typeof kind1id !== 'string' || kind1id.length !== 64) {
       return;
     }
+    
+    // Reset initial zaps flag for new note
+    console.log('🔄 Resetting initialZapsLoadedRef for new note');
+    initialZapsLoadedRef.current = false;
+    
     let isFirstStream = true;
 
     const zapsContainer = document.getElementById('zaps');
@@ -3009,20 +3129,22 @@ export const useLiveFunctionality = (eventId?: string) => {
       },
       {
         onevent(kind9735: any) {
-          // Debug log removed
           clearTimeout(zapTimeoutId);
           if (!kinds9735IDs.has(kind9735.id)) {
             kinds9735IDs.add(kind9735.id);
             kinds9735.push(kind9735);
-            // Debug log removed
             if (!isFirstStream) {
               subscribeKind0fromKinds9735([kind9735]);
+              // Also trigger notification for this new zap
+              processNewZapForNotification(kind9735);
             }
           }
         },
         oneose() {
           clearTimeout(zapTimeoutId);
           isFirstStream = false;
+          // Mark that initial zaps have loaded
+          initialZapsLoadedRef.current = true;
           subscribeKind0fromKinds9735(kinds9735);
         },
         onclosed() {
@@ -3071,6 +3193,8 @@ export const useLiveFunctionality = (eventId?: string) => {
           if (!kind0fromkind9735Seen.has(kind0.pubkey)) {
             kind0fromkind9735Seen.add(kind0.pubkey);
             kind0fromkind9735List.push(kind0);
+            // Update profile to trigger notification if pending
+            updateProfile(kind0);
           }
         },
         async oneose() {
@@ -3090,6 +3214,10 @@ export const useLiveFunctionality = (eventId?: string) => {
   const resetZapList = () => {
     json9735List = [];
     processedZapIDs = new Set();
+    // Reset initial zaps loaded flag for new event
+    initialZapsLoadedRef.current = false;
+    // Clear any pending notifications
+    pendingZapNotificationsRef.current.clear();
   };
 
   const createkinds9735JSON = async (
@@ -3358,6 +3486,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         const zapperData = {
           amount,
           profile,
+          pubkey, // Store pubkey for rank calculation
           name: profile
             ? getDisplayName(profile)
             : zap.kind1Name || 'Anonymous',
@@ -3380,6 +3509,36 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Also update window object for legacy compatibility
     (window as any).topZappers = topZappers;
+  };
+
+  // Get the rank of a single zap based on its amount
+  const getSingleZapRank = (zapAmount: number): number | undefined => {
+    // Use window.zaps which is populated before the React state
+    const existingZaps = (window as any).zaps || [];
+    
+    // Get all zap amounts INCLUDING the current zap being evaluated
+    const allZapAmounts = [...existingZaps.map((z: any) => z.amount), zapAmount].sort((a, b) => b - a);
+    
+    // Get all unique amounts
+    const uniqueAmounts = [...new Set(allZapAmounts)];
+    
+    console.log('🏆 getSingleZapRank:', {
+      zapAmount,
+      totalZaps: existingZaps.length,
+      allAmounts: allZapAmounts,
+      uniqueAmounts: uniqueAmounts.slice(0, 5) // Show top 5 for debugging
+    });
+    
+    // Find where this zap amount ranks
+    const rank = uniqueAmounts.indexOf(zapAmount);
+    
+    if (rank >= 0) {
+      console.log('🏆 Zap ranks at position:', rank + 1);
+      return rank + 1; // Return 1, 2, 3, 4, etc.
+    }
+    
+    console.log('🏆 Could not determine rank');
+    return undefined;
   };
 
   const numberWithCommas = (x: number) => {
@@ -3929,6 +4088,10 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
+  const handleNotificationDismiss = useCallback(() => {
+    setZapNotification(null);
+  }, []);
+
   // Apply PubPay preset with all settings
   const applyPubPayPreset = () => {
     // Set text color to white
@@ -4111,7 +4274,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     ) as HTMLSelectElement;
     if (currencySelector) {
       currencySelector.addEventListener('change', (e: any) => {
-        selectedFiatCurrency = e.target.value;
+        selectedFiatCurrencyRef.current = e.target.value;
         // Update fiat amounts with new currency if toggle is enabled
         const showFiatToggle = document.getElementById(
           'showFiatToggle'
@@ -4466,6 +4629,14 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     });
 
+    setupToggle('qrOnlyToggle', (checked: boolean) => {
+      if (checked) {
+        document.body.classList.add('qr-only-mode');
+      } else {
+        document.body.classList.remove('qr-only-mode');
+      }
+    });
+
     setupToggle('showFiatToggle', (checked: boolean) => {
       const currencySelectorGroup = document.getElementById(
         'currencySelectorGroup'
@@ -4762,9 +4933,9 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Flag to prevent Lightning calls during preset application
   let isApplyingPreset = false;
 
-  // Bitcoin price data
-  let bitcoinPrices: { [key: string]: number } = {};
-  let selectedFiatCurrency = 'USD';
+  // Bitcoin price data - using refs to persist across renders
+  const bitcoinPricesRef = useRef<{ [key: string]: number }>({});
+  const selectedFiatCurrencyRef = useRef<string>('USD');
   let isUpdatingFiatAmounts = false;
   let fiatUpdateTimeout: NodeJS.Timeout | null = null;
 
@@ -4773,8 +4944,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     try {
       const response = await fetch('https://mempool.space/api/v1/prices');
       const data = await response.json();
-      const previousPrices = { ...bitcoinPrices };
-      bitcoinPrices = data;
+      const previousPrices = { ...bitcoinPricesRef.current };
+      bitcoinPricesRef.current = data;
 
       // Check if prices have changed and update fiat amounts if needed
       const priceChanged = Object.keys(data).some(
@@ -4799,7 +4970,7 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Fetch historical Bitcoin prices from Mempool API
   const fetchHistoricalBitcoinPrices = async (
     timestamp: number,
-    currency: string = selectedFiatCurrency
+    currency: string = selectedFiatCurrencyRef.current
   ) => {
     try {
       const response = await fetch(
@@ -4842,12 +5013,14 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Convert sats to fiat
   const satsToFiat = (
     sats: number,
-    currency: string = selectedFiatCurrency
+    currency: string = selectedFiatCurrencyRef.current
   ): string => {
-    if (!bitcoinPrices[currency]) return '';
+    if (!bitcoinPricesRef.current[currency]) {
+      return '';
+    }
 
     const btcAmount = sats / 100000000; // Convert sats to BTC
-    const fiatAmount = btcAmount * bitcoinPrices[currency];
+    const fiatAmount = btcAmount * bitcoinPricesRef.current[currency];
 
     // Format based on currency - show amount followed by currency code in span
     if (currency === 'JPY') {
@@ -4861,12 +5034,12 @@ export const useLiveFunctionality = (eventId?: string) => {
   const satsToFiatWithHistorical = async (
     sats: number,
     timestamp: number,
-    currency: string = selectedFiatCurrency
+    currency: string = selectedFiatCurrencyRef.current
   ): Promise<string> => {
-    if (!bitcoinPrices[currency]) return '';
+    if (!bitcoinPricesRef.current[currency]) return '';
 
     const btcAmount = sats / 100000000; // Convert sats to BTC
-    const currentFiatAmount = btcAmount * bitcoinPrices[currency];
+    const currentFiatAmount = btcAmount * bitcoinPricesRef.current[currency];
 
     // Format current amount
     let currentFormatted: string;
@@ -4963,7 +5136,15 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Update fiat amounts for all sat amounts on the page
   const updateFiatAmounts = async () => {
-    if (!bitcoinPrices[selectedFiatCurrency]) return;
+    // Check if fiat toggle is enabled - if not, don't show any fiat amounts
+    const showFiatToggle = document.getElementById(
+      'showFiatToggle'
+    ) as HTMLInputElement;
+    if (!showFiatToggle || !showFiatToggle.checked) {
+      return;
+    }
+
+    if (!bitcoinPricesRef.current[selectedFiatCurrencyRef.current]) return;
 
     // Add visual indicator that prices are being updated
     const priceUpdateIndicator = document.getElementById(
@@ -5099,7 +5280,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                 .trim();
 
               // Replace the satoshi amount with fiat amount and currency
-              const newContent = `${fiatAmountOnly} <span class="currency-code">${selectedFiatCurrency}</span>`;
+              const newContent = `${fiatAmountOnly} <span class="currency-code">${selectedFiatCurrencyRef.current}</span>`;
               element.innerHTML = newContent;
 
               // Hide any existing fiat-amount elements
@@ -5224,6 +5405,11 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     });
   };
+
+  // Expose fiat conversion utilities to window for overlay component
+  (window as any).satsToFiat = satsToFiat;
+  (window as any).getBitcoinPrices = () => bitcoinPricesRef.current;
+  (window as any).getSelectedFiatCurrency = () => selectedFiatCurrencyRef.current;
 
   const setupToggle = (
     toggleId: string,
@@ -5446,7 +5632,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           ) as HTMLSelectElement;
           if (currencySelector) {
             currencySelector.value = styles.selectedCurrency;
-            selectedFiatCurrency = styles.selectedCurrency;
+            selectedFiatCurrencyRef.current = styles.selectedCurrency;
           }
         }
 
@@ -5526,6 +5712,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           'podiumToggle',
           'zapGridToggle',
           'sectionLabelsToggle',
+          'qrOnlyToggle',
           'showFiatToggle',
           'showHistoricalPriceToggle',
           'showHistoricalChangeToggle',
@@ -5553,6 +5740,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           podium: 'podiumToggle',
           zapGrid: 'zapGridToggle',
           sectionLabels: 'sectionLabelsToggle',
+          qrOnly: 'qrOnlyToggle',
           showFiat: 'showFiatToggle',
           showHistoricalPrice: 'showHistoricalPriceToggle',
           showHistoricalChange: 'showHistoricalChangeToggle',
@@ -5642,6 +5830,13 @@ export const useLiveFunctionality = (eventId?: string) => {
                   });
                   // Add class to control zaps-header alignment
                   document.body.classList.add('show-total-labels');
+                }
+              },
+              qrOnlyToggle: (checked: boolean) => {
+                if (checked) {
+                  document.body.classList.add('qr-only-mode');
+                } else {
+                  document.body.classList.remove('qr-only-mode');
                 }
               },
               showFiatToggle: (checked: boolean) => {
@@ -6241,6 +6436,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         { toggleId: 'podiumToggle', propertyName: 'podium' },
         { toggleId: 'zapGridToggle', propertyName: 'zapGrid' },
         { toggleId: 'sectionLabelsToggle', propertyName: 'sectionLabels' },
+        { toggleId: 'qrOnlyToggle', propertyName: 'qrOnly' },
         { toggleId: 'showFiatToggle', propertyName: 'showFiat' },
         {
           toggleId: 'showHistoricalPriceToggle',
@@ -6857,6 +7053,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         'showTopZappersToggle',
         'zapGridToggle',
         'podiumToggle',
+        'sectionLabelsToggle',
+        'qrOnlyToggle',
         'lightningToggle'
       ];
 
@@ -7587,6 +7785,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     resetToDefaults,
     copyStyleUrl,
     applyStylesFromURL,
-    cleanup
+    cleanup,
+    zapNotification,
+    handleNotificationDismiss
   };
 };

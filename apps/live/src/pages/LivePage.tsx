@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveFunctionality } from '@live/hooks/useLiveFunctionality';
-// Temporarily disabled for CSS debugging - import '../styles/live.css';
+import { ZapNotificationOverlay } from '@live/components/ZapNotificationOverlay';
+import '../styles/live.css';
 import { nip19 } from 'nostr-tools';
 
 export const LivePage: React.FC = () => {
@@ -42,8 +43,15 @@ export const LivePage: React.FC = () => {
     handleStyleOptionsClose,
     showLoadingError,
     resetToDefaults,
-    copyStyleUrl
+    copyStyleUrl,
+    zapNotification,
+    handleNotificationDismiss
   } = useLiveFunctionality(eventId);
+
+  // Debug: Monitor zapNotification changes
+  useEffect(() => {
+    console.log('📱 LivePage: zapNotification changed:', zapNotification);
+  }, [zapNotification]);
 
   // Legacy-style URL parsing/validation: support compound nprofile/.../live/:id and invalid IDs
   useEffect(() => {
@@ -1036,6 +1044,15 @@ export const LivePage: React.FC = () => {
                 <div className="style-option-group toggle-group">
                   <label className="toggle-label">
                     <div className="toggle-switch">
+                      <input type="checkbox" id="qrOnlyToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>QR Only (Hide Everything Else)</span>
+                  </label>
+                </div>
+                <div className="style-option-group toggle-group">
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
                       <input type="checkbox" id="showFiatToggle" />
                       <span className="toggle-slider"></span>
                     </div>
@@ -1218,6 +1235,12 @@ export const LivePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Zap Notification Overlay */}
+      <ZapNotificationOverlay 
+        notification={zapNotification}
+        onDismiss={handleNotificationDismiss}
+      />
     </div>
   );
 };

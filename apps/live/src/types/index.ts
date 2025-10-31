@@ -13,3 +13,13 @@ export interface LiveZap {
   amount: number;
   timestamp: number;
 }
+
+export interface ZapNotification {
+  id: string;
+  zapperName: string;
+  zapperImage: string;
+  content: string;
+  amount: number;
+  timestamp: number;
+  zapperRank?: number; // 1, 2, or 3 for top zappers
+}
