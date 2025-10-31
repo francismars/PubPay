@@ -92,11 +92,11 @@ export const Layout: React.FC = () => {
       const decoded = NostrTools.nip19.decode(token);
 
       if (decoded.type === 'note') {
-        window.location.href = `/?note=${token}`;
+        window.location.href = `/note/${token}`;
       } else if (decoded.type === 'nevent') {
         const noteID = (decoded.data as any).id;
         const note1 = NostrTools.nip19.noteEncode(noteID);
-        window.location.href = `/?note=${note1}`;
+        window.location.href = `/note/${note1}`;
       } else if (decoded.type === 'npub') {
         const pubkeyHex = decoded.data as string;
         window.location.href = `/profile/${pubkeyHex}`;
