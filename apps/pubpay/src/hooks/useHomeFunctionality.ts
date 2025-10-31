@@ -1690,14 +1690,14 @@ export const useHomeFunctionality = () => {
       // Add client tag
       tags.push(['client', 'PubPay.me']);
 
-      // Add mention tags if content has npubs
+      // Add mention tags only for nostr:npub references (ignore plain @npub)
       const npubMentions = payNoteContent.match(
-        /(nostr:|@)?((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
+        /nostr:((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
       );
       if (npubMentions) {
         npubMentions.forEach((mention: string) => {
           try {
-            const cleanNpub = mention.replace(/nostr:|@/g, '');
+            const cleanNpub = mention.replace(/^nostr:/i, '');
             const decoded = NostrTools.nip19.decode(cleanNpub);
             if (decoded.type === 'npub') {
               tags.push(['p', decoded.data, '', 'mention']);

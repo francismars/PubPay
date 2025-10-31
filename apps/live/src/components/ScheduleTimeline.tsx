@@ -27,6 +27,7 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 	const [zoomLevel, setZoomLevel] = useState<number>(1.0); // Zoom multiplier (1.0 = normal, 2.0 = 2x zoom, 0.5 = zoomed out)
 	const [newItemRefs, setNewItemRefs] = useState<Record<number, string>>({});
 	const [snapMinutes, setSnapMinutes] = useState<number>(5); // Snap-to grid in minutes (0 = off)
+	const [timeZone, setTimeZone] = useState<string>('America/El_Salvador'); // Default to San Salvador time
 	const timelineRef = useRef<HTMLDivElement>(null);
 	const timelineScrollRef = useRef<HTMLDivElement>(null);
 	const [panning, setPanning] = useState(false);
@@ -154,6 +155,21 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 		const end = new Date(slot.endAt).getTime();
 		return ((end - start) / timeRange) * 100;
 	};
+
+	// Time formatting helpers (respect selected timezone)
+	const tzOption: string | undefined = timeZone === 'local' ? undefined : timeZone;
+	const timeFmt = useCallback((ms: number, withSeconds = false) => {
+		const opts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', hour12: false };
+		if (withSeconds) opts.second = '2-digit';
+		if (tzOption) opts.timeZone = tzOption;
+		return new Intl.DateTimeFormat(undefined, opts).format(new Date(ms));
+	}, [tzOption]);
+
+	const dateShortFmt = useCallback((ms: number) => {
+		const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+		if (tzOption) opts.timeZone = tzOption;
+		return new Intl.DateTimeFormat('en-US', opts).format(new Date(ms));
+	}, [tzOption]);
 
 	// Snap helper
 	const snapTime = useCallback((timeMs: number) => {
@@ -519,18 +535,34 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 						<span style={{ fontSize: '0.75em', color: '#666' }}>Pan</span>
 						<button onClick={panRight} title="Pan right (Shift+Wheel)" style={{ fontSize: '0.9em', padding: '4px 8px', border: 'none', background: 'transparent', cursor: 'pointer' }}>▶</button>
 					</div>
-					{/* Preset ranges */}
+				{/* Preset ranges */}
 					<div style={{ display: 'flex', gap: 2 }}>
 						<button onClick={() => { setZoom(1); resetZoom(); }} style={{ fontSize: '0.75em', padding: '4px 8px', background: zoom === 1 ? '#2196f3' : '#eee' }}>Auto</button>
 						<button onClick={() => { setZoom(2); resetZoom(); }} style={{ fontSize: '0.75em', padding: '4px 8px', background: zoom === 2 ? '#2196f3' : '#eee' }}>24h</button>
 						<button onClick={() => { setZoom(3); resetZoom(); }} style={{ fontSize: '0.75em', padding: '4px 8px', background: zoom === 3 ? '#2196f3' : '#eee' }}>48h</button>
 						<button onClick={() => { setZoom(4); resetZoom(); }} style={{ fontSize: '0.75em', padding: '4px 8px', background: zoom === 4 ? '#2196f3' : '#eee' }}>1 week</button>
 					</div>
+					{/* Timezone selector */}
+					<div style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '2px 8px', background: '#f0f0f0', borderRadius: 4 }}>
+						<span style={{ fontSize: '0.75em', color: '#666' }}>TZ</span>
+						<select value={timeZone} onChange={e => setTimeZone(e.target.value)} style={{ fontSize: '0.85em', maxWidth: 200 }}>
+							<option value="local">Local</option>
+							<option value="UTC">UTC</option>
+							<option value="America/El_Salvador">America/El_Salvador (San Salvador)</option>
+							<option value="America/New_York">America/New_York</option>
+							<option value="America/Los_Angeles">America/Los_Angeles</option>
+							<option value="Europe/London">Europe/London</option>
+							<option value="Europe/Berlin">Europe/Berlin</option>
+							<option value="Asia/Bangkok">Asia/Bangkok</option>
+							<option value="Asia/Tokyo">Asia/Tokyo</option>
+							<option value="Australia/Sydney">Australia/Sydney</option>
+						</select>
+					</div>
 				</div>
 			</div>
-            <div style={{ fontSize: '0.75em', color: '#666', marginBottom: 8 }}>
-                💡 + / = = Zoom in • - = Zoom out • 0 = Reset | Alt+Wheel = Zoom (anchors at cursor) | Shift+Wheel = Pan | Drag background = Pan | Arrows = Nudge (Shift=15m) | Snap editable (1x–20x)
-            </div>
+			<div style={{ fontSize: '0.75em', color: '#666', marginBottom: 8 }}>
+				💡 + / = = Zoom in • - = Zoom out • 0 = Reset | Alt+Wheel = Zoom (anchor at cursor) | Shift+Wheel = Pan | Drag background = Pan | Arrows = Nudge (Shift=15m) | Snap editable (1x–20x) | Timezone: {timeZone === 'local' ? 'Local' : timeZone}
+			</div>
 
             {/* Templates */}
             <div style={{ marginBottom: 12, padding: 8, background: '#fff', borderRadius: 4, fontSize: '0.85em' }}>
@@ -631,9 +663,11 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 								.map((grid, idx, arr) => {
 									const pos = getPosition(new Date(grid.time).toISOString());
 									if (pos < 0 || pos > 100) return null;
-									const hourTime = new Date(grid.time);
-									const prevHour = idx > 0 ? new Date(arr[idx - 1].time) : null;
-									const isNewDay = !prevHour || hourTime.getDate() !== prevHour.getDate();
+							const hourMs = grid.time;
+							const prevHourMs = idx > 0 ? arr[idx - 1].time : null;
+							const thisDay = dateShortFmt(hourMs);
+							const prevDay = prevHourMs !== null ? dateShortFmt(prevHourMs!) : null;
+							const isNewDay = !prevDay || thisDay !== prevDay;
 									
 									return (
 										<div
@@ -653,12 +687,12 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 												whiteSpace: 'nowrap'
 											}}
 										>
-											{isNewDay && (
-												<div style={{ fontSize: '8px', color: '#999', lineHeight: '1' }}>
-													{hourTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-												</div>
-											)}
-											{hourTime.getHours().toString().padStart(2, '0')}:00
+										{isNewDay && (
+											<div style={{ fontSize: '8px', color: '#999', lineHeight: '1' }}>
+												{thisDay}
+											</div>
+										)}
+										{timeFmt(hourMs).slice(0,5)}
 										</div>
 									);
 								})}
@@ -695,7 +729,7 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 				{/* Current time indicator */}
 				{now >= minTime && now <= maxTime && (() => {
 					const nowTime = new Date(now);
-					const timeStr = nowTime.toLocaleTimeString();
+					const timeStr = timeFmt(nowTime.getTime(), true);
 					const nowPos = getPosition(nowTime.toISOString());
 					return (
 						<div
@@ -820,7 +854,7 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 									</div>
 								) : null}
 								<div style={{ fontSize: '10px' }}>
-									{new Date(slot.startAt).toLocaleTimeString()} → {new Date(slot.endAt).toLocaleTimeString()} ({durationMinutes}m){slot.roomName ? ` • ${slot.roomName}` : ''}
+									{timeFmt(new Date(slot.startAt).getTime())} → {timeFmt(new Date(slot.endAt).getTime())} ({durationMinutes}m){slot.roomName ? ` • ${slot.roomName}` : ''}
 								</div>
 							</div>
 								</div>

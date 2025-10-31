@@ -60,22 +60,22 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const paynoteRef = useRef<HTMLDivElement>(null);
     const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Format content: baseline first, then upgrade when nostr is ready
-    useEffect(() => {
-      const raw = post.event.content || '';
-      // Baseline formatting: linkify npubs and URLs, no client required
-      const baseline = raw
-        .replace(
-          /(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-          (_m, _p, npub) => {
-            const clean = String(npub).replace('nostr:', '').replace('@', '');
-            const shortId = clean.length > 35 ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}` : clean;
-            return `<a href="/profile/${clean}" style="color: #0066cc; text-decoration: underline;">${shortId}</a>`;
-          }
-        )
-        .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
-        .replace(/\n/g, '<br />');
-      setFormattedContent(baseline);
+  // Format content: baseline first, then upgrade when nostr is ready
+  useEffect(() => {
+    const raw = post.event.content || '';
+    // Baseline formatting: linkify only nostr:npubs and URLs, no client required
+    const baseline = raw
+      .replace(
+        /nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+        (_m, npub) => {
+          const clean = String(npub);
+          const shortId = clean.length > 35 ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}` : clean;
+          return `<a href="/profile/${clean}" style="color: #0066cc; text-decoration: underline;">${shortId}</a>`;
+        }
+      )
+      .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
+      .replace(/\n/g, '<br />');
+    setFormattedContent(baseline);
 
       const upgrade = async () => {
         if (!nostrClient || !nostrReady) return;
