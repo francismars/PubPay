@@ -94,8 +94,8 @@ const loadStageToTimeline = useCallback(async () => {
 			const json = await res.json();
 			setRawResponse(json); // Store raw response for debugging
 			if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to load stage slots');
-			const slots = (json.data?.slots || []) as Array<{ startAt: string; endAt: string; items: Array<{ ref: string }> }>;
-    const timelineSlots: Slot[] = slots.map(s => ({ startAt: s.startAt, endAt: s.endAt, items: s.items }));
+			const slots = (json.data?.slots || []) as Array<{ startAt: string; endAt: string; items: Array<{ ref: string }>; title?: string; speakers?: string[]; code?: string; room?: { name?: string } }>;
+	    const timelineSlots: Slot[] = slots.map(s => ({ startAt: s.startAt, endAt: s.endAt, items: s.items, title: s.title, speakers: s.speakers, code: s.code, roomName: (s.room?.name as string | undefined) }));
     // Defer to avoid before-declaration usage warning
     setTimeout(() => updateSlotsFromTimeline(timelineSlots), 0);
 			setSuccess(`Loaded ${timelineSlots.length} slots to timeline`);

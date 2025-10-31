@@ -25,6 +25,7 @@ export class RoomsRouter {
 		this.router.get('/pretalx/schedules', this.pretalxSchedules.bind(this));
 		this.router.get('/pretalx/preview', this.pretalxPreview.bind(this));
 		this.router.get('/pretalx/diagnose', this.pretalxDiagnose.bind(this));
+		this.router.get('/pretalx/call', this.pretalxCall.bind(this));
 		this.router.get('/:roomId', this.getRoom.bind(this));
 		this.router.get('/:roomId/view', this.getView.bind(this));
 		this.router.get('/:roomId/events', this.sseEvents.bind(this));
@@ -311,6 +312,43 @@ export class RoomsRouter {
 			const message = error instanceof Error ? error.message : 'Diagnosis failed';
 			this.logger.error(`Pretalx diagnose error: ${message}`);
 			res.status(500).json({ success: false, error: message });
+		}
+	}
+
+	private async pretalxCall(req: Request, res: Response): Promise<void> {
+		try {
+			const { baseUrl: bodyBase, event: bodyEvent, token: bodyToken, endpoint, expand } = req.query as Record<string, string>;
+			const baseUrl = bodyBase || process.env.PRETALX_BASE_URL;
+			const event = bodyEvent || process.env.PRETALX_EVENT;
+			const token = bodyToken || process.env.PRETALX_TOKEN;
+			if (!baseUrl || !event || !token || !endpoint) {
+				res.status(400).json({ success: false, error: 'baseUrl, event, token and endpoint are required' });
+				return;
+			}
+			const pretalx = new PretalxService(baseUrl, event, token);
+			// Replace {event} placeholder in endpoint if present
+			const apiPath = endpoint.replace('{event}', event);
+			// Add expand parameter if provided
+			let fullPath = apiPath;
+			if (expand) {
+				const separator = apiPath.includes('?') ? '&' : '?';
+				fullPath = `${apiPath}${separator}expand=${encodeURIComponent(expand)}`;
+			}
+			// Use apiGet for single page, paginate for multi-page results
+			// Treat schedules list as paginated, but schedule shortcuts like latest/wip as single-object
+			const schedulesIsObject = /\/schedules\/(latest|wip)\/?(\?|$)/.test(apiPath);
+			const schedulesIsList = /\/schedules\/?(\?|$)/.test(apiPath) && !schedulesIsObject;
+			const isListEndpoint = schedulesIsList || apiPath.includes('/slots/') || apiPath.includes('/submissions/') || apiPath.includes('/rooms/') || apiPath.includes('/speakers/');
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const pretalxApi = pretalx as any;
+			const rawData = isListEndpoint
+				? await pretalxApi.paginate(fullPath)
+				: await pretalxApi.apiGet(fullPath);
+			res.json({ success: true, data: rawData, endpoint: fullPath });
+		} catch (error) {
+			const message = error instanceof Error ? error.message : 'Failed to call API';
+			this.logger.error(`Pretalx call error: ${message}`);
+			res.status(500).json({ success: false, error: message, endpoint: req.query.endpoint });
 		}
 	}
 
