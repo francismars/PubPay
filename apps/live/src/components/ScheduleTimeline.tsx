@@ -426,54 +426,33 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 		};
 	}, [panning, panStart, zoomLevel]);
 
-	// Template presets
-	const applyTemplate = useCallback((template: 'hourly' | 'daily' | 'weekly') => {
-		const now = new Date();
-		now.setMinutes(0, 0, 0);
-		const newSlots: Slot[] = [];
+    // Single custom template (replaces existing slots)
+    const applyCustomTemplate = useCallback(() => {
+        const newSlots: Slot[] = [
+            { startAt: '2025-11-14T09:00:00Z', endAt: '2025-11-14T09:30:00Z', items: [ { ref: 'note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7' } ] },
+            { startAt: '2025-11-14T09:30:00Z', endAt: '2025-11-14T10:00:00Z', items: [ { ref: 'note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu' } ] },
+            { startAt: '2025-11-14T10:00:00Z', endAt: '2025-11-14T10:30:00Z', items: [ { ref: 'note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv' } ] },
+            { startAt: '2025-11-14T10:30:00Z', endAt: '2025-11-14T11:00:00Z', items: [ { ref: 'nevent1qqsphk43g2pzpwfr8qcp5zdx8ftgaj7gvxk682y4sedjvscrsm0lpssc96mm3' } ] },
+            { startAt: '2025-11-14T11:00:00Z', endAt: '2025-11-14T11:30:00Z', items: [
+                { ref: 'nevent1qvzqqqqqqypzqlea4mfml7qvctjsypywae5g5ra8zj6t3f8sqcuj53h9xq9nn6pjqqsffzd548j3gtkck0hemn9jqgqfpdttatwhpg3vd3plhghlhatzw6cpmvz4r' },
+                { ref: 'nevent1qvzqqqqqqypzqpxfzhdwlm3cx9l6wdzyft8w8y9gy607tqgtyfq7tekaxs7lhmxfqqsygu0jcvwfp7p3hhe42stxu44dcuz5zt9cy052qfg2ea98gxy2sfq2wh7j0' },
+                { ref: 'nevent1qvzqqqqqqypzqy9kvcxtqa2tlwyjv4r46ancxk00ghk9yaudzsnp697s60942p7lqqs0sqpv028v3xy6z27qx8sfukgl5wn2z7j4u8ylrs8w5gfmp44j0rc4avhey' }
+            ] },
+            { startAt: '2025-11-14T11:30:00Z', endAt: '2025-11-14T12:00:00Z', items: [ { ref: 'nevent1qvzqqqqqqypzpw9fm7ppszzwfyxc3q6z482g3d70p7eqkxseh93mantga44ttjaaqy2hwumn8ghj7un9d3shjtnyv9kh2uewd9hj7qghdehhxarj945kgc369uhkxctrdpjj6un9d3shjqpq04k2daej76pv0nfrefuwp0xm4gjmqqwx0vc6yhsq9jkr956879ds4tsslp' } ] },
+            { startAt: '2025-11-14T12:00:00Z', endAt: '2025-11-14T12:30:00Z', items: [ { ref: 'nevent1qqsdz8sqytjeum0utxvkvknyp9a7t0twv976tuuyzf3ngwc3572tltct2ek8j' } ] },
+            { startAt: '2025-11-14T12:30:00Z', endAt: '2025-11-14T13:00:00Z', items: [ { ref: 'nevent1qqs0sqpv028v3xy6z27qx8sfukgl5wn2z7j4u8ylrs8w5gfmp44j0rceyfxj5' } ] },
+            { startAt: '2025-11-14T14:00:00Z', endAt: '2025-11-14T14:30:00Z', items: [ { ref: 'nevent1qqs8t9m7rcgnjj35ekvcrgpxt78t0u9a7yyp5pkjmmkae4kg7d8s5sqd7u960' } ] },
+            { startAt: '2025-11-14T14:30:00Z', endAt: '2025-11-14T15:00:00Z', items: [ { ref: 'nevent1qqsre8grh4vyyhlsnp7wy5r8xrvsffzeg7w4tz5mr0t6fhd6x77fexcrl34gy' } ] },
+            { startAt: '2025-11-14T15:00:00Z', endAt: '2025-11-14T15:30:00Z', items: [ { ref: 'nevent1qqsv4jk2xzhkfh6kk3uwfwf2xjvpl4qsne435njml08kr7pnhpcfhxq8k43rt' } ] },
+            { startAt: '2025-11-14T15:30:00Z', endAt: '2025-11-14T16:00:00Z', items: [ { ref: 'nevent1qqsf6r5v9n6kj6mhjruylugz55gac44tzfyyh884rdvfasls0yujgqsl9vkqe' } ] },
+            { startAt: '2025-11-14T16:00:00Z', endAt: '2025-11-14T16:30:00Z', items: [ { ref: 'nevent1qqsxnzdah0x9sp75ajrzve4aehacqt9rzepjcfkrfrllr65h6v542ksrhyy82' } ] },
+            { startAt: '2025-11-14T16:30:00Z', endAt: '2025-11-14T17:00:00Z', items: [ { ref: 'nevent1qqsrc4h3a7063fxn2lwt5ven9dyv949k9yeh3rju0z2p7t2shmp0zfc44nm74' } ] },
+            { startAt: '2025-11-14T17:00:00Z', endAt: '2025-11-14T17:30:00Z', items: [ { ref: 'nevent1qqs90rz4e4prc909h6f9cn30872h9rk4etqfqw3xrrgpd7waennjg2s9mc0jn' } ] },
+            { startAt: '2025-11-14T17:30:00Z', endAt: '2025-11-14T18:00:00Z', items: [] }
+        ];
 
-		if (template === 'hourly') {
-			for (let i = 0; i < 24; i++) {
-				const start = new Date(now);
-				start.setHours(now.getHours() + i);
-				const end = new Date(start);
-				end.setHours(end.getHours() + 1);
-				newSlots.push({
-					startAt: start.toISOString(),
-					endAt: end.toISOString(),
-					items: [{ ref: 'note1example...' }]
-				});
-			}
-		} else if (template === 'daily') {
-			for (let i = 0; i < 7; i++) {
-				const start = new Date(now);
-				start.setDate(start.getDate() + i);
-				start.setHours(12, 0, 0, 0);
-				const end = new Date(start);
-				end.setHours(14, 0, 0, 0);
-				newSlots.push({
-					startAt: start.toISOString(),
-					endAt: end.toISOString(),
-					items: [{ ref: 'note1example...' }]
-				});
-			}
-		} else if (template === 'weekly') {
-			for (let i = 0; i < 4; i++) {
-				const start = new Date(now);
-				start.setDate(start.getDate() + i * 7);
-				start.setHours(18, 0, 0, 0);
-				const end = new Date(start);
-				end.setHours(20, 0, 0, 0);
-				newSlots.push({
-					startAt: start.toISOString(),
-					endAt: end.toISOString(),
-					items: [{ ref: 'note1example...' }]
-				});
-			}
-		}
-
-		onChange([...slots, ...newSlots].sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()));
-	}, [slots, onChange]);
+        onChange(newSlots);
+    }, [onChange]);
 
 	return (
 		<div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8, background: '#fafafa' }}>
@@ -518,13 +497,11 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 				💡 Ctrl+Wheel = Zoom | Shift+Wheel = Pan | Drag background = Pan | Arrows = Nudge (Shift=15m) | Snap editable
 			</div>
 
-			{/* Templates */}
-			<div style={{ marginBottom: 12, padding: 8, background: '#fff', borderRadius: 4, fontSize: '0.85em' }}>
-				<strong>Quick templates:</strong>
-				<button onClick={() => applyTemplate('hourly')} style={{ marginLeft: 8, fontSize: '0.8em', padding: '4px 8px' }}>Hourly (24 slots)</button>
-				<button onClick={() => applyTemplate('daily')} style={{ marginLeft: 4, fontSize: '0.8em', padding: '4px 8px' }}>Daily (7 slots)</button>
-				<button onClick={() => applyTemplate('weekly')} style={{ marginLeft: 4, fontSize: '0.8em', padding: '4px 8px' }}>Weekly (4 slots)</button>
-			</div>
+            {/* Templates */}
+            <div style={{ marginBottom: 12, padding: 8, background: '#fff', borderRadius: 4, fontSize: '0.85em' }}>
+                <strong>Quick template:</strong>
+                <button onClick={applyCustomTemplate} style={{ marginLeft: 8, fontSize: '0.8em', padding: '4px 8px' }}>Load provided schedule</button>
+            </div>
 
 			{/* Add new slot */}
 			<div style={{ marginBottom: 16, padding: 12, background: '#fff', borderRadius: 4 }}>
