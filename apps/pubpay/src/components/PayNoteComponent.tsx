@@ -372,7 +372,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         }
       >
         <div className="noteProfileImg">
-          <img className="userImg" src={profilePicture} alt="Profile" />
+          <a href={`/profile/${post.event.pubkey}`}>
+            <img className="userImg" src={profilePicture} alt="Profile" />
+          </a>
         </div>
         <div className="noteData">
           <div className="noteHeader">
