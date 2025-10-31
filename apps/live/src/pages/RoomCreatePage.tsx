@@ -6,9 +6,7 @@ const API_BASE = (import.meta as unknown as { env?: { VITE_BACKEND_URL?: string 
 export const RoomCreatePage: React.FC = () => {
 	const navigate = useNavigate();
 	const [name, setName] = useState('My Multi Room');
-	const [rotationIntervalSec, setIntervalSec] = useState(60);
-	const [rotationPolicy, setPolicy] = useState<'round_robin' | 'random' | 'weighted'>('round_robin');
-	const [defaultItems, setDefaultItems] = useState('');
+	const [password, setPassword] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -17,9 +15,7 @@ export const RoomCreatePage: React.FC = () => {
 		try {
 			const payload = {
 				name: name || 'Untitled Room',
-				rotationPolicy,
-				rotationIntervalSec,
-				defaultItems: defaultItems.split(/\n|,/) .map(s => s.trim()).filter(Boolean)
+				password: password || undefined
 			};
 			const res = await fetch(`${API_BASE}/rooms`, {
 				method: 'POST',
@@ -28,11 +24,17 @@ export const RoomCreatePage: React.FC = () => {
 			});
 			const json = await res.json();
 			if (!json.success) throw new Error(json.error || 'Failed to create room');
+			
+			// Store password in sessionStorage if provided, so admin page can load room data
+			if (password && password.trim()) {
+				sessionStorage.setItem(`room_${json.data.id}_password`, password);
+			}
+			
 			navigate(`/room/${json.data.id}/admin`);
 		} catch (e: unknown) {
 			setError(e instanceof Error ? e.message : 'Error');
 		} finally { setBusy(false); }
-	}, [name, rotationPolicy, rotationIntervalSec, defaultItems, navigate]);
+	}, [name, password, navigate]);
 
 	return (
 		<div className="live">
@@ -52,22 +54,12 @@ export const RoomCreatePage: React.FC = () => {
 						<label>Room name</label>
 						<input value={name} onChange={e => setName(e.target.value)} placeholder="Room name" />
 
-						<label style={{ marginTop: 8 }}>Rotation policy</label>
-						<select value={rotationPolicy} onChange={e => setPolicy(e.target.value as any)}>
-							<option value="round_robin">round_robin</option>
-							<option value="random">random</option>
-							<option value="weighted">weighted</option>
-						</select>
-
-						<label style={{ marginTop: 8 }}>Rotation interval (sec)</label>
-						<input type="number" value={rotationIntervalSec} onChange={e => setIntervalSec(parseInt(e.target.value || '60', 10))} />
-
-						<label style={{ marginTop: 8 }}>Default items (comma or newline separated)</label>
-						<textarea rows={4} value={defaultItems} onChange={e => setDefaultItems(e.target.value)} placeholder={'note1...\nnevent1...'} />
+						<label style={{ marginTop: 8 }}>Password (optional)</label>
+						<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password to access room" />
 
 						<div className="button-container" style={{ marginTop: 12 }}>
 							<button className="button" onClick={create} disabled={busy}>Create Multi Room</button>
-							<button className="button outline" onClick={() => navigate(-1)}>Back</button>
+							<button className="button outline" onClick={() => navigate('/multi')}>Back to Login</button>
 						</div>
 
 						{error && <div className="error-message" style={{ display: 'block', marginTop: 8 }}>{error}</div>}

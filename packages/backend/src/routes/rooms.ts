@@ -27,6 +27,7 @@ export class RoomsRouter {
 		this.router.get('/pretalx/diagnose', this.pretalxDiagnose.bind(this));
 		this.router.get('/pretalx/call', this.pretalxCall.bind(this));
 		this.router.get('/:roomId', this.getRoom.bind(this));
+		this.router.post('/:roomId', this.getRoom.bind(this)); // POST for password authentication
 		this.router.get('/:roomId/view', this.getView.bind(this));
 		this.router.get('/:roomId/events', this.sseEvents.bind(this));
 	}
@@ -72,12 +73,12 @@ export class RoomsRouter {
 
 	private createRoom(req: Request, res: Response): void {
 		try {
-			const { name, slug, timezone, rotationPolicy, rotationIntervalSec, defaultItems } = req.body || {};
+			const { name, slug, timezone, password } = req.body || {};
 			if (!name) {
 				res.status(400).json({ success: false, error: 'name is required' });
 				return;
 			}
-			const room = this.rooms.createRoom({ name, slug, timezone, rotationPolicy, rotationIntervalSec, defaultItems });
+			const room = this.rooms.createRoom({ name, slug, timezone, password });
 			res.json({ success: true, data: room });
 		} catch (error) {
 			this.logger.error('Error creating room', error);
@@ -355,10 +356,19 @@ export class RoomsRouter {
 	private getRoom(req: Request, res: Response): void {
 		try {
 			const { roomId } = req.params;
+			const password = req.body?.password || req.query?.password as string | undefined;
 			const room = this.rooms.getRoom(roomId);
 			if (!room) {
 				res.status(404).json({ success: false, error: 'Room not found' });
 				return;
+			}
+			// Check password if room has one set
+			if (room.config.password) {
+				// Password is required - check if provided and matches
+				if (!password || (typeof password === 'string' && password.trim() === '') || password !== room.config.password) {
+					res.status(401).json({ success: false, error: 'Invalid password' });
+					return;
+				}
 			}
 			res.json({ success: true, data: room });
 		} catch (error) {
