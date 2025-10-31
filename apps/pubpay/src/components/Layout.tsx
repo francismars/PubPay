@@ -68,7 +68,8 @@ export const Layout: React.FC = () => {
     handleLogout,
     handlePayWithExtension,
     handlePayAnonymously,
-    handlePostNote
+    handlePostNote,
+    loadUserProfile
   } = useHomeFunctionality();
 
   // Reset login form to main state
@@ -610,6 +611,7 @@ export const Layout: React.FC = () => {
             <Outlet context={{
               authState,
               nostrClient,
+              loadUserProfile,
               // Hook state (single source of truth)
               isLoading,
               activeFeed,
