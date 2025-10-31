@@ -37,6 +37,11 @@ const getScaleFactor = (rank?: number): number => {
   return 0.4; // 40% for 7th place and below
 };
 
+const truncateText = (text: string, maxLength: number = 16): string => {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+};
+
 interface ZapNotificationOverlayProps {
   notification: ZapNotification | null;
   onDismiss: () => void;
@@ -177,6 +182,17 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
     }));
   }, [rankLabel]);
 
+  // Memoize truncated name and content
+  const truncatedName = useMemo(
+    () => currentNotification ? truncateText(currentNotification.zapperName, 16) : '',
+    [currentNotification?.zapperName]
+  );
+
+  const truncatedContent = useMemo(
+    () => currentNotification?.content ? truncateText(currentNotification.content, 16) : null,
+    [currentNotification?.content]
+  );
+
   // Early return after all hooks have been called
   if (!currentNotification) {
     return null;
@@ -218,11 +234,11 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
             {displayAmount} {displayLabel}
           </div>
           <div className="zap-notification-name">
-            {currentNotification.zapperName}
+            {truncatedName}
           </div>
-          {currentNotification.content && (
+          {truncatedContent && (
             <div className="zap-notification-message">
-              {currentNotification.content}
+              {truncatedContent}
             </div>
           )}
         </div>
