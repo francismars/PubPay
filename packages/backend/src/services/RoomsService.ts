@@ -232,7 +232,11 @@ export class RoomsService {
 		let upcomingSlots: Array<{ startAt: string; endAt: string; items: string[] }> | undefined;
 		if (schedule?.slots?.length) {
 			const future = schedule.slots
-				.filter(s => new Date(s.endAt) > now)
+				.filter(s => {
+					const start = new Date(s.startAt);
+					// Exclude the active slot - only include slots that start after now
+					return start > now;
+				})
 				.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
 				.slice(0, 5)
 				.map(s => ({
