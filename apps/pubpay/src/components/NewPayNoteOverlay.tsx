@@ -28,13 +28,14 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
   const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const blossomService = new BlossomService();
 
-  // Follower suggestions from store (populated on login)
+  // Follower suggestions from store (populated on login or refreshed)
   const followSuggestions = (useUIStore as any)((s: any) => s.followSuggestions) as Array<{
     pubkey: string;
     npub: string;
     displayName: string;
     picture?: string;
   }>;
+  const setFollowSuggestions = (useUIStore as any)((s: any) => s.setFollowSuggestions) as (items: any[]) => void;
   // Inline mention suggestion state
   const [mentionQuery, setMentionQuery] = useState('');
   const [showMention, setShowMention] = useState(false);
@@ -218,6 +219,26 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
 
     detectMention();
   };
+
+  // Refresh suggestions when overlay opens; also listen for external updates
+  React.useEffect(() => {
+    if (!isVisible) return;
+    const handleFollowingUpdated = (e: any) => {
+      try {
+        if (e?.detail?.suggestions) {
+          setFollowSuggestions(e.detail.suggestions);
+        }
+      } catch {}
+    };
+    window.addEventListener('followingUpdated', handleFollowingUpdated);
+    // Emit request for suggestions; upstream can respond by dispatching 'followingUpdated'
+    try {
+      window.dispatchEvent(new CustomEvent('requestFollowSuggestions'));
+    } catch {}
+    return () => {
+      window.removeEventListener('followingUpdated', handleFollowingUpdated);
+    };
+  }, [isVisible, setFollowSuggestions]);
 
   return (
     <div

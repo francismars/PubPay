@@ -465,8 +465,29 @@ export const useHomeFunctionality = () => {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // Respond to NewPayNoteOverlay follow suggestions request
+    const handleRequestFollowSuggestions = async () => {
+      try {
+        const auth = AuthService.getStoredAuthData ? AuthService.getStoredAuthData() : null;
+        const pubkey = auth?.publicKey;
+        const client = nostrClientRef.current;
+        if (!client || !pubkey) return;
+        const suggestions = await FollowService.getFollowSuggestions(client, pubkey);
+        useUIStore.getState().setFollowSuggestions(suggestions);
+        try {
+          window.dispatchEvent(
+            new CustomEvent('followingUpdated', {
+              detail: { suggestions }
+            })
+          );
+        } catch {}
+      } catch {}
+    };
+    window.addEventListener('requestFollowSuggestions', handleRequestFollowSuggestions);
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('requestFollowSuggestions', handleRequestFollowSuggestions);
     };
   }, []);
 
