@@ -42,6 +42,15 @@ const truncateText = (text: string, maxLength: number = 16): string => {
   return text.substring(0, maxLength) + '...';
 };
 
+const getNotificationDuration = (rank?: number): number => {
+  if (!rank) return 4000; // Default for unranked: 4 seconds
+  if (rank === 1) return 8000; // 1st place: 8 seconds
+  if (rank === 2) return 7000; // 2nd place: 7 seconds
+  if (rank === 3) return 6000; // 3rd place: 6 seconds
+  if (rank === 4) return 5000; // 4th place: 5 seconds
+  return 4000; // 5th place and below: 4 seconds
+};
+
 interface ZapNotificationOverlayProps {
   notification: ZapNotification | null;
   onDismiss: () => void;
@@ -122,6 +131,9 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
     updateColors();
     updateFiatSettings(); // Update fiat settings immediately when notification arrives
 
+    // Get duration based on zapper's rank
+    const duration = getNotificationDuration(notification.zapperRank);
+
     const hideTimer = setTimeout(() => {
       setIsVisible(false);
       
@@ -131,7 +143,7 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
       }, FADE_OUT_DURATION);
 
       return () => clearTimeout(clearTimer);
-    }, NOTIFICATION_DURATION);
+    }, duration);
 
     return () => clearTimeout(hideTimer);
   }, [notification, onDismiss, updateColors, updateFiatSettings]);
