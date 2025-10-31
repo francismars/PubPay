@@ -4887,7 +4887,6 @@ input:checked + .toggle-slider:before {
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   z-index: 1;
   margin-bottom: -2vw;
   display: inline-block;
