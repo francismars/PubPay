@@ -4,6 +4,7 @@ import { SimplePool, nip19 } from 'nostr-tools';
 const QRious = require('qrious') as any;
 const bolt11 = require('bolt11') as any;
 import { UseLightning } from './useLightning';
+import { ZapNotification } from '@live/types';
 
 // Flag to prevent multiple simultaneous calls to setupNoteLoaderListeners
 let setupNoteLoaderListenersInProgress = false;
@@ -60,6 +61,11 @@ export const useLiveFunctionality = (eventId?: string) => {
   const [lightningLNURL, setLightningLNURL] = useState<string>('');
 
   const liveDisplayRef = useRef<any>(null);
+
+  // Zap notification state
+  const [zapNotification, setZapNotification] = useState<ZapNotification | null>(null);
+  const initialZapsLoadedRef = useRef(false);
+  const pendingZapNotificationsRef = useRef<Map<string, any>>(new Map());
 
   // Update top zappers display when topZappers changes
   useEffect(() => {
@@ -673,6 +679,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const subscribeLiveEventZaps = async (pubkey: string, identifier: string) => {
     // Debug log removed
+    console.log('🔌 subscribeLiveEventZaps called for:', { pubkey: pubkey.slice(0, 8), identifier });
 
     // Reset zap list when starting a new live event (like legacy)
     resetZapList();
@@ -684,6 +691,8 @@ export const useLiveFunctionality = (eventId?: string) => {
       '#a': [aTag]
     };
 
+    console.log('🔌 Subscribing to zaps with filter:', filter);
+
     const sub = (window as any).pool.subscribe((window as any).relays, filter, {
       onevent(zapReceipt: any) {
         processLiveEventZap(zapReceipt, pubkey, identifier);
@@ -691,6 +700,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       oneose() {
         // Debug log removed
         // Keep subscription alive for new zaps
+        // Mark that initial zaps have been loaded
+        initialZapsLoadedRef.current = true;
+        console.log('✅ Initial zaps loaded (oneose), will show notifications for new zaps. Flag set to:', initialZapsLoadedRef.current);
       },
       onclosed() {
         // Debug log removed
@@ -1045,6 +1057,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     eventIdentifier: string
   ) => {
     // Debug log removed
+    console.log('🔄 processLiveEventZap called for receipt:', zapReceipt.id.slice(0, 8));
 
     try {
       // Extract zap information from the receipt
@@ -1096,6 +1109,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       addZapToTotals(zapperPubkey, amount);
 
       // Display the zap
+      console.log('📞 About to call displayLiveEventZap with zapData:', { id: zapData.id.slice(0, 8), amount: zapData.amount, pubkey: zapData.pubkey.slice(0, 8) });
       displayLiveEventZap(zapData);
     } catch (error) {
       console.error('Error processing live event zap:', error);
@@ -1103,13 +1117,17 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const displayLiveEventZap = (zapData: any) => {
-    // Debug log removed
-
     // Check if this zap is already displayed to prevent duplicates
     const existingZap = document.querySelector(`[data-zap-id="${zapData.id}"]`);
     if (existingZap) {
-      // Debug log removed
       return;
+    }
+
+    // Trigger notification for new zaps (not initial/historical ones)
+    if (initialZapsLoadedRef.current) {
+      // Store as pending - subscribeChatAuthorProfile already called in processLiveEventZap
+      // When profile arrives, updateProfile will trigger the notification
+      pendingZapNotificationsRef.current.set(zapData.pubkey, zapData);
     }
 
     const zapsContainer = document.getElementById('zaps');
@@ -1436,8 +1454,6 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const updateProfile = (profile: any) => {
-    // Debug log removed
-
     const profileData = JSON.parse(profile.content || '{}');
     const name =
       profileData.display_name ||
@@ -1477,6 +1493,35 @@ export const useLiveFunctionality = (eventId?: string) => {
         element.textContent = name;
       }
     });
+
+    // Check for pending zap notifications for this profile
+    if (pendingZapNotificationsRef.current.has(profile.pubkey)) {
+      const zapData = pendingZapNotificationsRef.current.get(profile.pubkey);
+      pendingZapNotificationsRef.current.delete(profile.pubkey);
+      
+      console.log('🏆 Processing notification for zap:', {
+        amount: zapData.amount,
+        pubkey: profile.pubkey.slice(0, 8),
+        currentZapsCount: zaps.length
+      });
+      
+      // Get rank based on this single zap's amount (1-3 for top 3 individual zaps)
+      const zapperRank = getSingleZapRank(zapData.amount);
+      
+      // Trigger the notification now that we have the profile
+      const notificationData: ZapNotification = {
+        id: zapData.id,
+        zapperName: name,
+        zapperImage: picture,
+        content: zapData.content || '',
+        amount: zapData.amount,
+        timestamp: zapData.timestamp,
+        zapperRank
+      };
+      
+      console.log('🏆 Setting notification with rank:', zapperRank);
+      setZapNotification(notificationData);
+    }
   };
 
   const setupLiveEventTwoColumnLayout = () => {
@@ -2958,10 +3003,50 @@ export const useLiveFunctionality = (eventId?: string) => {
     );
   };
 
+  const processNewZapForNotification = async (kind9735: any) => {
+    try {
+      // Extract zap data
+      const description9735 = kind9735.tags.find((tag: any) => tag[0] === 'description')?.[1];
+      if (!description9735) {
+        console.log('⚠️ No description found in zap');
+        return;
+      }
+
+      const zapRequest = JSON.parse(description9735);
+      const zapperPubkey = zapRequest.pubkey;
+      const zapContent = zapRequest.content || '';
+      
+      const bolt11Tag = kind9735.tags.find((tag: any) => tag[0] === 'bolt11')?.[1];
+      if (!bolt11Tag) {
+        console.log('⚠️ No bolt11 found in zap');
+        return;
+      }
+
+      let amount = 0;
+      try {
+        const decoded = bolt11?.decode(bolt11Tag);
+        amount = decoded?.satoshis || 0;
+      } catch (error) {
+        console.log('⚠️ Failed to decode bolt11');
+        return;
+      }
+
+      // Store as pending - subscribeKind0fromKinds9735 will fetch profile
+      // When profile arrives, updateProfile will trigger the notification
+      pendingZapNotificationsRef.current.set(zapperPubkey, {
+        id: kind9735.id,
+        pubkey: zapperPubkey,
+        content: zapContent,
+        amount,
+        timestamp: kind9735.created_at
+      });
+    } catch (error) {
+      console.error('❌ Error processing new zap for notification:', error);
+    }
+  };
+
   const subscribeKind9735fromKind1 = async (kind1: any) => {
-    // Debug log removed
     if (!(window as any).pool || !(window as any).relays) {
-      // Debug log removed
       return;
     }
 
@@ -2975,6 +3060,11 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (!kind1id || typeof kind1id !== 'string' || kind1id.length !== 64) {
       return;
     }
+    
+    // Reset initial zaps flag for new note
+    console.log('🔄 Resetting initialZapsLoadedRef for new note');
+    initialZapsLoadedRef.current = false;
+    
     let isFirstStream = true;
 
     const zapsContainer = document.getElementById('zaps');
@@ -3009,20 +3099,22 @@ export const useLiveFunctionality = (eventId?: string) => {
       },
       {
         onevent(kind9735: any) {
-          // Debug log removed
           clearTimeout(zapTimeoutId);
           if (!kinds9735IDs.has(kind9735.id)) {
             kinds9735IDs.add(kind9735.id);
             kinds9735.push(kind9735);
-            // Debug log removed
             if (!isFirstStream) {
               subscribeKind0fromKinds9735([kind9735]);
+              // Also trigger notification for this new zap
+              processNewZapForNotification(kind9735);
             }
           }
         },
         oneose() {
           clearTimeout(zapTimeoutId);
           isFirstStream = false;
+          // Mark that initial zaps have loaded
+          initialZapsLoadedRef.current = true;
           subscribeKind0fromKinds9735(kinds9735);
         },
         onclosed() {
@@ -3071,6 +3163,8 @@ export const useLiveFunctionality = (eventId?: string) => {
           if (!kind0fromkind9735Seen.has(kind0.pubkey)) {
             kind0fromkind9735Seen.add(kind0.pubkey);
             kind0fromkind9735List.push(kind0);
+            // Update profile to trigger notification if pending
+            updateProfile(kind0);
           }
         },
         async oneose() {
@@ -3090,6 +3184,10 @@ export const useLiveFunctionality = (eventId?: string) => {
   const resetZapList = () => {
     json9735List = [];
     processedZapIDs = new Set();
+    // Reset initial zaps loaded flag for new event
+    initialZapsLoadedRef.current = false;
+    // Clear any pending notifications
+    pendingZapNotificationsRef.current.clear();
   };
 
   const createkinds9735JSON = async (
@@ -3358,6 +3456,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         const zapperData = {
           amount,
           profile,
+          pubkey, // Store pubkey for rank calculation
           name: profile
             ? getDisplayName(profile)
             : zap.kind1Name || 'Anonymous',
@@ -3380,6 +3479,36 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Also update window object for legacy compatibility
     (window as any).topZappers = topZappers;
+  };
+
+  // Get the rank of a single zap based on its amount
+  const getSingleZapRank = (zapAmount: number): number | undefined => {
+    // Use window.zaps which is populated before the React state
+    const existingZaps = (window as any).zaps || [];
+    
+    // Get all zap amounts INCLUDING the current zap being evaluated
+    const allZapAmounts = [...existingZaps.map((z: any) => z.amount), zapAmount].sort((a, b) => b - a);
+    
+    // Get all unique amounts
+    const uniqueAmounts = [...new Set(allZapAmounts)];
+    
+    console.log('🏆 getSingleZapRank:', {
+      zapAmount,
+      totalZaps: existingZaps.length,
+      allAmounts: allZapAmounts,
+      uniqueAmounts: uniqueAmounts.slice(0, 5) // Show top 5 for debugging
+    });
+    
+    // Find where this zap amount ranks
+    const rank = uniqueAmounts.indexOf(zapAmount);
+    
+    if (rank >= 0) {
+      console.log('🏆 Zap ranks at position:', rank + 1);
+      return rank + 1; // Return 1, 2, 3, 4, etc.
+    }
+    
+    console.log('🏆 Could not determine rank');
+    return undefined;
   };
 
   const numberWithCommas = (x: number) => {
@@ -3928,6 +4057,10 @@ export const useLiveFunctionality = (eventId?: string) => {
       }, 300); // Match the CSS transition duration
     }
   };
+
+  const handleNotificationDismiss = useCallback(() => {
+    setZapNotification(null);
+  }, []);
 
   // Apply PubPay preset with all settings
   const applyPubPayPreset = () => {
@@ -4963,6 +5096,14 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Update fiat amounts for all sat amounts on the page
   const updateFiatAmounts = async () => {
+    // Check if fiat toggle is enabled - if not, don't show any fiat amounts
+    const showFiatToggle = document.getElementById(
+      'showFiatToggle'
+    ) as HTMLInputElement;
+    if (!showFiatToggle || !showFiatToggle.checked) {
+      return;
+    }
+
     if (!bitcoinPrices[selectedFiatCurrency]) return;
 
     // Add visual indicator that prices are being updated
@@ -7587,6 +7728,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     resetToDefaults,
     copyStyleUrl,
     applyStylesFromURL,
-    cleanup
+    cleanup,
+    zapNotification,
+    handleNotificationDismiss
   };
 };
