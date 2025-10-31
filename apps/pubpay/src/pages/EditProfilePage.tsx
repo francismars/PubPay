@@ -129,7 +129,13 @@ const EditProfilePage: React.FC = () => {
     try {
       const blossomService = new BlossomService();
       const hash = await blossomService.uploadFile(file);
-      const imageUrl = blossomService.getFileUrl(hash);
+      // Extract extension from filename or MIME type
+      const extension = file.name ? file.name.split('.').pop()?.toLowerCase() : 
+        (file.type === 'image/jpeg' ? 'jpg' : 
+         file.type === 'image/png' ? 'png' : 
+         file.type === 'image/gif' ? 'gif' : 
+         file.type === 'image/webp' ? 'webp' : null);
+      const imageUrl = blossomService.getFileUrl(hash, extension || undefined);
       setProfileData(prev => ({ ...prev, picture: imageUrl }));
       updateToast('Picture uploaded successfully!', 'success', false);
       setTimeout(() => closeToast(), 2000);
@@ -174,7 +180,13 @@ const EditProfilePage: React.FC = () => {
     try {
       const blossomService = new BlossomService();
       const hash = await blossomService.uploadFile(file);
-      const imageUrl = blossomService.getFileUrl(hash);
+      // Extract extension from filename or MIME type
+      const extension = file.name ? file.name.split('.').pop()?.toLowerCase() : 
+        (file.type === 'image/jpeg' ? 'jpg' : 
+         file.type === 'image/png' ? 'png' : 
+         file.type === 'image/gif' ? 'gif' : 
+         file.type === 'image/webp' ? 'webp' : null);
+      const imageUrl = blossomService.getFileUrl(hash, extension || undefined);
       setProfileData(prev => ({ ...prev, banner: imageUrl }));
       updateToast('Banner uploaded successfully!', 'success', false);
       setTimeout(() => closeToast(), 2000);
