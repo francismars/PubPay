@@ -24,9 +24,11 @@ interface ScheduleTimelineProps {
 	onOpenPretalxModal?: () => void;
 	createdRoomId?: string | null;
 	busy?: boolean;
+	scheduleError?: string | null;
+	scheduleSuccess?: string | null;
 }
 
-export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onChange, onAddSlotAtTime, scheduleJson, onUpdateJson, onOpenAddSlotModal, onUploadSchedule, onExportSchedule, onImportSchedule, onLoadProvidedSchedule, onOpenPretalxModal, createdRoomId, busy }) => {
+export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onChange, onAddSlotAtTime, scheduleJson, onUpdateJson, onOpenAddSlotModal, onUploadSchedule, onExportSchedule, onImportSchedule, onLoadProvidedSchedule, onOpenPretalxModal, createdRoomId, busy, scheduleError, scheduleSuccess }) => {
 	const [editorMode, setEditorMode] = useState<'timeline' | 'json'>('timeline');
 	const [editingSlot, setEditingSlot] = useState<number | null>(null);
 	const [contextMenu, setContextMenu] = useState<{ x: number; y: number; time: number } | null>(null);
@@ -39,6 +41,7 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 	const [newItemRefs, setNewItemRefs] = useState<Record<number, string>>({});
 	const [snapMinutes, setSnapMinutes] = useState<number>(5); // Snap-to grid in minutes (0 = off)
 	const [timeZone, setTimeZone] = useState<string>('America/El_Salvador'); // Default to San Salvador time
+	const [timelineHeight, setTimelineHeight] = useState<string>('100%');
 	const timelineRef = useRef<HTMLDivElement>(null);
 	const timelineScrollRef = useRef<HTMLDivElement>(null);
 	const [panning, setPanning] = useState(false);
@@ -716,7 +719,42 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 		}
 	}, [editingSlot, calculateEditOverlayPosition]);
 
+	// Calculate timeline height: fill available space, or expand if slots need more
+	useEffect(() => {
+		if (editorMode !== 'timeline') return;
+
+		const container = timelineScrollRef.current;
+		if (!container) return;
+
+		const updateHeight = () => {
+			const containerHeight = container.clientHeight;
+			const contentHeight = slots.length > 0 ? slots.length * 80 + 120 : 0;
+			// Use the larger of container height or content height
+			const calculatedHeight = Math.max(containerHeight, contentHeight || containerHeight);
+			setTimelineHeight(`${calculatedHeight}px`);
+		};
+
+		// Wait for layout to complete
+		const timeout = setTimeout(() => {
+			requestAnimationFrame(() => {
+				updateHeight();
+			});
+		}, 0);
+
+		// Watch for container size changes
+		const resizeObserver = new ResizeObserver(() => {
+			updateHeight();
+		});
+		resizeObserver.observe(container);
+
+		return () => {
+			clearTimeout(timeout);
+			resizeObserver.disconnect();
+		};
+	}, [editorMode, slots.length]);
+
 	// Keep floating controls fixed at bottom-right of scroll container viewport
+
 	useEffect(() => {
 		// Only position controls when in timeline mode
 		if (editorMode !== 'timeline') return;
@@ -729,9 +767,9 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 		const updateControlsPosition = () => {
 			const containerRect = container.getBoundingClientRect();
 			
-			// Position controls at bottom-right of container viewport (12px from edges)
+			// Position controls at bottom-right of container viewport (12px from bottom, 32px from right to avoid scrollbar)
 			controls.style.bottom = `${window.innerHeight - containerRect.bottom + 12}px`;
-			controls.style.right = `${window.innerWidth - containerRect.right + 12}px`;
+			controls.style.right = `${window.innerWidth - containerRect.right + 24}px`;
 			controls.style.top = 'auto';
 			controls.style.left = 'auto';
 		};
@@ -779,6 +817,12 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
 				<h3 style={{ margin: 0 }}>{editorMode === 'timeline' ? 'Schedule Timeline' : 'Schedule JSON'}</h3>
 				<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+					{(scheduleError || scheduleSuccess) && (
+						<div style={{ display: 'flex', gap: 8 }}>
+							{scheduleError && <div style={{ padding: '4px 8px', background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', borderRadius: 6, display: 'flex', alignItems: 'center', fontSize: '12px', fontWeight: 500, lineHeight: '1.2', fontFamily: 'inherit', boxSizing: 'border-box', margin: 0, whiteSpace: 'nowrap' }}>{scheduleError}</div>}
+							{scheduleSuccess && <div style={{ padding: '4px 8px', background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', borderRadius: 6, display: 'flex', alignItems: 'center', fontSize: '12px', fontWeight: 500, lineHeight: '1.2', fontFamily: 'inherit', boxSizing: 'border-box', margin: 0, whiteSpace: 'nowrap' }}>{scheduleSuccess}</div>}
+						</div>
+					)}
 					<div style={{ fontSize: '0.75em', color: '#666' }}>
 						TZ: {timeZone === 'local' ? 'Local' : timeZone}
 					</div>
@@ -838,7 +882,7 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 				style={{
 					flex: 1,
 					minHeight: 0,
-					overflowY: 'auto',
+					overflowY: 'auto', // Allow scrolling when content exceeds available space
 					overflowX: 'hidden',
 					border: '2px solid #e5e7eb',
 					borderRadius: 4,
@@ -1059,8 +1103,7 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 					className="timeline-bg"
 					style={{
 						position: 'relative',
-							minHeight: Math.max(500, slots.length * 80 + 120), // Add 120px padding after last slot
-							height: Math.max(200, slots.length * 80 + 120),
+						height: timelineHeight, // Calculated height: fills container or expands for slots
 						background: '#fff',
 						cursor: panning ? 'grabbing' : 'grab',
 						userSelect: 'none'

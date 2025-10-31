@@ -24,6 +24,8 @@ export const RoomAdminPage: React.FC = () => {
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<string | null>(null);
+	const [scheduleError, setScheduleError] = useState<string | null>(null);
+	const [scheduleSuccess, setScheduleSuccess] = useState<string | null>(null);
 // Deprecated single-field import path retained for compatibility; not used in new UI
 // const [pretalxVersion] = useState<string>('');
 	const [pretalxSchedules, setPretalxSchedules] = useState<Array<{ id?: string | number; version?: string; published?: string | null }>>([]);
@@ -302,13 +304,13 @@ const loadStageToTimeline = useCallback(async () => {
 	}, []);
 
 	const uploadSchedule = useCallback(async () => {
-		if (!createdRoomId) { setError('Create a room first'); return; }
+		if (!createdRoomId) { setScheduleError('Create a room first'); return; }
 		const validation = validateSchedule(scheduleJson);
 		if (!validation.valid) {
-			setError(validation.error || 'Invalid schedule');
+			setScheduleError(validation.error || 'Invalid schedule');
 			return;
 		}
-		setBusy(true); setError(null); setSuccess(null);
+		setBusy(true); setScheduleError(null); setScheduleSuccess(null);
 		try {
 			const schedule = JSON.parse(scheduleJson);
 			const res = await fetch(`${API_BASE}/rooms/${createdRoomId}/schedule`, {
@@ -318,10 +320,10 @@ const loadStageToTimeline = useCallback(async () => {
 			});
 			const json = await res.json();
 			if (!json.success) throw new Error(json.error || 'Failed to set schedule');
-			setSuccess('Schedule uploaded successfully!');
-			setTimeout(() => setSuccess(null), 3000);
+			setScheduleSuccess('Schedule uploaded successfully!');
+			setTimeout(() => setScheduleSuccess(null), 3000);
 		} catch (e: unknown) {
-			setError(e instanceof Error ? e.message : 'Error');
+			setScheduleError(e instanceof Error ? e.message : 'Error');
 		} finally { setBusy(false); }
 	}, [createdRoomId, scheduleJson, validateSchedule]);
 
@@ -372,8 +374,8 @@ const loadStageToTimeline = useCallback(async () => {
 		a.download = `schedule-${createdRoomId || 'new'}-${Date.now()}.json`;
 		a.click();
 		URL.revokeObjectURL(url);
-		setSuccess('Schedule exported!');
-		setTimeout(() => setSuccess(null), 2000);
+		setScheduleSuccess('Schedule exported!');
+		setTimeout(() => setScheduleSuccess(null), 2000);
 	}, [scheduleJson, createdRoomId]);
 
 	const importSchedule = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -385,10 +387,10 @@ const loadStageToTimeline = useCallback(async () => {
 				const text = event.target?.result as string;
 				const parsed = JSON.parse(text);
 				setScheduleJson(JSON.stringify(parsed, null, 2));
-				setSuccess('Schedule imported!');
-				setTimeout(() => setSuccess(null), 2000);
+				setScheduleSuccess('Schedule imported!');
+				setTimeout(() => setScheduleSuccess(null), 2000);
 			} catch {
-				setError('Invalid JSON file');
+				setScheduleError('Invalid JSON file');
 			}
 		};
 		reader.readAsText(file);
@@ -419,8 +421,8 @@ const loadStageToTimeline = useCallback(async () => {
 		];
 		const newSchedule = { slots: templateSlots };
 		setScheduleJson(JSON.stringify(newSchedule, null, 2));
-		setSuccess('Template schedule loaded!');
-		setTimeout(() => setSuccess(null), 2000);
+		setScheduleSuccess('Template schedule loaded!');
+		setTimeout(() => setScheduleSuccess(null), 2000);
 	}, []);
 
 	const insertCurrentTime = useCallback((isStart: boolean) => {
@@ -443,13 +445,13 @@ const loadStageToTimeline = useCallback(async () => {
 
 	const addSlot = useCallback(() => {
 		if (!newSlotStart || !newSlotEnd) {
-			setError('Please provide both start and end times');
+			setScheduleError('Please provide both start and end times');
 			return;
 		}
 		const start = new Date(newSlotStart);
 		const end = new Date(newSlotEnd);
 		if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
-			setError('Invalid dates: end must be after start');
+			setScheduleError('Invalid dates: end must be after start');
 			return;
 		}
 
@@ -459,7 +461,7 @@ const loadStageToTimeline = useCallback(async () => {
 			.map(item => ({ ref: item.trim() }));
 
 		if (items.length === 0) {
-			setError('Please add at least one item (note1... or nevent1...)');
+			setScheduleError('Please add at least one item (note1... or nevent1...)');
 			return;
 		}
 
@@ -484,39 +486,39 @@ const loadStageToTimeline = useCallback(async () => {
 		setNewSlotRoomName('');
 		setNewSlotItems(['']);
 		setShowAddSlotModal(false);
-		setError(null);
-		setSuccess('Slot added successfully!');
-		setTimeout(() => setSuccess(null), 2000);
+		setScheduleError(null);
+		setScheduleSuccess('Slot added successfully!');
+		setTimeout(() => setScheduleSuccess(null), 2000);
 	}, [newSlotStart, newSlotEnd, newSlotTitle, newSlotCode, newSlotSpeakers, newSlotRoomName, newSlotItems, parsedSlots, updateSlotsFromTimeline]);
 
 	return (
 		<div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, height: '100vh', background: '#ffffff', overflow: 'hidden' }}>
-			<div style={{ background: '#ffffff', border: 'none', padding: 16 }}>
+			<div style={{ background: '#ffffff', border: 'none', padding: '0 16 0 16' }}>
 				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-						<h2 style={{ margin: 0, fontSize: 20 }}>
+						<h2 style={{ margin: 0, fontSize: 28, fontWeight: 600 }}>
 							{createdRoomId ? (name || 'Untitled Room') : 'Room Admin'}
 						</h2>
 						{createdRoomId && (
 							<div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '6px 8px' }}>
-								<span style={{ fontSize: 12, color: '#4b5563', marginRight: 4 }}>Room ID:</span>
-								<span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', fontSize: 12, color: '#374151' }}>{createdRoomId}</span>
-								<button onClick={copyRoomId} aria-label="Copy Room ID" title="Copy Room ID" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer' }}>📋</button>
+								<span style={{ fontSize: 10, color: '#4b5563', marginRight: 4 }}>Room ID:</span>
+								<span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', fontSize: 10, color: '#374151' }}>{createdRoomId}</span>
+								<button onClick={copyRoomId} aria-label="Copy Room ID" title="Copy Room ID" style={{ width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', fontSize: 10 }}>📋</button>
 							</div>
 						)}
 					</div>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 						{createdRoomId ? (
 							<>
-								<button onClick={copyViewerUrl} aria-label="Copy Viewer URL" title="Copy Viewer URL" style={{ width: 36, height: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, cursor: 'pointer' }}>🔗</button>
-								<button onClick={() => window.open(`/room/${createdRoomId}`, '_blank')} aria-label="Open Viewer" title="Open Viewer" style={{ width: 36, height: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, cursor: 'pointer' }}>↗</button>
-								<button onClick={() => setShowSettingsModal(true)} aria-label="Settings" title="Settings" style={{ width: 36, height: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer' }}>⚙️</button>
-								<img src="/images/powered_by_white_bg.png" alt="Powered by PubPay" style={{ height: '3vw', marginLeft: 8 }} />
+								<button onClick={copyViewerUrl} aria-label="Copy Viewer URL" title="Copy Viewer URL" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>🔗</button>
+								<button onClick={() => window.open(`/room/${createdRoomId}`, '_blank')} aria-label="Open Viewer" title="Open Viewer" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>↗</button>
+								<button onClick={() => setShowSettingsModal(true)} aria-label="Settings" title="Settings" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>⚙️</button>
+								<img src="/images/powered_by_white_bg.png" alt="Powered by PubPay" style={{ height: '3.5vw', marginLeft: 8 }} />
 							</>
 						) : (
 							<>
 								<button onClick={() => setShowSettingsModal(true)} style={{ background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 14px', fontWeight: 600, cursor: 'pointer' }}>Create Room</button>
-								<img src="/images/powered_by_white_bg.png" alt="Powered by PubPay" style={{ height: '3vw', marginLeft: 8 }} />
+								<img src="/images/powered_by_white_bg.png" alt="Powered by PubPay" style={{ height: '4vw', marginLeft: 8 }} />
 							</>
 						)}
 					</div>
@@ -543,6 +545,8 @@ const loadStageToTimeline = useCallback(async () => {
 				onOpenPretalxModal={() => setShowPretalxModal(true)}
 				createdRoomId={createdRoomId}
 				busy={busy}
+				scheduleError={scheduleError}
+				scheduleSuccess={scheduleSuccess}
 			/>
 			</div>
 
@@ -555,12 +559,6 @@ const loadStageToTimeline = useCallback(async () => {
 							<button onClick={() => setShowPretalxModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18 }}>✕</button>
 						</div>
 						<div style={{ display: 'grid', gap: 10 }}>
-							{(error || success) && (
-								<div style={{ display: 'grid', gap: 8 }}>
-									{error && <div style={{ padding: 8, background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', borderRadius: 8 }}>{error}</div>}
-									{success && <div style={{ padding: 8, background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', borderRadius: 8 }}>{success}</div>}
-								</div>
-							)}
 							<div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto', gap: 8, alignItems: 'center' }}>
 								<select value={selectedVersion} onChange={e => setSelectedVersion(e.target.value)}>
 									<option value="">Select version</option>
@@ -579,9 +577,9 @@ const loadStageToTimeline = useCallback(async () => {
 								</select>
 								<button onClick={loadStageToTimeline} disabled={busy || !selectedStageId} style={{ background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 10px', fontWeight: 600, cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>Load stage</button>
 							</div>
-							{availableDates.length > 0 && (
-								<div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 8, alignItems: 'center' }}>
-									<label style={{ fontWeight: 600, color: '#111827' }}>Filter by date:</label>
+							<div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 8, alignItems: 'center' }}>
+								<label style={{ fontWeight: 600, color: '#111827' }}>Filter by date:</label>
+								{availableDates.length > 0 ? (
 									<select value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={{ borderRadius: 8, padding: '6px 10px', border: '1px solid #e5e7eb' }}>
 										<option value="all">All days</option>
 										{availableDates.map(date => {
@@ -592,18 +590,36 @@ const loadStageToTimeline = useCallback(async () => {
 											);
 										})}
 									</select>
-									<button onClick={applyDateFilter} disabled={busy || loadedSlots.length === 0} style={{ background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', opacity: (busy || loadedSlots.length === 0) ? 0.7 : 1, whiteSpace: 'nowrap' }}>Apply to Timeline</button>
-								</div>
-							)}
-							<div>
+								) : (
+									<select disabled style={{ borderRadius: 8, padding: '6px 10px', border: '1px solid #e5e7eb', background: '#f3f4f6', color: '#6b7280' }}>
+										<option>No dates available</option>
+									</select>
+								)}
+								<button onClick={applyDateFilter} disabled={busy || loadedSlots.length === 0 || availableDates.length === 0} style={{ background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', opacity: (busy || loadedSlots.length === 0 || availableDates.length === 0) ? 0.7 : 1, whiteSpace: 'nowrap' }}>Apply to Timeline</button>
+							</div>
+							<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 								<button onClick={() => setShowPretalxDebug(v => !v)} style={{ background: '#F3F4F6', border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 10px', fontWeight: 600, cursor: 'pointer' }}>
 									{showPretalxDebug ? 'Hide details' : 'Show details'}
 								</button>
+								{(error || success) && (
+									<div style={{ display: 'flex', gap: 8 }}>
+										{error && <div style={{ padding: '4px 8px', background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', borderRadius: 6, display: 'flex', alignItems: 'center', fontSize: '12px', fontWeight: 500, lineHeight: '1.2', fontFamily: 'inherit', boxSizing: 'border-box', margin: 0, whiteSpace: 'nowrap' }}>{error}</div>}
+										{success && <div style={{ padding: '4px 8px', background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', borderRadius: 6, display: 'flex', alignItems: 'center', fontSize: '12px', fontWeight: 500, lineHeight: '1.2', fontFamily: 'inherit', boxSizing: 'border-box', margin: 0, whiteSpace: 'nowrap' }}>{success}</div>}
+									</div>
+								)}
 							</div>
-							{showPretalxDebug && pretalxRawResponse !== null && (
-								<div style={{ marginTop: 8, padding: 12, background: '#F9FAFB', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: '0.85em', maxHeight: '400px', overflow: 'auto' }}>
-									<strong>Raw API Response:</strong>
-									<pre style={{ whiteSpace: 'pre-wrap', marginTop: 4, fontSize: '0.8em' }}>{JSON.stringify(pretalxRawResponse, null, 2)}</pre>
+							{showPretalxDebug && (
+								<div style={{ marginTop: 8, background: '#F9FAFB', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: '0.85em', height: '400px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+									<strong style={{ padding: '12px 12px 8px 12px', background: '#F9FAFB', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 1 }}>Raw API Response:</strong>
+									<div style={{ flex: 1, overflow: 'auto', padding: '0 12px 12px 12px' }}>
+										{pretalxRawResponse !== null ? (
+											<pre style={{ whiteSpace: 'pre-wrap', marginTop: 4, fontSize: '0.8em' }}>{JSON.stringify(pretalxRawResponse, null, 2)}</pre>
+										) : (
+											<div style={{ padding: '12px', color: '#6b7280', fontSize: '0.9em', textAlign: 'center' }}>
+												{busy ? 'Loading...' : 'No data available'}
+											</div>
+										)}
+									</div>
 								</div>
 							)}
 							<div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
