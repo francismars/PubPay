@@ -119,12 +119,21 @@ export class RoomsRouter {
 		try {
 			const { roomId } = req.params;
 			const schedule = req.body;
-			if (!schedule || !Array.isArray(schedule.slots)) {
-				res.status(400).json({ success: false, error: 'schedule.slots array is required' });
+
+			// Basic structure validation
+			if (!schedule || typeof schedule !== 'object') {
+				res.status(400).json({ success: false, error: 'Invalid request: schedule must be an object' });
 				return;
 			}
+			if (!Array.isArray(schedule.slots)) {
+				res.status(400).json({ success: false, error: 'Invalid request: schedule.slots must be an array' });
+				return;
+			}
+
+			// Delegate detailed validation to RoomsService.setSchedule
 			const result = this.rooms.setSchedule(roomId, schedule);
 			res.json({ success: true, data: result });
+
 			// Broadcast schedule update to connected clients
 			this.broadcast(roomId, 'schedule-updated', { version: result.version });
             try {
@@ -135,7 +144,18 @@ export class RoomsRouter {
             }
 		} catch (error) {
 			this.logger.error('Error setting schedule', error);
-			res.status(500).json({ success: false, error: error instanceof Error ? error.message : 'Failed to set schedule' });
+			// Return validation errors as 400 Bad Request, other errors as 500
+			const statusCode = error instanceof Error && (
+				error.message.includes('must be') ||
+				error.message.includes('required') ||
+				error.message.includes('invalid') ||
+				error.message.includes('deprecated') ||
+				error.message.includes('must start with')
+			) ? 400 : 500;
+			res.status(statusCode).json({
+				success: false,
+				error: error instanceof Error ? error.message : 'Failed to set schedule'
+			});
 		}
 	}
 
@@ -171,7 +191,18 @@ export class RoomsRouter {
 			if (slots.length === 0) {
 				this.logger.warn('Pretalx import returned 0 slots - check that slots have start/end times and submissions');
 			}
-			const result = this.rooms.setSchedule(roomId, { slots });
+			// Convert Pretalx slots (with 'items') to new format (with 'lives')
+			const convertedSlots = slots.map(slot => {
+				const slotAny = slot as { startAt: string; endAt: string; items: Array<{ ref: string }>; title?: string; speakers?: string[] };
+				return {
+					startAt: slotAny.startAt,
+					endAt: slotAny.endAt,
+					lives: slotAny.items || [],
+					...(slotAny.title && { title: slotAny.title }),
+					...(slotAny.speakers && { speakers: slotAny.speakers })
+				};
+			});
+			const result = this.rooms.setSchedule(roomId, { slots: convertedSlots });
 			res.json({ success: true, data: { imported: slots.length, version: result.version } });
 			// Broadcast schedule update + snapshot
 			this.broadcast(roomId, 'schedule-updated', { version: result.version });

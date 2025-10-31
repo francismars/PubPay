@@ -16,8 +16,8 @@ export const LiveApp: React.FC = () => {
       <Route path="/multi" element={<MultiLoginPage />} />
       <Route path="/multi/create" element={<RoomCreatePage />} />
       <Route path="/pretalx/diagnose" element={<PretalxDiagnosePage />} />
-      <Route path="/room/:roomId" element={<RoomViewerPage />} />
-      <Route path="/room/:roomId/admin" element={<RoomAdminPage />} />
+      <Route path="/multi/:roomId" element={<RoomViewerPage />} />
+      <Route path="/multi/:roomId/admin" element={<RoomAdminPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

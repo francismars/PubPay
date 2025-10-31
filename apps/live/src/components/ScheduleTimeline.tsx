@@ -3,11 +3,9 @@ import React, { useCallback, useState, useRef, useEffect } from 'react';
 export interface Slot {
 	startAt: string;
 	endAt: string;
-	items: Array<{ ref: string; weight?: number; title?: string }>;
+	lives: Array<{ ref: string; weight?: number; title?: string }>;
     title?: string;
     speakers?: string[];
-    roomName?: string;
-    code?: string;
 }
 
 interface ScheduleTimelineProps {
@@ -119,7 +117,7 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 		const newSlot: Slot = {
 			startAt: newStart.toISOString(),
 			endAt: new Date(newStart.getTime() + duration).toISOString(),
-			items: slot.items.map(i => ({ ...i }))
+			lives: (slot.lives || []).map(i => ({ ...i }))
 		};
 		onChange([...slots, newSlot].sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()));
 	}, [slots, onChange]);
@@ -135,17 +133,17 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 		setEditingSlot(null);
 	}, [slots, onChange]);
 
-	const addItemToSlot = useCallback((slotIndex: number, itemRef: string) => {
-		if (!itemRef.trim()) return;
+	const addLiveToSlot = useCallback((slotIndex: number, liveRef: string) => {
+		if (!liveRef.trim()) return;
 		const slot = slots[slotIndex];
 		if (!slot) return;
-		updateSlot(slotIndex, { items: [...slot.items, { ref: itemRef.trim() }] });
+		updateSlot(slotIndex, { lives: [...(slot.lives || []), { ref: liveRef.trim() }] });
 	}, [slots, updateSlot]);
 
-	const removeItemFromSlot = useCallback((slotIndex: number, itemIndex: number) => {
+	const removeLiveFromSlot = useCallback((slotIndex: number, liveIndex: number) => {
 		const slot = slots[slotIndex];
 		if (!slot) return;
-		updateSlot(slotIndex, { items: slot.items.filter((_, i) => i !== itemIndex) });
+		updateSlot(slotIndex, { lives: (slot.lives || []).filter((_, i) => i !== liveIndex) });
 	}, [slots, updateSlot]);
 
 	const getPosition = (timeStr: string) => {
@@ -515,26 +513,26 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
     // Single custom template (replaces existing slots)
     const applyCustomTemplate = useCallback(() => {
         const newSlots: Slot[] = [
-            { startAt: '2025-11-14T09:00:00Z', endAt: '2025-11-14T09:30:00Z', items: [ { ref: 'note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7' } ] },
-            { startAt: '2025-11-14T09:30:00Z', endAt: '2025-11-14T10:00:00Z', items: [ { ref: 'note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu' } ] },
-            { startAt: '2025-11-14T10:00:00Z', endAt: '2025-11-14T10:30:00Z', items: [ { ref: 'note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv' } ] },
-            { startAt: '2025-11-14T10:30:00Z', endAt: '2025-11-14T11:00:00Z', items: [ { ref: 'nevent1qqsphk43g2pzpwfr8qcp5zdx8ftgaj7gvxk682y4sedjvscrsm0lpssc96mm3' } ] },
-            { startAt: '2025-11-14T11:00:00Z', endAt: '2025-11-14T11:30:00Z', items: [
+            { startAt: '2025-11-14T09:00:00Z', endAt: '2025-11-14T09:30:00Z', lives: [ { ref: 'note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7' } ] },
+            { startAt: '2025-11-14T09:30:00Z', endAt: '2025-11-14T10:00:00Z', lives: [ { ref: 'note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu' } ] },
+            { startAt: '2025-11-14T10:00:00Z', endAt: '2025-11-14T10:30:00Z', lives: [ { ref: 'note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv' } ] },
+            { startAt: '2025-11-14T10:30:00Z', endAt: '2025-11-14T11:00:00Z', lives: [ { ref: 'nevent1qqsphk43g2pzpwfr8qcp5zdx8ftgaj7gvxk682y4sedjvscrsm0lpssc96mm3' } ] },
+            { startAt: '2025-11-14T11:00:00Z', endAt: '2025-11-14T11:30:00Z', lives: [
                 { ref: 'nevent1qvzqqqqqqypzqlea4mfml7qvctjsypywae5g5ra8zj6t3f8sqcuj53h9xq9nn6pjqqsffzd548j3gtkck0hemn9jqgqfpdttatwhpg3vd3plhghlhatzw6cpmvz4r' },
                 { ref: 'nevent1qvzqqqqqqypzqpxfzhdwlm3cx9l6wdzyft8w8y9gy607tqgtyfq7tekaxs7lhmxfqqsygu0jcvwfp7p3hhe42stxu44dcuz5zt9cy052qfg2ea98gxy2sfq2wh7j0' },
                 { ref: 'nevent1qvzqqqqqqypzqy9kvcxtqa2tlwyjv4r46ancxk00ghk9yaudzsnp697s60942p7lqqs0sqpv028v3xy6z27qx8sfukgl5wn2z7j4u8ylrs8w5gfmp44j0rc4avhey' }
             ] },
-            { startAt: '2025-11-14T11:30:00Z', endAt: '2025-11-14T12:00:00Z', items: [ { ref: 'nevent1qvzqqqqqqypzpw9fm7ppszzwfyxc3q6z482g3d70p7eqkxseh93mantga44ttjaaqy2hwumn8ghj7un9d3shjtnyv9kh2uewd9hj7qghdehhxarj945kgc369uhkxctrdpjj6un9d3shjqpq04k2daej76pv0nfrefuwp0xm4gjmqqwx0vc6yhsq9jkr956879ds4tsslp' } ] },
-            { startAt: '2025-11-14T12:00:00Z', endAt: '2025-11-14T12:30:00Z', items: [ { ref: 'nevent1qqsdz8sqytjeum0utxvkvknyp9a7t0twv976tuuyzf3ngwc3572tltct2ek8j' } ] },
-            { startAt: '2025-11-14T12:30:00Z', endAt: '2025-11-14T13:00:00Z', items: [ { ref: 'nevent1qqs0sqpv028v3xy6z27qx8sfukgl5wn2z7j4u8ylrs8w5gfmp44j0rceyfxj5' } ] },
-            { startAt: '2025-11-14T14:00:00Z', endAt: '2025-11-14T14:30:00Z', items: [ { ref: 'nevent1qqs8t9m7rcgnjj35ekvcrgpxt78t0u9a7yyp5pkjmmkae4kg7d8s5sqd7u960' } ] },
-            { startAt: '2025-11-14T14:30:00Z', endAt: '2025-11-14T15:00:00Z', items: [ { ref: 'nevent1qqsre8grh4vyyhlsnp7wy5r8xrvsffzeg7w4tz5mr0t6fhd6x77fexcrl34gy' } ] },
-            { startAt: '2025-11-14T15:00:00Z', endAt: '2025-11-14T15:30:00Z', items: [ { ref: 'nevent1qqsv4jk2xzhkfh6kk3uwfwf2xjvpl4qsne435njml08kr7pnhpcfhxq8k43rt' } ] },
-            { startAt: '2025-11-14T15:30:00Z', endAt: '2025-11-14T16:00:00Z', items: [ { ref: 'nevent1qqsf6r5v9n6kj6mhjruylugz55gac44tzfyyh884rdvfasls0yujgqsl9vkqe' } ] },
-            { startAt: '2025-11-14T16:00:00Z', endAt: '2025-11-14T16:30:00Z', items: [ { ref: 'nevent1qqsxnzdah0x9sp75ajrzve4aehacqt9rzepjcfkrfrllr65h6v542ksrhyy82' } ] },
-            { startAt: '2025-11-14T16:30:00Z', endAt: '2025-11-14T17:00:00Z', items: [ { ref: 'nevent1qqsrc4h3a7063fxn2lwt5ven9dyv949k9yeh3rju0z2p7t2shmp0zfc44nm74' } ] },
-            { startAt: '2025-11-14T17:00:00Z', endAt: '2025-11-14T17:30:00Z', items: [ { ref: 'nevent1qqs90rz4e4prc909h6f9cn30872h9rk4etqfqw3xrrgpd7waennjg2s9mc0jn' } ] },
-            { startAt: '2025-11-14T17:30:00Z', endAt: '2025-11-14T18:00:00Z', items: [] }
+            { startAt: '2025-11-14T11:30:00Z', endAt: '2025-11-14T12:00:00Z', lives: [ { ref: 'nevent1qvzqqqqqqypzpw9fm7ppszzwfyxc3q6z482g3d70p7eqkxseh93mantga44ttjaaqy2hwumn8ghj7un9d3shjtnyv9kh2uewd9hj7qghdehhxarj945kgc369uhkxctrdpjj6un9d3shjqpq04k2daej76pv0nfrefuwp0xm4gjmqqwx0vc6yhsq9jkr956879ds4tsslp' } ] },
+            { startAt: '2025-11-14T12:00:00Z', endAt: '2025-11-14T12:30:00Z', lives: [ { ref: 'nevent1qqsdz8sqytjeum0utxvkvknyp9a7t0twv976tuuyzf3ngwc3572tltct2ek8j' } ] },
+            { startAt: '2025-11-14T12:30:00Z', endAt: '2025-11-14T13:00:00Z', lives: [ { ref: 'nevent1qqs0sqpv028v3xy6z27qx8sfukgl5wn2z7j4u8ylrs8w5gfmp44j0rceyfxj5' } ] },
+            { startAt: '2025-11-14T14:00:00Z', endAt: '2025-11-14T14:30:00Z', lives: [ { ref: 'nevent1qqs8t9m7rcgnjj35ekvcrgpxt78t0u9a7yyp5pkjmmkae4kg7d8s5sqd7u960' } ] },
+            { startAt: '2025-11-14T14:30:00Z', endAt: '2025-11-14T15:00:00Z', lives: [ { ref: 'nevent1qqsre8grh4vyyhlsnp7wy5r8xrvsffzeg7w4tz5mr0t6fhd6x77fexcrl34gy' } ] },
+            { startAt: '2025-11-14T15:00:00Z', endAt: '2025-11-14T15:30:00Z', lives: [ { ref: 'nevent1qqsv4jk2xzhkfh6kk3uwfwf2xjvpl4qsne435njml08kr7pnhpcfhxq8k43rt' } ] },
+            { startAt: '2025-11-14T15:30:00Z', endAt: '2025-11-14T16:00:00Z', lives: [ { ref: 'nevent1qqsf6r5v9n6kj6mhjruylugz55gac44tzfyyh884rdvfasls0yujgqsl9vkqe' } ] },
+            { startAt: '2025-11-14T16:00:00Z', endAt: '2025-11-14T16:30:00Z', lives: [ { ref: 'nevent1qqsxnzdah0x9sp75ajrzve4aehacqt9rzepjcfkrfrllr65h6v542ksrhyy82' } ] },
+            { startAt: '2025-11-14T16:30:00Z', endAt: '2025-11-14T17:00:00Z', lives: [ { ref: 'nevent1qqsrc4h3a7063fxn2lwt5ven9dyv949k9yeh3rju0z2p7t2shmp0zfc44nm74' } ] },
+            { startAt: '2025-11-14T17:00:00Z', endAt: '2025-11-14T17:30:00Z', lives: [ { ref: 'nevent1qqs90rz4e4prc909h6f9cn30872h9rk4etqfqw3xrrgpd7waennjg2s9mc0jn' } ] },
+            { startAt: '2025-11-14T17:30:00Z', endAt: '2025-11-14T18:00:00Z', lives: [] }
         ];
 
         onChange(newSlots);
@@ -841,6 +839,30 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 		window.addEventListener('click', handleClick);
 		return () => window.removeEventListener('click', handleClick);
 	}, [contextMenu]);
+
+	// Close advanced controls panel on click outside
+	useEffect(() => {
+		if (!showAdvancedControls) return;
+		const handleClick = (e: MouseEvent) => {
+			const target = e.target as HTMLElement;
+			// Check if click is outside the panel and not on the settings button
+			if (advancedPanelRef.current && !advancedPanelRef.current.contains(target)) {
+				// Check if the click is on or inside the settings button
+				const settingsButton = target.closest('button[aria-label="Settings"]');
+				if (!settingsButton) {
+					setShowAdvancedControls(false);
+				}
+			}
+		};
+		// Use a slight delay to avoid immediately closing when opening via button click
+		const timeoutId = setTimeout(() => {
+			document.addEventListener('click', handleClick, true);
+		}, 10);
+		return () => {
+			clearTimeout(timeoutId);
+			document.removeEventListener('click', handleClick, true);
+		};
+	}, [showAdvancedControls]);
 
 	return (
 		<div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8, background: '#fafafa', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -1359,7 +1381,7 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 							<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, width: '100%', minWidth: 0 }}>
 								{slot.title ? (
 									<div style={{ fontWeight: 'bold', color: '#fff', textAlign: 'left', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={slot.title}>
-										{slot.title}{slot.code ? ` • ${slot.code}` : ''}
+										{slot.title}
 									</div>
 								) : null}
 								{slot.speakers && slot.speakers.length > 0 ? (
@@ -1367,13 +1389,13 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 										{slot.speakers.join(', ')}
 									</div>
 								) : null}
-								<div style={{ fontSize: '10px', textAlign: 'left', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={`${timeFmt(new Date(slot.startAt).getTime())} → ${timeFmt(new Date(slot.endAt).getTime())} (${durationMinutes}m)${slot.roomName ? ` • ${slot.roomName}` : ''}`}>
-									{timeFmt(new Date(slot.startAt).getTime())} → {timeFmt(new Date(slot.endAt).getTime())} ({durationMinutes}m){slot.roomName ? ` • ${slot.roomName}` : ''}
+								<div style={{ fontSize: '10px', textAlign: 'left', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={`${timeFmt(new Date(slot.startAt).getTime())} → ${timeFmt(new Date(slot.endAt).getTime())} (${durationMinutes}m)`}>
+									{timeFmt(new Date(slot.startAt).getTime())} → {timeFmt(new Date(slot.endAt).getTime())} ({durationMinutes}m)
 								</div>
 							</div>
 								</div>
 						<div style={{ fontSize: '10px', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', minWidth: 0 }}>
-							{slot.items.length} item{slot.items.length !== 1 ? 's' : ''}
+							{(slot.lives || []).length} LIVES
 							{overlaps.length > 0 && ' ⚠ Conflict!'}
 						</div>
 						</div>
@@ -1421,7 +1443,7 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 										</div>
 									)}
 									{/* Readonly Pretalx info (if available) */}
-									{(slot.title || (slot.speakers && slot.speakers.length) || slot.roomName || slot.code) && (
+									{(slot.title || (slot.speakers && slot.speakers.length)) && (
 										<div style={{ marginBottom: 12, padding: 8, background: '#f7faff', border: '1px solid #cfe3ff', borderRadius: 6 }}>
 											<div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', rowGap: 6, columnGap: 8, alignItems: 'center' }}>
 												{slot.title && (
@@ -1430,22 +1452,10 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 														<div style={{ fontWeight: 'bold' }}>{slot.title}</div>
 													</>
 												)}
-												{slot.code && (
-													<>
-														<div style={{ fontSize: '0.85em', color: '#555' }}>Code</div>
-														<div style={{ fontFamily: 'monospace' }}>{slot.code}</div>
-													</>
-												)}
 												{slot.speakers && slot.speakers.length > 0 && (
 													<>
 														<div style={{ fontSize: '0.85em', color: '#555' }}>Speakers</div>
 														<div>{slot.speakers.join(', ')}</div>
-													</>
-												)}
-												{slot.roomName && (
-													<>
-														<div style={{ fontSize: '0.85em', color: '#555' }}>Room</div>
-														<div>{slot.roomName}</div>
 													</>
 												)}
 											</div>
@@ -1474,39 +1484,39 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 										/>
 									</div>
 									<div style={{ marginBottom: 8 }}>
-										<div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 4 }}>Items ({slot.items.length}):</div>
+										<div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 4 }}>Lives ({(slot.lives || []).length}):</div>
 										<div style={{ maxHeight: 150, overflowY: 'auto', border: '1px solid #ccc', borderRadius: 4, padding: 8, background: '#f9f9f9' }}>
-											{slot.items.map((item, itemIdx) => (
-												<div key={itemIdx} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
+											{(slot.lives || []).map((live, liveIdx) => (
+												<div key={liveIdx} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
 													<input
-														id={`slot-${editingSlot}-item-${itemIdx}`}
-														name={`slot-${editingSlot}-item-${itemIdx}`}
+														id={`slot-${editingSlot}-live-${liveIdx}`}
+														name={`slot-${editingSlot}-live-${liveIdx}`}
 														type="text"
-														value={item.ref}
+														value={live.ref}
 														onChange={e => {
-															const newItems = [...slot.items];
-															newItems[itemIdx] = { ...newItems[itemIdx], ref: e.target.value };
-															updateSlot(editingSlot, { items: newItems });
+															const newLives = [...(slot.lives || [])];
+															newLives[liveIdx] = { ...newLives[liveIdx], ref: e.target.value };
+															updateSlot(editingSlot, { lives: newLives });
 														}}
 														style={{ flex: 1, fontFamily: 'monospace', fontSize: '11px', padding: 4 }}
 														placeholder="note1... or nevent1..."
 													/>
-													<button onClick={() => removeItemFromSlot(editingSlot, itemIdx)} style={{ padding: '4px 8px', background: '#f44336', color: 'white', fontSize: '0.8em' }}>×</button>
+													<button onClick={() => removeLiveFromSlot(editingSlot, liveIdx)} style={{ padding: '4px 8px', background: '#f44336', color: 'white', fontSize: '0.8em' }}>×</button>
 												</div>
 											))}
 										</div>
 										<div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
 											<input
-												id={`slot-new-item-${editingSlot}`}
-												name={`slot-new-item-${editingSlot}`}
+												id={`slot-new-live-${editingSlot}`}
+												name={`slot-new-live-${editingSlot}`}
 												type="text"
-												aria-label="Add new item"
+												aria-label="Add new live"
 												value={newItemRefs[editingSlot] || ''}
 												onChange={e => setNewItemRefs({ ...newItemRefs, [editingSlot]: e.target.value })}
-												placeholder="Add new item (note1... or nevent1...)"
+												placeholder="Add new live (note1... or nevent1...)"
 												onKeyDown={e => {
 													if (e.key === 'Enter' && newItemRefs[editingSlot]) {
-														addItemToSlot(editingSlot, newItemRefs[editingSlot]);
+														addLiveToSlot(editingSlot, newItemRefs[editingSlot]);
 														setNewItemRefs({ ...newItemRefs, [editingSlot]: '' });
 													}
 												}}
@@ -1515,13 +1525,13 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 											<button
 												onClick={() => {
 													if (newItemRefs[editingSlot]) {
-														addItemToSlot(editingSlot, newItemRefs[editingSlot]);
+														addLiveToSlot(editingSlot, newItemRefs[editingSlot]);
 														setNewItemRefs({ ...newItemRefs, [editingSlot]: '' });
 													}
 												}}
 												style={{ padding: '4px 12px', fontSize: '0.85em' }}
 											>
-												Add Item
+												Add Live
 											</button>
 										</div>
 									</div>
@@ -1647,7 +1657,7 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 								)}
 							</div>
 							<p style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
-								Tip: times must be UTC ISO format (e.g., "2025-10-29T21:00:00Z"). Items accept note1/nevent1 references.
+								Tip: times must be UTC ISO format (e.g., "2025-10-29T21:00:00Z"). Lives accept note1/nevent1 references.
 							</p>
 						</>
 					)}

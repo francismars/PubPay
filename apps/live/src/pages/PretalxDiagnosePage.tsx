@@ -56,7 +56,7 @@ export const PretalxDiagnosePage: React.FC = () => {
             if (baseUrl) params.set('baseUrl', baseUrl);
             if (event) params.set('event', event);
             if (token) params.set('token', token);
-            const res = await fetch(`${API_BASE}/rooms/pretalx/health?${params.toString()}`);
+            const res = await fetch(`${API_BASE}/multi/pretalx/health?${params.toString()}`);
             const json = await res.json();
             if (!res.ok || !json?.success) throw new Error(json?.error || 'Health failed');
             setHealth(json.data);
@@ -74,7 +74,7 @@ export const PretalxDiagnosePage: React.FC = () => {
             if (event) params.set('event', event);
             if (token) params.set('token', token);
             if (version) params.set('version', version);
-            const res = await fetch(`${API_BASE}/rooms/pretalx/diagnose?${params.toString()}`);
+            const res = await fetch(`${API_BASE}/multi/pretalx/diagnose?${params.toString()}`);
             const json = await res.json();
             if (!res.ok || !json?.success) throw new Error(json?.error || 'Diagnose failed');
             setDiagnose(json.data);
@@ -93,7 +93,7 @@ export const PretalxDiagnosePage: React.FC = () => {
             if (token) params.set('token', token);
             params.set('endpoint', endpoint.endpoint);
             if (endpoint.expand) params.set('expand', endpoint.expand);
-            const res = await fetch(`${API_BASE}/rooms/pretalx/call?${params.toString()}`);
+            const res = await fetch(`${API_BASE}/multi/pretalx/call?${params.toString()}`);
             const json = await res.json();
             setApiResults(prev => ({
                 ...prev,
@@ -121,7 +121,7 @@ export const PretalxDiagnosePage: React.FC = () => {
             if (baseUrl) params.set('baseUrl', baseUrl);
             if (event) params.set('event', event);
             if (token) params.set('token', token);
-            const res = await fetch(`${API_BASE}/rooms/pretalx/schedules?${params.toString()}`);
+            const res = await fetch(`${API_BASE}/multi/pretalx/schedules?${params.toString()}`);
             const json = await res.json();
             if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to fetch schedules');
             const list = (json.data?.schedules || []) as Array<{ id?: string | number; version?: string; published?: string | null }>;
@@ -141,7 +141,7 @@ export const PretalxDiagnosePage: React.FC = () => {
             if (event) params.set('event', event);
             if (token) params.set('token', token);
             params.set('version', selectedVersion);
-            const res = await fetch(`${API_BASE}/rooms/pretalx/preview?${params.toString()}`);
+            const res = await fetch(`${API_BASE}/multi/pretalx/preview?${params.toString()}`);
             const json = await res.json();
             if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to load preview');
             const slots = (json.data?.slots || []) as Array<{ room?: { id?: string | number; name?: string | number } }>;
@@ -171,7 +171,7 @@ export const PretalxDiagnosePage: React.FC = () => {
             if (token) params.set('token', token);
             params.set('version', selectedVersion);
             params.set('roomId', selectedRoomId);
-            const res = await fetch(`${API_BASE}/rooms/pretalx/preview?${params.toString()}`);
+            const res = await fetch(`${API_BASE}/multi/pretalx/preview?${params.toString()}`);
             const json = await res.json();
             if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to load room preview');
             setRoomPreview(json.data);

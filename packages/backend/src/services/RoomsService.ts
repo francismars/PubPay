@@ -23,7 +23,9 @@ export interface ScheduleItem {
 export interface Slot {
 	startAt: string; // ISO UTC
 	endAt: string; // ISO UTC
-	items: ScheduleItem[];
+	lives: ScheduleItem[]; // Required: array of live references
+	title?: string;
+	speakers?: string[];
 }
 
 export interface Schedule {
@@ -78,11 +80,82 @@ export class RoomsService {
 	public setSchedule(roomId: string, schedule: Schedule): { version: number } {
 		const room = this.rooms.get(roomId);
 		if (!room) throw new Error('Room not found');
+
+		// Strict validation
+		if (!schedule || !Array.isArray(schedule.slots)) {
+			throw new Error('schedule.slots must be an array');
+		}
+
+		const validatedSlots: Slot[] = [];
+		for (let i = 0; i < schedule.slots.length; i++) {
+			const slot = schedule.slots[i];
+			const slotIndex = i + 1;
+
+			// Validate required fields
+			if (!slot.startAt || typeof slot.startAt !== 'string') {
+				throw new Error(`Slot ${slotIndex}: startAt must be a non-empty string (UTC ISO format)`);
+			}
+			if (!slot.endAt || typeof slot.endAt !== 'string') {
+				throw new Error(`Slot ${slotIndex}: endAt must be a non-empty string (UTC ISO format)`);
+			}
+
+			// Validate dates
+			const start = new Date(slot.startAt);
+			const end = new Date(slot.endAt);
+			if (isNaN(start.getTime())) {
+				throw new Error(`Slot ${slotIndex}: invalid startAt date format (use UTC ISO format, e.g., "2025-10-29T21:00:00Z")`);
+			}
+			if (isNaN(end.getTime())) {
+				throw new Error(`Slot ${slotIndex}: invalid endAt date format (use UTC ISO format, e.g., "2025-10-29T21:00:00Z")`);
+			}
+			if (end <= start) {
+				throw new Error(`Slot ${slotIndex}: endAt must be after startAt`);
+			}
+
+			// Strict validation: only accept 'lives', not 'items'
+			const slotWithItems = slot as Slot & { items?: unknown };
+			if (slotWithItems.items !== undefined) {
+				throw new Error(`Slot ${slotIndex}: 'items' field is deprecated. Use 'lives' instead (e.g., "lives": [{"ref": "note1..."}])`);
+			}
+			if (!slot.lives) {
+				throw new Error(`Slot ${slotIndex}: 'lives' field is required (must be an array)`);
+			}
+			if (!Array.isArray(slot.lives)) {
+				throw new Error(`Slot ${slotIndex}: 'lives' must be an array`);
+			}
+
+			// Validate each live
+			for (let j = 0; j < slot.lives.length; j++) {
+				const live = slot.lives[j];
+				const liveIndex = j + 1;
+				if (!live || typeof live !== 'object') {
+					throw new Error(`Slot ${slotIndex}, live ${liveIndex}: must be an object`);
+				}
+				if (!live.ref || typeof live.ref !== 'string') {
+					throw new Error(`Slot ${slotIndex}, live ${liveIndex}: 'ref' is required and must be a string`);
+				}
+				if (!live.ref.startsWith('note1') && !live.ref.startsWith('nevent1')) {
+					throw new Error(`Slot ${slotIndex}, live ${liveIndex}: 'ref' must start with 'note1' or 'nevent1' (got: "${live.ref}")`);
+				}
+			}
+
+			validatedSlots.push({
+				startAt: slot.startAt,
+				endAt: slot.endAt,
+				lives: slot.lives,
+				...(slot.title && { title: slot.title }),
+				...(slot.speakers && Array.isArray(slot.speakers) && { speakers: slot.speakers })
+			});
+		}
+
 		// Sort slots by start time for deterministic selection
-		schedule.slots = [...(schedule.slots || [])].sort(
-			(a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
-		);
-		room.schedule = schedule;
+		const validatedSchedule: Schedule = {
+			slots: validatedSlots.sort(
+				(a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()
+			)
+		};
+
+		room.schedule = validatedSchedule;
 		room.version += 1;
 		return { version: room.version };
 	}
@@ -127,9 +200,11 @@ export class RoomsService {
 			}
 		}
 
-		const items = activeSlot?.items?.map(i => i.ref) || room.config.defaultItems || [];
+		const lives = activeSlot?.lives || [];
+		const items = lives.map((i: ScheduleItem) => i.ref);
+		const flattenedItems = items.length > 0 ? items : (room.config.defaultItems || []);
 		const fallbackStart = activeSlot ? new Date(activeSlot.startAt) : now;
-        const rotationIndex = this.computeRotationIndex(policy, fallbackStart, now, items, intervalSec, activeSlot?.items);
+        const rotationIndex = this.computeRotationIndex(policy, fallbackStart, now, flattenedItems, intervalSec, lives);
         // Compute next switch time:
         // - If there is an active slot and it has 0 or 1 item, the next switch is the slot end
         // - If there are multiple items, the next rotation tick occurs at the next interval,
@@ -143,7 +218,7 @@ export class RoomsService {
         let nextSwitchDate: Date;
         if (activeSlot) {
             const slotEnd = new Date(activeSlot.endAt);
-            if (items.length <= 1) {
+            if (flattenedItems.length <= 1) {
                 nextSwitchDate = slotEnd;
             } else {
                 nextSwitchDate = nextRotationTick < slotEnd ? nextRotationTick : slotEnd;
@@ -160,7 +235,11 @@ export class RoomsService {
 				.filter(s => new Date(s.endAt) > now)
 				.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
 				.slice(0, 5)
-				.map(s => ({ startAt: s.startAt, endAt: s.endAt, items: (s.items || []).map(i => i.ref) }));
+				.map(s => ({
+					startAt: s.startAt,
+					endAt: s.endAt,
+					items: (s.lives || []).map((i: ScheduleItem) => i.ref)
+				}));
 			upcomingSlots = future;
 		}
 
@@ -171,15 +250,19 @@ export class RoomsService {
 				.filter(s => new Date(s.endAt) <= now)
 				.sort((a, b) => new Date(b.endAt).getTime() - new Date(a.endAt).getTime()) // Most recent first
 				.slice(0, 5)
-				.map(s => ({ startAt: s.startAt, endAt: s.endAt, items: (s.items || []).map(i => i.ref) }));
+				.map(s => ({
+					startAt: s.startAt,
+					endAt: s.endAt,
+					items: (s.lives || []).map((i: ScheduleItem) => i.ref)
+				}));
 			previousSlots = past.length > 0 ? past : undefined;
 		}
 
 		return {
 			active: activeSlot ? { slotStart: activeSlot.startAt, slotEnd: activeSlot.endAt } : null,
-			items,
+			items: flattenedItems,
 			policy: { type: policy, intervalSec },
-			index: items.length ? rotationIndex % items.length : 0,
+			index: flattenedItems.length ? rotationIndex % flattenedItems.length : 0,
 			nextSwitchAt: nextSwitchDate.toISOString(),
 			defaultItems: room.config.defaultItems,
 			upcomingSlots,

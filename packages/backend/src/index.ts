@@ -77,7 +77,7 @@ export class BackendServer {
     // API routes
     this.app.use('/lightning', new LightningRouter().getRouter());
     this.app.use('/live', new LiveRouter().getRouter());
-    this.app.use('/rooms', new RoomsRouter().getRouter());
+    this.app.use('/multi', new RoomsRouter().getRouter());
     this.app.use('/jukebox', new JukeboxRouter().getRouter());
 
     // Health check endpoint
