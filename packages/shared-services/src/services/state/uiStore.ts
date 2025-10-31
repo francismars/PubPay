@@ -48,6 +48,7 @@ type UIState = {
   ) => void;
   closeToast: () => void;
   setFollowSuggestions: (items: FollowSuggestion[]) => void;
+  appendFollowSuggestion: (item: FollowSuggestion) => void;
   openLogin: () => void;
   closeLogin: () => void;
   openNewPayNote: () => void;
@@ -79,6 +80,7 @@ export const useUIStore = create<UIState>(set => ({
       statusToast: { show: false, message: '', variant: 'info', persist: false }
     }),
   setFollowSuggestions: (items) => set({ followSuggestions: items }),
+  appendFollowSuggestion: (item) => set(state => ({ followSuggestions: [...state.followSuggestions, item] })),
   openLogin: () => set({ loginForm: { show: true } }),
   closeLogin: () => set({ loginForm: { show: false } }),
   openNewPayNote: () => set({ newPayNoteForm: { show: true } }),
