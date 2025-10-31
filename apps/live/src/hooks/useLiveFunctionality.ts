@@ -2876,8 +2876,20 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (styles.sectionLabels !== DEFAULT_STYLES.sectionLabels) {
           params.set('sectionLabels', styles.sectionLabels);
         }
+        if (styles.qrOnly !== DEFAULT_STYLES.qrOnly) {
+          params.set('qrOnly', styles.qrOnly);
+        }
         if (styles.showFiat !== DEFAULT_STYLES.showFiat) {
           params.set('showFiat', styles.showFiat);
+        }
+        if (styles.showHistoricalPrice !== DEFAULT_STYLES.showHistoricalPrice) {
+          params.set('showHistoricalPrice', styles.showHistoricalPrice);
+        }
+        if (styles.showHistoricalChange !== DEFAULT_STYLES.showHistoricalChange) {
+          params.set('showHistoricalChange', styles.showHistoricalChange);
+        }
+        if (styles.fiatOnly !== DEFAULT_STYLES.fiatOnly) {
+          params.set('fiatOnly', styles.fiatOnly);
         }
         if (styles.lightning !== DEFAULT_STYLES.lightning) {
           params.set('lightning', styles.lightning);
