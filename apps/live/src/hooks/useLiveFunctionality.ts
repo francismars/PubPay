@@ -2769,7 +2769,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       'currencySelector'
     ) as HTMLSelectElement;
     if (currencySelector) currencySelector.value = selectedCurrency;
-    selectedFiatCurrency = selectedCurrency;
+    selectedFiatCurrencyRef.current = selectedCurrency;
 
     // Apply all styles to ensure everything is synchronized
     applyAllStyles();
@@ -4244,7 +4244,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     ) as HTMLSelectElement;
     if (currencySelector) {
       currencySelector.addEventListener('change', (e: any) => {
-        selectedFiatCurrency = e.target.value;
+        selectedFiatCurrencyRef.current = e.target.value;
         // Update fiat amounts with new currency if toggle is enabled
         const showFiatToggle = document.getElementById(
           'showFiatToggle'
@@ -4895,9 +4895,9 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Flag to prevent Lightning calls during preset application
   let isApplyingPreset = false;
 
-  // Bitcoin price data
-  let bitcoinPrices: { [key: string]: number } = {};
-  let selectedFiatCurrency = 'USD';
+  // Bitcoin price data - using refs to persist across renders
+  const bitcoinPricesRef = useRef<{ [key: string]: number }>({});
+  const selectedFiatCurrencyRef = useRef<string>('USD');
   let isUpdatingFiatAmounts = false;
   let fiatUpdateTimeout: NodeJS.Timeout | null = null;
 
@@ -4906,8 +4906,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     try {
       const response = await fetch('https://mempool.space/api/v1/prices');
       const data = await response.json();
-      const previousPrices = { ...bitcoinPrices };
-      bitcoinPrices = data;
+      const previousPrices = { ...bitcoinPricesRef.current };
+      bitcoinPricesRef.current = data;
 
       // Check if prices have changed and update fiat amounts if needed
       const priceChanged = Object.keys(data).some(
@@ -4932,7 +4932,7 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Fetch historical Bitcoin prices from Mempool API
   const fetchHistoricalBitcoinPrices = async (
     timestamp: number,
-    currency: string = selectedFiatCurrency
+    currency: string = selectedFiatCurrencyRef.current
   ) => {
     try {
       const response = await fetch(
@@ -4975,12 +4975,14 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Convert sats to fiat
   const satsToFiat = (
     sats: number,
-    currency: string = selectedFiatCurrency
+    currency: string = selectedFiatCurrencyRef.current
   ): string => {
-    if (!bitcoinPrices[currency]) return '';
+    if (!bitcoinPricesRef.current[currency]) {
+      return '';
+    }
 
     const btcAmount = sats / 100000000; // Convert sats to BTC
-    const fiatAmount = btcAmount * bitcoinPrices[currency];
+    const fiatAmount = btcAmount * bitcoinPricesRef.current[currency];
 
     // Format based on currency - show amount followed by currency code in span
     if (currency === 'JPY') {
@@ -4994,12 +4996,12 @@ export const useLiveFunctionality = (eventId?: string) => {
   const satsToFiatWithHistorical = async (
     sats: number,
     timestamp: number,
-    currency: string = selectedFiatCurrency
+    currency: string = selectedFiatCurrencyRef.current
   ): Promise<string> => {
-    if (!bitcoinPrices[currency]) return '';
+    if (!bitcoinPricesRef.current[currency]) return '';
 
     const btcAmount = sats / 100000000; // Convert sats to BTC
-    const currentFiatAmount = btcAmount * bitcoinPrices[currency];
+    const currentFiatAmount = btcAmount * bitcoinPricesRef.current[currency];
 
     // Format current amount
     let currentFormatted: string;
@@ -5104,7 +5106,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       return;
     }
 
-    if (!bitcoinPrices[selectedFiatCurrency]) return;
+    if (!bitcoinPricesRef.current[selectedFiatCurrencyRef.current]) return;
 
     // Add visual indicator that prices are being updated
     const priceUpdateIndicator = document.getElementById(
@@ -5240,7 +5242,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                 .trim();
 
               // Replace the satoshi amount with fiat amount and currency
-              const newContent = `${fiatAmountOnly} <span class="currency-code">${selectedFiatCurrency}</span>`;
+              const newContent = `${fiatAmountOnly} <span class="currency-code">${selectedFiatCurrencyRef.current}</span>`;
               element.innerHTML = newContent;
 
               // Hide any existing fiat-amount elements
@@ -5365,6 +5367,11 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     });
   };
+
+  // Expose fiat conversion utilities to window for overlay component
+  (window as any).satsToFiat = satsToFiat;
+  (window as any).getBitcoinPrices = () => bitcoinPricesRef.current;
+  (window as any).getSelectedFiatCurrency = () => selectedFiatCurrencyRef.current;
 
   const setupToggle = (
     toggleId: string,
@@ -5587,7 +5594,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           ) as HTMLSelectElement;
           if (currencySelector) {
             currencySelector.value = styles.selectedCurrency;
-            selectedFiatCurrency = styles.selectedCurrency;
+            selectedFiatCurrencyRef.current = styles.selectedCurrency;
           }
         }
 

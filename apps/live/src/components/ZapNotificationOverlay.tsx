@@ -50,6 +50,9 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
   const [currentNotification, setCurrentNotification] = useState<ZapNotification | null>(null);
   const [bgColor, setBgColor] = useState(DEFAULT_BG_COLOR);
   const [textColor, setTextColor] = useState(DEFAULT_TEXT_COLOR);
+  const [isFiatOnly, setIsFiatOnly] = useState(false);
+  const [selectedCurrency, setSelectedCurrency] = useState('USD');
+  const [pricesLoaded, setPricesLoaded] = useState(false);
 
   // Update colors from mainLayout
   const updateColors = useCallback(() => {
@@ -71,12 +74,39 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
     setTextColor(textColorValue || computedStyle.color);
   }, []);
 
+  // Update fiat settings
+  const updateFiatSettings = useCallback(() => {
+    const fiatOnlyToggle = document.getElementById('fiatOnlyToggle') as HTMLInputElement;
+    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+    
+    // Only show fiat if both showFiat and fiatOnly are checked
+    const shouldShowFiatOnly = showFiatToggle?.checked && fiatOnlyToggle?.checked;
+    setIsFiatOnly(shouldShowFiatOnly);
+
+    // Get selected currency
+    if ((window as any).getSelectedFiatCurrency) {
+      const currency = (window as any).getSelectedFiatCurrency();
+      setSelectedCurrency(currency);
+    }
+
+    // Check if Bitcoin prices are loaded
+    if ((window as any).getBitcoinPrices) {
+      const prices = (window as any).getBitcoinPrices();
+      const loaded = prices && Object.keys(prices).length > 0;
+      setPricesLoaded(loaded);
+    }
+  }, []);
+
   // Poll for style option changes
   useEffect(() => {
     updateColors();
-    const interval = setInterval(updateColors, COLOR_POLL_INTERVAL);
+    updateFiatSettings();
+    const interval = setInterval(() => {
+      updateColors();
+      updateFiatSettings();
+    }, COLOR_POLL_INTERVAL);
     return () => clearInterval(interval);
-  }, [updateColors]);
+  }, [updateColors, updateFiatSettings]);
 
   // Handle notification display and auto-dismiss
   useEffect(() => {
@@ -85,6 +115,7 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
     setCurrentNotification(notification);
     setIsVisible(true);
     updateColors();
+    updateFiatSettings(); // Update fiat settings immediately when notification arrives
 
     const hideTimer = setTimeout(() => {
       setIsVisible(false);
@@ -98,13 +129,33 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
     }, NOTIFICATION_DURATION);
 
     return () => clearTimeout(hideTimer);
-  }, [notification, onDismiss, updateColors]);
+  }, [notification, onDismiss, updateColors, updateFiatSettings]);
 
   // Memoize computed values (must be called before any early returns to follow Rules of Hooks)
-  const formattedAmount = useMemo(
-    () => currentNotification?.amount.toLocaleString() ?? '',
-    [currentNotification?.amount]
-  );
+  const { displayAmount, displayLabel } = useMemo(() => {
+    if (!currentNotification) return { displayAmount: '', displayLabel: 'sats' };
+
+    const satsAmount = currentNotification.amount.toLocaleString();
+    
+    // Check if Bitcoin prices are loaded
+    const bitcoinPrices = (window as any).getBitcoinPrices ? (window as any).getBitcoinPrices() : {};
+
+    // If fiat-only mode is enabled, convert to fiat
+    if (isFiatOnly && (window as any).satsToFiat && bitcoinPrices[selectedCurrency]) {
+      try {
+        const fiatHtml = (window as any).satsToFiat(currentNotification.amount, selectedCurrency);
+        // Extract just the number part (remove the HTML span)
+        const fiatMatch = fiatHtml.match(/^([\d,\.]+)/);
+        if (fiatMatch) {
+          return { displayAmount: fiatMatch[1], displayLabel: selectedCurrency };
+        }
+      } catch (err) {
+        console.error('Error converting to fiat:', err);
+      }
+    }
+
+    return { displayAmount: satsAmount, displayLabel: 'sats' };
+  }, [currentNotification?.amount, isFiatOnly, selectedCurrency, pricesLoaded]);
 
   const rankLabel = useMemo(
     () => currentNotification ? getRankLabel(currentNotification.zapperRank) : null,
@@ -164,7 +215,7 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
         />
         <div className="zap-notification-text-container">
           <div className="zap-notification-amount" style={{ color: textColor }}>
-            {formattedAmount} sats
+            {displayAmount} {displayLabel}
           </div>
           <div className="zap-notification-name">
             {currentNotification.zapperName}
