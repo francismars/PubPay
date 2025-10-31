@@ -3376,6 +3376,64 @@ body.hide-zapper-content .zaps-list.grid-layout .zapperMessage {
   display: none;
 }
 
+/* QR Only Mode - Hide everything except QR code and zap notification overlay */
+body.qr-only-mode .left-side .post-info .author-section,
+body.qr-only-mode .left-side .post-info .note-section,
+body.qr-only-mode .left-side .post-info .section-label {
+  display: none !important;
+}
+
+/* Hide most of the right side but keep settings button visible */
+body.qr-only-mode .right-side .zaps-header-left,
+body.qr-only-mode .right-side .top-zappers-bar,
+body.qr-only-mode .right-side .zaps-container {
+  display: none !important;
+}
+
+body.qr-only-mode .right-side {
+  min-width: auto;
+  width: auto;
+  padding: 1vw;
+}
+
+body.qr-only-mode .right-side .zaps-header {
+  justify-content: flex-end;
+  padding: 0;
+}
+
+body.qr-only-mode .right-side .zaps-header-right {
+  margin: 0;
+}
+
+/* Keep powered-by logo in QR-only mode */
+body.qr-only-mode .right-side .powered-by {
+  display: flex;
+}
+
+body.qr-only-mode .left-side {
+  width: 100%;
+  max-width: 100%;
+  border: none;
+}
+
+body.qr-only-mode .main-layout {
+  justify-content: center;
+  align-items: flex-start;
+}
+
+body.qr-only-mode .left-side .post-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+body.qr-only-mode .qr-section {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 800px;
+}
+
 /* Zap ranking system - Only apply when podium is enabled and NOT in grid layout */
 body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(1) {
   background: linear-gradient(
@@ -4779,5 +4837,278 @@ input:checked + .toggle-slider:before {
 
   .qr-instructions {
     font-size: 0.8vw;
+  }
+}
+
+/* ===== ZAP NOTIFICATION OVERLAY ===== */
+
+/* Keyframe animations for notification elements */
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0) rotate(-360deg);
+  }
+  50% {
+    transform: scale(1.4) rotate(15deg);
+  }
+  70% {
+    transform: scale(0.85) rotate(-10deg);
+  }
+  85% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes popOut {
+  0% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0) rotate(360deg);
+  }
+}
+
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-100px) scale(0.5);
+  }
+  60% {
+    transform: translateX(10px) scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes fadeSlideOut {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(100px) scale(0.5);
+  }
+}
+
+@keyframes charPopIn {
+  0% {
+    opacity: 0;
+    transform: translateY(50px) scale(0);
+  }
+  50% {
+    transform: translateY(-10px) scale(1.3);
+  }
+  70% {
+    transform: translateY(5px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.zap-notification-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 10000;
+  opacity: 0;
+  transform: scale(0.7);
+  transition: opacity 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), 
+              transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  /* Background color applied dynamically via inline styles (matches style options at 80% opacity) */
+}
+
+.zap-notification-overlay.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.zap-notification-top-copy {
+  font-size: 4vw;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  z-index: 1;
+  margin-bottom: -2vw;
+  display: inline-block;
+}
+
+.zap-notification-char {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(50px) scale(0);
+}
+
+.zap-notification-overlay.visible .zap-notification-char {
+  animation: charPopIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+.zap-notification-overlay:not(.visible) .zap-notification-char {
+  opacity: 0;
+}
+
+.zap-notification-content {
+
+  padding: 1vw;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2vw;
+  max-width: 90vw;
+  max-height: 90vh;
+  pointer-events: auto;
+  transition: transform 0.3s ease;
+  transform-origin: center center;
+}
+
+.zap-notification-avatar {
+  width: 30vw;
+  height: 30vw;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid;
+  /* Border color applied dynamically via inline styles (matches text color) */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+}
+
+.zap-notification-overlay.visible .zap-notification-avatar {
+  animation: popIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+.zap-notification-overlay:not(.visible) .zap-notification-avatar {
+  animation: popOut 0.5s ease-in forwards;
+}
+
+.zap-notification-text-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.zap-notification-amount {
+  font-size:10vw;
+  font-weight: 800;
+  margin: 0;
+  opacity: 0;
+}
+
+.zap-notification-overlay.visible .zap-notification-amount {
+  animation: fadeSlideIn 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.3s forwards;
+}
+
+.zap-notification-overlay:not(.visible) .zap-notification-amount {
+  animation: fadeSlideOut 0.4s ease-in forwards;
+}
+
+.zap-notification-name {
+  font-size: 5vw;
+  font-weight: 700;
+  margin: 0;
+  opacity: 0;
+  /* Inherits color from parent .zap-notification-content */
+}
+
+.zap-notification-overlay.visible .zap-notification-name {
+  animation: fadeSlideIn 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.5s forwards;
+}
+
+.zap-notification-overlay:not(.visible) .zap-notification-name {
+  animation: fadeSlideOut 0.4s ease-in 0.05s forwards;
+}
+
+.zap-notification-message {
+  font-size: 5vw;
+  margin: 0;
+  line-height: 1.4;
+  word-wrap: break-word;
+  opacity: 0;
+  /* Inherits color from parent .zap-notification-content */
+}
+
+.zap-notification-overlay.visible .zap-notification-message {
+  animation: fadeSlideIn 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.7s forwards;
+}
+
+.zap-notification-overlay:not(.visible) .zap-notification-message {
+  animation: fadeSlideOut 0.4s ease-in 0.1s forwards;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .zap-notification-top-copy {
+    font-size: 3vw;
+  }
+
+  .zap-notification-content {
+    padding: 30px;
+    gap: 12px;
+  }
+
+  .zap-notification-avatar {
+    width: 140px;
+    height: 140px;
+  }
+
+  .zap-notification-name {
+    font-size: 24px;
+  }
+
+  .zap-notification-amount {
+    font-size: 36px;
+  }
+
+  .zap-notification-message {
+    font-size: 16px;
+    max-width: 300px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .zap-notification-top-copy {
+    font-size: 5vw;
+  }
+
+  .zap-notification-content {
+    padding: 20px;
+    gap: 10px;
+  }
+
+  .zap-notification-avatar {
+    width: 100px;
+    height: 100px;
+  }
+
+  .zap-notification-name {
+    font-size: 20px;
+  }
+
+  .zap-notification-amount {
+    font-size: 28px;
+  }
+
+  .zap-notification-message {
+    font-size: 14px;
+    max-width: 250px;
   }
 }
