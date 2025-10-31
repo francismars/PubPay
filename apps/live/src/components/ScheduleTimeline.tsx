@@ -31,6 +31,7 @@ interface ScheduleTimelineProps {
 export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onChange, onAddSlotAtTime, scheduleJson, onUpdateJson, onOpenAddSlotModal, onUploadSchedule, onExportSchedule, onImportSchedule, onLoadProvidedSchedule, onOpenPretalxModal, createdRoomId, busy, scheduleError, scheduleSuccess }) => {
 	const [editorMode, setEditorMode] = useState<'timeline' | 'json'>('timeline');
 	const [editingSlot, setEditingSlot] = useState<number | null>(null);
+	const [overlayPositionReady, setOverlayPositionReady] = useState(false);
 	const [contextMenu, setContextMenu] = useState<{ x: number; y: number; time: number } | null>(null);
 	const [dragging, setDragging] = useState<{ type: 'start' | 'end' | 'move'; slotIndex: number; initialMouseX: number; initialSlotStart: number; initialSlotEnd: number } | null>(null);
 	const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
@@ -47,6 +48,7 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 	const [panning, setPanning] = useState(false);
 	const [panStart, setPanStart] = useState<{ x: number; time: number } | null>(null);
 	const clickActionRef = useRef<{ slotIndex: number | null; shouldOpen: boolean }>({ slotIndex: null, shouldOpen: false });
+	const actuallyDraggedRef = useRef<boolean>(false);
 	const editOverlayRef = useRef<HTMLDivElement>(null);
 	const slotRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
@@ -221,6 +223,9 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 	useEffect(() => {
 		if (!dragging || !timelineRef.current) return;
 
+		// Reset drag tracking when starting a new drag
+		actuallyDraggedRef.current = false;
+
 		const handleMouseMove = (e: MouseEvent) => {
 			if (!dragStart || !dragging) return;
 			
@@ -228,6 +233,7 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 			const dy = Math.abs(e.clientY - dragStart.y);
 			// If moved more than 5px, it's a drag
 			if (dx > 5 || dy > 5) {
+				actuallyDraggedRef.current = true;
 				setHasDragged(true);
 			}
 
@@ -279,21 +285,37 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 		};
 
 		const handleMouseUp = () => {
-			// Capture values before clearing state
-			const wasClick = clickActionRef.current.shouldOpen && !hasDragged;
+			// Check if it was actually a click (not a drag) before clearing state
+			const wasClick = clickActionRef.current.shouldOpen && !actuallyDraggedRef.current;
 			const slotIdx = clickActionRef.current.slotIndex;
+			
+			// Debug logging
+			console.log('🖱️ MouseUp:', {
+				shouldOpen: clickActionRef.current.shouldOpen,
+				actuallyDragged: actuallyDraggedRef.current,
+				slotIdx,
+				wasClick
+			});
 			
 			// Clear drag state first
 			setDragging(null);
 			setDragStart(null);
 			setHasDragged(false);
+			actuallyDraggedRef.current = false;
 			
 			// Only open edit panel if it was a click (not a drag) and was in the middle area
 			if (wasClick && slotIdx !== null) {
+				console.log('✅ Opening edit overlay for slot:', slotIdx);
 				// Use setTimeout to ensure state updates are processed first
 				setTimeout(() => {
-					setEditingSlot(prev => prev === slotIdx ? null : slotIdx);
+					setEditingSlot(prev => {
+						const newValue = prev === slotIdx ? null : slotIdx;
+						console.log('📝 Setting editingSlot:', { prev, newValue });
+						return newValue;
+					});
 				}, 10);
+			} else {
+				console.log('❌ Not opening overlay:', { wasClick, slotIdx });
 			}
 			
 			clickActionRef.current = { slotIndex: null, shouldOpen: false };
@@ -305,7 +327,7 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 			window.removeEventListener('mousemove', handleMouseMove);
 			window.removeEventListener('mouseup', handleMouseUp);
 		};
-	}, [dragging, dragStart, slots, minTime, maxTime, timeRange, updateSlot]);
+	}, [dragging, dragStart, slots, minTime, maxTime, timeRange, zoomLevel, snapTime, updateSlot, getBaseTimeRange]);
 
 	// Keyboard shortcuts (zoom + nudge when editing)
 	// This effect is intentionally placed AFTER zoom handlers are declared below
@@ -617,87 +639,95 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 		
 		if (!slotElement) return;
 
-		const containerHeight = container.clientHeight;
+		// Get container-relative positions
+		const containerScrollTop = container.scrollTop;
+		const containerScrollLeft = container.scrollLeft;
 		const containerWidth = container.clientWidth;
-		const scrollTop = container.scrollTop;
-		const scrollLeft = container.scrollLeft;
+		const containerHeight = container.clientHeight;
 		
-		// Get slot position relative to timeline container (not viewport)
+		// Slot position relative to timeline-bg (absolute positioning within timeline)
 		const slotOffsetTop = slotElement.offsetTop;
-		const slotOffsetHeight = slotElement.offsetHeight;
 		const slotOffsetLeft = slotElement.offsetLeft;
-		const slotOffsetWidth = slotElement.offsetWidth;
+		const slotHeight = slotElement.offsetHeight;
+		const slotWidth = slotElement.offsetWidth;
 		
-		const slotTop = slotOffsetTop;
-		const slotBottom = slotTop + slotOffsetHeight;
-		const slotLeft = slotOffsetLeft;
-		const slotRight = slotLeft + slotOffsetWidth;
-		
-		const overlayHeight = overlay.offsetHeight || 400; // Estimate if not measured
+		const overlayHeight = overlay.offsetHeight || 400;
 		const overlayWidth = overlay.offsetWidth || 400;
 		const padding = 12;
 		const marginTop = 8;
 		
-		const newPosition: { top?: string; bottom?: string; left?: number | string; right?: number | string; marginTop?: number; marginBottom?: number } = {};
+		const newPosition: { top?: string; bottom?: string; left?: string; right?: string } = {};
 		
-		// Check visible area for slot
-		const slotVisibleTop = Math.max(scrollTop, slotTop);
-		const slotVisibleBottom = Math.min(scrollTop + containerHeight, slotBottom);
+		// Calculate slot's visible area within container
+		const slotTop = slotOffsetTop;
+		const slotBottom = slotTop + slotHeight;
+		const slotLeft = slotOffsetLeft;
+		const slotRight = slotLeft + slotWidth;
 		
-		// Check if overlay fits below slot in visible area
-		const spaceBelow = (scrollTop + containerHeight) - slotVisibleBottom;
-		const spaceAbove = slotVisibleTop - scrollTop;
+		// Visible area of slot in container viewport
+		const slotVisibleTop = Math.max(containerScrollTop, slotTop);
+		const slotVisibleBottom = Math.min(containerScrollTop + containerHeight, slotBottom);
 		
+		// Check if overlay fits below slot within container bounds
+		const spaceBelow = (containerScrollTop + containerHeight) - slotVisibleBottom;
+		const spaceAbove = slotVisibleTop - containerScrollTop;
+		
+		let overlayTop: number;
 		if (spaceBelow >= overlayHeight + marginTop + padding || (spaceAbove < overlayHeight + padding && spaceBelow >= marginTop + padding)) {
 			// Position below slot
-			newPosition.top = '100%';
-			newPosition.marginTop = marginTop;
-			delete newPosition.bottom;
-			delete newPosition.marginBottom;
+			overlayTop = slotBottom + marginTop;
 		} else {
 			// Position above slot
-			newPosition.bottom = '100%';
-			newPosition.marginBottom = marginTop;
-			delete newPosition.top;
-			delete newPosition.marginTop;
+			overlayTop = slotTop - overlayHeight - marginTop;
 		}
 		
-		// Check horizontal positioning
-		const slotVisibleLeft = Math.max(scrollLeft, slotLeft);
-		const slotVisibleRight = Math.min(scrollLeft + containerWidth, slotRight);
+		// Clamp vertical position to container bounds (can overlap slot if needed)
+		const minTop = padding;
+		const maxTop = container.scrollHeight - overlayHeight - padding;
+		overlayTop = Math.max(minTop, Math.min(maxTop, overlayTop));
 		
-		// Try to align with slot, but adjust if overlay would overflow
-		if (slotLeft + overlayWidth <= scrollLeft + containerWidth - padding) {
+		newPosition.top = `${overlayTop}px`;
+		delete newPosition.bottom;
+		
+		// Horizontal positioning - align with slot but clamp to container bounds
+		let overlayLeft: number;
+		if (slotLeft + overlayWidth <= containerWidth - padding) {
 			// Fits from slot left
-			newPosition.left = 0;
-			delete newPosition.right;
-		} else if (slotRight - overlayWidth >= scrollLeft + padding) {
+			overlayLeft = slotLeft;
+		} else if (slotRight - overlayWidth >= padding) {
 			// Fits aligned to slot right
-			newPosition.right = 0;
-			delete newPosition.left;
+			overlayLeft = slotRight - overlayWidth;
 		} else {
-			// Center or align to container
-			if (slotLeft < scrollLeft + padding) {
-				newPosition.left = padding;
-				delete newPosition.right;
-			} else if (slotRight > scrollLeft + containerWidth - padding) {
-				newPosition.right = padding;
-				delete newPosition.left;
+			// Center or align to container edges
+			if (slotLeft < padding) {
+				overlayLeft = padding;
+			} else if (slotRight > containerWidth - padding) {
+				overlayLeft = containerWidth - overlayWidth - padding;
 			} else {
-				// Center it in visible area
-				const centerX = scrollLeft + containerWidth / 2;
-				newPosition.left = centerX - slotLeft - overlayWidth / 2;
-				delete newPosition.right;
+				// Center it within container
+				overlayLeft = slotLeft + (slotWidth - overlayWidth) / 2;
 			}
 		}
 		
+		// Clamp horizontal position to container bounds
+		overlayLeft = Math.max(padding, Math.min(containerWidth - overlayWidth - padding, overlayLeft));
+		
+		newPosition.left = `${overlayLeft}px`;
+		delete newPosition.right;
+		
 		setEditOverlayPosition(newPosition);
+		setOverlayPositionReady(true);
 	}, [editingSlot]);
 
 	useEffect(() => {
 		if (editingSlot !== null) {
+			setOverlayPositionReady(false);
+			console.log('🎯 Edit overlay should show for slot:', editingSlot);
 			// Use setTimeout to ensure overlay is rendered and measured
-			const timeoutId = setTimeout(calculateEditOverlayPosition, 0);
+			const timeoutId = setTimeout(() => {
+				console.log('📍 Calculating edit overlay position for slot:', editingSlot);
+				calculateEditOverlayPosition();
+			}, 0);
 			
 			// Recalculate on scroll and resize
 			const container = timelineScrollRef.current;
@@ -883,11 +913,11 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 					flex: 1,
 					minHeight: 0,
 					overflowY: 'auto', // Allow scrolling when content exceeds available space
-					overflowX: 'hidden',
+					overflowX: 'hidden', // Clip horizontal overflow including overlay
 					border: '2px solid #e5e7eb',
 					borderRadius: 4,
-					marginBottom: 16,
-					position: 'relative'
+					position: 'relative', // Make it a positioning context for absolute overlay
+					marginBottom: 16
 				}}
 				onWheel={handleWheel}
 			>
@@ -1346,141 +1376,160 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 							{slot.items.length} item{slot.items.length !== 1 ? 's' : ''}
 							{overlaps.length > 0 && ' ⚠ Conflict!'}
 						</div>
-
-								{editingSlot === idx && (
-									<div
-										ref={editOverlayRef}
-										style={{
-											position: 'absolute',
-											...editOverlayPosition,
-											background: '#fff',
-											border: '3px solid #2196f3',
-											borderRadius: 6,
-											padding: 16,
-											zIndex: 10000,
-											boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-											color: '#000',
-											minWidth: 400,
-											maxWidth: 'calc(100vw - 48px)',
-											isolation: 'isolate'
-										}}
-										onClick={e => e.stopPropagation()}
-									>
-										<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-											<strong>Slot {idx + 1}</strong>
-											<div style={{ display: 'flex', gap: 4 }}>
-												<button onClick={() => { duplicateSlot(idx); setEditingSlot(null); }} style={{ fontSize: '0.85em', padding: '4px 8px' }}>Duplicate</button>
-												<button onClick={() => { removeSlot(idx); }} style={{ fontSize: '0.85em', padding: '4px 8px', background: '#f44336', color: 'white' }}>Delete</button>
-												<button onClick={() => setEditingSlot(null)} style={{ fontSize: '0.85em', padding: '4px 8px' }}>Close</button>
-											</div>
-										</div>
-										{overlaps.length > 0 && (
-											<div style={{ padding: 8, background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 4, marginBottom: 12, fontSize: '0.9em' }}>
-												⚠️ Warning: This slot overlaps with slot{overlaps.length !== 1 ? 's' : ''} {overlaps.map(i => i + 1).join(', ')}
-											</div>
-										)}
-							{/* Readonly Pretalx info (if available) */}
-							{(slot.title || (slot.speakers && slot.speakers.length) || slot.roomName || slot.code) && (
-								<div style={{ marginBottom: 12, padding: 8, background: '#f7faff', border: '1px solid #cfe3ff', borderRadius: 6 }}>
-									<div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', rowGap: 6, columnGap: 8, alignItems: 'center' }}>
-										{slot.title && (
-											<>
-												<div style={{ fontSize: '0.85em', color: '#555' }}>Title</div>
-												<div style={{ fontWeight: 'bold' }}>{slot.title}</div>
-											</>
-										)}
-										{slot.code && (
-											<>
-												<div style={{ fontSize: '0.85em', color: '#555' }}>Code</div>
-												<div style={{ fontFamily: 'monospace' }}>{slot.code}</div>
-											</>
-										)}
-										{slot.speakers && slot.speakers.length > 0 && (
-											<>
-												<div style={{ fontSize: '0.85em', color: '#555' }}>Speakers</div>
-												<div>{slot.speakers.join(', ')}</div>
-											</>
-										)}
-										{slot.roomName && (
-											<>
-												<div style={{ fontSize: '0.85em', color: '#555' }}>Room</div>
-												<div>{slot.roomName}</div>
-											</>
-										)}
-									</div>
-								</div>
-							)}
-										<div style={{ marginBottom: 12 }}>
-											<label style={{ fontSize: '0.9em', fontWeight: 'bold' }}>Start (UTC ISO):</label>
-											<input
-												type="text"
-												value={slot.startAt}
-												onChange={e => updateSlot(idx, { startAt: e.target.value })}
-												style={{ width: '100%', fontFamily: 'monospace', fontSize: '11px', padding: 4, border: '1px solid #ccc' }}
-											/>
-										</div>
-										<div style={{ marginBottom: 12 }}>
-											<label style={{ fontSize: '0.9em', fontWeight: 'bold' }}>End (UTC ISO):</label>
-											<input
-												type="text"
-												value={slot.endAt}
-												onChange={e => updateSlot(idx, { endAt: e.target.value })}
-												style={{ width: '100%', fontFamily: 'monospace', fontSize: '11px', padding: 4, border: '1px solid #ccc' }}
-											/>
-										</div>
-										<div style={{ marginBottom: 8 }}>
-											<label style={{ fontSize: '0.9em', fontWeight: 'bold' }}>Items ({slot.items.length}):</label>
-											<div style={{ maxHeight: 150, overflowY: 'auto', border: '1px solid #ccc', borderRadius: 4, padding: 8, background: '#f9f9f9' }}>
-												{slot.items.map((item, itemIdx) => (
-													<div key={itemIdx} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
-														<input
-															type="text"
-															value={item.ref}
-															onChange={e => {
-																const newItems = [...slot.items];
-																newItems[itemIdx] = { ...newItems[itemIdx], ref: e.target.value };
-																updateSlot(idx, { items: newItems });
-															}}
-															style={{ flex: 1, fontFamily: 'monospace', fontSize: '11px', padding: 4 }}
-															placeholder="note1... or nevent1..."
-														/>
-														<button onClick={() => removeItemFromSlot(idx, itemIdx)} style={{ padding: '4px 8px', background: '#f44336', color: 'white', fontSize: '0.8em' }}>×</button>
-													</div>
-												))}
-											</div>
-											<div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-												<input
-													type="text"
-													value={newItemRefs[idx] || ''}
-													onChange={e => setNewItemRefs({ ...newItemRefs, [idx]: e.target.value })}
-													placeholder="Add new item (note1... or nevent1...)"
-													onKeyDown={e => {
-														if (e.key === 'Enter' && newItemRefs[idx]) {
-															addItemToSlot(idx, newItemRefs[idx]);
-															setNewItemRefs({ ...newItemRefs, [idx]: '' });
-														}
-													}}
-													style={{ flex: 1, fontFamily: 'monospace', fontSize: '11px', padding: 4 }}
-												/>
-												<button
-													onClick={() => {
-														if (newItemRefs[idx]) {
-															addItemToSlot(idx, newItemRefs[idx]);
-															setNewItemRefs({ ...newItemRefs, [idx]: '' });
-														}
-													}}
-													style={{ padding: '4px 12px', fontSize: '0.85em' }}
-												>
-													Add Item
-												</button>
-											</div>
-										</div>
-									</div>
-								)}
-							</div>
+						</div>
 						);
 					})}
 				</div>
+
+				{/* Edit overlay - rendered outside slots container to be positioned relative to scroll container */}
+				{editingSlot !== null && slots[editingSlot] && (
+					<div
+						ref={editOverlayRef}
+						style={{
+							position: 'absolute',
+							...(overlayPositionReady ? editOverlayPosition : { top: '-9999px', left: '-9999px' }),
+							background: '#fff',
+							border: '3px solid #2196f3',
+							borderRadius: 6,
+							padding: 16,
+							zIndex: 10000,
+							boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+							color: '#000',
+							minWidth: 400,
+							maxWidth: 'calc(100% - 24px)',
+							isolation: 'isolate',
+							visibility: overlayPositionReady ? 'visible' : 'hidden'
+						}}
+						onClick={e => e.stopPropagation()}
+					>
+						<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+							<strong>Slot {editingSlot + 1}</strong>
+							<div style={{ display: 'flex', gap: 4 }}>
+								<button onClick={() => { duplicateSlot(editingSlot); setEditingSlot(null); }} style={{ fontSize: '0.85em', padding: '4px 8px' }}>Duplicate</button>
+								<button onClick={() => { removeSlot(editingSlot); }} style={{ fontSize: '0.85em', padding: '4px 8px', background: '#f44336', color: 'white' }}>Delete</button>
+								<button onClick={() => setEditingSlot(null)} style={{ fontSize: '0.85em', padding: '4px 8px' }}>Close</button>
+							</div>
+						</div>
+						{(() => {
+							const slot = slots[editingSlot];
+							const overlaps = getOverlaps(editingSlot);
+							return (
+								<>
+									{overlaps.length > 0 && (
+										<div style={{ padding: 8, background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 4, marginBottom: 12, fontSize: '0.9em' }}>
+											⚠️ Warning: This slot overlaps with slot{overlaps.length !== 1 ? 's' : ''} {overlaps.map(i => i + 1).join(', ')}
+										</div>
+									)}
+									{/* Readonly Pretalx info (if available) */}
+									{(slot.title || (slot.speakers && slot.speakers.length) || slot.roomName || slot.code) && (
+										<div style={{ marginBottom: 12, padding: 8, background: '#f7faff', border: '1px solid #cfe3ff', borderRadius: 6 }}>
+											<div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', rowGap: 6, columnGap: 8, alignItems: 'center' }}>
+												{slot.title && (
+													<>
+														<div style={{ fontSize: '0.85em', color: '#555' }}>Title</div>
+														<div style={{ fontWeight: 'bold' }}>{slot.title}</div>
+													</>
+												)}
+												{slot.code && (
+													<>
+														<div style={{ fontSize: '0.85em', color: '#555' }}>Code</div>
+														<div style={{ fontFamily: 'monospace' }}>{slot.code}</div>
+													</>
+												)}
+												{slot.speakers && slot.speakers.length > 0 && (
+													<>
+														<div style={{ fontSize: '0.85em', color: '#555' }}>Speakers</div>
+														<div>{slot.speakers.join(', ')}</div>
+													</>
+												)}
+												{slot.roomName && (
+													<>
+														<div style={{ fontSize: '0.85em', color: '#555' }}>Room</div>
+														<div>{slot.roomName}</div>
+													</>
+												)}
+											</div>
+										</div>
+									)}
+									<div style={{ marginBottom: 12 }}>
+										<label htmlFor={`slot-start-${editingSlot}`} style={{ fontSize: '0.9em', fontWeight: 'bold' }}>Start (UTC ISO):</label>
+										<input
+											id={`slot-start-${editingSlot}`}
+											name={`slot-start-${editingSlot}`}
+											type="text"
+											value={slot.startAt}
+											onChange={e => updateSlot(editingSlot, { startAt: e.target.value })}
+											style={{ width: '100%', fontFamily: 'monospace', fontSize: '11px', padding: 4, border: '1px solid #ccc' }}
+										/>
+									</div>
+									<div style={{ marginBottom: 12 }}>
+										<label htmlFor={`slot-end-${editingSlot}`} style={{ fontSize: '0.9em', fontWeight: 'bold' }}>End (UTC ISO):</label>
+										<input
+											id={`slot-end-${editingSlot}`}
+											name={`slot-end-${editingSlot}`}
+											type="text"
+											value={slot.endAt}
+											onChange={e => updateSlot(editingSlot, { endAt: e.target.value })}
+											style={{ width: '100%', fontFamily: 'monospace', fontSize: '11px', padding: 4, border: '1px solid #ccc' }}
+										/>
+									</div>
+									<div style={{ marginBottom: 8 }}>
+										<div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: 4 }}>Items ({slot.items.length}):</div>
+										<div style={{ maxHeight: 150, overflowY: 'auto', border: '1px solid #ccc', borderRadius: 4, padding: 8, background: '#f9f9f9' }}>
+											{slot.items.map((item, itemIdx) => (
+												<div key={itemIdx} style={{ display: 'flex', gap: 4, marginBottom: 4, alignItems: 'center' }}>
+													<input
+														id={`slot-${editingSlot}-item-${itemIdx}`}
+														name={`slot-${editingSlot}-item-${itemIdx}`}
+														type="text"
+														value={item.ref}
+														onChange={e => {
+															const newItems = [...slot.items];
+															newItems[itemIdx] = { ...newItems[itemIdx], ref: e.target.value };
+															updateSlot(editingSlot, { items: newItems });
+														}}
+														style={{ flex: 1, fontFamily: 'monospace', fontSize: '11px', padding: 4 }}
+														placeholder="note1... or nevent1..."
+													/>
+													<button onClick={() => removeItemFromSlot(editingSlot, itemIdx)} style={{ padding: '4px 8px', background: '#f44336', color: 'white', fontSize: '0.8em' }}>×</button>
+												</div>
+											))}
+										</div>
+										<div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+											<input
+												id={`slot-new-item-${editingSlot}`}
+												name={`slot-new-item-${editingSlot}`}
+												type="text"
+												aria-label="Add new item"
+												value={newItemRefs[editingSlot] || ''}
+												onChange={e => setNewItemRefs({ ...newItemRefs, [editingSlot]: e.target.value })}
+												placeholder="Add new item (note1... or nevent1...)"
+												onKeyDown={e => {
+													if (e.key === 'Enter' && newItemRefs[editingSlot]) {
+														addItemToSlot(editingSlot, newItemRefs[editingSlot]);
+														setNewItemRefs({ ...newItemRefs, [editingSlot]: '' });
+													}
+												}}
+												style={{ flex: 1, fontFamily: 'monospace', fontSize: '11px', padding: 4 }}
+											/>
+											<button
+												onClick={() => {
+													if (newItemRefs[editingSlot]) {
+														addItemToSlot(editingSlot, newItemRefs[editingSlot]);
+														setNewItemRefs({ ...newItemRefs, [editingSlot]: '' });
+													}
+												}}
+												style={{ padding: '4px 12px', fontSize: '0.85em' }}
+											>
+												Add Item
+											</button>
+										</div>
+									</div>
+								</>
+							);
+						})()}
+					</div>
+				)}
 				
 				{/* Right-click context menu floater */}
 				{contextMenu && onAddSlotAtTime && (
@@ -1559,6 +1608,9 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 					{scheduleJson !== undefined && onUpdateJson && (
 						<>
 							<textarea
+								id="schedule-json-editor"
+								name="schedule-json-editor"
+								aria-label="Schedule JSON Editor"
 								value={scheduleJson}
 								onChange={e => {
 									onUpdateJson(e.target.value);
@@ -1582,9 +1634,9 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 									<button onClick={onExportSchedule} style={{ fontSize: '0.9em', padding: '6px 10px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 8 }}>Export JSON</button>
 								)}
 								{onImportSchedule && (
-									<label style={{ fontSize: '0.9em', padding: '6px 10px', cursor: 'pointer', border: '1px solid #e5e7eb', background: '#F3F4F6', borderRadius: 8, display: 'inline-block' }}>
+									<label htmlFor="import-schedule-file" style={{ fontSize: '0.9em', padding: '6px 10px', cursor: 'pointer', border: '1px solid #e5e7eb', background: '#F3F4F6', borderRadius: 8, display: 'inline-block' }}>
 										Import JSON
-										<input type="file" accept=".json" onChange={onImportSchedule} style={{ display: 'none' }} />
+										<input id="import-schedule-file" name="import-schedule-file" type="file" accept=".json" onChange={onImportSchedule} style={{ display: 'none' }} />
 									</label>
 								)}
 								{onLoadProvidedSchedule && (
