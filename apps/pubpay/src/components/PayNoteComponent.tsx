@@ -159,6 +159,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     // Handle custom zap
     const handleCustomZap = async () => {
       if (!isLoggedIn) {
+        useUIStore.getState().openLogin();
         return; // Require login for non-anonymous zaps
       }
       const amount = parseInt(customZapAmount);
@@ -595,10 +596,13 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           {post.hasZapTags && (
             <div className="noteCTA">
               <button
-                className={`noteMainCTA cta ${!isPayable || !isLoggedIn || isReply ? 'disabled' : ''}`}
+                className={`noteMainCTA cta ${!isPayable || isReply ? 'disabled' : ''}`}
                 onClick={async () => {
-                  // Early return if disabled
-                  if (!isPayable || !isLoggedIn || isReply) {
+                  if (!isPayable || isReply) {
+                    return;
+                  }
+                  if (!isLoggedIn) {
+                    useUIStore.getState().openLogin();
                     return;
                   }
                   try {
@@ -623,12 +627,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     setIsPaying(false);
                   }
                 }}
-                disabled={!isPayable || !isLoggedIn || isReply || isPaying}
+                disabled={!isPayable || isReply || isPaying}
                 title={
                   isReply
                     ? 'Cannot pay replies'
-                    : !isLoggedIn && isPayable
-                    ? 'Please sign in to pay'
                     : !isPayable
                     ? 'This post is not payable'
                     : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
@@ -710,9 +712,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                         e.stopPropagation();
                         await handleCustomZap();
                       }}
-                      disabled={!isLoggedIn || isPaying}
-                      style={{ opacity: !isLoggedIn || isPaying ? 0.5 : 1 }}
-                      title={!isLoggedIn ? 'Please sign in to zap' : ''}
+                      disabled={isPaying}
+                      style={{ opacity: isPaying ? 0.5 : 1 }}
                     >
                       {isPaying ? 'Zapping…' : 'Zap'}
                     </button>
