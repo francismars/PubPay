@@ -26,6 +26,7 @@ const DEFAULT_STYLES = {
   podium: false,
   zapGrid: false,
   sectionLabels: true, // Default to showing section labels
+  qrOnly: false, // Default to showing full layout
   showFiat: false, // Default to hiding fiat amounts
   showHistoricalPrice: false, // Default to hiding historical prices
   showHistoricalChange: false, // Default to hiding historical change percentage
@@ -2328,6 +2329,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       sectionLabels:
         (document.getElementById('sectionLabelsToggle') as HTMLInputElement)
           ?.checked ?? true,
+      qrOnly:
+        (document.getElementById('qrOnlyToggle') as HTMLInputElement)
+          ?.checked || false,
       showFiat:
         (document.getElementById('showFiatToggle') as HTMLInputElement)
           ?.checked || false,
@@ -2688,6 +2692,20 @@ export const useLiveFunctionality = (eventId?: string) => {
         label => ((label as HTMLElement).style.display = 'inline')
       );
       document.body.classList.add('show-total-labels');
+    }
+
+    // Apply QR only toggle (set to default if not specified in URL)
+    const qrOnly = params.has('qrOnly')
+      ? params.get('qrOnly') === 'true'
+      : false;
+    const qrOnlyToggle = document.getElementById(
+      'qrOnlyToggle'
+    ) as HTMLInputElement;
+    if (qrOnlyToggle) qrOnlyToggle.checked = qrOnly;
+    if (qrOnly) {
+      document.body.classList.add('qr-only-mode');
+    } else {
+      document.body.classList.remove('qr-only-mode');
     }
 
     // Apply fiat toggle (set to default if not specified in URL)
@@ -4599,6 +4617,14 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     });
 
+    setupToggle('qrOnlyToggle', (checked: boolean) => {
+      if (checked) {
+        document.body.classList.add('qr-only-mode');
+      } else {
+        document.body.classList.remove('qr-only-mode');
+      }
+    });
+
     setupToggle('showFiatToggle', (checked: boolean) => {
       const currencySelectorGroup = document.getElementById(
         'currencySelectorGroup'
@@ -5674,6 +5700,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           'podiumToggle',
           'zapGridToggle',
           'sectionLabelsToggle',
+          'qrOnlyToggle',
           'showFiatToggle',
           'showHistoricalPriceToggle',
           'showHistoricalChangeToggle',
@@ -5701,6 +5728,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           podium: 'podiumToggle',
           zapGrid: 'zapGridToggle',
           sectionLabels: 'sectionLabelsToggle',
+          qrOnly: 'qrOnlyToggle',
           showFiat: 'showFiatToggle',
           showHistoricalPrice: 'showHistoricalPriceToggle',
           showHistoricalChange: 'showHistoricalChangeToggle',
@@ -5790,6 +5818,13 @@ export const useLiveFunctionality = (eventId?: string) => {
                   });
                   // Add class to control zaps-header alignment
                   document.body.classList.add('show-total-labels');
+                }
+              },
+              qrOnlyToggle: (checked: boolean) => {
+                if (checked) {
+                  document.body.classList.add('qr-only-mode');
+                } else {
+                  document.body.classList.remove('qr-only-mode');
                 }
               },
               showFiatToggle: (checked: boolean) => {
@@ -6389,6 +6424,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         { toggleId: 'podiumToggle', propertyName: 'podium' },
         { toggleId: 'zapGridToggle', propertyName: 'zapGrid' },
         { toggleId: 'sectionLabelsToggle', propertyName: 'sectionLabels' },
+        { toggleId: 'qrOnlyToggle', propertyName: 'qrOnly' },
         { toggleId: 'showFiatToggle', propertyName: 'showFiat' },
         {
           toggleId: 'showHistoricalPriceToggle',
@@ -7005,6 +7041,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         'showTopZappersToggle',
         'zapGridToggle',
         'podiumToggle',
+        'sectionLabelsToggle',
+        'qrOnlyToggle',
         'lightningToggle'
       ];
 
