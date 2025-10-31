@@ -19,6 +19,7 @@ type PretalxScheduleSlot = {
     end?: string;
     room?: number | string | { id?: number | string; name?: unknown };
     submission?: {
+        title?: string;
         speakers?: Array<PretalxSpeaker>;
     };
 };
@@ -299,7 +300,7 @@ export class PretalxService {
         return slotsOut;
     }
 
-    public async buildPreview(version: string, roomId?: number | string): Promise<Array<{ startAt: string; endAt: string; items: Array<{ ref: string }>; room?: { id?: number | string; name?: unknown } }>> {
+    public async buildPreview(version: string, roomId?: number | string): Promise<Array<{ startAt: string; endAt: string; items: Array<{ ref: string }>; room?: { id?: number | string; name?: string }; title?: string; speakers?: string[]; code?: string }>> {
         let records: PretalxScheduleSlot[] = [];
         if (version === 'latest' || version === 'wip') {
             try {
@@ -314,7 +315,7 @@ export class PretalxService {
             records = await this.fetchSlotsByVersion(version);
         }
 
-        const out: Array<{ startAt: string; endAt: string; items: Array<{ ref: string }>; room?: { id?: number | string; name?: string } }> = [];
+        const out: Array<{ startAt: string; endAt: string; items: Array<{ ref: string }>; room?: { id?: number | string; name?: string }; title?: string; speakers?: string[]; code?: string }> = [];
         const roomMap = new Map<string, { id?: number | string; name?: string }>();
         let slotsWithRooms = 0;
         for (const rec of records) {
@@ -344,11 +345,15 @@ export class PretalxService {
             if (roomId != null && r?.id != null && String(r.id) !== String(roomId)) continue;
             const noteSet = new Set<string>();
             const speakers = rec.submission?.speakers || [];
+            const speakerNames: string[] = [];
             for (const sp of speakers) {
                 const note = this.extractNoteFromSpeaker(sp);
                 if (note) noteSet.add(note);
+                if (sp?.name) speakerNames.push(sp.name);
             }
-            out.push({ startAt: rec.start, endAt: rec.end, items: Array.from(noteSet).map(ref => ({ ref })), room: r });
+            const title = (rec.submission?.title as string | undefined) || undefined;
+            const code = (rec.submission as unknown as { code?: string } | undefined)?.code || undefined;
+            out.push({ startAt: rec.start, endAt: rec.end, items: Array.from(noteSet).map(ref => ({ ref })), room: r, title, speakers: speakerNames, code });
         }
         this.logger.info(`Preview build complete: ${out.length} slots, ${slotsWithRooms} with rooms, ${roomMap.size} unique rooms`);
         return out.sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());

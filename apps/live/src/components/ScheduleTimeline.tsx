@@ -4,6 +4,10 @@ export interface Slot {
 	startAt: string;
 	endAt: string;
 	items: Array<{ ref: string; weight?: number; title?: string }>;
+    title?: string;
+    speakers?: string[];
+    roomName?: string;
+    code?: string;
 }
 
 interface ScheduleTimelineProps {
@@ -294,25 +298,8 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 		};
 	}, [dragging, dragStart, slots, minTime, maxTime, timeRange, updateSlot]);
 
-	// Keyboard nudge for selected slot when editing panel is open
-	useEffect(() => {
-		const handleKey = (e: KeyboardEvent) => {
-			if (editingSlot === null) return;
-			const slot = slots[editingSlot];
-			if (!slot) return;
-			const stepMinutes = e.shiftKey ? 15 : 1;
-			const delta = (e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0) * stepMinutes * 60 * 1000;
-			if (!delta) return;
-			e.preventDefault();
-			const start = new Date(slot.startAt).getTime() + delta;
-			const end = new Date(slot.endAt).getTime() + delta;
-			if (start >= minTime && end <= maxTime) {
-				updateSlot(editingSlot, { startAt: new Date(start).toISOString(), endAt: new Date(end).toISOString() });
-			}
-		};
-		document.addEventListener('keydown', handleKey);
-		return () => document.removeEventListener('keydown', handleKey);
-	}, [editingSlot, slots, minTime, maxTime, updateSlot]);
+	// Keyboard shortcuts (zoom + nudge when editing)
+	// This effect is intentionally placed AFTER zoom handlers are declared below
 
 	// Click outside to close edit overlay
 	useEffect(() => {
@@ -348,18 +335,45 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 	}, [editingSlot]);
 
 	// Zoom controls
-	const zoomIn = useCallback(() => {
-		setZoomLevel(prev => Math.min(prev * 1.5, 10)); // Max 10x zoom
+    const zoomIn = useCallback(() => {
+        setZoomLevel(prev => Math.min(prev * 1.5, 20)); // Max 20x zoom
 	}, []);
 
-	const zoomOut = useCallback(() => {
-		setZoomLevel(prev => Math.max(prev / 1.5, 0.1)); // Min 0.1x (zoomed out)
+    const zoomOut = useCallback(() => {
+        setZoomLevel(prev => Math.max(prev / 1.5, 1)); // Min 1x (zoomed out)
 	}, []);
 
 	const resetZoom = useCallback(() => {
 		setZoomLevel(1.0);
 		setTimeOffset(0);
 	}, []);
+
+// Keyboard shortcuts (zoom + nudge when editing)
+useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+        const active = document.activeElement as HTMLElement | null;
+        if (active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName)) return;
+
+            if (e.key === '+' || e.key === '=' || e.key === ']') { e.preventDefault(); zoomIn(); return; }
+            if (e.key === '-' || e.key === '_' || e.key === '[') { e.preventDefault(); zoomOut(); return; }
+            if (e.key === '0') { e.preventDefault(); resetZoom(); return; }
+
+        if (editingSlot === null) return;
+        const slot = slots[editingSlot];
+        if (!slot) return;
+        const stepMinutes = e.shiftKey ? 15 : 1;
+        const delta = (e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0) * stepMinutes * 60 * 1000;
+        if (!delta) return;
+        e.preventDefault();
+        const start = new Date(slot.startAt).getTime() + delta;
+        const end = new Date(slot.endAt).getTime() + delta;
+        if (start >= minTime && end <= maxTime) {
+            updateSlot(editingSlot, { startAt: new Date(start).toISOString(), endAt: new Date(end).toISOString() });
+        }
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+}, [editingSlot, slots, minTime, maxTime, updateSlot, zoomIn, zoomOut, resetZoom]);
 
 	// Pan controls
 	const panLeft = useCallback(() => {
@@ -375,15 +389,36 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 	}, [zoomLevel]);
 
 	// Wheel event for zoom/pan
-	const handleWheel = useCallback((e: React.WheelEvent) => {
-		if (e.ctrlKey || e.metaKey) {
-			// Ctrl/Cmd + wheel = zoom
-			e.preventDefault();
-			const delta = e.deltaY > 0 ? 0.9 : 1.1;
-			setZoomLevel(prev => Math.max(0.1, Math.min(10, prev * delta)));
-		} else if (e.shiftKey) {
+const handleWheel = useCallback((e: React.WheelEvent) => {
+        if (e.altKey) {
+            // Alt + wheel = zoom around mouse position (suppress scroll)
+            e.preventDefault();
+            e.stopPropagation();
+        if (!timelineRef.current) return;
+        const rect = timelineRef.current.getBoundingClientRect();
+        const x = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
+        const r = rect.width > 0 ? x / rect.width : 0.5; // 0..1 ratio across timeline
+
+        const deltaFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            const newZoom = Math.max(1, Math.min(20, zoomLevel * deltaFactor));
+
+        // Keep the time under the cursor fixed while zooming
+        const base = getBaseTimeRange();
+        const baseRange = base.max - base.min;
+        const visibleRangeNew = baseRange / newZoom;
+        // Cursor time currently displayed at:
+        const currentVisible = getVisibleTimeRange();
+        const cursorTime = currentVisible.min + r * (currentVisible.max - currentVisible.min);
+        const centerNew = cursorTime + (0.5 - r) * visibleRangeNew;
+        const baseCenter = (base.min + base.max) / 2;
+        const newOffset = centerNew - baseCenter;
+
+        setZoomLevel(newZoom);
+        setTimeOffset(newOffset);
+        } else if (e.shiftKey) {
 			// Shift + wheel = horizontal pan
-			e.preventDefault();
+            e.preventDefault();
+            e.stopPropagation();
 			const base = getBaseTimeRange();
 			const panAmount = (base.max - base.min) / (zoomLevel * 10) * (e.deltaY > 0 ? 1 : -1);
 			setTimeOffset(prev => prev + panAmount);
@@ -493,9 +528,9 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 					</div>
 				</div>
 			</div>
-			<div style={{ fontSize: '0.75em', color: '#666', marginBottom: 8 }}>
-				💡 Ctrl+Wheel = Zoom | Shift+Wheel = Pan | Drag background = Pan | Arrows = Nudge (Shift=15m) | Snap editable
-			</div>
+            <div style={{ fontSize: '0.75em', color: '#666', marginBottom: 8 }}>
+                💡 + / = = Zoom in • - = Zoom out • 0 = Reset | Alt+Wheel = Zoom (anchors at cursor) | Shift+Wheel = Pan | Drag background = Pan | Arrows = Nudge (Shift=15m) | Snap editable (1x–20x)
+            </div>
 
             {/* Templates */}
             <div style={{ marginBottom: 12, padding: 8, background: '#fff', borderRadius: 4, fontSize: '0.85em' }}>
@@ -554,8 +589,8 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 					className="timeline-bg"
 					style={{
 						position: 'relative',
-						minHeight: Math.max(200, slots.length * 60),
-						height: Math.max(200, slots.length * 60),
+							minHeight: Math.max(200, slots.length * 80),
+							height: Math.max(200, slots.length * 80),
 						background: '#fff',
 						cursor: panning ? 'grabbing' : 'grab',
 						userSelect: 'none'
@@ -707,8 +742,8 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 									position: 'absolute',
 									left: `${pos}%`,
 									width: `${width}%`,
-									top: 24 + idx * 60,
-									height: 50,
+							top: 24 + idx * 80,
+							height: 70,
 									background: isActive ? '#4caf50' : overlaps.length > 0 ? '#ff9800' : '#2196f3',
 									border: overlaps.length > 0 ? '2px solid #f44336' : '1px solid #1976d2',
 									borderRadius: 4,
@@ -773,12 +808,26 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 									}}
 									title="Click to edit slot"
 								>
-									{new Date(slot.startAt).toLocaleTimeString()} → {new Date(slot.endAt).toLocaleTimeString()} ({durationMinutes}m)
+							<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%' }}>
+								{slot.title ? (
+									<div style={{ fontWeight: 'bold', color: '#fff', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={slot.title}>
+										{slot.title}{slot.code ? ` • ${slot.code}` : ''}
+									</div>
+								) : null}
+								{slot.speakers && slot.speakers.length > 0 ? (
+									<div style={{ opacity: 0.95, fontSize: '10px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={slot.speakers.join(', ')}>
+										{slot.speakers.join(', ')}
+									</div>
+								) : null}
+								<div style={{ fontSize: '10px' }}>
+									{new Date(slot.startAt).toLocaleTimeString()} → {new Date(slot.endAt).toLocaleTimeString()} ({durationMinutes}m){slot.roomName ? ` • ${slot.roomName}` : ''}
 								</div>
-								<div style={{ fontSize: '10px', textAlign: 'center' }}>
-									{slot.items.length} item{slot.items.length !== 1 ? 's' : ''}
-									{overlaps.length > 0 && ` ⚠ Conflict!`}
+							</div>
 								</div>
+						<div style={{ fontSize: '10px', textAlign: 'center' }}>
+							{slot.items.length} item{slot.items.length !== 1 ? 's' : ''}
+							{overlaps.length > 0 && ` ⚠ Conflict!`}
+						</div>
 
 								{editingSlot === idx && (
 									<div
@@ -814,6 +863,37 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 												⚠️ Warning: This slot overlaps with slot{overlaps.length !== 1 ? 's' : ''} {overlaps.map(i => i + 1).join(', ')}
 											</div>
 										)}
+							{/* Readonly Pretalx info (if available) */}
+							{(slot.title || (slot.speakers && slot.speakers.length) || slot.roomName || slot.code) && (
+								<div style={{ marginBottom: 12, padding: 8, background: '#f7faff', border: '1px solid #cfe3ff', borderRadius: 6 }}>
+									<div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', rowGap: 6, columnGap: 8, alignItems: 'center' }}>
+										{slot.title && (
+											<>
+												<div style={{ fontSize: '0.85em', color: '#555' }}>Title</div>
+												<div style={{ fontWeight: 'bold' }}>{slot.title}</div>
+											</>
+										)}
+										{slot.code && (
+											<>
+												<div style={{ fontSize: '0.85em', color: '#555' }}>Code</div>
+												<div style={{ fontFamily: 'monospace' }}>{slot.code}</div>
+											</>
+										)}
+										{slot.speakers && slot.speakers.length > 0 && (
+											<>
+												<div style={{ fontSize: '0.85em', color: '#555' }}>Speakers</div>
+												<div>{slot.speakers.join(', ')}</div>
+											</>
+										)}
+										{slot.roomName && (
+											<>
+												<div style={{ fontSize: '0.85em', color: '#555' }}>Room</div>
+												<div>{slot.roomName}</div>
+											</>
+										)}
+									</div>
+								</div>
+							)}
 										<div style={{ marginBottom: 12 }}>
 											<label style={{ fontSize: '0.9em', fontWeight: 'bold' }}>Start (UTC ISO):</label>
 											<input
