@@ -680,6 +680,11 @@ a.feedSelectorLink.active {
   color: #fff;
 }
 
+.noteProfileImg a {
+  display: block;
+  cursor: pointer;
+}
+
 .noteProfileImg img {
   width: 40px;
   height: 40px;
