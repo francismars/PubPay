@@ -3376,6 +3376,64 @@ body.hide-zapper-content .zaps-list.grid-layout .zapperMessage {
   display: none;
 }
 
+/* QR Only Mode - Hide everything except QR code and zap notification overlay */
+body.qr-only-mode .left-side .post-info .author-section,
+body.qr-only-mode .left-side .post-info .note-section,
+body.qr-only-mode .left-side .post-info .section-label {
+  display: none !important;
+}
+
+/* Hide most of the right side but keep settings button visible */
+body.qr-only-mode .right-side .zaps-header-left,
+body.qr-only-mode .right-side .top-zappers-bar,
+body.qr-only-mode .right-side .zaps-container {
+  display: none !important;
+}
+
+body.qr-only-mode .right-side {
+  min-width: auto;
+  width: auto;
+  padding: 1vw;
+}
+
+body.qr-only-mode .right-side .zaps-header {
+  justify-content: flex-end;
+  padding: 0;
+}
+
+body.qr-only-mode .right-side .zaps-header-right {
+  margin: 0;
+}
+
+/* Keep powered-by logo in QR-only mode */
+body.qr-only-mode .right-side .powered-by {
+  display: flex;
+}
+
+body.qr-only-mode .left-side {
+  width: 100%;
+  max-width: 100%;
+  border: none;
+}
+
+body.qr-only-mode .main-layout {
+  justify-content: center;
+  align-items: flex-start;
+}
+
+body.qr-only-mode .left-side .post-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+body.qr-only-mode .qr-section {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 800px;
+}
+
 /* Zap ranking system - Only apply when podium is enabled and NOT in grid layout */
 body.podium-enabled .zaps-list:not(.grid-layout) .zap:nth-child(1) {
   background: linear-gradient(

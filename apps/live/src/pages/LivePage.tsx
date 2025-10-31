@@ -1044,6 +1044,15 @@ export const LivePage: React.FC = () => {
                 <div className="style-option-group toggle-group">
                   <label className="toggle-label">
                     <div className="toggle-switch">
+                      <input type="checkbox" id="qrOnlyToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>QR Only (Hide Everything Else)</span>
+                  </label>
+                </div>
+                <div className="style-option-group toggle-group">
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
                       <input type="checkbox" id="showFiatToggle" />
                       <span className="toggle-slider"></span>
                     </div>
