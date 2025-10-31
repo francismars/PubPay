@@ -316,37 +316,37 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
               }}>
                 {filteredFollows.length > 0 ? (
                   filteredFollows.map((f, idx) => (
-                    <div
-                      key={f.pubkey + idx}
-                      onMouseDown={e => {
-                        e.preventDefault();
-                        const textarea = textareaRef.current;
-                        if (!textarea) return;
-                        const value = textarea.value;
-                        const caret = textarea.selectionStart || 0;
-                        const upto = value.slice(0, caret);
-                        const at = upto.lastIndexOf('@');
-                        if (at === -1) return;
-                        const before = value.slice(0, at);
-                        const after = value.slice(caret);
+                  <div
+                    key={f.pubkey + idx}
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      const textarea = textareaRef.current;
+                      if (!textarea) return;
+                      const value = textarea.value;
+                      const caret = textarea.selectionStart || 0;
+                      const upto = value.slice(0, caret);
+                      const at = upto.lastIndexOf('@');
+                      if (at === -1) return;
+                      const before = value.slice(0, at);
+                      const after = value.slice(caret);
                       const insert = `nostr:${f.npub} `;
-                        textarea.value = before + insert + after;
-                        const newPos = (before + insert).length;
-                        textarea.selectionStart = textarea.selectionEnd = newPos;
-                        textarea.focus();
-                        setShowMention(false);
-                        setMentionQuery('');
-                        setActiveIdx(0);
-                        handleTextareaChange({ target: textarea } as any);
-                      }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', background: idx === activeIdx ? '#f3f4f6' : '#fff' }}
-                    >
-                      <img src={f.picture || ''} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eee' }} />
-                      <div style={{ fontSize: '13px' }}>
-                        <div style={{ fontWeight: 500 }}>{f.displayName}</div>
-                        <div style={{ color: '#6b7280' }}>{f.npub.substring(0, 12)}…</div>
-                      </div>
+                      textarea.value = before + insert + after;
+                      const newPos = (before + insert).length;
+                      textarea.selectionStart = textarea.selectionEnd = newPos;
+                      textarea.focus();
+                      setShowMention(false);
+                      setMentionQuery('');
+                      setActiveIdx(0);
+                      handleTextareaChange({ target: textarea } as any);
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', background: idx === activeIdx ? '#f3f4f6' : '#fff' }}
+                  >
+                    <img src={f.picture || ''} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eee' }} />
+                    <div style={{ fontSize: '13px' }}>
+                      <div style={{ fontWeight: 500 }}>{f.displayName}</div>
+                      <div style={{ color: '#6b7280' }}>{f.npub.substring(0, 12)}…</div>
                     </div>
+                  </div>
                   ))
                 ) : (
                   <div style={{ padding: '12px 8px', color: '#6b7280', fontSize: '13px', fontStyle: 'italic' }}>
@@ -577,7 +577,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                   const v = e.target.value || '';
                   // Only trigger suggestions when using @ prefix to differentiate from pasted values
                   const q = v.startsWith('@') ? v.slice(1).trim() : '';
-                setZpQuery(q);
+                  setZpQuery(q);
                 // Close if space present in query
                 if (/\s/.test(q)) {
                   setZpShow(false);
@@ -589,7 +589,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                 onFocus={(e) => {
                   const v = e.target.value || '';
                   const q = v.startsWith('@') ? v.slice(1).trim() : '';
-                setZpQuery(q);
+                  setZpQuery(q);
                 if (/\s/.test(q)) {
                   setZpShow(false);
                 } else {
@@ -633,24 +633,24 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                 }}>
                   {zpFiltered.length > 0 ? (
                     zpFiltered.map((f, idx) => (
-                      <div
-                        key={f.pubkey + idx}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
+                    <div
+                      key={f.pubkey + idx}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
                         if (zapPayerRef.current) {
                           // Set raw npub value; @ prefix is only for triggering suggestions
                           zapPayerRef.current.value = `${f.npub}`;
                         }
-                          setZpShow(false);
-                        }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', background: idx === zpActiveIdx ? '#f3f4f6' : '#fff' }}
-                      >
-                        <img src={f.picture || ''} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eee' }} />
-                        <div style={{ fontSize: '13px' }}>
-                          <div style={{ fontWeight: 500 }}>{f.displayName}</div>
-                          <div style={{ color: '#6b7280' }}>{f.npub.substring(0, 12)}…</div>
-                        </div>
+                        setZpShow(false);
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', background: idx === zpActiveIdx ? '#f3f4f6' : '#fff' }}
+                    >
+                      <img src={f.picture || ''} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eee' }} />
+                      <div style={{ fontSize: '13px' }}>
+                        <div style={{ fontWeight: 500 }}>{f.displayName}</div>
+                        <div style={{ color: '#6b7280' }}>{f.npub.substring(0, 12)}…</div>
                       </div>
+                    </div>
                     ))
                   ) : (
                     <div style={{ padding: '12px 8px', color: '#6b7280', fontSize: '13px', fontStyle: 'italic' }}>

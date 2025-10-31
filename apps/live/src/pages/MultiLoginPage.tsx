@@ -9,12 +9,17 @@ export const MultiLoginPage: React.FC = () => {
 	const [password, setPassword] = useState('');
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [showValidationError, setShowValidationError] = useState(false);
 
 	const login = useCallback(async () => {
 		if (!roomId.trim()) {
 			setError('Multi LIVE ID is required');
+			setShowValidationError(true);
+			// Clear validation error after user starts typing
+			setTimeout(() => setShowValidationError(false), 3000);
 			return;
 		}
+		setShowValidationError(false);
 		setBusy(true); setError(null);
 		try {
 			const url = `${API_BASE}/multi/${roomId}`;
@@ -88,13 +93,24 @@ export const MultiLoginPage: React.FC = () => {
 							<p className="app-description">Access your scheduled multi LIVE</p>
 						</div>
 
-						<label>MULTI LIVE ID</label>
+						<label>MULTI LIVE ID *</label>
 						<input 
 							value={roomId} 
-							onChange={e => setRoomId(e.target.value)} 
+							onChange={e => {
+								setRoomId(e.target.value);
+								if (showValidationError && e.target.value.trim()) {
+									setShowValidationError(false);
+									setError(null);
+								}
+							}}
 							placeholder="Enter Multi LIVE ID" 
 							onKeyPress={handleKeyPress}
 							autoFocus
+							required
+							style={{
+								borderColor: showValidationError ? '#ef4444' : undefined,
+								borderWidth: showValidationError ? '2px' : undefined
+							}}
 						/>
 
 						<label style={{ marginTop: 8 }}>Password (optional)</label>
@@ -107,7 +123,7 @@ export const MultiLoginPage: React.FC = () => {
 						/>
 
 						<div className="button-container" style={{ marginTop: 12 }}>
-							<button className="button" onClick={login} disabled={busy || !roomId.trim()}>
+							<button className="button" onClick={login} disabled={busy}>
 								{busy ? 'Loading...' : 'Access Multi LIVE'}
 							</button>
 						</div>
@@ -127,7 +143,34 @@ export const MultiLoginPage: React.FC = () => {
 							</div>
 						</div>
 
-						{error && <div className="error-message" style={{ display: 'block', marginTop: 8 }}>{error}</div>}
+						{error && (
+							<div className="error-message" style={{ display: 'block', marginTop: 8, position: 'relative', paddingRight: 28 }}>
+								{error}
+								<button
+									onClick={() => {
+										setError(null);
+										setShowValidationError(false);
+									}}
+									style={{
+										position: 'absolute',
+										right: 8,
+										top: '50%',
+										transform: 'translateY(-50%)',
+										background: 'transparent',
+										border: 'none',
+										color: 'inherit',
+										cursor: 'pointer',
+										fontSize: '18px',
+										lineHeight: 1,
+										padding: '4px 8px',
+										opacity: 0.7
+									}}
+									aria-label="Close error"
+								>
+									×
+								</button>
+							</div>
+						)}
 					</div>
 				</div>
 			</div>
