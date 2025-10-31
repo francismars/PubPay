@@ -25,29 +25,87 @@ export const RoomAdminPage: React.FC = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<string | null>(null);
 	const [editorMode, setEditorMode] = useState<'json' | 'timeline'>('timeline');
+// Deprecated single-field import path retained for compatibility; not used in new UI
+// const [pretalxVersion] = useState<string>('');
+	const [pretalxSchedules, setPretalxSchedules] = useState<Array<{ id?: string | number; version?: string; published?: string | null }>>([]);
+	const [selectedVersion, setSelectedVersion] = useState<string>('');
+	const [availableStages, setAvailableStages] = useState<Array<{ id?: string | number; name?: string | number }>>([]);
+	const [selectedStageId, setSelectedStageId] = useState<string>('');
+	const [rawResponse, setRawResponse] = useState<unknown | null>(null);
 
-	const importFromPretalx = useCallback(async () => {
-		if (!createdRoomId) return;
-		setBusy(true); setError(null); setSuccess(null);
+	const fetchPretalxSchedules = useCallback(async () => {
+		setBusy(true); setError(null); setSuccess(null); setRawResponse(null);
 		try {
-			const res = await fetch(`${API_BASE}/rooms/${createdRoomId}/import/pretalx`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({}) // rely on backend env PRETALX_* unless overridden
-			});
+			const res = await fetch(`${API_BASE}/rooms/pretalx/schedules`);
 			const json = await res.json();
-			if (!res.ok || !json?.success) throw new Error(json?.error || 'Import failed');
-			setSuccess(`Imported ${json.data?.imported ?? 0} slots from Pretalx.`);
-			// Fetch and show the new schedule
-			const roomRes = await fetch(`${API_BASE}/rooms/${createdRoomId}`);
-			const roomJson = await roomRes.json();
-			if (roomJson?.success && roomJson?.data?.schedule) {
-				setScheduleJson(JSON.stringify(roomJson.data.schedule, null, 2));
+			setRawResponse(json); // Store raw response for debugging
+			if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to fetch schedules');
+			setPretalxSchedules(json.data?.schedules || []);
+			if (!selectedVersion && (json.data?.schedules || []).length) {
+				setSelectedVersion((json.data.schedules[0].version || '').toString());
 			}
+			setSuccess('Schedules loaded');
+			setTimeout(() => setSuccess(null), 1500);
 		} catch (e: unknown) {
-			setError(e instanceof Error ? e.message : 'Import error');
+			setError(e instanceof Error ? e.message : 'Error');
 		} finally { setBusy(false); }
-	}, [createdRoomId]);
+	}, [selectedVersion]);
+
+	const loadVersionStages = useCallback(async () => {
+		if (!selectedVersion) { setError('Select a schedule version first'); return; }
+		setBusy(true); setError(null); setSuccess(null); setRawResponse(null);
+		try {
+			const params = new URLSearchParams({ version: selectedVersion });
+			const res = await fetch(`${API_BASE}/rooms/pretalx/preview?${params.toString()}`);
+			const json = await res.json();
+			setRawResponse(json); // Store raw response for debugging
+			if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to load preview');
+			const slots = (json.data?.slots || []) as Array<{ room?: { id?: string | number; name?: string } }>;
+			const stageMap = new Map<string, { id?: string | number; name?: string | number }>();
+			for (const s of slots) {
+				const rid = s.room?.id;
+				if (rid == null) continue;
+				const key = String(rid);
+				// Extract name - handle multi-language or plain string
+				let name: string | number | undefined = s.room?.name;
+				if (name && typeof name !== 'string' && typeof name !== 'number' && typeof name === 'object') {
+					const ml = name as Record<string, unknown>;
+					name = (ml['en'] as string) || (ml[Object.keys(ml)[0]] as string) || String(rid);
+				}
+				if (!stageMap.has(key)) stageMap.set(key, { id: rid, name: name || rid });
+			}
+			const stages = Array.from(stageMap.values());
+			setAvailableStages(stages);
+			if (!selectedStageId && stages.length) setSelectedStageId(String(stages[0].id ?? ''));
+			setSuccess(`Found ${stages.length} stage(s)`);
+			setTimeout(() => setSuccess(null), 1500);
+		} catch (e: unknown) {
+			setError(e instanceof Error ? e.message : 'Error');
+		} finally { setBusy(false); }
+	}, [selectedVersion, selectedStageId]);
+
+const loadStageToTimeline = useCallback(async () => {
+		if (!selectedVersion) { setError('Select a schedule version first'); return; }
+		if (!selectedStageId) { setError('Select a stage first'); return; }
+		setBusy(true); setError(null); setSuccess(null); setRawResponse(null);
+		try {
+			const params = new URLSearchParams({ version: selectedVersion, roomId: selectedStageId });
+			const res = await fetch(`${API_BASE}/rooms/pretalx/preview?${params.toString()}`);
+			const json = await res.json();
+			setRawResponse(json); // Store raw response for debugging
+			if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to load stage slots');
+			const slots = (json.data?.slots || []) as Array<{ startAt: string; endAt: string; items: Array<{ ref: string }> }>;
+    const timelineSlots: Slot[] = slots.map(s => ({ startAt: s.startAt, endAt: s.endAt, items: s.items }));
+    // Defer to avoid before-declaration usage warning
+    setTimeout(() => updateSlotsFromTimeline(timelineSlots), 0);
+			setSuccess(`Loaded ${timelineSlots.length} slots to timeline`);
+			setTimeout(() => setSuccess(null), 1500);
+		} catch (e: unknown) {
+			setError(e instanceof Error ? e.message : 'Error');
+		} finally { setBusy(false); }
+}, [selectedVersion, selectedStageId]);
+
+// Removed unused importFromPretalx handler in favor of version/stage workflow
 
 	// Parse slots from JSON and sync
 	const parsedSlots = useMemo<Slot[]>(() => {
@@ -264,9 +322,27 @@ export const RoomAdminPage: React.FC = () => {
 						<button onClick={createRoom} disabled={busy}>Create room</button>
 					) : (
 						<>
-							<button onClick={saveSettings} disabled={busy}>Save settings</button>
-						<button onClick={() => window.open(`/room/${createdRoomId}`, '_blank')}>Open viewer</button>
-						<button onClick={importFromPretalx} disabled={busy} title="Import schedule from Pretalx using backend env settings">Import from Pretalx</button>
+						<button onClick={saveSettings} disabled={busy}>Save settings</button>
+					<button onClick={() => window.open(`/room/${createdRoomId}`, '_blank')}>Open viewer</button>
+					<div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto auto', gap: 6, alignItems: 'center' }}>
+						<button onClick={fetchPretalxSchedules} disabled={busy}>Fetch schedules</button>
+						<select value={selectedVersion} onChange={e => setSelectedVersion(e.target.value)}>
+							<option value="">Select version</option>
+							<option value="wip">wip (work in progress)</option>
+							<option value="latest">latest (published)</option>
+							{pretalxSchedules.map((s, i) => (
+								<option key={`${s.version || s.id || i}`} value={(s.version || '').toString()}>{(s.version || '').toString()} {s.published ? '(published)' : ''}</option>
+							))}
+						</select>
+						<button onClick={loadVersionStages} disabled={busy || !selectedVersion}>Load version</button>
+						<select value={selectedStageId} onChange={e => setSelectedStageId(e.target.value)}>
+							<option value="">Select stage</option>
+							{availableStages.map((r, i) => (
+								<option key={`${r.id || i}`} value={String(r.id ?? '')}>{String(r.name ?? r.id ?? '')}</option>
+							))}
+						</select>
+						<button onClick={loadStageToTimeline} disabled={busy || !selectedStageId}>Load stage → Timeline</button>
+					</div>
 							<button onClick={copyRoomId} style={{ fontSize: '0.9em', padding: '4px 8px' }}>Copy Room ID</button>
 							<button onClick={copyViewerUrl} style={{ fontSize: '0.9em', padding: '4px 8px' }}>Copy URL</button>
 						</>
@@ -275,6 +351,23 @@ export const RoomAdminPage: React.FC = () => {
 				{createdRoomId && <small style={{ display: 'block', marginTop: 4 }}>Room ID: {createdRoomId}</small>}
 				{error && <div style={{ color: 'red', marginTop: 8, padding: 8, background: '#ffe6e6', borderRadius: 4 }}>{error}</div>}
 				{success && <div style={{ color: 'green', marginTop: 8, padding: 8, background: '#e6ffe6', borderRadius: 4 }}>{success}</div>}
+				{rawResponse !== null && (
+					<div style={{ marginTop: 8, padding: 8, background: '#f0f0f0', borderRadius: 4, fontSize: '0.85em', maxHeight: '400px', overflow: 'auto' }}>
+						<strong>Raw API Response:</strong>
+						{selectedStageId && availableStages.length > 0 && (() => {
+							const stage = availableStages.find(s => String(s.id) === selectedStageId);
+							if (stage) {
+								return (
+									<div style={{ marginTop: 4, marginBottom: 4, padding: 4, background: '#e0e0e0', borderRadius: 2 }}>
+										<strong>Selected Stage:</strong> {String(stage.name ?? stage.id)} (ID: {stage.id})
+									</div>
+								);
+							}
+							return null;
+						})()}
+						<pre style={{ whiteSpace: 'pre-wrap', marginTop: 4, fontSize: '0.8em' }}>{JSON.stringify(rawResponse, null, 2)}</pre>
+					</div>
+				)}
 			</div>
 			<div>
 				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
