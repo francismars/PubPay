@@ -152,6 +152,13 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
       return;
     }
     const q = upto.slice(at + 1);
+    // Close suggestions if a whitespace has been typed after the @ token
+    if (/\s/.test(q)) {
+      setShowMention(false);
+      setMentionQuery('');
+      setActiveIdx(0);
+      return;
+    }
     if (q.length >= 3) {
       setMentionQuery(q);
       setShowMention(true);
@@ -258,7 +265,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                     if (at !== -1) {
                       const before = value.slice(0, at);
                       const after = value.slice(caret);
-                      const insert = `@${choice.npub} `;
+                    const insert = `nostr:${choice.npub} `;
                       textarea.value = before + insert + after;
                       const newPos = (before + insert).length;
                       textarea.selectionStart = textarea.selectionEnd = newPos;
@@ -276,48 +283,55 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
               disabled={isUploading}
             ></textarea>
 
-            {showMention && filteredFollows.length > 0 && (
+            {showMention && (
               <div style={{
                 position: 'absolute',
                 marginTop: '4px',
                 border: '1px solid #e5e7eb',
                 background: '#ffffff',
                 borderRadius: '6px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.08)'
+                boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                zIndex: 1000
               }}>
-                {filteredFollows.map((f, idx) => (
-                  <div
-                    key={f.pubkey + idx}
-                    onMouseDown={e => {
-                      e.preventDefault();
-                      const textarea = textareaRef.current;
-                      if (!textarea) return;
-                      const value = textarea.value;
-                      const caret = textarea.selectionStart || 0;
-                      const upto = value.slice(0, caret);
-                      const at = upto.lastIndexOf('@');
-                      if (at === -1) return;
-                      const before = value.slice(0, at);
-                      const after = value.slice(caret);
-                      const insert = `@${f.npub} `;
-                      textarea.value = before + insert + after;
-                      const newPos = (before + insert).length;
-                      textarea.selectionStart = textarea.selectionEnd = newPos;
-                      textarea.focus();
-                      setShowMention(false);
-                      setMentionQuery('');
-                      setActiveIdx(0);
-                      handleTextareaChange({ target: textarea } as any);
-                    }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', background: idx === activeIdx ? '#f3f4f6' : '#fff' }}
-                  >
-                    <img src={f.picture || ''} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eee' }} />
-                    <div style={{ fontSize: '13px' }}>
-                      <div style={{ fontWeight: 500 }}>{f.displayName}</div>
-                      <div style={{ color: '#6b7280' }}>{f.npub.substring(0, 12)}…</div>
+                {filteredFollows.length > 0 ? (
+                  filteredFollows.map((f, idx) => (
+                    <div
+                      key={f.pubkey + idx}
+                      onMouseDown={e => {
+                        e.preventDefault();
+                        const textarea = textareaRef.current;
+                        if (!textarea) return;
+                        const value = textarea.value;
+                        const caret = textarea.selectionStart || 0;
+                        const upto = value.slice(0, caret);
+                        const at = upto.lastIndexOf('@');
+                        if (at === -1) return;
+                        const before = value.slice(0, at);
+                        const after = value.slice(caret);
+                      const insert = `nostr:${f.npub} `;
+                        textarea.value = before + insert + after;
+                        const newPos = (before + insert).length;
+                        textarea.selectionStart = textarea.selectionEnd = newPos;
+                        textarea.focus();
+                        setShowMention(false);
+                        setMentionQuery('');
+                        setActiveIdx(0);
+                        handleTextareaChange({ target: textarea } as any);
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', background: idx === activeIdx ? '#f3f4f6' : '#fff' }}
+                    >
+                      <img src={f.picture || ''} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eee' }} />
+                      <div style={{ fontSize: '13px' }}>
+                        <div style={{ fontWeight: 500 }}>{f.displayName}</div>
+                        <div style={{ color: '#6b7280' }}>{f.npub.substring(0, 12)}…</div>
+                      </div>
                     </div>
+                  ))
+                ) : (
+                  <div style={{ padding: '12px 8px', color: '#6b7280', fontSize: '13px', fontStyle: 'italic' }}>
+                    No results found for "{mentionQuery}"
                   </div>
-                ))}
+                )}
               </div>
             )}
             
@@ -542,15 +556,24 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                   const v = e.target.value || '';
                   // Only trigger suggestions when using @ prefix to differentiate from pasted values
                   const q = v.startsWith('@') ? v.slice(1).trim() : '';
-                  setZpQuery(q);
+                setZpQuery(q);
+                // Close if space present in query
+                if (/\s/.test(q)) {
+                  setZpShow(false);
+                } else {
                   setZpShow(q.length >= 3);
+                }
                   setZpActiveIdx(0);
                 }}
                 onFocus={(e) => {
                   const v = e.target.value || '';
                   const q = v.startsWith('@') ? v.slice(1).trim() : '';
-                  setZpQuery(q);
+                setZpQuery(q);
+                if (/\s/.test(q)) {
+                  setZpShow(false);
+                } else {
                   setZpShow(q.length >= 3);
+                }
                   setZpActiveIdx(0);
                 }}
                 onKeyDown={(e) => {
@@ -565,7 +588,8 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                     e.preventDefault();
                     const choice = zpFiltered[zpActiveIdx];
                     if (choice && zapPayerRef.current) {
-                      zapPayerRef.current.value = `@${choice.npub}`;
+                      // Set raw npub value; @ prefix is only for triggering suggestions
+                      zapPayerRef.current.value = `${choice.npub}`;
                       setZpShow(false);
                     }
                   } else if (e.key === 'Escape') {
@@ -573,7 +597,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                   }
                 }}
               />
-              {zpShow && zpFiltered.length > 0 && (
+              {zpShow && (
                 <div style={{
                   position: 'absolute',
                   left: 0,
@@ -583,27 +607,35 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                   border: '1px solid #e5e7eb',
                   background: '#ffffff',
                   borderRadius: '6px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.08)'
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                  zIndex: 1000
                 }}>
-                  {zpFiltered.map((f, idx) => (
-                    <div
-                      key={f.pubkey + idx}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
+                  {zpFiltered.length > 0 ? (
+                    zpFiltered.map((f, idx) => (
+                      <div
+                        key={f.pubkey + idx}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
                         if (zapPayerRef.current) {
-                          zapPayerRef.current.value = `@${f.npub}`;
+                          // Set raw npub value; @ prefix is only for triggering suggestions
+                          zapPayerRef.current.value = `${f.npub}`;
                         }
-                        setZpShow(false);
-                      }}
-                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', background: idx === zpActiveIdx ? '#f3f4f6' : '#fff' }}
-                    >
-                      <img src={f.picture || ''} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eee' }} />
-                      <div style={{ fontSize: '13px' }}>
-                        <div style={{ fontWeight: 500 }}>{f.displayName}</div>
-                        <div style={{ color: '#6b7280' }}>{f.npub.substring(0, 12)}…</div>
+                          setZpShow(false);
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px', cursor: 'pointer', background: idx === zpActiveIdx ? '#f3f4f6' : '#fff' }}
+                      >
+                        <img src={f.picture || ''} alt="" style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#eee' }} />
+                        <div style={{ fontSize: '13px' }}>
+                          <div style={{ fontWeight: 500 }}>{f.displayName}</div>
+                          <div style={{ color: '#6b7280' }}>{f.npub.substring(0, 12)}…</div>
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '12px 8px', color: '#6b7280', fontSize: '13px', fontStyle: 'italic' }}>
+                      No results found for "{zpQuery}"
                     </div>
-                  ))}
+                  )}
                 </div>
               )}
             </div>

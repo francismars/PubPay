@@ -285,6 +285,63 @@ const RegisterPage: React.FC = () => {
     }
   };
 
+  // Handle paste-to-upload for picture/banner using clipboard image
+  const handleClipboardImage = async (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    target: 'picture' | 'banner'
+  ) => {
+    try {
+      const items = e.clipboardData?.items || [];
+      let imageFile: File | null = null;
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (it.kind === 'file' && it.type.startsWith('image/')) {
+          const blob = it.getAsFile();
+          if (blob) {
+            imageFile = new File([blob], `pasted.${(blob.type.split('/')[1] || 'png')}`, {
+              type: blob.type
+            });
+            break;
+          }
+        }
+      }
+      if (!imageFile) return; // no image in clipboard; allow default paste
+
+      // Prevent pasting the image as text
+      e.preventDefault();
+
+      if (!generatedKeys || !generatedKeys.rawPrivateKey || !generatedKeys.rawPublicKey) {
+        alert('Please wait for keys to be generated');
+        return;
+      }
+
+      if (target === 'picture') setUploadingPicture(true);
+      if (target === 'banner') setUploadingBanner(true);
+
+      const blossomService = new BlossomService();
+      const hash = await blossomService.uploadFileWithKey(
+        imageFile,
+        generatedKeys.rawPrivateKey,
+        generatedKeys.rawPublicKey
+      );
+
+      const extFromType = imageFile.type === 'image/jpeg' ? 'jpg'
+        : imageFile.type === 'image/png' ? 'png'
+        : imageFile.type === 'image/gif' ? 'gif'
+        : imageFile.type === 'image/webp' ? 'webp'
+        : undefined;
+      const imageUrl = blossomService.getFileUrl(hash, extFromType);
+
+      setFormData(prev => ({ ...prev, [target]: imageUrl }));
+    } catch (error) {
+      console.error('Failed to upload pasted image:', error);
+      alert(`Failed to upload pasted image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      if (target === 'picture') setUploadingPicture(false);
+      if (target === 'banner') setUploadingBanner(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -448,6 +505,7 @@ const RegisterPage: React.FC = () => {
                   name="picture"
                   value={formData.picture}
                   onChange={handleInputChange}
+                onPaste={(e) => handleClipboardImage(e, 'picture')}
                   className="profileFormInput"
                   placeholder="https://example.com/profile.jpg or upload from Blossom"
                 />
@@ -497,6 +555,7 @@ const RegisterPage: React.FC = () => {
                   name="banner"
                   value={formData.banner}
                   onChange={handleInputChange}
+                onPaste={(e) => handleClipboardImage(e, 'banner')}
                   className="profileFormInput"
                   placeholder="https://example.com/banner.jpg or upload from Blossom"
                 />

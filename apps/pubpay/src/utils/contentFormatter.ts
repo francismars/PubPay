@@ -77,15 +77,15 @@ export async function formatContent(
   content: string,
   nostrClient?: any
 ): Promise<string> {
-  // First, handle npub mentions (before URL processing to avoid conflicts)
+  // First, handle nostr:npub mentions (only nostr: prefix, not @ or bare npub)
   const npubMatches = content.match(
-    /(nostr:|@)?((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
+    /nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
   );
 
   if (npubMatches) {
     const replacements = await Promise.all(
       npubMatches.map(async match => {
-        const cleanMatch = match.replace(/^(nostr:|@)/, '');
+        const cleanMatch = match.replace(/^nostr:/i, '');
         const displayName = await getMentionUserName(cleanMatch, nostrClient);
         return {
           match,
