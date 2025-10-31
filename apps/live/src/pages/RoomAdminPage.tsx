@@ -207,9 +207,30 @@ const loadStageToTimeline = useCallback(async () => {
 		let cancelled = false;
 		(async () => {
 			try {
-				const res = await fetch(`${API_BASE}/rooms/${roomId}`);
+				// Check if we have a stored password for this room
+				const storedPassword = sessionStorage.getItem(`room_${roomId}_password`);
+				let res;
+
+				if (storedPassword) {
+					// Use POST with password if we have one stored
+					res = await fetch(`${API_BASE}/rooms/${roomId}`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ password: storedPassword })
+					});
+				} else {
+					// Use GET if no password
+					res = await fetch(`${API_BASE}/rooms/${roomId}`);
+				}
+
 				if (cancelled) return;
 				if (res.status === 404) {
+					navigate('/multi', { replace: true });
+					return;
+				}
+				if (res.status === 401) {
+					// Password invalid or expired - clear and redirect to login
+					sessionStorage.removeItem(`room_${roomId}_password`);
 					navigate('/multi', { replace: true });
 					return;
 				}
@@ -242,10 +263,7 @@ const loadStageToTimeline = useCallback(async () => {
 		setBusy(true); setError(null);
 		try {
 			const payload = {
-				name: name || 'Untitled Room',
-				rotationPolicy,
-				rotationIntervalSec,
-				defaultItems: defaultItems.split(/\n|,/) .map(s => s.trim()).filter(Boolean)
+				name: name || 'Untitled Room'
 			};
 			const res = await fetch(`${API_BASE}/rooms`, {
 				method: 'POST',
@@ -258,7 +276,7 @@ const loadStageToTimeline = useCallback(async () => {
 		} catch (e: unknown) {
 			setError(e instanceof Error ? e.message : 'Error');
 		} finally { setBusy(false); }
-	}, [name, rotationPolicy, rotationIntervalSec, defaultItems]);
+	}, [name]);
 
 	const validateSchedule = useCallback((jsonText: string): { valid: boolean; error?: string } => {
 		try {
@@ -472,7 +490,7 @@ const loadStageToTimeline = useCallback(async () => {
 	}, [newSlotStart, newSlotEnd, newSlotTitle, newSlotCode, newSlotSpeakers, newSlotRoomName, newSlotItems, parsedSlots, updateSlotsFromTimeline]);
 
 	return (
-		<div style={{ padding: 24, display: 'grid', gap: 16, gridTemplateColumns: '1fr', alignItems: 'start', background: '#ffffff' }}>
+		<div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, height: '100vh', background: '#ffffff', overflow: 'hidden' }}>
 			<div style={{ background: '#ffffff', border: 'none', padding: 16 }}>
 				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -506,7 +524,8 @@ const loadStageToTimeline = useCallback(async () => {
 				{!showPretalxModal && !showSettingsModal && error && <div style={{ marginTop: 8, padding: 8, background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', borderRadius: 8 }}>{error}</div>}
 				{!showPretalxModal && !showSettingsModal && success && <div style={{ marginTop: 8, padding: 8, background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', borderRadius: 8 }}>{success}</div>}
 			</div>
-			<ScheduleTimeline
+			<div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+				<ScheduleTimeline
 				slots={parsedSlots}
 				onChange={updateSlotsFromTimeline}
 				onAddSlotAtTime={(startTime) => {
@@ -525,6 +544,7 @@ const loadStageToTimeline = useCallback(async () => {
 				createdRoomId={createdRoomId}
 				busy={busy}
 			/>
+			</div>
 
 			{/* Pretalx Modal */}
 			{showPretalxModal && (

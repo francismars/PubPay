@@ -8,6 +8,7 @@ export interface RoomConfig {
 	name: string;
 	slug?: string;
 	timezone?: string;
+	password?: string;
 	rotationPolicy: RotationPolicy;
 	rotationIntervalSec: number;
 	defaultItems: string[]; // note1/nevent1 refs
@@ -63,6 +64,7 @@ export class RoomsService {
 			name: configInput.name,
 			slug: configInput.slug,
 			timezone: configInput.timezone || 'UTC',
+			password: configInput.password,
 			rotationPolicy: configInput.rotationPolicy || 'round_robin',
 			rotationIntervalSec: configInput.rotationIntervalSec || 60,
 			defaultItems: configInput.defaultItems || []

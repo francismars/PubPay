@@ -775,7 +775,7 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 	}, [contextMenu]);
 
 	return (
-		<div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8, background: '#fafafa' }}>
+		<div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8, background: '#fafafa', height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
 				<h3 style={{ margin: 0 }}>{editorMode === 'timeline' ? 'Schedule Timeline' : 'Schedule JSON'}</h3>
 				<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -829,14 +829,15 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 				</div>
 			</div>
 
+			<div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
 			{editorMode === 'timeline' ? (
 				<>
 			{/* Timeline view */}
 			<div
 				ref={timelineScrollRef}
 				style={{
-					maxHeight: '600px',
-					minHeight: '500px',
+					flex: 1,
+					minHeight: 0,
 					overflowY: 'auto',
 					overflowX: 'hidden',
 					border: '2px solid #e5e7eb',
@@ -1515,7 +1516,6 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 					{scheduleJson !== undefined && onUpdateJson && (
 						<>
 							<textarea
-								rows={22}
 								value={scheduleJson}
 								onChange={e => {
 									onUpdateJson(e.target.value);
@@ -1529,7 +1529,7 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 										// Invalid JSON, ignore
 									}
 								}}
-								style={{ width: '100%', fontFamily: 'monospace', fontSize: '12px', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10 }}
+								style={{ width: '100%', flex: 1, minHeight: 0, fontFamily: 'monospace', fontSize: '12px', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, resize: 'none' }}
 							/>
 							<div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
 								{onUploadSchedule && (
@@ -1558,6 +1558,7 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 					)}
 				</>
 			)}
+			</div>
 		</div>
 	);
 };
