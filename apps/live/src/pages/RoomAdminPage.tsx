@@ -24,21 +24,34 @@ export const RoomAdminPage: React.FC = () => {
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<string | null>(null);
-	const [editorMode, setEditorMode] = useState<'json' | 'timeline'>('timeline');
 // Deprecated single-field import path retained for compatibility; not used in new UI
 // const [pretalxVersion] = useState<string>('');
 	const [pretalxSchedules, setPretalxSchedules] = useState<Array<{ id?: string | number; version?: string; published?: string | null }>>([]);
 	const [selectedVersion, setSelectedVersion] = useState<string>('');
 	const [availableStages, setAvailableStages] = useState<Array<{ id?: string | number; name?: string | number }>>([]);
 	const [selectedStageId, setSelectedStageId] = useState<string>('');
-	const [rawResponse, setRawResponse] = useState<unknown | null>(null);
+	const [pretalxRawResponse, setPretalxRawResponse] = useState<unknown | null>(null);
+	const [loadedSlots, setLoadedSlots] = useState<Array<{ startAt: string; endAt: string; items: Array<{ ref: string }>; title?: string; speakers?: string[]; code?: string; room?: { name?: string } }>>([]);
+	const [availableDates, setAvailableDates] = useState<string[]>([]);
+	const [selectedDate, setSelectedDate] = useState<string>('all');
+	const [showPretalxModal, setShowPretalxModal] = useState(false);
+	const [showPretalxDebug, setShowPretalxDebug] = useState(true);
+	const [showSettingsModal, setShowSettingsModal] = useState(false);
+	const [showAddSlotModal, setShowAddSlotModal] = useState(false);
+	const [newSlotStart, setNewSlotStart] = useState('');
+	const [newSlotEnd, setNewSlotEnd] = useState('');
+	const [newSlotTitle, setNewSlotTitle] = useState('');
+	const [newSlotCode, setNewSlotCode] = useState('');
+	const [newSlotSpeakers, setNewSlotSpeakers] = useState('');
+	const [newSlotRoomName, setNewSlotRoomName] = useState('');
+	const [newSlotItems, setNewSlotItems] = useState<string[]>(['']);
 
 	const fetchPretalxSchedules = useCallback(async () => {
-		setBusy(true); setError(null); setSuccess(null); setRawResponse(null);
+		setBusy(true); setError(null); setSuccess(null); setPretalxRawResponse(null);
 		try {
 			const res = await fetch(`${API_BASE}/rooms/pretalx/schedules`);
 			const json = await res.json();
-			setRawResponse(json); // Store raw response for debugging
+			setPretalxRawResponse(json); // Store raw response for debugging
 			if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to fetch schedules');
 			setPretalxSchedules(json.data?.schedules || []);
 			if (!selectedVersion && (json.data?.schedules || []).length) {
@@ -53,12 +66,12 @@ export const RoomAdminPage: React.FC = () => {
 
 	const loadVersionStages = useCallback(async () => {
 		if (!selectedVersion) { setError('Select a schedule version first'); return; }
-		setBusy(true); setError(null); setSuccess(null); setRawResponse(null);
+		setBusy(true); setError(null); setSuccess(null); setPretalxRawResponse(null);
 		try {
 			const params = new URLSearchParams({ version: selectedVersion });
 			const res = await fetch(`${API_BASE}/rooms/pretalx/preview?${params.toString()}`);
 			const json = await res.json();
-			setRawResponse(json); // Store raw response for debugging
+			setPretalxRawResponse(json); // Store raw response for debugging
 			if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to load preview');
 			const slots = (json.data?.slots || []) as Array<{ room?: { id?: string | number; name?: string } }>;
 			const stageMap = new Map<string, { id?: string | number; name?: string | number }>();
@@ -87,23 +100,79 @@ export const RoomAdminPage: React.FC = () => {
 const loadStageToTimeline = useCallback(async () => {
 		if (!selectedVersion) { setError('Select a schedule version first'); return; }
 		if (!selectedStageId) { setError('Select a stage first'); return; }
-		setBusy(true); setError(null); setSuccess(null); setRawResponse(null);
+		setBusy(true); setError(null); setSuccess(null); setPretalxRawResponse(null);
 		try {
 			const params = new URLSearchParams({ version: selectedVersion, roomId: selectedStageId });
 			const res = await fetch(`${API_BASE}/rooms/pretalx/preview?${params.toString()}`);
 			const json = await res.json();
-			setRawResponse(json); // Store raw response for debugging
+			setPretalxRawResponse(json); // Store raw response for debugging
 			if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to load stage slots');
 			const slots = (json.data?.slots || []) as Array<{ startAt: string; endAt: string; items: Array<{ ref: string }>; title?: string; speakers?: string[]; code?: string; room?: { name?: string } }>;
-	    const timelineSlots: Slot[] = slots.map(s => ({ startAt: s.startAt, endAt: s.endAt, items: s.items, title: s.title, speakers: s.speakers, code: s.code, roomName: (s.room?.name as string | undefined) }));
-    // Defer to avoid before-declaration usage warning
-    setTimeout(() => updateSlotsFromTimeline(timelineSlots), 0);
-			setSuccess(`Loaded ${timelineSlots.length} slots to timeline`);
-			setTimeout(() => setSuccess(null), 1500);
+
+			// Extract unique dates from slots using original timezone (extract date part directly from ISO string)
+			const dateSet = new Set<string>();
+			slots.forEach(slot => {
+				// Extract date part (YYYY-MM-DD) directly from ISO string to preserve original timezone
+				// Format: "2024-01-15T10:00:00+00:00" -> "2024-01-15"
+				const date = slot.startAt.split('T')[0];
+				dateSet.add(date);
+			});
+			const dates = Array.from(dateSet).sort();
+			setAvailableDates(dates);
+			setLoadedSlots(slots);
+			setSelectedDate('all'); // Reset to "all" when loading a new stage
+
+			// Don't automatically update timeline - user must click "Apply to Timeline" button
+			setSuccess(`Loaded ${slots.length} slot${slots.length !== 1 ? 's' : ''} from stage. Select a date filter and click "Apply to Timeline" to load.`);
+			setTimeout(() => setSuccess(null), 3000);
 		} catch (e: unknown) {
 			setError(e instanceof Error ? e.message : 'Error');
 		} finally { setBusy(false); }
 }, [selectedVersion, selectedStageId]);
+
+	const updateSlotsFromTimeline = useCallback((newSlots: Slot[]) => {
+		try {
+			const newSchedule = { slots: newSlots };
+			setScheduleJson(JSON.stringify(newSchedule, null, 2));
+		} catch {
+			// ignore
+		}
+	}, []);
+
+	// Apply filtered slots to timeline
+	const applyDateFilter = useCallback(() => {
+		if (loadedSlots.length === 0) {
+			setError('No slots loaded. Please load a stage first.');
+			return;
+		}
+
+		let filteredSlots = loadedSlots;
+		if (selectedDate !== 'all') {
+			filteredSlots = loadedSlots.filter(slot => {
+				// Extract date part directly from ISO string to preserve original timezone
+				const slotDate = slot.startAt.split('T')[0];
+				return slotDate === selectedDate;
+			});
+		}
+
+		const timelineSlots: Slot[] = filteredSlots.map(s => ({ startAt: s.startAt, endAt: s.endAt, items: s.items, title: s.title, speakers: s.speakers, code: s.code, roomName: (s.room?.name as string | undefined) }));
+		updateSlotsFromTimeline(timelineSlots);
+		if (selectedDate !== 'all') {
+			const dateObj = new Date(selectedDate);
+			const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+			setSuccess(`Applied ${timelineSlots.length} slot${timelineSlots.length !== 1 ? 's' : ''} from ${formattedDate} to timeline`);
+		} else {
+			setSuccess(`Applied ${timelineSlots.length} slot${timelineSlots.length !== 1 ? 's' : ''} to timeline`);
+		}
+		setTimeout(() => setSuccess(null), 2000);
+	}, [loadedSlots, selectedDate, updateSlotsFromTimeline]);
+
+	// Reset date filter when stage changes
+	useEffect(() => {
+		setSelectedDate('all');
+		setLoadedSlots([]);
+		setAvailableDates([]);
+	}, [selectedStageId]);
 
 // Removed unused importFromPretalx handler in favor of version/stage workflow
 
@@ -117,14 +186,20 @@ const loadStageToTimeline = useCallback(async () => {
 		}
 	}, [scheduleJson]);
 
-	const updateSlotsFromTimeline = useCallback((newSlots: Slot[]) => {
-		try {
-			const newSchedule = { slots: newSlots };
-			setScheduleJson(JSON.stringify(newSchedule, null, 2));
-		} catch {
-			// ignore
+	// Close settings modal on successful save/create
+	useEffect(() => {
+		if (success && showSettingsModal) {
+			const timer = setTimeout(() => setShowSettingsModal(false), 1500);
+			return () => clearTimeout(timer);
 		}
-	}, []);
+	}, [success, showSettingsModal]);
+
+	// Auto-fetch Pretalx schedules when modal opens
+	useEffect(() => {
+		if (showPretalxModal) {
+			fetchPretalxSchedules();
+		}
+	}, [showPretalxModal, fetchPretalxSchedules]);
 
 	// Load room details when navigating after creation
 	useEffect(() => {
@@ -301,124 +376,380 @@ const loadStageToTimeline = useCallback(async () => {
 		reader.readAsText(file);
 	}, []);
 
-	return (
-		<div style={{ padding: 16, display: 'grid', gap: 12, gridTemplateColumns: '1fr 1fr' }}>
-			<div>
-				<h2>Room Admin</h2>
-				<label>Name</label>
-				<input value={name} onChange={e => setName(e.target.value)} placeholder="Room name" />
-				<label style={{ marginTop: 8 }}>Rotation policy</label>
-					<select value={rotationPolicy} onChange={e => setPolicy(e.target.value as 'round_robin' | 'random' | 'weighted')}>
-					<option value="round_robin">round_robin</option>
-					<option value="random">random</option>
-					<option value="weighted">weighted</option>
-				</select>
-				<label style={{ marginTop: 8 }}>Rotation interval (sec)</label>
-				<input type="number" value={rotationIntervalSec} onChange={e => setIntervalSec(parseInt(e.target.value || '60', 10))} />
-				<label style={{ marginTop: 8 }}>Default items (comma or newline separated)</label>
-				<textarea rows={5} value={defaultItems} onChange={e => setDefaultItems(e.target.value)} placeholder={'note1...\nnevent1...'} />
-				<div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-					{!createdRoomId ? (
-						<button onClick={createRoom} disabled={busy}>Create room</button>
-					) : (
-						<>
-						<button onClick={saveSettings} disabled={busy}>Save settings</button>
-					<button onClick={() => window.open(`/room/${createdRoomId}`, '_blank')}>Open viewer</button>
-					<div style={{ display: 'grid', gridTemplateColumns: 'auto auto auto auto', gap: 6, alignItems: 'center' }}>
-						<button onClick={fetchPretalxSchedules} disabled={busy}>Fetch schedules</button>
-						<select value={selectedVersion} onChange={e => setSelectedVersion(e.target.value)}>
-							<option value="">Select version</option>
-							<option value="wip">wip (work in progress)</option>
-							<option value="latest">latest (published)</option>
-							{pretalxSchedules.map((s, i) => (
-								<option key={`${s.version || s.id || i}`} value={(s.version || '').toString()}>{(s.version || '').toString()} {s.published ? '(published)' : ''}</option>
-							))}
-						</select>
-						<button onClick={loadVersionStages} disabled={busy || !selectedVersion}>Load version</button>
-						<select value={selectedStageId} onChange={e => setSelectedStageId(e.target.value)}>
-							<option value="">Select stage</option>
-							{availableStages.map((r, i) => (
-								<option key={`${r.id || i}`} value={String(r.id ?? '')}>{String(r.name ?? r.id ?? '')}</option>
-							))}
-						</select>
-						<button onClick={loadStageToTimeline} disabled={busy || !selectedStageId}>Load stage → Timeline</button>
-					</div>
-							<button onClick={copyRoomId} style={{ fontSize: '0.9em', padding: '4px 8px' }}>Copy Room ID</button>
-							<button onClick={copyViewerUrl} style={{ fontSize: '0.9em', padding: '4px 8px' }}>Copy URL</button>
-						</>
-					)}
-				</div>
-				{createdRoomId && <small style={{ display: 'block', marginTop: 4 }}>Room ID: {createdRoomId}</small>}
-				{error && <div style={{ color: 'red', marginTop: 8, padding: 8, background: '#ffe6e6', borderRadius: 4 }}>{error}</div>}
-				{success && <div style={{ color: 'green', marginTop: 8, padding: 8, background: '#e6ffe6', borderRadius: 4 }}>{success}</div>}
-				{rawResponse !== null && (
-					<div style={{ marginTop: 8, padding: 8, background: '#f0f0f0', borderRadius: 4, fontSize: '0.85em', maxHeight: '400px', overflow: 'auto' }}>
-						<strong>Raw API Response:</strong>
-						{selectedStageId && availableStages.length > 0 && (() => {
-							const stage = availableStages.find(s => String(s.id) === selectedStageId);
-							if (stage) {
-								return (
-									<div style={{ marginTop: 4, marginBottom: 4, padding: 4, background: '#e0e0e0', borderRadius: 2 }}>
-										<strong>Selected Stage:</strong> {String(stage.name ?? stage.id)} (ID: {stage.id})
-									</div>
-								);
-							}
-							return null;
-						})()}
-						<pre style={{ whiteSpace: 'pre-wrap', marginTop: 4, fontSize: '0.8em' }}>{JSON.stringify(rawResponse, null, 2)}</pre>
-					</div>
-				)}
-			</div>
-			<div>
-				<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-					<h3 style={{ margin: 0 }}>Schedule</h3>
-					<div style={{ display: 'flex', gap: 4 }}>
-						<button
-							onClick={() => setEditorMode('timeline')}
-							disabled={editorMode === 'timeline'}
-							style={{ fontSize: '0.85em', padding: '4px 12px', background: editorMode === 'timeline' ? '#2196f3' : '#eee', color: editorMode === 'timeline' ? 'white' : 'black' }}
-						>
-							Timeline
-						</button>
-						<button
-							onClick={() => setEditorMode('json')}
-							disabled={editorMode === 'json'}
-							style={{ fontSize: '0.85em', padding: '4px 12px', background: editorMode === 'json' ? '#2196f3' : '#eee', color: editorMode === 'json' ? 'white' : 'black' }}
-						>
-							JSON
-						</button>
-					</div>
-				</div>
+	const loadProvidedSchedule = useCallback(() => {
+		const templateSlots = [
+			{ startAt: '2025-11-14T09:00:00Z', endAt: '2025-11-14T09:30:00Z', items: [ { ref: 'note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7' } ] },
+			{ startAt: '2025-11-14T09:30:00Z', endAt: '2025-11-14T10:00:00Z', items: [ { ref: 'note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu' } ] },
+			{ startAt: '2025-11-14T10:00:00Z', endAt: '2025-11-14T10:30:00Z', items: [ { ref: 'note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv' } ] },
+			{ startAt: '2025-11-14T10:30:00Z', endAt: '2025-11-14T11:00:00Z', items: [ { ref: 'nevent1qqsphk43g2pzpwfr8qcp5zdx8ftgaj7gvxk682y4sedjvscrsm0lpssc96mm3' } ] },
+			{ startAt: '2025-11-14T11:00:00Z', endAt: '2025-11-14T11:30:00Z', items: [
+				{ ref: 'nevent1qvzqqqqqqypzqlea4mfml7qvctjsypywae5g5ra8zj6t3f8sqcuj53h9xq9nn6pjqqsffzd548j3gtkck0hemn9jqgqfpdttatwhpg3vd3plhghlhatzw6cpmvz4r' },
+				{ ref: 'nevent1qvzqqqqqqypzqpxfzhdwlm3cx9l6wdzyft8w8y9gy607tqgtyfq7tekaxs7lhmxfqqsygu0jcvwfp7p3hhe42stxu44dcuz5zt9cy052qfg2ea98gxy2sfq2wh7j0' },
+				{ ref: 'nevent1qvzqqqqqqypzqy9kvcxtqa2tlwyjv4r46ancxk00ghk9yaudzsnp697s60942p7lqqs0sqpv028v3xy6z27qx8sfukgl5wn2z7j4u8ylrs8w5gfmp44j0rc4avhey' }
+			] },
+			{ startAt: '2025-11-14T11:30:00Z', endAt: '2025-11-14T12:00:00Z', items: [ { ref: 'nevent1qvzqqqqqqypzpw9fm7ppszzwfyxc3q6z482g3d70p7eqkxseh93mantga44ttjaaqy2hwumn8ghj7un9d3shjtnyv9kh2uewd9hj7qghdehhxarj945kgc369uhkxctrdpjj6un9d3shjqpq04k2daej76pv0nfrefuwp0xm4gjmqqwx0vc6yhsq9jkr956879ds4tsslp' } ] },
+			{ startAt: '2025-11-14T12:00:00Z', endAt: '2025-11-14T12:30:00Z', items: [ { ref: 'nevent1qqsdz8sqytjeum0utxvkvknyp9a7t0twv976tuuyzf3ngwc3572tltct2ek8j' } ] },
+			{ startAt: '2025-11-14T12:30:00Z', endAt: '2025-11-14T13:00:00Z', items: [ { ref: 'nevent1qqs0sqpv028v3xy6z27qx8sfukgl5wn2z7j4u8ylrs8w5gfmp44j0rceyfxj5' } ] },
+			{ startAt: '2025-11-14T14:00:00Z', endAt: '2025-11-14T14:30:00Z', items: [ { ref: 'nevent1qqs8t9m7rcgnjj35ekvcrgpxt78t0u9a7yyp5pkjmmkae4kg7d8s5sqd7u960' } ] },
+			{ startAt: '2025-11-14T14:30:00Z', endAt: '2025-11-14T15:00:00Z', items: [ { ref: 'nevent1qqsre8grh4vyyhlsnp7wy5r8xrvsffzeg7w4tz5mr0t6fhd6x77fexcrl34gy' } ] },
+			{ startAt: '2025-11-14T15:00:00Z', endAt: '2025-11-14T15:30:00Z', items: [ { ref: 'nevent1qqsv4jk2xzhkfh6kk3uwfwf2xjvpl4qsne435njml08kr7pnhpcfhxq8k43rt' } ] },
+			{ startAt: '2025-11-14T15:30:00Z', endAt: '2025-11-14T16:00:00Z', items: [ { ref: 'nevent1qqsf6r5v9n6kj6mhjruylugz55gac44tzfyyh884rdvfasls0yujgqsl9vkqe' } ] },
+			{ startAt: '2025-11-14T16:00:00Z', endAt: '2025-11-14T16:30:00Z', items: [ { ref: 'nevent1qqsxnzdah0x9sp75ajrzve4aehacqt9rzepjcfkrfrllr65h6v542ksrhyy82' } ] },
+			{ startAt: '2025-11-14T16:30:00Z', endAt: '2025-11-14T17:00:00Z', items: [ { ref: 'nevent1qqsrc4h3a7063fxn2lwt5ven9dyv949k9yeh3rju0z2p7t2shmp0zfc44nm74' } ] },
+			{ startAt: '2025-11-14T17:00:00Z', endAt: '2025-11-14T17:30:00Z', items: [ { ref: 'nevent1qqs90rz4e4prc909h6f9cn30872h9rk4etqfqw3xrrgpd7waennjg2s9mc0jn' } ] },
+			{ startAt: '2025-11-14T17:30:00Z', endAt: '2025-11-14T18:00:00Z', items: [] }
+		];
+		const newSchedule = { slots: templateSlots };
+		setScheduleJson(JSON.stringify(newSchedule, null, 2));
+		setSuccess('Template schedule loaded!');
+		setTimeout(() => setSuccess(null), 2000);
+	}, []);
 
-				{editorMode === 'timeline' ? (
-					<>
-						<ScheduleTimeline slots={parsedSlots} onChange={updateSlotsFromTimeline} />
-						<div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-							<button onClick={uploadSchedule} disabled={busy || !createdRoomId}>Upload schedule</button>
-							<button onClick={exportSchedule} style={{ fontSize: '0.9em', padding: '4px 8px' }}>Export JSON</button>
-							<label style={{ fontSize: '0.9em', padding: '4px 8px', cursor: 'pointer', border: '1px solid #ccc', borderRadius: 4, display: 'inline-block' }}>
-								Import JSON
-								<input type="file" accept=".json" onChange={importSchedule} style={{ display: 'none' }} />
-							</label>
-						</div>
-					</>
-				) : (
-					<>
-						<textarea rows={22} value={scheduleJson} onChange={e => setScheduleJson(e.target.value)} style={{ width: '100%', fontFamily: 'monospace', fontSize: '12px' }} />
-						<div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-							<button onClick={uploadSchedule} disabled={busy || !createdRoomId}>Upload schedule</button>
-							<button onClick={exportSchedule} style={{ fontSize: '0.9em', padding: '4px 8px' }}>Export JSON</button>
-							<label style={{ fontSize: '0.9em', padding: '4px 8px', cursor: 'pointer', border: '1px solid #ccc', borderRadius: 4, display: 'inline-block' }}>
-								Import JSON
-								<input type="file" accept=".json" onChange={importSchedule} style={{ display: 'none' }} />
-							</label>
-						</div>
-						<p style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
-							Tip: times must be UTC ISO format (e.g., "2025-10-29T21:00:00Z"). Items accept note1/nevent1 references.
-						</p>
-					</>
-				)}
+	const insertCurrentTime = useCallback((isStart: boolean) => {
+		const now = new Date();
+		const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+		const localISO = local.toISOString().slice(0, 16);
+		if (isStart) setNewSlotStart(localISO);
+		else setNewSlotEnd(localISO);
+	}, []);
+
+	const addItemToSlot = useCallback(() => {
+		setNewSlotItems([...newSlotItems, '']);
+	}, [newSlotItems]);
+
+	const removeItemFromSlot = useCallback((index: number) => {
+		if (newSlotItems.length > 1) {
+			setNewSlotItems(newSlotItems.filter((_, i) => i !== index));
+		}
+	}, [newSlotItems]);
+
+	const addSlot = useCallback(() => {
+		if (!newSlotStart || !newSlotEnd) {
+			setError('Please provide both start and end times');
+			return;
+		}
+		const start = new Date(newSlotStart);
+		const end = new Date(newSlotEnd);
+		if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
+			setError('Invalid dates: end must be after start');
+			return;
+		}
+
+		// Filter out empty items and validate refs
+		const items = newSlotItems
+			.filter(item => item.trim())
+			.map(item => ({ ref: item.trim() }));
+
+		if (items.length === 0) {
+			setError('Please add at least one item (note1... or nevent1...)');
+			return;
+		}
+
+		const newSlot: Slot = {
+			startAt: start.toISOString(),
+			endAt: end.toISOString(),
+			items,
+			...(newSlotTitle.trim() && { title: newSlotTitle.trim() }),
+			...(newSlotCode.trim() && { code: newSlotCode.trim() }),
+			...(newSlotSpeakers.trim() && { speakers: newSlotSpeakers.split(',').map(s => s.trim()).filter(Boolean) }),
+			...(newSlotRoomName.trim() && { roomName: newSlotRoomName.trim() })
+		};
+		const updatedSlots = [...parsedSlots, newSlot].sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+		updateSlotsFromTimeline(updatedSlots);
+
+		// Reset all fields
+		setNewSlotStart('');
+		setNewSlotEnd('');
+		setNewSlotTitle('');
+		setNewSlotCode('');
+		setNewSlotSpeakers('');
+		setNewSlotRoomName('');
+		setNewSlotItems(['']);
+		setShowAddSlotModal(false);
+		setError(null);
+		setSuccess('Slot added successfully!');
+		setTimeout(() => setSuccess(null), 2000);
+	}, [newSlotStart, newSlotEnd, newSlotTitle, newSlotCode, newSlotSpeakers, newSlotRoomName, newSlotItems, parsedSlots, updateSlotsFromTimeline]);
+
+	return (
+		<div style={{ padding: 24, display: 'grid', gap: 16, gridTemplateColumns: '1fr', alignItems: 'start', background: '#ffffff' }}>
+			<div style={{ background: '#ffffff', border: 'none', padding: 16 }}>
+				<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+					<div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+						<h2 style={{ margin: 0, fontSize: 20 }}>
+							{createdRoomId ? (name || 'Untitled Room') : 'Room Admin'}
+						</h2>
+						{createdRoomId && (
+							<div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, padding: '6px 8px' }}>
+								<span style={{ fontSize: 12, color: '#4b5563', marginRight: 4 }}>Room ID:</span>
+								<span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', fontSize: 12, color: '#374151' }}>{createdRoomId}</span>
+								<button onClick={copyRoomId} aria-label="Copy Room ID" title="Copy Room ID" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer' }}>📋</button>
+							</div>
+						)}
+					</div>
+					<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+						{createdRoomId ? (
+							<>
+								<button onClick={copyViewerUrl} aria-label="Copy Viewer URL" title="Copy Viewer URL" style={{ width: 36, height: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, cursor: 'pointer' }}>🔗</button>
+								<button onClick={() => window.open(`/room/${createdRoomId}`, '_blank')} aria-label="Open Viewer" title="Open Viewer" style={{ width: 36, height: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 10, cursor: 'pointer' }}>↗</button>
+								<button onClick={() => setShowSettingsModal(true)} aria-label="Settings" title="Settings" style={{ width: 36, height: 36, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 10, cursor: 'pointer' }}>⚙️</button>
+								<img src="/images/powered_by_white_bg.png" alt="Powered by PubPay" style={{ height: '3vw', marginLeft: 8 }} />
+							</>
+						) : (
+							<>
+								<button onClick={() => setShowSettingsModal(true)} style={{ background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 14px', fontWeight: 600, cursor: 'pointer' }}>Create Room</button>
+								<img src="/images/powered_by_white_bg.png" alt="Powered by PubPay" style={{ height: '3vw', marginLeft: 8 }} />
+							</>
+						)}
+					</div>
+				</div>
+				{!showPretalxModal && !showSettingsModal && error && <div style={{ marginTop: 8, padding: 8, background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', borderRadius: 8 }}>{error}</div>}
+				{!showPretalxModal && !showSettingsModal && success && <div style={{ marginTop: 8, padding: 8, background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', borderRadius: 8 }}>{success}</div>}
 			</div>
+			<ScheduleTimeline
+				slots={parsedSlots}
+				onChange={updateSlotsFromTimeline}
+				onAddSlotAtTime={(startTime) => {
+					setNewSlotStart(startTime);
+					setNewSlotEnd(startTime); // Pre-fill end time with same value
+					setShowAddSlotModal(true);
+				}}
+				scheduleJson={scheduleJson}
+				onUpdateJson={setScheduleJson}
+				onOpenAddSlotModal={() => setShowAddSlotModal(true)}
+				onUploadSchedule={uploadSchedule}
+				onExportSchedule={exportSchedule}
+				onImportSchedule={importSchedule}
+				onLoadProvidedSchedule={loadProvidedSchedule}
+				onOpenPretalxModal={() => setShowPretalxModal(true)}
+				createdRoomId={createdRoomId}
+				busy={busy}
+			/>
+
+			{/* Pretalx Modal */}
+			{showPretalxModal && (
+				<div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+					<div style={{ width: 'min(920px, 94vw)', background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 10px 32px rgba(0,0,0,0.2)', padding: 16 }}>
+						<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+							<h3 style={{ margin: 0 }}>Sync with Pretalx</h3>
+							<button onClick={() => setShowPretalxModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18 }}>✕</button>
+						</div>
+						<div style={{ display: 'grid', gap: 10 }}>
+							{(error || success) && (
+								<div style={{ display: 'grid', gap: 8 }}>
+									{error && <div style={{ padding: 8, background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', borderRadius: 8 }}>{error}</div>}
+									{success && <div style={{ padding: 8, background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', borderRadius: 8 }}>{success}</div>}
+								</div>
+							)}
+							<div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr auto', gap: 8, alignItems: 'center' }}>
+								<select value={selectedVersion} onChange={e => setSelectedVersion(e.target.value)}>
+									<option value="">Select version</option>
+									<option value="wip">wip (work in progress)</option>
+									<option value="latest">latest (published)</option>
+									{pretalxSchedules.map((s, i) => (
+										<option key={`${s.version || s.id || i}`} value={(s.version || '').toString()}>{(s.version || '').toString()} {s.published ? '(published)' : ''}</option>
+									))}
+								</select>
+								<button onClick={loadVersionStages} disabled={busy || !selectedVersion} style={{ background: '#f3f4f6', color: '#111827', border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 10px', fontWeight: 600, cursor: 'pointer' }}>Load version</button>
+								<select value={selectedStageId} onChange={e => setSelectedStageId(e.target.value)}>
+									<option value="">Select stage</option>
+									{availableStages.map((r, i) => (
+										<option key={`${r.id || i}`} value={String(r.id ?? '')}>{String(r.name ?? r.id ?? '')}</option>
+									))}
+								</select>
+								<button onClick={loadStageToTimeline} disabled={busy || !selectedStageId} style={{ background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 10px', fontWeight: 600, cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>Load stage</button>
+							</div>
+							{availableDates.length > 0 && (
+								<div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 8, alignItems: 'center' }}>
+									<label style={{ fontWeight: 600, color: '#111827' }}>Filter by date:</label>
+									<select value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={{ borderRadius: 8, padding: '6px 10px', border: '1px solid #e5e7eb' }}>
+										<option value="all">All days</option>
+										{availableDates.map(date => {
+											const dateObj = new Date(date);
+											const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+											return (
+												<option key={date} value={date}>{formattedDate}</option>
+											);
+										})}
+									</select>
+									<button onClick={applyDateFilter} disabled={busy || loadedSlots.length === 0} style={{ background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', opacity: (busy || loadedSlots.length === 0) ? 0.7 : 1, whiteSpace: 'nowrap' }}>Apply to Timeline</button>
+								</div>
+							)}
+							<div>
+								<button onClick={() => setShowPretalxDebug(v => !v)} style={{ background: '#F3F4F6', border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 10px', fontWeight: 600, cursor: 'pointer' }}>
+									{showPretalxDebug ? 'Hide details' : 'Show details'}
+								</button>
+							</div>
+							{showPretalxDebug && pretalxRawResponse !== null && (
+								<div style={{ marginTop: 8, padding: 12, background: '#F9FAFB', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: '0.85em', maxHeight: '400px', overflow: 'auto' }}>
+									<strong>Raw API Response:</strong>
+									<pre style={{ whiteSpace: 'pre-wrap', marginTop: 4, fontSize: '0.8em' }}>{JSON.stringify(pretalxRawResponse, null, 2)}</pre>
+								</div>
+							)}
+							<div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
+								<button onClick={() => setShowPretalxModal(false)} style={{ background: '#f3f4f6', color: '#111827', border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer' }}>Close</button>
+							</div>
+						</div>
+					</div>
+				</div>
+				)}
+
+			{/* Settings Modal */}
+			{showSettingsModal && (
+				<div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+					<div style={{ width: 'min(600px, 94vw)', background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 10px 32px rgba(0,0,0,0.2)', padding: 16, maxHeight: '90vh', overflow: 'auto' }}>
+						<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+							<h3 style={{ margin: 0 }}>Room Settings</h3>
+							<button onClick={() => setShowSettingsModal(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18 }}>✕</button>
+						</div>
+						<div style={{ display: 'grid', gap: 12 }}>
+							{(error || success) && (
+								<div style={{ display: 'grid', gap: 8 }}>
+									{error && <div style={{ padding: 8, background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', borderRadius: 8 }}>{error}</div>}
+									{success && <div style={{ padding: 8, background: '#ECFDF5', color: '#065F46', border: '1px solid #A7F3D0', borderRadius: 8 }}>{success}</div>}
+								</div>
+							)}
+							<div>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151' }}>Name</label>
+								<input value={name} onChange={e => setName(e.target.value)} placeholder="Room name" style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, marginTop: 6 }} />
+							</div>
+							<div>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151' }}>Rotation policy</label>
+								<select value={rotationPolicy} onChange={e => setPolicy(e.target.value as 'round_robin' | 'random' | 'weighted')} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, marginTop: 6 }}>
+									<option value="round_robin">round_robin</option>
+									<option value="random">random</option>
+									<option value="weighted">weighted</option>
+								</select>
+							</div>
+							<div>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151' }}>Rotation interval (sec)</label>
+								<input type="number" value={rotationIntervalSec} onChange={e => setIntervalSec(parseInt(e.target.value || '60', 10))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, marginTop: 6 }} />
+							</div>
+							<div>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151' }}>Default items (comma or newline separated)</label>
+								<textarea rows={5} value={defaultItems} onChange={e => setDefaultItems(e.target.value)} placeholder={'note1...\nnevent1...'} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, marginTop: 6 }} />
+							</div>
+							<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+								<button onClick={() => setShowSettingsModal(false)} style={{ background: '#f3f4f6', color: '#111827', border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+								{!createdRoomId ? (
+									<button onClick={createRoom} disabled={busy} style={{ background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>Create Room</button>
+								) : (
+									<button onClick={saveSettings} disabled={busy} style={{ background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', opacity: busy ? 0.7 : 1 }}>Save Settings</button>
+								)}
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Add Slot Modal */}
+			{showAddSlotModal && (
+				<div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+					<div style={{ width: 'min(600px, 94vw)', background: '#ffffff', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 10px 32px rgba(0,0,0,0.2)', padding: 16, maxHeight: '90vh', overflow: 'auto' }}>
+						<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+							<h3 style={{ margin: 0 }}>Add Slot</h3>
+							<button onClick={() => { setShowAddSlotModal(false); setNewSlotStart(''); setNewSlotEnd(''); setNewSlotTitle(''); setNewSlotCode(''); setNewSlotSpeakers(''); setNewSlotRoomName(''); setNewSlotItems(['']); setError(null); }} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 18 }}>✕</button>
+						</div>
+						<div style={{ display: 'grid', gap: 12 }}>
+							{error && (
+								<div style={{ padding: 8, background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA', borderRadius: 8 }}>{error}</div>
+							)}
+							<div>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151', display: 'block', marginBottom: 6 }}>Start (local) *</label>
+								<div style={{ display: 'flex', gap: 8 }}>
+									<input
+										type="datetime-local"
+										value={newSlotStart}
+										onChange={e => setNewSlotStart(e.target.value)}
+										style={{ flex: 1, padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+									/>
+									<button onClick={() => insertCurrentTime(true)} style={{ padding: '8px 14px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: '0.85em' }}>Now</button>
+								</div>
+							</div>
+							<div>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151', display: 'block', marginBottom: 6 }}>End (local) *</label>
+								<div style={{ display: 'flex', gap: 8 }}>
+									<input
+										type="datetime-local"
+										value={newSlotEnd}
+										onChange={e => setNewSlotEnd(e.target.value)}
+										style={{ flex: 1, padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+									/>
+									<button onClick={() => insertCurrentTime(false)} style={{ padding: '8px 14px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: '0.85em' }}>Now</button>
+								</div>
+							</div>
+							<div>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151', display: 'block', marginBottom: 6 }}>Title</label>
+								<input
+									type="text"
+									value={newSlotTitle}
+									onChange={e => setNewSlotTitle(e.target.value)}
+									placeholder="Optional slot title"
+									style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+								/>
+							</div>
+							<div>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151', display: 'block', marginBottom: 6 }}>Code</label>
+								<input
+									type="text"
+									value={newSlotCode}
+									onChange={e => setNewSlotCode(e.target.value)}
+									placeholder="Optional slot code"
+									style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+								/>
+							</div>
+							<div>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151', display: 'block', marginBottom: 6 }}>Speakers</label>
+								<input
+									type="text"
+									value={newSlotSpeakers}
+									onChange={e => setNewSlotSpeakers(e.target.value)}
+									placeholder="Comma-separated list of speakers"
+									style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+								/>
+							</div>
+							<div>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151', display: 'block', marginBottom: 6 }}>Room Name</label>
+								<input
+									type="text"
+									value={newSlotRoomName}
+									onChange={e => setNewSlotRoomName(e.target.value)}
+									placeholder="Optional room name"
+									style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+								/>
+							</div>
+							<div>
+								<label style={{ fontWeight: 600, fontSize: 13, color: '#374151', display: 'block', marginBottom: 6 }}>Items (note1... or nevent1...) *</label>
+								<div style={{ display: 'grid', gap: 6 }}>
+									{newSlotItems.map((item, idx) => (
+										<div key={idx} style={{ display: 'flex', gap: 6 }}>
+											<input
+												type="text"
+												value={item}
+												onChange={e => {
+													const updated = [...newSlotItems];
+													updated[idx] = e.target.value;
+													setNewSlotItems(updated);
+												}}
+												placeholder="note1... or nevent1..."
+												style={{ flex: 1, padding: '6px 10px', border: '1px solid #e5e7eb', borderRadius: 8, fontFamily: 'monospace', fontSize: '12px' }}
+											/>
+											{newSlotItems.length > 1 && (
+												<button onClick={() => removeItemFromSlot(idx)} style={{ padding: '6px 12px', background: '#f44336', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: '14px' }}>×</button>
+											)}
+										</div>
+									))}
+								</div>
+								<button onClick={addItemToSlot} style={{ marginTop: 6, padding: '6px 12px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: '0.85em' }}>+ Add Item</button>
+							</div>
+							<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
+								<button onClick={() => { setShowAddSlotModal(false); setNewSlotStart(''); setNewSlotEnd(''); setNewSlotTitle(''); setNewSlotCode(''); setNewSlotSpeakers(''); setNewSlotRoomName(''); setNewSlotItems(['']); setError(null); }} style={{ background: '#f3f4f6', color: '#111827', border: '1px solid #e5e7eb', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+								<button onClick={addSlot} disabled={!newSlotStart || !newSlotEnd || newSlotItems.filter(i => i.trim()).length === 0} style={{ background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 12px', fontWeight: 600, cursor: 'pointer', opacity: (!newSlotStart || !newSlotEnd || newSlotItems.filter(i => i.trim()).length === 0) ? 0.7 : 1 }}>Add Slot</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };

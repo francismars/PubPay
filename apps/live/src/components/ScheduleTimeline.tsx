@@ -13,12 +13,23 @@ export interface Slot {
 interface ScheduleTimelineProps {
 	slots: Slot[];
 	onChange: (slots: Slot[]) => void;
+	onAddSlotAtTime?: (startTime: string) => void;
+	scheduleJson?: string;
+	onUpdateJson?: (json: string) => void;
+	onOpenAddSlotModal?: () => void;
+	onUploadSchedule?: () => void;
+	onExportSchedule?: () => void;
+	onImportSchedule?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+	onLoadProvidedSchedule?: () => void;
+	onOpenPretalxModal?: () => void;
+	createdRoomId?: string | null;
+	busy?: boolean;
 }
 
-export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onChange }) => {
+export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onChange, onAddSlotAtTime, scheduleJson, onUpdateJson, onOpenAddSlotModal, onUploadSchedule, onExportSchedule, onImportSchedule, onLoadProvidedSchedule, onOpenPretalxModal, createdRoomId, busy }) => {
+	const [editorMode, setEditorMode] = useState<'timeline' | 'json'>('timeline');
 	const [editingSlot, setEditingSlot] = useState<number | null>(null);
-	const [newSlotStart, setNewSlotStart] = useState('');
-	const [newSlotEnd, setNewSlotEnd] = useState('');
+	const [contextMenu, setContextMenu] = useState<{ x: number; y: number; time: number } | null>(null);
 	const [dragging, setDragging] = useState<{ type: 'start' | 'end' | 'move'; slotIndex: number; initialMouseX: number; initialSlotStart: number; initialSlotEnd: number } | null>(null);
 	const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
 	const [hasDragged, setHasDragged] = useState(false);
@@ -44,8 +55,10 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 		}
 		const min = Math.min(...slots.map(s => new Date(s.startAt).getTime()));
 		const max = Math.max(...slots.map(s => new Date(s.endAt).getTime()));
-		const padding = Math.max((max - min) * 0.1, 60 * 60 * 1000); // 10% padding or 1 hour min
-		return { min: min - padding, max: max + padding };
+		// Add minimal padding: just enough to see edges and add new slots
+		const beforePadding = Math.max((max - min) * 0.05, 15 * 60 * 1000); // 5% or 15 min before
+		const afterPadding = 60 * 60 * 1000; // Fixed 1 hour after last slot (prevents overlap with schedule end)
+		return { min: min - beforePadding, max: max + afterPadding };
 	};
 
 	// Calculate visible time range with zoom and pan
@@ -92,21 +105,6 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 			.filter((i): i is number => i !== null);
 	}, [slots]);
 
-	const addSlot = useCallback(() => {
-		if (!newSlotStart || !newSlotEnd) return;
-		const start = new Date(newSlotStart);
-		const end = new Date(newSlotEnd);
-		if (isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) return;
-
-		const newSlot: Slot = {
-			startAt: start.toISOString(),
-			endAt: end.toISOString(),
-			items: [{ ref: 'note1example...' }]
-		};
-		onChange([...slots, newSlot].sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime()));
-		setNewSlotStart('');
-		setNewSlotEnd('');
-	}, [slots, onChange, newSlotStart, newSlotEnd]);
 
 	const duplicateSlot = useCallback((index: number) => {
 		const slot = slots[index];
@@ -177,14 +175,6 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({ slots, onCha
 		const intervalMs = snapMinutes * 60 * 1000;
 		return Math.round(timeMs / intervalMs) * intervalMs;
 	}, [snapMinutes]);
-
-	const insertCurrentTime = (isStart: boolean) => {
-		const now = new Date();
-		const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-		const localISO = local.toISOString().slice(0, 16);
-		if (isStart) setNewSlotStart(localISO);
-		else setNewSlotEnd(localISO);
-	};
 
 	// Drag handlers for resizing/moving slots
 	const handleMouseDown = (e: React.MouseEvent, slotIndex: number, type: 'start' | 'end' | 'move') => {
@@ -452,6 +442,26 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 		}
 	}, [timeOffset]);
 
+	// Right-click to add slot at time
+	const handleTimelineContextMenu = useCallback((e: React.MouseEvent) => {
+		if (!onAddSlotAtTime || !timelineRef.current) return;
+		
+		const target = e.target as HTMLElement;
+		// Only show context menu on timeline background, not on slots or controls
+		if (target === timelineRef.current || (target.classList.contains('timeline-bg') && !target.closest('[style*="position: absolute"]'))) {
+			e.preventDefault();
+			const rect = timelineRef.current.getBoundingClientRect();
+			const x = e.clientX - rect.left;
+			const percent = (x / rect.width) * 100;
+			
+			// Calculate time from position
+			const clickedTime = minTime + (percent / 100) * timeRange;
+			const snappedTime = snapTime(clickedTime);
+			
+			setContextMenu({ x: e.clientX, y: e.clientY, time: snappedTime });
+		}
+	}, [onAddSlotAtTime, minTime, timeRange, snapTime]);
+
 	useEffect(() => {
 		if (!panning || !panStart || !timelineRef.current) return;
 
@@ -505,129 +515,557 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
         onChange(newSlots);
     }, [onChange]);
 
+	const [showAdvancedControls, setShowAdvancedControls] = useState(false);
+	const advancedPanelRef = useRef<HTMLDivElement>(null);
+	const [panelPosition, setPanelPosition] = useState<{ bottom?: number; top?: number; right?: number; left?: number }>({ bottom: 44, right: 0 });
+	const controlsFloaterRef = useRef<HTMLDivElement>(null);
+	
+	const [editOverlayPosition, setEditOverlayPosition] = useState<{ top?: string; bottom?: string; left?: number | string; right?: number | string; marginTop?: number; marginBottom?: number }>({ top: '100%', left: 0, marginTop: 8 });
+
+	// Calculate panel position to stay within bounds
+	const calculatePanelPosition = useCallback(() => {
+		if (!showAdvancedControls || !advancedPanelRef.current || !timelineScrollRef.current) return;
+		
+		const panel = advancedPanelRef.current;
+		const container = timelineScrollRef.current;
+		
+		// Get container dimensions (scrollable area)
+		const containerHeight = container.clientHeight;
+		const containerWidth = container.clientWidth;
+		const scrollTop = container.scrollTop;
+		const scrollLeft = container.scrollLeft;
+		
+		// Get panel dimensions
+		const panelHeight = panel.offsetHeight || 300; // Estimate if not rendered
+		const panelWidth = panel.offsetWidth || 220;
+		
+		const buttonHeight = 44; // Height of button row + gap
+		const padding = 12; // Padding from edges
+		
+		const newPosition: { bottom?: number; top?: number; right?: number; left?: number } = {};
+		
+		// Check if panel would overflow bottom (accounting for visible viewport)
+		// When positioned from bottom: panel top = scrollHeight - buttonHeight - panelHeight
+		// Panel is visible if: scrollTop <= panelTop <= scrollTop + containerHeight - panelHeight
+		const scrollHeight = container.scrollHeight;
+		const panelTopIfFromBottom = scrollHeight - buttonHeight - panelHeight;
+		const minVisibleTop = scrollTop + padding;
+		const maxVisibleTop = scrollTop + containerHeight - panelHeight - padding;
+		const wouldOverflowBottom = panelTopIfFromBottom < minVisibleTop;
+		
+		// Check if panel would overflow right  
+		// When positioned from right: panel left = scrollWidth - panelWidth
+		// Panel is visible if: scrollLeft <= panelLeft <= scrollLeft + containerWidth - panelWidth
+		const scrollWidth = container.scrollWidth;
+		const panelLeftIfFromRight = scrollWidth - panelWidth;
+		const minVisibleLeft = scrollLeft + padding;
+		const maxVisibleLeft = scrollLeft + containerWidth - panelWidth - padding;
+		const wouldOverflowRight = panelLeftIfFromRight < minVisibleLeft;
+		
+		if (wouldOverflowBottom) {
+			newPosition.top = buttonHeight;
+		} else {
+			newPosition.bottom = buttonHeight;
+		}
+		
+		if (wouldOverflowRight) {
+			newPosition.left = 0;
+		} else {
+			newPosition.right = 0;
+		}
+		
+		setPanelPosition(newPosition);
+	}, [showAdvancedControls]);
+
+	useEffect(() => {
+		if (showAdvancedControls) {
+			// Use setTimeout to ensure panel is rendered and measured
+			const timeoutId = setTimeout(calculatePanelPosition, 0);
+			
+			// Recalculate on scroll and resize
+			const container = timelineScrollRef.current;
+			const handleScroll = () => calculatePanelPosition();
+			const handleResize = () => calculatePanelPosition();
+			
+			if (container) {
+				container.addEventListener('scroll', handleScroll);
+				window.addEventListener('resize', handleResize);
+			}
+			
+			return () => {
+				clearTimeout(timeoutId);
+				if (container) {
+					container.removeEventListener('scroll', handleScroll);
+					window.removeEventListener('resize', handleResize);
+				}
+			};
+		}
+	}, [showAdvancedControls, calculatePanelPosition]);
+
+	// Calculate edit overlay position to stay within bounds
+	const calculateEditOverlayPosition = useCallback(() => {
+		if (editingSlot === null || !editOverlayRef.current || !timelineScrollRef.current || !slotRefs.current.has(editingSlot)) {
+			return;
+		}
+
+		const overlay = editOverlayRef.current;
+		const container = timelineScrollRef.current;
+		const slotElement = slotRefs.current.get(editingSlot);
+		
+		if (!slotElement) return;
+
+		const containerHeight = container.clientHeight;
+		const containerWidth = container.clientWidth;
+		const scrollTop = container.scrollTop;
+		const scrollLeft = container.scrollLeft;
+		
+		// Get slot position relative to timeline container (not viewport)
+		const slotOffsetTop = slotElement.offsetTop;
+		const slotOffsetHeight = slotElement.offsetHeight;
+		const slotOffsetLeft = slotElement.offsetLeft;
+		const slotOffsetWidth = slotElement.offsetWidth;
+		
+		const slotTop = slotOffsetTop;
+		const slotBottom = slotTop + slotOffsetHeight;
+		const slotLeft = slotOffsetLeft;
+		const slotRight = slotLeft + slotOffsetWidth;
+		
+		const overlayHeight = overlay.offsetHeight || 400; // Estimate if not measured
+		const overlayWidth = overlay.offsetWidth || 400;
+		const padding = 12;
+		const marginTop = 8;
+		
+		const newPosition: { top?: string; bottom?: string; left?: number | string; right?: number | string; marginTop?: number; marginBottom?: number } = {};
+		
+		// Check visible area for slot
+		const slotVisibleTop = Math.max(scrollTop, slotTop);
+		const slotVisibleBottom = Math.min(scrollTop + containerHeight, slotBottom);
+		
+		// Check if overlay fits below slot in visible area
+		const spaceBelow = (scrollTop + containerHeight) - slotVisibleBottom;
+		const spaceAbove = slotVisibleTop - scrollTop;
+		
+		if (spaceBelow >= overlayHeight + marginTop + padding || (spaceAbove < overlayHeight + padding && spaceBelow >= marginTop + padding)) {
+			// Position below slot
+			newPosition.top = '100%';
+			newPosition.marginTop = marginTop;
+			delete newPosition.bottom;
+			delete newPosition.marginBottom;
+		} else {
+			// Position above slot
+			newPosition.bottom = '100%';
+			newPosition.marginBottom = marginTop;
+			delete newPosition.top;
+			delete newPosition.marginTop;
+		}
+		
+		// Check horizontal positioning
+		const slotVisibleLeft = Math.max(scrollLeft, slotLeft);
+		const slotVisibleRight = Math.min(scrollLeft + containerWidth, slotRight);
+		
+		// Try to align with slot, but adjust if overlay would overflow
+		if (slotLeft + overlayWidth <= scrollLeft + containerWidth - padding) {
+			// Fits from slot left
+			newPosition.left = 0;
+			delete newPosition.right;
+		} else if (slotRight - overlayWidth >= scrollLeft + padding) {
+			// Fits aligned to slot right
+			newPosition.right = 0;
+			delete newPosition.left;
+		} else {
+			// Center or align to container
+			if (slotLeft < scrollLeft + padding) {
+				newPosition.left = padding;
+				delete newPosition.right;
+			} else if (slotRight > scrollLeft + containerWidth - padding) {
+				newPosition.right = padding;
+				delete newPosition.left;
+			} else {
+				// Center it in visible area
+				const centerX = scrollLeft + containerWidth / 2;
+				newPosition.left = centerX - slotLeft - overlayWidth / 2;
+				delete newPosition.right;
+			}
+		}
+		
+		setEditOverlayPosition(newPosition);
+	}, [editingSlot]);
+
+	useEffect(() => {
+		if (editingSlot !== null) {
+			// Use setTimeout to ensure overlay is rendered and measured
+			const timeoutId = setTimeout(calculateEditOverlayPosition, 0);
+			
+			// Recalculate on scroll and resize
+			const container = timelineScrollRef.current;
+			const handleScroll = () => calculateEditOverlayPosition();
+			const handleResize = () => calculateEditOverlayPosition();
+			
+			if (container) {
+				container.addEventListener('scroll', handleScroll);
+				window.addEventListener('resize', handleResize);
+			}
+			
+			return () => {
+				clearTimeout(timeoutId);
+				if (container) {
+					container.removeEventListener('scroll', handleScroll);
+					window.removeEventListener('resize', handleResize);
+				}
+			};
+		}
+	}, [editingSlot, calculateEditOverlayPosition]);
+
+	// Keep floating controls fixed at bottom-right of scroll container viewport
+	useEffect(() => {
+		// Only position controls when in timeline mode
+		if (editorMode !== 'timeline') return;
+
+		const container = timelineScrollRef.current;
+		const controls = controlsFloaterRef.current;
+		
+		if (!container || !controls) return;
+		
+		const updateControlsPosition = () => {
+			const containerRect = container.getBoundingClientRect();
+			
+			// Position controls at bottom-right of container viewport (12px from edges)
+			controls.style.bottom = `${window.innerHeight - containerRect.bottom + 12}px`;
+			controls.style.right = `${window.innerWidth - containerRect.right + 12}px`;
+			controls.style.top = 'auto';
+			controls.style.left = 'auto';
+		};
+		
+		// Wait for layout to complete before initial positioning
+		// Double RAF ensures layout is fully complete, especially when switching back from JSON mode
+		const initialPosition = requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				updateControlsPosition();
+			});
+		});
+		
+		const handleScroll = () => updateControlsPosition();
+		const handleResize = () => updateControlsPosition();
+		
+		// Watch for container size changes (e.g., when slots change and timeline resizes)
+		const resizeObserver = new ResizeObserver(() => {
+			updateControlsPosition();
+		});
+		resizeObserver.observe(container);
+		
+		container.addEventListener('scroll', handleScroll);
+		window.addEventListener('resize', handleResize);
+		window.addEventListener('scroll', handleScroll, true); // Capture scroll events from any element
+		
+		return () => {
+			cancelAnimationFrame(initialPosition);
+			resizeObserver.disconnect();
+			container.removeEventListener('scroll', handleScroll);
+			window.removeEventListener('resize', handleResize);
+			window.removeEventListener('scroll', handleScroll, true);
+		};
+	}, [editorMode]);
+
+	// Close context menu on click outside
+	useEffect(() => {
+		if (!contextMenu) return;
+		const handleClick = () => setContextMenu(null);
+		window.addEventListener('click', handleClick);
+		return () => window.removeEventListener('click', handleClick);
+	}, [contextMenu]);
+
 	return (
 		<div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8, background: '#fafafa' }}>
-			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-				<h3 style={{ margin: 0 }}>Schedule Timeline</h3>
-				<div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-					{/* Zoom controls */}
-					<div style={{ display: 'flex', gap: 2, alignItems: 'center', padding: '2px 8px', background: '#f0f0f0', borderRadius: 4 }}>
-						<button onClick={zoomOut} title="Zoom out" style={{ fontSize: '0.9em', padding: '4px 8px', border: 'none', background: 'transparent', cursor: 'pointer' }}>➖</button>
-						<span style={{ fontSize: '0.8em', minWidth: '40px', textAlign: 'center' }}>{zoomLevel.toFixed(1)}x</span>
-						<button onClick={zoomIn} title="Zoom in" style={{ fontSize: '0.9em', padding: '4px 8px', border: 'none', background: 'transparent', cursor: 'pointer' }}>➕</button>
-						<button onClick={resetZoom} title="Reset zoom & pan" style={{ fontSize: '0.75em', padding: '4px 6px', marginLeft: 4, border: 'none', background: 'transparent', cursor: 'pointer' }}>🔄</button>
+			<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+				<h3 style={{ margin: 0 }}>{editorMode === 'timeline' ? 'Schedule Timeline' : 'Schedule JSON'}</h3>
+				<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+					<div style={{ fontSize: '0.75em', color: '#666' }}>
+						TZ: {timeZone === 'local' ? 'Local' : timeZone}
 					</div>
-				{/* Snap controls */}
-				<div style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '2px 8px', background: '#f0f0f0', borderRadius: 4 }}>
-					<span style={{ fontSize: '0.75em', color: '#666' }}>Snap</span>
-					<select value={snapMinutes} onChange={e => setSnapMinutes(parseInt(e.target.value, 10))} style={{ fontSize: '0.85em' }}>
-						<option value={0}>Off</option>
-						<option value={1}>1m</option>
-						<option value={5}>5m</option>
-						<option value={15}>15m</option>
-						<option value={30}>30m</option>
-						<option value={60}>1h</option>
-					</select>
-				</div>
-					{/* Pan controls */}
-					<div style={{ display: 'flex', gap: 2, alignItems: 'center', padding: '2px 8px', background: '#f0f0f0', borderRadius: 4 }}>
-						<button onClick={panLeft} title="Pan left (Shift+Wheel)" style={{ fontSize: '0.9em', padding: '4px 8px', border: 'none', background: 'transparent', cursor: 'pointer' }}>◀</button>
-						<span style={{ fontSize: '0.75em', color: '#666' }}>Pan</span>
-						<button onClick={panRight} title="Pan right (Shift+Wheel)" style={{ fontSize: '0.9em', padding: '4px 8px', border: 'none', background: 'transparent', cursor: 'pointer' }}>▶</button>
-					</div>
-				{/* Preset ranges */}
-					<div style={{ display: 'flex', gap: 2 }}>
-						<button onClick={() => { setZoom(1); resetZoom(); }} style={{ fontSize: '0.75em', padding: '4px 8px', background: zoom === 1 ? '#2196f3' : '#eee' }}>Auto</button>
-						<button onClick={() => { setZoom(2); resetZoom(); }} style={{ fontSize: '0.75em', padding: '4px 8px', background: zoom === 2 ? '#2196f3' : '#eee' }}>24h</button>
-						<button onClick={() => { setZoom(3); resetZoom(); }} style={{ fontSize: '0.75em', padding: '4px 8px', background: zoom === 3 ? '#2196f3' : '#eee' }}>48h</button>
-						<button onClick={() => { setZoom(4); resetZoom(); }} style={{ fontSize: '0.75em', padding: '4px 8px', background: zoom === 4 ? '#2196f3' : '#eee' }}>1 week</button>
-					</div>
-					{/* Timezone selector */}
-					<div style={{ display: 'flex', gap: 4, alignItems: 'center', padding: '2px 8px', background: '#f0f0f0', borderRadius: 4 }}>
-						<span style={{ fontSize: '0.75em', color: '#666' }}>TZ</span>
-						<select value={timeZone} onChange={e => setTimeZone(e.target.value)} style={{ fontSize: '0.85em', maxWidth: 200 }}>
-							<option value="local">Local</option>
-							<option value="UTC">UTC</option>
-							<option value="America/El_Salvador">America/El_Salvador (San Salvador)</option>
-							<option value="America/New_York">America/New_York</option>
-							<option value="America/Los_Angeles">America/Los_Angeles</option>
-							<option value="Europe/London">Europe/London</option>
-							<option value="Europe/Berlin">Europe/Berlin</option>
-							<option value="Asia/Bangkok">Asia/Bangkok</option>
-							<option value="Asia/Tokyo">Asia/Tokyo</option>
-							<option value="Australia/Sydney">Australia/Sydney</option>
-						</select>
-					</div>
-				</div>
-			</div>
-			<div style={{ fontSize: '0.75em', color: '#666', marginBottom: 8 }}>
-				💡 + / = = Zoom in • - = Zoom out • 0 = Reset | Alt+Wheel = Zoom (anchor at cursor) | Shift+Wheel = Pan | Drag background = Pan | Arrows = Nudge (Shift=15m) | Snap editable (1x–20x) | Timezone: {timeZone === 'local' ? 'Local' : timeZone}
-			</div>
-
-            {/* Templates */}
-            <div style={{ marginBottom: 12, padding: 8, background: '#fff', borderRadius: 4, fontSize: '0.85em' }}>
-                <strong>Quick template:</strong>
-                <button onClick={applyCustomTemplate} style={{ marginLeft: 8, fontSize: '0.8em', padding: '4px 8px' }}>Load provided schedule</button>
-            </div>
-
-			{/* Add new slot */}
-			<div style={{ marginBottom: 16, padding: 12, background: '#fff', borderRadius: 4 }}>
-				<strong>Add Slot:</strong>
-				<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, marginTop: 8 }}>
-					<div>
-						<label style={{ fontSize: '0.85em' }}>Start (local)</label>
-						<div style={{ display: 'flex', gap: 4 }}>
-							<input
-								type="datetime-local"
-								value={newSlotStart}
-								onChange={e => setNewSlotStart(e.target.value)}
-								style={{ flex: 1 }}
-							/>
-							<button onClick={() => insertCurrentTime(true)} style={{ fontSize: '0.75em', padding: '4px 8px' }}>Now</button>
-						</div>
-					</div>
-					<div>
-						<label style={{ fontSize: '0.85em' }}>End (local)</label>
-						<div style={{ display: 'flex', gap: 4 }}>
-							<input
-								type="datetime-local"
-								value={newSlotEnd}
-								onChange={e => setNewSlotEnd(e.target.value)}
-								style={{ flex: 1 }}
-							/>
-							<button onClick={() => insertCurrentTime(false)} style={{ fontSize: '0.75em', padding: '4px 8px' }}>Now</button>
-						</div>
-					</div>
-					<button onClick={addSlot} disabled={!newSlotStart || !newSlotEnd} style={{ alignSelf: 'flex-end' }}>Add</button>
+					{onOpenAddSlotModal && (
+						<button
+							onClick={onOpenAddSlotModal}
+							title="Add Slot"
+							aria-label="Add Slot"
+							style={{
+								width: 36,
+								height: 36,
+								display: 'inline-flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								background: '#f9fafb',
+								color: '#374151',
+								border: '1px solid #e5e7eb',
+								borderRadius: 10,
+								cursor: 'pointer',
+								fontSize: '16px',
+								transition: 'all 0.2s ease'
+							}}
+						>
+							➕
+						</button>
+					)}
+					<button
+						onClick={() => setEditorMode(editorMode === 'timeline' ? 'json' : 'timeline')}
+						title={editorMode === 'timeline' ? 'Edit JSON' : 'View Timeline'}
+						aria-label={editorMode === 'timeline' ? 'Edit JSON' : 'View Timeline'}
+						style={{
+							width: 36,
+							height: 36,
+							display: 'inline-flex',
+							alignItems: 'center',
+							justifyContent: 'center',
+							background: editorMode === 'json' ? '#4a75ff' : '#f9fafb',
+							color: editorMode === 'json' ? '#fff' : '#374151',
+							border: '1px solid #e5e7eb',
+							borderRadius: 10,
+							cursor: 'pointer',
+							fontSize: '16px',
+							transition: 'all 0.2s ease'
+						}}
+					>
+						✏️
+					</button>
 				</div>
 			</div>
 
+			{editorMode === 'timeline' ? (
+				<>
 			{/* Timeline view */}
 			<div
 				ref={timelineScrollRef}
 				style={{
 					maxHeight: '600px',
+					minHeight: '500px',
 					overflowY: 'auto',
 					overflowX: 'hidden',
-					border: '2px solid #ccc',
+					border: '2px solid #e5e7eb',
 					borderRadius: 4,
 					marginBottom: 16,
 					position: 'relative'
 				}}
 				onWheel={handleWheel}
 			>
+				{/* Floating controls - positioned relative to scroll container viewport */}
+				<div 
+					ref={controlsFloaterRef}
+					style={{
+						position: 'fixed',
+						pointerEvents: 'none',
+						zIndex: 100
+					}}>
+					<div style={{ 
+						pointerEvents: 'auto', 
+						display: 'flex', 
+						flexDirection: 'row', 
+						gap: 6, 
+						alignItems: 'center',
+						background: 'rgba(255, 255, 255, 0.98)', 
+						backdropFilter: 'blur(12px)', 
+						border: '1px solid rgba(229, 231, 235, 0.8)', 
+						borderRadius: 12, 
+						padding: 10, 
+						boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)'
+					}}>
+					{/* Zoom controls */}
+					<div style={{ display: 'flex', gap: 6, alignItems: 'center', position: 'relative' }}>
+						<button 
+							onClick={zoomOut} 
+							title="Zoom out (-)" 
+							onMouseEnter={(e) => e.currentTarget.style.background = '#e5e7eb'}
+							onMouseLeave={(e) => e.currentTarget.style.background = '#f9fafb'}
+							style={{ 
+								width: 36, 
+								height: 36, 
+								display: 'inline-flex', 
+								alignItems: 'center', 
+								justifyContent: 'center', 
+								background: '#f9fafb', 
+								border: '1px solid #e5e7eb', 
+								borderRadius: 10, 
+								cursor: 'pointer', 
+								fontSize: '16px',
+								transition: 'all 0.2s ease',
+								color: '#374151'
+							}}
+						>−</button>
+						<div style={{ 
+							fontSize: '12px', 
+							minWidth: '42px', 
+							textAlign: 'center', 
+							color: '#111827', 
+							fontWeight: 700,
+							letterSpacing: '0.3px'
+						}}>{zoomLevel.toFixed(1)}×</div>
+						<button 
+							onClick={zoomIn} 
+							title="Zoom in (+)" 
+							onMouseEnter={(e) => e.currentTarget.style.background = '#e5e7eb'}
+							onMouseLeave={(e) => e.currentTarget.style.background = '#f9fafb'}
+							style={{ 
+								width: 36, 
+								height: 36, 
+								display: 'inline-flex', 
+								alignItems: 'center', 
+								justifyContent: 'center', 
+								background: '#f9fafb', 
+								border: '1px solid #e5e7eb', 
+								borderRadius: 10, 
+								cursor: 'pointer', 
+								fontSize: '16px',
+								transition: 'all 0.2s ease',
+								color: '#374151'
+							}}
+						>+</button>
+						<button 
+							onClick={resetZoom} 
+							title="Reset zoom & pan (0)" 
+							onMouseEnter={(e) => e.currentTarget.style.background = '#4a75ff'}
+							onMouseLeave={(e) => e.currentTarget.style.background = '#f9fafb'}
+							style={{ 
+								width: 36, 
+								height: 36, 
+								display: 'inline-flex', 
+								alignItems: 'center', 
+								justifyContent: 'center', 
+								background: '#f9fafb', 
+								border: '1px solid #e5e7eb', 
+								borderRadius: 10, 
+								cursor: 'pointer', 
+								fontSize: '14px',
+								transition: 'all 0.2s ease',
+								color: '#374151'
+							}}
+						>↻</button>
+					</div>
+					{/* Settings button with advanced panel */}
+					<div style={{ display: 'flex', gap: 4, alignItems: 'center', position: 'relative' }}>
+						<button 
+							onClick={() => setShowAdvancedControls(!showAdvancedControls)} 
+							title="Settings" aria-label="Settings" 
+							onMouseEnter={(e) => {
+								if (snapMinutes === 0) {
+									e.currentTarget.style.background = '#4a75ff';
+									e.currentTarget.style.color = '#fff';
+								} else {
+									e.currentTarget.style.background = '#3d66e5';
+								}
+							}}
+							onMouseLeave={(e) => {
+								if (snapMinutes === 0) {
+									e.currentTarget.style.background = '#f9fafb';
+									e.currentTarget.style.color = '#374151';
+								} else {
+									e.currentTarget.style.background = '#4a75ff';
+								}
+							}}
+							style={{ 
+								width: 36, 
+								height: 36, 
+								display: 'inline-flex', 
+								alignItems: 'center', 
+								justifyContent: 'center', 
+								background: snapMinutes > 0 ? '#4a75ff' : '#f9fafb', 
+								color: snapMinutes > 0 ? '#fff' : '#374151', 
+								border: '1px solid #e5e7eb', 
+								borderRadius: 10, 
+								cursor: 'pointer', 
+								fontSize: '16px',
+								transition: 'all 0.2s ease'
+							}}
+						>
+							⚙️
+						</button>
+						{showAdvancedControls && (
+							<div 
+								ref={advancedPanelRef}
+								style={{ 
+									position: 'absolute', 
+									...panelPosition,
+									background: 'rgba(255, 255, 255, 0.98)', 
+									backdropFilter: 'blur(12px)', 
+									border: '1px solid rgba(229, 231, 235, 0.8)', 
+									borderRadius: 12, 
+									padding: 14, 
+									boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)', 
+									minWidth: 220, 
+									maxWidth: 'calc(100% - 24px)',
+									zIndex: 101 
+								}}>
+								<div style={{ marginBottom: 12 }}>
+									<label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: 6, fontWeight: 600 }}>Snap to grid</label>
+									<select 
+										value={snapMinutes} 
+										onChange={e => setSnapMinutes(parseInt(e.target.value, 10))} 
+										style={{ 
+											width: '100%', 
+											fontSize: '13px', 
+											padding: '8px 10px', 
+											border: '1px solid #e5e7eb', 
+											borderRadius: 8,
+											background: '#fff',
+											cursor: 'pointer',
+											transition: 'border-color 0.2s ease'
+										}}
+										onFocus={(e) => e.currentTarget.style.borderColor = '#4a75ff'}
+										onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
+									>
+										<option value={0}>Off</option>
+										<option value={1}>1 minute</option>
+										<option value={5}>5 minutes</option>
+										<option value={15}>15 minutes</option>
+										<option value={30}>30 minutes</option>
+										<option value={60}>1 hour</option>
+									</select>
+								</div>
+								<div style={{ paddingTop: 12, borderTop: '1px solid #f3f4f6' }}>
+									<label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: 6, fontWeight: 600 }}>Timezone</label>
+									<select 
+										value={timeZone} 
+										onChange={e => setTimeZone(e.target.value)} 
+										style={{ 
+											width: '100%', 
+											fontSize: '13px', 
+											padding: '8px 10px', 
+											border: '1px solid #e5e7eb', 
+											borderRadius: 8,
+											background: '#fff',
+											cursor: 'pointer',
+											transition: 'border-color 0.2s ease'
+										}}
+										onFocus={(e) => e.currentTarget.style.borderColor = '#4a75ff'}
+										onBlur={(e) => e.currentTarget.style.borderColor = '#e5e7eb'}
+									>
+										<option value="local">Local</option>
+										<option value="UTC">UTC</option>
+										<option value="America/El_Salvador">America/El_Salvador</option>
+										<option value="America/New_York">America/New_York</option>
+										<option value="America/Los_Angeles">America/Los_Angeles</option>
+										<option value="Europe/London">Europe/London</option>
+										<option value="Europe/Berlin">Europe/Berlin</option>
+										<option value="Asia/Bangkok">Asia/Bangkok</option>
+										<option value="Asia/Tokyo">Asia/Tokyo</option>
+										<option value="Australia/Sydney">Australia/Sydney</option>
+									</select>
+								</div>
+							</div>
+						)}
+					</div>
+					</div>
+				</div>
 				<div
 					ref={timelineRef}
 					className="timeline-bg"
 					style={{
 						position: 'relative',
-							minHeight: Math.max(200, slots.length * 80),
-							height: Math.max(200, slots.length * 80),
+							minHeight: Math.max(500, slots.length * 80 + 120), // Add 120px padding after last slot
+							height: Math.max(200, slots.length * 80 + 120),
 						background: '#fff',
 						cursor: panning ? 'grabbing' : 'grab',
 						userSelect: 'none'
 					}}
 					onMouseDown={handleTimelineMouseDown}
+					onContextMenu={handleTimelineContextMenu}
 				>
 				{/* Hour and half-hour gridlines */}
 				{(() => {
@@ -722,7 +1160,7 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 				})()}
 
 				{/* Timeline header bar */}
-				<div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 24, borderBottom: '2px solid #333', background: '#f5f5f5', zIndex: 10 }}>
+				<div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 24, borderBottom: '2px solid #e5e7eb', background: '#f5f5f5', zIndex: 10 }}>
 					{/* Time range indicator (optional - can show overall range) */}
 				</div>
 
@@ -789,6 +1227,8 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 									justifyContent: 'space-between',
 									color: 'white',
 									fontSize: '11px',
+									overflow: 'hidden',
+									minWidth: 0,
 									userSelect: 'none',
 									zIndex: editingSlot === idx ? 999 : (editingSlot !== null ? 30 : 50)
 								}}
@@ -842,25 +1282,25 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 									}}
 									title="Click to edit slot"
 								>
-							<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%' }}>
+							<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, width: '100%', minWidth: 0 }}>
 								{slot.title ? (
-									<div style={{ fontWeight: 'bold', color: '#fff', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={slot.title}>
+									<div style={{ fontWeight: 'bold', color: '#fff', textAlign: 'left', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={slot.title}>
 										{slot.title}{slot.code ? ` • ${slot.code}` : ''}
 									</div>
 								) : null}
 								{slot.speakers && slot.speakers.length > 0 ? (
-									<div style={{ opacity: 0.95, fontSize: '10px', textAlign: 'center', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={slot.speakers.join(', ')}>
+									<div style={{ opacity: 0.95, fontSize: '10px', textAlign: 'left', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={slot.speakers.join(', ')}>
 										{slot.speakers.join(', ')}
 									</div>
 								) : null}
-								<div style={{ fontSize: '10px' }}>
+								<div style={{ fontSize: '10px', textAlign: 'left', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={`${timeFmt(new Date(slot.startAt).getTime())} → ${timeFmt(new Date(slot.endAt).getTime())} (${durationMinutes}m)${slot.roomName ? ` • ${slot.roomName}` : ''}`}>
 									{timeFmt(new Date(slot.startAt).getTime())} → {timeFmt(new Date(slot.endAt).getTime())} ({durationMinutes}m){slot.roomName ? ` • ${slot.roomName}` : ''}
 								</div>
 							</div>
 								</div>
-						<div style={{ fontSize: '10px', textAlign: 'center' }}>
+						<div style={{ fontSize: '10px', textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', minWidth: 0 }}>
 							{slot.items.length} item{slot.items.length !== 1 ? 's' : ''}
-							{overlaps.length > 0 && ` ⚠ Conflict!`}
+							{overlaps.length > 0 && ' ⚠ Conflict!'}
 						</div>
 
 								{editingSlot === idx && (
@@ -868,18 +1308,16 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 										ref={editOverlayRef}
 										style={{
 											position: 'absolute',
-											top: '100%',
-											left: 0,
-											right: 0,
+											...editOverlayPosition,
 											background: '#fff',
 											border: '3px solid #2196f3',
 											borderRadius: 6,
 											padding: 16,
-											marginTop: 8,
 											zIndex: 10000,
 											boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
 											color: '#000',
 											minWidth: 400,
+											maxWidth: 'calc(100vw - 48px)',
 											isolation: 'isolate'
 										}}
 										onClick={e => e.stopPropagation()}
@@ -999,14 +1437,59 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 						);
 					})}
 				</div>
+				
+				{/* Right-click context menu floater */}
+				{contextMenu && onAddSlotAtTime && (
+					<div
+						style={{
+							position: 'fixed',
+							left: contextMenu.x,
+							top: contextMenu.y,
+							zIndex: 1000,
+							background: 'rgba(255, 255, 255, 0.98)',
+							backdropFilter: 'blur(12px)',
+							border: '1px solid rgba(229, 231, 235, 0.8)',
+							borderRadius: 12,
+							padding: '8px 12px',
+							boxShadow: '0 8px 24px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)',
+							display: 'flex',
+							alignItems: 'center',
+							gap: 8,
+							cursor: 'pointer'
+						}}
+						onClick={(e) => {
+							e.stopPropagation();
+							const startTime = new Date(contextMenu.time);
+							// Convert to local datetime-local format (YYYY-MM-DDTHH:mm)
+							const local = new Date(startTime.getTime() - startTime.getTimezoneOffset() * 60000);
+							const localISO = local.toISOString().slice(0, 16);
+							onAddSlotAtTime(localISO);
+							setContextMenu(null);
+						}}
+					>
+						<span style={{ fontSize: '13px', color: '#374151' }}>Add slot here</span>
+						<button
+							style={{
+								width: 28,
+								height: 28,
+								display: 'inline-flex',
+								alignItems: 'center',
+								justifyContent: 'center',
+								background: '#4a75ff',
+								color: '#fff',
+								border: 'none',
+								borderRadius: 8,
+								cursor: 'pointer',
+								fontSize: '16px',
+								fontWeight: 'bold'
+							}}
+						>
+							+
+						</button>
+					</div>
+				)}
 				</div>
 			</div>
-
-			{slots.length === 0 && (
-				<div style={{ textAlign: 'center', padding: 40, color: '#999' }}>
-					No slots scheduled. Add a slot above or use a template to get started.
-				</div>
-			)}
 
 			{/* Legend */}
 			<div style={{ fontSize: '0.8em', color: '#666', display: 'flex', gap: 16, marginTop: 8 }}>
@@ -1023,9 +1506,58 @@ const handleWheel = useCallback((e: React.WheelEvent) => {
 					<span>Conflict (overlap)</span>
 				</div>
 				<div style={{ marginLeft: 'auto' }}>
-					💡 Drag edges to resize, drag middle to move
+					💡 Alt+Wheel = Zoom • Shift+Wheel = Pan • Drag edges to resize, drag middle to move
 				</div>
 			</div>
+				</>
+			) : (
+				<>
+					{scheduleJson !== undefined && onUpdateJson && (
+						<>
+							<textarea
+								rows={22}
+								value={scheduleJson}
+								onChange={e => {
+									onUpdateJson(e.target.value);
+									// Try to parse and update slots if valid JSON
+									try {
+										const parsed = JSON.parse(e.target.value);
+										if (parsed.slots && Array.isArray(parsed.slots)) {
+											onChange(parsed.slots);
+										}
+									} catch {
+										// Invalid JSON, ignore
+									}
+								}}
+								style={{ width: '100%', fontFamily: 'monospace', fontSize: '12px', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10 }}
+							/>
+							<div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+								{onUploadSchedule && (
+									<button onClick={onUploadSchedule} disabled={busy || !createdRoomId} style={{ background: '#4a75ff', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontWeight: 600, cursor: 'pointer', opacity: busy || !createdRoomId ? 0.7 : 1 }}>Upload schedule</button>
+								)}
+								{onExportSchedule && (
+									<button onClick={onExportSchedule} style={{ fontSize: '0.9em', padding: '6px 10px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 8 }}>Export JSON</button>
+								)}
+								{onImportSchedule && (
+									<label style={{ fontSize: '0.9em', padding: '6px 10px', cursor: 'pointer', border: '1px solid #e5e7eb', background: '#F3F4F6', borderRadius: 8, display: 'inline-block' }}>
+										Import JSON
+										<input type="file" accept=".json" onChange={onImportSchedule} style={{ display: 'none' }} />
+									</label>
+								)}
+								{onLoadProvidedSchedule && (
+									<button onClick={onLoadProvidedSchedule} style={{ fontSize: '0.9em', padding: '6px 10px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 8 }}>Load provided schedule</button>
+								)}
+								{createdRoomId && onOpenPretalxModal && (
+									<button onClick={onOpenPretalxModal} style={{ fontSize: '0.9em', padding: '6px 10px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>Sync with Pretalx…</button>
+								)}
+							</div>
+							<p style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
+								Tip: times must be UTC ISO format (e.g., "2025-10-29T21:00:00Z"). Items accept note1/nevent1 references.
+							</p>
+						</>
+					)}
+				</>
+			)}
 		</div>
 	);
 };
