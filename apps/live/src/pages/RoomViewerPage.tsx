@@ -146,7 +146,7 @@ export const RoomViewerPage: React.FC = () => {
         const res = await fetch(url);
         if (!res.ok) {
           if (res.status === 404) {
-            navigate('/multi', { replace: true });
+            navigate('/live/multi', { replace: true });
           } else {
             setError('Failed to load view');
             setView(null);

@@ -328,13 +328,13 @@ export const RoomAdminPage: React.FC = () => {
 
         if (cancelled) return;
         if (res.status === 404) {
-          navigate('/multi', { replace: true });
+          navigate('/live/multi', { replace: true });
           return;
         }
         if (res.status === 401) {
           // Password invalid or expired - clear and redirect to login
           sessionStorage.removeItem(`room_${roomId}_password`);
-          navigate('/multi', { replace: true });
+          navigate('/live/multi', { replace: true });
           return;
         }
         if (!res.ok) throw new Error('Failed to load room');

@@ -69,7 +69,7 @@ export const MultiLoginPage: React.FC = () => {
       }
 
       // Navigate to admin page after successful login
-      navigate(`/multi/${roomId}/admin`);
+      navigate(`/live/multi/${roomId}/admin`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error accessing Multi LIVE');
     } finally {
@@ -165,7 +165,7 @@ export const MultiLoginPage: React.FC = () => {
               >
                 <button
                   className="button outline"
-                  onClick={() => navigate('/multi/create')}
+                  onClick={() => navigate('/live/multi/create')}
                   style={{ padding: '4px 12px', fontSize: '14px', margin: 0 }}
                 >
                   CREATE NEW

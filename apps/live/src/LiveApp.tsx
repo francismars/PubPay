@@ -11,15 +11,18 @@ import { NotFoundPage } from './pages/NotFoundPage';
 export const LiveApp: React.FC = () => {
   return (
     <Routes>
-      <Route path="/" element={<LivePage />} />
-      {/* Explicitly exclude "live", "multi" from being captured as eventId */}
-      <Route path="/multi" element={<MultiLoginPage />} />
-      <Route path="/multi/create" element={<RoomCreatePage />} />
-      <Route path="/pretalx/diagnose" element={<PretalxDiagnosePage />} />
-      <Route path="/multi/:roomId" element={<RoomViewerPage />} />
-      <Route path="/multi/:roomId/admin" element={<RoomAdminPage />} />
-      {/* Match eventId route last, after all specific routes */}
-      <Route path="/:eventId" element={<LivePage />} />
+      {/* Explicit /live/ routes - clearer and prevents "live" from being captured as eventId */}
+      <Route path="/live/" element={<LivePage />} />
+      <Route path="/live/:eventId" element={<LivePage />} />
+      
+      {/* Multi LIVE routes */}
+      <Route path="/live/multi" element={<MultiLoginPage />} />
+      <Route path="/live/multi/create" element={<RoomCreatePage />} />
+      <Route path="/live/pretalx/diagnose" element={<PretalxDiagnosePage />} />
+      <Route path="/live/multi/:roomId" element={<RoomViewerPage />} />
+      <Route path="/live/multi/:roomId/admin" element={<RoomAdminPage />} />
+      
+      {/* Catch-all for anything else */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );

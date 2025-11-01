@@ -9,7 +9,7 @@ import { nip19 } from 'nostr-tools';
 export const LivePage: React.FC = () => {
   const { eventId } = useParams<{ eventId?: string }>();
   const navigate = useNavigate();
-  // Don't treat "live" as a valid eventId - filter it out
+  // With explicit routes, eventId should never be "live" but filter it out just in case
   const validEventId = eventId && eventId.trim() !== '' && eventId.trim() !== 'live' ? eventId : undefined;
   const [showNoteLoader, setShowNoteLoader] = useState(!validEventId);
   const [showMainLayout, setShowMainLayout] = useState(!!validEventId);
@@ -73,13 +73,24 @@ export const LivePage: React.FC = () => {
       }
 
       // If we're at exactly /live/ (with or without trailing slash), show note loader
-      if (currentPath === '/live' || currentPath === '/live/') {
-        // Ensure trailing slash
+      // Also handle /live with any trailing path segments that are just "live"
+      if (currentPath === '/live' || 
+          currentPath === '/live/' || 
+          currentPath === '/live/live' || 
+          currentPath === '/live/live/') {
+        // Ensure trailing slash and redirect to /live/
         if (currentPath !== '/live/') {
           window.history.replaceState({}, '', '/live/');
         }
         setShowNoteLoader(true);
         setShowMainLayout(false);
+        // CRITICAL: Clear any input field that might have "live" in it
+        setTimeout(() => {
+          const input = document.getElementById('note1LoaderInput') as HTMLInputElement | null;
+          if (input && (input.value === 'live' || input.value.trim() === 'live')) {
+            input.value = '';
+          }
+        }, 10);
         return;
       }
 
@@ -179,11 +190,18 @@ export const LivePage: React.FC = () => {
         }
         setShowNoteLoader(false);
         setShowMainLayout(true);
-        } catch {
+      } catch {
         setShowNoteLoader(true);
         setShowMainLayout(false);
-        // Only show error and prefill if candidate exists and is not "live"
-        if (candidate && candidate !== 'live' && candidate.trim() !== '') {
+        // CRITICAL: Never show error or prefill if candidate is "live" or empty
+        // Only show error for candidates that look like they might be valid but failed validation
+        if (candidate && 
+            candidate !== 'live' && 
+            candidate.trim() !== '' &&
+            (candidate.startsWith('note') || 
+             candidate.startsWith('nevent') || 
+             candidate.startsWith('naddr') || 
+             candidate.startsWith('nprofile'))) {
           // Delay until after the note loader mounts so the DOM nodes exist
           setTimeout(() => {
             // Legacy-style messages based on intended type
@@ -207,7 +225,7 @@ export const LivePage: React.FC = () => {
             }
           }, 50);
         }
-        // Ensure URL stays at /live/
+        // Ensure URL stays at /live/ and clear any invalid state
         if (window.location.pathname !== '/live/') {
           window.history.replaceState({}, '', '/live/');
         }
@@ -293,15 +311,21 @@ export const LivePage: React.FC = () => {
   // Listen for URL changes to handle note loader submissions
   useEffect(() => {
     const handlePopState = () => {
-      const pathParts = window.location.pathname.split('/');
-      const currentEventId = pathParts[pathParts.length - 1];
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      // Filter out 'live' from path parts
+      const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
+      const currentEventId = pathPartsWithoutLive[pathPartsWithoutLive.length - 1];
 
-      if (currentEventId && currentEventId !== 'live') {
+      if (currentEventId && currentEventId.trim() !== '' && currentEventId !== 'live') {
         setShowNoteLoader(false);
         setShowMainLayout(true);
       } else {
         setShowNoteLoader(true);
         setShowMainLayout(false);
+        // Ensure we're at /live/ if somehow we're not
+        if (window.location.pathname !== '/live/') {
+          window.history.replaceState({}, '', '/live/');
+        }
       }
     };
 
@@ -311,13 +335,22 @@ export const LivePage: React.FC = () => {
       setShowMainLayout(true);
 
       // Force a re-render by updating the eventId
-      const pathParts = window.location.pathname.split('/');
-      const newEventId = pathParts[pathParts.length - 1];
-      if (newEventId && newEventId !== 'live') {
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      // Filter out 'live' from path parts
+      const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
+      const newEventId = pathPartsWithoutLive[pathPartsWithoutLive.length - 1];
+      if (newEventId && newEventId.trim() !== '' && newEventId !== 'live') {
         // Trigger a re-render by updating the URL in a way React Router will notice
         window.history.replaceState({}, '', window.location.pathname);
         // Force component to re-render with new eventId
         window.location.reload();
+      } else {
+        // If somehow "live" is in there, just show loader
+        setShowNoteLoader(true);
+        setShowMainLayout(false);
+        if (window.location.pathname !== '/live/') {
+          window.history.replaceState({}, '', '/live/');
+        }
       }
     };
 
@@ -492,7 +525,7 @@ export const LivePage: React.FC = () => {
                 </button>
                 <button
                   className="button outline"
-                  onClick={() => navigate('/multi')}
+                  onClick={() => navigate('/live/multi')}
                 >
                   MULTI
                 </button>

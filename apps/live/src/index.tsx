@@ -55,7 +55,7 @@ if (!container) {
 const root = createRoot(container);
 root.render(
   <React.StrictMode>
-    <BrowserRouter basename="/live">
+    <BrowserRouter>
       <LiveApp />
     </BrowserRouter>
   </React.StrictMode>
