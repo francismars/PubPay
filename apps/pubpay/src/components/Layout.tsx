@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, Outlet } from 'react-router-dom';
-import { useUIStore } from '@pubpay/shared-services';
+import { useUIStore, NostrRegistrationService } from '@pubpay/shared-services';
 import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { InvoiceQR } from '@pubpay/shared-ui';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
@@ -25,6 +25,8 @@ export const Layout: React.FC = () => {
   const closeLogin = useUIStore(s => s.closeLogin);
   const [showNsecGroup, setShowNsecGroup] = useState(false);
   const [nsecInput, setNsecInput] = useState('');
+  const [showRecoveryGroup, setShowRecoveryGroup] = useState(false);
+  const [recoveryMnemonic, setRecoveryMnemonic] = useState('');
   // Remember me removed: always persist until logout
   const [qrScanner, setQrScanner] = useState<any>(null);
   const [isScannerRunning, setIsScannerRunning] = useState(false);
@@ -76,6 +78,8 @@ export const Layout: React.FC = () => {
   const resetLoginForm = () => {
     setShowNsecGroup(false);
     setNsecInput('');
+    setShowRecoveryGroup(false);
+    setRecoveryMnemonic('');
   };
 
   const handleQRScannerOpen = () => {
@@ -126,6 +130,30 @@ export const Layout: React.FC = () => {
       handleContinueWithNsec(nsecInput);
       setNsecInput('');
       closeLogin();
+    }
+  };
+
+  const handleRecoveryFromMnemonic = async () => {
+    if (!recoveryMnemonic.trim()) {
+      alert('Please enter your 12-word mnemonic phrase');
+      return;
+    }
+
+    try {
+      const result = NostrRegistrationService.recoverKeyPairFromMnemonic(recoveryMnemonic.trim());
+      
+      if (result.success && result.keyPair && result.keyPair.privateKey) {
+        // Sign in with the recovered private key
+        await handleContinueWithNsec(result.keyPair.privateKey);
+        setRecoveryMnemonic('');
+        setShowRecoveryGroup(false);
+        closeLogin();
+      } else {
+        alert('Failed to recover keys: ' + (result.error || 'Invalid mnemonic'));
+      }
+    } catch (error) {
+      console.error('Recovery failed:', error);
+      alert('Failed to recover keys. Please check your mnemonic phrase.');
     }
   };
 
@@ -736,10 +764,10 @@ export const Layout: React.FC = () => {
           <p className="label" id="titleSignin">
             Choose Sign-in Method
           </p>
-          <div 
-            className="formFieldGroup" 
+          <div
+            className="formFieldGroup"
             id="loginFormGroup"
-            style={{ display: showNsecGroup ? 'none' : 'flex' }}
+            style={{ display: showNsecGroup || showRecoveryGroup ? 'none' : 'flex' }}
           >
             <a
               href="#"
@@ -838,6 +866,16 @@ export const Layout: React.FC = () => {
                 onChange={e => setNsecInput(e.target.value)}
                 autoComplete="new-password"
                 required
+                style={{
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  border: '2px solid var(--border-color)',
+                  borderRadius: '6px',
+                  padding: '12px 16px',
+                  width: '100%',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
               />
               <button
                 id="continueWithNsec"
@@ -850,6 +888,87 @@ export const Layout: React.FC = () => {
               >
                 Continue
               </button>
+              <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                <a
+                  href="#"
+                  className="label"
+                  style={{
+                    color: '#6b7280',
+                    fontSize: '13px',
+                    textDecoration: 'none',
+                    cursor: 'pointer'
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowNsecGroup(false);
+                    setShowRecoveryGroup(true);
+                  }}
+                >
+                  Recover from seed
+                </a>
+              </div>
+            </form>
+          </div>
+          <div
+            id="recoveryInputGroup"
+            style={{ display: showRecoveryGroup ? 'block' : 'none' }}
+          >
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                handleRecoveryFromMnemonic();
+              }}
+            >
+              <div className="formField" style={{ textAlign: 'left', marginBottom: '20px' }}>
+                <textarea
+                  id="recoveryMnemonic"
+                  placeholder="Enter your 12-word recovery phrase separated by spaces..."
+                  value={recoveryMnemonic}
+                  onChange={e => setRecoveryMnemonic(e.target.value)}
+                  rows={3}
+                  required
+                  style={{
+                    width: '100%',
+                    minHeight: '80px',
+                    resize: 'vertical',
+                    fontFamily: 'monospace',
+                    padding: '12px 16px',
+                    border: '2px solid var(--border-color)',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    boxSizing: 'border-box',
+                    marginBottom: '0'
+                  }}
+                />
+              </div>
+              <button
+                id="continueWithRecovery"
+                className="cta"
+                type="submit"
+              >
+                Recover Account
+              </button>
+              <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                <a
+                  href="#"
+                  className="label"
+                  style={{
+                    color: '#6b7280',
+                    fontSize: '13px',
+                    textDecoration: 'none',
+                    cursor: 'pointer'
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowRecoveryGroup(false);
+                    setShowNsecGroup(true);
+                  }}
+                >
+                  Back to nsec login
+                </a>
+              </div>
             </form>
           </div>
           {/* Remember option removed: sessions persist until logout */}
