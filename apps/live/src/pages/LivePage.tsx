@@ -61,6 +61,17 @@ export const LivePage: React.FC = () => {
     try {
       const pathParts = window.location.pathname.split('/').filter(Boolean);
 
+      // If we're at exactly /live/ with nothing else, just show the note loader
+      if (pathParts.length === 1 && pathParts[0] === 'live') {
+        setShowNoteLoader(true);
+        setShowMainLayout(false);
+        // Ensure we're at /live/ and not redirected
+        if (window.location.pathname !== '/live/') {
+          window.history.replaceState({}, '', '/live/');
+        }
+        return;
+      }
+
       // Try compound form: /{nprofile...}/live/{event-id} → build naddr(kind 30311) and normalize URL
       // If any legacy '/live' segment is present, normalize away from it
       if (pathParts.includes('live')) {
@@ -94,12 +105,21 @@ export const LivePage: React.FC = () => {
       }
 
       // Standard handling: last path segment or router param
-      const lastPart = (pathParts[pathParts.length - 1] || '').trim();
+      // Filter out 'live' from path parts to get the actual identifier
+      const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
+      const lastPart = (
+        pathPartsWithoutLive[pathPartsWithoutLive.length - 1] || ''
+      ).trim();
       const candidate = stripNostrPrefix(lastPart || (eventId ?? ''));
 
-      if (!candidate) {
+      // If we're at /live/ with no identifier, just show the note loader
+      if (!candidate || candidate === 'live') {
         setShowNoteLoader(true);
         setShowMainLayout(false);
+        // Ensure URL stays at /live/ if somehow it changed
+        if (window.location.pathname !== '/live/') {
+          window.history.replaceState({}, '', '/live/');
+        }
         return;
       }
 
@@ -111,6 +131,10 @@ export const LivePage: React.FC = () => {
         showLoadingError(
           'Invalid format. Please enter a valid nostr identifier (note1/nevent1/naddr1/nprofile1).'
         );
+        // Ensure URL stays at /live/
+        if (window.location.pathname !== '/live/') {
+          window.history.replaceState({}, '', '/live/');
+        }
         return;
       }
 
@@ -118,7 +142,7 @@ export const LivePage: React.FC = () => {
       try {
         // Decode to ensure the identifier is a valid NIP-19 bech32
         nip19.decode(candidate as string);
-        // Normalize URL to clean "/:identifier"
+        // Normalize URL to clean "/live/:identifier" (keep under /live/ base)
         const cleanUrl = `/live/${candidate}`;
         if (window.location.pathname !== cleanUrl) {
           window.history.replaceState({}, '', cleanUrl);
@@ -428,7 +452,10 @@ export const LivePage: React.FC = () => {
                 <button id="note1LoaderSubmit" className="button">
                   Load
                 </button>
-                <button className="button outline" onClick={() => navigate('/multi')}>
+                <button
+                  className="button outline"
+                  onClick={() => navigate('/multi')}
+                >
                   MULTI
                 </button>
               </div>
@@ -1237,7 +1264,7 @@ export const LivePage: React.FC = () => {
       </div>
 
       {/* Zap Notification Overlay */}
-      <ZapNotificationOverlay 
+      <ZapNotificationOverlay
         notification={zapNotification}
         onDismiss={handleNotificationDismiss}
       />

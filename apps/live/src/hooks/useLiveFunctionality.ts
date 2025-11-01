@@ -64,7 +64,8 @@ export const useLiveFunctionality = (eventId?: string) => {
   const liveDisplayRef = useRef<any>(null);
 
   // Zap notification state
-  const [zapNotification, setZapNotification] = useState<ZapNotification | null>(null);
+  const [zapNotification, setZapNotification] =
+    useState<ZapNotification | null>(null);
   const initialZapsLoadedRef = useRef(false);
   const pendingZapNotificationsRef = useRef<Map<string, any>>(new Map());
 
@@ -185,7 +186,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         // QR swiper is initialized by initializeQRSwiper() function
 
         // Load note content if eventId is provided
-        if (eventId) {
+        // Only process if eventId exists and is not empty or just 'live'
+        if (eventId && eventId.trim() !== '' && eventId.trim() !== 'live') {
           // Legacy-style guard: strip prefix and validate first; if invalid, show error and abort
           try {
             const cleanId = stripNostrPrefix(eventId);
@@ -680,7 +682,10 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const subscribeLiveEventZaps = async (pubkey: string, identifier: string) => {
     // Debug log removed
-    console.log('🔌 subscribeLiveEventZaps called for:', { pubkey: pubkey.slice(0, 8), identifier });
+    console.log('🔌 subscribeLiveEventZaps called for:', {
+      pubkey: pubkey.slice(0, 8),
+      identifier
+    });
 
     // Reset zap list when starting a new live event (like legacy)
     resetZapList();
@@ -703,7 +708,10 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Keep subscription alive for new zaps
         // Mark that initial zaps have been loaded
         initialZapsLoadedRef.current = true;
-        console.log('✅ Initial zaps loaded (oneose), will show notifications for new zaps. Flag set to:', initialZapsLoadedRef.current);
+        console.log(
+          '✅ Initial zaps loaded (oneose), will show notifications for new zaps. Flag set to:',
+          initialZapsLoadedRef.current
+        );
       },
       onclosed() {
         // Debug log removed
@@ -1058,7 +1066,10 @@ export const useLiveFunctionality = (eventId?: string) => {
     eventIdentifier: string
   ) => {
     // Debug log removed
-    console.log('🔄 processLiveEventZap called for receipt:', zapReceipt.id.slice(0, 8));
+    console.log(
+      '🔄 processLiveEventZap called for receipt:',
+      zapReceipt.id.slice(0, 8)
+    );
 
     try {
       // Extract zap information from the receipt
@@ -1110,7 +1121,11 @@ export const useLiveFunctionality = (eventId?: string) => {
       addZapToTotals(zapperPubkey, amount);
 
       // Display the zap
-      console.log('📞 About to call displayLiveEventZap with zapData:', { id: zapData.id.slice(0, 8), amount: zapData.amount, pubkey: zapData.pubkey.slice(0, 8) });
+      console.log('📞 About to call displayLiveEventZap with zapData:', {
+        id: zapData.id.slice(0, 8),
+        amount: zapData.amount,
+        pubkey: zapData.pubkey.slice(0, 8)
+      });
       displayLiveEventZap(zapData);
     } catch (error) {
       console.error('Error processing live event zap:', error);
@@ -1499,16 +1514,16 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (pendingZapNotificationsRef.current.has(profile.pubkey)) {
       const zapData = pendingZapNotificationsRef.current.get(profile.pubkey);
       pendingZapNotificationsRef.current.delete(profile.pubkey);
-      
+
       console.log('🏆 Processing notification for zap:', {
         amount: zapData.amount,
         pubkey: profile.pubkey.slice(0, 8),
         currentZapsCount: zaps.length
       });
-      
+
       // Get rank based on this single zap's amount (1-3 for top 3 individual zaps)
       const zapperRank = getSingleZapRank(zapData.amount);
-      
+
       // Trigger the notification now that we have the profile
       const notificationData: ZapNotification = {
         id: zapData.id,
@@ -1519,7 +1534,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         timestamp: zapData.timestamp,
         zapperRank
       };
-      
+
       console.log('🏆 Setting notification with rank:', zapperRank);
       setZapNotification(notificationData);
     }
@@ -2373,7 +2388,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Keep URL clean - no style parameters
     const pathParts = window.location.pathname.split('/');
     const noteId = pathParts[pathParts.length - 1];
-    const cleanUrl = noteId ? `/live/${noteId}` : '/';
+    // Keep URLs under /live/ base path
+    const cleanUrl = noteId ? `/live/${noteId}` : '/live/';
 
     if (window.location.href !== window.location.origin + cleanUrl) {
       window.history.replaceState({}, '', cleanUrl);
@@ -2885,7 +2901,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (styles.showHistoricalPrice !== DEFAULT_STYLES.showHistoricalPrice) {
           params.set('showHistoricalPrice', styles.showHistoricalPrice);
         }
-        if (styles.showHistoricalChange !== DEFAULT_STYLES.showHistoricalChange) {
+        if (
+          styles.showHistoricalChange !== DEFAULT_STYLES.showHistoricalChange
+        ) {
           params.set('showHistoricalChange', styles.showHistoricalChange);
         }
         if (styles.fiatOnly !== DEFAULT_STYLES.fiatOnly) {
@@ -3036,7 +3054,9 @@ export const useLiveFunctionality = (eventId?: string) => {
   const processNewZapForNotification = async (kind9735: any) => {
     try {
       // Extract zap data
-      const description9735 = kind9735.tags.find((tag: any) => tag[0] === 'description')?.[1];
+      const description9735 = kind9735.tags.find(
+        (tag: any) => tag[0] === 'description'
+      )?.[1];
       if (!description9735) {
         console.log('⚠️ No description found in zap');
         return;
@@ -3045,8 +3065,10 @@ export const useLiveFunctionality = (eventId?: string) => {
       const zapRequest = JSON.parse(description9735);
       const zapperPubkey = zapRequest.pubkey;
       const zapContent = zapRequest.content || '';
-      
-      const bolt11Tag = kind9735.tags.find((tag: any) => tag[0] === 'bolt11')?.[1];
+
+      const bolt11Tag = kind9735.tags.find(
+        (tag: any) => tag[0] === 'bolt11'
+      )?.[1];
       if (!bolt11Tag) {
         console.log('⚠️ No bolt11 found in zap');
         return;
@@ -3090,11 +3112,11 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (!kind1id || typeof kind1id !== 'string' || kind1id.length !== 64) {
       return;
     }
-    
+
     // Reset initial zaps flag for new note
     console.log('🔄 Resetting initialZapsLoadedRef for new note');
     initialZapsLoadedRef.current = false;
-    
+
     let isFirstStream = true;
 
     const zapsContainer = document.getElementById('zaps');
@@ -3515,28 +3537,31 @@ export const useLiveFunctionality = (eventId?: string) => {
   const getSingleZapRank = (zapAmount: number): number | undefined => {
     // Use window.zaps which is populated before the React state
     const existingZaps = (window as any).zaps || [];
-    
+
     // Get all zap amounts INCLUDING the current zap being evaluated
-    const allZapAmounts = [...existingZaps.map((z: any) => z.amount), zapAmount].sort((a, b) => b - a);
-    
+    const allZapAmounts = [
+      ...existingZaps.map((z: any) => z.amount),
+      zapAmount
+    ].sort((a, b) => b - a);
+
     // Get all unique amounts
     const uniqueAmounts = [...new Set(allZapAmounts)];
-    
+
     console.log('🏆 getSingleZapRank:', {
       zapAmount,
       totalZaps: existingZaps.length,
       allAmounts: allZapAmounts,
       uniqueAmounts: uniqueAmounts.slice(0, 5) // Show top 5 for debugging
     });
-    
+
     // Find where this zap amount ranks
     const rank = uniqueAmounts.indexOf(zapAmount);
-    
+
     if (rank >= 0) {
       console.log('🏆 Zap ranks at position:', rank + 1);
       return rank + 1; // Return 1, 2, 3, 4, etc.
     }
-    
+
     console.log('🏆 Could not determine rank');
     return undefined;
   };
@@ -3933,7 +3958,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Decode and route to appropriate handler
       const decoded = nip19.decode(cleanNoteId);
 
-      // Update URL with the identifier using path format (rooted, no /live prefix)
+      // Update URL with the identifier under /live/ base path
       const newUrl = `/live/${cleanNoteId}`;
       window.history.pushState({}, '', newUrl);
 
@@ -5409,7 +5434,8 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Expose fiat conversion utilities to window for overlay component
   (window as any).satsToFiat = satsToFiat;
   (window as any).getBitcoinPrices = () => bitcoinPricesRef.current;
-  (window as any).getSelectedFiatCurrency = () => selectedFiatCurrencyRef.current;
+  (window as any).getSelectedFiatCurrency = () =>
+    selectedFiatCurrencyRef.current;
 
   const setupToggle = (
     toggleId: string,

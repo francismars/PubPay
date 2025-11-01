@@ -1,14 +1,17 @@
 ## PubPay
 
 Francis:
+
 - adapt\correct live links
 - sigin with signer not working (mobile)
 - signin with extension not working (mobile)
 
 Pedro:
+
 - responsive loading
 
 Both:
+
 - target for fundraising? senseless to be separate type
 - loading more design
 - think better zap-payer ux

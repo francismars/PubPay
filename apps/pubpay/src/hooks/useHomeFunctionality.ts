@@ -115,7 +115,10 @@ export const useHomeFunctionality = () => {
           const savedRelays = localStorage.getItem('customRelays');
           if (savedRelays) {
             const parsed = JSON.parse(savedRelays);
-            if (Array.isArray(parsed) && parsed.every(r => typeof r === 'string')) {
+            if (
+              Array.isArray(parsed) &&
+              parsed.every(r => typeof r === 'string')
+            ) {
               initialRelays = parsed;
             }
           }
@@ -158,16 +161,25 @@ export const useHomeFunctionality = () => {
     // Listen for relay updates from Settings and re-init Nostr client
     const handleRelaysUpdated = (e: Event) => {
       try {
-        const detail = (e as CustomEvent).detail as { relays?: string[] } | undefined;
-        const nextRelays = detail && Array.isArray(detail.relays) ? detail.relays : undefined;
+        const detail = (e as CustomEvent).detail as
+          | { relays?: string[] }
+          | undefined;
+        const nextRelays =
+          detail && Array.isArray(detail.relays) ? detail.relays : undefined;
         nostrClientRef.current = new NostrClient(nextRelays);
         console.log('Nostr client reinitialized with relays:', nextRelays);
       } catch {}
     };
-    window.addEventListener('relaysUpdated', handleRelaysUpdated as EventListener);
+    window.addEventListener(
+      'relaysUpdated',
+      handleRelaysUpdated as EventListener
+    );
 
     return () => {
-      window.removeEventListener('relaysUpdated', handleRelaysUpdated as EventListener);
+      window.removeEventListener(
+        'relaysUpdated',
+        handleRelaysUpdated as EventListener
+      );
     };
   }, []);
 
@@ -183,7 +195,11 @@ export const useHomeFunctionality = () => {
       }
 
       // Not on note page and no posts loaded - load them
-      if (posts.length === 0 && activeFeed === 'global' && nostrClientRef.current) {
+      if (
+        posts.length === 0 &&
+        activeFeed === 'global' &&
+        nostrClientRef.current
+      ) {
         console.log('Loading global feed after exiting note page');
         loadPosts('global');
       }
@@ -211,11 +227,7 @@ export const useHomeFunctionality = () => {
         // First, process sign-in return (npub from clipboard)
         const result = await AuthService.handleExternalSignerReturn();
         if (result.success && result.publicKey) {
-          AuthService.storeAuthData(
-            result.publicKey,
-            null,
-            'externalSigner'
-          );
+          AuthService.storeAuthData(result.publicKey, null, 'externalSigner');
 
           setAuthState({
             isLoggedIn: true,
@@ -273,7 +285,9 @@ export const useHomeFunctionality = () => {
               if (payload && payload.event) {
                 const sig = await readClipboard();
                 if (!sig || !/^([0-9a-f]{128})$/i.test(sig)) {
-                  console.error('No valid signature found in clipboard for note');
+                  console.error(
+                    'No valid signature found in clipboard for note'
+                  );
                   return;
                 }
 
@@ -338,22 +352,42 @@ export const useHomeFunctionality = () => {
           try {
             const profileRaw = sessionStorage.getItem('SignProfileUpdate');
             if (profileRaw) {
-              console.log('Found SignProfileUpdate data, processing profile update...');
+              console.log(
+                'Found SignProfileUpdate data, processing profile update...'
+              );
               const eventTemplate = JSON.parse(profileRaw);
               sessionStorage.removeItem('SignProfileUpdate');
 
-              console.log('Reading signature from clipboard for profile update...');
+              console.log(
+                'Reading signature from clipboard for profile update...'
+              );
               let sig = await readClipboard();
               if (sig) {
                 sig = sig.trim();
               }
-              console.log('Signature read, length:', sig?.length, 'first 20 chars:', sig?.substring(0, 20));
+              console.log(
+                'Signature read, length:',
+                sig?.length,
+                'first 20 chars:',
+                sig?.substring(0, 20)
+              );
 
               if (!sig || !/^([0-9a-f]{128})$/i.test(sig)) {
-                console.error('No valid signature found in clipboard for profile update. Signature:', sig?.substring(0, 40));
+                console.error(
+                  'No valid signature found in clipboard for profile update. Signature:',
+                  sig?.substring(0, 40)
+                );
                 try {
-                  const { useUIStore } = await import('@pubpay/shared-services');
-                  useUIStore.getState().updateToast('No valid signature found. Please try saving again.', 'error', true);
+                  const { useUIStore } = await import(
+                    '@pubpay/shared-services'
+                  );
+                  useUIStore
+                    .getState()
+                    .updateToast(
+                      'No valid signature found. Please try saving again.',
+                      'error',
+                      true
+                    );
                 } catch {}
                 return;
               }
@@ -363,8 +397,16 @@ export const useHomeFunctionality = () => {
               if (!verified) {
                 console.error('Invalid signed event (profile update)');
                 try {
-                  const { useUIStore } = await import('@pubpay/shared-services');
-                  useUIStore.getState().updateToast('Invalid signature. Please try saving again.', 'error', true);
+                  const { useUIStore } = await import(
+                    '@pubpay/shared-services'
+                  );
+                  useUIStore
+                    .getState()
+                    .updateToast(
+                      'Invalid signature. Please try saving again.',
+                      'error',
+                      true
+                    );
                 } catch {}
                 return;
               }
@@ -373,11 +415,19 @@ export const useHomeFunctionality = () => {
               if (nostrClientRef.current) {
                 await nostrClientRef.current.publishEvent(eventSigned);
                 console.log('Profile updated via external signer');
-                
+
                 // Show success toast
                 try {
-                  const { useUIStore } = await import('@pubpay/shared-services');
-                  useUIStore.getState().updateToast('Profile updated successfully!', 'success', false);
+                  const { useUIStore } = await import(
+                    '@pubpay/shared-services'
+                  );
+                  useUIStore
+                    .getState()
+                    .updateToast(
+                      'Profile updated successfully!',
+                      'success',
+                      false
+                    );
                   setTimeout(() => {
                     try {
                       useUIStore.getState().closeToast();
@@ -390,12 +440,14 @@ export const useHomeFunctionality = () => {
                   const pubkey = authState.publicKey;
                   const queryClient = getQueryClient();
                   queryClient.removeQueries({ queryKey: ['profile', pubkey] });
-                  queryClient.invalidateQueries({ queryKey: ['profile', pubkey] });
+                  queryClient.invalidateQueries({
+                    queryKey: ['profile', pubkey]
+                  });
                   setTimeout(async () => {
                     await loadUserProfile(pubkey);
                   }, 500);
                 }
-                
+
                 // Wait a bit for profile to reload, then navigate
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 window.location.href = '/profile';
@@ -405,11 +457,13 @@ export const useHomeFunctionality = () => {
             console.error('Error handling SignProfileUpdate return:', e);
             try {
               const { useUIStore } = await import('@pubpay/shared-services');
-              useUIStore.getState().updateToast(
-                `Failed to save profile: ${e instanceof Error ? e.message : 'Unknown error'}`,
-                'error',
-                true
-              );
+              useUIStore
+                .getState()
+                .updateToast(
+                  `Failed to save profile: ${e instanceof Error ? e.message : 'Unknown error'}`,
+                  'error',
+                  true
+                );
             } catch {}
           }
 
@@ -418,44 +472,69 @@ export const useHomeFunctionality = () => {
             const blossomData = sessionStorage.getItem('BlossomAuth');
             if (blossomData) {
               console.log('Found BlossomAuth data, processing upload...');
-              
+
               console.log('Reading signature from clipboard...');
               let sig = await readClipboard();
               if (sig) {
                 sig = sig.trim();
               }
-              console.log('Signature read, length:', sig?.length, 'first 20 chars:', sig?.substring(0, 20));
-              
+              console.log(
+                'Signature read, length:',
+                sig?.length,
+                'first 20 chars:',
+                sig?.substring(0, 20)
+              );
+
               if (!sig || !/^([0-9a-f]{128})$/i.test(sig)) {
-                console.error('No valid signature found in clipboard for Blossom upload. Signature:', sig?.substring(0, 40));
-                window.dispatchEvent(new CustomEvent('blossomUploadError', { 
-                  detail: { error: 'No valid signature found in clipboard. Expected 128 hex characters.' } 
-                }));
+                console.error(
+                  'No valid signature found in clipboard for Blossom upload. Signature:',
+                  sig?.substring(0, 40)
+                );
+                window.dispatchEvent(
+                  new CustomEvent('blossomUploadError', {
+                    detail: {
+                      error:
+                        'No valid signature found in clipboard. Expected 128 hex characters.'
+                    }
+                  })
+                );
                 return;
               }
 
               console.log('Completing external signer upload...');
-              const imageUrl = await BlossomService.completeExternalSignerUpload(sig);
-              
+              const imageUrl =
+                await BlossomService.completeExternalSignerUpload(sig);
+
               if (imageUrl) {
-                console.log('Blossom upload completed via external signer:', imageUrl);
+                console.log(
+                  'Blossom upload completed via external signer:',
+                  imageUrl
+                );
                 // Dispatch custom event with the uploaded image URL
-                window.dispatchEvent(new CustomEvent('blossomUploadComplete', { 
-                  detail: { imageUrl } 
-                }));
+                window.dispatchEvent(
+                  new CustomEvent('blossomUploadComplete', {
+                    detail: { imageUrl }
+                  })
+                );
               } else {
                 console.warn('Blossom upload returned null');
-                window.dispatchEvent(new CustomEvent('blossomUploadError', { 
-                  detail: { error: 'Upload returned no result' } 
-                }));
+                window.dispatchEvent(
+                  new CustomEvent('blossomUploadError', {
+                    detail: { error: 'Upload returned no result' }
+                  })
+                );
               }
             }
           } catch (e) {
             console.error('Error handling BlossomAuth return:', e);
             // Dispatch error event
-            window.dispatchEvent(new CustomEvent('blossomUploadError', { 
-              detail: { error: e instanceof Error ? e.message : 'Unknown error' } 
-            }));
+            window.dispatchEvent(
+              new CustomEvent('blossomUploadError', {
+                detail: {
+                  error: e instanceof Error ? e.message : 'Unknown error'
+                }
+              })
+            );
           }
         } catch (e) {
           console.warn('External signer return processing error:', e);
@@ -468,11 +547,16 @@ export const useHomeFunctionality = () => {
     // Respond to NewPayNoteOverlay follow suggestions request
     const handleRequestFollowSuggestions = async () => {
       try {
-        const auth = AuthService.getStoredAuthData ? AuthService.getStoredAuthData() : null;
+        const auth = AuthService.getStoredAuthData
+          ? AuthService.getStoredAuthData()
+          : null;
         const pubkey = auth?.publicKey;
         const client = nostrClientRef.current;
         if (!client || !pubkey) return;
-        const suggestions = await FollowService.getFollowSuggestions(client, pubkey);
+        const suggestions = await FollowService.getFollowSuggestions(
+          client,
+          pubkey
+        );
         useUIStore.getState().setFollowSuggestions(suggestions);
         try {
           window.dispatchEvent(
@@ -483,11 +567,17 @@ export const useHomeFunctionality = () => {
         } catch {}
       } catch {}
     };
-    window.addEventListener('requestFollowSuggestions', handleRequestFollowSuggestions);
+    window.addEventListener(
+      'requestFollowSuggestions',
+      handleRequestFollowSuggestions
+    );
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('requestFollowSuggestions', handleRequestFollowSuggestions);
+      window.removeEventListener(
+        'requestFollowSuggestions',
+        handleRequestFollowSuggestions
+      );
     };
   }, []);
 
@@ -607,15 +697,23 @@ export const useHomeFunctionality = () => {
       // Fetch posts via react-query ensure
       // If following too many authors, batch the queries to avoid relay errors
       let kind1Events: Kind1Event[];
-      if (feed === 'following' && params.authors && params.authors.length > 100) {
-        console.log(`Batching ${params.authors.length} authors into queries of 100`);
+      if (
+        feed === 'following' &&
+        params.authors &&
+        params.authors.length > 100
+      ) {
+        console.log(
+          `Batching ${params.authors.length} authors into queries of 100`
+        );
         const batchSize = 100;
         const batches: Kind1Event[] = [];
-        
+
         for (let i = 0; i < params.authors.length; i += batchSize) {
           const authorBatch = params.authors.slice(i, i + batchSize);
-          console.log(`Loading batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(params.authors.length / batchSize)}: ${authorBatch.length} authors`);
-          
+          console.log(
+            `Loading batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(params.authors.length / batchSize)}: ${authorBatch.length} authors`
+          );
+
           try {
             const events = await ensurePosts(
               getQueryClient(),
@@ -631,7 +729,7 @@ export const useHomeFunctionality = () => {
             console.warn(`Failed to load batch ${i / batchSize + 1}:`, err);
           }
         }
-        
+
         // Deduplicate events by ID
         const uniqueEvents = new Map<string, Kind1Event>();
         batches.forEach(event => uniqueEvents.set(event.id, event));
@@ -1005,15 +1103,20 @@ export const useHomeFunctionality = () => {
 
           if (descriptionTag) {
             try {
-              const zapData =
-                parseZapDescription(descriptionTag[1] || undefined);
+              const zapData = parseZapDescription(
+                descriptionTag[1] || undefined
+              );
               if (zapData?.pubkey) {
                 zapPayerPubkey = zapData.pubkey;
               } else {
                 isAnonymousZap = true;
               }
               // Extract content from zap description (the zap message/comment)
-              if (zapData && 'content' in zapData && typeof zapData.content === 'string') {
+              if (
+                zapData &&
+                'content' in zapData &&
+                typeof zapData.content === 'string'
+              ) {
                 zapContent = zapData.content;
               }
             } catch {
@@ -1270,15 +1373,15 @@ export const useHomeFunctionality = () => {
       });
     }
 
-      // Sort by creation time (newest first)
-      const sortedPosts = posts.sort((a, b) => b.createdAt - a.createdAt);
-      
-      // Update newest post timestamp for subscription management
-      if (sortedPosts.length > 0) {
-        newestPostTimestampRef.current = sortedPosts[0].createdAt;
-      }
-      
-      return sortedPosts;
+    // Sort by creation time (newest first)
+    const sortedPosts = posts.sort((a, b) => b.createdAt - a.createdAt);
+
+    // Update newest post timestamp for subscription management
+    if (sortedPosts.length > 0) {
+      newestPostTimestampRef.current = sortedPosts[0].createdAt;
+    }
+
+    return sortedPosts;
   };
 
   const handleFeedChange = (feed: 'global' | 'following') => {
@@ -1288,10 +1391,10 @@ export const useHomeFunctionality = () => {
       handleLogin();
       return;
     }
-    
+
     // Switch active feed
     setActiveFeed(feed);
-    
+
     // Load the appropriate feed if needed
     if (feed === 'following' && followingPosts.length === 0) {
       loadFollowingPosts();
@@ -1323,7 +1426,7 @@ export const useHomeFunctionality = () => {
       }
 
       followingPubkeysRef.current = followingPubkeys;
-      
+
       // If user follows nobody, set empty array and don't load posts
       if (followingPubkeys.length === 0) {
         console.log('User follows nobody, setting empty following posts');
@@ -1331,7 +1434,7 @@ export const useHomeFunctionality = () => {
         setIsLoading(false);
         return;
       }
-      
+
       await loadPosts('following');
     } catch (err) {
       console.error('Failed to load following posts:', err);
@@ -1478,7 +1581,11 @@ export const useHomeFunctionality = () => {
     followingPubkeysRef.current = [];
   };
 
-  const handlePayWithExtension = async (post: PubPayPost, amount: number, comment: string = '') => {
+  const handlePayWithExtension = async (
+    post: PubPayPost,
+    amount: number,
+    comment: string = ''
+  ) => {
     if (!authState.isLoggedIn) {
       handleLogin();
       return;
@@ -1558,7 +1665,11 @@ export const useHomeFunctionality = () => {
     }
   };
 
-  const handlePayAnonymously = async (post: PubPayPost, amount: number, comment: string = '') => {
+  const handlePayAnonymously = async (
+    post: PubPayPost,
+    amount: number,
+    comment: string = ''
+  ) => {
     if (!zapServiceRef.current) {
       console.error('Zap service not initialized');
       return;
@@ -2087,14 +2198,16 @@ export const useHomeFunctionality = () => {
         const path = window.location.pathname || '';
         let noteRef: string | null = null;
         if (qNote) noteRef = qNote;
-        else if (path.startsWith('/note/')) noteRef = path.split('/note/')[1] || null;
+        else if (path.startsWith('/note/'))
+          noteRef = path.split('/note/')[1] || null;
 
         if (noteRef) {
           try {
             const decoded = NostrTools.nip19.decode(noteRef);
             if (decoded.type === 'note' || decoded.type === 'nevent') {
               // note: decoded.data is id; nevent: decoded.data.id
-              singlePostEventId = (decoded as any).data?.id || (decoded as any).data || null;
+              singlePostEventId =
+                (decoded as any).data?.id || (decoded as any).data || null;
               singlePostMode = !!singlePostEventId;
             }
           } catch {}
@@ -2104,41 +2217,58 @@ export const useHomeFunctionality = () => {
 
     // Determine which posts to subscribe to based on active feed
     const currentPosts = activeFeed === 'following' ? followingPosts : posts;
-    
+
     // If in following mode and user follows nobody, don't set up subscription
-    if (activeFeed === 'following' && followingPubkeysRef.current.length === 0) {
+    if (
+      activeFeed === 'following' &&
+      followingPubkeysRef.current.length === 0
+    ) {
       console.log('Following feed with 0 follows - no subscription needed');
       return () => {}; // Return empty cleanup function
     }
-    
+
     // Skip subscription if following too many people (relay will reject)
-    if (activeFeed === 'following' && followingPubkeysRef.current.length > 100) {
-      console.log(`Following ${followingPubkeysRef.current.length} authors - skipping real-time subscription to avoid relay errors`);
+    if (
+      activeFeed === 'following' &&
+      followingPubkeysRef.current.length > 100
+    ) {
+      console.log(
+        `Following ${followingPubkeysRef.current.length} authors - skipping real-time subscription to avoid relay errors`
+      );
       return () => {}; // Return empty cleanup function
     }
-    
+
     if (currentPosts.length === 0) {
       return () => {}; // Return empty cleanup function
     }
 
     // Determine the cutoff time: only listen to posts NEWER than our newest post
-    const cutoffTime = newestPostTimestampRef.current || Math.floor(Date.now() / 1000);
-    
-    console.log('Setting up new post subscription since:', cutoffTime, 'for feed:', activeFeed);
-    
+    const cutoffTime =
+      newestPostTimestampRef.current || Math.floor(Date.now() / 1000);
+
+    console.log(
+      'Setting up new post subscription since:',
+      cutoffTime,
+      'for feed:',
+      activeFeed
+    );
+
     // Build filter based on active feed
     const filter: any = {
       kinds: [1],
       '#t': ['pubpay'],
       since: cutoffTime + 1 // Only posts created AFTER our newest post
     };
-    
+
     // If in following mode, only subscribe to posts from followed authors
     if (activeFeed === 'following' && followingPubkeysRef.current.length > 0) {
       filter.authors = [...followingPubkeysRef.current];
-      console.log('Filtering by followed authors:', followingPubkeysRef.current.length);
+      console.log(
+        'Filtering by followed authors:',
+        followingPubkeysRef.current.length
+      );
     }
-    
+
     // In single-post mode we do NOT subscribe to new posts
     let notesSub: any = null;
     if (!singlePostMode) {
@@ -2148,7 +2278,7 @@ export const useHomeFunctionality = () => {
         async (noteEvent: NostrEvent) => {
           // Type guard to ensure this is a note event
           if (noteEvent.kind !== 1) return;
-          
+
           console.log('Received new post in real-time:', noteEvent.id);
           // Process and add to feed (duplicate check is inside processNewNote)
           await processNewNote(noteEvent as Kind1Event);
@@ -2168,9 +2298,10 @@ export const useHomeFunctionality = () => {
     // Subscribe to new zaps for all current posts
     let zapsSub: any = null;
     if ((singlePostMode && singlePostEventId) || currentPosts.length > 0) {
-      const eventIds = singlePostMode && singlePostEventId
-        ? [singlePostEventId]
-        : currentPosts.map(post => post.id);
+      const eventIds =
+        singlePostMode && singlePostEventId
+          ? [singlePostEventId]
+          : currentPosts.map(post => post.id);
 
       zapsSub = nostrClientRef.current.subscribeToEvents(
         [

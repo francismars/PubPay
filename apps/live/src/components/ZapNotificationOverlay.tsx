@@ -61,7 +61,8 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
   onDismiss
 }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [currentNotification, setCurrentNotification] = useState<ZapNotification | null>(null);
+  const [currentNotification, setCurrentNotification] =
+    useState<ZapNotification | null>(null);
   const [bgColor, setBgColor] = useState(DEFAULT_BG_COLOR);
   const [textColor, setTextColor] = useState(DEFAULT_TEXT_COLOR);
   const [isFiatOnly, setIsFiatOnly] = useState(false);
@@ -75,26 +76,35 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
 
     const computedStyle = window.getComputedStyle(mainLayout);
     const bgStyle = computedStyle.backgroundColor;
-    
+
     if (bgStyle) {
-      const match = bgStyle.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
+      const match = bgStyle.match(
+        /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/
+      );
       if (match) {
         const [, r, g, b] = match;
         setBgColor(`rgba(${r}, ${g}, ${b}, ${BG_OPACITY})`);
       }
     }
-    
-    const textColorValue = computedStyle.getPropertyValue('--text-color').trim();
+
+    const textColorValue = computedStyle
+      .getPropertyValue('--text-color')
+      .trim();
     setTextColor(textColorValue || computedStyle.color);
   }, []);
 
   // Update fiat settings
   const updateFiatSettings = useCallback(() => {
-    const fiatOnlyToggle = document.getElementById('fiatOnlyToggle') as HTMLInputElement;
-    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
-    
+    const fiatOnlyToggle = document.getElementById(
+      'fiatOnlyToggle'
+    ) as HTMLInputElement;
+    const showFiatToggle = document.getElementById(
+      'showFiatToggle'
+    ) as HTMLInputElement;
+
     // Only show fiat if both showFiat and fiatOnly are checked
-    const shouldShowFiatOnly = showFiatToggle?.checked && fiatOnlyToggle?.checked;
+    const shouldShowFiatOnly =
+      showFiatToggle?.checked && fiatOnlyToggle?.checked;
     setIsFiatOnly(shouldShowFiatOnly);
 
     // Get selected currency
@@ -136,7 +146,7 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
 
     const hideTimer = setTimeout(() => {
       setIsVisible(false);
-      
+
       const clearTimer = setTimeout(() => {
         setCurrentNotification(null);
         onDismiss();
@@ -150,21 +160,34 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
 
   // Memoize computed values (must be called before any early returns to follow Rules of Hooks)
   const { displayAmount, displayLabel } = useMemo(() => {
-    if (!currentNotification) return { displayAmount: '', displayLabel: 'sats' };
+    if (!currentNotification)
+      return { displayAmount: '', displayLabel: 'sats' };
 
     const satsAmount = currentNotification.amount.toLocaleString();
-    
+
     // Check if Bitcoin prices are loaded
-    const bitcoinPrices = (window as any).getBitcoinPrices ? (window as any).getBitcoinPrices() : {};
+    const bitcoinPrices = (window as any).getBitcoinPrices
+      ? (window as any).getBitcoinPrices()
+      : {};
 
     // If fiat-only mode is enabled, convert to fiat
-    if (isFiatOnly && (window as any).satsToFiat && bitcoinPrices[selectedCurrency]) {
+    if (
+      isFiatOnly &&
+      (window as any).satsToFiat &&
+      bitcoinPrices[selectedCurrency]
+    ) {
       try {
-        const fiatHtml = (window as any).satsToFiat(currentNotification.amount, selectedCurrency);
+        const fiatHtml = (window as any).satsToFiat(
+          currentNotification.amount,
+          selectedCurrency
+        );
         // Extract just the number part (remove the HTML span)
         const fiatMatch = fiatHtml.match(/^([\d,\.]+)/);
         if (fiatMatch) {
-          return { displayAmount: fiatMatch[1], displayLabel: selectedCurrency };
+          return {
+            displayAmount: fiatMatch[1],
+            displayLabel: selectedCurrency
+          };
         }
       } catch (err) {
         console.error('Error converting to fiat:', err);
@@ -175,12 +198,14 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
   }, [currentNotification?.amount, isFiatOnly, selectedCurrency, pricesLoaded]);
 
   const rankLabel = useMemo(
-    () => currentNotification ? getRankLabel(currentNotification.zapperRank) : null,
+    () =>
+      currentNotification ? getRankLabel(currentNotification.zapperRank) : null,
     [currentNotification?.zapperRank]
   );
 
   const scaleFactor = useMemo(
-    () => currentNotification ? getScaleFactor(currentNotification.zapperRank) : 1,
+    () =>
+      currentNotification ? getScaleFactor(currentNotification.zapperRank) : 1,
     [currentNotification?.zapperRank]
   );
 
@@ -190,18 +215,24 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
     return rankLabel.split('').map((char, index) => ({
       char: char === ' ' ? '\u00A0' : char,
       index,
-      delay: index * CHAR_ANIMATION_DELAY,
+      delay: index * CHAR_ANIMATION_DELAY
     }));
   }, [rankLabel]);
 
   // Memoize truncated name and content
   const truncatedName = useMemo(
-    () => currentNotification ? truncateText(currentNotification.zapperName, 16) : '',
+    () =>
+      currentNotification
+        ? truncateText(currentNotification.zapperName, 16)
+        : '',
     [currentNotification?.zapperName]
   );
 
   const truncatedContent = useMemo(
-    () => currentNotification?.content ? truncateText(currentNotification.content, 16) : null,
+    () =>
+      currentNotification?.content
+        ? truncateText(currentNotification.content, 16)
+        : null,
     [currentNotification?.content]
   );
 
@@ -211,8 +242,8 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
   }
 
   return (
-    <div 
-      className={`zap-notification-overlay ${isVisible ? 'visible' : ''}`} 
+    <div
+      className={`zap-notification-overlay ${isVisible ? 'visible' : ''}`}
       style={{ background: bgColor }}
     >
       {rankLabel && (
@@ -228,8 +259,8 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
           ))}
         </div>
       )}
-      <div 
-        className="zap-notification-content" 
+      <div
+        className="zap-notification-content"
         style={{ color: textColor, transform: `scale(${scaleFactor})` }}
       >
         <img
@@ -237,7 +268,7 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
           alt={currentNotification.zapperName}
           className="zap-notification-avatar"
           style={{ borderColor: textColor }}
-          onError={(e) => {
+          onError={e => {
             (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
           }}
         />
@@ -245,17 +276,12 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
           <div className="zap-notification-amount" style={{ color: textColor }}>
             {displayAmount} {displayLabel}
           </div>
-          <div className="zap-notification-name">
-            {truncatedName}
-          </div>
+          <div className="zap-notification-name">{truncatedName}</div>
           {truncatedContent && (
-            <div className="zap-notification-message">
-              {truncatedContent}
-            </div>
+            <div className="zap-notification-message">{truncatedContent}</div>
           )}
         </div>
       </div>
     </div>
   );
 };
-

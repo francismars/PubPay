@@ -8,7 +8,7 @@ module.exports = {
   mode: isProduction ? 'production' : 'development',
   entry: './src/index.tsx',
   output: {
-    path: path.resolve(__dirname, '../../../dist/pubpay'),
+    path: path.resolve(__dirname, '../../dist/pubpay'),
     filename: 'main.[contenthash].js',
     clean: true,
     publicPath: '/'
@@ -50,7 +50,10 @@ module.exports = {
       {
         test: /\.css$/,
         use: isProduction
-          ? [require.resolve('mini-css-extract-plugin/dist/loader'), 'css-loader']
+          ? [
+              require.resolve('mini-css-extract-plugin/dist/loader'),
+              'css-loader'
+            ]
           : ['style-loader', 'css-loader']
       },
       {
@@ -89,13 +92,17 @@ module.exports = {
       process: 'process/browser'
     }),
     ...(isProduction
-      ? [new (require('mini-css-extract-plugin'))({ filename: 'css/[name].[contenthash].css' })]
+      ? [
+          new (require('mini-css-extract-plugin'))({
+            filename: 'css/[name].[contenthash].css'
+          })
+        ]
       : [])
   ],
   devServer: {
     static: [
       {
-        directory: path.join(__dirname, '../../../dist/pubpay'),
+        directory: path.join(__dirname, '../../dist/pubpay'),
         publicPath: '/',
         serveIndex: false
       }
