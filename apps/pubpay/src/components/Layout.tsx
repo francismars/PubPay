@@ -575,6 +575,17 @@ export const Layout: React.FC = () => {
                   closeMobileMenu();
                 }}
               >
+                Bets & Wagers
+              </a>
+              <a
+                href="javascript:void(0)"
+                className="sideNavLink disabled"
+                title="coming soon"
+                onClick={(e) => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                }}
+              >
                 Events
               </a>
               <a
