@@ -17,28 +17,33 @@ export const getApiBase = (): string => {
     return cachedApiBase;
   }
 
+  let result: string;
+
   // Check for Webpack-injected environment variable (process.env.REACT_APP_BACKEND_URL)
   // Webpack DefinePlugin injects process.env at build time
-  if (typeof process !== 'undefined' && (process as any).env?.REACT_APP_BACKEND_URL) {
-    cachedApiBase = (process as any).env.REACT_APP_BACKEND_URL;
-    return cachedApiBase;
-  }
-
-  // In production, use same origin (Nginx proxies to backend)
-  if (typeof window !== 'undefined') {
+  const envBackendUrl = typeof process !== 'undefined' ? (process as any).env?.REACT_APP_BACKEND_URL : undefined;
+  if (envBackendUrl && typeof envBackendUrl === 'string') {
+    result = envBackendUrl;
+  } else if (typeof window !== 'undefined') {
+    // In production, use same origin (Nginx proxies to backend)
     // Check if we're in production (HTTPS or production domain)
     const isProduction =
       window.location.protocol === 'https:' ||
       window.location.hostname !== 'localhost';
     if (isProduction) {
       // Use same origin - Nginx will proxy to backend
-      cachedApiBase = window.location.origin;
-      return cachedApiBase;
+      result = window.location.origin;
+    } else {
+      // Development fallback
+      result = 'http://localhost:3002';
     }
+  } else {
+    // Fallback when window is not available
+    result = 'http://localhost:3002';
   }
 
-  // Development fallback
-  cachedApiBase = 'http://localhost:3002';
-  return cachedApiBase;
+  // Cache and return
+  cachedApiBase = result;
+  return result;
 };
 
