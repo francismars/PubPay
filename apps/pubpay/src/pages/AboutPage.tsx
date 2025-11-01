@@ -1,8 +1,22 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { pubpayImg } from '../assets/images';
 
 const AboutPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { authState } = useOutletContext<any>();
+
+  const handleGetStarted = () => {
+    if (authState?.isLoggedIn) {
+      // Open the new paynote modal
+      window.dispatchEvent(new CustomEvent('openNewPayNoteForm'));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      // Navigate to register page
+      navigate('/register');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
   return (
     <div className="profilePage">
       <div className="aboutContainer">
@@ -152,13 +166,12 @@ const AboutPage: React.FC = () => {
             <p className="ctaSubtitle">
               Join the decentralized payment revolution. Create your first paynote today.
             </p>
-            <Link 
-              to="/register" 
+            <button 
               className="ctaButton"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              onClick={handleGetStarted}
             >
               Start Using PubPay
-            </Link>
+            </button>
           </div>
         </section>
 

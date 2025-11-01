@@ -853,17 +853,19 @@ export const Layout: React.FC = () => {
             </form>
           </div>
           {/* Remember option removed: sessions persist until logout */}
-          <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '13px' }}>
-            <Link
-              to="/register"
-              className="label"
-              style={{ textDecoration: 'none', color: '#6b7280' }}
-              onClick={() => {
-                closeLogin();
-              }}
-            >
-              Don't have an account? Sign up
-            </Link>
+          <div style={{ textAlign: 'center', marginTop: '32px', fontSize: '13px' }}>
+            <span className="label" style={{ color: '#6b7280' }}>
+              Don't have an account?{' '}
+              <Link
+                to="/register"
+                style={{ color: '#4a75ff', textDecoration: 'underline' }}
+                onClick={() => {
+                  closeLogin();
+                }}
+              >
+                Sign up
+              </Link>
+            </span>
           </div>
           <a
             id="cancelLogin"
