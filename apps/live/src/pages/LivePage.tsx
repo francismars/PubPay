@@ -59,18 +59,29 @@ export const LivePage: React.FC = () => {
     const stripNostrPrefix = (id: string) => id?.replace(/^nostr:/, '') ?? '';
 
     try {
-      const pathParts = window.location.pathname.split('/').filter(Boolean);
-
-      // If we're at exactly /live/ with nothing else, just show the note loader
-      if (pathParts.length === 1 && pathParts[0] === 'live') {
+      const currentPath = window.location.pathname;
+      
+      // CRITICAL: If we're not under /live/, redirect to /live/ immediately
+      // This prevents the app from loading at root or other paths
+      if (!currentPath.startsWith('/live')) {
+        window.history.replaceState({}, '', '/live/');
         setShowNoteLoader(true);
         setShowMainLayout(false);
-        // Ensure we're at /live/ and not redirected
-        if (window.location.pathname !== '/live/') {
-          window.history.replaceState({}, '', '/live/');
-        }
         return;
       }
+
+      // If we're at exactly /live/ (with or without trailing slash), show note loader
+      if (currentPath === '/live' || currentPath === '/live/') {
+        // Ensure trailing slash
+        if (currentPath !== '/live/') {
+          window.history.replaceState({}, '', '/live/');
+        }
+        setShowNoteLoader(true);
+        setShowMainLayout(false);
+        return;
+      }
+
+      const pathParts = currentPath.split('/').filter(Boolean);
 
       // Try compound form: /{nprofile...}/live/{event-id} → build naddr(kind 30311) and normalize URL
       // If any legacy '/live' segment is present, normalize away from it
@@ -110,32 +121,49 @@ export const LivePage: React.FC = () => {
       const lastPart = (
         pathPartsWithoutLive[pathPartsWithoutLive.length - 1] || ''
       ).trim();
-      const candidate = stripNostrPrefix(lastPart || (eventId ?? ''));
+      
+      // Get candidate from either path or eventId param
+      // If eventId exists and is valid, use it; otherwise use path
+      const candidateFromPath = stripNostrPrefix(lastPart);
+      const candidateFromParam = eventId ? stripNostrPrefix(eventId) : '';
+      const candidate = candidateFromParam || candidateFromPath;
 
       // If we're at /live/ with no identifier, just show the note loader
-      if (!candidate || candidate === 'live') {
-        setShowNoteLoader(true);
-        setShowMainLayout(false);
-        // Ensure URL stays at /live/ if somehow it changed
+      if (!candidate || candidate === 'live' || candidate.trim() === '') {
+        // Ensure we're at /live/ and show loader
         if (window.location.pathname !== '/live/') {
           window.history.replaceState({}, '', '/live/');
         }
+        setShowNoteLoader(true);
+        setShowMainLayout(false);
         return;
       }
 
       // Basic prefix validation first
       const validPrefixes = ['note1', 'nevent1', 'naddr1', 'nprofile1'];
       if (!validPrefixes.some(p => candidate.startsWith(p))) {
-        setShowNoteLoader(true);
-        setShowMainLayout(false);
-        showLoadingError(
-          'Invalid format. Please enter a valid nostr identifier (note1/nevent1/naddr1/nprofile1).'
-        );
-        // Ensure URL stays at /live/
-        if (window.location.pathname !== '/live/') {
-          window.history.replaceState({}, '', '/live/');
+        // Don't show error if candidate is empty or "live" - just show loader
+        if (candidate && candidate !== 'live' && candidate.trim() !== '') {
+          setShowNoteLoader(true);
+          setShowMainLayout(false);
+          showLoadingError(
+            'Invalid format. Please enter a valid nostr identifier (note1/nevent1/naddr1/nprofile1).'
+          );
+          // Ensure URL stays at /live/
+          if (window.location.pathname !== '/live/') {
+            window.history.replaceState({}, '', '/live/');
+          }
+          // Don't put invalid candidate in input unless it looks like it might be valid
+          return;
+        } else {
+          // Just show loader, no error, no input prefill
+          setShowNoteLoader(true);
+          setShowMainLayout(false);
+          if (window.location.pathname !== '/live/') {
+            window.history.replaceState({}, '', '/live/');
+          }
+          return;
         }
-        return;
       }
 
       // Bech32/NIP-19 validation
@@ -149,31 +177,38 @@ export const LivePage: React.FC = () => {
         }
         setShowNoteLoader(false);
         setShowMainLayout(true);
-      } catch {
+        } catch {
         setShowNoteLoader(true);
         setShowMainLayout(false);
-        // Delay until after the note loader mounts so the DOM nodes exist
-        setTimeout(() => {
-          // Legacy-style messages based on intended type
-          let msg =
-            'Invalid nostr identifier format. Please check the note ID and try again.';
-          if (candidate.startsWith('naddr1')) {
-            msg =
-              'Failed to load live event. Please check the identifier and try again.';
-          } else if (candidate.startsWith('nprofile1')) {
-            msg =
-              'Failed to load profile. Please check the identifier and try again.';
-          }
-          showLoadingError(msg);
-          const input = document.getElementById(
-            'note1LoaderInput'
-          ) as HTMLInputElement | null;
-          if (input) {
-            input.value = candidate;
-            input.focus();
-            input.select();
-          }
-        }, 50);
+        // Only show error and prefill if candidate exists and is not "live"
+        if (candidate && candidate !== 'live' && candidate.trim() !== '') {
+          // Delay until after the note loader mounts so the DOM nodes exist
+          setTimeout(() => {
+            // Legacy-style messages based on intended type
+            let msg =
+              'Invalid nostr identifier format. Please check the note ID and try again.';
+            if (candidate.startsWith('naddr1')) {
+              msg =
+                'Failed to load live event. Please check the identifier and try again.';
+            } else if (candidate.startsWith('nprofile1')) {
+              msg =
+                'Failed to load profile. Please check the identifier and try again.';
+            }
+            showLoadingError(msg);
+            const input = document.getElementById(
+              'note1LoaderInput'
+            ) as HTMLInputElement | null;
+            if (input) {
+              input.value = candidate;
+              input.focus();
+              input.select();
+            }
+          }, 50);
+        }
+        // Ensure URL stays at /live/
+        if (window.location.pathname !== '/live/') {
+          window.history.replaceState({}, '', '/live/');
+        }
       }
     } catch {
       // If anything unexpected happens, fall back to note loader with error
@@ -188,7 +223,8 @@ export const LivePage: React.FC = () => {
   }, [eventId]);
 
   useEffect(() => {
-    if (eventId) {
+    // Only validate if eventId exists and is not empty or "live"
+    if (eventId && eventId.trim() !== '' && eventId.trim() !== 'live') {
       // Wait for NostrTools to be available before validating
       const validateEventId = async () => {
         // Wait for NostrTools to load
