@@ -9,18 +9,18 @@ const getApiBase = (): string => {
   if (typeof process !== 'undefined' && (process as any).env?.REACT_APP_BACKEND_URL) {
     return (process as any).env.REACT_APP_BACKEND_URL;
   }
-  
+
   // In production, use same origin (Nginx proxies to backend)
   if (typeof window !== 'undefined') {
     // Check if we're in production (HTTPS or production domain)
-    const isProduction = window.location.protocol === 'https:' || 
+    const isProduction = window.location.protocol === 'https:' ||
                         window.location.hostname !== 'localhost';
     if (isProduction) {
       // Use same origin - Nginx will proxy to backend
       return window.location.origin;
     }
   }
-  
+
   // Development fallback
   return 'http://localhost:3002';
 };
@@ -542,7 +542,7 @@ export const RoomAdminPage: React.FC = () => {
 
   const copyViewerUrl = useCallback(() => {
     if (!createdRoomId) return;
-    const url = `${window.location.origin}/multi/${createdRoomId}`;
+    const url = `${window.location.origin}/live/multi/${createdRoomId}`;
     navigator.clipboard.writeText(url);
     setShowUrlCopied(true);
     setTimeout(() => setShowUrlCopied(false), 2000);
@@ -918,7 +918,7 @@ export const RoomAdminPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() =>
-                    window.open(`/multi/${createdRoomId}`, '_blank')
+                    window.open(`/live/multi/${createdRoomId}`, '_blank')
                   }
                   aria-label="Open Viewer"
                   title="Open Viewer"
