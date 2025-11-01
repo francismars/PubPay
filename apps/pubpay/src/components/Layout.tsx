@@ -441,7 +441,7 @@ export const Layout: React.FC = () => {
             <Link id="logo" to="/">
               PUB<span className="logoPay">PAY</span>
               <span className="logoMe">.me</span>
-              <span className="version">alpha 0.02</span>
+              <span className="version">alpha 0.03</span>
             </Link>
           </div>
           <div id="navActions">
