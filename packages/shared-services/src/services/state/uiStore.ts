@@ -70,7 +70,8 @@ export const useUIStore = create<UIState>(set => ({
     }),
   openProcessing: (message = 'Processing payment...') =>
     set({ processingOverlay: { show: true, message } }),
-  closeProcessing: () => set({ processingOverlay: { show: false, message: '' } }),
+  closeProcessing: () =>
+    set({ processingOverlay: { show: false, message: '' } }),
   openToast: (message, variant = 'info', persist = false) =>
     set({ statusToast: { show: true, message, variant, persist } }),
   updateToast: (message, variant = 'info', persist = false) =>
@@ -79,8 +80,9 @@ export const useUIStore = create<UIState>(set => ({
     set({
       statusToast: { show: false, message: '', variant: 'info', persist: false }
     }),
-  setFollowSuggestions: (items) => set({ followSuggestions: items }),
-  appendFollowSuggestion: (item) => set(state => ({ followSuggestions: [...state.followSuggestions, item] })),
+  setFollowSuggestions: items => set({ followSuggestions: items }),
+  appendFollowSuggestion: item =>
+    set(state => ({ followSuggestions: [...state.followSuggestions, item] })),
   openLogin: () => set({ loginForm: { show: true } }),
   closeLogin: () => set({ loginForm: { show: false } }),
   openNewPayNote: () => set({ newPayNoteForm: { show: true } }),

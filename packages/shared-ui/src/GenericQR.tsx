@@ -8,11 +8,11 @@ type GenericQRProps = {
   id?: string;
 };
 
-export const GenericQR: React.FC<GenericQRProps> = ({ 
-  data, 
-  width = 200, 
-  height = 200, 
-  id 
+export const GenericQR: React.FC<GenericQRProps> = ({
+  data,
+  width = 200,
+  height = 200,
+  id
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -36,12 +36,5 @@ export const GenericQR: React.FC<GenericQRProps> = ({
     });
   }, [data, width]);
 
-  return (
-    <canvas 
-      id={id} 
-      ref={canvasRef} 
-      width={width} 
-      height={height}
-    />
-  );
+  return <canvas id={id} ref={canvasRef} width={width} height={height} />;
 };

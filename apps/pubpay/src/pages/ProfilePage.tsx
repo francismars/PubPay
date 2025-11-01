@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useOutletContext, useParams, useLocation } from 'react-router-dom';
-import { useUIStore, ensureProfiles, ensureZaps, getQueryClient, NostrRegistrationService, AuthService, FollowService } from '@pubpay/shared-services';
+import {
+  useNavigate,
+  useOutletContext,
+  useParams,
+  useLocation
+} from 'react-router-dom';
+import {
+  useUIStore,
+  ensureProfiles,
+  ensureZaps,
+  getQueryClient,
+  NostrRegistrationService,
+  AuthService,
+  FollowService
+} from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 import * as NostrTools from 'nostr-tools';
 import { PayNoteComponent } from '../components/PayNoteComponent';
@@ -15,7 +28,7 @@ const isValidPublicKey = (pubkey: string): boolean => {
   if (/^[0-9a-f]{64}$/i.test(pubkey)) {
     return true;
   }
-  
+
   // Check for npub format
   if (pubkey.startsWith('npub1')) {
     try {
@@ -25,7 +38,7 @@ const isValidPublicKey = (pubkey: string): boolean => {
       return false;
     }
   }
-  
+
   // Check for nprofile format
   if (pubkey.startsWith('nprofile1')) {
     try {
@@ -35,7 +48,7 @@ const isValidPublicKey = (pubkey: string): boolean => {
       return false;
     }
   }
-  
+
   return false;
 };
 
@@ -45,18 +58,26 @@ const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { pubkey } = useParams<{ pubkey?: string }>();
-  const { 
-    authState, 
+  const {
+    authState,
     nostrClient,
     handlePayWithExtension,
     handlePayAnonymously,
     handleSharePost,
     nostrReady
-  } = useOutletContext<{ 
-    authState: any; 
+  } = useOutletContext<{
+    authState: any;
     nostrClient: any;
-    handlePayWithExtension: (post: PubPayPost, amount: number, comment?: string) => void;
-    handlePayAnonymously: (post: PubPayPost, amount: number, comment?: string) => void;
+    handlePayWithExtension: (
+      post: PubPayPost,
+      amount: number,
+      comment?: string
+    ) => void;
+    handlePayAnonymously: (
+      post: PubPayPost,
+      amount: number,
+      comment?: string
+    ) => void;
     handleSharePost: (post: PubPayPost) => void;
     nostrReady: boolean;
   }>();
@@ -65,13 +86,18 @@ const ProfilePage: React.FC = () => {
   const displayName = authState?.displayName;
   const publicKey = authState?.publicKey;
   const openLogin = useUIStore(s => s.openLogin);
-  
+
   // Recovery state
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [recoveryMnemonic, setRecoveryMnemonic] = useState('');
 
   // Tooltip state
-  const [tooltip, setTooltip] = useState<{ show: boolean; message: string; x: number; y: number }>({
+  const [tooltip, setTooltip] = useState<{
+    show: boolean;
+    message: string;
+    x: number;
+    y: number;
+  }>({
     show: false,
     message: '',
     x: 0,
@@ -91,28 +117,39 @@ const ProfilePage: React.FC = () => {
     }
 
     try {
-      const result = NostrRegistrationService.recoverKeyPairFromMnemonic(recoveryMnemonic.trim());
-      
+      const result = NostrRegistrationService.recoverKeyPairFromMnemonic(
+        recoveryMnemonic.trim()
+      );
+
       if (result.success && result.keyPair && result.keyPair.privateKey) {
         // Sign in with the recovered private key
-        const signInResult = await AuthService.signInWithNsec(result.keyPair.privateKey);
-        
+        const signInResult = await AuthService.signInWithNsec(
+          result.keyPair.privateKey
+        );
+
         if (signInResult.success && signInResult.publicKey) {
           AuthService.storeAuthData(
             signInResult.publicKey,
             result.keyPair.privateKey,
             'nsec'
           );
-          
+
           setRecoveryMnemonic('');
           setShowRecoveryModal(false);
-          alert('Account recovered successfully! Please refresh the page to continue.');
+          alert(
+            'Account recovered successfully! Please refresh the page to continue.'
+          );
           window.location.reload();
         } else {
-          alert('Failed to sign in with recovered keys: ' + (signInResult.error || 'Unknown error'));
+          alert(
+            'Failed to sign in with recovered keys: ' +
+              (signInResult.error || 'Unknown error')
+          );
         }
       } else {
-        alert('Failed to recover keys: ' + (result.error || 'Invalid mnemonic'));
+        alert(
+          'Failed to recover keys: ' + (result.error || 'Invalid mnemonic')
+        );
       }
     } catch (error) {
       console.error('Recovery failed:', error);
@@ -122,18 +159,21 @@ const ProfilePage: React.FC = () => {
 
   // Determine if we're viewing own profile or another user's profile
   const isOwnProfile = !pubkey || pubkey === publicKey;
-  
+
   // Extract hex pubkey from npub/nprofile for profile loading
   const getHexPubkey = (pubkeyOrNpub: string): string => {
     if (!pubkeyOrNpub) return '';
-    
+
     // If it's already a hex pubkey, return it
     if (/^[0-9a-f]{64}$/i.test(pubkeyOrNpub)) {
       return pubkeyOrNpub;
     }
-    
+
     // If it's an npub or nprofile, decode it
-    if (pubkeyOrNpub.startsWith('npub1') || pubkeyOrNpub.startsWith('nprofile1')) {
+    if (
+      pubkeyOrNpub.startsWith('npub1') ||
+      pubkeyOrNpub.startsWith('nprofile1')
+    ) {
       try {
         const decoded = NostrTools.nip19.decode(pubkeyOrNpub);
         if (decoded.type === 'npub') {
@@ -145,10 +185,10 @@ const ProfilePage: React.FC = () => {
         console.error('Failed to decode npub/nprofile:', error);
       }
     }
-    
+
     return pubkeyOrNpub;
   };
-  
+
   const targetPubkey = getHexPubkey(pubkey || publicKey);
 
   // Profile data state
@@ -185,8 +225,18 @@ const ProfilePage: React.FC = () => {
   useEffect(() => {
     (async () => {
       try {
-        if (!nostrClient || !publicKey || !targetPubkey || publicKey === targetPubkey) return;
-        const following = await FollowService.isFollowing(nostrClient, publicKey, targetPubkey);
+        if (
+          !nostrClient ||
+          !publicKey ||
+          !targetPubkey ||
+          publicKey === targetPubkey
+        )
+          return;
+        const following = await FollowService.isFollowing(
+          nostrClient,
+          publicKey,
+          targetPubkey
+        );
         setIsFollowing(following);
       } catch (e) {
         console.warn('Failed to check following status', e);
@@ -198,7 +248,11 @@ const ProfilePage: React.FC = () => {
     try {
       if (!nostrClient || !publicKey || !targetPubkey) return;
       setFollowBusy(true);
-      const ok = await FollowService.follow(nostrClient, publicKey, targetPubkey);
+      const ok = await FollowService.follow(
+        nostrClient,
+        publicKey,
+        targetPubkey
+      );
       if (ok) setIsFollowing(true);
     } catch (e) {
       console.error('Follow failed:', e);
@@ -209,7 +263,12 @@ const ProfilePage: React.FC = () => {
 
   // Handle profile updates from edit page - force refetch and update
   useEffect(() => {
-    if ((location.state as any)?.profileUpdated && publicKey && nostrClient && isOwnProfile) {
+    if (
+      (location.state as any)?.profileUpdated &&
+      publicKey &&
+      nostrClient &&
+      isOwnProfile
+    ) {
       // Clear cache and force fresh fetch
       const queryClient = getQueryClient();
       queryClient.removeQueries({ queryKey: ['profile', publicKey] });
@@ -224,11 +283,16 @@ const ProfilePage: React.FC = () => {
           );
           const profileEvent = profileMap.get(publicKey);
           if (profileEvent?.content) {
-            const content = typeof profileEvent.content === 'string' 
-              ? JSON.parse(profileEvent.content) 
-              : profileEvent.content;
+            const content =
+              typeof profileEvent.content === 'string'
+                ? JSON.parse(profileEvent.content)
+                : profileEvent.content;
             setProfileData({
-              displayName: content.display_name || content.displayName || content.name || '',
+              displayName:
+                content.display_name ||
+                content.displayName ||
+                content.name ||
+                '',
               bio: content.about || '',
               website: content.website || '',
               banner: content.banner || '',
@@ -244,7 +308,14 @@ const ProfilePage: React.FC = () => {
       // Clear location state
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, publicKey, navigate, location.pathname, nostrClient, isOwnProfile]);
+  }, [
+    location.state,
+    publicKey,
+    navigate,
+    location.pathname,
+    nostrClient,
+    isOwnProfile
+  ]);
 
   // Load profile data - either from own profile or fetch external profile
   useEffect(() => {
@@ -252,17 +323,22 @@ const ProfilePage: React.FC = () => {
       setIsLoadingProfile(false);
       setProfileError(null);
       setIsInitialLoad(true);
-      
+
       if (isOwnProfile) {
         // Load own profile from userProfile
         if (userProfile?.content) {
           try {
-            const content = typeof userProfile.content === 'string' 
-              ? JSON.parse(userProfile.content) 
-              : userProfile.content;
-            
+            const content =
+              typeof userProfile.content === 'string'
+                ? JSON.parse(userProfile.content)
+                : userProfile.content;
+
             setProfileData({
-              displayName: content.display_name || content.displayName || content.name || '',
+              displayName:
+                content.display_name ||
+                content.displayName ||
+                content.name ||
+                '',
               bio: content.about || '',
               website: content.website || '',
               banner: content.banner || '',
@@ -281,7 +357,7 @@ const ProfilePage: React.FC = () => {
           setProfileError('Invalid public key format');
           return;
         }
-        
+
         // Load external profile using ensureProfiles
         setIsLoadingProfile(true);
         try {
@@ -293,14 +369,19 @@ const ProfilePage: React.FC = () => {
           );
           const profileEvent = profileMap.get(targetPubkey);
           console.log('Profile event received:', profileEvent);
-          
+
           if (profileEvent?.content) {
-            const content = typeof profileEvent.content === 'string' 
-              ? JSON.parse(profileEvent.content) 
-              : profileEvent.content;
-            
+            const content =
+              typeof profileEvent.content === 'string'
+                ? JSON.parse(profileEvent.content)
+                : profileEvent.content;
+
             setProfileData({
-              displayName: content.display_name || content.displayName || content.name || '',
+              displayName:
+                content.display_name ||
+                content.displayName ||
+                content.name ||
+                '',
               bio: content.about || '',
               website: content.website || '',
               banner: content.banner || '',
@@ -351,7 +432,10 @@ const ProfilePage: React.FC = () => {
           let hasMore = true;
           let batchCount = 0;
 
-          console.log(`[${description}] Starting to fetch all events with filter:`, filter);
+          console.log(
+            `[${description}] Starting to fetch all events with filter:`,
+            filter
+          );
 
           while (hasMore) {
             batchCount++;
@@ -361,11 +445,18 @@ const ProfilePage: React.FC = () => {
                 limit,
                 ...(until ? { until } : {})
               };
-              
-              console.log(`[${description}] Batch ${batchCount} - Filter:`, batchFilter);
-              const batch = (await nostrClient.getEvents([batchFilter])) as any[];
 
-              console.log(`[${description}] Batch ${batchCount} - Received ${batch.length} events`);
+              console.log(
+                `[${description}] Batch ${batchCount} - Filter:`,
+                batchFilter
+              );
+              const batch = (await nostrClient.getEvents([
+                batchFilter
+              ])) as any[];
+
+              console.log(
+                `[${description}] Batch ${batchCount} - Received ${batch.length} events`
+              );
 
               if (batch.length === 0) {
                 console.log(`[${description}] No more events found`);
@@ -378,27 +469,38 @@ const ProfilePage: React.FC = () => {
 
               allEvents.push(...batch);
 
-              console.log(`[${description}] Total events so far: ${allEvents.length}`);
+              console.log(
+                `[${description}] Total events so far: ${allEvents.length}`
+              );
 
               // If we got fewer events than the limit, we've reached the end
               if (batch.length < limit) {
-                console.log(`[${description}] Got fewer events than limit (${batch.length} < ${limit}), reached end`);
+                console.log(
+                  `[${description}] Got fewer events than limit (${batch.length} < ${limit}), reached end`
+                );
                 hasMore = false;
               } else {
                 // Set until to the oldest event's timestamp for next batch
                 const oldestEvent = batch[batch.length - 1]; // Last event is oldest (after sorting)
                 const oldestTimestamp = oldestEvent.created_at || 0;
                 until = oldestTimestamp - 1; // Subtract 1 to avoid overlap
-                console.log(`[${description}] Setting until to ${until} (oldest: ${oldestTimestamp})`);
+                console.log(
+                  `[${description}] Setting until to ${until} (oldest: ${oldestTimestamp})`
+                );
               }
 
               // Safety limit to prevent infinite loops
               if (batchCount > 50) {
-                console.warn(`[${description}] Reached safety limit of 50 batches, stopping`);
+                console.warn(
+                  `[${description}] Reached safety limit of 50 batches, stopping`
+                );
                 hasMore = false;
               }
             } catch (error) {
-              console.error(`[${description}] Error fetching batch ${batchCount}:`, error);
+              console.error(
+                `[${description}] Error fetching batch ${batchCount}:`,
+                error
+              );
               hasMore = false;
             }
           }
@@ -412,7 +514,9 @@ const ProfilePage: React.FC = () => {
           }
 
           const finalCount = uniqueEvents.size;
-          console.log(`[${description}] Final count after deduplication: ${finalCount} unique events`);
+          console.log(
+            `[${description}] Final count after deduplication: ${finalCount} unique events`
+          );
 
           return Array.from(uniqueEvents.values());
         };
@@ -436,13 +540,16 @@ const ProfilePage: React.FC = () => {
         // Filter for paynotes client-side (more reliable than relay tag filtering)
         const paynotes = allNotes.filter((event: any) => {
           if (!event || !event.tags) return false;
-          const hasPubpayTag = event.tags.some((tag: any[]) => 
-            Array.isArray(tag) && tag[0] === 't' && tag[1] === 'pubpay'
+          const hasPubpayTag = event.tags.some(
+            (tag: any[]) =>
+              Array.isArray(tag) && tag[0] === 't' && tag[1] === 'pubpay'
           );
           return hasPubpayTag;
         });
 
-        console.log(`[stats] Found ${paynotes.length} paynotes out of ${allNotes.length} total notes`);
+        console.log(
+          `[stats] Found ${paynotes.length} paynotes out of ${allNotes.length} total notes`
+        );
 
         // Convert paynotes to PubPayPost format for display
         const formattedPaynotes: PubPayPost[] = paynotes.map((event: any) => {
@@ -453,8 +560,10 @@ const ProfilePage: React.FC = () => {
           let lud16ToZap = '';
 
           event.tags.forEach((tag: any[]) => {
-            if (tag[0] === 'zap-min') zapMin = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
-            if (tag[0] === 'zap-max') zapMax = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
+            if (tag[0] === 'zap-min')
+              zapMin = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
+            if (tag[0] === 'zap-max')
+              zapMax = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
             if (tag[0] === 'zap-uses') zapMaxUses = parseInt(tag[1]) || 0;
             if (tag[0] === 'zap-lnurl') lud16ToZap = tag[1] || '';
           });
@@ -478,18 +587,22 @@ const ProfilePage: React.FC = () => {
         });
 
         // Sort by creation time (newest first)
-        formattedPaynotes.sort((a, b) => (b.event.created_at || 0) - (a.event.created_at || 0));
+        formattedPaynotes.sort(
+          (a, b) => (b.event.created_at || 0) - (a.event.created_at || 0)
+        );
 
         // Fetch author profiles for all paynotes
         if (formattedPaynotes.length > 0 && nostrClient) {
           try {
-            const authorPubkeys = Array.from(new Set(formattedPaynotes.map(p => p.event.pubkey)));
+            const authorPubkeys = Array.from(
+              new Set(formattedPaynotes.map(p => p.event.pubkey))
+            );
             const profileMap = await ensureProfiles(
               getQueryClient(),
               nostrClient,
               authorPubkeys
             );
-            
+
             // Update paynotes with author data
             formattedPaynotes.forEach(paynote => {
               const authorProfile = profileMap.get(paynote.event.pubkey);
@@ -509,12 +622,15 @@ const ProfilePage: React.FC = () => {
             // Extract zap payer pubkeys
             const zapPayerPubkeys = new Set<string>();
             zapEvents.forEach((zap: any) => {
-              const descriptionTag = zap.tags.find((tag: any[]) => tag[0] === 'description');
+              const descriptionTag = zap.tags.find(
+                (tag: any[]) => tag[0] === 'description'
+              );
               let hasPubkeyInDescription = false;
 
               if (descriptionTag) {
                 try {
-                  const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+                  const zapData =
+                    parseZapDescription(descriptionTag[1] || undefined) || {};
                   if (zapData.pubkey) {
                     zapPayerPubkeys.add(zapData.pubkey);
                     hasPubkeyInDescription = true;
@@ -531,9 +647,14 @@ const ProfilePage: React.FC = () => {
             });
 
             // Load zap payer profiles
-            const zapPayerProfileMap = zapPayerPubkeys.size > 0
-              ? await ensureProfiles(getQueryClient(), nostrClient, Array.from(zapPayerPubkeys))
-              : new Map();
+            const zapPayerProfileMap =
+              zapPayerPubkeys.size > 0
+                ? await ensureProfiles(
+                    getQueryClient(),
+                    nostrClient,
+                    Array.from(zapPayerPubkeys)
+                  )
+                : new Map();
 
             // Process zaps for each paynote
             formattedPaynotes.forEach(paynote => {
@@ -544,7 +665,9 @@ const ProfilePage: React.FC = () => {
 
               // Process zaps
               const processedZaps = postZaps.map((zap: any) => {
-                const bolt11Tag = zap.tags.find((tag: any[]) => tag[0] === 'bolt11');
+                const bolt11Tag = zap.tags.find(
+                  (tag: any[]) => tag[0] === 'bolt11'
+                );
                 let zapAmount = 0;
                 if (bolt11Tag) {
                   try {
@@ -555,18 +678,26 @@ const ProfilePage: React.FC = () => {
                   }
                 }
 
-                const descriptionTag = zap.tags.find((tag: any[]) => tag[0] === 'description');
+                const descriptionTag = zap.tags.find(
+                  (tag: any[]) => tag[0] === 'description'
+                );
                 let zapPayerPubkey = zap.pubkey;
                 let zapContent = '';
 
                 if (descriptionTag) {
                   try {
-                    const zapData = parseZapDescription(descriptionTag[1] || undefined);
+                    const zapData = parseZapDescription(
+                      descriptionTag[1] || undefined
+                    );
                     if (zapData?.pubkey) {
                       zapPayerPubkey = zapData.pubkey;
                     }
                     // Extract content from zap description (the zap message/comment)
-                    if (zapData && 'content' in zapData && typeof zapData.content === 'string') {
+                    if (
+                      zapData &&
+                      'content' in zapData &&
+                      typeof zapData.content === 'string'
+                    ) {
                       zapContent = zapData.content;
                     }
                   } catch {
@@ -576,10 +707,16 @@ const ProfilePage: React.FC = () => {
 
                 const zapPayerProfile = zapPayerProfileMap.get(zapPayerPubkey);
                 const zapPayerPicture = zapPayerProfile
-                  ? (safeJson<Record<string, unknown>>(zapPayerProfile.content || '{}', {}) as any).picture || genericUserIcon
+                  ? (
+                      safeJson<Record<string, unknown>>(
+                        zapPayerProfile.content || '{}',
+                        {}
+                      ) as any
+                    ).picture || genericUserIcon
                   : genericUserIcon;
 
-                const zapPayerNpub = NostrTools.nip19.npubEncode(zapPayerPubkey);
+                const zapPayerNpub =
+                  NostrTools.nip19.npubEncode(zapPayerPubkey);
 
                 return {
                   ...zap,
@@ -608,10 +745,14 @@ const ProfilePage: React.FC = () => {
                 }
               });
 
-              const totalZapAmount = processedZaps.reduce((sum: number, zap: any) => sum + zap.zapAmount, 0);
-              const zapUsesCurrent = paynote.zapUses && paynote.zapUses > 0
-                ? Math.min(zapsWithinLimits.length, paynote.zapUses)
-                : zapsWithinLimits.length;
+              const totalZapAmount = processedZaps.reduce(
+                (sum: number, zap: any) => sum + zap.zapAmount,
+                0
+              );
+              const zapUsesCurrent =
+                paynote.zapUses && paynote.zapUses > 0
+                  ? Math.min(zapsWithinLimits.length, paynote.zapUses)
+                  : zapsWithinLimits.length;
 
               // Update paynote with zap data
               paynote.zaps = processedZaps;
@@ -619,7 +760,10 @@ const ProfilePage: React.FC = () => {
               paynote.zapUsesCurrent = zapUsesCurrent;
             });
           } catch (error) {
-            console.error('Failed to load profiles and zaps for paynotes:', error);
+            console.error(
+              'Failed to load profiles and zaps for paynotes:',
+              error
+            );
           }
         }
 
@@ -627,10 +771,14 @@ const ProfilePage: React.FC = () => {
         setUserPaynotes(formattedPaynotes);
 
         // Create Set for fast lookup
-        const paynoteIdsSet = new Set<string>(paynotes.map((e: any) => e.id).filter(Boolean));
+        const paynoteIdsSet = new Set<string>(
+          paynotes.map((e: any) => e.id).filter(Boolean)
+        );
 
         // Create Set of all note IDs (includes paynotes)
-        const allNoteIdsSet = new Set<string>(allNotes.map(e => e.id).filter(Boolean));
+        const allNoteIdsSet = new Set<string>(
+          allNotes.map(e => e.id).filter(Boolean)
+        );
 
         // 3) Count zaps where:
         //    - #e tag references one of the event IDs
@@ -640,26 +788,28 @@ const ProfilePage: React.FC = () => {
           description: string
         ): Promise<number> => {
           if (eventIdsSet.size === 0) return 0;
-          
+
           // Query zaps where recipient is targetPubkey
           // Then filter by event IDs
           const seen = new Set<string>();
-          
+
           // Query zaps received by this user (p tag = targetPubkey)
           try {
             // Get zaps where p tag matches targetPubkey
             const receipts = (await nostrClient.getEvents([
               { kinds: [9735], '#p': [targetPubkey], limit: 5000 }
             ])) as any[];
-            
+
             // Filter to only zaps that reference events in our set
             for (const receipt of receipts) {
               if (!receipt || !receipt.id || !receipt.tags) continue;
-              
+
               // Check if this zap references one of our events
-              const eventTag = receipt.tags.find((tag: any[]) => tag[0] === 'e');
+              const eventTag = receipt.tags.find(
+                (tag: any[]) => tag[0] === 'e'
+              );
               if (!eventTag || !eventTag[1]) continue;
-              
+
               const referencedEventId = eventTag[1];
               if (eventIdsSet.has(referencedEventId)) {
                 seen.add(receipt.id);
@@ -668,7 +818,7 @@ const ProfilePage: React.FC = () => {
           } catch (error) {
             console.error(`Error counting ${description}:`, error);
           }
-          
+
           return seen.size;
         };
 
@@ -699,40 +849,50 @@ const ProfilePage: React.FC = () => {
   }, [targetPubkey, nostrClient]);
 
   // Copy to clipboard function with tooltip
-  const handleCopyToClipboard = (text: string, label: string, event: React.MouseEvent) => {
+  const handleCopyToClipboard = (
+    text: string,
+    label: string,
+    event: React.MouseEvent
+  ) => {
     const rect = event.currentTarget.getBoundingClientRect();
     const x = rect.left + rect.width / 2;
     const y = rect.top - 10;
-    
-    navigator.clipboard.writeText(text).then(() => {
-      setTooltip({
-        show: true,
-        message: `${label} copied to clipboard!`,
-        x,
-        y
+
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setTooltip({
+          show: true,
+          message: `${label} copied to clipboard!`,
+          x,
+          y
+        });
+
+        // Auto-hide tooltip after 2 seconds
+        setTimeout(() => {
+          setTooltip(prev => ({ ...prev, show: false }));
+        }, 2000);
+      })
+      .catch(() => {
+        setTooltip({
+          show: true,
+          message: `Failed to copy ${label}`,
+          x,
+          y
+        });
+
+        // Auto-hide tooltip after 2 seconds
+        setTimeout(() => {
+          setTooltip(prev => ({ ...prev, show: false }));
+        }, 2000);
       });
-      
-      // Auto-hide tooltip after 2 seconds
-      setTimeout(() => {
-        setTooltip(prev => ({ ...prev, show: false }));
-      }, 2000);
-    }).catch(() => {
-      setTooltip({
-        show: true,
-        message: `Failed to copy ${label}`,
-        x,
-        y
-      });
-      
-      // Auto-hide tooltip after 2 seconds
-      setTimeout(() => {
-        setTooltip(prev => ({ ...prev, show: false }));
-      }, 2000);
-    });
   };
 
   // Show QR code modal
-  const handleShowQRCode = (data: string, type: 'npub' | 'lightning' = 'npub') => {
+  const handleShowQRCode = (
+    data: string,
+    type: 'npub' | 'lightning' = 'npub'
+  ) => {
     setQrCodeData(data);
     setQrCodeType(type);
     setShowQRModal(true);
@@ -749,18 +909,17 @@ const ProfilePage: React.FC = () => {
     return url.replace(/^https?:\/\//, '');
   };
 
-
   // Convert public key to npub format
   const getNpubFromPublicKey = (pubkey?: string): string => {
     const keyToConvert = pubkey || publicKey;
     if (!keyToConvert) return '';
-    
+
     try {
       // If it's already an npub, return it
       if (keyToConvert.startsWith('npub1')) {
         return keyToConvert;
       }
-      
+
       // If it's an nprofile, extract the pubkey and convert to npub
       if (keyToConvert.startsWith('nprofile1')) {
         const decoded = NostrTools.nip19.decode(keyToConvert);
@@ -768,12 +927,12 @@ const ProfilePage: React.FC = () => {
           return NostrTools.nip19.npubEncode((decoded.data as any).pubkey);
         }
       }
-      
+
       // If it's a hex string, convert to npub
       if (keyToConvert.length === 64 && /^[0-9a-fA-F]+$/.test(keyToConvert)) {
         return NostrTools.nip19.npubEncode(keyToConvert);
       }
-      
+
       // If it's already a string, try to encode it directly
       return NostrTools.nip19.npubEncode(keyToConvert);
     } catch (error) {
@@ -790,45 +949,58 @@ const ProfilePage: React.FC = () => {
 
       {isLoadingProfile || isInitialLoad ? (
         <div className="profileSection">
-          <div className="profileBanner" style={{ backgroundColor: '#e9ecef' }}>
-          </div>
+          <div
+            className="profileBanner"
+            style={{ backgroundColor: '#e9ecef' }}
+          ></div>
           <div className="profileUserInfo">
-            <div className="profileAvatar" style={{ backgroundColor: '#e9ecef' }}>
-              <div style={{ 
-                width: '60px', 
-                height: '60px', 
-                borderRadius: '50%', 
-                backgroundColor: '#dee2e6',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '24px',
-                color: '#adb5bd'
-              }}>
+            <div
+              className="profileAvatar"
+              style={{ backgroundColor: '#e9ecef' }}
+            >
+              <div
+                style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  backgroundColor: '#dee2e6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '24px',
+                  color: '#adb5bd'
+                }}
+              >
                 ...
               </div>
             </div>
             <div className="profileUserDetails" style={{ flex: 1 }}>
-              <div style={{ 
-                height: '24px', 
-                backgroundColor: '#e9ecef', 
-                borderRadius: '4px', 
-                marginBottom: '8px',
-                width: '200px'
-              }}></div>
-              <div style={{ 
-                height: '16px', 
-                backgroundColor: '#e9ecef', 
-                borderRadius: '4px', 
-                marginBottom: '8px',
-                width: '150px'
-              }}></div>
-              <div style={{ 
-                height: '14px', 
-                backgroundColor: '#e9ecef', 
-                borderRadius: '4px',
-                width: '100px'
-              }}></div>
+              <div
+                style={{
+                  height: '24px',
+                  backgroundColor: '#e9ecef',
+                  borderRadius: '4px',
+                  marginBottom: '8px',
+                  width: '200px'
+                }}
+              ></div>
+              <div
+                style={{
+                  height: '16px',
+                  backgroundColor: '#e9ecef',
+                  borderRadius: '4px',
+                  marginBottom: '8px',
+                  width: '150px'
+                }}
+              ></div>
+              <div
+                style={{
+                  height: '14px',
+                  backgroundColor: '#e9ecef',
+                  borderRadius: '4px',
+                  width: '100px'
+                }}
+              ></div>
             </div>
           </div>
         </div>
@@ -840,22 +1012,24 @@ const ProfilePage: React.FC = () => {
       ) : isOwnProfile && !isLoggedIn ? (
         <div>
           <div className="profileNotLoggedIn">
-            <h2 className="profileNotLoggedInTitle">
-              Not Logged In
-            </h2>
+            <h2 className="profileNotLoggedInTitle">Not Logged In</h2>
             <p className="profileNotLoggedInText">
-              Please log in to view your profile and manage your account settings.
+              Please log in to view your profile and manage your account
+              settings.
             </p>
             <div className="profileButtonGroup">
               <button className="profileLoginButton" onClick={openLogin}>
                 Log In
               </button>
-              <button className="profileRegisterButton" onClick={() => navigate('/register')}>
+              <button
+                className="profileRegisterButton"
+                onClick={() => navigate('/register')}
+              >
                 Register
               </button>
             </div>
             <div style={{ textAlign: 'center', marginTop: '15px' }}>
-              <button 
+              <button
                 className="profileRecoveryLink"
                 onClick={() => setShowRecoveryModal(true)}
                 style={{
@@ -879,44 +1053,57 @@ const ProfilePage: React.FC = () => {
             {/* Banner Image */}
             <div className="profileBanner">
               {profileData.banner && (
-                <img 
-                  src={profileData.banner} 
-                  alt="Profile banner" 
+                <img
+                  src={profileData.banner}
+                  alt="Profile banner"
                   className="profileBannerImage"
-                  onError={(e) => {
+                  onError={e => {
                     e.currentTarget.style.display = 'none';
                   }}
                 />
               )}
             </div>
-            
+
             <div className="profileUserInfo">
               <div className="profileAvatar">
                 {profileData.picture ? (
-                  <img 
-                    src={profileData.picture} 
-                    alt="Profile" 
+                  <img
+                    src={profileData.picture}
+                    alt="Profile"
                     className="profileAvatarImage"
-                    onError={(e) => {
+                    onError={e => {
                       e.currentTarget.style.display = 'none';
-                      const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                      const fallback = e.currentTarget
+                        .nextElementSibling as HTMLElement;
                       if (fallback) {
                         fallback.style.display = 'flex';
                       }
                     }}
                   />
                 ) : null}
-                <div className="profileAvatarFallback" style={{ display: profileData.picture ? 'none' : 'flex' }}>
-                  {profileData.displayName ? profileData.displayName.charAt(0).toUpperCase() : 'U'}
+                <div
+                  className="profileAvatarFallback"
+                  style={{ display: profileData.picture ? 'none' : 'flex' }}
+                >
+                  {profileData.displayName
+                    ? profileData.displayName.charAt(0).toUpperCase()
+                    : 'U'}
                 </div>
               </div>
               <div className="profileUserDetails">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                  }}
+                >
                   <h2 style={{ margin: 0 }}>
                     {profileData.displayName || displayName || 'Anonymous User'}
                   </h2>
                   {isOwnProfile ? (
-                    <button 
+                    <button
                       className="profileEditButton"
                       onClick={() => navigate('/edit-profile')}
                     >
@@ -929,163 +1116,191 @@ const ProfilePage: React.FC = () => {
                         onClick={handleFollow}
                         disabled={isFollowing || followBusy}
                       >
-                        {isFollowing ? 'Following' : followBusy ? 'Following…' : 'Follow'}
+                        {isFollowing
+                          ? 'Following'
+                          : followBusy
+                            ? 'Following…'
+                            : 'Follow'}
                       </button>
                     )
                   )}
                 </div>
                 {profileData.website && (
-                  <a href={profileData.website} target="_blank" rel="noopener noreferrer" className="profileWebsite">
+                  <a
+                    href={profileData.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="profileWebsite"
+                  >
                     {trimWebsiteUrl(profileData.website)}
                   </a>
                 )}
-                <p>
-                  {profileData.bio || 'PubPay User'}
-                </p>
+                <p>{profileData.bio || 'PubPay User'}</p>
 
                 {/* Profile Details */}
-            <div className="profileDetails">
-                {(isOwnProfile || profileData.lightningAddress) && (
-                  <div className="profileDetailItem">
-                    <label>Lightning Address</label>
-                    <div className="profileDetailValue">
-                      {profileData.lightningAddress ? (
-                        <>
-                          <a href={`lightning:${profileData.lightningAddress}`} className="profileLightningLink">
-                            {profileData.lightningAddress}
-                          </a>
-                          <div className="profileButtonGroup">
-                            <button 
+                <div className="profileDetails">
+                  {(isOwnProfile || profileData.lightningAddress) && (
+                    <div className="profileDetailItem">
+                      <label>Lightning Address</label>
+                      <div className="profileDetailValue">
+                        {profileData.lightningAddress ? (
+                          <>
+                            <a
+                              href={`lightning:${profileData.lightningAddress}`}
+                              className="profileLightningLink"
+                            >
+                              {profileData.lightningAddress}
+                            </a>
+                            <div className="profileButtonGroup">
+                              <button
+                                className="profileCopyButton"
+                                onClick={e =>
+                                  handleCopyToClipboard(
+                                    profileData.lightningAddress,
+                                    'Lightning Address',
+                                    e
+                                  )
+                                }
+                              >
+                                Copy
+                              </button>
+                              <button
+                                className="profileCopyButton"
+                                onClick={() =>
+                                  handleShowQRCode(
+                                    profileData.lightningAddress,
+                                    'lightning'
+                                  )
+                                }
+                              >
+                                Show QR
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <span className="profileEmptyField">Not set</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {(isOwnProfile || profileData.nip05) && (
+                    <div className="profileDetailItem">
+                      <label>NIP-05 Identifier</label>
+                      <div className="profileDetailValue">
+                        {profileData.nip05 ? (
+                          <>
+                            <a
+                              href={`https://${profileData.nip05.split('@')[1]}/.well-known/nostr.json?name=${profileData.nip05.split('@')[0]}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="profileLightningLink"
+                            >
+                              {profileData.nip05}
+                            </a>
+                            <button
                               className="profileCopyButton"
-                              onClick={(e) => handleCopyToClipboard(profileData.lightningAddress, 'Lightning Address', e)}
+                              onClick={e =>
+                                handleCopyToClipboard(
+                                  profileData.nip05,
+                                  'NIP-05 Identifier',
+                                  e
+                                )
+                              }
                             >
                               Copy
                             </button>
-                            <button 
-                              className="profileCopyButton"
-                              onClick={() => handleShowQRCode(profileData.lightningAddress, 'lightning')}
-                            >
-                              Show QR
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <span className="profileEmptyField">Not set</span>
-                      )}
+                          </>
+                        ) : (
+                          <span className="profileEmptyField">Not set</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              
-              {(isOwnProfile || profileData.nip05) && (
-                <div className="profileDetailItem">
-                  <label>NIP-05 Identifier</label>
-                  <div className="profileDetailValue">
-                    {profileData.nip05 ? (
-                      <>
-                        <a 
-                          href={`https://${profileData.nip05.split('@')[1]}/.well-known/nostr.json?name=${profileData.nip05.split('@')[0]}`}
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="profileLightningLink"
-                        >
-                          {profileData.nip05}
-                        </a>
-                        <button 
-                          className="profileCopyButton"
-                          onClick={(e) => handleCopyToClipboard(profileData.nip05, 'NIP-05 Identifier', e)}
-                        >
-                          Copy
-                        </button>
-                      </>
-                    ) : (
-                      <span className="profileEmptyField">Not set</span>
-                    )}
-                  </div>
-                </div>
-              )}
+                  )}
 
-              {targetPubkey && (
-                <div className="profileDetailItem">
-                  <label>User ID (npub)</label>
-                  <div className="profileDetailValue">
-                    <div className="profilePublicKey" title={getNpubFromPublicKey(pubkey)}>
-                      {trimNpub(getNpubFromPublicKey(pubkey))}
+                  {targetPubkey && (
+                    <div className="profileDetailItem">
+                      <label>User ID (npub)</label>
+                      <div className="profileDetailValue">
+                        <div
+                          className="profilePublicKey"
+                          title={getNpubFromPublicKey(pubkey)}
+                        >
+                          {trimNpub(getNpubFromPublicKey(pubkey))}
+                        </div>
+                        <div className="profileButtonGroup">
+                          <button
+                            className="profileCopyButton"
+                            onClick={e =>
+                              handleCopyToClipboard(
+                                getNpubFromPublicKey(pubkey),
+                                'Public Key',
+                                e
+                              )
+                            }
+                          >
+                            Copy
+                          </button>
+                          <button
+                            className="profileCopyButton"
+                            onClick={() =>
+                              handleShowQRCode(getNpubFromPublicKey(pubkey))
+                            }
+                          >
+                            Show QR
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="profileButtonGroup">
-                      <button 
-                        className="profileCopyButton"
-                        onClick={(e) => handleCopyToClipboard(getNpubFromPublicKey(pubkey), 'Public Key', e)}
-                      >
-                        Copy
-                      </button>
-                      <button 
-                        className="profileCopyButton"
-                        onClick={() => handleShowQRCode(getNpubFromPublicKey(pubkey))}
-                      >
-                        Show QR
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              )}
-
-              
               </div>
-            </div>
-
-            
             </div>
           </div>
 
           {/* Stats Section */}
           <div className="profileStatsSection">
-            <h2 className="profileStatsTitle">
-              Activity Stats
-            </h2>
+            <h2 className="profileStatsTitle">Activity Stats</h2>
             <div className="profileStatsGrid">
               <div className="profileStatCard">
                 <div className="profileStatValue">
                   {activityLoading ? '—' : activityStats.paynotesCreated}
                 </div>
-                <div className="profileStatLabel">
-                  Paynotes Created
-                </div>
+                <div className="profileStatLabel">Paynotes Created</div>
               </div>
               <div className="profileStatCard">
                 <div className="profileStatValue">
                   {activityLoading ? '—' : activityStats.pubpaysReceived}
                 </div>
-                <div className="profileStatLabel">
-                  PubPays Received
-                </div>
+                <div className="profileStatLabel">PubPays Received</div>
               </div>
               <div className="profileStatCard">
                 <div className="profileStatValue">
                   {activityLoading ? '—' : activityStats.zapsReceived}
                 </div>
-                <div className="profileStatLabel">
-                  Zaps Received
-                </div>
+                <div className="profileStatLabel">Zaps Received</div>
               </div>
             </div>
           </div>
 
           {/* Paynotes Section */}
           <div className="profilePaynotesSection" style={{ marginTop: '30px' }}>
-            <h2 className="profileStatsTitle">
-              Paynotes
-            </h2>
+            <h2 className="profileStatsTitle">Paynotes</h2>
             {activityLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              <div
+                style={{ textAlign: 'center', padding: '40px', color: '#666' }}
+              >
                 Loading paynotes...
               </div>
             ) : userPaynotes.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              <div
+                style={{ textAlign: 'center', padding: '40px', color: '#666' }}
+              >
                 No paynotes found
               </div>
             ) : (
               <div>
-                {userPaynotes.map((post) => (
+                {userPaynotes.map(post => (
                   <PayNoteComponent
                     key={post.id}
                     post={post}
@@ -1101,7 +1316,6 @@ const ProfilePage: React.FC = () => {
               </div>
             )}
           </div>
-
         </div>
       ) : null}
 
@@ -1132,22 +1346,24 @@ const ProfilePage: React.FC = () => {
       {/* QR Code Modal */}
       {showQRModal && (
         <div className="overlayContainer" onClick={() => setShowQRModal(false)}>
-          <div 
-            className="overlayInner" 
+          <div
+            className="overlayInner"
             style={{ textAlign: 'center', maxWidth: '400px' }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>
-              {qrCodeType === 'npub' ? 'User ID QR Code' : 'Lightning Address QR Code'}
+              {qrCodeType === 'npub'
+                ? 'User ID QR Code'
+                : 'Lightning Address QR Code'}
             </h3>
 
             <div className="profileQRContainer">
               {qrCodeData ? (
-                <GenericQR 
-                  data={qrCodeData} 
-                  width={200} 
-                  height={200} 
-                  id="npubQR" 
+                <GenericQR
+                  data={qrCodeData}
+                  width={200}
+                  height={200}
+                  id="npubQR"
                 />
               ) : (
                 <div
@@ -1162,31 +1378,41 @@ const ProfilePage: React.FC = () => {
               )}
             </div>
 
-            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
-              <code style={{ 
-                fontSize: '12px', 
-                wordBreak: 'break-all',
-                backgroundColor: '#f0f0f0',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                display: 'inline-block'
-              }}>
+            <p
+              style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}
+            >
+              <code
+                style={{
+                  fontSize: '12px',
+                  wordBreak: 'break-all',
+                  backgroundColor: '#f0f0f0',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  display: 'inline-block'
+                }}
+              >
                 {qrCodeData}
               </code>
             </p>
 
-            
-            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
-              {qrCodeType === 'npub' 
+            <p
+              style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}
+            >
+              {qrCodeType === 'npub'
                 ? 'Scan this QR code with a Nostr client to add this user'
-                : 'Scan this QR code with a Lightning wallet to send payment'
-              }
+                : 'Scan this QR code with a Lightning wallet to send payment'}
             </p>
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+            <div
+              style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}
+            >
               <button
                 className="profileCopyButton"
-                onClick={(e) => {
-                  handleCopyToClipboard(qrCodeData, qrCodeType === 'npub' ? 'Public Key' : 'Lightning Address', e);
+                onClick={e => {
+                  handleCopyToClipboard(
+                    qrCodeData,
+                    qrCodeType === 'npub' ? 'Public Key' : 'Lightning Address',
+                    e
+                  );
                 }}
                 style={{ margin: 0, background: '#4a75ff', color: '#fff' }}
               >
@@ -1205,31 +1431,46 @@ const ProfilePage: React.FC = () => {
 
       {/* Recovery Modal */}
       {showRecoveryModal && (
-        <div className="overlayContainer" onClick={() => setShowRecoveryModal(false)}>
-          <div className="overlayInner" style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+        <div
+          className="overlayContainer"
+          onClick={() => setShowRecoveryModal(false)}
+        >
+          <div
+            className="overlayInner"
+            style={{ textAlign: 'center' }}
+            onClick={e => e.stopPropagation()}
+          >
             <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>
               Recover Existing Account
             </h3>
-            <p style={{ margin: '0 0 20px 0', color: '#666', fontSize: '14px' }}>
-              If you have a 12-word recovery phrase from a previous account, you can recover your keys here.
+            <p
+              style={{ margin: '0 0 20px 0', color: '#666', fontSize: '14px' }}
+            >
+              If you have a 12-word recovery phrase from a previous account, you
+              can recover your keys here.
             </p>
-            
+
             <div className="profileFormField" style={{ textAlign: 'left' }}>
-              <label htmlFor="recoveryMnemonic">
-                12-Word Recovery Phrase
-              </label>
+              <label htmlFor="recoveryMnemonic">12-Word Recovery Phrase</label>
               <textarea
                 id="recoveryMnemonic"
                 value={recoveryMnemonic}
-                onChange={(e) => setRecoveryMnemonic(e.target.value)}
+                onChange={e => setRecoveryMnemonic(e.target.value)}
                 className="profileFormTextarea"
                 placeholder="Enter your 12-word recovery phrase separated by spaces..."
                 rows={3}
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '20px' }}>
-              <button 
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                justifyContent: 'center',
+                marginTop: '20px'
+              }}
+            >
+              <button
                 className="profileCopyButton"
                 onClick={handleRecoveryFromMnemonic}
                 disabled={!recoveryMnemonic.trim()}

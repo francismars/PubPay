@@ -45,12 +45,14 @@ export class NwcClient {
     const tags: string[][] = evt.tags || [];
     const notificationsTag = tags.find(t => t[0] === 'notifications');
     const encryptionTag = tags.find(t => t[0] === 'encryption');
-    const notifications = notificationsTag && notificationsTag[1]
-      ? notificationsTag[1].split(/\s+/)
-      : undefined;
-    const encryption = encryptionTag && encryptionTag[1]
-      ? encryptionTag[1].split(/\s+/)
-      : undefined;
+    const notifications =
+      notificationsTag && notificationsTag[1]
+        ? notificationsTag[1].split(/\s+/)
+        : undefined;
+    const encryption =
+      encryptionTag && encryptionTag[1]
+        ? encryptionTag[1].split(/\s+/)
+        : undefined;
     return { methods, notifications, encryption };
   }
 
@@ -66,8 +68,10 @@ export class NwcClient {
 
   static fromSaved(): NwcClient | null {
     const saved =
-      (typeof localStorage !== 'undefined' && localStorage.getItem(NwcClient.STORAGE_KEY)) ||
-      (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(NwcClient.STORAGE_KEY));
+      (typeof localStorage !== 'undefined' &&
+        localStorage.getItem(NwcClient.STORAGE_KEY)) ||
+      (typeof sessionStorage !== 'undefined' &&
+        sessionStorage.getItem(NwcClient.STORAGE_KEY));
     if (!saved) return null;
     try {
       return new NwcClient(saved);
@@ -76,15 +80,21 @@ export class NwcClient {
     }
   }
 
-  async payInvoice(invoice: string): Promise<RpcResponse<{ preimage: string; fees_paid?: number }>> {
+  async payInvoice(
+    invoice: string
+  ): Promise<RpcResponse<{ preimage: string; fees_paid?: number }>> {
     const request: RpcRequest = {
       method: 'pay_invoice',
       params: { invoice }
     };
-    return await this.sendRequest<{ preimage: string; fees_paid?: number }>(request);
+    return await this.sendRequest<{ preimage: string; fees_paid?: number }>(
+      request
+    );
   }
 
-  private async sendRequest<T = unknown>(request: RpcRequest): Promise<RpcResponse<T>> {
+  private async sendRequest<T = unknown>(
+    request: RpcRequest
+  ): Promise<RpcResponse<T>> {
     const now = Math.floor(Date.now() / 1000);
     const contentJson = JSON.stringify(request);
 
@@ -107,7 +117,10 @@ export class NwcClient {
     };
 
     const skBytes = NostrTools.utils.hexToBytes(this.uri.clientSecretHex);
-    const requestEvent = NostrTools.finalizeEvent(eventTemplate as any, skBytes);
+    const requestEvent = NostrTools.finalizeEvent(
+      eventTemplate as any,
+      skBytes
+    );
 
     // Publish
     await (this.pool as any).publish(this.uri.relays, requestEvent);
@@ -120,7 +133,7 @@ export class NwcClient {
       '#e': [requestEvent.id]
     } as Record<string, unknown>;
 
-    const response = await new Promise<RpcResponse<T>>((resolve) => {
+    const response = await new Promise<RpcResponse<T>>(resolve => {
       const sub = (this.pool as any).subscribe(this.uri.relays, filter, {
         onevent: async (evt: any) => {
           try {
@@ -188,5 +201,3 @@ export class NwcClient {
     return { walletPubkey, relays, clientSecretHex, clientPubkey };
   }
 }
-
-

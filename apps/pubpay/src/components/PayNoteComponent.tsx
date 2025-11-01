@@ -65,22 +65,28 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isLongPressRef = useRef(false);
 
-  // Format content: baseline first, then upgrade when nostr is ready
-  useEffect(() => {
-    const raw = post.event.content || '';
-    // Baseline formatting: linkify only nostr:npubs and URLs, no client required
-    const baseline = raw
-      .replace(
-        /nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-        (_m, npub) => {
-          const clean = String(npub);
-          const shortId = clean.length > 35 ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}` : clean;
-          return `<a href="/profile/${clean}" class="nostrMention">${shortId}</a>`;
-        }
-      )
-      .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')
-      .replace(/\n/g, '<br />');
-    setFormattedContent(baseline);
+    // Format content: baseline first, then upgrade when nostr is ready
+    useEffect(() => {
+      const raw = post.event.content || '';
+      // Baseline formatting: linkify only nostr:npubs and URLs, no client required
+      const baseline = raw
+        .replace(
+          /nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+          (_m, npub) => {
+            const clean = String(npub);
+            const shortId =
+              clean.length > 35
+                ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
+                : clean;
+            return `<a href="/profile/${clean}" class="nostrMention">${shortId}</a>`;
+          }
+        )
+        .replace(
+          /(https?:\/\/[^\s<]+)/g,
+          '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+        )
+        .replace(/\n/g, '<br />');
+      setFormattedContent(baseline);
 
       const upgrade = async () => {
         if (!nostrClient || !nostrReady) return;
@@ -92,7 +98,13 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         }
       };
       upgrade();
-    }, [post.event.content, nostrClient, nostrReady, post.author, post.zapPayerName]);
+    }, [
+      post.event.content,
+      nostrClient,
+      nostrReady,
+      post.author,
+      post.zapPayerName
+    ]);
 
     // Click outside to close zap menu
     useEffect(() => {
@@ -155,7 +167,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       }
     };
 
-
     // Handle zap slider change
     const handleZapSliderChange = (value: number) => {
       setZapAmount(value);
@@ -177,9 +188,13 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             (typeof sessionStorage !== 'undefined' &&
               sessionStorage.getItem('nwcConnectionString'));
           if (hasNwc) {
-            useUIStore.getState().openToast('Preparing payment…', 'loading', true);
+            useUIStore
+              .getState()
+              .openToast('Preparing payment…', 'loading', true);
           } else {
-            useUIStore.getState().openToast('Preparing invoice…', 'loading', false);
+            useUIStore
+              .getState()
+              .openToast('Preparing invoice…', 'loading', false);
             setTimeout(() => {
               try {
                 useUIStore.getState().closeToast();
@@ -202,7 +217,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       if (amount > 0) {
         try {
           setIsAnonPaying(true);
-          useUIStore.getState().openToast('Preparing anonymous zap…', 'loading', false);
+          useUIStore
+            .getState()
+            .openToast('Preparing anonymous zap…', 'loading', false);
           setTimeout(() => {
             try {
               useUIStore.getState().closeToast();
@@ -228,7 +245,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     // Handle long press start
     const handleLongPressStart = () => {
       if (!isPayable || isReply) return;
-      
+
       isLongPressRef.current = false;
       longPressTimerRef.current = setTimeout(() => {
         isLongPressRef.current = true;
@@ -254,7 +271,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         useUIStore.getState().openLogin();
         return;
       }
-      
+
       try {
         setIsPaying(true);
         const hasNwc =
@@ -263,9 +280,13 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           (typeof sessionStorage !== 'undefined' &&
             sessionStorage.getItem('nwcConnectionString'));
         if (hasNwc) {
-          useUIStore.getState().openToast('Preparing payment…', 'loading', true);
+          useUIStore
+            .getState()
+            .openToast('Preparing payment…', 'loading', true);
         } else {
-          useUIStore.getState().openToast('Preparing invoice…', 'loading', false);
+          useUIStore
+            .getState()
+            .openToast('Preparing invoice…', 'loading', false);
           setTimeout(() => {
             try {
               useUIStore.getState().closeToast();
@@ -297,8 +318,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       const outsideRestrictions: ProcessedZap[] = [];
 
       for (const zap of post.zaps) {
-        const isWithinRange = zap.zapAmount >= zapMin && zap.zapAmount <= zapMax;
-        const matchesPayer = !hasZapPayerRestriction || zap.zapPayerPubkey === post.zapPayer;
+        const isWithinRange =
+          zap.zapAmount >= zapMin && zap.zapAmount <= zapMax;
+        const matchesPayer =
+          !hasZapPayerRestriction || zap.zapPayerPubkey === post.zapPayer;
 
         if (isWithinRange && matchesPayer) {
           withinRestrictions.push(zap);
@@ -322,7 +345,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       // Keep original arrival order (post.zaps already oldest-first; new zaps append at end)
 
       // Apply zap-uses cap: only first N within restrictions count as hero
-      const usesCap = post.zapUses && post.zapUses > 0 ? post.zapUses : undefined;
+      const usesCap =
+        post.zapUses && post.zapUses > 0 ? post.zapUses : undefined;
       const heroZapsList = usesCap
         ? withinRestrictions.slice(0, usesCap)
         : withinRestrictions.slice();
@@ -574,7 +598,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     ? post.zapPayerName
                     : (() => {
                         if (post.zapPayer) {
-                          const npub = NostrTools.nip19.npubEncode(post.zapPayer);
+                          const npub = NostrTools.nip19.npubEncode(
+                            post.zapPayer
+                          );
                           return npub.length > 35
                             ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4, npub.length)}`
                             : npub;
@@ -637,9 +663,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   key={index}
                   className={`zapReaction ${zap.isNewZap ? 'newZap' : ''}`}
                 >
-                  <a
-                    href={`/profile/${zap.zapPayerPubkey}`}
-                  >
+                  <a href={`/profile/${zap.zapPayerPubkey}`}>
                     <img
                       className="userImg"
                       src={zap.zapPayerPicture || genericUserIcon}
@@ -653,7 +677,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   </a>
                   {zap.content && (
                     <div className="zapReactionTooltip">
-                      {zap.content.length > 21 ? zap.content.substring(0, 21) + '...' : zap.content}
+                      {zap.content.length > 21
+                        ? zap.content.substring(0, 21) + '...'
+                        : zap.content}
                     </div>
                   )}
                 </div>
@@ -677,7 +703,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     isLongPressRef.current = false;
                     return;
                   }
-                  
+
                   if (!isPayable || isReply) {
                     return;
                   }
@@ -693,9 +719,13 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       (typeof sessionStorage !== 'undefined' &&
                         sessionStorage.getItem('nwcConnectionString'));
                     if (hasNwc) {
-                      useUIStore.getState().openToast('Preparing payment…', 'loading', true);
+                      useUIStore
+                        .getState()
+                        .openToast('Preparing payment…', 'loading', true);
                     } else {
-                      useUIStore.getState().openToast('Preparing invoice…', 'loading', false);
+                      useUIStore
+                        .getState()
+                        .openToast('Preparing invoice…', 'loading', false);
                       setTimeout(() => {
                         try {
                           useUIStore.getState().closeToast();
@@ -712,19 +742,19 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   isReply
                     ? 'Cannot pay replies'
                     : !isPayable
-                    ? 'This post is not payable'
-                    : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
-                    ? 'This post has been fully paid'
-                    : ''
+                      ? 'This post is not payable'
+                      : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
+                        ? 'This post has been fully paid'
+                        : ''
                 }
               >
                 {isPaying
                   ? 'Paying…'
                   : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
-                  ? 'Paid'
-                  : !isPayable || isReply
-                  ? 'Not Payable'
-                  : 'Pay'}
+                    ? 'Paid'
+                    : !isPayable || isReply
+                      ? 'Not Payable'
+                      : 'Pay'}
               </button>
             </div>
           )}
@@ -738,9 +768,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     key={index}
                     className={`zapReaction ${zap.isNewZap ? 'newZap' : ''}`}
                   >
-                    <a
-                      href={`/profile/${zap.zapPayerPubkey}`}
-                    >
+                    <a href={`/profile/${zap.zapPayerPubkey}`}>
                       <img
                         className="userImg"
                         src={zap.zapPayerPicture || genericUserIcon}
@@ -754,7 +782,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     </a>
                     {zap.content && (
                       <div className="zapReactionTooltip">
-                        {zap.content.length > 21 ? zap.content.substring(0, 21) + '...' : zap.content}
+                        {zap.content.length > 21
+                          ? zap.content.substring(0, 21) + '...'
+                          : zap.content}
                       </div>
                     )}
                   </div>
@@ -773,7 +803,11 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   setShowZapMenu(!showZapMenu);
                 }}
                 style={{ position: 'relative' }}
-                title={!hasValidLightning ? 'Lightning address missing or invalid' : 'Open zap menu'}
+                title={
+                  !hasValidLightning
+                    ? 'Lightning address missing or invalid'
+                    : 'Open zap menu'
+                }
               >
                 <span className="material-symbols-outlined">bolt</span>
                 <div
@@ -890,40 +924,65 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
 
         {/* Zap Confirmation Modal */}
         {showZapModal && (
-          <div 
-            className="overlayContainer" 
+          <div
+            className="overlayContainer"
             onClick={() => {
               setShowZapModal(false);
               setZapModalComment('');
             }}
           >
-            <div 
-              className="overlayInner zapModal" 
-              onClick={(e) => e.stopPropagation()}
+            <div
+              className="overlayInner zapModal"
+              onClick={e => e.stopPropagation()}
             >
-              <h3 style={{ margin: '0 0 20px 0', color: 'var(--text-primary)', textAlign: 'center' }}>
+              <h3
+                style={{
+                  margin: '0 0 20px 0',
+                  color: 'var(--text-primary)',
+                  textAlign: 'center'
+                }}
+              >
                 Confirm Zap
               </h3>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-                <img 
-                  src={profilePicture} 
-                  alt="Profile" 
-                  style={{ 
-                    width: '48px', 
-                    height: '48px', 
-                    borderRadius: '50%', 
-                    objectFit: 'cover' 
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginBottom: '20px'
+                }}
+              >
+                <img
+                  src={profilePicture}
+                  alt="Profile"
+                  style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '50%',
+                    objectFit: 'cover'
                   }}
-                  onError={(e) => {
+                  onError={e => {
                     e.currentTarget.src = genericUserIcon;
                   }}
                 />
                 <div>
-                  <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  <div
+                    style={{
+                      fontWeight: '600',
+                      color: 'var(--text-primary)',
+                      marginBottom: '4px'
+                    }}
+                  >
                     {displayName}
                   </div>
-                  <div style={{ fontSize: '24px', fontWeight: '700', color: '#4a75ff' }}>
+                  <div
+                    style={{
+                      fontSize: '24px',
+                      fontWeight: '700',
+                      color: '#4a75ff'
+                    }}
+                  >
                     ⚡ {zapAmount} sats
                   </div>
                 </div>
@@ -933,7 +992,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 id="zapModalComment"
                 placeholder="Add a note (optional)"
                 value={zapModalComment}
-                onChange={(e) => setZapModalComment(e.target.value)}
+                onChange={e => setZapModalComment(e.target.value)}
                 rows={3}
                 style={{
                   width: '100%',
@@ -958,7 +1017,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   className="cta"
                   onClick={handleZapFromModal}
                   disabled={isPaying}
-                  style={{ 
+                  style={{
                     flex: 1,
                     opacity: isPaying ? 0.5 : 1,
                     marginBottom: 0
@@ -972,7 +1031,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     setShowZapModal(false);
                     setZapModalComment('');
                   }}
-                  style={{ 
+                  style={{
                     flex: 1,
                     background: 'var(--bg-tertiary)',
                     color: 'var(--text-primary)',

@@ -25,7 +25,11 @@ export class BlossomService {
   /**
    * Create Nostr auth event for Blossom authentication following BUD-02 spec
    */
-  private async createAuthEvent(action: 'upload' | 'delete', file?: File, hash?: string): Promise<any> {
+  private async createAuthEvent(
+    action: 'upload' | 'delete',
+    file?: File,
+    hash?: string
+  ): Promise<any> {
     const storedAuth = AuthService.getStoredAuthData();
     const { privateKey, publicKey, method: signInMethod } = storedAuth;
 
@@ -42,7 +46,7 @@ export class BlossomService {
     }
 
     // Calculate expiration (24 hours from now)
-    const expiration = Math.floor(Date.now() / 1000) + (24 * 60 * 60);
+    const expiration = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
 
     // Build tags according to spec
     const tags: string[][] = [
@@ -56,9 +60,10 @@ export class BlossomService {
     }
 
     // Create descriptive content
-    const content = action === 'upload' 
-      ? `Upload ${file?.name || 'file'} to Blossom` 
-      : `Delete ${hash} from Blossom`;
+    const content =
+      action === 'upload'
+        ? `Upload ${file?.name || 'file'} to Blossom`
+        : `Delete ${hash} from Blossom`;
 
     const authEvent: any = {
       kind: 24242,
@@ -86,13 +91,15 @@ export class BlossomService {
       // For external signer, set pubkey and hash first
       authEvent.pubkey = publicKey;
       authEvent.id = NostrTools.getEventHash(authEvent);
-      
+
       // Store file data if uploading (need to store before redirect)
       let fileData: any = null;
       if (action === 'upload' && file) {
         // Convert file to base64 for storage
         const arrayBuffer = await file.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        const base64 = btoa(
+          String.fromCharCode(...new Uint8Array(arrayBuffer))
+        );
         fileData = {
           name: file.name,
           type: file.type,
@@ -100,18 +107,21 @@ export class BlossomService {
           data: base64
         };
       }
-      
+
       // Store event and file data for signing
-      sessionStorage.setItem('BlossomAuth', JSON.stringify({
-        action,
-        url: this.serverUrl,
-        event: authEvent,
-        file: fileData
-      }));
-      
+      sessionStorage.setItem(
+        'BlossomAuth',
+        JSON.stringify({
+          action,
+          url: this.serverUrl,
+          event: authEvent,
+          file: fileData
+        })
+      );
+
       const eventString = JSON.stringify(authEvent);
       window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
-      
+
       // This will redirect, so return a promise that never resolves
       return new Promise(() => {});
     } else {
@@ -127,11 +137,11 @@ export class BlossomService {
   async uploadFile(file: File): Promise<string> {
     try {
       const authEvent = await this.createAuthEvent('upload', file);
-      
+
       const response = await fetch(`${this.serverUrl}/upload`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Nostr ${btoa(JSON.stringify(authEvent))}`,
+          Authorization: `Nostr ${btoa(JSON.stringify(authEvent))}`,
           'Content-Type': file.type || 'application/octet-stream'
         },
         body: file
@@ -147,21 +157,32 @@ export class BlossomService {
       return blob.sha256 || blob.hash;
     } catch (error) {
       console.error('Blossom upload error:', error);
-      throw new Error(`Failed to upload to Blossom: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to upload to Blossom: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
   /**
    * Upload a file to Blossom using provided keys (for registration flow)
    */
-  async uploadFileWithKey(file: File, rawPrivateKey: Uint8Array, rawPublicKey: Uint8Array | string): Promise<string> {
+  async uploadFileWithKey(
+    file: File,
+    rawPrivateKey: Uint8Array,
+    rawPublicKey: Uint8Array | string
+  ): Promise<string> {
     try {
-      const authEvent = await this.createAuthEventWithKey(rawPrivateKey, rawPublicKey, 'upload', file);
-      
+      const authEvent = await this.createAuthEventWithKey(
+        rawPrivateKey,
+        rawPublicKey,
+        'upload',
+        file
+      );
+
       const response = await fetch(`${this.serverUrl}/upload`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Nostr ${btoa(JSON.stringify(authEvent))}`,
+          Authorization: `Nostr ${btoa(JSON.stringify(authEvent))}`,
           'Content-Type': file.type || 'application/octet-stream'
         },
         body: file
@@ -176,14 +197,18 @@ export class BlossomService {
       return blob.sha256 || blob.hash;
     } catch (error) {
       console.error('Blossom upload error:', error);
-      throw new Error(`Failed to upload to Blossom: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to upload to Blossom: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
   /**
    * Complete upload after external signer returns (called from visibilitychange handler)
    */
-  static async completeExternalSignerUpload(signature: string): Promise<string | null> {
+  static async completeExternalSignerUpload(
+    signature: string
+  ): Promise<string | null> {
     try {
       const blossomData = sessionStorage.getItem('BlossomAuth');
       if (!blossomData) {
@@ -192,7 +217,7 @@ export class BlossomService {
       }
 
       const { action, url, event, file } = JSON.parse(blossomData);
-      
+
       if (action !== 'upload' || !file) {
         console.warn('Invalid BlossomAuth data:', { action, hasFile: !!file });
         sessionStorage.removeItem('BlossomAuth');
@@ -201,7 +226,7 @@ export class BlossomService {
 
       // Finalize event with signature
       const signedEvent = { ...event, sig: signature };
-      
+
       // Verify the signed event
       const isValid = NostrTools.verifyEvent(signedEvent);
       if (!isValid) {
@@ -211,34 +236,47 @@ export class BlossomService {
       }
 
       console.log('Verifying signed event, reconstructing file...');
-      
+
       // Reconstruct file from base64
       try {
         console.log('Decoding base64, length:', file.data.length);
         const binaryString = atob(file.data);
-        console.log('Base64 decoded, binary string length:', binaryString.length);
-        
+        console.log(
+          'Base64 decoded, binary string length:',
+          binaryString.length
+        );
+
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
         const blob = new Blob([bytes], { type: file.type });
-        const reconstructedFile = new File([blob], file.name, { type: file.type });
-        console.log('File reconstructed, size:', reconstructedFile.size, 'type:', file.type);
+        const reconstructedFile = new File([blob], file.name, {
+          type: file.type
+        });
+        console.log(
+          'File reconstructed, size:',
+          reconstructedFile.size,
+          'type:',
+          file.type
+        );
 
         // Complete upload with timeout
         console.log('Starting upload to:', `${url}/upload`);
         const uploadPromise = fetch(`${url}/upload`, {
           method: 'PUT',
           headers: {
-            'Authorization': `Nostr ${btoa(JSON.stringify(signedEvent))}`,
+            Authorization: `Nostr ${btoa(JSON.stringify(signedEvent))}`,
             'Content-Type': file.type || 'application/octet-stream'
           },
           body: reconstructedFile
         });
 
-        const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Upload timeout after 60 seconds')), 60000)
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Upload timeout after 60 seconds')),
+            60000
+          )
         );
 
         const response = await Promise.race([uploadPromise, timeoutPromise]);
@@ -253,7 +291,7 @@ export class BlossomService {
         const result = await response.json();
         console.log('Upload successful, result:', result);
         sessionStorage.removeItem('BlossomAuth');
-        
+
         // Return the file URL with extension
         const hash = result.sha256 || result.hash;
         if (!hash) {
@@ -292,7 +330,7 @@ export class BlossomService {
     }
 
     // Calculate expiration (24 hours from now)
-    const expiration = Math.floor(Date.now() / 1000) + (24 * 60 * 60);
+    const expiration = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
 
     // Build tags according to spec
     const tags: string[][] = [
@@ -306,9 +344,10 @@ export class BlossomService {
     }
 
     // Create descriptive content
-    const content = action === 'upload' 
-      ? `Upload ${file?.name || 'file'} to Blossom` 
-      : `Delete ${hash} from Blossom`;
+    const content =
+      action === 'upload'
+        ? `Upload ${file?.name || 'file'} to Blossom`
+        : `Delete ${hash} from Blossom`;
 
     // Convert public key to hex if needed
     let pubkey: string;
@@ -346,7 +385,10 @@ export class BlossomService {
   /**
    * Extract file extension from filename or MIME type
    */
-  private static getFileExtension(file: { name?: string; type?: string }): string | null {
+  private static getFileExtension(file: {
+    name?: string;
+    type?: string;
+  }): string | null {
     // Try to get extension from filename
     if (file.name) {
       const lastDot = file.name.lastIndexOf('.');
@@ -354,7 +396,7 @@ export class BlossomService {
         return file.name.substring(lastDot + 1).toLowerCase();
       }
     }
-    
+
     // Fallback to MIME type mapping
     const mimeToExt: Record<string, string> = {
       'image/jpeg': 'jpg',
@@ -370,11 +412,11 @@ export class BlossomService {
       'audio/ogg': 'ogg',
       'audio/wav': 'wav'
     };
-    
+
     if (file.type && mimeToExt[file.type]) {
       return mimeToExt[file.type];
     }
-    
+
     return null;
   }
 
@@ -409,7 +451,7 @@ export class BlossomService {
 
     const response = await fetch(`${this.serverUrl}/list/${publicKey}`);
     if (!response.ok) throw new Error('List failed');
-    
+
     return await response.json();
   }
 
@@ -418,11 +460,11 @@ export class BlossomService {
    */
   async deleteBlob(hash: string): Promise<void> {
     const authEvent = await this.createAuthEvent('delete', undefined, hash);
-    
+
     const response = await fetch(`${this.serverUrl}/${hash}`, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Nostr ${btoa(JSON.stringify(authEvent))}`
+        Authorization: `Nostr ${btoa(JSON.stringify(authEvent))}`
       }
     });
 
