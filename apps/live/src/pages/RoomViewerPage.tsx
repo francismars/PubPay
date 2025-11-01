@@ -5,6 +5,8 @@ import React, {
   useRef,
   useState
 } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { getApiBase } from '../utils/apiBase';
 
 // Fullscreen vendor typings
 type VendorFullscreenElement = HTMLElement & {
@@ -18,7 +20,6 @@ type VendorFullscreenDocument = Document & {
   webkitFullscreenElement?: Element | null;
   msFullscreenElement?: Element | null;
 };
-import { useNavigate, useParams } from 'react-router-dom';
 
 type ViewPayload = {
   active: { slotStart: string; slotEnd: string } | null;
@@ -30,31 +31,6 @@ type ViewPayload = {
   upcomingSlots?: Array<{ startAt: string; endAt: string; items: string[] }>;
   previousSlots?: Array<{ startAt: string; endAt: string; items: string[] }>;
 };
-
-// Determine API base URL - use environment variable or detect from current origin
-const getApiBase = (): string => {
-  // Check for Webpack-injected environment variable (process.env.REACT_APP_BACKEND_URL)
-  // Webpack DefinePlugin injects process.env at build time
-  if (typeof process !== 'undefined' && (process as any).env?.REACT_APP_BACKEND_URL) {
-    return (process as any).env.REACT_APP_BACKEND_URL;
-  }
-  
-  // In production, use same origin (Nginx proxies to backend)
-  if (typeof window !== 'undefined') {
-    // Check if we're in production (HTTPS or production domain)
-    const isProduction = window.location.protocol === 'https:' || 
-                        window.location.hostname !== 'localhost';
-    if (isProduction) {
-      // Use same origin - Nginx will proxy to backend
-      return window.location.origin;
-    }
-  }
-  
-  // Development fallback
-  return 'http://localhost:3002';
-};
-
-const API_BASE = getApiBase();
 
 export const RoomViewerPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -163,7 +139,7 @@ export const RoomViewerPage: React.FC = () => {
     async (atTime?: string) => {
       if (!roomId) return;
       try {
-        const url = `${API_BASE}/multi/${roomId}/view${atTime ? `?at=${encodeURIComponent(atTime)}` : ''}`;
+        const url = `${getApiBase()}/multi/${roomId}/view${atTime ? `?at=${encodeURIComponent(atTime)}` : ''}`;
         const res = await fetch(url);
         if (!res.ok) {
           if (res.status === 404) {
@@ -199,13 +175,13 @@ export const RoomViewerPage: React.FC = () => {
       const storedPassword = sessionStorage.getItem(`room_${roomId}_password`);
       let res;
       if (storedPassword) {
-        res = await fetch(`${API_BASE}/multi/${roomId}`, {
+        res = await fetch(`${getApiBase()}/multi/${roomId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ password: storedPassword })
         });
       } else {
-        res = await fetch(`${API_BASE}/multi/${roomId}`);
+        res = await fetch(`${getApiBase()}/multi/${roomId}`);
       }
       if (res.ok) {
         const json = await res.json();
@@ -254,7 +230,7 @@ export const RoomViewerPage: React.FC = () => {
       esRef.current = null;
     }
     // open SSE connection
-    const es = new EventSource(`${API_BASE}/multi/${roomId}/events`);
+    const es = new EventSource(`${getApiBase()}/multi/${roomId}/events`);
     esRef.current = es;
     const handleSnapshot = (e: MessageEvent) => {
       try {
@@ -470,7 +446,7 @@ export const RoomViewerPage: React.FC = () => {
     if (delayMs <= 0 || !isFinite(delayMs)) return;
     switchTimerRef.current = window.setTimeout(async () => {
       try {
-        const res = await fetch(`${API_BASE}/multi/${roomId}/view`);
+        const res = await fetch(`${getApiBase()}/multi/${roomId}/view`);
         if (res.ok) {
           const json = await res.json();
           if (json?.success && json?.data) {

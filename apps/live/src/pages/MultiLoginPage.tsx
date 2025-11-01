@@ -1,30 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Determine API base URL - use environment variable or detect from current origin
-const getApiBase = (): string => {
-  // Check for Webpack-injected environment variable (process.env.REACT_APP_BACKEND_URL)
-  // Webpack DefinePlugin injects process.env at build time
-  if (typeof process !== 'undefined' && (process as any).env?.REACT_APP_BACKEND_URL) {
-    return (process as any).env.REACT_APP_BACKEND_URL;
-  }
-  
-  // In production, use same origin (Nginx proxies to backend)
-  if (typeof window !== 'undefined') {
-    // Check if we're in production (HTTPS or production domain)
-    const isProduction = window.location.protocol === 'https:' || 
-                        window.location.hostname !== 'localhost';
-    if (isProduction) {
-      // Use same origin - Nginx will proxy to backend
-      return window.location.origin;
-    }
-  }
-  
-  // Development fallback
-  return 'http://localhost:3002';
-};
-
-const API_BASE = getApiBase();
+import { getApiBase } from '../utils/apiBase';
 
 export const MultiLoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -46,7 +23,7 @@ export const MultiLoginPage: React.FC = () => {
     setBusy(true);
     setError(null);
     try {
-      const url = `${API_BASE}/multi/${roomId}`;
+      const url = `${getApiBase()}/multi/${roomId}`;
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
       // Only include password in body if provided
       const body: { password?: string } = {};
