@@ -334,10 +334,9 @@ export class ZapService {
 
         const timeoutMs = 45000;
         const timeoutPromise = new Promise<
-          ReturnType<typeof client.payInvoice>
+          Awaited<ReturnType<typeof client.payInvoice>>
         >(resolve => {
           setTimeout(() => {
-            // @ts-expect-error generic shape
             resolve({
               error: { code: 'timeout', message: 'Wallet not responding' },
               result: null,
