@@ -105,7 +105,8 @@ export class ZapService {
     eventData: unknown,
     rangeValue: number,
     lud16: string,
-    pubKey: string | null = null
+    pubKey: string | null = null,
+    comment: string = ''
   ): Promise<ZapEventData | null> {
     try {
       // Find zap-min tag for minimum amount
@@ -123,7 +124,7 @@ export class ZapService {
         event: eventData as any,
         pubkey: (eventData as any).pubkey,
         amount: amountPay,
-        comment: '',
+        comment: comment,
         relays: RELAYS
       });
 

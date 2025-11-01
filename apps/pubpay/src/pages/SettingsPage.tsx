@@ -50,7 +50,9 @@ const SettingsPage: React.FC = () => {
   
     // Load NWC connection string
     const savedNwc = localStorage.getItem('nwcConnectionString');
-    if (savedNwc) setNwcUri(savedNwc);
+    if (savedNwc) {
+      setNwcUri(savedNwc);
+    }
 
     // Load previously detected NWC capabilities
     try {
@@ -62,6 +64,31 @@ const SettingsPage: React.FC = () => {
       }
     } catch {}
   }, []);
+
+  // Watch for changes in nwcUri to update button label
+  useEffect(() => {
+    const savedNwc = localStorage.getItem('nwcConnectionString');
+    
+    // If field is empty
+    if (!nwcUri) {
+      if (savedNwc) {
+        // There's a saved connection but field is empty - should be able to clear
+        setNwcButtonLabel('Clear');
+      } else {
+        setNwcButtonLabel('Save');
+      }
+      return;
+    }
+    
+    // If field has content
+    if (savedNwc && nwcUri === savedNwc) {
+      // Field matches saved connection - button should be "Clear"
+      setNwcButtonLabel('Clear');
+    } else {
+      // Field has been modified or is new - button should be "Save"
+      setNwcButtonLabel('Save');
+    }
+  }, [nwcUri]);
 
   // Fetch NIP-11 info for relays
   useEffect(() => {
@@ -158,18 +185,27 @@ const SettingsPage: React.FC = () => {
   };
 
   const handleSaveNwc = () => {
-    // reset button label
-    setNwcButtonLabel('Save');
     setNwcError('');
-    if (!nwcUri) {
+    
+    // If button says "Clear", clear the saved NWC connection
+    if (nwcButtonLabel === 'Clear') {
       localStorage.removeItem('nwcConnectionString');
       localStorage.removeItem('nwcCapabilities');
+      setNwcUri('');
       setNwcMethods([]);
       setNwcNotifications([]);
       setNwcButtonLabel('Cleared');
       setTimeout(() => setNwcButtonLabel('Save'), 1500);
       return;
     }
+    
+    // If empty field, just return to Save state
+    if (!nwcUri) {
+      setNwcButtonLabel('Save');
+      return;
+    }
+    
+    // Otherwise, validate and save
     (async () => {
       try {
         setNwcValidating(true);
@@ -200,7 +236,7 @@ const SettingsPage: React.FC = () => {
         }
         localStorage.setItem('nwcConnectionString', nwcUri);
         setNwcButtonLabel('Validated!');
-        setTimeout(() => setNwcButtonLabel('Save'), 1500);
+        setTimeout(() => setNwcButtonLabel('Clear'), 1500);
       } catch (e) {
         console.error('NWC validation failed:', e);
         const message = e instanceof Error ? e.message : 'Invalid NWC URI';
@@ -269,7 +305,7 @@ const SettingsPage: React.FC = () => {
                   const statusColor = info?.loading ? '#f59e0b' : info?.ok ? '#10b981' : '#ef4444';
                   const isExpanded = expandedRelay === relay;
                   return (
-                    <div key={index} className="relayItemCard" style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 12, marginBottom: 10 }}>
+                    <div key={index} className="relayItemCard">
                       <div
                         className="relayItemHeader"
                         style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -295,7 +331,7 @@ const SettingsPage: React.FC = () => {
                         </button>
                       </div>
                       {isExpanded && (
-                        <div className="relayItemBody" style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #e5e7eb' }}>
+                        <div className="relayItemBody">
                           {(info?.name || info?.icon) && (
                             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
                               {info?.icon && (
@@ -312,11 +348,11 @@ const SettingsPage: React.FC = () => {
                             </div>
                           )}
                           {info?.description && (
-                            <div style={{ marginBottom: 8, color: '#374151', fontSize: 14 }}>
+                            <div style={{ marginBottom: 8, fontSize: 14, opacity: 0.8 }}>
                               {info.description}
                             </div>
                           )}
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 12, color: '#6b7280' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 12, opacity: 0.7 }}>
                             {info?.supported_nips && (
                               <div><strong>NIPs:</strong> {info.supported_nips.join(', ')}</div>
                             )}

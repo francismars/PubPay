@@ -42,6 +42,7 @@ type UIState = {
     updateToast: (message: string, variant?: 'info' | 'loading' | 'success' | 'error', persist?: boolean) => void;
     closeToast: () => void;
     setFollowSuggestions: (items: FollowSuggestion[]) => void;
+    appendFollowSuggestion: (item: FollowSuggestion) => void;
     openLogin: () => void;
     closeLogin: () => void;
     openNewPayNote: () => void;

@@ -49,6 +49,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const [showZapMenu, setShowZapMenu] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
     const [customZapAmount, setCustomZapAmount] = useState('');
+    const [zapComment, setZapComment] = useState('');
+    const [showZapModal, setShowZapModal] = useState(false);
+    const [zapModalComment, setZapModalComment] = useState('');
     const [isPaying, setIsPaying] = useState(false);
     const [isAnonPaying, setIsAnonPaying] = useState(false);
     const [heroZaps, setHeroZaps] = useState<ProcessedZap[]>([]);
@@ -59,6 +62,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const zapActionRef = useRef<HTMLAnchorElement>(null);
     const paynoteRef = useRef<HTMLDivElement>(null);
     const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const isLongPressRef = useRef(false);
 
   // Format content: baseline first, then upgrade when nostr is ready
   useEffect(() => {
@@ -181,11 +186,12 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               } catch {}
             }, 800);
           }
-          await onPay(post, amount);
+          await onPay(post, amount, zapComment);
         } finally {
           setIsPaying(false);
           setShowZapMenu(false);
           setCustomZapAmount('');
+          setZapComment('');
         }
       }
     };
@@ -202,11 +208,12 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               useUIStore.getState().closeToast();
             } catch {}
           }, 800);
-          await onPayAnonymously(post, amount);
+          await onPayAnonymously(post, amount, zapComment);
         } finally {
           setIsAnonPaying(false);
           setShowZapMenu(false);
           setCustomZapAmount('');
+          setZapComment('');
         }
       }
     };
@@ -215,6 +222,61 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const handlePayAnonymously = () => {
       if (isPayable) {
         onPayAnonymously(post, zapAmount);
+      }
+    };
+
+    // Handle long press start
+    const handleLongPressStart = () => {
+      if (!isPayable || isReply) return;
+      
+      isLongPressRef.current = false;
+      longPressTimerRef.current = setTimeout(() => {
+        isLongPressRef.current = true;
+        if (!isLoggedIn) {
+          useUIStore.getState().openLogin();
+        } else {
+          setShowZapModal(true);
+        }
+      }, 500); // 500ms long press
+    };
+
+    // Handle long press end
+    const handleLongPressEnd = () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    };
+
+    // Handle zap from modal
+    const handleZapFromModal = async () => {
+      if (!isLoggedIn) {
+        useUIStore.getState().openLogin();
+        return;
+      }
+      
+      try {
+        setIsPaying(true);
+        const hasNwc =
+          (typeof localStorage !== 'undefined' &&
+            localStorage.getItem('nwcConnectionString')) ||
+          (typeof sessionStorage !== 'undefined' &&
+            sessionStorage.getItem('nwcConnectionString'));
+        if (hasNwc) {
+          useUIStore.getState().openToast('Preparing payment…', 'loading', true);
+        } else {
+          useUIStore.getState().openToast('Preparing invoice…', 'loading', false);
+          setTimeout(() => {
+            try {
+              useUIStore.getState().closeToast();
+            } catch {}
+          }, 800);
+        }
+        await onPay(post, zapAmount, zapModalComment);
+        setShowZapModal(false);
+        setZapModalComment('');
+      } finally {
+        setIsPaying(false);
       }
     };
 
@@ -599,7 +661,18 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             <div className="noteCTA">
               <button
                 className={`noteMainCTA cta ${!isPayable || isReply ? 'disabled' : ''}`}
+                onMouseDown={handleLongPressStart}
+                onMouseUp={handleLongPressEnd}
+                onMouseLeave={handleLongPressEnd}
+                onTouchStart={handleLongPressStart}
+                onTouchEnd={handleLongPressEnd}
                 onClick={async () => {
+                  // Don't trigger quick zap if it was a long press
+                  if (isLongPressRef.current) {
+                    isLongPressRef.current = false;
+                    return;
+                  }
+                  
                   if (!isPayable || isReply) {
                     return;
                   }
@@ -708,6 +781,14 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       onChange={e => setCustomZapAmount(e.target.value)}
                       onClick={e => e.stopPropagation()}
                     />
+                    <textarea
+                      id="zapCommentInput"
+                      placeholder="Add a note (optional)"
+                      value={zapComment}
+                      onChange={e => setZapComment(e.target.value)}
+                      onClick={e => e.stopPropagation()}
+                      rows={2}
+                    />
                     <button
                       id="customZapButton"
                       onClick={async e => {
@@ -796,6 +877,105 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             </div>
           </div>
         </div>
+
+        {/* Zap Confirmation Modal */}
+        {showZapModal && (
+          <div 
+            className="overlayContainer" 
+            onClick={() => {
+              setShowZapModal(false);
+              setZapModalComment('');
+            }}
+          >
+            <div 
+              className="overlayInner zapModal" 
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 style={{ margin: '0 0 20px 0', color: 'var(--text-primary)', textAlign: 'center' }}>
+                Confirm Zap
+              </h3>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                <img 
+                  src={profilePicture} 
+                  alt="Profile" 
+                  style={{ 
+                    width: '48px', 
+                    height: '48px', 
+                    borderRadius: '50%', 
+                    objectFit: 'cover' 
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.src = genericUserIcon;
+                  }}
+                />
+                <div>
+                  <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                    {displayName}
+                  </div>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: '#4a75ff' }}>
+                    ⚡ {zapAmount} sats
+                  </div>
+                </div>
+              </div>
+
+              <textarea
+                id="zapModalComment"
+                placeholder="Add a note (optional)"
+                value={zapModalComment}
+                onChange={(e) => setZapModalComment(e.target.value)}
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '2px solid var(--border-color)',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '400',
+                  fontFamily: 'Inter, sans-serif',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  transition: 'all 0.2s ease',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  resize: 'vertical',
+                  marginBottom: '20px'
+                }}
+              />
+
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  className="cta"
+                  onClick={handleZapFromModal}
+                  disabled={isPaying}
+                  style={{ 
+                    flex: 1,
+                    opacity: isPaying ? 0.5 : 1,
+                    marginBottom: 0
+                  }}
+                >
+                  {isPaying ? 'Paying…' : 'Pay'}
+                </button>
+                <button
+                  className="cta"
+                  onClick={() => {
+                    setShowZapModal(false);
+                    setZapModalComment('');
+                  }}
+                  style={{ 
+                    flex: 1,
+                    background: 'var(--bg-tertiary)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: 0
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

@@ -68,7 +68,7 @@ export class ZapService {
     /**
      * Create a zap event
      */
-    async createZapEvent(eventData, rangeValue, lud16, pubKey = null) {
+    async createZapEvent(eventData, rangeValue, lud16, pubKey = null, comment = '') {
         try {
             // Find zap-min tag for minimum amount
             const zapMintag = eventData.tags.find((tag) => tag[0] === 'zap-min');
@@ -81,7 +81,7 @@ export class ZapService {
                 event: eventData,
                 pubkey: eventData.pubkey,
                 amount: amountPay,
-                comment: '',
+                comment: comment,
                 relays: RELAYS
             });
             console.log('Created zap event:', zapEvent);

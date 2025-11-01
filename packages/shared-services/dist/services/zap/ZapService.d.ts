@@ -16,7 +16,7 @@ export declare class ZapService {
     /**
      * Create a zap event
      */
-    createZapEvent(eventData: unknown, rangeValue: number, lud16: string, pubKey?: string | null): Promise<ZapEventData | null>;
+    createZapEvent(eventData: unknown, rangeValue: number, lud16: string, pubKey?: string | null, comment?: string): Promise<ZapEventData | null>;
     /**
      * Sign and send zap event
      */
