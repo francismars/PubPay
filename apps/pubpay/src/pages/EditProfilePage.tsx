@@ -383,9 +383,9 @@ const EditProfilePage: React.FC = () => {
 
         {/* Preview Section */}
         <div style={{ marginBottom: '30px' }}>
-          <h3 style={{ marginBottom: '20px', color: '#333' }}>Preview</h3>
-          <div className="profileSettingsCard" style={{ backgroundColor: '#f8f9fa' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+          <h3 style={{ marginBottom: '20px'}}>Preview</h3>
+          <div className="profileSettingsCard">
+            <div style={{ display: 'flex',  marginBottom: '15px',  alignItems: 'flex-start' }}>
               {profileData.picture ? (
                 <img 
                   src={profileData.picture} 
@@ -411,28 +411,28 @@ const EditProfilePage: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginRight: '15px',
-                  fontSize: '24px',
-                  color: '#666'
+                  fontSize: '24px'
                 }}>
                   {profileData.displayName ? profileData.displayName.charAt(0).toUpperCase() : 'U'}
                 </div>
               )}
               <div>
-                <h4 style={{ margin: '0 0 5px 0', color: '#333' }}>
+                <h4 style={{ margin: '0 0 5px 0'}}>
                   {profileData.displayName || 'Anonymous User'}
                 </h4>
                 <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
                   {profileData.bio || 'No bio provided'}
                 </p>
+                {profileData.website && (
+                  <p style={{ margin: '5px 0', fontSize: '14px' }}>
+                    <a href={profileData.website} target="_blank" rel="noopener noreferrer" style={{ color: '#4a75ff' }}>
+                      {profileData.website}
+                    </a>
+                  </p>
+                )}
               </div>
             </div>
-            {profileData.website && (
-              <p style={{ margin: '5px 0', fontSize: '14px' }}>
-                <a href={profileData.website} target="_blank" rel="noopener noreferrer" style={{ color: '#4a75ff' }}>
-                  {profileData.website}
-                </a>
-              </p>
-            )}
+            
           </div>
         </div>
 
@@ -491,8 +491,7 @@ const EditProfilePage: React.FC = () => {
                     width: '80px', 
                     height: '80px', 
                     borderRadius: '50%', 
-                    objectFit: 'cover',
-                    border: '2px solid #ddd'
+                    objectFit: 'cover'
                   }}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';
@@ -547,8 +546,7 @@ const EditProfilePage: React.FC = () => {
                     width: '200px', 
                     height: '80px', 
                     borderRadius: '4px', 
-                    objectFit: 'cover',
-                    border: '2px solid #ddd'
+                    objectFit: 'cover'
                   }}
                   onError={(e) => {
                     e.currentTarget.style.display = 'none';

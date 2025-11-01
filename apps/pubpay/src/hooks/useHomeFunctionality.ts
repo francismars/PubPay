@@ -1472,7 +1472,7 @@ export const useHomeFunctionality = () => {
     followingPubkeysRef.current = [];
   };
 
-  const handlePayWithExtension = async (post: PubPayPost, amount: number) => {
+  const handlePayWithExtension = async (post: PubPayPost, amount: number, comment: string = '') => {
     if (!authState.isLoggedIn) {
       handleLogin();
       return;
@@ -1522,7 +1522,8 @@ export const useHomeFunctionality = () => {
         post.event,
         amount,
         callback.lud16ToZap,
-        publicKey
+        publicKey,
+        comment
       );
 
       if (!zapEventData) {
@@ -1551,7 +1552,7 @@ export const useHomeFunctionality = () => {
     }
   };
 
-  const handlePayAnonymously = async (post: PubPayPost, amount: number) => {
+  const handlePayAnonymously = async (post: PubPayPost, amount: number, comment: string = '') => {
     if (!zapServiceRef.current) {
       console.error('Zap service not initialized');
       return;
@@ -1586,7 +1587,8 @@ export const useHomeFunctionality = () => {
         post.event,
         amount,
         callback.lud16ToZap,
-        null // No public key for anonymous zap
+        null, // No public key for anonymous zap
+        comment
       );
 
       if (!zapEventData) {

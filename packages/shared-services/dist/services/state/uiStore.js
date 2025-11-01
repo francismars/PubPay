@@ -18,6 +18,7 @@ export const useUIStore = create(set => ({
         statusToast: { show: false, message: '', variant: 'info', persist: false }
     }),
     setFollowSuggestions: (items) => set({ followSuggestions: items }),
+    appendFollowSuggestion: (item) => set(state => ({ followSuggestions: [...state.followSuggestions, item] })),
     openLogin: () => set({ loginForm: { show: true } }),
     closeLogin: () => set({ loginForm: { show: false } }),
     openNewPayNote: () => set({ newPayNoteForm: { show: true } }),
