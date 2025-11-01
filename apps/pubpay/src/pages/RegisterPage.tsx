@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { useUIStore, NostrRegistrationService, NostrKeyPair, ProfileData, BlossomService } from '@pubpay/shared-services';
+import { useUIStore, useAuthStore, NostrRegistrationService, NostrKeyPair, ProfileData, BlossomService } from '@pubpay/shared-services';
+import { GenericQR } from '@pubpay/shared-ui';
 
 interface RegisterPageProps {
   authState?: any;
@@ -27,14 +28,58 @@ const RegisterPage: React.FC = () => {
   const [publishError, setPublishError] = useState<string | null>(null);
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
   const [showManualPublish, setShowManualPublish] = useState(false);
-  const [showNsecQR, setShowNsecQR] = useState(false);
-  const [showHexValues, setShowHexValues] = useState(false);
+  const [showNsecQRModal, setShowNsecQRModal] = useState(false);
   const [uploadingPicture, setUploadingPicture] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(true);
+  const [keysBackedUp, setKeysBackedUp] = useState(false);
+  const [activeTab, setActiveTab] = useState<'privateKey' | 'mnemonic'>('mnemonic');
   const pictureInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const openLogin = useUIStore(s => s.openLogin);
+  const openToast = useUIStore(s => s.openToast);
+  const setAuth = useAuthStore(s => s.setAuth);
+
+  // Handle backup acknowledgement and login
+  const handleBackupAcknowledgement = () => {
+    if (!generatedKeys) return;
+    
+    try {
+      // Get hex public key from raw public key
+      let hexPublicKey: string;
+      if (typeof generatedKeys.rawPublicKey === 'string') {
+        hexPublicKey = generatedKeys.rawPublicKey;
+      } else {
+        hexPublicKey = Array.from(generatedKeys.rawPublicKey as Uint8Array)
+          .map(byte => byte.toString(16).padStart(2, '0'))
+          .join('');
+      }
+
+      // Store authentication data in localStorage first
+      localStorage.setItem('publicKey', hexPublicKey);
+      localStorage.setItem('privateKey', generatedKeys.privateKey); // nsec format
+      localStorage.setItem('signInMethod', 'nsec');
+
+      // Update auth state
+      setAuth({
+        isLoggedIn: true,
+        publicKey: hexPublicKey,
+        displayName: formData.displayName || 'Anonymous',
+        signInMethod: 'nsec'
+      });
+
+      openToast('Successfully logged in with your new account!', 'success');
+      
+      console.log('User logged in after backup acknowledgement');
+      
+      // Use window.location to force a full page reload and ensure auth state is properly initialized
+      setTimeout(() => {
+        window.location.href = '/profile';
+      }, 1000);
+    } catch (error) {
+      console.error('Failed to login user:', error);
+      openToast('Failed to login. Please try signing in manually.', 'error');
+    }
+  };
 
   // Generate keys on component mount so user can upload images immediately
   React.useEffect(() => {
@@ -64,33 +109,17 @@ const RegisterPage: React.FC = () => {
     }
   };
 
-  const handleDownloadKeys = () => {
-    if (!generatedKeys) return;
-    
-    const keyData = {
-      nsec: generatedKeys.privateKey,
-      npub: generatedKeys.publicKey,
-      displayName: formData.displayName,
-      generatedAt: new Date().toISOString(),
-      warning: 'IMPORTANT: Keep your nsec (private key) secure and never share it with anyone!'
-    };
-    
-    const blob = new Blob([JSON.stringify(keyData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `nostr-keys-${formData.displayName || 'user'}-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   const handleCopyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text).then(() => {
-      alert(`${label} copied to clipboard!`);
+      openToast(`${label} copied to clipboard!`, 'success');
+      setTimeout(() => {
+        useUIStore.getState().closeToast();
+      }, 2000);
     }).catch(() => {
-      alert(`Failed to copy ${label}`);
+      openToast(`Failed to copy ${label}`, 'error');
+      setTimeout(() => {
+        useUIStore.getState().closeToast();
+      }, 2000);
     });
   };
 
@@ -114,23 +143,6 @@ const RegisterPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to convert to hex:', error);
       return encodedKey; // Fallback on error
-    }
-  };
-
-  // Helper function to get hex from raw key data
-  const getHexFromRawKey = (rawKey: Uint8Array | string): string => {
-    try {
-      if (rawKey instanceof Uint8Array) {
-        return Array.from(rawKey)
-          .map(byte => byte.toString(16).padStart(2, '0'))
-          .join('');
-      } else if (typeof rawKey === 'string') {
-        return rawKey;
-      }
-      return '';
-    } catch (error) {
-      console.error('Failed to convert raw key to hex:', error);
-      return '';
     }
   };
 
@@ -187,7 +199,12 @@ const RegisterPage: React.FC = () => {
       if (result.success) {
         setPublishedEventId(result.eventId || null);
         setPublishError(null);
-        // Remove alert - success is shown in the UI
+        
+        // Show success toast
+        openToast('Profile published successfully to Nostr relays!', 'success');
+        setTimeout(() => {
+          useUIStore.getState().closeToast();
+        }, 3000);
       } else {
         setPublishError(result.error || 'Failed to publish');
       }
@@ -378,6 +395,12 @@ const RegisterPage: React.FC = () => {
         setPublishError(null);
         setIsRegistrationComplete(true);
         setShowKeys(true);
+        
+        // Show success toast
+        openToast('Profile published successfully to Nostr relays!', 'success');
+        setTimeout(() => {
+          useUIStore.getState().closeToast();
+        }, 3000);
       } else {
         setPublishError(publishResult.error || 'Failed to publish profile');
         setIsRegistrationComplete(true);
@@ -457,7 +480,7 @@ const RegisterPage: React.FC = () => {
       </div>
 
       {!isRegistrationComplete && (
-        <div className="profileSettingsSection">
+        <div className="profileSettingsSection registrationTransition" id="accountInformation">
           <h2 className="profileSettingsTitle">
             Account Information
           </h2>
@@ -626,218 +649,217 @@ const RegisterPage: React.FC = () => {
       {/* Nostr Key Generation Section - Only show after registration is complete */}
       {isRegistrationComplete && (
         <>
-          {publishedEventId && showSuccessMessage && (
-            <div className="nostrEventInfo" style={{ marginBottom: '20px', position: 'relative' }}>
-              <button
-                onClick={() => setShowSuccessMessage(false)}
-                className="profileCloseButton"
-                title="Close"
-              >
-                ×
-              </button>
-              <strong>✅ Profile Published Successfully!</strong>
-              <p>Your profile has been published to Nostr relays.</p>
-              <div className="nostrEventId">
-                <label className="nostrKeyLabel">Event ID:</label>
-                <div className="nostrKeyValue">
-                  <code className="nostrKeyCode">
-                    {publishedEventId}
-                  </code>
-                  <button 
-                    className="nostrKeyCopyButton"
-                    onClick={() => handleCopyToClipboard(publishedEventId, 'Event ID')}
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <div className="profileSection">
+          <div className="profileSettingsSection registrationTransition" id="nostrKeys">
           <h2 className="profileSettingsTitle">
-            Nostr Keys
+            Secret Keys
           </h2>
-          <div className="profileSettingsCard">
+
+          <div className="profileSection" id="nostrKeys">
             <p className="profileNotLoggedInText" style={{ marginBottom: '20px' }}>
-              Your Nostr private key (nsec) and public key (npub) for decentralized identity.
+              Your Nostr private key (nsec) and 12-word recovery phrase for decentralized identity.
             </p>
             
-            {/* Advanced Options */}
-            <div className="advancedOptions" style={{ marginBottom: '20px' }}>
-              <label className="advancedOptionLabel">
-                <input
-                  type="checkbox"
-                  checked={showHexValues}
-                  onChange={(e) => setShowHexValues(e.target.checked)}
-                />
-                Show hex values (advanced)
-              </label>
-            </div>
-            
-            <div className="nostrKeysDisplay">
-              <div className="nostrKeyItem">
-                <label className="nostrKeyLabel">
-                  Private Key (nsec) - Keep Secret!
-                </label>
-                <div className="nostrKeyValue">
-                  {!showNsecQR ? (
-                    <div className="nostrKeyDisplay">
-                      <code className="nostrKeyCode">
-                        {showHexValues ? getHexFromRawKey(generatedKeys?.rawPrivateKey || new Uint8Array()) : generatedKeys?.privateKey}
-                      </code>
-                      {showHexValues && (
-                        <div className="nostrKeyFormat">
-                          <small>Hex format</small>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="nostrQRCode">
-                      <div className="nostrQRPlaceholder">
-                        QR Code for nsec
-                      </div>
-                    </div>
-                  )}
-                  <div className="nostrKeyActions">
-                    <button 
-                      className="nostrKeyCopyButton"
-                      onClick={() => handleCopyToClipboard(
-                        showHexValues ? getHexFromRawKey(generatedKeys?.rawPrivateKey || new Uint8Array()) : generatedKeys?.privateKey || '', 
-                        'Private Key'
-                      )}
-                    >
-                      Copy
-                    </button>
-                    <button 
-                      className="nostrKeyCopyButton"
-                      onClick={() => setShowNsecQR(!showNsecQR)}
-                    >
-                      {showNsecQR ? 'Show Text' : 'Show QR'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
+            {/* Tab Navigation */}
+            <div className="keyTabs">
               {generatedKeys?.mnemonic && (
-                <div className="nostrKeyItem">
-                  <label className="nostrKeyLabel">
-                    12-Word Recovery Phrase (NIP-06) - Keep Secret!
-                  </label>
+                <button
+                  className={`keyTab ${activeTab === 'mnemonic' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('mnemonic')}
+                >
+                 Recovery (mnemonic)
+                </button>
+              )}
+              <button
+                className={`keyTab ${activeTab === 'privateKey' ? 'active' : ''}`}
+                onClick={() => setActiveTab('privateKey')}
+              >
+                Private Key (nsec)
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className="keyTabContent">
+              {activeTab === 'mnemonic' && generatedKeys?.mnemonic && (
+                <div className="keyTabPanel">
+                  <div className="nostrKeyWarning">
+                    ⚠️ This 12-word phrase can be used to recover your account. Store it safely and never share it!
+                  </div>
                   <div className="nostrKeyValue">
                     <code className="nostrKeyCode nostrMnemonicCode">
                       {generatedKeys.mnemonic}
                     </code>
+                    <div className="nostrKeyActions">
                     <button 
                       className="nostrKeyCopyButton"
                       onClick={() => handleCopyToClipboard(generatedKeys.mnemonic || '', 'Recovery Phrase')}
                     >
                       Copy
                     </button>
+                    </div>
                   </div>
+
+                </div>
+              )}
+
+              {activeTab === 'privateKey' && (
+                <div className="keyTabPanel">
+                  
                   <div className="nostrKeyWarning">
-                    ⚠️ This 12-word phrase can be used to recover your account. Store it safely and never share it!
+                    ⚠️ Your private key (nsec) gives full access to your account. Never share it with anyone!
                   </div>
+                  <div className="nostrKeyValue">
+                    <div className="nostrKeyDisplay">
+                      <code className="nostrKeyCode">
+                        {generatedKeys?.privateKey}
+                      </code>
+                    </div>
+                    <div className="nostrKeyActions">
+                      <button 
+                        className="nostrKeyCopyButton"
+                        onClick={() => handleCopyToClipboard(generatedKeys?.privateKey || '', 'Private Key')}
+                      >
+                        Copy
+                      </button>
+                      <button 
+                        className="nostrKeyCopyButton"
+                        onClick={() => setShowNsecQRModal(true)}
+                      >
+                        Show QR
+                      </button>
+                    </div>
+                  </div>
+
                 </div>
               )}
+            </div>
               
-              <div className="nostrKeyItem">
-                <label className="nostrKeyLabel">
-                  Public Key (npub)34
+            </div>
+            
+            {publishError && !publishedEventId && (
+              <div className="nostrPublishError">
+                <strong>⚠️ Publishing Failed</strong>
+                <p>{publishError}</p>
+                <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
+                  <strong>What this means:</strong> Your Nostr keys were generated successfully, but some relays are blocking new accounts. This is normal for new Nostr users.
+                </p>
+                <p style={{ fontSize: '14px', color: '#666' }}>
+                  <strong>What you can do:</strong> Try again later, or use a different Nostr client to publish your profile manually.
+                </p>
+                <button 
+                  className="profileSaveButton spaceTop"
+                  onClick={handleRetryPublish}
+                  disabled={isPublishing}
+                >
+                  {isPublishing ? 'Retrying...' : 'Retry Publishing'}
+                </button>
+                <button 
+                  className="profileSaveButton secondary"
+                  onClick={handleManualPublish}
+                >
+                  📋 Copy Event Data for Manual Publish
+                </button>
+              </div>
+            )}
+
+            {/* Backup Acknowledgement Section */}
+            <div className="backupAcknowledgement">
+              <div className="backupAcknowledgementContent">
+                <h3>Backup Your Keys</h3>
+                <p>
+                  Copy your keys above before continuing.
+                </p>
+                <label className="backupCheckbox">
+                  <input
+                    type="checkbox"
+                    checked={keysBackedUp}
+                    onChange={(e) => setKeysBackedUp(e.target.checked)}
+                  />
+                  <span>
+                    I've backed up my keys
+                  </span>
                 </label>
-                <div className="nostrKeyValue">
-                  <div className="nostrKeyDisplay">
-                    <code className="nostrKeyCode">
-                      {showHexValues ? getHexFromRawKey(generatedKeys?.rawPublicKey || '') : generatedKeys?.publicKey}
-                    </code>
-                    {showHexValues && (
-                      <div className="nostrKeyFormat">
-                        <small>Hex format</small>
-                      </div>
-                    )}
-                  </div>
-                  <button 
-                    className="nostrKeyCopyButton"
-                    onClick={() => handleCopyToClipboard(
-                      showHexValues ? getHexFromRawKey(generatedKeys?.rawPublicKey || '') : generatedKeys?.publicKey || '', 
-                      'Public Key'
-                    )}
-                  >
-                    Copy
-                  </button>
-                </div>
-              </div>
-              
-              <div className="nostrKeyActions">
-                <button 
-                  className="profileSaveButton"
-                  onClick={handleDownloadKeys}
-                  style={{ marginRight: '10px' }}
+                <button
+                  className="profileSaveButton fullWidth"
+                  onClick={handleBackupAcknowledgement}
+                  disabled={!keysBackedUp}
                 >
-                  Download Keys
+                  Continue to My Account
                 </button>
-                <button 
-                  className="profileRegisterButton"
-                  onClick={() => setShowKeys(false)}
-                >
-                  Hide Keys
-                </button>
-              </div>
-              
-              {publishError && !publishedEventId && (
-                <div className="nostrPublishError">
-                  <strong>⚠️ Publishing Failed</strong>
-                  <p>{publishError}</p>
-                  <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
-                    <strong>What this means:</strong> Your Nostr keys were generated successfully, but some relays are blocking new accounts. This is normal for new Nostr users.
-                  </p>
-                  <p style={{ fontSize: '14px', color: '#666' }}>
-                    <strong>What you can do:</strong> Try again later, or use a different Nostr client to publish your profile manually.
-                  </p>
-                  <button 
-                    className="profileSaveButton"
-                    onClick={handleRetryPublish}
-                    disabled={isPublishing}
-                    style={{ marginTop: '10px' }}
-                  >
-                    {isPublishing ? 'Retrying...' : 'Retry Publishing'}
-                  </button>
-                  <button 
-                    className="profileSaveButton"
-                    onClick={handleManualPublish}
-                    style={{ marginTop: '10px', marginLeft: '10px', backgroundColor: '#6c757d' }}
-                  >
-                    📋 Copy Event Data for Manual Publish
-                  </button>
-                </div>
-              )}
-              
-              <div className="nostrKeyWarning">
-                <strong>⚠️ Important Security Notice:</strong>
-                <ul>
-                  <li>Your private key (nsec) gives full access to your account</li>
-                  <li>Never share your private key with anyone</li>
-                  <li>Store it securely and make backups</li>
-                  <li>If you lose your private key, you cannot recover your account</li>
-                </ul>
               </div>
             </div>
           </div>
-        </div>
         </>
       )}
 
-      <div className="profileNotLoggedIn" style={{ marginTop: '40px' }}>
-        <h2 className="profileNotLoggedInTitle">
-          Already have an account?
-        </h2>
-        <p className="profileNotLoggedInText">
-            Sign in to access your existing profile and settings.
-        </p>
-        <button className="profileLoginButton" onClick={openLogin}>
-          Sign In
-        </button>
-      </div>
+      {!isRegistrationComplete && (
+        <div className="profileNotLoggedIn" style={{ marginTop: '40px' }}>
+          <h2 className="profileNotLoggedInTitle">
+            Already have an account?
+          </h2>
+          <p className="profileNotLoggedInText">
+              Sign in to access your existing profile and settings.
+          </p>
+          <button className="profileLoginButton" onClick={openLogin}>
+            Sign In
+          </button>
+        </div>
+      )}
+
+      {/* QR Code Modal for nsec */}
+      {showNsecQRModal && generatedKeys?.privateKey && (
+        <div className="overlayContainer" onClick={() => setShowNsecQRModal(false)}>
+          <div 
+            className="overlayInner" 
+            style={{ textAlign: 'center', maxWidth: '400px' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>
+              Private Key QR Code
+            </h3>
+
+            <div className="profileQRContainer">
+              <GenericQR 
+                data={generatedKeys.privateKey} 
+                width={250} 
+                height={250} 
+                id="nsecQR" 
+              />
+            </div>
+
+            <p style={{ margin: '16px 0', color: '#dc2626', fontSize: '14px', fontWeight: 600 }}>
+              ⚠️ Never share this QR code with anyone!
+            </p>
+
+            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
+              <code style={{ 
+                fontSize: '11px', 
+                wordBreak: 'break-all',
+                backgroundColor: '#f0f0f0',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                display: 'inline-block'
+              }}>
+                {generatedKeys.privateKey}
+              </code>
+            </p>
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <button
+                className="profileCopyButton primary"
+                onClick={() => handleCopyToClipboard(generatedKeys.privateKey || '', 'Private Key')}
+              >
+                Copy nsec
+              </button>
+              <button
+                className="profileCopyButton"
+                onClick={() => setShowNsecQRModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
