@@ -1,14 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ErrorHandler = void 0;
-const logger_1 = require("./logger");
+const logger_1 = require("../utils/logger");
 class ErrorHandler {
     logger;
     constructor() {
         this.logger = new logger_1.Logger('ErrorHandler');
     }
     getHandler() {
-        return (error, req, res, next) => {
+        return (error, req, res, _next) => {
             this.logger.error('Unhandled error:', {
                 error: error.message,
                 stack: error.stack,

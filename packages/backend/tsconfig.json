@@ -3,6 +3,7 @@
     "target": "ES2022",
     "module": "CommonJS",
     "lib": ["ES2022"],
+    "rootDir": "./src",
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
@@ -28,7 +29,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@pubpay/shared-types": ["../shared-types/src"]
+      "@pubpay/shared-types": ["../shared-types/dist", "../shared-types/src"]
     }
   },
   "include": ["src/**/*"],

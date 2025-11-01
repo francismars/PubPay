@@ -9,7 +9,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, '../../dist/live'),
     filename: 'main.[contenthash].js',
-    publicPath: '/',
+    publicPath: isProduction ? '/live/' : '/',
     clean: true
   },
   resolve: {
@@ -88,7 +88,9 @@ module.exports = {
       process: 'process/browser'
     }),
     ...(isProduction
-      ? [new (require('mini-css-extract-plugin'))({ filename: 'css/[name].[contenthash].css' })]
+      ? [new (require('mini-css-extract-plugin'))({ 
+          filename: 'css/[name].[contenthash].css'
+        })]
       : [])
   ],
   devServer: {

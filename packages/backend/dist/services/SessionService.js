@@ -4,6 +4,7 @@ exports.SessionService = void 0;
 // SessionService - Manages Lightning payment sessions and LNURL mappings
 const logger_1 = require("../utils/logger");
 class SessionService {
+    static instance;
     sessions = new Map();
     lnurlpMappings = new Map();
     logger;
@@ -17,9 +18,18 @@ class SessionService {
         this.logger.info('SessionService initialized with cleanup interval');
     }
     /**
+     * Get singleton instance
+     */
+    static getInstance() {
+        if (!SessionService.instance) {
+            SessionService.instance = new SessionService();
+        }
+        return SessionService.instance;
+    }
+    /**
      * Create or update a Lightning session
      */
-    createOrUpdateSession(frontendSessionId, eventId, lnurl) {
+    createOrUpdateSession(frontendSessionId, eventId, lnurl, lnurlpId) {
         let session = this.sessions.get(frontendSessionId);
         if (!session) {
             session = { events: {} };
@@ -30,14 +40,17 @@ class SessionService {
             lastSeen: Date.now(),
             active: true
         };
-        // Extract LNURL-pay ID from LNURL and create mapping
-        const lnurlpId = this.extractLNURLPayId(lnurl);
-        if (lnurlpId) {
-            this.lnurlpMappings.set(lnurlpId, {
+        // Use provided LNURL-pay ID or try to extract from LNURL
+        const id = lnurlpId || this.extractLNURLPayId(lnurl);
+        if (id) {
+            this.lnurlpMappings.set(id, {
                 frontendSessionId,
                 eventId
             });
-            this.logger.info(`Created LNURL mapping: ${lnurlpId} -> ${frontendSessionId}/${eventId}`);
+            this.logger.info(`Created LNURL mapping: ${id} -> ${frontendSessionId}/${eventId}`);
+        }
+        else {
+            this.logger.warn('No LNURL-pay ID available for mapping');
         }
         this.logger.info(`Session updated: ${frontendSessionId}/${eventId}`, {
             lnurl,
@@ -56,7 +69,17 @@ class SessionService {
      * Get LNURL mapping by LNURL-pay ID
      */
     getLNURLMapping(lnurlpId) {
-        return this.lnurlpMappings.get(lnurlpId);
+        this.logger.info(`🔍 Looking up LNURL-pay ID: "${lnurlpId}"`);
+        this.logger.info(`📋 Available mappings:`, Array.from(this.lnurlpMappings.keys()));
+        const mapping = this.lnurlpMappings.get(lnurlpId);
+        if (mapping) {
+            this.logger.info(`✅ Found mapping:`, mapping);
+        }
+        else {
+            this.logger.warn(`❌ No mapping found for: "${lnurlpId}"`);
+            this.logger.info(`🔍 All mappings:`, Array.from(this.lnurlpMappings.entries()));
+        }
+        return mapping;
     }
     /**
      * Update last seen timestamp for a session event
@@ -105,7 +128,8 @@ class SessionService {
             // Find the lnurlp part and get the ID after it
             const lnurlpIndex = pathParts.indexOf('lnurlp');
             if (lnurlpIndex !== -1 && lnurlpIndex + 1 < pathParts.length) {
-                return pathParts[lnurlpIndex + 1];
+                const id = pathParts[lnurlpIndex + 1];
+                return id || null;
             }
             return null;
         }
@@ -131,7 +155,8 @@ class SessionService {
                     cleanedSessions++;
                     // Remove corresponding LNURL mapping
                     for (const [lnurlpId, mapping] of this.lnurlpMappings.entries()) {
-                        if (mapping.frontendSessionId === frontendSessionId && mapping.eventId === eventId) {
+                        if (mapping.frontendSessionId === frontendSessionId &&
+                            mapping.eventId === eventId) {
                             this.lnurlpMappings.delete(lnurlpId);
                             cleanedMappings++;
                             break;
