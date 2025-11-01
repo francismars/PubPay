@@ -41,6 +41,87 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Keyframe Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Status Toast Notification */
+.statusToast {
+  position: fixed;
+  top: 75px;
+  left: 50%;
+  transform: translateX(-40%);
+  z-index: 100000;
+  max-width: 320px;
+  background: #111827;
+  color: #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.statusToastIcon {
+  font-size: 20px;
+}
+
+.statusToast-success {
+  color: #10b981;
+}
+
+.statusToast-error {
+  color: #ef4444;
+}
+
+.statusToast-info,
+.statusToast-loading {
+  color: #60a5fa;
+}
+
+.statusToast-loading {
+  animation: spin 1.2s linear infinite;
+}
+
+.statusToastMessage {
+  flex: 1;
+  font-size: 13px;
+}
+
+.statusToastClose {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+}
+
+.statusToastClose:hover {
+  color: #e5e7eb;
+}
+
+/* Mobile: Center toast across full width */
+@media screen and (max-width: 630px) {
+  .statusToast {
+    transform: translateX(-50%);
+  }
+}
+
+/* Desktop: Center toast within mainContent area (accounting for sidebar) */
+@media screen and (min-width: 631px) {
+  .statusToast {
+    left: calc(50% + 90px);
+  }
+}
+
 /* Material Symbols font */
 .material-symbols-outlined {
   font-family: 'Material Symbols Outlined';
