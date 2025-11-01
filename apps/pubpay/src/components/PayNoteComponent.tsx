@@ -162,6 +162,21 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       setZapAmount(value);
     };
 
+    // Handle zap amount input change
+    const handleZapAmountInput = (value: string) => {
+      // Remove commas to get the raw number
+      const cleanValue = value.replace(/,/g, '');
+      const numValue = parseInt(cleanValue);
+      if (!isNaN(numValue)) {
+        // Clamp value between min and max
+        const clampedValue = Math.max(post.zapMin, Math.min(post.zapMax, numValue));
+        setZapAmount(clampedValue);
+      } else if (cleanValue === '') {
+        // Allow empty input temporarily
+        setZapAmount(post.zapMin);
+      }
+    };
+
     // Handle custom zap
     const handleCustomZap = async () => {
       if (!isLoggedIn) {
@@ -629,6 +644,22 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             isPayable &&
             (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses) && (
               <div className="zapSliderContainer">
+                <div className="zapAmountInput">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="zapAmountField"
+                    value={zapAmount.toLocaleString()}
+                    onChange={e => handleZapAmountInput(e.target.value)}
+                    onFocus={e => e.target.select()}
+                    onBlur={() => {
+                      // Ensure value is within bounds on blur
+                      if (zapAmount < post.zapMin) setZapAmount(post.zapMin);
+                      if (zapAmount > post.zapMax) setZapAmount(post.zapMax);
+                    }}
+                  />
+                  <span className="zapAmountSuffix">{zapAmount === 1 ? 'sat' : 'sats'}</span>
+                </div>
                 <input
                   type="range"
                   className="zapSlider"
@@ -639,10 +670,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     handleZapSliderChange(parseInt(e.target.value))
                   }
                 />
-                <div className="zapSliderVal">
-                  {zapAmount.toLocaleString()}
-                  <span className="label"> sats</span>
-                </div>
               </div>
             )}
 
