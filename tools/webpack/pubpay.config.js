@@ -2,8 +2,10 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const webpack = require('webpack');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 module.exports = {
-  mode: 'development',
+  mode: isProduction ? 'production' : 'development',
   entry: './src/index.tsx',
   output: {
     path: path.resolve(__dirname, '../../../dist/pubpay'),
@@ -47,7 +49,9 @@ module.exports = {
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader']
+        use: isProduction
+          ? [require.resolve('mini-css-extract-plugin/dist/loader'), 'css-loader']
+          : ['style-loader', 'css-loader']
       },
       {
         test: /\.(png|svg|jpg|jpeg|gif|webp|ico)$/i,
@@ -61,15 +65,32 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: './src/index.html',
-      filename: 'index.html'
+      filename: 'index.html',
+      minify: isProduction
+        ? {
+            removeComments: true,
+            collapseWhitespace: true,
+            removeRedundantAttributes: true,
+            useShortDoctype: true,
+            removeEmptyAttributes: true,
+            removeStyleLinkTypeAttributes: true,
+            keepClosingSlash: true,
+            minifyJS: true,
+            minifyCSS: true,
+            minifyURLs: true
+          }
+        : false
     }),
     new webpack.DefinePlugin({
-      'process.env': JSON.stringify({})
+      'process.env': JSON.stringify(process.env)
     }),
     new webpack.ProvidePlugin({
       Buffer: ['buffer', 'Buffer'],
       process: 'process/browser'
-    })
+    }),
+    ...(isProduction
+      ? [new (require('mini-css-extract-plugin'))({ filename: 'css/[name].[contenthash].css' })]
+      : [])
   ],
   devServer: {
     static: [
@@ -90,5 +111,22 @@ module.exports = {
     devMiddleware: {
       publicPath: '/'
     }
-  }
+  },
+  ...(isProduction
+    ? {
+        optimization: {
+          minimize: true,
+          splitChunks: {
+            chunks: 'all',
+            cacheGroups: {
+              vendor: {
+                test: /[\\/]node_modules[\\/]/,
+                name: 'vendors',
+                chunks: 'all'
+              }
+            }
+          }
+        }
+      }
+    : {})
 };
