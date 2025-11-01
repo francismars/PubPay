@@ -1001,15 +1001,20 @@ export const useHomeFunctionality = () => {
           const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
           let zapPayerPubkey = zap.pubkey;
           let isAnonymousZap = false;
+          let zapContent = '';
 
           if (descriptionTag) {
             try {
               const zapData =
-                parseZapDescription(descriptionTag[1] || undefined) || {};
-              if (zapData.pubkey) {
+                parseZapDescription(descriptionTag[1] || undefined);
+              if (zapData?.pubkey) {
                 zapPayerPubkey = zapData.pubkey;
               } else {
                 isAnonymousZap = true;
+              }
+              // Extract content from zap description (the zap message/comment)
+              if (zapData && 'content' in zapData && typeof zapData.content === 'string') {
+                zapContent = zapData.content;
               }
             } catch {
               isAnonymousZap = true;
@@ -1039,7 +1044,8 @@ export const useHomeFunctionality = () => {
             zapAmount,
             zapPayerPubkey,
             zapPayerPicture,
-            zapPayerNpub
+            zapPayerNpub,
+            content: zapContent
           };
         });
 
