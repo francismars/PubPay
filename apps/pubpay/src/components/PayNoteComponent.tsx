@@ -54,6 +54,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const [zapModalComment, setZapModalComment] = useState('');
     const [isPaying, setIsPaying] = useState(false);
     const [isAnonPaying, setIsAnonPaying] = useState(false);
+    const [isAnonymousModal, setIsAnonymousModal] = useState(false);
     const [heroZaps, setHeroZaps] = useState<ProcessedZap[]>([]);
     const [overflowZaps, setOverflowZaps] = useState<ProcessedZap[]>([]);
     const [formattedContent, setFormattedContent] = useState<string>('');
@@ -218,10 +219,11 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       }
     };
 
-    // Handle anonymous pay from dropdown (uses current zap amount)
+    // Handle anonymous pay from dropdown (opens modal for anonymous payment)
     const handlePayAnonymously = () => {
       if (isPayable) {
-        onPayAnonymously(post, zapAmount);
+        setIsAnonymousModal(true);
+        setShowZapModal(true);
       }
     };
 
@@ -250,7 +252,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
 
     // Handle zap from modal
     const handleZapFromModal = async () => {
-      if (!isLoggedIn) {
+      if (!isLoggedIn && !isAnonymousModal) {
         useUIStore.getState().openLogin();
         return;
       }
@@ -262,19 +264,34 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             localStorage.getItem('nwcConnectionString')) ||
           (typeof sessionStorage !== 'undefined' &&
             sessionStorage.getItem('nwcConnectionString'));
-        if (hasNwc) {
-          useUIStore.getState().openToast('Preparing payment…', 'loading', true);
-        } else {
-          useUIStore.getState().openToast('Preparing invoice…', 'loading', false);
+        
+        if (isAnonymousModal) {
+          // Handle anonymous payment
+          useUIStore.getState().openToast('Preparing anonymous zap…', 'loading', false);
           setTimeout(() => {
             try {
               useUIStore.getState().closeToast();
             } catch {}
           }, 800);
+          await onPayAnonymously(post, zapAmount, zapModalComment);
+        } else {
+          // Handle regular payment
+          if (hasNwc) {
+            useUIStore.getState().openToast('Preparing payment…', 'loading', true);
+          } else {
+            useUIStore.getState().openToast('Preparing invoice…', 'loading', false);
+            setTimeout(() => {
+              try {
+                useUIStore.getState().closeToast();
+              } catch {}
+            }, 800);
+          }
+          await onPay(post, zapAmount, zapModalComment);
         }
-        await onPay(post, zapAmount, zapModalComment);
+        
         setShowZapModal(false);
         setZapModalComment('');
+        setIsAnonymousModal(false);
       } finally {
         setIsPaying(false);
       }
@@ -895,6 +912,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             onClick={() => {
               setShowZapModal(false);
               setZapModalComment('');
+              setIsAnonymousModal(false);
             }}
           >
             <div 
@@ -902,7 +920,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               onClick={(e) => e.stopPropagation()}
             >
               <h3 style={{ margin: '0 0 20px 0', color: 'var(--text-primary)', textAlign: 'center' }}>
-                Confirm Zap
+                {isAnonymousModal ? 'Pay Anonymously' : 'Confirm Zap'}
               </h3>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
@@ -971,6 +989,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   onClick={() => {
                     setShowZapModal(false);
                     setZapModalComment('');
+                    setIsAnonymousModal(false);
                   }}
                   style={{ 
                     flex: 1,
