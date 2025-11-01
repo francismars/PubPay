@@ -535,7 +535,7 @@ export const LivePage: React.FC = () => {
                 <h3>Examples - Notes, Live Events & Profiles</h3>
                 <div className="example-item">
                   <a
-                    href="/note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7"
+                    href="/live/note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7"
                     target="_blank"
                   >
                     Zap my set at at Plan B at Adopting Bitcoin after party ⚡️
@@ -551,7 +551,7 @@ export const LivePage: React.FC = () => {
                 </div>
                 <div className="example-item">
                   <a
-                    href="/note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu"
+                    href="/live/note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu"
                     target="_blank"
                   >
                     Bienvenidos a nuestro querido el salvador 🇸🇻
@@ -567,7 +567,7 @@ export const LivePage: React.FC = () => {
                 </div>
                 <div className="example-item">
                   <a
-                    href="/note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv"
+                    href="/live/note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv"
                     target="_blank"
                   >
                     The Network School of Rock is Live from Malaysia!
@@ -583,7 +583,7 @@ export const LivePage: React.FC = () => {
                 </div>
                 <div className="example-item">
                   <a
-                    href="/nevent1qqsphk43g2pzpwfr8qcp5zdx8ftgaj7gvxk682y4sedjvscrsm0lpssc96mm3"
+                    href="/live/nevent1qqsphk43g2pzpwfr8qcp5zdx8ftgaj7gvxk682y4sedjvscrsm0lpssc96mm3"
                     target="_blank"
                   >
                     Hola Barcelona! Pubpay me at the After Party of Bitcoin
@@ -600,7 +600,7 @@ export const LivePage: React.FC = () => {
                 </div>
                 <div className="example-item">
                   <a
-                    href="/naddr1qqjr2vehvyenvdtr94nrzetr956rgctr94skvvfs95eryep3x3snwve389nxyqg3waehxw309ahx7um5wgh8w6twv5hsygx0gknt5ymr44ldyyaq0rn3p5jpzkh8y8ymg773a06ytr4wldxz55psgqqqwensuq723w"
+                    href="/live/naddr1qqjr2vehvyenvdtr94nrzetr956rgctr94skvvfs95eryep3x3snwve389nxyqg3waehxw309ahx7um5wgh8w6twv5hsygx0gknt5ymr44ldyyaq0rn3p5jpzkh8y8ymg773a06ytr4wldxz55psgqqqwensuq723w"
                     target="_blank"
                   >
                     NoGood Radio is a 24/7 pirate radio station running on scrap
@@ -621,7 +621,7 @@ export const LivePage: React.FC = () => {
               <div className="note-loader-footer">
                 <div className="footer-links">
                   <a
-                    href="https://nostr.com"
+                    href="/profile/024a1e0ce411f27778fd0e954a24c5368c3edb6a92360231fa8fcb1d503e8371"
                     target="_blank"
                     className="footer-link"
                   >
