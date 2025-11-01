@@ -1200,40 +1200,12 @@ export const Layout: React.FC = () => {
       {/* Non-blocking Status Toast */}
       {statusToast?.show && (
         <div
-          style={{
-            position: 'fixed',
-            top: '16px',
-            right: '16px',
-            zIndex: 100000,
-            maxWidth: '320px',
-            background: '#111827',
-            color: '#e5e7eb',
-            borderRadius: '10px',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-            padding: '10px 12px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            pointerEvents: 'auto'
-          }}
+          className="statusToast"
           role="status"
           aria-live="polite"
         >
           <span
-            className="material-symbols-outlined"
-            style={{
-              fontSize: '20px',
-              color:
-                statusToast.variant === 'success'
-                  ? '#10b981'
-                  : statusToast.variant === 'error'
-                  ? '#ef4444'
-                  : '#60a5fa',
-              animation:
-                statusToast.variant === 'loading'
-                  ? 'spin 1.2s linear infinite'
-                  : 'none'
-            }}
+            className={`material-symbols-outlined statusToastIcon statusToast-${statusToast.variant}`}
           >
             {statusToast.variant === 'success'
               ? 'check_circle'
@@ -1241,16 +1213,10 @@ export const Layout: React.FC = () => {
               ? 'error'
               : 'progress_activity'}
           </span>
-          <div style={{ flex: 1, fontSize: '13px' }}>{statusToast.message}</div>
+          <div className="statusToastMessage">{statusToast.message}</div>
           <button
             onClick={() => closeToast()}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#9ca3af',
-              cursor: 'pointer',
-              padding: 0
-            }}
+            className="statusToastClose"
             aria-label="Dismiss"
             title="Dismiss"
           >
