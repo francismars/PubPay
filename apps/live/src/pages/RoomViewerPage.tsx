@@ -31,9 +31,30 @@ type ViewPayload = {
   previousSlots?: Array<{ startAt: string; endAt: string; items: string[] }>;
 };
 
-const API_BASE =
-  (import.meta as unknown as { env?: { VITE_BACKEND_URL?: string } })?.env
-    ?.VITE_BACKEND_URL || 'http://localhost:3002';
+// Determine API base URL - use environment variable or detect from current origin
+const getApiBase = (): string => {
+  // Check for Webpack-injected environment variable (process.env.REACT_APP_BACKEND_URL)
+  // Webpack DefinePlugin injects process.env at build time
+  if (typeof process !== 'undefined' && (process as any).env?.REACT_APP_BACKEND_URL) {
+    return (process as any).env.REACT_APP_BACKEND_URL;
+  }
+  
+  // In production, use same origin (Nginx proxies to backend)
+  if (typeof window !== 'undefined') {
+    // Check if we're in production (HTTPS or production domain)
+    const isProduction = window.location.protocol === 'https:' || 
+                        window.location.hostname !== 'localhost';
+    if (isProduction) {
+      // Use same origin - Nginx will proxy to backend
+      return window.location.origin;
+    }
+  }
+  
+  // Development fallback
+  return 'http://localhost:3002';
+};
+
+const API_BASE = getApiBase();
 
 export const RoomViewerPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
