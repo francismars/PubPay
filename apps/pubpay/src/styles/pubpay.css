@@ -808,8 +808,8 @@ a.feedSelectorLink.active {
   background: #4b90ff;
   color: #fff;
   padding: 2px;
-  bottom: -2px;
-  left: 5px;
+  bottom: 3px;
+  left: 10px;
   z-index: 1;
   border: #ccc solid 1px;
   border-radius: 6px;
@@ -1114,7 +1114,8 @@ body.dark-mode .noteAuthor .label a {
 
 .noteHeroZaps .zapReactionAmount {
   font-size: 10px;
-  left: 14px;
+  left: 25px;
+  bottom: -2px;
 }
 
 .noteActionsReactions .noteActions {
