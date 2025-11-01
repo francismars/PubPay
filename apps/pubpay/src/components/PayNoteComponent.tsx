@@ -75,7 +75,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         (_m, npub) => {
           const clean = String(npub);
           const shortId = clean.length > 35 ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}` : clean;
-          return `<a href="/profile/${clean}" style="color: #0066cc; text-decoration: underline;">${shortId}</a>`;
+          return `<a href="/profile/${clean}" class="nostrMention">${shortId}</a>`;
         }
       )
       .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>')

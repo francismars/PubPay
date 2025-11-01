@@ -89,7 +89,7 @@ export async function formatContent(
         const displayName = await getMentionUserName(cleanMatch, nostrClient);
         return {
           match,
-          replacement: `<a href="/profile/${cleanMatch}" style="color: #0066cc; text-decoration: underline;">${displayName}</a>`
+          replacement: `<a href="/profile/${cleanMatch}" class="nostrMention">${displayName}</a>`
         };
       })
     );
@@ -113,7 +113,7 @@ export async function formatContent(
         const displayName = await getMentionUserName(match, nostrClient);
         return {
           match,
-          replacement: `<a href="/profile/${match}" style="color: #0066cc; text-decoration: underline;">${displayName}</a>`
+          replacement: `<a href="/profile/${match}" class="nostrMention">${displayName}</a>`
         };
       })
     );
@@ -168,7 +168,7 @@ export async function formatContent(
         return match;
       }
       const url = match.startsWith('http') ? match : `http://${match}`;
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">${match}</a>`;
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="nostrMention">${match}</a>`;
     }
   );
 

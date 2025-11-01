@@ -726,8 +726,9 @@ export const Layout: React.FC = () => {
         className="overlayContainer"
         id="loginForm"
         style={{ display: showLoginForm ? 'flex' : 'none' }}
+        onClick={closeLogin}
       >
-        <div className="overlayInner">
+        <div className="overlayInner" onClick={(e) => e.stopPropagation()}>
           <div className="brand">
             PUB<span className="logoPay">PAY</span>
             <span className="logoMe">.me</span>
