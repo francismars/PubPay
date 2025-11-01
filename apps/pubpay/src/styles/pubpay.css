@@ -740,6 +740,76 @@ a.feedSelectorLink.active {
   color: #fff;
 }
 
+
+
+.zapReactionTooltip {
+  position: absolute;
+  bottom: 80%;
+  left: calc(100% + -20px);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-light);
+  z-index: 1000;
+}
+
+/* Speech bubble tail pointing left */
+.zapReactionTooltip::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 5px 5px 5px 0;
+  border-color: transparent var(--card-bg) transparent transparent;
+}
+
+.zapReactionTooltip::after {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 6px 6px 6px 0;
+  border-color: transparent var(--border-light) transparent transparent;
+}
+
+.zapReaction:hover .zapReactionTooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+body.dark-mode .zapReactionTooltip {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+body.dark-mode .zapReactionTooltip::before {
+  border-color: transparent var(--card-bg) transparent transparent;
+}
+
+body.dark-mode .zapReactionTooltip::after {
+  border-color: transparent var(--border-color) transparent transparent;
+}
+
 .noteProfileImg a {
   display: block;
   cursor: pointer;

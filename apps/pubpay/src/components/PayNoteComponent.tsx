@@ -651,6 +651,11 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   >
                     {zap.zapAmount ? zap.zapAmount.toLocaleString() : '0'}
                   </a>
+                  {zap.content && (
+                    <div className="zapReactionTooltip">
+                      {zap.content.length > 21 ? zap.content.substring(0, 21) + '...' : zap.content}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -747,6 +752,11 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     >
                       {zap.zapAmount ? zap.zapAmount.toLocaleString() : '0'}
                     </a>
+                    {zap.content && (
+                      <div className="zapReactionTooltip">
+                        {zap.content.length > 21 ? zap.content.substring(0, 21) + '...' : zap.content}
+                      </div>
+                    )}
                   </div>
                 );
               })}

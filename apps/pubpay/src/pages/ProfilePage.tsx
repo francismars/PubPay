@@ -557,12 +557,17 @@ const ProfilePage: React.FC = () => {
 
                 const descriptionTag = zap.tags.find((tag: any[]) => tag[0] === 'description');
                 let zapPayerPubkey = zap.pubkey;
+                let zapContent = '';
 
                 if (descriptionTag) {
                   try {
-                    const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
-                    if (zapData.pubkey) {
+                    const zapData = parseZapDescription(descriptionTag[1] || undefined);
+                    if (zapData?.pubkey) {
                       zapPayerPubkey = zapData.pubkey;
+                    }
+                    // Extract content from zap description (the zap message/comment)
+                    if (zapData && 'content' in zapData && typeof zapData.content === 'string') {
+                      zapContent = zapData.content;
                     }
                   } catch {
                     // Use zap.pubkey as fallback
@@ -581,7 +586,8 @@ const ProfilePage: React.FC = () => {
                   zapAmount,
                   zapPayerPubkey,
                   zapPayerPicture,
-                  zapPayerNpub
+                  zapPayerNpub,
+                  content: zapContent
                 };
               });
 
