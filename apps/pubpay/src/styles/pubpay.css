@@ -1821,20 +1821,20 @@ textarea:focus::placeholder {
 @media screen and (max-width: 630px) {
   #nav {
     width: 100%;
-    border-bottom: 1px solid #ffffff;
+    border-bottom: 1px solid var(--border-light);
     position: fixed;
     top: 0;
     bottom: auto;
     z-index: 10001;
     --border-bottom-width: 1.5px;
-    --border-color: rgb(255, 255, 255);
+    --border-color: var(--border-light);
     --border-left-width: 1.5px;
     --border-right-width: 1.5px;
     --border-style: solid;
     --border-top-width: 1.5px;
     backdrop-filter: blur(19px);
     -webkit-backdrop-filter: blur(19px);
-    background-color: rgb(249 250 251 / 51%);
+    background-color: var(--nav-bg);
     border-radius: 0 0 6px 6px;
     box-shadow: rgb(47 43 67 / 21%) 0px 3px 20px 0px;
     opacity: 1;
@@ -1878,7 +1878,7 @@ textarea:focus::placeholder {
     top: 60px;
     left: -100%;
     height: calc(100vh - 80px);
-    background: white;
+    background: var(--bg-primary);
     z-index: 10001;
     transition: left 0.3s ease;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
@@ -1965,7 +1965,7 @@ textarea:focus::placeholder {
     cursor: pointer;
     padding: 8px;
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.9);
+    background: var(--card-bg);
     backdrop-filter: blur(10px);
     margin-right: 0px;
   }
@@ -1974,7 +1974,7 @@ textarea:focus::placeholder {
     display: block;
     width: 19px;
     height: 1.5px;
-    background: #989898;
+    background: var(--text-secondary);
     margin: 4px 0;
     transition: 0.3s;
   }
