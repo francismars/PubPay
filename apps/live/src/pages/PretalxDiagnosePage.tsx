@@ -1,29 +1,6 @@
 import React, { useCallback, useState } from 'react';
 
-// Determine API base URL - use environment variable or detect from current origin
-const getApiBase = (): string => {
-  // Check for Webpack-injected environment variable (process.env.REACT_APP_BACKEND_URL)
-  // Webpack DefinePlugin injects process.env at build time
-  if (typeof process !== 'undefined' && (process as any).env?.REACT_APP_BACKEND_URL) {
-    return (process as any).env.REACT_APP_BACKEND_URL;
-  }
-  
-  // In production, use same origin (Nginx proxies to backend)
-  if (typeof window !== 'undefined') {
-    // Check if we're in production (HTTPS or production domain)
-    const isProduction = window.location.protocol === 'https:' || 
-                        window.location.hostname !== 'localhost';
-    if (isProduction) {
-      // Use same origin - Nginx will proxy to backend
-      return window.location.origin;
-    }
-  }
-  
-  // Development fallback
-  return 'http://localhost:3002';
-};
-
-const API_BASE = getApiBase();
+import { getApiBase } from '../utils/apiBase';
 
 interface ApiEndpoint {
   name: string;
@@ -138,7 +115,7 @@ export const PretalxDiagnosePage: React.FC = () => {
       if (event) params.set('event', event);
       if (token) params.set('token', token);
       const res = await fetch(
-        `${API_BASE}/multi/pretalx/health?${params.toString()}`
+        `${getApiBase()}/multi/pretalx/health?${params.toString()}`
       );
       const json = await res.json();
       if (!res.ok || !json?.success)
@@ -163,7 +140,7 @@ export const PretalxDiagnosePage: React.FC = () => {
       if (token) params.set('token', token);
       if (version) params.set('version', version);
       const res = await fetch(
-        `${API_BASE}/multi/pretalx/diagnose?${params.toString()}`
+        `${getApiBase()}/multi/pretalx/diagnose?${params.toString()}`
       );
       const json = await res.json();
       if (!res.ok || !json?.success)
@@ -189,7 +166,7 @@ export const PretalxDiagnosePage: React.FC = () => {
         params.set('endpoint', endpoint.endpoint);
         if (endpoint.expand) params.set('expand', endpoint.expand);
         const res = await fetch(
-          `${API_BASE}/multi/pretalx/call?${params.toString()}`
+          `${getApiBase()}/multi/pretalx/call?${params.toString()}`
         );
         const json = await res.json();
         setApiResults(prev => ({
@@ -227,7 +204,7 @@ export const PretalxDiagnosePage: React.FC = () => {
       if (event) params.set('event', event);
       if (token) params.set('token', token);
       const res = await fetch(
-        `${API_BASE}/multi/pretalx/schedules?${params.toString()}`
+        `${getApiBase()}/multi/pretalx/schedules?${params.toString()}`
       );
       const json = await res.json();
       if (!res.ok || !json?.success)
@@ -263,7 +240,7 @@ export const PretalxDiagnosePage: React.FC = () => {
       if (token) params.set('token', token);
       params.set('version', selectedVersion);
       const res = await fetch(
-        `${API_BASE}/multi/pretalx/preview?${params.toString()}`
+        `${getApiBase()}/multi/pretalx/preview?${params.toString()}`
       );
       const json = await res.json();
       if (!res.ok || !json?.success)
@@ -313,7 +290,7 @@ export const PretalxDiagnosePage: React.FC = () => {
       params.set('version', selectedVersion);
       params.set('roomId', selectedRoomId);
       const res = await fetch(
-        `${API_BASE}/multi/pretalx/preview?${params.toString()}`
+        `${getApiBase()}/multi/pretalx/preview?${params.toString()}`
       );
       const json = await res.json();
       if (!res.ok || !json?.success)

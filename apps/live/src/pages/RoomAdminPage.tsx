@@ -2,30 +2,7 @@ import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ScheduleTimeline, Slot } from '../components/ScheduleTimeline';
 
-// Determine API base URL - use environment variable or detect from current origin
-const getApiBase = (): string => {
-  // Check for Webpack-injected environment variable (process.env.REACT_APP_BACKEND_URL)
-  // Webpack DefinePlugin injects process.env at build time
-  if (typeof process !== 'undefined' && (process as any).env?.REACT_APP_BACKEND_URL) {
-    return (process as any).env.REACT_APP_BACKEND_URL;
-  }
-
-  // In production, use same origin (Nginx proxies to backend)
-  if (typeof window !== 'undefined') {
-    // Check if we're in production (HTTPS or production domain)
-    const isProduction = window.location.protocol === 'https:' ||
-                        window.location.hostname !== 'localhost';
-    if (isProduction) {
-      // Use same origin - Nginx will proxy to backend
-      return window.location.origin;
-    }
-  }
-
-  // Development fallback
-  return 'http://localhost:3002';
-};
-
-const API_BASE = getApiBase();
+import { getApiBase } from '../utils/apiBase';
 
 export const RoomAdminPage: React.FC = () => {
   const { roomId } = useParams<{ roomId?: string }>();
@@ -95,7 +72,7 @@ export const RoomAdminPage: React.FC = () => {
     setSuccess(null);
     setPretalxRawResponse(null);
     try {
-      const res = await fetch(`${API_BASE}/multi/pretalx/schedules`);
+      const res = await fetch(`${getApiBase()}/multi/pretalx/schedules`);
       const json = await res.json();
       setPretalxRawResponse(json); // Store raw response for debugging
       if (!res.ok || !json?.success)
@@ -125,7 +102,7 @@ export const RoomAdminPage: React.FC = () => {
     try {
       const params = new URLSearchParams({ version: selectedVersion });
       const res = await fetch(
-        `${API_BASE}/multi/pretalx/preview?${params.toString()}`
+        `${getApiBase()}/multi/pretalx/preview?${params.toString()}`
       );
       const json = await res.json();
       setPretalxRawResponse(json); // Store raw response for debugging
@@ -191,7 +168,7 @@ export const RoomAdminPage: React.FC = () => {
         roomId: selectedStageId
       });
       const res = await fetch(
-        `${API_BASE}/multi/pretalx/preview?${params.toString()}`
+        `${getApiBase()}/multi/pretalx/preview?${params.toString()}`
       );
       const json = await res.json();
       setPretalxRawResponse(json); // Store raw response for debugging
@@ -337,14 +314,14 @@ export const RoomAdminPage: React.FC = () => {
 
         if (storedPassword) {
           // Use POST with password if we have one stored
-          res = await fetch(`${API_BASE}/multi/${roomId}`, {
+          res = await fetch(`${getApiBase()}/multi/${roomId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: storedPassword })
           });
         } else {
           // Use GET if no password
-          res = await fetch(`${API_BASE}/multi/${roomId}`);
+          res = await fetch(`${getApiBase()}/multi/${roomId}`);
         }
 
         if (cancelled) return;
@@ -396,7 +373,7 @@ export const RoomAdminPage: React.FC = () => {
       const payload = {
         name: name || 'Untitled Room'
       };
-      const res = await fetch(`${API_BASE}/multi`, {
+      const res = await fetch(`${getApiBase()}/multi`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -481,7 +458,7 @@ export const RoomAdminPage: React.FC = () => {
           })
         )
       };
-      const res = await fetch(`${API_BASE}/multi/${createdRoomId}/schedule`, {
+      const res = await fetch(`${getApiBase()}/multi/${createdRoomId}/schedule`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(normalizedSchedule)
@@ -516,7 +493,7 @@ export const RoomAdminPage: React.FC = () => {
           .map(s => s.trim())
           .filter(Boolean)
       };
-      const res = await fetch(`${API_BASE}/multi/${createdRoomId}`, {
+      const res = await fetch(`${getApiBase()}/multi/${createdRoomId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

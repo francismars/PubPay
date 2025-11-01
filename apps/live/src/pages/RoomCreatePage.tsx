@@ -1,30 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Determine API base URL - use environment variable or detect from current origin
-const getApiBase = (): string => {
-  // Check for Webpack-injected environment variable (process.env.REACT_APP_BACKEND_URL)
-  // Webpack DefinePlugin injects process.env at build time
-  if (typeof process !== 'undefined' && (process as any).env?.REACT_APP_BACKEND_URL) {
-    return (process as any).env.REACT_APP_BACKEND_URL;
-  }
-  
-  // In production, use same origin (Nginx proxies to backend)
-  if (typeof window !== 'undefined') {
-    // Check if we're in production (HTTPS or production domain)
-    const isProduction = window.location.protocol === 'https:' || 
-                        window.location.hostname !== 'localhost';
-    if (isProduction) {
-      // Use same origin - Nginx will proxy to backend
-      return window.location.origin;
-    }
-  }
-  
-  // Development fallback
-  return 'http://localhost:3002';
-};
-
-const API_BASE = getApiBase();
+import { getApiBase } from '../utils/apiBase';
 
 export const RoomCreatePage: React.FC = () => {
   const navigate = useNavigate();
@@ -41,7 +18,7 @@ export const RoomCreatePage: React.FC = () => {
         name: name || 'Untitled Multi LIVE',
         password: password || undefined
       };
-      const res = await fetch(`${API_BASE}/multi`, {
+      const res = await fetch(`${getApiBase()}/multi`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
