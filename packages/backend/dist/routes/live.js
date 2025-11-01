@@ -18,7 +18,7 @@ class LiveRouter {
         this.router.get('/:eventId', this.getLiveEvent.bind(this));
         this.router.post('/:eventId/zaps', this.createZap.bind(this));
     }
-    async getLiveEvents(req, res) {
+    async getLiveEvents(_req, res) {
         try {
             this.logger.info('Getting live events');
             // Placeholder implementation
@@ -65,7 +65,10 @@ class LiveRouter {
         try {
             const { eventId } = req.params;
             const { amount, comment } = req.body;
-            this.logger.info(`Creating zap for event ${eventId}:`, { amount, comment });
+            this.logger.info(`Creating zap for event ${eventId}:`, {
+                amount,
+                comment
+            });
             // Placeholder implementation
             res.json({
                 success: true,

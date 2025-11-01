@@ -78,7 +78,7 @@ export const LivePage: React.FC = () => {
                   kind: 30311,
                   relays: []
                 });
-                const cleanUrl = `/${naddr}`;
+                const cleanUrl = `/live/${naddr}`;
                 if (window.location.pathname !== cleanUrl) {
                   window.history.replaceState({}, '', cleanUrl);
                 }
@@ -119,7 +119,7 @@ export const LivePage: React.FC = () => {
         // Decode to ensure the identifier is a valid NIP-19 bech32
         nip19.decode(candidate as string);
         // Normalize URL to clean "/:identifier"
-        const cleanUrl = `/${candidate}`;
+        const cleanUrl = `/live/${candidate}`;
         if (window.location.pathname !== cleanUrl) {
           window.history.replaceState({}, '', cleanUrl);
         }

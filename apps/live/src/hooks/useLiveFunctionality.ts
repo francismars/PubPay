@@ -207,7 +207,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
             // Force loader to render first by normalizing URL to root (no identifier)
             try {
-              window.history.replaceState({}, '', '/');
+              window.history.replaceState({}, '', '/live/');
               // Notify router/listeners about the URL change
               window.dispatchEvent(new PopStateEvent('popstate'));
             } catch {}
@@ -2373,7 +2373,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Keep URL clean - no style parameters
     const pathParts = window.location.pathname.split('/');
     const noteId = pathParts[pathParts.length - 1];
-    const cleanUrl = noteId ? `/${noteId}` : '/';
+    const cleanUrl = noteId ? `/live/${noteId}` : '/';
 
     if (window.location.href !== window.location.origin + cleanUrl) {
       window.history.replaceState({}, '', cleanUrl);
@@ -3934,7 +3934,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       const decoded = nip19.decode(cleanNoteId);
 
       // Update URL with the identifier using path format (rooted, no /live prefix)
-      const newUrl = `/${cleanNoteId}`;
+      const newUrl = `/live/${cleanNoteId}`;
       window.history.pushState({}, '', newUrl);
 
       // Trigger a custom event to notify the React component
