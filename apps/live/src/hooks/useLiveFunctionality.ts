@@ -215,21 +215,32 @@ export const useLiveFunctionality = (eventId?: string) => {
             } catch {}
 
             // After the loader mounts, show the error and prefill input
-            setTimeout(() => {
-              showLoadingError(msg);
-              // Ensure note loader listeners are attached after redirect
-              try {
-                setupNoteLoaderListeners();
-              } catch {}
-              const input = document.getElementById(
-                'note1LoaderInput'
-              ) as HTMLInputElement | null;
-              if (input) {
-                input.value = cleanId;
-                input.focus();
-                input.select();
-              }
-            }, 60);
+            // Only prefill if cleanId is not empty and not "live"
+            if (cleanId && cleanId.trim() !== '' && cleanId.trim() !== 'live') {
+              setTimeout(() => {
+                showLoadingError(msg);
+                // Ensure note loader listeners are attached after redirect
+                try {
+                  setupNoteLoaderListeners();
+                } catch {}
+                const input = document.getElementById(
+                  'note1LoaderInput'
+                ) as HTMLInputElement | null;
+                if (input) {
+                  input.value = cleanId;
+                  input.focus();
+                  input.select();
+                }
+              }, 60);
+            } else {
+              // Just show error, don't prefill input
+              setTimeout(() => {
+                showLoadingError(msg);
+                try {
+                  setupNoteLoaderListeners();
+                } catch {}
+              }, 60);
+            }
 
             // Do not proceed with loading
             setIsLoading(false);
@@ -2386,10 +2397,12 @@ export const useLiveFunctionality = (eventId?: string) => {
     localStorage.setItem('pubpay-styles', JSON.stringify(styles));
 
     // Keep URL clean - no style parameters
-    const pathParts = window.location.pathname.split('/');
-    const noteId = pathParts[pathParts.length - 1];
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    // Filter out 'live' from path parts to get the actual identifier
+    const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
+    const noteId = pathPartsWithoutLive[pathPartsWithoutLive.length - 1];
     // Keep URLs under /live/ base path
-    const cleanUrl = noteId ? `/live/${noteId}` : '/live/';
+    const cleanUrl = noteId && noteId.trim() !== '' ? `/live/${noteId}` : '/live/';
 
     if (window.location.href !== window.location.origin + cleanUrl) {
       window.history.replaceState({}, '', cleanUrl);

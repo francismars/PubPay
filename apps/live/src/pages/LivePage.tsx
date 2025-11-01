@@ -9,8 +9,10 @@ import { nip19 } from 'nostr-tools';
 export const LivePage: React.FC = () => {
   const { eventId } = useParams<{ eventId?: string }>();
   const navigate = useNavigate();
-  const [showNoteLoader, setShowNoteLoader] = useState(!eventId);
-  const [showMainLayout, setShowMainLayout] = useState(!!eventId);
+  // Don't treat "live" as a valid eventId - filter it out
+  const validEventId = eventId && eventId.trim() !== '' && eventId.trim() !== 'live' ? eventId : undefined;
+  const [showNoteLoader, setShowNoteLoader] = useState(!validEventId);
+  const [showMainLayout, setShowMainLayout] = useState(!!validEventId);
 
   // Set body class to 'live' for proper CSS styling
   useEffect(() => {
@@ -46,7 +48,7 @@ export const LivePage: React.FC = () => {
     copyStyleUrl,
     zapNotification,
     handleNotificationDismiss
-  } = useLiveFunctionality(eventId);
+  } = useLiveFunctionality(validEventId);
 
   // Debug: Monitor zapNotification changes
   useEffect(() => {
@@ -125,7 +127,7 @@ export const LivePage: React.FC = () => {
       // Get candidate from either path or eventId param
       // If eventId exists and is valid, use it; otherwise use path
       const candidateFromPath = stripNostrPrefix(lastPart);
-      const candidateFromParam = eventId ? stripNostrPrefix(eventId) : '';
+      const candidateFromParam = validEventId ? stripNostrPrefix(validEventId) : '';
       const candidate = candidateFromParam || candidateFromPath;
 
       // If we're at /live/ with no identifier, just show the note loader
@@ -220,11 +222,11 @@ export const LivePage: React.FC = () => {
     }
     // We want this to run on initial mount and when eventId changes from the router
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId]);
+  }, [validEventId]);
 
   useEffect(() => {
-    // Only validate if eventId exists and is not empty or "live"
-    if (eventId && eventId.trim() !== '' && eventId.trim() !== 'live') {
+    // Only validate if validEventId exists
+    if (validEventId) {
       // Wait for NostrTools to be available before validating
       const validateEventId = async () => {
         // Wait for NostrTools to load
@@ -243,7 +245,7 @@ export const LivePage: React.FC = () => {
 
         await waitForNostrTools();
 
-        // Validate if the eventId is a valid Nostr identifier
+        // Validate if the validEventId is a valid Nostr identifier
         const isValidNostrId = (id: string): boolean => {
           if (!id) return false;
 
@@ -263,7 +265,7 @@ export const LivePage: React.FC = () => {
           }
         };
 
-        if (isValidNostrId(eventId)) {
+        if (isValidNostrId(validEventId)) {
           setShowNoteLoader(false);
           setShowMainLayout(true);
         } else {
@@ -286,7 +288,7 @@ export const LivePage: React.FC = () => {
       setShowNoteLoader(true);
       setShowMainLayout(false);
     }
-  }, [eventId]);
+  }, [validEventId]);
 
   // Listen for URL changes to handle note loader submissions
   useEffect(() => {
