@@ -34,7 +34,7 @@ export const RoomCreatePage: React.FC = () => {
         sessionStorage.setItem(`room_${json.data.id}_password`, password);
       }
 
-      navigate(`/multi/${json.data.id}/admin`);
+      navigate(`/live/multi/${json.data.id}/admin`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error');
     } finally {
@@ -78,7 +78,7 @@ export const RoomCreatePage: React.FC = () => {
               </button>
               <button
                 className="button outline"
-                onClick={() => navigate('/multi')}
+                onClick={() => navigate('/live/multi')}
               >
                 Back to Login
               </button>

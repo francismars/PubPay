@@ -288,7 +288,7 @@ class NostrService {
         if (!response.ok) {
             throw new Error(`LNURL discovery failed: ${response.status}`);
         }
-        const data = await response.json();
+        const data = (await response.json());
         if (!data.callback) {
             throw new Error('No callback URL found in LNURL discovery');
         }
@@ -308,7 +308,7 @@ class NostrService {
             const errorText = await response.text();
             throw new Error(`LNURL callback error: ${response.status} - ${errorText}`);
         }
-        const responseData = await response.json();
+        const responseData = (await response.json());
         if (!responseData.pr) {
             throw new Error(`LNURL callback error: ${responseData.reason || 'No invoice returned'}`);
         }
@@ -337,10 +337,10 @@ class NostrService {
             })
         });
         if (!paymentResponse.ok) {
-            const errorData = await paymentResponse.json();
+            const errorData = (await paymentResponse.json());
             throw new Error(`Failed to pay invoice: ${errorData.detail || 'Unknown error'}`);
         }
-        const paymentData = await paymentResponse.json();
+        const paymentData = (await paymentResponse.json());
         this.logger.info('✅ Lightning invoice paid successfully!', {
             paymentId: paymentData.payment_hash,
             amount: amount,

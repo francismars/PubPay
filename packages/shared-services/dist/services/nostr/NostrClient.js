@@ -54,8 +54,7 @@ export class NostrClient {
         // Add timeout handling
         let timeoutId = null;
         if (options.timeout) {
-            timeoutId = setTimeout(() => {
-            }, options.timeout);
+            timeoutId = setTimeout(() => { }, options.timeout);
         }
         // Subscribe to each filter individually to avoid subscribeMany issues
         const subscriptions = [];
@@ -186,7 +185,9 @@ export class NostrClient {
     async getRelayHealthSummary(event) {
         const results = await this.testAllRelays(event);
         const workingRelays = results.filter(r => r.success).map(r => r.relay);
-        const failedRelays = results.filter(r => !r.success).map(r => ({ relay: r.relay, error: r.error || 'Unknown error' }));
+        const failedRelays = results
+            .filter(r => !r.success)
+            .map(r => ({ relay: r.relay, error: r.error || 'Unknown error' }));
         // Extract PoW requirements
         const powRelays = failedRelays
             .filter(failed => failed.error.includes('pow:'))
@@ -200,7 +201,8 @@ export class NostrClient {
         const issues = [];
         // Categorize common issues
         failedRelays.forEach(failed => {
-            if (failed.error.includes('pubkey not admitted') || failed.error.includes('blocked')) {
+            if (failed.error.includes('pubkey not admitted') ||
+                failed.error.includes('blocked')) {
                 issues.push(`${failed.relay}: Admission policy (new users not allowed)`);
             }
             else if (failed.error.includes('pow:')) {
@@ -208,7 +210,8 @@ export class NostrClient {
                 const bits = bitsMatch ? bitsMatch[1] : 'unknown';
                 issues.push(`${failed.relay}: Requires ${bits}-bit proof-of-work`);
             }
-            else if (failed.error.includes('WebSocket') || failed.error.includes('connection')) {
+            else if (failed.error.includes('WebSocket') ||
+                failed.error.includes('connection')) {
                 issues.push(`${failed.relay}: Connection failed (relay may be down)`);
             }
             else {

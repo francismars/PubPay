@@ -131,7 +131,9 @@ export class AuthService {
         try {
             const signInData = JSON.parse(sessionStorage.getItem('signIn') || '{}');
             // Proceed only if we previously initiated an external signer sign-in
-            if (signInData && (signInData.flow === 'externalSigner' || signInData.rememberMe !== undefined)) {
+            if (signInData &&
+                (signInData.flow === 'externalSigner' ||
+                    signInData.rememberMe !== undefined)) {
                 sessionStorage.removeItem('signIn');
                 // Get the public key from clipboard
                 const clipboardText = await this.accessClipboard();
