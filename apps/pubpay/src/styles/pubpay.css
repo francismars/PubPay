@@ -2149,6 +2149,11 @@ textarea:focus::placeholder {
   font-size: 14px;
 }
 
+body.dark-mode .profileBannerPlaceholder {
+  background-color: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
 .profileUploadButton {
   position: absolute;
   top: 4px;
@@ -2665,6 +2670,11 @@ body.dark-mode .profileStatsTitle {
   border: 1px solid #e9ecef;
 }
 
+body.dark-mode .profileNotLoggedIn {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+}
+
 .profileNotLoggedInTitle {
   font-size: 20px;
   font-weight: 600;
@@ -2672,10 +2682,18 @@ body.dark-mode .profileStatsTitle {
   color: #333;
 }
 
+body.dark-mode .profileNotLoggedInTitle {
+  color: var(--text-primary);
+}
+
 .profileNotLoggedInText {
   font-size: 16px;
   color: #666;
   margin-bottom: 20px;
+}
+
+body.dark-mode .profileNotLoggedInText {
+  color: var(--text-secondary);
 }
 
 .profileLoginButton {
@@ -2915,16 +2933,30 @@ body.dark-mode .profileStatsTitle {
   margin-bottom: 10px;
 }
 
+body.dark-mode .nostrKeyWarning {
+  background: #3d3520;
+  border: 1px solid #5a4a1a;
+  color: #fde68a;
+}
+
 .nostrKeyWarning strong {
   color: #92400e;
   display: block;
   margin-bottom: 8px;
 }
 
+body.dark-mode .nostrKeyWarning strong {
+  color: #fde68a;
+}
+
 .nostrKeyWarning ul {
   margin: 0;
   padding-left: 20px;
   color: #92400e;
+}
+
+body.dark-mode .nostrKeyWarning ul {
+  color: #fde68a;
 }
 
 .nostrKeyWarning li {
