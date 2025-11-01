@@ -507,7 +507,7 @@ const EditProfilePage: React.FC = () => {
               </div>
             )}
             <label htmlFor="editPicture">
-              Profile Picture (Blossom upload available)
+              Profile Picture
             </label>
             <div style={{ position: 'relative' }}>
               <input
@@ -516,7 +516,7 @@ const EditProfilePage: React.FC = () => {
                 value={profileData.picture}
                 onChange={(e) => handleInputChange('picture', e.target.value)}
                 className="profileFormInput"
-                placeholder="https://example.com/profile.jpg or upload from Blossom"
+                placeholder="https://example.com/profile.jpg or upload"
               />
               <input
                 type="file"
@@ -562,7 +562,7 @@ const EditProfilePage: React.FC = () => {
               </div>
             )}
             <label htmlFor="editBanner">
-              Banner Image (Blossom upload available)
+              Banner Image
             </label>
             <div style={{ position: 'relative' }}>
               <input
@@ -571,7 +571,7 @@ const EditProfilePage: React.FC = () => {
                 value={profileData.banner}
                 onChange={(e) => handleInputChange('banner', e.target.value)}
                 className="profileFormInput"
-                placeholder="https://example.com/banner.jpg or upload from Blossom"
+                placeholder="https://example.com/banner.jpg or upload"
               />
               <input
                 type="file"

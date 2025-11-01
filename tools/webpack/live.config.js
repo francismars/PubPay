@@ -1,8 +1,10 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 module.exports = {
-  mode: 'development',
+  mode: isProduction ? 'production' : 'development',
   entry: '../../apps/live/src/index.tsx',
   output: {
     path: path.resolve(__dirname, '../../dist/live'),
@@ -46,7 +48,9 @@ module.exports = {
       },
       {
         test: /\.css$/i,
-        use: ['style-loader', 'css-loader']
+        use: isProduction
+          ? [require.resolve('mini-css-extract-plugin/dist/loader'), 'css-loader']
+          : ['style-loader', 'css-loader']
       },
       {
         test: /\.(png|jpe?g|gif|svg|webp|ico)$/i,
@@ -60,7 +64,21 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: '../../apps/live/src/index.html',
-      filename: 'index.html'
+      filename: 'index.html',
+      minify: isProduction
+        ? {
+            removeComments: true,
+            collapseWhitespace: true,
+            removeRedundantAttributes: true,
+            useShortDoctype: true,
+            removeEmptyAttributes: true,
+            removeStyleLinkTypeAttributes: true,
+            keepClosingSlash: true,
+            minifyJS: true,
+            minifyCSS: true,
+            minifyURLs: true
+          }
+        : false
     }),
     new (require('webpack').DefinePlugin)({
       'process.env': JSON.stringify(process.env)
@@ -68,7 +86,10 @@ module.exports = {
     new (require('webpack').ProvidePlugin)({
       Buffer: ['buffer', 'Buffer'],
       process: 'process/browser'
-    })
+    }),
+    ...(isProduction
+      ? [new (require('mini-css-extract-plugin'))({ filename: 'css/[name].[contenthash].css' })]
+      : [])
   ],
   devServer: {
     static: [
@@ -80,9 +101,27 @@ module.exports = {
         publicPath: '/apps/live/src'
       }
     ],
+    allowedHosts: 'all',
     port: 3001,
     hot: true,
     open: true,
     historyApiFallback: true
-  }
+  },
+  ...(isProduction
+    ? {
+        optimization: {
+          minimize: true,
+          splitChunks: {
+            chunks: 'all',
+            cacheGroups: {
+              vendor: {
+                test: /[\\/]node_modules[\\/]/,
+                name: 'vendors',
+                chunks: 'all'
+              }
+            }
+          }
+        }
+      }
+    : {})
 };
