@@ -471,7 +471,7 @@ body.jukebox {
 }
 
 #sideNav .sideNavLink:nth-child(3)::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M8.83008 5.92969L11.9981 2.75781L15.1699 5.92969' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M17.9443 8.82812L21.1162 11.9961L17.9443 15.168' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M5.90918 15.1719L2.7373 12.0039L5.90918 8.83202' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M11.8701 20.9284V18.1546C11.8701 14.7555 14.6256 12 18.0247 12H19.9963' stroke='currentColor' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M12 4.34375L12 11.5156' stroke='currentColor' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M3.69267 12L6.17464 12C7.63018 12 8.95383 12.6311 9.93848 13.6617' stroke='currentColor' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 #sideNav .sideNavLink:nth-child(7)::after {
