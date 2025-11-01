@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useOutletContext, useParams, useLocation } from 'react-router-dom';
-import { useUIStore, ensureProfiles, getQueryClient, NostrRegistrationService, AuthService, FollowService } from '@pubpay/shared-services';
+import { useUIStore, ensureProfiles, ensureZaps, getQueryClient, NostrRegistrationService, AuthService, FollowService } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 import * as NostrTools from 'nostr-tools';
+import { PayNoteComponent } from '../components/PayNoteComponent';
+import { PubPayPost } from '../hooks/useHomeFunctionality';
+import { parseZapDescription, safeJson } from '@pubpay/shared-utils';
+import bolt11 from 'bolt11';
+import { genericUserIcon } from '../assets/images';
 
 // Validation function for pubkeys and npubs/nprofiles
 const isValidPublicKey = (pubkey: string): boolean => {
@@ -40,7 +45,21 @@ const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { pubkey } = useParams<{ pubkey?: string }>();
-  const { authState, nostrClient } = useOutletContext<{ authState: any; nostrClient: any }>();
+  const { 
+    authState, 
+    nostrClient,
+    handlePayWithExtension,
+    handlePayAnonymously,
+    handleSharePost,
+    nostrReady
+  } = useOutletContext<{ 
+    authState: any; 
+    nostrClient: any;
+    handlePayWithExtension: (post: PubPayPost, amount: number, comment?: string) => void;
+    handlePayAnonymously: (post: PubPayPost, amount: number, comment?: string) => void;
+    handleSharePost: (post: PubPayPost) => void;
+    nostrReady: boolean;
+  }>();
   const isLoggedIn = authState?.isLoggedIn;
   const userProfile = authState?.userProfile;
   const displayName = authState?.displayName;
@@ -155,6 +174,9 @@ const ProfilePage: React.FC = () => {
     pubpaysReceived: 0,
     zapsReceived: 0
   });
+
+  // Paynotes data
+  const [userPaynotes, setUserPaynotes] = useState<PubPayPost[]>([]);
 
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
   const [followBusy, setFollowBusy] = useState<boolean>(false);
@@ -421,6 +443,182 @@ const ProfilePage: React.FC = () => {
         });
 
         console.log(`[stats] Found ${paynotes.length} paynotes out of ${allNotes.length} total notes`);
+
+        // Convert paynotes to PubPayPost format for display
+        const formattedPaynotes: PubPayPost[] = paynotes.map((event: any) => {
+          // Extract PubPay metadata from tags (note: tags use hyphenated names)
+          let zapMin = 0;
+          let zapMax = 0;
+          let zapMaxUses = 0;
+          let lud16ToZap = '';
+
+          event.tags.forEach((tag: any[]) => {
+            if (tag[0] === 'zap-min') zapMin = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
+            if (tag[0] === 'zap-max') zapMax = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
+            if (tag[0] === 'zap-uses') zapMaxUses = parseInt(tag[1]) || 0;
+            if (tag[0] === 'zap-lnurl') lud16ToZap = tag[1] || '';
+          });
+
+          return {
+            id: event.id,
+            event,
+            author: null, // Will be populated by PayNoteComponent via ensureProfiles
+            zaps: [], // Will be populated by PayNoteComponent
+            zapAmount: 0,
+            zapMin,
+            zapMax,
+            zapUses: zapMaxUses,
+            zapUsesCurrent: 0, // Will be calculated by PayNoteComponent
+            content: event.content || '',
+            isPayable: true,
+            hasZapTags: true,
+            zapLNURL: lud16ToZap,
+            createdAt: event.created_at || 0
+          };
+        });
+
+        // Sort by creation time (newest first)
+        formattedPaynotes.sort((a, b) => (b.event.created_at || 0) - (a.event.created_at || 0));
+
+        // Fetch author profiles for all paynotes
+        if (formattedPaynotes.length > 0 && nostrClient) {
+          try {
+            const authorPubkeys = Array.from(new Set(formattedPaynotes.map(p => p.event.pubkey)));
+            const profileMap = await ensureProfiles(
+              getQueryClient(),
+              nostrClient,
+              authorPubkeys
+            );
+            
+            // Update paynotes with author data
+            formattedPaynotes.forEach(paynote => {
+              const authorProfile = profileMap.get(paynote.event.pubkey);
+              if (authorProfile) {
+                paynote.author = authorProfile;
+              }
+            });
+
+            // Load zaps for all paynotes
+            const eventIds = formattedPaynotes.map(p => p.id);
+            const zapEvents = await ensureZaps(
+              getQueryClient(),
+              nostrClient,
+              eventIds
+            );
+
+            // Extract zap payer pubkeys
+            const zapPayerPubkeys = new Set<string>();
+            zapEvents.forEach((zap: any) => {
+              const descriptionTag = zap.tags.find((tag: any[]) => tag[0] === 'description');
+              let hasPubkeyInDescription = false;
+
+              if (descriptionTag) {
+                try {
+                  const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+                  if (zapData.pubkey) {
+                    zapPayerPubkeys.add(zapData.pubkey);
+                    hasPubkeyInDescription = true;
+                  }
+                } catch {
+                  // Handle parsing error
+                }
+              }
+
+              // For anonymous zaps, use the zap event's pubkey
+              if (!hasPubkeyInDescription) {
+                zapPayerPubkeys.add(zap.pubkey);
+              }
+            });
+
+            // Load zap payer profiles
+            const zapPayerProfileMap = zapPayerPubkeys.size > 0
+              ? await ensureProfiles(getQueryClient(), nostrClient, Array.from(zapPayerPubkeys))
+              : new Map();
+
+            // Process zaps for each paynote
+            formattedPaynotes.forEach(paynote => {
+              const postZaps = zapEvents.filter((zap: any) => {
+                const eTag = zap.tags.find((tag: any[]) => tag[0] === 'e');
+                return eTag && eTag[1] === paynote.id;
+              });
+
+              // Process zaps
+              const processedZaps = postZaps.map((zap: any) => {
+                const bolt11Tag = zap.tags.find((tag: any[]) => tag[0] === 'bolt11');
+                let zapAmount = 0;
+                if (bolt11Tag) {
+                  try {
+                    const decoded = bolt11.decode(bolt11Tag[1] || '');
+                    zapAmount = decoded.satoshis || 0;
+                  } catch {
+                    zapAmount = 0;
+                  }
+                }
+
+                const descriptionTag = zap.tags.find((tag: any[]) => tag[0] === 'description');
+                let zapPayerPubkey = zap.pubkey;
+
+                if (descriptionTag) {
+                  try {
+                    const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+                    if (zapData.pubkey) {
+                      zapPayerPubkey = zapData.pubkey;
+                    }
+                  } catch {
+                    // Use zap.pubkey as fallback
+                  }
+                }
+
+                const zapPayerProfile = zapPayerProfileMap.get(zapPayerPubkey);
+                const zapPayerPicture = zapPayerProfile
+                  ? (safeJson<Record<string, unknown>>(zapPayerProfile.content || '{}', {}) as any).picture || genericUserIcon
+                  : genericUserIcon;
+
+                const zapPayerNpub = NostrTools.nip19.npubEncode(zapPayerPubkey);
+
+                return {
+                  ...zap,
+                  zapAmount,
+                  zapPayerPubkey,
+                  zapPayerPicture,
+                  zapPayerNpub
+                };
+              });
+
+              // Filter zaps by amount limits
+              const zapsWithinLimits = processedZaps.filter((zap: any) => {
+                const amount = zap.zapAmount;
+                const min = paynote.zapMin;
+                const max = paynote.zapMax;
+
+                if (min > 0 && max > 0) {
+                  return amount >= min && amount <= max;
+                } else if (min > 0 && max === 0) {
+                  return amount >= min;
+                } else if (min === 0 && max > 0) {
+                  return amount <= max;
+                } else {
+                  return true;
+                }
+              });
+
+              const totalZapAmount = processedZaps.reduce((sum: number, zap: any) => sum + zap.zapAmount, 0);
+              const zapUsesCurrent = paynote.zapUses && paynote.zapUses > 0
+                ? Math.min(zapsWithinLimits.length, paynote.zapUses)
+                : zapsWithinLimits.length;
+
+              // Update paynote with zap data
+              paynote.zaps = processedZaps;
+              paynote.zapAmount = totalZapAmount;
+              paynote.zapUsesCurrent = zapUsesCurrent;
+            });
+          } catch (error) {
+            console.error('Failed to load profiles and zaps for paynotes:', error);
+          }
+        }
+
+        // Store the paynotes in state
+        setUserPaynotes(formattedPaynotes);
 
         // Create Set for fast lookup
         const paynoteIdsSet = new Set<string>(paynotes.map((e: any) => e.id).filter(Boolean));
@@ -864,6 +1062,38 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Paynotes Section */}
+          <div className="profilePaynotesSection" style={{ marginTop: '30px' }}>
+            <h2 className="profileStatsTitle">
+              Paynotes
+            </h2>
+            {activityLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                Loading paynotes...
+              </div>
+            ) : userPaynotes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                No paynotes found
+              </div>
+            ) : (
+              <div>
+                {userPaynotes.map((post) => (
+                  <PayNoteComponent
+                    key={post.id}
+                    post={post}
+                    onPay={handlePayWithExtension}
+                    onPayAnonymously={handlePayAnonymously}
+                    onShare={handleSharePost}
+                    onViewRaw={() => {}}
+                    isLoggedIn={isLoggedIn}
+                    nostrClient={nostrClient}
+                    nostrReady={nostrReady}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
         </div>
