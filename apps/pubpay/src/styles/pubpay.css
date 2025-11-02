@@ -1,7 +1,7 @@
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #f8f9fa;
-  --bg-tertiary: #dcdada;
+  --bg-tertiary: #e4e2e2;
   --text-primary: #333333;
   --text-secondary: #555555;
   --text-tertiary: #888888;
@@ -1144,6 +1144,7 @@ body.dark-mode .noteAuthor .label a {
   display: flex;
   position: relative;
   justify-content: space-between;
+  margin-top: 20px;
 }
 
 .noteZapReactions {
@@ -1285,7 +1286,6 @@ button.cta:active {
 }
 
 .paynote .cta {
-  margin-bottom: 20px;
   display: block;
   /* color: #4a75ff; */
   /* background: #e6f0ff; */
@@ -2146,6 +2146,7 @@ textarea:focus::placeholder {
   outline: none;
   -webkit-appearance: none;
   appearance: none;
+  margin-bottom: 10px;
 }
 
 .zapSlider::-webkit-slider-thumb {
