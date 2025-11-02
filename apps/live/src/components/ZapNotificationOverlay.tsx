@@ -9,7 +9,7 @@ const CHAR_ANIMATION_DELAY = 0.08; // seconds
 const BG_OPACITY = 0.9;
 const DEFAULT_BG_COLOR = 'rgba(0, 0, 0, 0.9)';
 const DEFAULT_TEXT_COLOR = '#000000';
-const FALLBACK_IMAGE = '/images/gradient_color.gif';
+const FALLBACK_IMAGE = '/live/images/gradient_color.gif';
 
 // Helper functions
 const getRankLabel = (rank?: number): string | null => {
