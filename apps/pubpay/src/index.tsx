@@ -68,3 +68,29 @@ if (container) {
   const root = createRoot(container);
   root.render(<App />);
 }
+
+// Register Service Worker for PWA
+// Works on HTTPS (production) and localhost (development)
+if ('serviceWorker' in navigator) {
+  const isLocalhost = window.location.hostname === 'localhost' || 
+                      window.location.hostname === '127.0.0.1';
+  const isSecure = window.location.protocol === 'https:' || isLocalhost;
+  
+  if (isSecure) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/service-worker.js')
+        .then((registration) => {
+          console.log('[Service Worker] Registered successfully:', registration.scope);
+          
+          // Check for updates periodically
+          setInterval(() => {
+            registration.update();
+          }, 60000); // Check every minute
+        })
+        .catch((error) => {
+          console.log('[Service Worker] Registration failed:', error);
+        });
+    });
+  }
+}

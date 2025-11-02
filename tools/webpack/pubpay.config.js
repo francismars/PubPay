@@ -103,6 +103,17 @@ module.exports = {
           ),
           to: 'images',
           noErrorOnMissing: true
+        },
+        // Copy PWA manifest and service worker
+        {
+          from: path.resolve(__dirname, '../../apps/pubpay/src/manifest.json'),
+          to: 'manifest.json',
+          noErrorOnMissing: true
+        },
+        {
+          from: path.resolve(__dirname, '../../apps/pubpay/src/service-worker.js'),
+          to: 'service-worker.js',
+          noErrorOnMissing: true
         }
       ]
     }),
