@@ -1100,6 +1100,46 @@ body.dark-mode .noteAuthor .label a {
   color: var(--text-primary);
 }
 
+/* Total Zaps Accounting */
+.totalZapsAccounting {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  margin: 16px 0 8px 0;
+  padding: 8px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.totalZapsCount,
+.totalZapsAmount {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.totalZapsNumber {
+  font-weight: 400;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.totalZapsLabel {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.totalZapsSeparator {
+  color: var(--border-color);
+  font-size: 16px;
+  font-weight: 300;
+}
+
 .noteActionsReactions {
   display: flex;
   position: relative;
@@ -2464,6 +2504,20 @@ textarea:focus::placeholder {
     justify-content: flex-start;
     align-items: flex-start;
     gap: 12px;
+  }
+
+  .totalZapsAccounting {
+    flex-wrap: wrap;
+    padding: 6px 12px;
+    margin: 12px 0 6px 0;
+  }
+
+  .totalZapsNumber {
+    font-size: 14px;
+  }
+
+  .totalZapsLabel {
+    font-size: 11px;
   }
 }
 
