@@ -710,8 +710,9 @@ export const Layout: React.FC = () => {
         className="overlayContainer"
         id="qrScanner"
         style={{ display: showQRScanner ? 'flex' : 'none' }}
+        onClick={() => setShowQRScanner(false)}
       >
-        <div className="overlayInner">
+        <div className="overlayInner" onClick={e => e.stopPropagation()}>
           <div className="brand">
             PUB<span className="logoPay">PAY</span>
             <span className="logoMe">.me</span>
@@ -1082,8 +1083,9 @@ export const Layout: React.FC = () => {
         className="overlayContainer"
         id="loggedInForm"
         style={{ display: showLoggedInForm ? 'flex' : 'none' }}
+        onClick={() => setShowLoggedInForm(false)}
       >
-        <div className="overlayInner">
+        <div className="overlayInner" onClick={e => e.stopPropagation()}>
           <div className="brand">
             PUB<span className="logoPay">PAY</span>
             <span className="logoMe">.me</span>
@@ -1124,8 +1126,9 @@ export const Layout: React.FC = () => {
         className="overlayContainer"
         id="invoiceOverlay"
         style={{ display: showInvoiceOverlay ? 'flex' : 'none' }}
+        onClick={closeInvoice}
       >
-        <div className="overlayInner">
+        <div className="overlayInner" onClick={e => e.stopPropagation()}>
           <div className="brand">
             PUB<span className="logoPay">PAY</span>
             <span className="logoMe">.me</span>
