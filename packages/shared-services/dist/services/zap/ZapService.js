@@ -1,5 +1,5 @@
 // import { NostrEvent } from '@/types/nostr'; // Unused import
-import * as NostrTools from 'nostr-tools';
+import { nip57, nip19, getEventHash, generateSecretKey, finalizeEvent } from 'nostr-tools';
 import { RELAYS } from '../../utils/constants';
 export class ZapService {
     constructor(baseUrl = '') {
@@ -76,8 +76,8 @@ export class ZapService {
             const amountPay = rangeValue !== -1
                 ? parseInt(rangeValue.toString()) * 1000
                 : Math.floor(parseInt(zapTagAmount));
-            // Create zap request using NostrTools.nip57.makeZapRequest
-            const zapEvent = await NostrTools.nip57.makeZapRequest({
+            // Create zap request using nip57.makeZapRequest
+            const zapEvent = await nip57.makeZapRequest({
                 event: eventData,
                 pubkey: eventData.pubkey,
                 amount: amountPay,
@@ -90,7 +90,7 @@ export class ZapService {
             zapEvent.tags.push(['t', 'pubpay']);
             if (pubKey !== null) {
                 zapEvent.pubkey = pubKey;
-                const eventID = NostrTools.getEventHash(zapEvent);
+                const eventID = getEventHash(zapEvent);
                 if (eventID !== null)
                     zapEvent.id = eventID;
             }
@@ -122,8 +122,8 @@ export class ZapService {
             let zapFinalized;
             if (anonymousZap === true) {
                 console.log('Using anonymous zap signing');
-                const privateKey = NostrTools.generateSecretKey();
-                zapFinalized = NostrTools.finalizeEvent(zapEvent, privateKey);
+                const privateKey = generateSecretKey();
+                zapFinalized = finalizeEvent(zapEvent, privateKey);
             }
             else if (signInMethod === 'externalSigner') {
                 console.log('Using external signer');
@@ -150,13 +150,13 @@ export class ZapService {
                     console.error('No private key found. Please sign in first.');
                     return false;
                 }
-                const { data } = NostrTools.nip19.decode(privateKey);
-                zapFinalized = NostrTools.finalizeEvent(zapEvent, data);
+                const { data } = nip19.decode(privateKey);
+                zapFinalized = finalizeEvent(zapEvent, data);
             }
             else {
                 console.log('No valid signing method found, falling back to anonymous zap');
-                const privateKey = NostrTools.generateSecretKey();
-                zapFinalized = NostrTools.finalizeEvent(zapEvent, privateKey);
+                const privateKey = generateSecretKey();
+                zapFinalized = finalizeEvent(zapEvent, privateKey);
             }
             // Check if zapFinalized was successfully created
             if (!zapFinalized) {

@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { FeedsPage } from './pages/FeedsPage';
-import AboutPage from './pages/AboutPage';
-import ProfilePage from './pages/ProfilePage';
-import EditProfilePage from './pages/EditProfilePage';
-import RegisterPage from './pages/RegisterPage';
-import SettingsPage from './pages/SettingsPage';
+
+// Lazy load pages to reduce initial bundle size
+const FeedsPage = lazy(() => import('./pages/FeedsPage').then(m => ({ default: m.FeedsPage })));
+const AboutPage = lazy(() => import('./pages/AboutPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const EditProfilePage = lazy(() => import('./pages/EditProfilePage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 // Import CSS
 import './styles/pubpay.css';
@@ -44,21 +46,37 @@ import './assets/images/icon/ms-icon-144x144.png';
 import './assets/images/icon/ms-icon-150x150.png';
 import './assets/images/icon/ms-icon-310x310.png';
 
+// Simple loading fallback
+const LoadingFallback: React.FC = () => (
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+    fontSize: '18px',
+    color: '#666'
+  }}>
+    Loading...
+  </div>
+);
+
 const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<FeedsPage />} />
-          <Route path="about" element={<AboutPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="profile/:pubkey" element={<ProfilePage />} />
-          <Route path="edit-profile" element={<EditProfilePage />} />
-          <Route path="register" element={<RegisterPage />} />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="note/:noteId" element={<FeedsPage />} />
-        </Route>
-      </Routes>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<FeedsPage />} />
+            <Route path="about" element={<AboutPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="profile/:pubkey" element={<ProfilePage />} />
+            <Route path="edit-profile" element={<EditProfilePage />} />
+            <Route path="register" element={<RegisterPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="note/:noteId" element={<FeedsPage />} />
+          </Route>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 };

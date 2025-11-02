@@ -1,4 +1,4 @@
-import * as NostrTools from 'nostr-tools';
+import { nip19 } from 'nostr-tools';
 
 export const NostrUtil = {
   /**
@@ -9,7 +9,7 @@ export const NostrUtil = {
       if (!input || typeof input !== 'string')
         return { ok: false, error: 'empty' };
       const clean = input.trim().replace(/^@/, '');
-      const decoded = NostrTools.nip19.decode(clean);
+      const decoded = nip19.decode(clean);
       if (decoded.type !== 'npub' || typeof decoded.data !== 'string') {
         return { ok: false, error: 'not npub' };
       }

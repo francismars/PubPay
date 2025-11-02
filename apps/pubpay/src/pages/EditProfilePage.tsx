@@ -5,7 +5,7 @@ import {
   getQueryClient,
   BlossomService
 } from '@pubpay/shared-services';
-import * as NostrTools from 'nostr-tools';
+import { nip19, finalizeEvent, getEventHash, verifyEvent } from 'nostr-tools';
 
 const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -335,14 +335,14 @@ const EditProfilePage: React.FC = () => {
         if (!authState.privateKey) {
           throw new Error('Private key not available');
         }
-        const decoded = NostrTools.nip19.decode(authState.privateKey);
-        signedEvent = NostrTools.finalizeEvent(
+        const decoded = nip19.decode(authState.privateKey);
+        signedEvent = finalizeEvent(
           eventTemplate,
           decoded.data as unknown as Uint8Array
         );
       } else if (authState.signInMethod === 'externalSigner') {
         // For external signer, compute event ID first, then store event and redirect
-        eventTemplate.id = NostrTools.getEventHash(eventTemplate);
+        eventTemplate.id = getEventHash(eventTemplate);
         const eventString = JSON.stringify(eventTemplate);
         sessionStorage.setItem('SignProfileUpdate', eventString);
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
@@ -358,7 +358,7 @@ const EditProfilePage: React.FC = () => {
       }
 
       // Verify the event
-      if (!NostrTools.verifyEvent(signedEvent)) {
+      if (!verifyEvent(signedEvent)) {
         throw new Error('Failed to create valid signed event');
       }
 

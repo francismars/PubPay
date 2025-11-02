@@ -9,6 +9,7 @@ import {
   BlossomService
 } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
+import { nip19 } from 'nostr-tools';
 
 interface RegisterPageProps {
   authState?: any;
@@ -138,20 +139,18 @@ const RegisterPage: React.FC = () => {
   // Helper function to convert npub/nsec to hex format
   const convertToHex = (encodedKey: string): string => {
     try {
-      if (typeof window !== 'undefined' && (window as any).NostrTools) {
-        const decoded = (window as any).NostrTools.nip19.decode(encodedKey);
-        console.log('Decoded key:', decoded); // Debug log
+      const decoded = nip19.decode(encodedKey);
+      console.log('Decoded key:', decoded); // Debug log
 
-        if (decoded && decoded.data) {
-          const hexString = Array.from(decoded.data as Uint8Array)
-            .map(byte => byte.toString(16).padStart(2, '0'))
-            .join('');
-          console.log('Converted to hex:', hexString); // Debug log
-          return hexString;
-        }
+      if (decoded && decoded.data) {
+        const hexString = Array.from(decoded.data as Uint8Array)
+          .map(byte => byte.toString(16).padStart(2, '0'))
+          .join('');
+        console.log('Converted to hex:', hexString); // Debug log
+        return hexString;
       }
-      console.warn('NostrTools not available or failed to decode');
-      return encodedKey; // Fallback if NostrTools not available
+      console.warn('Failed to decode');
+      return encodedKey; // Fallback if decode fails
     } catch (error) {
       console.error('Failed to convert to hex:', error);
       return encodedKey; // Fallback on error

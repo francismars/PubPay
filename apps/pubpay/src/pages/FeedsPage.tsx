@@ -5,7 +5,7 @@ import { useOutletContext, useLocation } from 'react-router-dom';
 import { PayNoteComponent } from '../components/PayNoteComponent';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../assets/images';
-import * as NostrTools from 'nostr-tools';
+import { nip19 } from 'nostr-tools';
 
 // FeedsPageProps intentionally omitted; consuming via Outlet context
 
@@ -167,7 +167,7 @@ export const FeedsPage: React.FC = () => {
           try {
             console.log('Decoding identifier:', identifier);
             // Decode the note
-            const decoded = NostrTools.nip19.decode(identifier);
+            const decoded = nip19.decode(identifier);
             console.log('Decoded:', decoded);
             if (decoded.type === 'note' || decoded.type === 'nevent') {
               let eventId: string;

@@ -1,5 +1,5 @@
 // AuthService - Handles authentication methods
-import * as NostrTools from 'nostr-tools';
+import { nip19, getPublicKey } from 'nostr-tools';
 
 export interface AuthResult {
   success: boolean;
@@ -129,7 +129,7 @@ export class AuthService {
         };
       }
 
-      const { type, data } = NostrTools.nip19.decode(nsec);
+      const { type, data } = nip19.decode(nsec);
 
       if (type !== 'nsec') {
         return {
@@ -138,7 +138,7 @@ export class AuthService {
         };
       }
 
-      const publicKey = NostrTools.getPublicKey(data);
+      const publicKey = getPublicKey(data);
 
       if (
         !publicKey ||
@@ -195,7 +195,7 @@ export class AuthService {
         try {
           const clean = trimmed.replace(/^nostr:/i, '');
           if (/^npub1[0-9a-z]+$/i.test(clean)) {
-            const decodedNPUB = NostrTools.nip19.decode(clean);
+            const decodedNPUB = nip19.decode(clean);
             publicKey = decodedNPUB.data as any as string;
           } else if (/^[0-9a-f]{64}$/i.test(clean)) {
             publicKey = clean.toLowerCase();

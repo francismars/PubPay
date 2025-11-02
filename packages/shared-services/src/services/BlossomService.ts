@@ -1,5 +1,5 @@
 // BlossomService - Handles blob storage on Blossom servers
-import * as NostrTools from 'nostr-tools';
+import { nip19, finalizeEvent, getEventHash, verifyEvent } from 'nostr-tools';
 import { AuthService } from './AuthService';
 
 export interface BlobDescriptor {
@@ -84,13 +84,13 @@ export class BlossomService {
       }
       signedEvent = await (window as any).nostr.signEvent(authEvent);
     } else if (signInMethod === 'nsec' && privateKey) {
-      const { type, data } = NostrTools.nip19.decode(privateKey);
+      const { type, data } = nip19.decode(privateKey);
       const privateKeyBytes = data as Uint8Array;
-      signedEvent = NostrTools.finalizeEvent(authEvent, privateKeyBytes);
+      signedEvent = finalizeEvent(authEvent, privateKeyBytes);
     } else if (signInMethod === 'externalSigner') {
       // For external signer, set pubkey and hash first
       authEvent.pubkey = publicKey;
-      authEvent.id = NostrTools.getEventHash(authEvent);
+      authEvent.id = getEventHash(authEvent);
 
       // Store file data if uploading (need to store before redirect)
       let fileData: any = null;
@@ -228,7 +228,7 @@ export class BlossomService {
       const signedEvent = { ...event, sig: signature };
 
       // Verify the signed event
-      const isValid = NostrTools.verifyEvent(signedEvent);
+      const isValid = verifyEvent(signedEvent);
       if (!isValid) {
         console.error('Invalid signed event signature');
         sessionStorage.removeItem('BlossomAuth');
@@ -368,7 +368,7 @@ export class BlossomService {
     };
 
     // Sign with the provided private key
-    const signedEvent = NostrTools.finalizeEvent(authEvent, rawPrivateKey);
+    const signedEvent = finalizeEvent(authEvent, rawPrivateKey);
 
     return signedEvent;
   }

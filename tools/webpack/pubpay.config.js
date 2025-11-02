@@ -149,15 +149,64 @@ module.exports = {
     ? {
         optimization: {
           minimize: true,
+          // Enable tree shaking - mark unused exports for removal
+          usedExports: true,
+          // Allow aggressive tree shaking for JS, but preserve CSS imports (which have side effects)
+          sideEffects: [/\.css$/],
           splitChunks: {
             chunks: 'all',
+            minSize: 20000,
+            maxSize: 244000, // ~244KB per chunk
             cacheGroups: {
+              // React and React DOM together
+              react: {
+                test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+                name: 'react-vendor',
+                priority: 30,
+                chunks: 'all'
+              },
+              // Router
+              router: {
+                test: /[\\/]node_modules[\\/](react-router|react-router-dom)[\\/]/,
+                name: 'router-vendor',
+                priority: 25,
+                chunks: 'all'
+              },
+              // Nostr tools (can be large)
+              nostr: {
+                test: /[\\/]node_modules[\\/](nostr-tools)[\\/]/,
+                name: 'nostr-vendor',
+                priority: 20,
+                chunks: 'all'
+              },
+              // React Query
+              reactQuery: {
+                test: /[\\/]node_modules[\\/](@tanstack\/react-query)[\\/]/,
+                name: 'react-query-vendor',
+                priority: 22,
+                chunks: 'all'
+              },
+              // Other node_modules
               vendor: {
                 test: /[\\/]node_modules[\\/]/,
                 name: 'vendors',
-                chunks: 'all'
+                priority: 10,
+                chunks: 'all',
+                minChunks: 2
+              },
+              // Shared code from packages
+              shared: {
+                test: /[\\/]packages[\\/]/,
+                name: 'shared',
+                priority: 15,
+                chunks: 'all',
+                minChunks: 2
               }
             }
+          },
+          // Separate runtime chunk
+          runtimeChunk: {
+            name: 'runtime'
           }
         }
       }
