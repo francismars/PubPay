@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -89,6 +90,17 @@ module.exports = {
     new (require('webpack').ProvidePlugin)({
       Buffer: ['buffer', 'Buffer'],
       process: 'process/browser'
+    }),
+    // Copy favicon and icon files to output directory
+    // These are referenced in index.html but not imported in code, so we copy them directly
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: path.resolve(__dirname, '../../apps/live/src/assets/images/icon'),
+          to: 'images',
+          noErrorOnMissing: true
+        }
+      ]
     }),
     ...(isProduction
       ? [
