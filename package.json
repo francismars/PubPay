@@ -2,7 +2,7 @@
   "name": "pubpay",
   "version": "0.0.0",
   "private": true,
-  "sideEffects": false,
+  "sideEffects": ["**/*.css"],
   "scripts": {
     "start:backend": "pnpm --filter @pubpay/backend start",
     "dev": "pnpm --filter @pubpay/pubpay dev",
