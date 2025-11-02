@@ -151,8 +151,9 @@ module.exports = {
           minimize: true,
           // Enable tree shaking - mark unused exports for removal
           usedExports: true,
-          // Allow aggressive tree shaking for JS, but preserve CSS imports (which have side effects)
-          sideEffects: [/\.css$/],
+          // Enable side effects flag mode - webpack will check package.json "sideEffects" field
+          // CSS files are already marked in package.json, so they'll be preserved
+          sideEffects: 'flag',
           splitChunks: {
             chunks: 'all',
             minSize: 20000,
