@@ -38,7 +38,9 @@ body {
   min-height: 100vh;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
 
 /* Keyframe Animations */
@@ -825,8 +827,6 @@ a.feedSelectorLink.active {
   color: #fff;
 }
 
-
-
 .zapReactionTooltip {
   position: absolute;
   bottom: 80%;
@@ -843,7 +843,9 @@ a.feedSelectorLink.active {
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   border: 1px solid var(--border-light);
   z-index: 1000;
@@ -1577,7 +1579,7 @@ legend {
   color: #374151;
 }
 
-#logoutButton{
+#logoutButton {
   width: 100%;
   display: block;
   margin-top: 30px;
@@ -1989,14 +1991,13 @@ textarea:focus::placeholder {
     padding: 15px 0;
   }
 
-  #mainContent{
+  #mainContent {
     width: 100%;
   }
 
   #feedSelector {
     padding: 10px;
   }
-  
 
   /* Hide username on mobile */
   #login .profileUserNameNav {
@@ -2458,8 +2459,6 @@ body.dark-mode .profileUserDetails h2 {
   margin-bottom: 0;
 }
 
-
-
 .profilePublicKey label {
   font-size: 12px;
   font-weight: 600;
@@ -2504,7 +2503,7 @@ body.dark-mode .profileUserDetails h2 {
   gap: 10px;
   flex-wrap: wrap;
   width: 100%;
-  padding: 8px 8px 8px 12px; 
+  padding: 8px 8px 8px 12px;
   border-radius: 6px;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-light);
@@ -2628,12 +2627,12 @@ body.dark-mode .profileEditButton:hover {
     flex-direction: column;
     align-items: baseline;
   }
-  
+
   .profileDetailValue code {
     min-width: auto;
     margin-bottom: 10px;
   }
-  
+
   .profileCopyButton {
     align-self: flex-start;
   }
@@ -2927,8 +2926,6 @@ body.dark-mode .profileNotLoggedInText {
   animation: fadeIn 0.3s ease-out;
 }
 
-
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -2945,9 +2942,6 @@ body.dark-mode .profileNotLoggedInText {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  
-  
-  
 }
 
 .nostrKeyCode {
@@ -3008,7 +3002,7 @@ body.dark-mode .profileNotLoggedInText {
   user-select: none;
 }
 
-.advancedOptionLabel input[type="checkbox"] {
+.advancedOptionLabel input[type='checkbox'] {
   cursor: pointer;
   margin-right: 8px;
   margin-left: 0;
@@ -3035,7 +3029,7 @@ body.dark-mode .profileNotLoggedInText {
 }
 
 .nostrKeyCopyButton {
-  background:var(--bg-tertiary);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
   border: none;
   padding: 6px 12px;
@@ -3056,7 +3050,7 @@ body.dark-mode .profileNotLoggedInText {
 .nostrKeyActions {
   display: flex;
   gap: 10px;
-  
+
   justify-content: center;
 }
 
@@ -3149,11 +3143,9 @@ body.dark-mode .nostrKeyWarning ul {
   padding: 34px;
   border-radius: 12px;
   border: 1px solid var(--border-light);
-  text-align: center; 
+  text-align: center;
   background: var(--bg-secondary);
 }
-
-
 
 .backupAcknowledgementContent h3 {
   margin: 0 0 16px 0;
@@ -3187,7 +3179,7 @@ body.dark-mode .nostrKeyWarning ul {
   border-color: #d1d5db;
 }
 
-.backupCheckbox input[type="checkbox"] {
+.backupCheckbox input[type='checkbox'] {
   margin: 4px 0 0 0;
   width: 20px;
   height: 20px;
@@ -3252,7 +3244,7 @@ body.dark-mode .nostrKeyWarning ul {
     margin-bottom: 15px;
   }
 
-  .profileUserDetails{
+  .profileUserDetails {
     width: 100%;
   }
 
@@ -3504,7 +3496,7 @@ body.dark-mode .useCaseCode {
   margin-top: 0;
   margin-bottom: 12px;
   letter-spacing: -0.3px;
-  color:#fff;
+  color: #fff;
 }
 
 .ctaSubtitle {
@@ -3512,7 +3504,7 @@ body.dark-mode .useCaseCode {
   margin-bottom: 32px;
   opacity: 0.95;
   line-height: 1.6;
-  color:#fff;
+  color: #fff;
 }
 
 .ctaButton {
@@ -3800,7 +3792,12 @@ body.dark-mode .label {
   color: var(--text-primary);
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: var(--text-primary);
 }
 

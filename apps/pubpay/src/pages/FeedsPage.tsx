@@ -102,7 +102,6 @@ export const FeedsPage: React.FC = () => {
     }
   };
 
-
   // Infinite scroll handler with debouncing to prevent duplicate loads
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -144,7 +143,6 @@ export const FeedsPage: React.FC = () => {
     };
   }, [isLoadingMore, singleNoteMode, posts.length]);
 
-
   // Check for single note in URL path; wait for nostr client readiness
   useEffect(() => {
     const checkForSingleNote = () => {
@@ -154,15 +152,18 @@ export const FeedsPage: React.FC = () => {
         console.log('nostr not ready yet, postponing single-note load');
         return;
       }
-      
+
       // Check if pathname matches /note/:noteId pattern
       if (pathname.startsWith('/note/')) {
         // Extract the note identifier (everything after /note/)
         const identifier = pathname.substring(6);
-        
+
         console.log('Note identifier:', identifier);
         // Check if it looks like a note identifier (starts with note1 or nevent1)
-        if (identifier.startsWith('note1') || identifier.startsWith('nevent1')) {
+        if (
+          identifier.startsWith('note1') ||
+          identifier.startsWith('nevent1')
+        ) {
           try {
             console.log('Decoding identifier:', identifier);
             // Decode the note
@@ -170,14 +171,14 @@ export const FeedsPage: React.FC = () => {
             console.log('Decoded:', decoded);
             if (decoded.type === 'note' || decoded.type === 'nevent') {
               let eventId: string;
-              
+
               if (decoded.type === 'note') {
                 eventId = decoded.data;
               } else {
                 // For nevent, extract the id
                 eventId = (decoded.data as any).id;
               }
-              
+
               console.log('Event ID:', eventId);
               if (!/^[0-9a-f]{64}$/.test(eventId)) {
                 console.error('Invalid event ID format.');
@@ -237,11 +238,7 @@ export const FeedsPage: React.FC = () => {
         >
           Following
         </a>
-        <a
-          href="#"
-          className="feedSelectorLink disabled"
-          title="coming soon"
-        >
+        <a href="#" className="feedSelectorLink disabled" title="coming soon">
           High Rollers
         </a>
       </div>
@@ -258,11 +255,7 @@ export const FeedsPage: React.FC = () => {
             {/* First dummy post - always show */}
             <div className="paynote blink">
               <div className="noteProfileImg">
-                <img
-                  className="userImg"
-                  src={genericUserIcon}
-                  alt="Profile"
-                />
+                <img className="userImg" src={genericUserIcon} alt="Profile" />
               </div>
               <div className="noteData">
                 <div className="noteHeader">
@@ -286,42 +279,32 @@ export const FeedsPage: React.FC = () => {
                     </div>
                     <div className="noteLNAddress label">
                       <a href="#" target="_blank">
-                        <span className="material-symbols-outlined">
-                          bolt
-                        </span>
+                        <span className="material-symbols-outlined">bolt</span>
                         loading@example.com
                       </a>
                     </div>
                   </div>
                   <div className="noteDate label">Loading...</div>
                 </div>
-                <div className="noteContent disabled">
-                  Loading posts...
-                </div>
+                <div className="noteContent disabled">Loading posts...</div>
                 <div className="noteValues">
                   <div className="zapMinContainer">
                     <div className="zapMin">
-                      <span className="zapMinVal disabled">
-                        Loading...
-                      </span>
+                      <span className="zapMinVal disabled">Loading...</span>
                       <span className="label">sats</span>
                     </div>
                     <div className="zapMinLabel">Min</div>
                   </div>
                   <div className="zapMaxContainer">
                     <div className="zapMax">
-                      <span className="zapMaxVal disabled">
-                        Loading...
-                      </span>
+                      <span className="zapMaxVal disabled">Loading...</span>
                       <span className="label">sats</span>
                     </div>
                     <div className="zapMaxLabel">Max</div>
                   </div>
                   <div className="zapUsesContainer">
                     <div className="zapUses">
-                      <span className="zapUsesCurrent disabled">
-                        0
-                      </span>
+                      <span className="zapUsesCurrent disabled">0</span>
                       <span className="label">of</span>
                       <span className="zapUsesTotal disabled">5</span>
                     </div>
@@ -329,17 +312,13 @@ export const FeedsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="noteCTA">
-                  <button className="noteMainCTA cta disabled">
-                    Pay
-                  </button>
+                  <button className="noteMainCTA cta disabled">Pay</button>
                 </div>
                 <div className="noteActionsReactions">
                   <div className="noteZaps noteZapReactions"></div>
                   <div className="noteActions">
                     <a className="noteAction disabled">
-                      <span className="material-symbols-outlined">
-                        bolt
-                      </span>
+                      <span className="material-symbols-outlined">bolt</span>
                     </a>
                     <a className="noteAction disabled">
                       <span className="material-symbols-outlined">
@@ -402,45 +381,33 @@ export const FeedsPage: React.FC = () => {
                       </div>
                       <div className="noteDate label">Loading...</div>
                     </div>
-                    <div className="noteContent disabled">
-                      Loading posts...
-                    </div>
+                    <div className="noteContent disabled">Loading posts...</div>
                     <div className="noteValues">
                       <div className="zapMinContainer">
                         <div className="zapMin">
-                          <span className="zapMinVal disabled">
-                            Loading...
-                          </span>
+                          <span className="zapMinVal disabled">Loading...</span>
                           <span className="label">sats</span>
                         </div>
                         <div className="zapMinLabel">Min</div>
                       </div>
                       <div className="zapMaxContainer">
                         <div className="zapMax">
-                          <span className="zapMaxVal disabled">
-                            Loading...
-                          </span>
+                          <span className="zapMaxVal disabled">Loading...</span>
                           <span className="label">sats</span>
                         </div>
                         <div className="zapMaxLabel">Max</div>
                       </div>
                       <div className="zapUsesContainer">
                         <div className="zapUses">
-                          <span className="zapUsesCurrent disabled">
-                            0
-                          </span>
+                          <span className="zapUsesCurrent disabled">0</span>
                           <span className="label">of</span>
-                          <span className="zapUsesTotal disabled">
-                            5
-                          </span>
+                          <span className="zapUsesTotal disabled">5</span>
                         </div>
                         <div className="zapUsesLabel">Uses</div>
                       </div>
                     </div>
                     <div className="noteCTA">
-                      <button className="noteMainCTA cta disabled">
-                        Pay
-                      </button>
+                      <button className="noteMainCTA cta disabled">Pay</button>
                     </div>
                     <div className="noteActionsReactions">
                       <div className="noteZaps noteZapReactions"></div>
@@ -508,45 +475,33 @@ export const FeedsPage: React.FC = () => {
                       </div>
                       <div className="noteDate label">Loading...</div>
                     </div>
-                    <div className="noteContent disabled">
-                      Loading posts...
-                    </div>
+                    <div className="noteContent disabled">Loading posts...</div>
                     <div className="noteValues">
                       <div className="zapMinContainer">
                         <div className="zapMin">
-                          <span className="zapMinVal disabled">
-                            Loading...
-                          </span>
+                          <span className="zapMinVal disabled">Loading...</span>
                           <span className="label">sats</span>
                         </div>
                         <div className="zapMinLabel">Min</div>
                       </div>
                       <div className="zapMaxContainer">
                         <div className="zapMax">
-                          <span className="zapMaxVal disabled">
-                            Loading...
-                          </span>
+                          <span className="zapMaxVal disabled">Loading...</span>
                           <span className="label">sats</span>
                         </div>
                         <div className="zapMaxLabel">Max</div>
                       </div>
                       <div className="zapUsesContainer">
                         <div className="zapUses">
-                          <span className="zapUsesCurrent disabled">
-                            0
-                          </span>
+                          <span className="zapUsesCurrent disabled">0</span>
                           <span className="label">of</span>
-                          <span className="zapUsesTotal disabled">
-                            5
-                          </span>
+                          <span className="zapUsesTotal disabled">5</span>
                         </div>
                         <div className="zapUsesLabel">Uses</div>
                       </div>
                     </div>
                     <div className="noteCTA">
-                      <button className="noteMainCTA cta disabled">
-                        Pay
-                      </button>
+                      <button className="noteMainCTA cta disabled">Pay</button>
                     </div>
                     <div className="noteActionsReactions">
                       <div className="noteZaps noteZapReactions"></div>
@@ -638,8 +593,8 @@ export const FeedsPage: React.FC = () => {
               marginTop: '20px'
             }}
           >
-            Posts loaded: {posts.length} | Scroll to load more (100px
-            from bottom)
+            Posts loaded: {posts.length} | Scroll to load more (100px from
+            bottom)
           </div>
         )}
 
@@ -672,11 +627,7 @@ export const FeedsPage: React.FC = () => {
           <>
             <div className="paynote blink">
               <div className="noteProfileImg">
-                <img
-                  className="userImg"
-                  src={genericUserIcon}
-                  alt="Profile"
-                />
+                <img className="userImg" src={genericUserIcon} alt="Profile" />
               </div>
               <div className="noteData">
                 <div className="noteHeader">
@@ -700,9 +651,7 @@ export const FeedsPage: React.FC = () => {
                     </div>
                     <div className="noteLNAddress label">
                       <a href="#" target="_blank">
-                        <span className="material-symbols-outlined">
-                          bolt
-                        </span>
+                        <span className="material-symbols-outlined">bolt</span>
                         loading@example.com
                       </a>
                     </div>
@@ -715,27 +664,21 @@ export const FeedsPage: React.FC = () => {
                 <div className="noteValues">
                   <div className="zapMinContainer">
                     <div className="zapMin">
-                      <span className="zapMinVal disabled">
-                        Loading...
-                      </span>
+                      <span className="zapMinVal disabled">Loading...</span>
                       <span className="label">sats</span>
                     </div>
                     <div className="zapMinLabel">Min</div>
                   </div>
                   <div className="zapMaxContainer">
                     <div className="zapMax">
-                      <span className="zapMaxVal disabled">
-                        Loading...
-                      </span>
+                      <span className="zapMaxVal disabled">Loading...</span>
                       <span className="label">sats</span>
                     </div>
                     <div className="zapMaxLabel">Max</div>
                   </div>
                   <div className="zapUsesContainer">
                     <div className="zapUses">
-                      <span className="zapUsesCurrent disabled">
-                        0
-                      </span>
+                      <span className="zapUsesCurrent disabled">0</span>
                       <span className="label">of</span>
                       <span className="zapUsesTotal disabled">5</span>
                     </div>
@@ -743,17 +686,13 @@ export const FeedsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="noteCTA">
-                  <button className="noteMainCTA cta disabled">
-                    Pay
-                  </button>
+                  <button className="noteMainCTA cta disabled">Pay</button>
                 </div>
                 <div className="noteActionsReactions">
                   <div className="noteZaps noteZapReactions"></div>
                   <div className="noteActions">
                     <a className="noteAction disabled">
-                      <span className="material-symbols-outlined">
-                        bolt
-                      </span>
+                      <span className="material-symbols-outlined">bolt</span>
                     </a>
                     <a className="noteAction disabled">
                       <span className="material-symbols-outlined">

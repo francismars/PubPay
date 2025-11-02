@@ -68,3 +68,120 @@ if (container) {
   const root = createRoot(container);
   root.render(<App />);
 }
+
+// Register Service Worker for PWA with update handling
+// Works on HTTPS (production) and localhost (development)
+if ('serviceWorker' in navigator) {
+  const isLocalhost = window.location.hostname === 'localhost' ||
+                      window.location.hostname === '127.0.0.1';
+  const isSecure = window.location.protocol === 'https:' || isLocalhost;
+
+  if (isSecure) {
+    let registration: ServiceWorkerRegistration | null = null;
+
+    // Lightweight update check - browser also checks automatically on navigation
+    const checkForUpdates = () => {
+      if (registration) {
+        registration.update().catch((error) => {
+          console.log('[Service Worker] Update check failed:', error);
+        });
+      }
+    };
+
+    // Show update notification to user
+    const showUpdateNotification = () => {
+      // Only show if not already showing
+      if (document.getElementById('sw-update-notification')) return;
+
+      const notification = document.createElement('div');
+      notification.id = 'sw-update-notification';
+      notification.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: #4CAF50;
+        color: white;
+        padding: 16px 24px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 14px;
+        max-width: 400px;
+      `;
+
+      const message = document.createElement('span');
+      message.textContent = 'New version available!';
+
+      const button = document.createElement('button');
+      button.textContent = 'Reload';
+      button.style.cssText = `
+        background: white;
+        color: #4CAF50;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+      `;
+      button.onclick = () => {
+        window.location.reload();
+      };
+
+      notification.appendChild(message);
+      notification.appendChild(button);
+      document.body.appendChild(notification);
+
+      // Auto-hide after 10 seconds
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.style.opacity = '0';
+          notification.style.transition = 'opacity 0.3s';
+          setTimeout(() => notification.remove(), 300);
+        }
+      }, 10000);
+    };
+
+    window.addEventListener('load', () => {
+      navigator.serviceWorker
+        .register('/service-worker.js')
+        .then((reg) => {
+          registration = reg;
+          console.log('[Service Worker] Registered successfully:', reg.scope);
+
+          // Listen for new service worker - this fires automatically when browser detects file change
+          let refreshing = false;
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && reg.active) {
+                // New service worker is waiting
+                console.log('[Service Worker] New version available');
+                showUpdateNotification();
+              } else if (newWorker.state === 'activated') {
+                // New service worker is active (happens with skipWaiting())
+                if (!refreshing) {
+                  console.log('[Service Worker] New version activated, reloading...');
+                  window.location.reload();
+                  refreshing = true;
+                }
+              }
+            });
+          });
+
+          // Check for updates once on load (browser also checks automatically on navigation)
+          // No need for aggressive polling - browser handles this efficiently
+          checkForUpdates();
+        })
+        .catch((error) => {
+          console.log('[Service Worker] Registration failed:', error);
+        });
+    });
+  }
+}

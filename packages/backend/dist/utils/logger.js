@@ -26,7 +26,7 @@ class Logger {
         console.error(this.formatMessage('ERROR', message, data));
     }
     debug(message, data) {
-        if (process.env.NODE_ENV === 'development') {
+        if (process.env['NODE_ENV'] === 'development') {
             console.debug(this.formatMessage('DEBUG', message, data));
         }
     }

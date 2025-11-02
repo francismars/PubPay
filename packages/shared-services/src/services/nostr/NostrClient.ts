@@ -25,7 +25,7 @@ export class NostrClient {
   private initializePool(): void {
     // Initialize NostrTools.SimplePool using npm package
     this.pool = new NostrTools.SimplePool();
-    
+
     // Add error handling to the pool's internal relay connections
     this.setupPoolErrorHandling();
   }
@@ -36,32 +36,31 @@ export class NostrClient {
   private setupPoolErrorHandling(): void {
     // Override the pool's publish method to catch errors
     const originalPublish = this.pool.publish.bind(this.pool);
-    
+
     this.pool.publish = async (relays: string[], event: any) => {
       try {
         return await originalPublish(relays, event);
       } catch (error: any) {
         const errorMessage = error?.message || error?.toString() || '';
-        
+
         // Handle known relay response errors gracefully
-        if (errorMessage.includes('pow:') || 
-            errorMessage.includes('duplicate:') ||
-            errorMessage.includes('blocked:') ||
-            errorMessage.includes('invalid:') ||
-            errorMessage.includes('pubkey not admitted') ||
-            errorMessage.includes('admission')) {
-          
-          
+        if (
+          errorMessage.includes('pow:') ||
+          errorMessage.includes('duplicate:') ||
+          errorMessage.includes('blocked:') ||
+          errorMessage.includes('invalid:') ||
+          errorMessage.includes('pubkey not admitted') ||
+          errorMessage.includes('admission')
+        ) {
           // Don't re-throw these errors
           return;
         }
-        
+
         // Re-throw other errors
         throw error;
       }
     };
   }
-
 
   /**
    * Subscribe to events with the given filters
@@ -86,8 +85,7 @@ export class NostrClient {
     // Add timeout handling
     let timeoutId: NodeJS.Timeout | null = null;
     if (options.timeout) {
-      timeoutId = setTimeout(() => {
-      }, options.timeout);
+      timeoutId = setTimeout(() => {}, options.timeout);
     }
 
     // Subscribe to each filter individually to avoid subscribeMany issues
@@ -225,17 +223,14 @@ export class NostrClient {
   async publishEvent(event: NostrEvent): Promise<void> {
     try {
       await this.pool.publish(this.relays, event);
-      
-      
     } catch (error: any) {
       const msg = String(error?.message || error || '');
-      
-      
+
       // Check for PoW requirements and treat as non-fatal
       if (msg.includes('pow:') || msg.toLowerCase().includes('proof-of-work')) {
         return; // soft-success
       }
-      
+
       throw new Error(`Failed to publish event ${event.id}: ${msg}`);
     }
   }
@@ -243,7 +238,10 @@ export class NostrClient {
   /**
    * Test publishing to individual relays for debugging
    */
-  async testRelayPublish(event: NostrEvent, relayUrl: string): Promise<{ success: boolean; error?: string }> {
+  async testRelayPublish(
+    event: NostrEvent,
+    relayUrl: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
       // Don't modify the event - just test with the original event
       // The duplicate errors are expected and don't indicate failure
@@ -251,7 +249,7 @@ export class NostrClient {
       return { success: true };
     } catch (error: any) {
       const msg = String(error?.message || error || '');
-      
+
       // Ignore duplicate errors as they're expected when testing
       if (msg.includes('duplicate')) {
         return { success: true };
@@ -271,10 +269,12 @@ export class NostrClient {
     issues: string[];
   }> {
     const results = await this.testAllRelays(event);
-    
+
     const workingRelays = results.filter(r => r.success).map(r => r.relay);
-    const failedRelays = results.filter(r => !r.success).map(r => ({ relay: r.relay, error: r.error || 'Unknown error' }));
-    
+    const failedRelays = results
+      .filter(r => !r.success)
+      .map(r => ({ relay: r.relay, error: r.error || 'Unknown error' }));
+
     // Extract PoW requirements
     const powRelays = failedRelays
       .filter(failed => failed.error.includes('pow:'))
@@ -285,24 +285,32 @@ export class NostrClient {
           bits: bitsMatch ? parseInt(bitsMatch[1]) : 0
         };
       });
-    
+
     const issues: string[] = [];
-    
+
     // Categorize common issues
     failedRelays.forEach(failed => {
-      if (failed.error.includes('pubkey not admitted') || failed.error.includes('blocked')) {
-        issues.push(`${failed.relay}: Admission policy (new users not allowed)`);
+      if (
+        failed.error.includes('pubkey not admitted') ||
+        failed.error.includes('blocked')
+      ) {
+        issues.push(
+          `${failed.relay}: Admission policy (new users not allowed)`
+        );
       } else if (failed.error.includes('pow:')) {
         const bitsMatch = failed.error.match(/pow:\s*(\d+)\s*bits/);
         const bits = bitsMatch ? bitsMatch[1] : 'unknown';
         issues.push(`${failed.relay}: Requires ${bits}-bit proof-of-work`);
-      } else if (failed.error.includes('WebSocket') || failed.error.includes('connection')) {
+      } else if (
+        failed.error.includes('WebSocket') ||
+        failed.error.includes('connection')
+      ) {
         issues.push(`${failed.relay}: Connection failed (relay may be down)`);
       } else {
         issues.push(`${failed.relay}: ${failed.error}`);
       }
     });
-    
+
     const summary = {
       totalRelays: this.relays.length,
       workingRelays,
@@ -310,17 +318,18 @@ export class NostrClient {
       powRelays,
       issues
     };
-    
-    
+
     return summary;
   }
 
   /**
    * Test specifically for PoW requirements across all relays
    */
-  async testPowRequirements(event: NostrEvent): Promise<{ relay: string; bits: number; error: string }[]> {
+  async testPowRequirements(
+    event: NostrEvent
+  ): Promise<{ relay: string; bits: number; error: string }[]> {
     const results = await this.testAllRelays(event);
-    
+
     const powResults = results
       .filter(r => r.error?.includes('pow:'))
       .map(r => {
@@ -331,19 +340,18 @@ export class NostrClient {
           error: r.error || 'Unknown PoW error'
         };
       });
-    
-    
+
     return powResults;
   }
-
- 
 
   /**
    * Test all relays individually to identify which ones are blocking
    */
-  async testAllRelays(event: NostrEvent): Promise<{ relay: string; success: boolean; error?: string }[]> {
+  async testAllRelays(
+    event: NostrEvent
+  ): Promise<{ relay: string; success: boolean; error?: string }[]> {
     const results = [];
-    
+
     for (const relay of this.relays) {
       const result = await this.testRelayPublish(event, relay);
       results.push({
@@ -352,7 +360,7 @@ export class NostrClient {
         error: result.error
       });
     }
-    
+
     return results;
   }
 
@@ -395,7 +403,6 @@ export class NostrClient {
             throw new Error('Invalid filter: missing kinds');
           }
         }
-
 
         // Ensure filters are plain objects and properly format hashtag properties
         const cleanFilters = filters
@@ -582,7 +589,7 @@ export class NostrClient {
    */
   destroy(): void {
     this.unsubscribeAll();
-    
+
     if (this.pool && typeof this.pool.close === 'function') {
       try {
         this.pool.close();

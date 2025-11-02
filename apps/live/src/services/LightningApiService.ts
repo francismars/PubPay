@@ -31,8 +31,31 @@ export interface LightningPayment {
 export class LightningApiService {
   private baseUrl: string;
 
-  constructor(baseUrl: string = 'http://localhost:3002') {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl?: string) {
+    // Use provided baseUrl, or dynamically determine from environment
+    if (baseUrl) {
+      this.baseUrl = baseUrl;
+    } else {
+      // Check for Webpack-injected environment variable first
+      if (
+        typeof process !== 'undefined' &&
+        (process as any).env?.REACT_APP_BACKEND_URL
+      ) {
+        this.baseUrl = (process as any).env.REACT_APP_BACKEND_URL;
+      } else if (typeof window !== 'undefined') {
+        // In production, use same origin (Nginx will proxy)
+        const isProduction =
+          window.location.protocol === 'https:' ||
+          window.location.hostname !== 'localhost';
+        if (isProduction) {
+          this.baseUrl = window.location.origin;
+        } else {
+          this.baseUrl = 'http://localhost:3002';
+        }
+      } else {
+        this.baseUrl = 'http://localhost:3002';
+      }
+    }
   }
 
   // Enable Lightning payments for an event

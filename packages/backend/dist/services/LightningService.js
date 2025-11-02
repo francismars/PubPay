@@ -9,9 +9,9 @@ class LightningService {
     constructor() {
         this.config = {
             enabled: true,
-            lnbitsUrl: process.env.LNBITS_URL || 'https://legend.lnbits.com',
-            apiKey: process.env.LNBITS_API_KEY || '',
-            webhookUrl: process.env.WEBHOOK_URL || ''
+            lnbitsUrl: process.env['LNBITS_URL'] || 'https://legend.lnbits.com',
+            apiKey: process.env['LNBITS_API_KEY'] || '',
+            webhookUrl: process.env['WEBHOOK_URL'] || ''
         };
         this.logger = new logger_1.Logger('LightningService');
         // Validate configuration
@@ -58,10 +58,11 @@ class LightningService {
                 hasApiKey: !!this.config.apiKey,
                 webhookUrl: this.config.webhookUrl
             });
-            const lnurl = await this.createLNBitsLNURL(eventId, frontendSessionId);
+            const result = await this.createLNBitsLNURL(eventId, frontendSessionId);
             return {
                 success: true,
-                lnurl,
+                lnurl: result.lnurl,
+                id: result.id,
                 existing: false
             };
         }
@@ -76,7 +77,7 @@ class LightningService {
     /**
      * Create LNURL-pay link using LNBits API
      */
-    async createLNBitsLNURL(eventId, frontendSessionId) {
+    async createLNBitsLNURL(eventId, _frontendSessionId) {
         const requestBody = {
             description: `PubPay Live - Real-time Tip Tracker`,
             min: 1000, // 1 sat minimum
@@ -95,6 +96,11 @@ class LightningService {
             },
             body: JSON.stringify(requestBody)
         });
+        this.logger.info('LNBits API response:', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries())
+        });
         if (!response.ok) {
             const errorText = await response.text();
             this.logger.error('LNBits API error:', {
@@ -104,13 +110,18 @@ class LightningService {
             });
             throw new Error(`LNBits API error: ${response.status} ${response.statusText} - ${errorText}`);
         }
-        const data = await response.json();
+        const data = (await response.json());
+        this.logger.info('LNBits API response data:', data);
         if (!data.lnurl) {
             this.logger.error('No LNURL in LNBits response:', data);
             throw new Error('No LNURL returned from LNBits API');
         }
         this.logger.info(`✅ Created LNURL for event ${eventId}: ${data.lnurl}`);
-        return data.lnurl;
+        this.logger.info(`📋 LNURL-pay ID: ${data.id}`);
+        return {
+            lnurl: data.lnurl,
+            id: data.id // Include the LNURL-pay ID for webhook mapping
+        };
     }
     /**
      * Get Lightning configuration status

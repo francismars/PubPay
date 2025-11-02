@@ -1,0 +1,51 @@
+// Shared utility for determining API base URL
+// Use lazy initialization to cache the result after first evaluation
+let cachedApiBase: string | null = null;
+
+/**
+ * Get the API base URL for backend requests.
+ * Uses lazy initialization to cache the result after first evaluation.
+ *
+ * Priority:
+ * 1. Webpack-injected REACT_APP_BACKEND_URL environment variable
+ * 2. window.location.origin (for production via Nginx proxy)
+ * 3. http://localhost:3002 (development fallback)
+ */
+export const getApiBase = (): string => {
+  // Return cached value if already computed
+  if (cachedApiBase !== null) {
+    return cachedApiBase;
+  }
+
+  let result: string;
+
+  // Check for Webpack-injected environment variable (process.env.REACT_APP_BACKEND_URL)
+  // Webpack DefinePlugin injects process.env at build time
+  const envBackendUrl =
+    typeof process !== 'undefined'
+      ? (process as any).env?.REACT_APP_BACKEND_URL
+      : undefined;
+  if (envBackendUrl && typeof envBackendUrl === 'string') {
+    result = envBackendUrl;
+  } else if (typeof window !== 'undefined') {
+    // In production, use same origin (Nginx proxies to backend)
+    // Check if we're in production (HTTPS or production domain)
+    const isProduction =
+      window.location.protocol === 'https:' ||
+      window.location.hostname !== 'localhost';
+    if (isProduction) {
+      // Use same origin - Nginx will proxy to backend
+      result = window.location.origin;
+    } else {
+      // Development fallback
+      result = 'http://localhost:3002';
+    }
+  } else {
+    // Fallback when window is not available
+    result = 'http://localhost:3002';
+  }
+
+  // Cache and return
+  cachedApiBase = result;
+  return result;
+};

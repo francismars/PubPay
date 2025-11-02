@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -9,7 +10,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, '../../dist/live'),
     filename: 'main.[contenthash].js',
-    publicPath: '/',
+    publicPath: isProduction ? '/live/' : '/',
     clean: true
   },
   resolve: {
@@ -49,7 +50,10 @@ module.exports = {
       {
         test: /\.css$/i,
         use: isProduction
-          ? [require.resolve('mini-css-extract-plugin/dist/loader'), 'css-loader']
+          ? [
+              require.resolve('mini-css-extract-plugin/dist/loader'),
+              'css-loader'
+            ]
           : ['style-loader', 'css-loader']
       },
       {
@@ -87,8 +91,26 @@ module.exports = {
       Buffer: ['buffer', 'Buffer'],
       process: 'process/browser'
     }),
+    // Copy favicon and icon files to output directory
+    // These are referenced in index.html but not imported in code, so we copy them directly
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: path.resolve(
+            __dirname,
+            '../../apps/live/src/assets/images/icon'
+          ),
+          to: 'images',
+          noErrorOnMissing: true
+        }
+      ]
+    }),
     ...(isProduction
-      ? [new (require('mini-css-extract-plugin'))({ filename: 'css/[name].[contenthash].css' })]
+      ? [
+          new (require('mini-css-extract-plugin'))({
+            filename: 'css/[name].[contenthash].css'
+          })
+        ]
       : [])
   ],
   devServer: {

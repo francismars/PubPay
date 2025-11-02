@@ -47,7 +47,8 @@ export function getAllTagValues(tags, key) {
 // Zap description payload per NIP-57 (minimal fields we use)
 export const ZapDescriptionSchema = z.object({
     pubkey: z.string().length(64).optional(),
-    id: z.string().length(64).optional()
+    id: z.string().length(64).optional(),
+    content: z.string().optional()
 });
 export function parseZapDescription(input) {
     if (!input)
