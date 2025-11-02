@@ -1,6 +1,9 @@
 // Service Worker for PUBPAY.me PWA
-const CACHE_NAME = 'pubpay-v1';
-const RUNTIME_CACHE = 'pubpay-runtime-v1';
+// IMPORTANT: Update CACHE_NAME when deploying a new version to force cache refresh
+// IMPORTANT: Also update the VERSION comment below to ensure browser detects the change
+// VERSION: 2025-11-02-v0.01
+const CACHE_NAME = 'pubpay-v0.01';
+const RUNTIME_CACHE = 'pubpay-runtime-v0.01';
 
 // Assets to cache on install (static assets without contenthash)
 const STATIC_ASSETS = [
@@ -13,6 +16,7 @@ const STATIC_ASSETS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
+  console.log('[Service Worker] Installing new version...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -23,26 +27,39 @@ self.addEventListener('install', (event) => {
         console.error('[Service Worker] Cache failed:', error);
       })
   );
+  // Force immediate activation of new service worker
   self.skipWaiting();
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
+  console.log('[Service Worker] Activating new version...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
+      return Promise.all([
+        // Delete old caches
+        ...cacheNames
           .filter((cacheName) => {
             return cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE;
           })
           .map((cacheName) => {
             console.log('[Service Worker] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
-          })
-      );
+          }),
+        // Claim all clients immediately
+        self.clients.claim()
+      ]);
     })
   );
-  self.clients.claim();
+});
+
+// Note: skipWaiting() in install handler already forces immediate activation
+// This message handler is kept for manual update triggers if needed in future
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[Service Worker] Received SKIP_WAITING message, forcing activation');
+    self.skipWaiting();
+  }
 });
 
 // Fetch event - serve from cache, fallback to network
