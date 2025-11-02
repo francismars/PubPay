@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../assets/images';
-import * as NostrTools from 'nostr-tools';
+import { nip19 } from 'nostr-tools';
 import { formatContent } from '../utils/contentFormatter';
 import { useUIStore } from '@pubpay/shared-services';
 
@@ -557,7 +557,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               if (!isLink) {
                 console.log('noteContent clicked for post:', post.id);
                 // Navigate to single note view using NIP-19 encoding
-                const nevent = NostrTools.nip19.noteEncode(post.id);
+                const nevent = nip19.noteEncode(post.id);
                 console.log('Navigating to single note:', nevent);
                 window.location.href = `/note/${nevent}`;
               }
@@ -626,7 +626,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     ? post.zapPayerName
                     : (() => {
                         if (post.zapPayer) {
-                          const npub = NostrTools.nip19.npubEncode(
+                          const npub = nip19.npubEncode(
                             post.zapPayer
                           );
                           return npub.length > 35
@@ -710,7 +710,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     />
                   </a>
                   <a
-                    href={`/note/${NostrTools.nip19.noteEncode(zap.id)}`}
+                    href={`/note/${nip19.noteEncode(zap.id)}`}
                     className="zapReactionAmount"
                   >
                     {zap.zapAmount ? zap.zapAmount.toLocaleString() : '0'}
@@ -836,7 +836,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       />
                     </a>
                     <a
-                      href={`/note/${NostrTools.nip19.noteEncode(zap.id)}`}
+                      href={`/note/${nip19.noteEncode(zap.id)}`}
                       className="zapReactionAmount"
                     >
                       {zap.zapAmount ? zap.zapAmount.toLocaleString() : '0'}

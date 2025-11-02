@@ -1,4 +1,4 @@
-import * as NostrTools from 'nostr-tools';
+import { nip04, nip19, utils, finalizeEvent, getPublicKey, SimplePool } from 'nostr-tools';
 
 type NwcUri = {
   walletPubkey: string;
@@ -20,13 +20,13 @@ type RpcResponse<T = unknown> = {
 
 export class NwcClient {
   private uri: NwcUri;
-  private pool: unknown; // NostrTools.SimplePool
+  private pool: SimplePool;
 
   static STORAGE_KEY = 'nwcConnectionString';
 
   constructor(connectionString: string) {
     this.uri = this.parseConnectionString(connectionString);
-    this.pool = new (NostrTools as any).SimplePool();
+    this.pool = new SimplePool();
   }
 
   async getInfo(): Promise<{
@@ -99,7 +99,7 @@ export class NwcClient {
     const contentJson = JSON.stringify(request);
 
     // Use nip04 encryption for compatibility
-    const ciphertext = await NostrTools.nip04.encrypt(
+    const ciphertext = await nip04.encrypt(
       this.uri.clientSecretHex,
       this.uri.walletPubkey,
       contentJson
@@ -116,8 +116,8 @@ export class NwcClient {
       ]
     };
 
-    const skBytes = NostrTools.utils.hexToBytes(this.uri.clientSecretHex);
-    const requestEvent = NostrTools.finalizeEvent(
+    const skBytes = utils.hexToBytes(this.uri.clientSecretHex);
+    const requestEvent = finalizeEvent(
       eventTemplate as any,
       skBytes
     );
@@ -137,7 +137,7 @@ export class NwcClient {
       const sub = (this.pool as any).subscribe(this.uri.relays, filter, {
         onevent: async (evt: any) => {
           try {
-            const plaintext = await NostrTools.nip04.decrypt(
+            const plaintext = await nip04.decrypt(
               this.uri.clientSecretHex,
               this.uri.walletPubkey,
               evt.content
@@ -185,8 +185,8 @@ export class NwcClient {
     secret = secret.trim();
     let clientSecretHex: string;
     if (secret.startsWith('nsec')) {
-      const decoded = NostrTools.nip19.decode(secret).data as Uint8Array;
-      clientSecretHex = NostrTools.utils.bytesToHex(decoded);
+      const decoded = nip19.decode(secret).data as Uint8Array;
+      clientSecretHex = utils.bytesToHex(decoded);
     } else {
       clientSecretHex = secret;
     }
@@ -195,8 +195,8 @@ export class NwcClient {
       throw new Error('Invalid NWC connection string');
     }
 
-    const clientPubkey = NostrTools.getPublicKey(
-      NostrTools.utils.hexToBytes(clientSecretHex)
+    const clientPubkey = getPublicKey(
+      utils.hexToBytes(clientSecretHex)
     );
     return { walletPubkey, relays, clientSecretHex, clientPubkey };
   }

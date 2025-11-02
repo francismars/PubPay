@@ -5,7 +5,7 @@ import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { InvoiceQR } from '@pubpay/shared-ui';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../assets/images';
-import * as NostrTools from 'nostr-tools';
+import { nip19 } from 'nostr-tools';
 import { NewPayNoteOverlay } from './NewPayNoteOverlay';
 
 export const Layout: React.FC = () => {
@@ -99,13 +99,13 @@ export const Layout: React.FC = () => {
       if (!match) return;
 
       const token = match[0];
-      const decoded = NostrTools.nip19.decode(token);
+      const decoded = nip19.decode(token);
 
       if (decoded.type === 'note') {
         window.location.href = `/note/${token}`;
       } else if (decoded.type === 'nevent') {
         const noteID = (decoded.data as any).id;
-        const note1 = NostrTools.nip19.noteEncode(noteID);
+        const note1 = nip19.noteEncode(noteID);
         window.location.href = `/note/${note1}`;
       } else if (decoded.type === 'npub') {
         const pubkeyHex = decoded.data as string;
@@ -536,12 +536,9 @@ export const Layout: React.FC = () => {
                   />
                   <span className="profileUserNameNav">
                     {authState.displayName ||
-                      (typeof window !== 'undefined' &&
-                      (window as any).NostrTools
-                        ? (window as any).NostrTools.nip19
-                            .npubEncode(authState.publicKey)
-                            .substring(0, 12) + '...'
-                        : authState.publicKey?.substring(0, 12) + '...')}
+                      (authState.publicKey
+                        ? nip19.npubEncode(authState.publicKey).substring(0, 12) + '...'
+                        : '...')}
                   </span>
                 </div>
               ) : (
@@ -1095,11 +1092,9 @@ export const Layout: React.FC = () => {
             {authState.publicKey ? (
               <a href={`/profile`} className="userMention">
                 {authState.displayName ||
-                  (typeof window !== 'undefined' && (window as any).NostrTools
-                    ? (window as any).NostrTools.nip19.npubEncode(
-                        authState.publicKey
-                      )
-                    : authState.publicKey)}
+                  (authState.publicKey
+                    ? nip19.npubEncode(authState.publicKey)
+                    : '')}
               </a>
             ) : (
               'Unknown'

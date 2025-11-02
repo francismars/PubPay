@@ -1,5 +1,5 @@
 import { RELAYS } from '../../utils/constants';
-import * as NostrTools from 'nostr-tools';
+import { SimplePool } from 'nostr-tools';
 export class NostrClient {
     constructor(relays = RELAYS) {
         this.connections = new Map();
@@ -9,8 +9,8 @@ export class NostrClient {
         this.initializePool();
     }
     initializePool() {
-        // Initialize NostrTools.SimplePool using npm package
-        this.pool = new NostrTools.SimplePool();
+        // Initialize SimplePool using npm package
+        this.pool = new SimplePool();
         // Add error handling to the pool's internal relay connections
         this.setupPoolErrorHandling();
     }
@@ -20,6 +20,7 @@ export class NostrClient {
     setupPoolErrorHandling() {
         // Override the pool's publish method to catch errors
         const originalPublish = this.pool.publish.bind(this.pool);
+        // Use type assertion since we're wrapping the method with error handling
         this.pool.publish = async (relays, event) => {
             try {
                 return await originalPublish(relays, event);
@@ -33,8 +34,8 @@ export class NostrClient {
                     errorMessage.includes('invalid:') ||
                     errorMessage.includes('pubkey not admitted') ||
                     errorMessage.includes('admission')) {
-                    // Don't re-throw these errors
-                    return;
+                    // Don't re-throw these errors - return empty array as SimplePool.publish returns Promise<string[]>
+                    return Promise.resolve([]);
                 }
                 // Re-throw other errors
                 throw error;
@@ -59,7 +60,10 @@ export class NostrClient {
         // Subscribe to each filter individually to avoid subscribeMany issues
         const subscriptions = [];
         filters.forEach(filter => {
-            const sub = this.pool.subscribe(this.relays, filter, {
+            // Convert NostrFilter to compatible format for SimplePool
+            // SimplePool.subscribe expects a single Filter, not an array
+            const poolFilter = filter; // Type assertion for index signatures
+            const sub = this.pool.subscribe(this.relays, poolFilter, {
                 onevent: (event) => {
                     if (timeoutId) {
                         clearTimeout(timeoutId);
@@ -72,7 +76,7 @@ export class NostrClient {
                     }
                     options.oneose?.();
                 },
-                onclosed: () => {
+                onclose: () => {
                     if (timeoutId) {
                         clearTimeout(timeoutId);
                     }
@@ -355,8 +359,10 @@ export class NostrClient {
                 let completedSubscriptions = 0;
                 const totalSubscriptions = cleanFilters.length;
                 // Subscribe to each filter individually
+                // SimplePool.subscribe expects a single Filter, not an array
                 const subscriptions = cleanFilters.map(filter => {
-                    return this.pool.subscribe(this.relays, filter, {
+                    const poolFilter = filter; // Type assertion for index signatures
+                    return this.pool.subscribe(this.relays, poolFilter, {
                         onevent(event) {
                             events.push(event);
                         },
@@ -368,7 +374,7 @@ export class NostrClient {
                                 resolve(events);
                             }
                         },
-                        onclosed() {
+                        onclose() {
                             completedSubscriptions++;
                             if (completedSubscriptions === totalSubscriptions &&
                                 !isComplete) {
@@ -462,7 +468,12 @@ export class NostrClient {
         this.unsubscribeAll();
         if (this.pool && typeof this.pool.close === 'function') {
             try {
-                this.pool.close();
+                // SimplePool.close() may require a relay parameter or may not exist
+                // Use type assertion and check if method exists
+                const closeMethod = this.pool.close;
+                if (closeMethod.length === 0) {
+                    closeMethod();
+                }
             }
             catch (_err) {
                 // Ignore close errors (can occur in StrictMode double-unmounts)

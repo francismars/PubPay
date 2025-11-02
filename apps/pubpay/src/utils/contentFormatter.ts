@@ -1,5 +1,5 @@
 // Content formatter utility - shared between PayNoteComponent and NewPayNoteOverlay
-import * as NostrTools from 'nostr-tools';
+import { nip19 } from 'nostr-tools';
 import { getQueryClient } from '@pubpay/shared-services';
 import { ensureProfiles } from '@pubpay/shared-services';
 
@@ -17,10 +17,10 @@ export async function getMentionUserName(
     // Check if it's a hex pubkey (64 characters)
     if (pubkeyOrNpub.length === 64 && /^[0-9a-fA-F]+$/.test(pubkeyOrNpub)) {
       pubkey = pubkeyOrNpub;
-      displayKey = NostrTools.nip19.npubEncode(pubkey);
+      displayKey = nip19.npubEncode(pubkey);
     } else {
       // Assume it's an npub/nprofile
-      const decoded = NostrTools.nip19.decode(pubkeyOrNpub);
+      const decoded = nip19.decode(pubkeyOrNpub);
       if (decoded.type !== 'npub' && decoded.type !== 'nprofile') {
         console.error('Invalid npub format');
         return pubkeyOrNpub.length > 35

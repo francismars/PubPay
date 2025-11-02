@@ -15,7 +15,7 @@ import {
   FollowService
 } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
-import * as NostrTools from 'nostr-tools';
+import { nip19 } from 'nostr-tools';
 import { PayNoteComponent } from '../components/PayNoteComponent';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { parseZapDescription, safeJson } from '@pubpay/shared-utils';
@@ -32,7 +32,7 @@ const isValidPublicKey = (pubkey: string): boolean => {
   // Check for npub format
   if (pubkey.startsWith('npub1')) {
     try {
-      const decoded = NostrTools.nip19.decode(pubkey);
+      const decoded = nip19.decode(pubkey);
       return decoded.type === 'npub';
     } catch {
       return false;
@@ -42,7 +42,7 @@ const isValidPublicKey = (pubkey: string): boolean => {
   // Check for nprofile format
   if (pubkey.startsWith('nprofile1')) {
     try {
-      const decoded = NostrTools.nip19.decode(pubkey);
+      const decoded = nip19.decode(pubkey);
       return decoded.type === 'nprofile';
     } catch {
       return false;
@@ -175,7 +175,7 @@ const ProfilePage: React.FC = () => {
       pubkeyOrNpub.startsWith('nprofile1')
     ) {
       try {
-        const decoded = NostrTools.nip19.decode(pubkeyOrNpub);
+        const decoded = nip19.decode(pubkeyOrNpub);
         if (decoded.type === 'npub') {
           return decoded.data;
         } else if (decoded.type === 'nprofile') {
@@ -716,7 +716,7 @@ const ProfilePage: React.FC = () => {
                   : genericUserIcon;
 
                 const zapPayerNpub =
-                  NostrTools.nip19.npubEncode(zapPayerPubkey);
+                  nip19.npubEncode(zapPayerPubkey);
 
                 return {
                   ...zap,
@@ -922,19 +922,19 @@ const ProfilePage: React.FC = () => {
 
       // If it's an nprofile, extract the pubkey and convert to npub
       if (keyToConvert.startsWith('nprofile1')) {
-        const decoded = NostrTools.nip19.decode(keyToConvert);
+        const decoded = nip19.decode(keyToConvert);
         if ((decoded as any).type === 'nprofile') {
-          return NostrTools.nip19.npubEncode((decoded.data as any).pubkey);
+          return nip19.npubEncode((decoded.data as any).pubkey);
         }
       }
 
       // If it's a hex string, convert to npub
       if (keyToConvert.length === 64 && /^[0-9a-fA-F]+$/.test(keyToConvert)) {
-        return NostrTools.nip19.npubEncode(keyToConvert);
+        return nip19.npubEncode(keyToConvert);
       }
 
       // If it's already a string, try to encode it directly
-      return NostrTools.nip19.npubEncode(keyToConvert);
+      return nip19.npubEncode(keyToConvert);
     } catch (error) {
       console.error('Failed to convert public key to npub:', error);
       return keyToConvert; // Return original if conversion fails

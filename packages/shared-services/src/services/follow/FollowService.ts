@@ -1,4 +1,4 @@
-import * as NostrTools from 'nostr-tools';
+import { nip19, finalizeEvent } from 'nostr-tools';
 import { ensureProfiles } from '../query/profileQueries';
 import { getQueryClient } from '../query/queryClient';
 import { AuthService } from '../AuthService';
@@ -35,7 +35,7 @@ export class FollowService {
         unique
       );
       return Array.from(profileMap.values() as Iterable<any>).map((p: any) => {
-        const npub = NostrTools.nip19.npubEncode(p.pubkey);
+        const npub = nip19.npubEncode(p.pubkey);
         let displayName = npub;
         try {
           const content = JSON.parse(p.content || '{}');
@@ -118,8 +118,8 @@ export class FollowService {
       if ((window as any).nostr)
         signed = await (window as any).nostr.signEvent(event);
     } else if (method === 'nsec' && privateKey) {
-      const decoded = NostrTools.nip19.decode(privateKey);
-      signed = NostrTools.finalizeEvent(event, decoded.data as Uint8Array);
+      const decoded = nip19.decode(privateKey);
+      signed = finalizeEvent(event, decoded.data as Uint8Array);
     } else if (method === 'externalSigner') {
       alert('Following via external signer is not yet supported.');
       return false;
@@ -157,8 +157,8 @@ export class FollowService {
       if ((window as any).nostr)
         signed = await (window as any).nostr.signEvent(event);
     } else if (method === 'nsec' && privateKey) {
-      const decoded = NostrTools.nip19.decode(privateKey);
-      signed = NostrTools.finalizeEvent(event, decoded.data as Uint8Array);
+      const decoded = nip19.decode(privateKey);
+      signed = finalizeEvent(event, decoded.data as Uint8Array);
     } else if (method === 'externalSigner') {
       alert('Unfollow via external signer is not yet supported.');
       return false;

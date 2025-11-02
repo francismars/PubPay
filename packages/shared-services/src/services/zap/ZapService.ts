@@ -1,5 +1,5 @@
 // import { NostrEvent } from '@/types/nostr'; // Unused import
-import * as NostrTools from 'nostr-tools';
+import { nip57, nip19, getEventHash, generateSecretKey, finalizeEvent } from 'nostr-tools';
 import { RELAYS } from '../../utils/constants';
 
 export interface ZapCallback {
@@ -119,8 +119,8 @@ export class ZapService {
           ? parseInt(rangeValue.toString()) * 1000
           : Math.floor(parseInt(zapTagAmount));
 
-      // Create zap request using NostrTools.nip57.makeZapRequest
-      const zapEvent = await NostrTools.nip57.makeZapRequest({
+      // Create zap request using nip57.makeZapRequest
+      const zapEvent = await nip57.makeZapRequest({
         event: eventData as any,
         pubkey: (eventData as any).pubkey,
         amount: amountPay,
@@ -136,7 +136,7 @@ export class ZapService {
 
       if (pubKey !== null) {
         (zapEvent as any).pubkey = pubKey;
-        const eventID = NostrTools.getEventHash(zapEvent as any);
+        const eventID = getEventHash(zapEvent as any);
         if (eventID !== null) (zapEvent as any).id = eventID;
       }
 
@@ -180,8 +180,8 @@ export class ZapService {
 
       if (anonymousZap === true) {
         console.log('Using anonymous zap signing');
-        const privateKey = NostrTools.generateSecretKey();
-        zapFinalized = NostrTools.finalizeEvent(zapEvent as any, privateKey);
+        const privateKey = generateSecretKey();
+        zapFinalized = finalizeEvent(zapEvent as any, privateKey);
       } else if (signInMethod === 'externalSigner') {
         console.log('Using external signer');
         const eventString = JSON.stringify(zapEvent);
@@ -208,8 +208,8 @@ export class ZapService {
           console.error('No private key found. Please sign in first.');
           return false;
         }
-        const { data } = NostrTools.nip19.decode(privateKey);
-        zapFinalized = NostrTools.finalizeEvent(
+        const { data } = nip19.decode(privateKey);
+        zapFinalized = finalizeEvent(
           zapEvent as any,
           data as unknown as Uint8Array
         );
@@ -217,8 +217,8 @@ export class ZapService {
         console.log(
           'No valid signing method found, falling back to anonymous zap'
         );
-        const privateKey = NostrTools.generateSecretKey();
-        zapFinalized = NostrTools.finalizeEvent(zapEvent as any, privateKey);
+        const privateKey = generateSecretKey();
+        zapFinalized = finalizeEvent(zapEvent as any, privateKey);
       }
 
       // Check if zapFinalized was successfully created

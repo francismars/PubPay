@@ -22,7 +22,7 @@ import { LightningConfig } from '@pubpay/shared-types';
 import { genericUserIcon } from '../assets/images';
 
 // Import npm packages
-import * as NostrTools from 'nostr-tools';
+import { nip19, finalizeEvent, getEventHash, verifyEvent } from 'nostr-tools';
 import * as bolt11 from 'bolt11';
 import QRCode from 'qrcode';
 
@@ -292,7 +292,7 @@ export const useHomeFunctionality = () => {
                 }
 
                 const eventSigned = { ...payload.event, sig };
-                const verified = NostrTools.verifyEvent(eventSigned);
+                const verified = verifyEvent(eventSigned);
                 if (!verified) {
                   console.error('Invalid signed event (note)');
                   return;
@@ -328,7 +328,7 @@ export const useHomeFunctionality = () => {
               }
 
               const eventSigned = { ...payload.event, sig };
-              const verified = NostrTools.verifyEvent(eventSigned);
+              const verified = verifyEvent(eventSigned);
               if (!verified) {
                 console.error('Invalid signed event (zap)');
                 return;
@@ -393,7 +393,7 @@ export const useHomeFunctionality = () => {
               }
 
               const eventSigned = { ...eventTemplate, sig };
-              const verified = NostrTools.verifyEvent(eventSigned);
+              const verified = verifyEvent(eventSigned);
               if (!verified) {
                 console.error('Invalid signed event (profile update)');
                 try {
@@ -1139,7 +1139,7 @@ export const useHomeFunctionality = () => {
             : genericUserIcon;
 
           // Generate npub for the zap payer
-          const zapPayerNpub = NostrTools.nip19.npubEncode(zapPayerPubkey);
+          const zapPayerNpub = nip19.npubEncode(zapPayerPubkey);
           zapPayerPubkey;
 
           return {
@@ -1280,7 +1280,7 @@ export const useHomeFunctionality = () => {
 
         // Create npub for zap payer
         const zapPayerNpub = zapPayerPubkey
-          ? NostrTools.nip19.npubEncode(zapPayerPubkey)
+            ? nip19.npubEncode(zapPayerPubkey)
           : '';
 
         return {
@@ -1838,7 +1838,7 @@ export const useHomeFunctionality = () => {
         npubMentions.forEach((mention: string) => {
           try {
             const cleanNpub = mention.replace(/^nostr:/i, '');
-            const decoded = NostrTools.nip19.decode(cleanNpub);
+            const decoded = nip19.decode(cleanNpub);
             if (decoded.type === 'npub') {
               tags.push(['p', decoded.data, '', 'mention']);
             }
@@ -1872,12 +1872,12 @@ export const useHomeFunctionality = () => {
           console.error('Private key not available');
           return;
         }
-        const { data } = NostrTools.nip19.decode(authState.privateKey);
-        signedEvent = NostrTools.finalizeEvent(event, data as Uint8Array);
+        const { data } = nip19.decode(authState.privateKey);
+        signedEvent = finalizeEvent(event, data as Uint8Array);
       } else if (authState.signInMethod === 'externalSigner') {
         // For external signer, we need to redirect
         event.pubkey = authState.publicKey!;
-        event.id = NostrTools.getEventHash(event);
+        event.id = getEventHash(event);
         const eventString = JSON.stringify(event);
         sessionStorage.setItem('SignKind1', JSON.stringify({ event }));
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
@@ -1888,7 +1888,7 @@ export const useHomeFunctionality = () => {
       }
 
       // Verify the event
-      if (!NostrTools.verifyEvent(signedEvent)) {
+      if (!verifyEvent(signedEvent)) {
         console.error('Invalid signed event');
         return;
       }
@@ -2203,7 +2203,7 @@ export const useHomeFunctionality = () => {
 
         if (noteRef) {
           try {
-            const decoded = NostrTools.nip19.decode(noteRef);
+            const decoded = nip19.decode(noteRef);
             if (decoded.type === 'note' || decoded.type === 'nevent') {
               // note: decoded.data is id; nevent: decoded.data.id
               singlePostEventId =
@@ -2672,7 +2672,7 @@ export const useHomeFunctionality = () => {
 
       // Create npub for zap payer
       const zapPayerNpub = zapPayerPubkey
-        ? NostrTools.nip19.npubEncode(zapPayerPubkey)
+            ? nip19.npubEncode(zapPayerPubkey)
         : '';
 
       return {
@@ -2759,7 +2759,7 @@ export const useHomeFunctionality = () => {
 
       // Create npub for zap payer
       const zapPayerNpub = zapPayerPubkey
-        ? NostrTools.nip19.npubEncode(zapPayerPubkey)
+            ? nip19.npubEncode(zapPayerPubkey)
         : '';
 
       return {

@@ -1,4 +1,4 @@
-import * as NostrTools from 'nostr-tools';
+import { nip19, getPublicKey, generateSecretKey, finalizeEvent, verifyEvent } from 'nostr-tools';
 import { NostrClient } from './nostr/NostrClient';
 import { RELAYS } from '../utils/constants';
 
@@ -2208,13 +2208,13 @@ export class NostrRegistrationService {
       const rawPrivateKey = mnemonicToPrivateKey(mnemonic);
 
       // Get the public key from the private key
-      const rawPublicKey = NostrTools.getPublicKey(rawPrivateKey);
+      const rawPublicKey = getPublicKey(rawPrivateKey);
 
       // Encode private key as nsec
-      const nsec = NostrTools.nip19.nsecEncode(rawPrivateKey);
+      const nsec = nip19.nsecEncode(rawPrivateKey);
 
       // Encode public key as npub
-      const npub = NostrTools.nip19.npubEncode(rawPublicKey);
+      const npub = nip19.npubEncode(rawPublicKey);
 
       const keyPair: NostrKeyPair = {
         privateKey: nsec,
@@ -2245,16 +2245,16 @@ export class NostrRegistrationService {
   static generateKeyPair(): RegistrationResult {
     try {
       // Generate a new private key (32 random bytes)
-      const rawPrivateKey = NostrTools.generateSecretKey();
+      const rawPrivateKey = generateSecretKey();
 
       // Get the public key from the private key
-      const rawPublicKey = NostrTools.getPublicKey(rawPrivateKey);
+      const rawPublicKey = getPublicKey(rawPrivateKey);
 
       // Encode private key as nsec
-      const nsec = NostrTools.nip19.nsecEncode(rawPrivateKey);
+      const nsec = nip19.nsecEncode(rawPrivateKey);
 
       // Encode public key as npub
-      const npub = NostrTools.nip19.npubEncode(rawPublicKey);
+      const npub = nip19.npubEncode(rawPublicKey);
 
       const keyPair: NostrKeyPair = {
         privateKey: nsec,
@@ -2281,7 +2281,7 @@ export class NostrRegistrationService {
    */
   static validatePrivateKey(nsec: string): boolean {
     try {
-      const { type, data } = NostrTools.nip19.decode(nsec);
+      const { type, data } = nip19.decode(nsec);
       return type === 'nsec' && Boolean(data && data.length === 32);
     } catch {
       return false;
@@ -2293,7 +2293,7 @@ export class NostrRegistrationService {
    */
   static validatePublicKey(npub: string): boolean {
     try {
-      const { type, data } = NostrTools.nip19.decode(npub);
+      const { type, data } = nip19.decode(npub);
       return type === 'npub' && Boolean(data && data.length === 32);
     } catch {
       return false;
@@ -2305,9 +2305,9 @@ export class NostrRegistrationService {
    */
   static getPublicKeyFromPrivate(nsec: string): string | null {
     try {
-      const { data } = NostrTools.nip19.decode(nsec);
-      const publicKey = NostrTools.getPublicKey(data as Uint8Array);
-      return NostrTools.nip19.npubEncode(publicKey);
+      const { data } = nip19.decode(nsec);
+      const publicKey = getPublicKey(data as Uint8Array);
+      return nip19.npubEncode(publicKey);
     } catch {
       return null;
     }
@@ -2334,13 +2334,13 @@ export class NostrRegistrationService {
       const rawPrivateKey = mnemonicToPrivateKey(mnemonic);
 
       // Get the public key from the private key
-      const rawPublicKey = NostrTools.getPublicKey(rawPrivateKey);
+      const rawPublicKey = getPublicKey(rawPrivateKey);
 
       // Encode private key as nsec
-      const nsec = NostrTools.nip19.nsecEncode(rawPrivateKey);
+      const nsec = nip19.nsecEncode(rawPrivateKey);
 
       // Encode public key as npub
-      const npub = NostrTools.nip19.npubEncode(rawPublicKey);
+      const npub = nip19.npubEncode(rawPublicKey);
 
       const keyPair: NostrKeyPair = {
         privateKey: nsec,
@@ -2376,7 +2376,7 @@ export class NostrRegistrationService {
   ): any {
     try {
       // Get the public key from the private key
-      const publicKey = NostrTools.getPublicKey(privateKey);
+      const publicKey = getPublicKey(privateKey);
 
       // Create profile content as JSON string (NIP-01 compliant)
       const profile = {
@@ -2410,12 +2410,12 @@ export class NostrRegistrationService {
         content: JSON.stringify(profile)
       };
 
-      // Use NostrTools.finalizeEvent to properly sign the event
+      // Use finalizeEvent to properly sign the event
       // This handles the NIP-01 serialization, hashing, and signing automatically
-      const signedEvent = NostrTools.finalizeEvent(eventTemplate, privateKey);
+      const signedEvent = finalizeEvent(eventTemplate, privateKey);
 
       // Verify the event is valid
-      if (!NostrTools.verifyEvent(signedEvent)) {
+      if (!verifyEvent(signedEvent)) {
         throw new Error('Failed to create valid signed event');
       }
 
