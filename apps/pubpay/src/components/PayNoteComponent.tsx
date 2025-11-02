@@ -799,6 +799,27 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             </div>
           )}
 
+          {/* Total Zaps Accounting */}
+          {post.zaps.length > 0 && (
+            <div className="totalZapsAccounting">
+              <div className="totalZapsAmount">
+                <span className="totalZapsNumber">
+                  {post.zaps
+                    .reduce((sum, zap) => sum + (zap.zapAmount || 0), 0)
+                    .toLocaleString()}
+                </span>
+                <span className="totalZapsLabel">sats</span>
+              </div>
+              <div className="totalZapsSeparator">·</div>
+              <div className="totalZapsCount">
+                <span className="totalZapsNumber">{post.zaps.length}</span>
+                <span className="totalZapsLabel">
+                  {post.zaps.length === 1 ? 'zap' : 'zaps'}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="noteActionsReactions">
             <div className="noteZaps noteZapReactions">
