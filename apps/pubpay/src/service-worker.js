@@ -82,7 +82,7 @@ self.addEventListener('fetch', (event) => {
   // Skip backend API endpoints (these are proxied to port 3002)
   if (url.pathname.startsWith('/api/') || 
       url.pathname.startsWith('/lightning/') ||
-      (url.pathname.startsWith('/multi/') && !url.pathname.startsWith('/live/multi/'))) {
+      (url.pathname.startsWith('/live/') {
     // Skip caching - always fetch fresh from network
     return;
   }
