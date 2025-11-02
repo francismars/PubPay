@@ -1,7 +1,7 @@
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #f8f9fa;
-  --bg-tertiary: #f1f1f1;
+  --bg-tertiary: #dcdada;
   --text-primary: #333333;
   --text-secondary: #555555;
   --text-tertiary: #888888;
@@ -744,7 +744,7 @@ a.feedSelectorLink {
 a.feedSelectorLink.active {
   border-bottom: 2px solid #4b90ff;
   color: #4b90ff;
-  font-weight: 900;
+  font-weight: 600;
 }
 
 .paynote {
@@ -790,6 +790,7 @@ a.feedSelectorLink.active {
 
 .noteProfileImg {
   width: 8%;
+  flex-shrink: 0;
 }
 
 .userImg {
@@ -928,12 +929,19 @@ body.dark-mode .zapReactionTooltip::after {
 
 .noteData {
   width: 90%;
+  flex: 1;
+  min-width: 0;
 }
 
 .noteHeader {
   display: flex;
   justify-content: space-between;
   margin-top: 0px;
+}
+
+.noteAuthor {
+  flex: 1;
+  min-width: 0;
 }
 
 .noteDisplayName {
@@ -1267,6 +1275,7 @@ button.cta:active {
 .paynote .cta.disabled:hover {
   transform: scale(1);
   box-shadow: none;
+  background: var(--bg-tertiary);
 }
 
 a.noteMainCTA.cta.disabled.red,
@@ -2051,7 +2060,7 @@ textarea:focus::placeholder {
 .zapAmountField {
   width: 100%;
   font-size: 30px;
-  font-weight: 200;
+  font-weight: 300;
   text-align: center;
   padding: 8px 12px 8px 12px;
   border: 1px solid var(--border-color);
@@ -2093,7 +2102,7 @@ textarea:focus::placeholder {
   width: 100%;
   height: 6px;
   border-radius: 6px;
-  background: var(--bg-tertiary);
+  background: var(--bg-primary);
   outline: none;
   -webkit-appearance: none;
   appearance: none;
@@ -2131,7 +2140,7 @@ textarea:focus::placeholder {
   appearance: none;
   width: 100%;
   height: 34px;
-  background: var(--bg-tertiary);
+  background: var(--bg-primary);
   outline: none;
   opacity: 1;
   -webkit-transition: 0.2s;
@@ -2393,17 +2402,80 @@ textarea:focus::placeholder {
   }
 }
 
+/* Tablet and mobile: compact layout with profile in header */
+@media screen and (max-width: 768px) {
+  .paynote {
+    padding: 16px 24px 24px 16px;
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 12px 12px;
+    grid-template-areas:
+      'profile header'
+      'content content';
+  }
+
+  /* Position profile image in grid */
+  .noteProfileImg {
+    grid-area: profile;
+    width: auto;
+    align-self: start;
+    z-index: 1;
+    position: relative;
+  }
+
+  .noteProfileImg img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .noteData {
+    grid-column: 1 / -1;
+    grid-row: 1 / -1;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 0 12px;
+    width: 100%;
+  }
+
+  .noteHeader {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 8px;
+    margin-top: 0;
+    padding-left: 35px;
+    z-index: 0;
+    position: relative;
+  }
+
+  .noteData > *:not(.noteHeader) {
+    grid-column: 1 / -1;
+    
+  }
+
+  .noteContent {
+    font-size: 14px;
+  }
+
+  .zapPayer {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
 @media screen and (max-width: 480px) {
   .paynote {
     padding: 14px 20px 20px 10px;
     margin-top: 20px;
   }
+
+
   .noteContent {
-    font-size: 14px;
-  }
-  .noteProfileImg img {
-    width: 30px;
-    height: 30px;
+    font-size: 13px;
   }
 
   .hideOnMobile {
