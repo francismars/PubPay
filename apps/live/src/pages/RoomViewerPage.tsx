@@ -856,11 +856,12 @@ export const RoomViewerPage: React.FC = () => {
                 items.map((item, idx) => {
                   const isActive = idx === actualIndex % items.length;
                   const base = window.location.origin;
+                  // Items are Nostr note IDs - load them via /live/ route
                   return (
                     <iframe
                       key={item}
                       ref={getIframeRef(item)}
-                      src={`${base}/${encodeURIComponent(item)}`}
+                      src={`${base}/live/${encodeURIComponent(item)}`}
                       title={`Live Viewer ${idx + 1}`}
                       style={{
                         position: 'absolute',
