@@ -96,7 +96,10 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: path.resolve(__dirname, '../../apps/live/src/assets/images/icon'),
+          from: path.resolve(
+            __dirname,
+            '../../apps/live/src/assets/images/icon'
+          ),
           to: 'images',
           noErrorOnMissing: true
         }

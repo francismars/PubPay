@@ -42,13 +42,11 @@ export class RoomsRouter {
       const event = bodyEvent || process.env.PRETALX_EVENT;
       const token = bodyToken || process.env.PRETALX_TOKEN;
       if (!baseUrl || !event || !token) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            error:
-              'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
-          });
+        res.status(400).json({
+          success: false,
+          error:
+            'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
+        });
         return;
       }
       const pretalx = new PretalxService(baseUrl, event, token);
@@ -75,12 +73,10 @@ export class RoomsRouter {
       const event = bodyEvent || process.env.PRETALX_EVENT;
       const token = bodyToken || process.env.PRETALX_TOKEN;
       if (!baseUrl || !event || !token || !version) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            error: 'baseUrl, event, token and version are required'
-          });
+        res.status(400).json({
+          success: false,
+          error: 'baseUrl, event, token and version are required'
+        });
         return;
       }
       const pretalx = new PretalxService(baseUrl, event, token);
@@ -156,21 +152,17 @@ export class RoomsRouter {
 
       // Basic structure validation
       if (!schedule || typeof schedule !== 'object') {
-        res
-          .status(400)
-          .json({
-            success: false,
-            error: 'Invalid request: schedule must be an object'
-          });
+        res.status(400).json({
+          success: false,
+          error: 'Invalid request: schedule must be an object'
+        });
         return;
       }
       if (!Array.isArray(schedule.slots)) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            error: 'Invalid request: schedule.slots must be an array'
-          });
+        res.status(400).json({
+          success: false,
+          error: 'Invalid request: schedule.slots must be an array'
+        });
         return;
       }
 
@@ -218,13 +210,11 @@ export class RoomsRouter {
       const event = bodyEvent || process.env.PRETALX_EVENT;
       const token = bodyToken || process.env.PRETALX_TOKEN;
       if (!baseUrl || !event || !token) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            error:
-              'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
-          });
+        res.status(400).json({
+          success: false,
+          error:
+            'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
+        });
         return;
       }
       this.logger.info(`Pretalx import: baseUrl=${baseUrl} event=${event}`);
@@ -310,13 +300,11 @@ export class RoomsRouter {
       const event = bodyEvent || process.env.PRETALX_EVENT;
       const token = bodyToken || process.env.PRETALX_TOKEN;
       if (!baseUrl || !event || !token) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            error:
-              'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
-          });
+        res.status(400).json({
+          success: false,
+          error:
+            'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
+        });
         return;
       }
       const pretalx = new PretalxService(baseUrl, event, token);
@@ -342,13 +330,11 @@ export class RoomsRouter {
       const event = bodyEvent || process.env.PRETALX_EVENT;
       const token = bodyToken || process.env.PRETALX_TOKEN;
       if (!baseUrl || !event || !token) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            error:
-              'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
-          });
+        res.status(400).json({
+          success: false,
+          error:
+            'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
+        });
         return;
       }
       const pretalx = new PretalxService(baseUrl, event, token);
@@ -548,12 +534,10 @@ export class RoomsRouter {
       const event = bodyEvent || process.env.PRETALX_EVENT;
       const token = bodyToken || process.env.PRETALX_TOKEN;
       if (!baseUrl || !event || !token || !endpoint) {
-        res
-          .status(400)
-          .json({
-            success: false,
-            error: 'baseUrl, event, token and endpoint are required'
-          });
+        res.status(400).json({
+          success: false,
+          error: 'baseUrl, event, token and endpoint are required'
+        });
         return;
       }
       const pretalx = new PretalxService(baseUrl, event, token);

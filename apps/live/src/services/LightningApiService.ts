@@ -37,12 +37,16 @@ export class LightningApiService {
       this.baseUrl = baseUrl;
     } else {
       // Check for Webpack-injected environment variable first
-      if (typeof process !== 'undefined' && (process as any).env?.REACT_APP_BACKEND_URL) {
+      if (
+        typeof process !== 'undefined' &&
+        (process as any).env?.REACT_APP_BACKEND_URL
+      ) {
         this.baseUrl = (process as any).env.REACT_APP_BACKEND_URL;
       } else if (typeof window !== 'undefined') {
         // In production, use same origin (Nginx will proxy)
-        const isProduction = window.location.protocol === 'https:' || 
-                            window.location.hostname !== 'localhost';
+        const isProduction =
+          window.location.protocol === 'https:' ||
+          window.location.hostname !== 'localhost';
         if (isProduction) {
           this.baseUrl = window.location.origin;
         } else {
