@@ -63,7 +63,10 @@ export class AuthService {
   static async signInWithExternalSigner(): Promise<AuthResult> {
     try {
       // Store sign in data for when user returns
-      sessionStorage.setItem('signIn', JSON.stringify({ flow: 'externalSigner' }));
+      sessionStorage.setItem(
+        'signIn',
+        JSON.stringify({ flow: 'externalSigner' })
+      );
 
       // Navigate to external signer
       const nostrSignerURL =
@@ -170,7 +173,11 @@ export class AuthService {
     try {
       const signInData = JSON.parse(sessionStorage.getItem('signIn') || '{}');
       // Proceed only if we previously initiated an external signer sign-in
-      if (signInData && (signInData.flow === 'externalSigner' || signInData.rememberMe !== undefined)) {
+      if (
+        signInData &&
+        (signInData.flow === 'externalSigner' ||
+          signInData.rememberMe !== undefined)
+      ) {
         sessionStorage.removeItem('signIn');
 
         // Get the public key from clipboard
@@ -189,7 +196,7 @@ export class AuthService {
           const clean = trimmed.replace(/^nostr:/i, '');
           if (/^npub1[0-9a-z]+$/i.test(clean)) {
             const decodedNPUB = NostrTools.nip19.decode(clean);
-            publicKey = (decodedNPUB.data as any) as string;
+            publicKey = decodedNPUB.data as any as string;
           } else if (/^[0-9a-f]{64}$/i.test(clean)) {
             publicKey = clean.toLowerCase();
           }

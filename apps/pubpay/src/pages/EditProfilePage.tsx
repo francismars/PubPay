@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { useUIStore, getQueryClient, BlossomService } from '@pubpay/shared-services';
+import {
+  useUIStore,
+  getQueryClient,
+  BlossomService
+} from '@pubpay/shared-services';
 import * as NostrTools from 'nostr-tools';
 
 const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { authState, nostrClient, loadUserProfile } = useOutletContext<{ authState: any; nostrClient: any; loadUserProfile: (pubkey: string) => Promise<void> }>();
+  const { authState, nostrClient, loadUserProfile } = useOutletContext<{
+    authState: any;
+    nostrClient: any;
+    loadUserProfile: (pubkey: string) => Promise<void>;
+  }>();
   const isLoggedIn = authState?.isLoggedIn;
   const userProfile = authState?.userProfile;
   const openLogin = useUIStore(s => s.openLogin);
@@ -35,12 +43,14 @@ const EditProfilePage: React.FC = () => {
   useEffect(() => {
     if (userProfile?.content) {
       try {
-        const content = typeof userProfile.content === 'string' 
-          ? JSON.parse(userProfile.content) 
-          : userProfile.content;
-        
+        const content =
+          typeof userProfile.content === 'string'
+            ? JSON.parse(userProfile.content)
+            : userProfile.content;
+
         setProfileData({
-          displayName: content.display_name || content.displayName || content.name || '',
+          displayName:
+            content.display_name || content.displayName || content.name || '',
           bio: content.about || '',
           website: content.website || '',
           banner: content.banner || '',
@@ -60,7 +70,7 @@ const EditProfilePage: React.FC = () => {
       const { imageUrl } = event.detail;
       const uploadType = sessionStorage.getItem('BlossomUploadType');
       sessionStorage.removeItem('BlossomUploadType');
-      
+
       if (uploadType === 'picture') {
         setProfileData(prev => ({ ...prev, picture: imageUrl }));
         setUploadingPicture(false);
@@ -85,7 +95,7 @@ const EditProfilePage: React.FC = () => {
       const { error } = event.detail;
       const uploadType = sessionStorage.getItem('BlossomUploadType');
       sessionStorage.removeItem('BlossomUploadType');
-      
+
       if (uploadType === 'picture') {
         setUploadingPicture(false);
       } else if (uploadType === 'banner') {
@@ -95,12 +105,24 @@ const EditProfilePage: React.FC = () => {
       updateToast(`Upload failed: ${error}`, 'error', true);
     };
 
-    window.addEventListener('blossomUploadComplete', handleUploadComplete as EventListener);
-    window.addEventListener('blossomUploadError', handleUploadError as EventListener);
+    window.addEventListener(
+      'blossomUploadComplete',
+      handleUploadComplete as EventListener
+    );
+    window.addEventListener(
+      'blossomUploadError',
+      handleUploadError as EventListener
+    );
 
     return () => {
-      window.removeEventListener('blossomUploadComplete', handleUploadComplete as EventListener);
-      window.removeEventListener('blossomUploadError', handleUploadError as EventListener);
+      window.removeEventListener(
+        'blossomUploadComplete',
+        handleUploadComplete as EventListener
+      );
+      window.removeEventListener(
+        'blossomUploadError',
+        handleUploadError as EventListener
+      );
     };
   }, [updateToast, closeToast]);
 
@@ -110,7 +132,9 @@ const EditProfilePage: React.FC = () => {
   };
 
   // Handle profile picture upload
-  const handlePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePictureUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -130,11 +154,17 @@ const EditProfilePage: React.FC = () => {
       const blossomService = new BlossomService();
       const hash = await blossomService.uploadFile(file);
       // Extract extension from filename or MIME type
-      const extension = file.name ? file.name.split('.').pop()?.toLowerCase() : 
-        (file.type === 'image/jpeg' ? 'jpg' : 
-         file.type === 'image/png' ? 'png' : 
-         file.type === 'image/gif' ? 'gif' : 
-         file.type === 'image/webp' ? 'webp' : null);
+      const extension = file.name
+        ? file.name.split('.').pop()?.toLowerCase()
+        : file.type === 'image/jpeg'
+          ? 'jpg'
+          : file.type === 'image/png'
+            ? 'png'
+            : file.type === 'image/gif'
+              ? 'gif'
+              : file.type === 'image/webp'
+                ? 'webp'
+                : null;
       const imageUrl = blossomService.getFileUrl(hash, extension || undefined);
       setProfileData(prev => ({ ...prev, picture: imageUrl }));
       updateToast('Picture uploaded successfully!', 'success', false);
@@ -144,7 +174,11 @@ const EditProfilePage: React.FC = () => {
       console.error('Failed to upload picture:', error);
       // Don't show error if it's external signer redirect (will be handled on return)
       if (!(error instanceof Error && error.message.includes('redirect'))) {
-        updateToast(`Failed to upload picture: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error', true);
+        updateToast(
+          `Failed to upload picture: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          'error',
+          true
+        );
       }
       // If external signer, keep uploading state true - will be cleared on return
       if (authState?.signInMethod !== 'externalSigner') {
@@ -181,11 +215,17 @@ const EditProfilePage: React.FC = () => {
       const blossomService = new BlossomService();
       const hash = await blossomService.uploadFile(file);
       // Extract extension from filename or MIME type
-      const extension = file.name ? file.name.split('.').pop()?.toLowerCase() : 
-        (file.type === 'image/jpeg' ? 'jpg' : 
-         file.type === 'image/png' ? 'png' : 
-         file.type === 'image/gif' ? 'gif' : 
-         file.type === 'image/webp' ? 'webp' : null);
+      const extension = file.name
+        ? file.name.split('.').pop()?.toLowerCase()
+        : file.type === 'image/jpeg'
+          ? 'jpg'
+          : file.type === 'image/png'
+            ? 'png'
+            : file.type === 'image/gif'
+              ? 'gif'
+              : file.type === 'image/webp'
+                ? 'webp'
+                : null;
       const imageUrl = blossomService.getFileUrl(hash, extension || undefined);
       setProfileData(prev => ({ ...prev, banner: imageUrl }));
       updateToast('Banner uploaded successfully!', 'success', false);
@@ -195,7 +235,11 @@ const EditProfilePage: React.FC = () => {
       console.error('Failed to upload banner:', error);
       // Don't show error if it's external signer redirect (will be handled on return)
       if (!(error instanceof Error && error.message.includes('redirect'))) {
-        updateToast(`Failed to upload banner: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error', true);
+        updateToast(
+          `Failed to upload banner: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          'error',
+          true
+        );
       }
       // If external signer, keep uploading state true - will be cleared on return
       if (authState?.signInMethod !== 'externalSigner') {
@@ -226,9 +270,10 @@ const EditProfilePage: React.FC = () => {
       let existingProfile: Record<string, any> = {};
       if (userProfile?.content) {
         try {
-          const content = typeof userProfile.content === 'string' 
-            ? JSON.parse(userProfile.content) 
-            : userProfile.content;
+          const content =
+            typeof userProfile.content === 'string'
+              ? JSON.parse(userProfile.content)
+              : userProfile.content;
           existingProfile = content || {};
         } catch (e) {
           console.warn('Failed to parse existing profile, starting fresh:', e);
@@ -238,21 +283,34 @@ const EditProfilePage: React.FC = () => {
       // Merge: start with existing profile, then update only the fields we're editing
       const profileDataForNostr: Record<string, any> = {
         ...existingProfile, // Preserve all existing fields
-        ...(profileData.displayName ? { 
-          name: profileData.displayName,
-          display_name: profileData.displayName 
-        } : {}),
+        ...(profileData.displayName
+          ? {
+              name: profileData.displayName,
+              display_name: profileData.displayName
+            }
+          : {}),
         ...(profileData.bio !== undefined ? { about: profileData.bio } : {}),
-        ...(profileData.picture !== undefined ? { picture: profileData.picture } : {}),
-        ...(profileData.banner !== undefined ? { banner: profileData.banner } : {}),
-        ...(profileData.website !== undefined ? { website: profileData.website } : {}),
-        ...(profileData.lightningAddress !== undefined ? { lud16: profileData.lightningAddress } : {}),
+        ...(profileData.picture !== undefined
+          ? { picture: profileData.picture }
+          : {}),
+        ...(profileData.banner !== undefined
+          ? { banner: profileData.banner }
+          : {}),
+        ...(profileData.website !== undefined
+          ? { website: profileData.website }
+          : {}),
+        ...(profileData.lightningAddress !== undefined
+          ? { lud16: profileData.lightningAddress }
+          : {}),
         ...(profileData.nip05 !== undefined ? { nip05: profileData.nip05 } : {})
       };
 
       // Remove empty strings to keep JSON clean (but preserve other falsy values like false, 0, etc.)
       Object.keys(profileDataForNostr).forEach(key => {
-        if (profileDataForNostr[key] === '' || profileDataForNostr[key] === null) {
+        if (
+          profileDataForNostr[key] === '' ||
+          profileDataForNostr[key] === null
+        ) {
           delete profileDataForNostr[key];
         }
       });
@@ -278,14 +336,21 @@ const EditProfilePage: React.FC = () => {
           throw new Error('Private key not available');
         }
         const decoded = NostrTools.nip19.decode(authState.privateKey);
-        signedEvent = NostrTools.finalizeEvent(eventTemplate, decoded.data as unknown as Uint8Array);
+        signedEvent = NostrTools.finalizeEvent(
+          eventTemplate,
+          decoded.data as unknown as Uint8Array
+        );
       } else if (authState.signInMethod === 'externalSigner') {
         // For external signer, compute event ID first, then store event and redirect
         eventTemplate.id = NostrTools.getEventHash(eventTemplate);
         const eventString = JSON.stringify(eventTemplate);
         sessionStorage.setItem('SignProfileUpdate', eventString);
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
-        updateToast('Please sign the profile update in your external signer app', 'info', false);
+        updateToast(
+          'Please sign the profile update in your external signer app',
+          'info',
+          false
+        );
         setIsSaving(false);
         return;
       } else {
@@ -299,16 +364,20 @@ const EditProfilePage: React.FC = () => {
 
       // Publish the event
       await nostrClient.publishEvent(signedEvent);
-      
+
       // Remove cached profile and invalidate queries to force fresh fetch
       if (authState.publicKey) {
         const queryClient = getQueryClient();
         // Remove the cached value entirely
-        queryClient.removeQueries({ queryKey: ['profile', authState.publicKey] });
+        queryClient.removeQueries({
+          queryKey: ['profile', authState.publicKey]
+        });
         // Also invalidate for good measure
-        queryClient.invalidateQueries({ queryKey: ['profile', authState.publicKey] });
+        queryClient.invalidateQueries({
+          queryKey: ['profile', authState.publicKey]
+        });
       }
-      
+
       updateToast('Profile updated successfully!', 'success', false);
 
       // Reload profile to reflect changes before navigating
@@ -330,7 +399,10 @@ const EditProfilePage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save profile. Please try again.';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to save profile. Please try again.';
       updateToast(errorMessage, 'error', true);
     } finally {
       setIsSaving(false);
@@ -346,9 +418,7 @@ const EditProfilePage: React.FC = () => {
     return (
       <div className="profilePage">
         <div className="profileNotLoggedIn">
-          <h2 className="profileNotLoggedInTitle">
-            Not Logged In
-          </h2>
+          <h2 className="profileNotLoggedInTitle">Not Logged In</h2>
           <p className="profileNotLoggedInText">
             Please log in to edit your profile.
           </p>
@@ -356,7 +426,10 @@ const EditProfilePage: React.FC = () => {
             <button className="profileLoginButton" onClick={openLogin}>
               Log In
             </button>
-            <button className="profileRegisterButton" onClick={() => navigate('/register')}>
+            <button
+              className="profileRegisterButton"
+              onClick={() => navigate('/register')}
+            >
               Register
             </button>
           </div>
@@ -368,56 +441,70 @@ const EditProfilePage: React.FC = () => {
   return (
     <div className="profilePage">
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px' }}>
-          <button 
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '30px'
+          }}
+        >
+          <button
             className="profileCopyButton"
             onClick={() => navigate('/profile')}
-            style={{ marginRight: '15px'}}
+            style={{ marginRight: '15px' }}
           >
             ← Back
           </button>
-          <h1 className="profilePageTitle">
-            Edit Profile
-          </h1>
+          <h1 className="profilePageTitle">Edit Profile</h1>
         </div>
 
         {/* Preview Section */}
         <div style={{ marginBottom: '30px' }}>
-          <h3 style={{ marginBottom: '20px'}}>Preview</h3>
+          <h3 style={{ marginBottom: '20px' }}>Preview</h3>
           <div className="profileSettingsCard">
-            <div style={{ display: 'flex',  marginBottom: '15px',  alignItems: 'flex-start' }}>
+            <div
+              style={{
+                display: 'flex',
+                marginBottom: '15px',
+                alignItems: 'flex-start'
+              }}
+            >
               {profileData.picture ? (
-                <img 
-                  src={profileData.picture} 
-                  alt="Profile" 
-                  style={{ 
-                    width: '60px', 
-                    height: '60px', 
-                    borderRadius: '50%', 
+                <img
+                  src={profileData.picture}
+                  alt="Profile"
+                  style={{
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '50%',
                     marginRight: '15px',
                     objectFit: 'cover'
                   }}
-                  onError={(e) => {
+                  onError={e => {
                     e.currentTarget.style.display = 'none';
                   }}
                 />
               ) : (
-                <div style={{ 
-                  width: '60px', 
-                  height: '60px', 
-                  borderRadius: '50%', 
-                  backgroundColor: '#ddd',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: '15px',
-                  fontSize: '24px'
-                }}>
-                  {profileData.displayName ? profileData.displayName.charAt(0).toUpperCase() : 'U'}
+                <div
+                  style={{
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ddd',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: '15px',
+                    fontSize: '24px'
+                  }}
+                >
+                  {profileData.displayName
+                    ? profileData.displayName.charAt(0).toUpperCase()
+                    : 'U'}
                 </div>
               )}
               <div>
-                <h4 style={{ margin: '0 0 5px 0'}}>
+                <h4 style={{ margin: '0 0 5px 0' }}>
                   {profileData.displayName || 'Anonymous User'}
                 </h4>
                 <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
@@ -425,42 +512,42 @@ const EditProfilePage: React.FC = () => {
                 </p>
                 {profileData.website && (
                   <p style={{ margin: '5px 0', fontSize: '14px' }}>
-                    <a href={profileData.website} target="_blank" rel="noopener noreferrer" style={{ color: '#4a75ff' }}>
+                    <a
+                      href={profileData.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#4a75ff' }}
+                    >
                       {profileData.website}
                     </a>
                   </p>
                 )}
               </div>
             </div>
-            
           </div>
         </div>
 
         {/* Profile Form */}
         <div className="profileSettingsCard">
           <div className="profileFormField">
-            <label htmlFor="editDisplayName">
-              Display Name *
-            </label>
+            <label htmlFor="editDisplayName">Display Name *</label>
             <input
               type="text"
               id="editDisplayName"
               value={profileData.displayName}
-              onChange={(e) => handleInputChange('displayName', e.target.value)}
+              onChange={e => handleInputChange('displayName', e.target.value)}
               className="profileFormInput"
               placeholder="Enter your display name"
               required
             />
           </div>
-          
+
           <div className="profileFormField">
-            <label htmlFor="editBio">
-              Bio
-            </label>
+            <label htmlFor="editBio">Bio</label>
             <textarea
               id="editBio"
               value={profileData.bio}
-              onChange={(e) => handleInputChange('bio', e.target.value)}
+              onChange={e => handleInputChange('bio', e.target.value)}
               className="profileFormTextarea"
               placeholder="Tell us about yourself..."
               rows={4}
@@ -468,53 +555,50 @@ const EditProfilePage: React.FC = () => {
           </div>
 
           <div className="profileFormField">
-            <label htmlFor="editWebsite">
-              Website
-            </label>
+            <label htmlFor="editWebsite">Website</label>
             <input
               type="url"
               id="editWebsite"
               value={profileData.website}
-              onChange={(e) => handleInputChange('website', e.target.value)}
+              onChange={e => handleInputChange('website', e.target.value)}
               className="profileFormInput"
               placeholder="https://your-website.com"
             />
           </div>
-          
+
           <div className="profileFormField">
             {profileData.picture && (
               <div style={{ marginBottom: '10px' }}>
-                <img 
-                  src={profileData.picture} 
-                  alt="Profile preview" 
-                  style={{ 
-                    width: '80px', 
-                    height: '80px', 
-                    borderRadius: '50%', 
+                <img
+                  src={profileData.picture}
+                  alt="Profile preview"
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
                     objectFit: 'cover'
                   }}
-                  onError={(e) => {
+                  onError={e => {
                     e.currentTarget.style.display = 'none';
                     const parent = e.currentTarget.parentElement;
                     if (parent) {
                       const errorDiv = document.createElement('div');
                       errorDiv.textContent = 'Failed to load image';
-                      errorDiv.style.cssText = 'color: #dc3545; font-size: 12px; margin-top: 5px;';
+                      errorDiv.style.cssText =
+                        'color: #dc3545; font-size: 12px; margin-top: 5px;';
                       parent.appendChild(errorDiv);
                     }
                   }}
                 />
               </div>
             )}
-            <label htmlFor="editPicture">
-              Profile Picture
-            </label>
+            <label htmlFor="editPicture">Profile Picture</label>
             <div style={{ position: 'relative' }}>
               <input
                 type="url"
                 id="editPicture"
                 value={profileData.picture}
-                onChange={(e) => handleInputChange('picture', e.target.value)}
+                onChange={e => handleInputChange('picture', e.target.value)}
                 className="profileFormInput"
                 placeholder="https://example.com/profile.jpg or upload"
               />
@@ -535,41 +619,40 @@ const EditProfilePage: React.FC = () => {
               </button>
             </div>
           </div>
-          
+
           <div className="profileFormField">
             {profileData.banner && (
               <div style={{ marginBottom: '10px' }}>
-                <img 
-                  src={profileData.banner} 
-                  alt="Banner preview" 
-                  style={{ 
-                    width: '200px', 
-                    height: '80px', 
-                    borderRadius: '4px', 
+                <img
+                  src={profileData.banner}
+                  alt="Banner preview"
+                  style={{
+                    width: '200px',
+                    height: '80px',
+                    borderRadius: '4px',
                     objectFit: 'cover'
                   }}
-                  onError={(e) => {
+                  onError={e => {
                     e.currentTarget.style.display = 'none';
                     const parent = e.currentTarget.parentElement;
                     if (parent) {
                       const errorDiv = document.createElement('div');
                       errorDiv.textContent = 'Failed to load image';
-                      errorDiv.style.cssText = 'color: #dc3545; font-size: 12px; margin-top: 5px;';
+                      errorDiv.style.cssText =
+                        'color: #dc3545; font-size: 12px; margin-top: 5px;';
                       parent.appendChild(errorDiv);
                     }
                   }}
                 />
               </div>
             )}
-            <label htmlFor="editBanner">
-              Banner Image
-            </label>
+            <label htmlFor="editBanner">Banner Image</label>
             <div style={{ position: 'relative' }}>
               <input
                 type="url"
                 id="editBanner"
                 value={profileData.banner}
-                onChange={(e) => handleInputChange('banner', e.target.value)}
+                onChange={e => handleInputChange('banner', e.target.value)}
                 className="profileFormInput"
                 placeholder="https://example.com/banner.jpg or upload"
               />
@@ -590,52 +673,46 @@ const EditProfilePage: React.FC = () => {
               </button>
             </div>
           </div>
-          
+
           <div className="profileFormField">
-            <label htmlFor="editLightningAddress">
-              Lightning Address
-            </label>
+            <label htmlFor="editLightningAddress">Lightning Address</label>
             <input
               type="text"
               id="editLightningAddress"
               value={profileData.lightningAddress}
-              onChange={(e) => handleInputChange('lightningAddress', e.target.value)}
+              onChange={e =>
+                handleInputChange('lightningAddress', e.target.value)
+              }
               className="profileFormInput"
               placeholder="yourname@domain.com"
             />
           </div>
-          
+
           <div className="profileFormField">
-            <label htmlFor="editNip05">
-              NIP-05 Identifier
-            </label>
+            <label htmlFor="editNip05">NIP-05 Identifier</label>
             <input
               type="text"
               id="editNip05"
               value={profileData.nip05}
-              onChange={(e) => handleInputChange('nip05', e.target.value)}
+              onChange={e => handleInputChange('nip05', e.target.value)}
               className="profileFormInput"
               placeholder="yourname@domain.com"
             />
           </div>
-          
+
           <div className="profileButtonGroup" style={{ marginTop: '30px' }}>
-            <button 
-              className="profileEditButton" 
+            <button
+              className="profileEditButton"
               onClick={handleSaveProfile}
               disabled={isSaving}
             >
               {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
-            <button 
-              className="profileCopyButton"
-              onClick={handleCancel}
-            >
+            <button className="profileCopyButton" onClick={handleCancel}>
               Cancel
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );

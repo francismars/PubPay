@@ -4930,8 +4930,9 @@ input:checked + .toggle-slider:before {
   z-index: 10000;
   opacity: 0;
   transform: scale(0.7);
-  transition: opacity 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), 
-              transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transition:
+    opacity 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55),
+    transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   /* Background color applied dynamically via inline styles (matches style options at 80% opacity) */
 }
 
@@ -4965,7 +4966,6 @@ input:checked + .toggle-slider:before {
 }
 
 .zap-notification-content {
-
   padding: 1vw;
   display: flex;
   flex-direction: row;
@@ -5006,14 +5006,15 @@ input:checked + .toggle-slider:before {
 }
 
 .zap-notification-amount {
-  font-size:10vw;
+  font-size: 10vw;
   font-weight: 800;
   margin: 0;
   opacity: 0;
 }
 
 .zap-notification-overlay.visible .zap-notification-amount {
-  animation: fadeSlideIn 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.3s forwards;
+  animation: fadeSlideIn 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.3s
+    forwards;
 }
 
 .zap-notification-overlay:not(.visible) .zap-notification-amount {
@@ -5029,7 +5030,8 @@ input:checked + .toggle-slider:before {
 }
 
 .zap-notification-overlay.visible .zap-notification-name {
-  animation: fadeSlideIn 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.5s forwards;
+  animation: fadeSlideIn 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.5s
+    forwards;
 }
 
 .zap-notification-overlay:not(.visible) .zap-notification-name {
@@ -5046,7 +5048,8 @@ input:checked + .toggle-slider:before {
 }
 
 .zap-notification-overlay.visible .zap-notification-message {
-  animation: fadeSlideIn 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.7s forwards;
+  animation: fadeSlideIn 0.7s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.7s
+    forwards;
 }
 
 .zap-notification-overlay:not(.visible) .zap-notification-message {

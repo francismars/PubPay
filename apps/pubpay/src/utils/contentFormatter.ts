@@ -109,7 +109,7 @@ export async function formatContent(
         if (content.includes(`http`) || content.includes(`0x${match}`)) {
           return { match, replacement: match };
         }
-        
+
         const displayName = await getMentionUserName(match, nostrClient);
         return {
           match,

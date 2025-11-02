@@ -22,7 +22,8 @@ export class FollowService {
       ]);
       const followPubkeys: string[] = [];
       for (const event of kind3Events) {
-        const pTags = (event as any).tags?.filter((t: string[]) => t[0] === 'p') || [];
+        const pTags =
+          (event as any).tags?.filter((t: string[]) => t[0] === 'p') || [];
         pTags.forEach((t: string[]) => t[1] && followPubkeys.push(t[1]));
       }
       const unique = Array.from(new Set(followPubkeys));
@@ -62,8 +63,12 @@ export class FollowService {
   ): Promise<boolean> {
     if (!nostrClient || !authUserPubkey || !targetPubkey) return false;
     try {
-      const kind3 = await nostrClient.getEvents([{ kinds: [3], authors: [authUserPubkey], limit: 1 }]);
-      const pTags = (kind3?.[0]?.tags || []).filter((t: any[]) => t[0] === 'p').map((t: any[]) => t[1]);
+      const kind3 = await nostrClient.getEvents([
+        { kinds: [3], authors: [authUserPubkey], limit: 1 }
+      ]);
+      const pTags = (kind3?.[0]?.tags || [])
+        .filter((t: any[]) => t[0] === 'p')
+        .map((t: any[]) => t[1]);
       return pTags.includes(targetPubkey);
     } catch {
       return false;
@@ -75,8 +80,12 @@ export class FollowService {
     authUserPubkey: string,
     mutate: (existingPTags: string[][]) => string[][]
   ): Promise<string[][]> {
-    const existing = await nostrClient.getEvents([{ kinds: [3], authors: [authUserPubkey], limit: 1 }]);
-    const baseTags: string[][] = (existing?.[0]?.tags || []).filter((t: any[]) => Array.isArray(t) && t[0] === 'p');
+    const existing = await nostrClient.getEvents([
+      { kinds: [3], authors: [authUserPubkey], limit: 1 }
+    ]);
+    const baseTags: string[][] = (existing?.[0]?.tags || []).filter(
+      (t: any[]) => Array.isArray(t) && t[0] === 'p'
+    );
     return mutate(baseTags);
   }
 
@@ -87,10 +96,14 @@ export class FollowService {
   ): Promise<boolean> {
     if (!nostrClient || !authUserPubkey || !targetPubkey) return false;
 
-    const newTags = await this.buildUpdatedContactsTags(nostrClient, authUserPubkey, (base) => {
-      if (base.find(t => t[1] === targetPubkey)) return base;
-      return [...base, ['p', targetPubkey]];
-    });
+    const newTags = await this.buildUpdatedContactsTags(
+      nostrClient,
+      authUserPubkey,
+      base => {
+        if (base.find(t => t[1] === targetPubkey)) return base;
+        return [...base, ['p', targetPubkey]];
+      }
+    );
 
     const event: any = {
       kind: 3,
@@ -102,7 +115,8 @@ export class FollowService {
     const { method, privateKey } = AuthService.getStoredAuthData();
     let signed: any;
     if (method === 'extension') {
-      if ((window as any).nostr) signed = await (window as any).nostr.signEvent(event);
+      if ((window as any).nostr)
+        signed = await (window as any).nostr.signEvent(event);
     } else if (method === 'nsec' && privateKey) {
       const decoded = NostrTools.nip19.decode(privateKey);
       signed = NostrTools.finalizeEvent(event, decoded.data as Uint8Array);
@@ -122,9 +136,13 @@ export class FollowService {
   ): Promise<boolean> {
     if (!nostrClient || !authUserPubkey || !targetPubkey) return false;
 
-    const newTags = await this.buildUpdatedContactsTags(nostrClient, authUserPubkey, (base) => {
-      return base.filter(t => t[1] !== targetPubkey);
-    });
+    const newTags = await this.buildUpdatedContactsTags(
+      nostrClient,
+      authUserPubkey,
+      base => {
+        return base.filter(t => t[1] !== targetPubkey);
+      }
+    );
 
     const event: any = {
       kind: 3,
@@ -136,7 +154,8 @@ export class FollowService {
     const { method, privateKey } = AuthService.getStoredAuthData();
     let signed: any;
     if (method === 'extension') {
-      if ((window as any).nostr) signed = await (window as any).nostr.signEvent(event);
+      if ((window as any).nostr)
+        signed = await (window as any).nostr.signEvent(event);
     } else if (method === 'nsec' && privateKey) {
       const decoded = NostrTools.nip19.decode(privateKey);
       signed = NostrTools.finalizeEvent(event, decoded.data as Uint8Array);
@@ -151,5 +170,3 @@ export class FollowService {
 }
 
 export default FollowService;
-
-

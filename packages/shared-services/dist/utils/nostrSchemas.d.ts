@@ -48,6 +48,7 @@ export declare function getAllTagValues(tags: string[][], key: string): string[]
 export declare const ZapDescriptionSchema: z.ZodObject<{
     pubkey: z.ZodOptional<z.ZodString>;
     id: z.ZodOptional<z.ZodString>;
+    content: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 export type ZapDescription = z.infer<typeof ZapDescriptionSchema>;
 export declare function parseZapDescription(input: string | undefined): ZapDescription | null;

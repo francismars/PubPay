@@ -1,6 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { useUIStore, useAuthStore, NostrRegistrationService, NostrKeyPair, ProfileData, BlossomService } from '@pubpay/shared-services';
+import {
+  useUIStore,
+  useAuthStore,
+  NostrRegistrationService,
+  NostrKeyPair,
+  ProfileData,
+  BlossomService
+} from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 
 interface RegisterPageProps {
@@ -32,7 +39,9 @@ const RegisterPage: React.FC = () => {
   const [uploadingPicture, setUploadingPicture] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [keysBackedUp, setKeysBackedUp] = useState(false);
-  const [activeTab, setActiveTab] = useState<'privateKey' | 'mnemonic'>('mnemonic');
+  const [activeTab, setActiveTab] = useState<'privateKey' | 'mnemonic'>(
+    'mnemonic'
+  );
   const pictureInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const openLogin = useUIStore(s => s.openLogin);
@@ -42,7 +51,7 @@ const RegisterPage: React.FC = () => {
   // Handle backup acknowledgement and login
   const handleBackupAcknowledgement = () => {
     if (!generatedKeys) return;
-    
+
     try {
       // Get hex public key from raw public key
       let hexPublicKey: string;
@@ -68,9 +77,9 @@ const RegisterPage: React.FC = () => {
       });
 
       openToast('Successfully logged in with your new account!', 'success');
-      
+
       console.log('User logged in after backup acknowledgement');
-      
+
       // Use window.location to force a full page reload and ensure auth state is properly initialized
       setTimeout(() => {
         window.location.href = '/profile';
@@ -110,17 +119,20 @@ const RegisterPage: React.FC = () => {
   };
 
   const handleCopyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      openToast(`${label} copied to clipboard!`, 'success');
-      setTimeout(() => {
-        useUIStore.getState().closeToast();
-      }, 2000);
-    }).catch(() => {
-      openToast(`Failed to copy ${label}`, 'error');
-      setTimeout(() => {
-        useUIStore.getState().closeToast();
-      }, 2000);
-    });
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        openToast(`${label} copied to clipboard!`, 'success');
+        setTimeout(() => {
+          useUIStore.getState().closeToast();
+        }, 2000);
+      })
+      .catch(() => {
+        openToast(`Failed to copy ${label}`, 'error');
+        setTimeout(() => {
+          useUIStore.getState().closeToast();
+        }, 2000);
+      });
   };
 
   // Helper function to convert npub/nsec to hex format
@@ -129,7 +141,7 @@ const RegisterPage: React.FC = () => {
       if (typeof window !== 'undefined' && (window as any).NostrTools) {
         const decoded = (window as any).NostrTools.nip19.decode(encodedKey);
         console.log('Decoded key:', decoded); // Debug log
-        
+
         if (decoded && decoded.data) {
           const hexString = Array.from(decoded.data as Uint8Array)
             .map(byte => byte.toString(16).padStart(2, '0'))
@@ -148,7 +160,7 @@ const RegisterPage: React.FC = () => {
 
   const handleManualPublish = () => {
     if (!generatedKeys) return;
-    
+
     const profileData = {
       name: formData.displayName || 'Anonymous',
       display_name: formData.displayName || 'Anonymous',
@@ -159,14 +171,19 @@ const RegisterPage: React.FC = () => {
       lud16: formData.lightningAddress || '',
       nip05: formData.nip05 || ''
     };
-    
+
     try {
-      const event = NostrRegistrationService.createProfileEvent(generatedKeys.rawPrivateKey, profileData);
+      const event = NostrRegistrationService.createProfileEvent(
+        generatedKeys.rawPrivateKey,
+        profileData
+      );
       const eventJson = JSON.stringify(event, null, 2);
-      
+
       // Copy to clipboard
       navigator.clipboard.writeText(eventJson);
-      alert('Event data copied to clipboard! You can now paste this into any Nostr client to publish your profile manually.');
+      alert(
+        'Event data copied to clipboard! You can now paste this into any Nostr client to publish your profile manually.'
+      );
     } catch (error) {
       console.error('Failed to create event for manual publishing:', error);
       alert('Failed to create event data. Please try again.');
@@ -175,10 +192,10 @@ const RegisterPage: React.FC = () => {
 
   const handleRetryPublish = async () => {
     if (!generatedKeys) return;
-    
+
     setIsPublishing(true);
     setPublishError(null);
-    
+
     try {
       const profileData: ProfileData = {
         name: formData.displayName || '',
@@ -190,16 +207,16 @@ const RegisterPage: React.FC = () => {
         lud16: formData.lightningAddress || '',
         nip05: formData.nip05 || ''
       };
-      
+
       const result = await NostrRegistrationService.publishProfileEvent(
         generatedKeys.rawPrivateKey,
         profileData
       );
-      
+
       if (result.success) {
         setPublishedEventId(result.eventId || null);
         setPublishError(null);
-        
+
         // Show success toast
         openToast('Profile published successfully to Nostr relays!', 'success');
         setTimeout(() => {
@@ -216,7 +233,9 @@ const RegisterPage: React.FC = () => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -225,17 +244,23 @@ const RegisterPage: React.FC = () => {
   };
 
   // Handle profile picture upload
-  const handlePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePictureUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file');
       return;
     }
 
     // Can only upload after keys are generated
-    if (!generatedKeys || !generatedKeys.rawPrivateKey || !generatedKeys.rawPublicKey) {
+    if (
+      !generatedKeys ||
+      !generatedKeys.rawPrivateKey ||
+      !generatedKeys.rawPublicKey
+    ) {
       alert('Please wait for keys to be generated');
       return;
     }
@@ -243,18 +268,30 @@ const RegisterPage: React.FC = () => {
     setUploadingPicture(true);
     try {
       const blossomService = new BlossomService();
-      const hash = await blossomService.uploadFileWithKey(file, generatedKeys.rawPrivateKey, generatedKeys.rawPublicKey);
+      const hash = await blossomService.uploadFileWithKey(
+        file,
+        generatedKeys.rawPrivateKey,
+        generatedKeys.rawPublicKey
+      );
       // Extract extension from filename or MIME type
-      const extension = file.name ? file.name.split('.').pop()?.toLowerCase() : 
-        (file.type === 'image/jpeg' ? 'jpg' : 
-         file.type === 'image/png' ? 'png' : 
-         file.type === 'image/gif' ? 'gif' : 
-         file.type === 'image/webp' ? 'webp' : null);
+      const extension = file.name
+        ? file.name.split('.').pop()?.toLowerCase()
+        : file.type === 'image/jpeg'
+          ? 'jpg'
+          : file.type === 'image/png'
+            ? 'png'
+            : file.type === 'image/gif'
+              ? 'gif'
+              : file.type === 'image/webp'
+                ? 'webp'
+                : null;
       const imageUrl = blossomService.getFileUrl(hash, extension || undefined);
       setFormData(prev => ({ ...prev, picture: imageUrl }));
     } catch (error) {
       console.error('Failed to upload picture:', error);
-      alert(`Failed to upload picture: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(
+        `Failed to upload picture: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     } finally {
       setUploadingPicture(false);
       if (pictureInputRef.current) {
@@ -267,14 +304,18 @@ const RegisterPage: React.FC = () => {
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (!file.type.startsWith('image/')) {
       alert('Please upload an image file');
       return;
     }
 
     // Can only upload after keys are generated
-    if (!generatedKeys || !generatedKeys.rawPrivateKey || !generatedKeys.rawPublicKey) {
+    if (
+      !generatedKeys ||
+      !generatedKeys.rawPrivateKey ||
+      !generatedKeys.rawPublicKey
+    ) {
       alert('Please wait for keys to be generated');
       return;
     }
@@ -282,18 +323,30 @@ const RegisterPage: React.FC = () => {
     setUploadingBanner(true);
     try {
       const blossomService = new BlossomService();
-      const hash = await blossomService.uploadFileWithKey(file, generatedKeys.rawPrivateKey, generatedKeys.rawPublicKey);
+      const hash = await blossomService.uploadFileWithKey(
+        file,
+        generatedKeys.rawPrivateKey,
+        generatedKeys.rawPublicKey
+      );
       // Extract extension from filename or MIME type
-      const extension = file.name ? file.name.split('.').pop()?.toLowerCase() : 
-        (file.type === 'image/jpeg' ? 'jpg' : 
-         file.type === 'image/png' ? 'png' : 
-         file.type === 'image/gif' ? 'gif' : 
-         file.type === 'image/webp' ? 'webp' : null);
+      const extension = file.name
+        ? file.name.split('.').pop()?.toLowerCase()
+        : file.type === 'image/jpeg'
+          ? 'jpg'
+          : file.type === 'image/png'
+            ? 'png'
+            : file.type === 'image/gif'
+              ? 'gif'
+              : file.type === 'image/webp'
+                ? 'webp'
+                : null;
       const imageUrl = blossomService.getFileUrl(hash, extension || undefined);
       setFormData(prev => ({ ...prev, banner: imageUrl }));
     } catch (error) {
       console.error('Failed to upload banner:', error);
-      alert(`Failed to upload banner: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(
+        `Failed to upload banner: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     } finally {
       setUploadingBanner(false);
       if (bannerInputRef.current) {
@@ -315,9 +368,13 @@ const RegisterPage: React.FC = () => {
         if (it.kind === 'file' && it.type.startsWith('image/')) {
           const blob = it.getAsFile();
           if (blob) {
-            imageFile = new File([blob], `pasted.${(blob.type.split('/')[1] || 'png')}`, {
-              type: blob.type
-            });
+            imageFile = new File(
+              [blob],
+              `pasted.${blob.type.split('/')[1] || 'png'}`,
+              {
+                type: blob.type
+              }
+            );
             break;
           }
         }
@@ -327,7 +384,11 @@ const RegisterPage: React.FC = () => {
       // Prevent pasting the image as text
       e.preventDefault();
 
-      if (!generatedKeys || !generatedKeys.rawPrivateKey || !generatedKeys.rawPublicKey) {
+      if (
+        !generatedKeys ||
+        !generatedKeys.rawPrivateKey ||
+        !generatedKeys.rawPublicKey
+      ) {
         alert('Please wait for keys to be generated');
         return;
       }
@@ -342,17 +403,24 @@ const RegisterPage: React.FC = () => {
         generatedKeys.rawPublicKey
       );
 
-      const extFromType = imageFile.type === 'image/jpeg' ? 'jpg'
-        : imageFile.type === 'image/png' ? 'png'
-        : imageFile.type === 'image/gif' ? 'gif'
-        : imageFile.type === 'image/webp' ? 'webp'
-        : undefined;
+      const extFromType =
+        imageFile.type === 'image/jpeg'
+          ? 'jpg'
+          : imageFile.type === 'image/png'
+            ? 'png'
+            : imageFile.type === 'image/gif'
+              ? 'gif'
+              : imageFile.type === 'image/webp'
+                ? 'webp'
+                : undefined;
       const imageUrl = blossomService.getFileUrl(hash, extFromType);
 
       setFormData(prev => ({ ...prev, [target]: imageUrl }));
     } catch (error) {
       console.error('Failed to upload pasted image:', error);
-      alert(`Failed to upload pasted image: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      alert(
+        `Failed to upload pasted image: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     } finally {
       if (target === 'picture') setUploadingPicture(false);
       if (target === 'banner') setUploadingBanner(false);
@@ -361,16 +429,16 @@ const RegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Ensure keys are generated
     if (!generatedKeys || !generatedKeys.rawPrivateKey) {
       alert('Please wait for keys to be generated');
       return;
     }
-    
+
     setIsSubmitting(true);
     setIsPublishing(true);
-    
+
     try {
       // Prepare profile data for NIP-01 compliant profile event
       const profileData: ProfileData = {
@@ -383,19 +451,19 @@ const RegisterPage: React.FC = () => {
         lud16: formData.lightningAddress || '',
         nip05: formData.nip05 || ''
       };
-      
+
       // Publish profile with the already-generated keys
       const publishResult = await NostrRegistrationService.publishProfileEvent(
         generatedKeys.rawPrivateKey,
         profileData
       );
-      
+
       if (publishResult.success) {
         setPublishedEventId(publishResult.eventId || null);
         setPublishError(null);
         setIsRegistrationComplete(true);
         setShowKeys(true);
-        
+
         // Show success toast
         openToast('Profile published successfully to Nostr relays!', 'success');
         setTimeout(() => {
@@ -406,7 +474,6 @@ const RegisterPage: React.FC = () => {
         setIsRegistrationComplete(true);
         setShowKeys(true);
       }
-      
     } catch (error) {
       console.error('Registration failed:', error);
       setPublishError('Registration failed. Please try again.');
@@ -420,58 +487,61 @@ const RegisterPage: React.FC = () => {
 
   return (
     <div className="profilePage">
-      <h1 className="profilePageTitle">
-        Create Account
-      </h1>
+      <h1 className="profilePageTitle">Create Account</h1>
 
       <div className="profileSection" id="profilePreview">
         {/* Banner Image */}
         <div className="profileBanner">
           {formData.banner ? (
-            <img 
-              src={formData.banner} 
-              alt="Profile banner" 
+            <img
+              src={formData.banner}
+              alt="Profile banner"
               className="profileBannerImage"
-              onError={(e) => {
+              onError={e => {
                 e.currentTarget.style.display = 'none';
               }}
             />
           ) : (
-            <div className="profileBannerPlaceholder">
-              Banner image
-            </div>
+            <div className="profileBannerPlaceholder">Banner image</div>
           )}
         </div>
-        
+
         <div className="profileUserInfo">
           <div className="profileAvatar">
             {formData.picture ? (
-              <img 
-                src={formData.picture} 
-                alt="Profile" 
+              <img
+                src={formData.picture}
+                alt="Profile"
                 className="profileAvatarImage"
-                onError={(e) => {
+                onError={e => {
                   e.currentTarget.style.display = 'none';
-                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                  const fallback = e.currentTarget
+                    .nextElementSibling as HTMLElement;
                   if (fallback) {
                     fallback.style.display = 'flex';
                   }
                 }}
               />
             ) : null}
-            <div className="profileAvatarFallback" style={{ display: formData.picture ? 'none' : 'flex' }}>
-              {formData.displayName ? formData.displayName.charAt(0).toUpperCase() : '?'}
+            <div
+              className="profileAvatarFallback"
+              style={{ display: formData.picture ? 'none' : 'flex' }}
+            >
+              {formData.displayName
+                ? formData.displayName.charAt(0).toUpperCase()
+                : '?'}
             </div>
           </div>
           <div className="profileUserDetails">
-            <h2>
-              {formData.displayName || 'New User'}
-            </h2>
-            <p>
-              {formData.bio || 'Join PubPay Community'}
-            </p>
+            <h2>{formData.displayName || 'New User'}</h2>
+            <p>{formData.bio || 'Join PubPay Community'}</p>
             {formData.website && (
-              <a href={formData.website} target="_blank" rel="noopener noreferrer" className="profileWebsite">
+              <a
+                href={formData.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="profileWebsite"
+              >
                 {formData.website}
               </a>
             )}
@@ -480,279 +550,294 @@ const RegisterPage: React.FC = () => {
       </div>
 
       {!isRegistrationComplete && (
-        <div className="profileSettingsSection registrationTransition" id="accountInformation">
-          <h2 className="profileSettingsTitle">
-            Account Information
-          </h2>
-        <div className="profileSettingsCard">
-          <form onSubmit={handleSubmit}>
-            <div className="profileFormField">
-              <label htmlFor="displayName">
-                Display Name *
-              </label>
-              <input
-                type="text"
-                id="displayName"
-                name="displayName"
-                value={formData.displayName}
-                onChange={handleInputChange}
-                className="profileFormInput"
-                placeholder="Enter your display name"
-                required
-              />
-            </div>
-            
-            <div className="profileFormField">
-              <label htmlFor="lightningAddress">
-                Lightning Address
-              </label>
-              <input
-                type="text"
-                id="lightningAddress"
-                name="lightningAddress"
-                value={formData.lightningAddress}
-                onChange={handleInputChange}
-                className="profileFormInput"
-                placeholder="yourname@domain.com (optional)"
-              />
-            </div>
-            
-            <div className="profileFormField">
-              <label htmlFor="picture">
-                Profile Picture {generatedKeys ? '(Blossom upload available)' : ''}
-              </label>
-              <div style={{ position: 'relative' }}>
+        <div
+          className="profileSettingsSection registrationTransition"
+          id="accountInformation"
+        >
+          <h2 className="profileSettingsTitle">Account Information</h2>
+          <div className="profileSettingsCard">
+            <form onSubmit={handleSubmit}>
+              <div className="profileFormField">
+                <label htmlFor="displayName">Display Name *</label>
+                <input
+                  type="text"
+                  id="displayName"
+                  name="displayName"
+                  value={formData.displayName}
+                  onChange={handleInputChange}
+                  className="profileFormInput"
+                  placeholder="Enter your display name"
+                  required
+                />
+              </div>
+
+              <div className="profileFormField">
+                <label htmlFor="lightningAddress">Lightning Address</label>
+                <input
+                  type="text"
+                  id="lightningAddress"
+                  name="lightningAddress"
+                  value={formData.lightningAddress}
+                  onChange={handleInputChange}
+                  className="profileFormInput"
+                  placeholder="yourname@domain.com (optional)"
+                />
+              </div>
+
+              <div className="profileFormField">
+                <label htmlFor="picture">
+                  Profile Picture{' '}
+                  {generatedKeys ? '(Blossom upload available)' : ''}
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="url"
+                    id="picture"
+                    name="picture"
+                    value={formData.picture}
+                    onChange={handleInputChange}
+                    onPaste={e => handleClipboardImage(e, 'picture')}
+                    className="profileFormInput"
+                    placeholder="https://example.com/profile.jpg or upload from Blossom"
+                  />
+                  <input
+                    type="file"
+                    ref={pictureInputRef}
+                    accept="image/*"
+                    onChange={handlePictureUpload}
+                    style={{ display: 'none' }}
+                  />
+                  {generatedKeys && (
+                    <button
+                      type="button"
+                      onClick={() => pictureInputRef.current?.click()}
+                      disabled={uploadingPicture}
+                      className="profileUploadButton"
+                    >
+                      {uploadingPicture ? 'Uploading...' : 'Upload'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="profileFormField">
+                <label htmlFor="bio">Bio</label>
+                <textarea
+                  id="bio"
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleInputChange}
+                  className="profileFormTextarea"
+                  placeholder="Tell us about yourself..."
+                  rows={4}
+                />
+              </div>
+
+              <div className="profileFormField">
+                <label htmlFor="banner">
+                  Banner Image{' '}
+                  {generatedKeys ? '(Blossom upload available)' : ''}
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="url"
+                    id="banner"
+                    name="banner"
+                    value={formData.banner}
+                    onChange={handleInputChange}
+                    onPaste={e => handleClipboardImage(e, 'banner')}
+                    className="profileFormInput"
+                    placeholder="https://example.com/banner.jpg or upload from Blossom"
+                  />
+                  <input
+                    type="file"
+                    ref={bannerInputRef}
+                    accept="image/*"
+                    onChange={handleBannerUpload}
+                    style={{ display: 'none' }}
+                  />
+                  {generatedKeys && (
+                    <button
+                      type="button"
+                      onClick={() => bannerInputRef.current?.click()}
+                      disabled={uploadingBanner}
+                      className="profileUploadButton"
+                    >
+                      {uploadingBanner ? 'Uploading...' : 'Upload'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="profileFormField">
+                <label htmlFor="website">Website</label>
                 <input
                   type="url"
-                  id="picture"
-                  name="picture"
-                  value={formData.picture}
+                  id="website"
+                  name="website"
+                  value={formData.website}
                   onChange={handleInputChange}
-                onPaste={(e) => handleClipboardImage(e, 'picture')}
                   className="profileFormInput"
-                  placeholder="https://example.com/profile.jpg or upload from Blossom"
+                  placeholder="https://your-website.com (optional)"
                 />
-                <input
-                  type="file"
-                  ref={pictureInputRef}
-                  accept="image/*"
-                  onChange={handlePictureUpload}
-                  style={{ display: 'none' }}
-                />
-                {generatedKeys && (
-                  <button
-                    type="button"
-                    onClick={() => pictureInputRef.current?.click()}
-                    disabled={uploadingPicture}
-                    className="profileUploadButton"
-                  >
-                    {uploadingPicture ? 'Uploading...' : 'Upload'}
-                  </button>
-                )}
               </div>
-            </div>
-            
-            <div className="profileFormField">
-              <label htmlFor="bio">
-                Bio
-              </label>
-              <textarea
-                id="bio"
-                name="bio"
-                value={formData.bio}
-                onChange={handleInputChange}
-                className="profileFormTextarea"
-                placeholder="Tell us about yourself..."
-                rows={4}
-              />
-            </div>
-            
-            <div className="profileFormField">
-              <label htmlFor="banner">
-                Banner Image {generatedKeys ? '(Blossom upload available)' : ''}
-              </label>
-              <div style={{ position: 'relative' }}>
+
+              <div className="profileFormField">
+                <label htmlFor="nip05">NIP-05 Identifier</label>
                 <input
-                  type="url"
-                  id="banner"
-                  name="banner"
-                  value={formData.banner}
+                  type="text"
+                  id="nip05"
+                  name="nip05"
+                  value={formData.nip05}
                   onChange={handleInputChange}
-                onPaste={(e) => handleClipboardImage(e, 'banner')}
                   className="profileFormInput"
-                  placeholder="https://example.com/banner.jpg or upload from Blossom"
+                  placeholder="yourname@domain.com (optional)"
                 />
-                <input
-                  type="file"
-                  ref={bannerInputRef}
-                  accept="image/*"
-                  onChange={handleBannerUpload}
-                  style={{ display: 'none' }}
-                />
-                {generatedKeys && (
-                  <button
-                    type="button"
-                    onClick={() => bannerInputRef.current?.click()}
-                    disabled={uploadingBanner}
-                    className="profileUploadButton"
-                  >
-                    {uploadingBanner ? 'Uploading...' : 'Upload'}
-                  </button>
-                )}
               </div>
-            </div>
-            
-            <div className="profileFormField">
-              <label htmlFor="website">
-                Website
-              </label>
-              <input
-                type="url"
-                id="website"
-                name="website"
-                value={formData.website}
-                onChange={handleInputChange}
-                className="profileFormInput"
-                placeholder="https://your-website.com (optional)"
-              />
-            </div>
-            
-            <div className="profileFormField">
-              <label htmlFor="nip05">
-                NIP-05 Identifier
-              </label>
-              <input
-                type="text"
-                id="nip05"
-                name="nip05"
-                value={formData.nip05}
-                onChange={handleInputChange}
-                className="profileFormInput"
-                placeholder="yourname@domain.com (optional)"
-              />
-            </div>
-            
-            <div className="profileFormField">
-              <button 
-                type="submit" 
-                className="profileSaveButton"
-                disabled={isSubmitting || isPublishing}
-              >
-                {isPublishing ? 'Publishing to Nostr...' : isSubmitting ? 'Creating Account...' : 'Create Account'}
-              </button>
-            </div>
-          </form>
-        </div>
+
+              <div className="profileFormField">
+                <button
+                  type="submit"
+                  className="profileSaveButton"
+                  disabled={isSubmitting || isPublishing}
+                >
+                  {isPublishing
+                    ? 'Publishing to Nostr...'
+                    : isSubmitting
+                      ? 'Creating Account...'
+                      : 'Create Account'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
       {/* Nostr Key Generation Section - Only show after registration is complete */}
       {isRegistrationComplete && (
         <>
-          <div className="profileSettingsSection registrationTransition" id="nostrKeys">
-          <h2 className="profileSettingsTitle">
-            Secret Keys
-          </h2>
+          <div
+            className="profileSettingsSection registrationTransition"
+            id="nostrKeys"
+          >
+            <h2 className="profileSettingsTitle">Secret Keys</h2>
 
-          <div className="profileSection" id="nostrKeys">
-            <p className="profileNotLoggedInText" style={{ marginBottom: '20px' }}>
-              Your Nostr private key (nsec) and 12-word recovery phrase for decentralized identity.
-            </p>
-            
-            {/* Tab Navigation */}
-            <div className="keyTabs">
-              {generatedKeys?.mnemonic && (
-                <button
-                  className={`keyTab ${activeTab === 'mnemonic' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('mnemonic')}
-                >
-                 Recovery (mnemonic)
-                </button>
-              )}
-              <button
-                className={`keyTab ${activeTab === 'privateKey' ? 'active' : ''}`}
-                onClick={() => setActiveTab('privateKey')}
+            <div className="profileSection" id="nostrKeys">
+              <p
+                className="profileNotLoggedInText"
+                style={{ marginBottom: '20px' }}
               >
-                Private Key (nsec)
-              </button>
-            </div>
+                Your Nostr private key (nsec) and 12-word recovery phrase for
+                decentralized identity.
+              </p>
 
-            {/* Tab Content */}
-            <div className="keyTabContent">
-              {activeTab === 'mnemonic' && generatedKeys?.mnemonic && (
-                <div className="keyTabPanel">
-                  <div className="nostrKeyWarning">
-                    ⚠️ This 12-word phrase can be used to recover your account. Store it safely and never share it!
-                  </div>
-                  <div className="nostrKeyValue">
-                    <code className="nostrKeyCode nostrMnemonicCode">
-                      {generatedKeys.mnemonic}
-                    </code>
-                    <div className="nostrKeyActions">
-                    <button 
-                      className="nostrKeyCopyButton"
-                      onClick={() => handleCopyToClipboard(generatedKeys.mnemonic || '', 'Recovery Phrase')}
-                    >
-                      Copy
-                    </button>
+              {/* Tab Navigation */}
+              <div className="keyTabs">
+                {generatedKeys?.mnemonic && (
+                  <button
+                    className={`keyTab ${activeTab === 'mnemonic' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('mnemonic')}
+                  >
+                    Recovery (mnemonic)
+                  </button>
+                )}
+                <button
+                  className={`keyTab ${activeTab === 'privateKey' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('privateKey')}
+                >
+                  Private Key (nsec)
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div className="keyTabContent">
+                {activeTab === 'mnemonic' && generatedKeys?.mnemonic && (
+                  <div className="keyTabPanel">
+                    <div className="nostrKeyWarning">
+                      ⚠️ This 12-word phrase can be used to recover your
+                      account. Store it safely and never share it!
                     </div>
-                  </div>
-
-                </div>
-              )}
-
-              {activeTab === 'privateKey' && (
-                <div className="keyTabPanel">
-                  
-                  <div className="nostrKeyWarning">
-                    ⚠️ Your private key (nsec) gives full access to your account. Never share it with anyone!
-                  </div>
-                  <div className="nostrKeyValue">
-                    <div className="nostrKeyDisplay">
-                      <code className="nostrKeyCode">
-                        {generatedKeys?.privateKey}
+                    <div className="nostrKeyValue">
+                      <code className="nostrKeyCode nostrMnemonicCode">
+                        {generatedKeys.mnemonic}
                       </code>
-                    </div>
-                    <div className="nostrKeyActions">
-                      <button 
-                        className="nostrKeyCopyButton"
-                        onClick={() => handleCopyToClipboard(generatedKeys?.privateKey || '', 'Private Key')}
-                      >
-                        Copy
-                      </button>
-                      <button 
-                        className="nostrKeyCopyButton"
-                        onClick={() => setShowNsecQRModal(true)}
-                      >
-                        Show QR
-                      </button>
+                      <div className="nostrKeyActions">
+                        <button
+                          className="nostrKeyCopyButton"
+                          onClick={() =>
+                            handleCopyToClipboard(
+                              generatedKeys.mnemonic || '',
+                              'Recovery Phrase'
+                            )
+                          }
+                        >
+                          Copy
+                        </button>
+                      </div>
                     </div>
                   </div>
+                )}
 
-                </div>
-              )}
+                {activeTab === 'privateKey' && (
+                  <div className="keyTabPanel">
+                    <div className="nostrKeyWarning">
+                      ⚠️ Your private key (nsec) gives full access to your
+                      account. Never share it with anyone!
+                    </div>
+                    <div className="nostrKeyValue">
+                      <div className="nostrKeyDisplay">
+                        <code className="nostrKeyCode">
+                          {generatedKeys?.privateKey}
+                        </code>
+                      </div>
+                      <div className="nostrKeyActions">
+                        <button
+                          className="nostrKeyCopyButton"
+                          onClick={() =>
+                            handleCopyToClipboard(
+                              generatedKeys?.privateKey || '',
+                              'Private Key'
+                            )
+                          }
+                        >
+                          Copy
+                        </button>
+                        <button
+                          className="nostrKeyCopyButton"
+                          onClick={() => setShowNsecQRModal(true)}
+                        >
+                          Show QR
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-              
-            </div>
-            
+
             {publishError && !publishedEventId && (
               <div className="nostrPublishError">
                 <strong>⚠️ Publishing Failed</strong>
                 <p>{publishError}</p>
-                <p style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
-                  <strong>What this means:</strong> Your Nostr keys were generated successfully, but some relays are blocking new accounts. This is normal for new Nostr users.
+                <p
+                  style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}
+                >
+                  <strong>What this means:</strong> Your Nostr keys were
+                  generated successfully, but some relays are blocking new
+                  accounts. This is normal for new Nostr users.
                 </p>
                 <p style={{ fontSize: '14px', color: '#666' }}>
-                  <strong>What you can do:</strong> Try again later, or use a different Nostr client to publish your profile manually.
+                  <strong>What you can do:</strong> Try again later, or use a
+                  different Nostr client to publish your profile manually.
                 </p>
-                <button 
+                <button
                   className="profileSaveButton spaceTop"
                   onClick={handleRetryPublish}
                   disabled={isPublishing}
                 >
                   {isPublishing ? 'Retrying...' : 'Retry Publishing'}
                 </button>
-                <button 
+                <button
                   className="profileSaveButton secondary"
                   onClick={handleManualPublish}
                 >
@@ -765,18 +850,14 @@ const RegisterPage: React.FC = () => {
             <div className="backupAcknowledgement">
               <div className="backupAcknowledgementContent">
                 <h3>Backup Your Keys</h3>
-                <p>
-                  Copy your keys above before continuing.
-                </p>
+                <p>Copy your keys above before continuing.</p>
                 <label className="backupCheckbox">
                   <input
                     type="checkbox"
                     checked={keysBackedUp}
-                    onChange={(e) => setKeysBackedUp(e.target.checked)}
+                    onChange={e => setKeysBackedUp(e.target.checked)}
                   />
-                  <span>
-                    I've backed up my keys
-                  </span>
+                  <span>I've backed up my keys</span>
                 </label>
                 <button
                   className="profileSaveButton fullWidth"
@@ -793,11 +874,9 @@ const RegisterPage: React.FC = () => {
 
       {!isRegistrationComplete && (
         <div className="profileNotLoggedIn" style={{ marginTop: '40px' }}>
-          <h2 className="profileNotLoggedInTitle">
-            Already have an account?
-          </h2>
+          <h2 className="profileNotLoggedInTitle">Already have an account?</h2>
           <p className="profileNotLoggedInText">
-              Sign in to access your existing profile and settings.
+            Sign in to access your existing profile and settings.
           </p>
           <button className="profileLoginButton" onClick={openLogin}>
             Sign In
@@ -807,46 +886,67 @@ const RegisterPage: React.FC = () => {
 
       {/* QR Code Modal for nsec */}
       {showNsecQRModal && generatedKeys?.privateKey && (
-        <div className="overlayContainer" onClick={() => setShowNsecQRModal(false)}>
-          <div 
-            className="overlayInner" 
+        <div
+          className="overlayContainer"
+          onClick={() => setShowNsecQRModal(false)}
+        >
+          <div
+            className="overlayInner"
             style={{ textAlign: 'center', maxWidth: '400px' }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>
               Private Key QR Code
             </h3>
 
             <div className="profileQRContainer">
-              <GenericQR 
-                data={generatedKeys.privateKey} 
-                width={250} 
-                height={250} 
-                id="nsecQR" 
+              <GenericQR
+                data={generatedKeys.privateKey}
+                width={250}
+                height={250}
+                id="nsecQR"
               />
             </div>
 
-            <p style={{ margin: '16px 0', color: '#dc2626', fontSize: '14px', fontWeight: 600 }}>
+            <p
+              style={{
+                margin: '16px 0',
+                color: '#dc2626',
+                fontSize: '14px',
+                fontWeight: 600
+              }}
+            >
               ⚠️ Never share this QR code with anyone!
             </p>
 
-            <p style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}>
-              <code style={{ 
-                fontSize: '11px', 
-                wordBreak: 'break-all',
-                backgroundColor: '#f0f0f0',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                display: 'inline-block'
-              }}>
+            <p
+              style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}
+            >
+              <code
+                style={{
+                  fontSize: '11px',
+                  wordBreak: 'break-all',
+                  backgroundColor: '#f0f0f0',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  display: 'inline-block'
+                }}
+              >
                 {generatedKeys.privateKey}
               </code>
             </p>
 
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+            <div
+              style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}
+            >
               <button
                 className="profileCopyButton primary"
-                onClick={() => handleCopyToClipboard(generatedKeys.privateKey || '', 'Private Key')}
+                onClick={() =>
+                  handleCopyToClipboard(
+                    generatedKeys.privateKey || '',
+                    'Private Key'
+                  )
+                }
               >
                 Copy nsec
               </button>

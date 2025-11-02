@@ -6,7 +6,8 @@ export const NostrUtil = {
    */
   parseNpub(input: string): { ok: boolean; hex?: string; error?: string } {
     try {
-      if (!input || typeof input !== 'string') return { ok: false, error: 'empty' };
+      if (!input || typeof input !== 'string')
+        return { ok: false, error: 'empty' };
       const clean = input.trim().replace(/^@/, '');
       const decoded = NostrTools.nip19.decode(clean);
       if (decoded.type !== 'npub' || typeof decoded.data !== 'string') {
@@ -20,5 +21,3 @@ export const NostrUtil = {
 };
 
 export default NostrUtil;
-
-

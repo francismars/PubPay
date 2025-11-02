@@ -44,7 +44,7 @@ export const useLiveFunctionality = (eventId?: string) => {
   const [noteContent, setNoteContent] = useState<string>('');
   const [authorName, setAuthorName] = useState<string>('Author');
   const [authorImage, setAuthorImage] = useState<string>(
-    '/images/gradient_color.gif'
+    '/live/images/gradient_color.gif'
   );
   const [zaps, setZaps] = useState<any[]>([]);
   const [totalZaps, setTotalZaps] = useState<number>(0);
@@ -64,7 +64,8 @@ export const useLiveFunctionality = (eventId?: string) => {
   const liveDisplayRef = useRef<any>(null);
 
   // Zap notification state
-  const [zapNotification, setZapNotification] = useState<ZapNotification | null>(null);
+  const [zapNotification, setZapNotification] =
+    useState<ZapNotification | null>(null);
   const initialZapsLoadedRef = useRef(false);
   const pendingZapNotificationsRef = useRef<Map<string, any>>(new Map());
 
@@ -185,7 +186,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         // QR swiper is initialized by initializeQRSwiper() function
 
         // Load note content if eventId is provided
-        if (eventId) {
+        // Only process if eventId exists and is not empty or just 'live'
+        if (eventId && eventId.trim() !== '' && eventId.trim() !== 'live') {
           // Legacy-style guard: strip prefix and validate first; if invalid, show error and abort
           try {
             const cleanId = stripNostrPrefix(eventId);
@@ -207,27 +209,38 @@ export const useLiveFunctionality = (eventId?: string) => {
 
             // Force loader to render first by normalizing URL to root (no identifier)
             try {
-              window.history.replaceState({}, '', '/');
+              window.history.replaceState({}, '', '/live/');
               // Notify router/listeners about the URL change
               window.dispatchEvent(new PopStateEvent('popstate'));
             } catch {}
 
             // After the loader mounts, show the error and prefill input
-            setTimeout(() => {
-              showLoadingError(msg);
-              // Ensure note loader listeners are attached after redirect
-              try {
-                setupNoteLoaderListeners();
-              } catch {}
-              const input = document.getElementById(
-                'note1LoaderInput'
-              ) as HTMLInputElement | null;
-              if (input) {
-                input.value = cleanId;
-                input.focus();
-                input.select();
-              }
-            }, 60);
+            // Only prefill if cleanId is not empty and not "live"
+            if (cleanId && cleanId.trim() !== '' && cleanId.trim() !== 'live') {
+              setTimeout(() => {
+                showLoadingError(msg);
+                // Ensure note loader listeners are attached after redirect
+                try {
+                  setupNoteLoaderListeners();
+                } catch {}
+                const input = document.getElementById(
+                  'note1LoaderInput'
+                ) as HTMLInputElement | null;
+                if (input) {
+                  input.value = cleanId;
+                  input.focus();
+                  input.select();
+                }
+              }, 60);
+            } else {
+              // Just show error, don't prefill input
+              setTimeout(() => {
+                showLoadingError(msg);
+                try {
+                  setupNoteLoaderListeners();
+                } catch {}
+              }, 60);
+            }
 
             // Do not proceed with loading
             setIsLoading(false);
@@ -680,7 +693,10 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const subscribeLiveEventZaps = async (pubkey: string, identifier: string) => {
     // Debug log removed
-    console.log('🔌 subscribeLiveEventZaps called for:', { pubkey: pubkey.slice(0, 8), identifier });
+    console.log('🔌 subscribeLiveEventZaps called for:', {
+      pubkey: pubkey.slice(0, 8),
+      identifier
+    });
 
     // Reset zap list when starting a new live event (like legacy)
     resetZapList();
@@ -703,7 +719,10 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Keep subscription alive for new zaps
         // Mark that initial zaps have been loaded
         initialZapsLoadedRef.current = true;
-        console.log('✅ Initial zaps loaded (oneose), will show notifications for new zaps. Flag set to:', initialZapsLoadedRef.current);
+        console.log(
+          '✅ Initial zaps loaded (oneose), will show notifications for new zaps. Flag set to:',
+          initialZapsLoadedRef.current
+        );
       },
       onclosed() {
         // Debug log removed
@@ -1012,7 +1031,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     chatDiv.innerHTML = `
         <div class="chat-message-header">
-            <img class="chat-author-img" src="/images/gradient_color.gif" data-pubkey="${chatMessage.pubkey}" />
+            <img class="chat-author-img" src="/live/images/gradient_color.gif" data-pubkey="${chatMessage.pubkey}" />
             <div class="chat-message-info">
                 <div class="chat-author-name" data-pubkey="${chatMessage.pubkey}">
                     ${chatMessage.pubkey.slice(0, 8)}...
@@ -1058,7 +1077,10 @@ export const useLiveFunctionality = (eventId?: string) => {
     eventIdentifier: string
   ) => {
     // Debug log removed
-    console.log('🔄 processLiveEventZap called for receipt:', zapReceipt.id.slice(0, 8));
+    console.log(
+      '🔄 processLiveEventZap called for receipt:',
+      zapReceipt.id.slice(0, 8)
+    );
 
     try {
       // Extract zap information from the receipt
@@ -1110,7 +1132,11 @@ export const useLiveFunctionality = (eventId?: string) => {
       addZapToTotals(zapperPubkey, amount);
 
       // Display the zap
-      console.log('📞 About to call displayLiveEventZap with zapData:', { id: zapData.id.slice(0, 8), amount: zapData.amount, pubkey: zapData.pubkey.slice(0, 8) });
+      console.log('📞 About to call displayLiveEventZap with zapData:', {
+        id: zapData.id.slice(0, 8),
+        amount: zapData.amount,
+        pubkey: zapData.pubkey.slice(0, 8)
+      });
       displayLiveEventZap(zapData);
     } catch (error) {
       console.error('Error processing live event zap:', error);
@@ -1164,7 +1190,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     zapDiv.innerHTML = `
         <div class="zap-header">
-            <img class="zap-author-img" src="/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
+            <img class="zap-author-img" src="/live/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
             <div class="zap-info">
                 <div class="zap-author-name" data-pubkey="${zapData.pubkey}">
                     ${zapData.pubkey.slice(0, 8)}...
@@ -1231,7 +1257,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Classic zap layout for left column
       zapOnlyDiv.innerHTML = `
             <div class="zapperProfile">
-                <img class="zapperProfileImg" src="/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
+                <img class="zapperProfileImg" src="/live/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
                 <div class="zapperInfo">
                     <div class="zapperName" data-pubkey="${zapData.pubkey}">
                         ${zapData.pubkey.slice(0, 8)}...
@@ -1358,7 +1384,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (profile) {
         existing.profile = profile;
         existing.name = getDisplayName(profile);
-        existing.picture = profile.picture || '/images/gradient_color.gif';
+        existing.picture = profile.picture || '/live/images/gradient_color.gif';
       }
     } else {
       zapperTotals.set(pubkey, {
@@ -1366,8 +1392,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         profile,
         name: profile ? getDisplayName(profile) : 'Anonymous',
         picture: profile
-          ? profile.picture || '/images/gradient_color.gif'
-          : '/images/gradient_color.gif',
+          ? profile.picture || '/live/images/gradient_color.gif'
+          : '/live/images/gradient_color.gif',
         pubkey
       });
     }
@@ -1461,7 +1487,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       profileData.displayName ||
       profileData.name ||
       `${profile.pubkey.slice(0, 8)}...`;
-    const picture = profileData.picture || '/images/gradient_color.gif';
+    const picture = profileData.picture || '/live/images/gradient_color.gif';
 
     // Update zapper totals with profile info if this user has zapped
     if (
@@ -1499,16 +1525,16 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (pendingZapNotificationsRef.current.has(profile.pubkey)) {
       const zapData = pendingZapNotificationsRef.current.get(profile.pubkey);
       pendingZapNotificationsRef.current.delete(profile.pubkey);
-      
+
       console.log('🏆 Processing notification for zap:', {
         amount: zapData.amount,
         pubkey: profile.pubkey.slice(0, 8),
         currentZapsCount: zaps.length
       });
-      
+
       // Get rank based on this single zap's amount (1-3 for top 3 individual zaps)
       const zapperRank = getSingleZapRank(zapData.amount);
-      
+
       // Trigger the notification now that we have the profile
       const notificationData: ZapNotification = {
         id: zapData.id,
@@ -1519,7 +1545,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         timestamp: zapData.timestamp,
         zapperRank
       };
-      
+
       console.log('🏆 Setting notification with rank:', zapperRank);
       setZapNotification(notificationData);
     }
@@ -1614,7 +1640,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Debug log removed
 
     const profileData = JSON.parse(profile.content || '{}');
-    const picture = profileData.picture || '/images/gradient_color.gif';
+    const picture = profileData.picture || '/live/images/gradient_color.gif';
 
     // Update the author profile image
     const authorImg = document.getElementById(
@@ -2371,9 +2397,13 @@ export const useLiveFunctionality = (eventId?: string) => {
     localStorage.setItem('pubpay-styles', JSON.stringify(styles));
 
     // Keep URL clean - no style parameters
-    const pathParts = window.location.pathname.split('/');
-    const noteId = pathParts[pathParts.length - 1];
-    const cleanUrl = noteId ? `/${noteId}` : '/';
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    // Filter out 'live' from path parts to get the actual identifier
+    const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
+    const noteId = pathPartsWithoutLive[pathPartsWithoutLive.length - 1];
+    // Keep URLs under /live/ base path
+    const cleanUrl =
+      noteId && noteId.trim() !== '' ? `/live/${noteId}` : '/live/';
 
     if (window.location.href !== window.location.origin + cleanUrl) {
       window.history.replaceState({}, '', cleanUrl);
@@ -2885,7 +2915,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (styles.showHistoricalPrice !== DEFAULT_STYLES.showHistoricalPrice) {
           params.set('showHistoricalPrice', styles.showHistoricalPrice);
         }
-        if (styles.showHistoricalChange !== DEFAULT_STYLES.showHistoricalChange) {
+        if (
+          styles.showHistoricalChange !== DEFAULT_STYLES.showHistoricalChange
+        ) {
           params.set('showHistoricalChange', styles.showHistoricalChange);
         }
         if (styles.fiatOnly !== DEFAULT_STYLES.fiatOnly) {
@@ -3036,7 +3068,9 @@ export const useLiveFunctionality = (eventId?: string) => {
   const processNewZapForNotification = async (kind9735: any) => {
     try {
       // Extract zap data
-      const description9735 = kind9735.tags.find((tag: any) => tag[0] === 'description')?.[1];
+      const description9735 = kind9735.tags.find(
+        (tag: any) => tag[0] === 'description'
+      )?.[1];
       if (!description9735) {
         console.log('⚠️ No description found in zap');
         return;
@@ -3045,8 +3079,10 @@ export const useLiveFunctionality = (eventId?: string) => {
       const zapRequest = JSON.parse(description9735);
       const zapperPubkey = zapRequest.pubkey;
       const zapContent = zapRequest.content || '';
-      
-      const bolt11Tag = kind9735.tags.find((tag: any) => tag[0] === 'bolt11')?.[1];
+
+      const bolt11Tag = kind9735.tags.find(
+        (tag: any) => tag[0] === 'bolt11'
+      )?.[1];
       if (!bolt11Tag) {
         console.log('⚠️ No bolt11 found in zap');
         return;
@@ -3090,11 +3126,11 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (!kind1id || typeof kind1id !== 'string' || kind1id.length !== 64) {
       return;
     }
-    
+
     // Reset initial zaps flag for new note
     console.log('🔄 Resetting initialZapsLoadedRef for new note');
     initialZapsLoadedRef.current = false;
-    
+
     let isFirstStream = true;
 
     const zapsContainer = document.getElementById('zaps');
@@ -3379,7 +3415,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       if (!zap.picture) zap.picture = '';
       const profileImage =
-        zap.picture == '' ? '/images/gradient_color.gif' : zap.picture;
+        zap.picture == '' ? '/live/images/gradient_color.gif' : zap.picture;
 
       zapDiv.innerHTML = `
         <div class="zapperProfile">
@@ -3491,7 +3527,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             ? getDisplayName(profile)
             : zap.kind1Name || 'Anonymous',
           picture:
-            profile?.picture || zap.picture || '/images/gradient_color.gif'
+            profile?.picture || zap.picture || '/live/images/gradient_color.gif'
         };
         zapperTotals.set(pubkey, zapperData);
         // Debug log removed
@@ -3515,28 +3551,31 @@ export const useLiveFunctionality = (eventId?: string) => {
   const getSingleZapRank = (zapAmount: number): number | undefined => {
     // Use window.zaps which is populated before the React state
     const existingZaps = (window as any).zaps || [];
-    
+
     // Get all zap amounts INCLUDING the current zap being evaluated
-    const allZapAmounts = [...existingZaps.map((z: any) => z.amount), zapAmount].sort((a, b) => b - a);
-    
+    const allZapAmounts = [
+      ...existingZaps.map((z: any) => z.amount),
+      zapAmount
+    ].sort((a, b) => b - a);
+
     // Get all unique amounts
     const uniqueAmounts = [...new Set(allZapAmounts)];
-    
+
     console.log('🏆 getSingleZapRank:', {
       zapAmount,
       totalZaps: existingZaps.length,
       allAmounts: allZapAmounts,
       uniqueAmounts: uniqueAmounts.slice(0, 5) // Show top 5 for debugging
     });
-    
+
     // Find where this zap amount ranks
     const rank = uniqueAmounts.indexOf(zapAmount);
-    
+
     if (rank >= 0) {
       console.log('🏆 Zap ranks at position:', rank + 1);
       return rank + 1; // Return 1, 2, 3, 4, etc.
     }
-    
+
     console.log('🏆 Could not determine rank');
     return undefined;
   };
@@ -3798,7 +3837,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     try {
       const profile = JSON.parse(kind0.content);
       setAuthorName(profile.name || profile.display_name || 'Anonymous');
-      setAuthorImage(profile.picture || '/images/gradient_color.gif');
+      setAuthorImage(profile.picture || '/live/images/gradient_color.gif');
     } catch (e) {}
   };
 
@@ -3933,8 +3972,8 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Decode and route to appropriate handler
       const decoded = nip19.decode(cleanNoteId);
 
-      // Update URL with the identifier using path format (rooted, no /live prefix)
-      const newUrl = `/${cleanNoteId}`;
+      // Update URL with the identifier under /live/ base path
+      const newUrl = `/live/${cleanNoteId}`;
       window.history.pushState({}, '', newUrl);
 
       // Trigger a custom event to notify the React component
@@ -4111,9 +4150,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       'bgImageUrl'
     ) as HTMLInputElement;
     if (bgImageUrl) {
-      bgImageUrl.value = '/images/gradient_color.gif';
+      bgImageUrl.value = '/live/images/gradient_color.gif';
     }
-    updateBackgroundImage('/images/gradient_color.gif');
+    updateBackgroundImage('/live/images/gradient_color.gif');
 
     // Set opacity to 0 (fully transparent)
     const opacitySlider = document.getElementById(
@@ -4146,7 +4185,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       'bgPresetPreview'
     ) as HTMLImageElement;
     if (bgPresetPreview) {
-      bgPresetPreview.src = '/images/gradient_color.gif';
+      bgPresetPreview.src = '/live/images/gradient_color.gif';
       bgPresetPreview.alt = 'PubPay preset preview';
       bgPresetPreview.style.display = 'block';
     }
@@ -5409,7 +5448,8 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Expose fiat conversion utilities to window for overlay component
   (window as any).satsToFiat = satsToFiat;
   (window as any).getBitcoinPrices = () => bitcoinPricesRef.current;
-  (window as any).getSelectedFiatCurrency = () => selectedFiatCurrencyRef.current;
+  (window as any).getSelectedFiatCurrency = () =>
+    selectedFiatCurrencyRef.current;
 
   const setupToggle = (
     toggleId: string,
@@ -6208,7 +6248,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       cosmic: {
         textColor: '#ffffff',
         bgColor: '#0a0a1a',
-        bgImage: '/images/bitcoin-space.gif',
+        bgImage: '/live/images/bitcoin-space.gif',
         textOpacity: 1.0,
         opacity: 0.4,
         partnerLogo: '',
@@ -6228,7 +6268,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       vibrant: {
         textColor: '#ffd700',
         bgColor: '#2d1b69',
-        bgImage: '/images/nostr-ostriches.gif',
+        bgImage: '/live/images/nostr-ostriches.gif',
         textOpacity: 1.0,
         opacity: 0.6,
         partnerLogo: '',
@@ -6248,7 +6288,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       electric: {
         textColor: '#00ffff',
         bgColor: '#000033',
-        bgImage: '/images/send-zaps.gif',
+        bgImage: '/live/images/send-zaps.gif',
         textOpacity: 1.0,
         opacity: 0.7,
         partnerLogo: '',
@@ -6308,7 +6348,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       bitcoinConf: {
         textColor: '#ffffff',
         bgColor: '#000000',
-        bgImage: '/images/sky.jpg',
+        bgImage: '/live/images/sky.jpg',
         textOpacity: 1.0,
         opacity: 0.7,
         partnerLogo:
@@ -6829,7 +6869,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       pubpay: {
         textColor: '#ffffff',
         bgColor: '#ffffff',
-        bgImage: '/images/gradient_color.gif',
+        bgImage: '/live/images/gradient_color.gif',
         qrInvert: true,
         qrScreenBlend: true,
         qrMultiplyBlend: false,
@@ -6848,7 +6888,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       cosmic: {
         textColor: '#ffffff',
         bgColor: '#0a0a1a',
-        bgImage: '/images/bitcoin-space.gif',
+        bgImage: '/live/images/bitcoin-space.gif',
         qrInvert: false,
         qrScreenBlend: true,
         qrMultiplyBlend: false,
@@ -6867,7 +6907,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       vibrant: {
         textColor: '#ffd700',
         bgColor: '#2d1b69',
-        bgImage: '/images/nostr-ostriches.gif',
+        bgImage: '/live/images/nostr-ostriches.gif',
         qrInvert: false,
         qrScreenBlend: false,
         qrMultiplyBlend: false,
@@ -6886,7 +6926,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       electric: {
         textColor: '#00ffff',
         bgColor: '#000033',
-        bgImage: '/images/send-zaps.gif',
+        bgImage: '/live/images/send-zaps.gif',
         qrInvert: false,
         qrScreenBlend: true,
         qrMultiplyBlend: false,
@@ -6905,7 +6945,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       warm: {
         textColor: '#ff8c42',
         bgColor: '#2c1810',
-        bgImage: '/images/bitcoin-sunset.gif',
+        bgImage: '/live/images/bitcoin-sunset.gif',
         qrInvert: false,
         qrScreenBlend: false,
         qrMultiplyBlend: false,
@@ -6924,7 +6964,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       adopting: {
         textColor: '#eedb5f',
         bgColor: '#05051f',
-        bgImage: '/images/adopting.webp',
+        bgImage: '/live/images/adopting.webp',
         qrInvert: false,
         qrScreenBlend: false,
         qrMultiplyBlend: false,
@@ -6943,7 +6983,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       bitcoinConf: {
         textColor: '#ffffff',
         bgColor: '#000000',
-        bgImage: '/images/sky.jpg',
+        bgImage: '/live/images/sky.jpg',
         qrInvert: false,
         qrScreenBlend: false,
         qrMultiplyBlend: false,

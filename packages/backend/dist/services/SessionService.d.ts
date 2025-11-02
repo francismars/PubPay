@@ -11,15 +11,20 @@ export interface LNURLMapping {
     eventId: string;
 }
 export declare class SessionService {
+    private static instance;
     private sessions;
     private lnurlpMappings;
     private logger;
     private cleanupInterval;
-    constructor();
+    private constructor();
+    /**
+     * Get singleton instance
+     */
+    static getInstance(): SessionService;
     /**
      * Create or update a Lightning session
      */
-    createOrUpdateSession(frontendSessionId: string, eventId: string, lnurl: string): void;
+    createOrUpdateSession(frontendSessionId: string, eventId: string, lnurl: string, lnurlpId?: string): void;
     /**
      * Get session by frontend session ID
      */

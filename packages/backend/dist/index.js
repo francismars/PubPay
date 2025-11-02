@@ -9,22 +9,24 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const morgan_1 = __importDefault(require("morgan"));
 const helmet_1 = __importDefault(require("helmet"));
-const compression_1 = __importDefault(require("compression"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const lightning_1 = require("./routes/lightning");
 const live_1 = require("./routes/live");
 const jukebox_1 = require("./routes/jukebox");
 const errorHandler_1 = require("./middleware/errorHandler");
+const rooms_1 = require("./routes/rooms");
 const logger_1 = require("./utils/logger");
-// Load environment variables
-dotenv_1.default.config();
+const path_1 = __importDefault(require("path"));
+// Load environment variables from backend folder
+const envPath = path_1.default.resolve(__dirname, '../.env');
+dotenv_1.default.config({ path: envPath });
 class BackendServer {
     app;
     port;
     logger;
     constructor() {
         this.app = (0, express_1.default)();
-        this.port = parseInt(process.env.PORT || '3000', 10);
+        this.port = parseInt(process.env['PORT'] || '3002', 10);
         this.logger = new logger_1.Logger('BackendServer');
         this.initializeMiddleware();
         this.initializeRoutes();
@@ -38,20 +40,21 @@ class BackendServer {
         }));
         // CORS configuration
         this.app.use((0, cors_1.default)({
-            origin: process.env.NODE_ENV === 'production'
-                ? process.env.FRONTEND_URL
-                : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:8080'],
+            origin: process.env['NODE_ENV'] === 'production'
+                ? process.env['FRONTEND_URL']
+                : [
+                    'http://localhost:3000',
+                    'http://localhost:3001',
+                    'http://localhost:3002',
+                    'http://localhost:8080'
+                ],
             credentials: true,
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
             allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
         }));
         // Compression and logging
-        this.app.use((0, compression_1.default)());
-        this.app.use((0, morgan_1.default)('combined', {
-            stream: {
-                write: (message) => this.logger.info(message.trim())
-            }
-        }));
+        // this.app.use(compression()); // Temporarily disabled due to type issues
+        this.app.use((0, morgan_1.default)('combined'));
         // Body parsing
         this.app.use(express_1.default.json({ limit: '10mb' }));
         this.app.use(express_1.default.urlencoded({ extended: true, limit: '10mb' }));
@@ -62,18 +65,19 @@ class BackendServer {
         // API routes
         this.app.use('/lightning', new lightning_1.LightningRouter().getRouter());
         this.app.use('/live', new live_1.LiveRouter().getRouter());
+        this.app.use('/multi', new rooms_1.RoomsRouter().getRouter());
         this.app.use('/jukebox', new jukebox_1.JukeboxRouter().getRouter());
         // Health check endpoint
-        this.app.get('/health', (req, res) => {
+        this.app.get('/health', (_req, res) => {
             res.json({
                 status: 'healthy',
                 timestamp: new Date().toISOString(),
                 uptime: process.uptime(),
-                version: process.env.npm_package_version || '1.0.0'
+                version: process.env['npm_package_version'] || '1.0.0'
             });
         });
         // Serve React app for all other routes (SPA fallback)
-        this.app.get('*', (req, res) => {
+        this.app.get('*', (_req, res) => {
             res.sendFile('index.html', { root: 'dist' });
         });
     }
@@ -88,12 +92,14 @@ class BackendServer {
             });
         });
         // Global error handler
-        this.app.use(new errorHandler_1.ErrorHandler().getHandler());
+        this.app.use((error, req, res, next) => {
+            new errorHandler_1.ErrorHandler().getHandler()(error, req, res, next);
+        });
     }
     start() {
         this.app.listen(this.port, () => {
             this.logger.info(`🚀 Backend server started on port ${this.port}`);
-            this.logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+            this.logger.info(`📊 Environment: ${process.env['NODE_ENV'] || 'development'}`);
             this.logger.info(`🔗 Health check: http://localhost:${this.port}/health`);
             // Log configuration status
             this.logConfiguration();
@@ -101,10 +107,10 @@ class BackendServer {
     }
     logConfiguration() {
         const config = {
-            LNBITS_URL: !!process.env.LNBITS_URL,
-            LNBITS_API_KEY: !!process.env.LNBITS_API_KEY,
-            WEBHOOK_URL: !!process.env.WEBHOOK_URL,
-            NODE_ENV: process.env.NODE_ENV || 'development'
+            LNBITS_URL: !!process.env['LNBITS_URL'],
+            LNBITS_API_KEY: !!process.env['LNBITS_API_KEY'],
+            WEBHOOK_URL: !!process.env['WEBHOOK_URL'],
+            NODE_ENV: process.env['NODE_ENV'] || 'development'
         };
         this.logger.info('Configuration status:', config);
         if (!config.LNBITS_API_KEY) {

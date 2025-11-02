@@ -9,8 +9,13 @@ import { nip19 } from 'nostr-tools';
 export const LivePage: React.FC = () => {
   const { eventId } = useParams<{ eventId?: string }>();
   const navigate = useNavigate();
-  const [showNoteLoader, setShowNoteLoader] = useState(!eventId);
-  const [showMainLayout, setShowMainLayout] = useState(!!eventId);
+  // With explicit routes, eventId should never be "live" but filter it out just in case
+  const validEventId =
+    eventId && eventId.trim() !== '' && eventId.trim() !== 'live'
+      ? eventId
+      : undefined;
+  const [showNoteLoader, setShowNoteLoader] = useState(!validEventId);
+  const [showMainLayout, setShowMainLayout] = useState(!!validEventId);
 
   // Set body class to 'live' for proper CSS styling
   useEffect(() => {
@@ -46,7 +51,7 @@ export const LivePage: React.FC = () => {
     copyStyleUrl,
     zapNotification,
     handleNotificationDismiss
-  } = useLiveFunctionality(eventId);
+  } = useLiveFunctionality(validEventId);
 
   // Debug: Monitor zapNotification changes
   useEffect(() => {
@@ -59,7 +64,47 @@ export const LivePage: React.FC = () => {
     const stripNostrPrefix = (id: string) => id?.replace(/^nostr:/, '') ?? '';
 
     try {
-      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      const currentPath = window.location.pathname;
+
+      // CRITICAL: If we're not under /live/, redirect to /live/ immediately
+      // This prevents the app from loading at root or other paths
+      if (!currentPath.startsWith('/live')) {
+        window.history.replaceState({}, '', '/live/');
+        setShowNoteLoader(true);
+        setShowMainLayout(false);
+        return;
+      }
+
+      // If we're at exactly /live/ (with or without trailing slash), show note loader
+      // Also handle /live with any trailing path segments that are just "live"
+      if (
+        currentPath === '/live' ||
+        currentPath === '/live/' ||
+        currentPath === '/live/live' ||
+        currentPath === '/live/live/'
+      ) {
+        // Ensure trailing slash and redirect to /live/
+        if (currentPath !== '/live/') {
+          window.history.replaceState({}, '', '/live/');
+        }
+        setShowNoteLoader(true);
+        setShowMainLayout(false);
+        // CRITICAL: Clear any input field that might have "live" in it
+        setTimeout(() => {
+          const input = document.getElementById(
+            'note1LoaderInput'
+          ) as HTMLInputElement | null;
+          if (
+            input &&
+            (input.value === 'live' || input.value.trim() === 'live')
+          ) {
+            input.value = '';
+          }
+        }, 10);
+        return;
+      }
+
+      const pathParts = currentPath.split('/').filter(Boolean);
 
       // Try compound form: /{nprofile...}/live/{event-id} → build naddr(kind 30311) and normalize URL
       // If any legacy '/live' segment is present, normalize away from it
@@ -78,7 +123,7 @@ export const LivePage: React.FC = () => {
                   kind: 30311,
                   relays: []
                 });
-                const cleanUrl = `/${naddr}`;
+                const cleanUrl = `/live/${naddr}`;
                 if (window.location.pathname !== cleanUrl) {
                   window.history.replaceState({}, '', cleanUrl);
                 }
@@ -94,10 +139,26 @@ export const LivePage: React.FC = () => {
       }
 
       // Standard handling: last path segment or router param
-      const lastPart = (pathParts[pathParts.length - 1] || '').trim();
-      const candidate = stripNostrPrefix(lastPart || (eventId ?? ''));
+      // Filter out 'live' from path parts to get the actual identifier
+      const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
+      const lastPart = (
+        pathPartsWithoutLive[pathPartsWithoutLive.length - 1] || ''
+      ).trim();
 
-      if (!candidate) {
+      // Get candidate from either path or eventId param
+      // If eventId exists and is valid, use it; otherwise use path
+      const candidateFromPath = stripNostrPrefix(lastPart);
+      const candidateFromParam = validEventId
+        ? stripNostrPrefix(validEventId)
+        : '';
+      const candidate = candidateFromParam || candidateFromPath;
+
+      // If we're at /live/ with no identifier, just show the note loader
+      if (!candidate || candidate === 'live' || candidate.trim() === '') {
+        // Ensure we're at /live/ and show loader
+        if (window.location.pathname !== '/live/') {
+          window.history.replaceState({}, '', '/live/');
+        }
         setShowNoteLoader(true);
         setShowMainLayout(false);
         return;
@@ -106,20 +167,36 @@ export const LivePage: React.FC = () => {
       // Basic prefix validation first
       const validPrefixes = ['note1', 'nevent1', 'naddr1', 'nprofile1'];
       if (!validPrefixes.some(p => candidate.startsWith(p))) {
-        setShowNoteLoader(true);
-        setShowMainLayout(false);
-        showLoadingError(
-          'Invalid format. Please enter a valid nostr identifier (note1/nevent1/naddr1/nprofile1).'
-        );
-        return;
+        // Don't show error if candidate is empty or "live" - just show loader
+        if (candidate && candidate !== 'live' && candidate.trim() !== '') {
+          setShowNoteLoader(true);
+          setShowMainLayout(false);
+          showLoadingError(
+            'Invalid format. Please enter a valid nostr identifier (note1/nevent1/naddr1/nprofile1).'
+          );
+          // Ensure URL stays at /live/
+          if (window.location.pathname !== '/live/') {
+            window.history.replaceState({}, '', '/live/');
+          }
+          // Don't put invalid candidate in input unless it looks like it might be valid
+          return;
+        } else {
+          // Just show loader, no error, no input prefill
+          setShowNoteLoader(true);
+          setShowMainLayout(false);
+          if (window.location.pathname !== '/live/') {
+            window.history.replaceState({}, '', '/live/');
+          }
+          return;
+        }
       }
 
       // Bech32/NIP-19 validation
       try {
         // Decode to ensure the identifier is a valid NIP-19 bech32
         nip19.decode(candidate as string);
-        // Normalize URL to clean "/:identifier"
-        const cleanUrl = `/${candidate}`;
+        // Normalize URL to clean "/live/:identifier" (keep under /live/ base)
+        const cleanUrl = `/live/${candidate}`;
         if (window.location.pathname !== cleanUrl) {
           window.history.replaceState({}, '', cleanUrl);
         }
@@ -128,28 +205,44 @@ export const LivePage: React.FC = () => {
       } catch {
         setShowNoteLoader(true);
         setShowMainLayout(false);
-        // Delay until after the note loader mounts so the DOM nodes exist
-        setTimeout(() => {
-          // Legacy-style messages based on intended type
-          let msg =
-            'Invalid nostr identifier format. Please check the note ID and try again.';
-          if (candidate.startsWith('naddr1')) {
-            msg =
-              'Failed to load live event. Please check the identifier and try again.';
-          } else if (candidate.startsWith('nprofile1')) {
-            msg =
-              'Failed to load profile. Please check the identifier and try again.';
-          }
-          showLoadingError(msg);
-          const input = document.getElementById(
-            'note1LoaderInput'
-          ) as HTMLInputElement | null;
-          if (input) {
-            input.value = candidate;
-            input.focus();
-            input.select();
-          }
-        }, 50);
+        // CRITICAL: Never show error or prefill if candidate is "live" or empty
+        // Only show error for candidates that look like they might be valid but failed validation
+        if (
+          candidate &&
+          candidate !== 'live' &&
+          candidate.trim() !== '' &&
+          (candidate.startsWith('note') ||
+            candidate.startsWith('nevent') ||
+            candidate.startsWith('naddr') ||
+            candidate.startsWith('nprofile'))
+        ) {
+          // Delay until after the note loader mounts so the DOM nodes exist
+          setTimeout(() => {
+            // Legacy-style messages based on intended type
+            let msg =
+              'Invalid nostr identifier format. Please check the note ID and try again.';
+            if (candidate.startsWith('naddr1')) {
+              msg =
+                'Failed to load live event. Please check the identifier and try again.';
+            } else if (candidate.startsWith('nprofile1')) {
+              msg =
+                'Failed to load profile. Please check the identifier and try again.';
+            }
+            showLoadingError(msg);
+            const input = document.getElementById(
+              'note1LoaderInput'
+            ) as HTMLInputElement | null;
+            if (input) {
+              input.value = candidate;
+              input.focus();
+              input.select();
+            }
+          }, 50);
+        }
+        // Ensure URL stays at /live/ and clear any invalid state
+        if (window.location.pathname !== '/live/') {
+          window.history.replaceState({}, '', '/live/');
+        }
       }
     } catch {
       // If anything unexpected happens, fall back to note loader with error
@@ -161,10 +254,11 @@ export const LivePage: React.FC = () => {
     }
     // We want this to run on initial mount and when eventId changes from the router
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [eventId]);
+  }, [validEventId]);
 
   useEffect(() => {
-    if (eventId) {
+    // Only validate if validEventId exists
+    if (validEventId) {
       // Wait for NostrTools to be available before validating
       const validateEventId = async () => {
         // Wait for NostrTools to load
@@ -183,7 +277,7 @@ export const LivePage: React.FC = () => {
 
         await waitForNostrTools();
 
-        // Validate if the eventId is a valid Nostr identifier
+        // Validate if the validEventId is a valid Nostr identifier
         const isValidNostrId = (id: string): boolean => {
           if (!id) return false;
 
@@ -203,7 +297,7 @@ export const LivePage: React.FC = () => {
           }
         };
 
-        if (isValidNostrId(eventId)) {
+        if (isValidNostrId(validEventId)) {
           setShowNoteLoader(false);
           setShowMainLayout(true);
         } else {
@@ -226,20 +320,31 @@ export const LivePage: React.FC = () => {
       setShowNoteLoader(true);
       setShowMainLayout(false);
     }
-  }, [eventId]);
+  }, [validEventId]);
 
   // Listen for URL changes to handle note loader submissions
   useEffect(() => {
     const handlePopState = () => {
-      const pathParts = window.location.pathname.split('/');
-      const currentEventId = pathParts[pathParts.length - 1];
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      // Filter out 'live' from path parts
+      const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
+      const currentEventId =
+        pathPartsWithoutLive[pathPartsWithoutLive.length - 1];
 
-      if (currentEventId && currentEventId !== 'live') {
+      if (
+        currentEventId &&
+        currentEventId.trim() !== '' &&
+        currentEventId !== 'live'
+      ) {
         setShowNoteLoader(false);
         setShowMainLayout(true);
       } else {
         setShowNoteLoader(true);
         setShowMainLayout(false);
+        // Ensure we're at /live/ if somehow we're not
+        if (window.location.pathname !== '/live/') {
+          window.history.replaceState({}, '', '/live/');
+        }
       }
     };
 
@@ -249,13 +354,22 @@ export const LivePage: React.FC = () => {
       setShowMainLayout(true);
 
       // Force a re-render by updating the eventId
-      const pathParts = window.location.pathname.split('/');
-      const newEventId = pathParts[pathParts.length - 1];
-      if (newEventId && newEventId !== 'live') {
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      // Filter out 'live' from path parts
+      const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
+      const newEventId = pathPartsWithoutLive[pathPartsWithoutLive.length - 1];
+      if (newEventId && newEventId.trim() !== '' && newEventId !== 'live') {
         // Trigger a re-render by updating the URL in a way React Router will notice
         window.history.replaceState({}, '', window.location.pathname);
         // Force component to re-render with new eventId
         window.location.reload();
+      } else {
+        // If somehow "live" is in there, just show loader
+        setShowNoteLoader(true);
+        setShowMainLayout(false);
+        if (window.location.pathname !== '/live/') {
+          window.history.replaceState({}, '', '/live/');
+        }
       }
     };
 
@@ -428,7 +542,10 @@ export const LivePage: React.FC = () => {
                 <button id="note1LoaderSubmit" className="button">
                   Load
                 </button>
-                <button className="button outline" onClick={() => navigate('/multi')}>
+                <button
+                  className="button outline"
+                  onClick={() => navigate('/live/multi')}
+                >
                   MULTI
                 </button>
               </div>
@@ -437,7 +554,7 @@ export const LivePage: React.FC = () => {
                 <h3>Examples - Notes, Live Events & Profiles</h3>
                 <div className="example-item">
                   <a
-                    href="/note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7"
+                    href="/live/note16a7m73en9w4artfclcnhqf8jzngepmg2j2et3l2yk0ksfhftv0ls3hugv7"
                     target="_blank"
                   >
                     Zap my set at at Plan B at Adopting Bitcoin after party ⚡️
@@ -453,7 +570,7 @@ export const LivePage: React.FC = () => {
                 </div>
                 <div className="example-item">
                   <a
-                    href="/note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu"
+                    href="/live/note1j8fpjg60gkw266lz86ywmyr2mmy5e6kfkhtfu4umaxneff6qeyhqrl37gu"
                     target="_blank"
                   >
                     Bienvenidos a nuestro querido el salvador 🇸🇻
@@ -469,7 +586,7 @@ export const LivePage: React.FC = () => {
                 </div>
                 <div className="example-item">
                   <a
-                    href="/note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv"
+                    href="/live/note1lsreglfs5s5zm6e8ssavaak2adsajkad27axp00rvz734u443znqspwhvv"
                     target="_blank"
                   >
                     The Network School of Rock is Live from Malaysia!
@@ -485,7 +602,7 @@ export const LivePage: React.FC = () => {
                 </div>
                 <div className="example-item">
                   <a
-                    href="/nevent1qqsphk43g2pzpwfr8qcp5zdx8ftgaj7gvxk682y4sedjvscrsm0lpssc96mm3"
+                    href="/live/nevent1qqsphk43g2pzpwfr8qcp5zdx8ftgaj7gvxk682y4sedjvscrsm0lpssc96mm3"
                     target="_blank"
                   >
                     Hola Barcelona! Pubpay me at the After Party of Bitcoin
@@ -502,7 +619,7 @@ export const LivePage: React.FC = () => {
                 </div>
                 <div className="example-item">
                   <a
-                    href="/naddr1qqjr2vehvyenvdtr94nrzetr956rgctr94skvvfs95eryep3x3snwve389nxyqg3waehxw309ahx7um5wgh8w6twv5hsygx0gknt5ymr44ldyyaq0rn3p5jpzkh8y8ymg773a06ytr4wldxz55psgqqqwensuq723w"
+                    href="/live/naddr1qqjr2vehvyenvdtr94nrzetr956rgctr94skvvfs95eryep3x3snwve389nxyqg3waehxw309ahx7um5wgh8w6twv5hsygx0gknt5ymr44ldyyaq0rn3p5jpzkh8y8ymg773a06ytr4wldxz55psgqqqwensuq723w"
                     target="_blank"
                   >
                     NoGood Radio is a 24/7 pirate radio station running on scrap
@@ -523,7 +640,7 @@ export const LivePage: React.FC = () => {
               <div className="note-loader-footer">
                 <div className="footer-links">
                   <a
-                    href="https://nostr.com"
+                    href="/profile/024a1e0ce411f27778fd0e954a24c5368c3edb6a92360231fa8fcb1d503e8371"
                     target="_blank"
                     className="footer-link"
                   >
@@ -555,7 +672,7 @@ export const LivePage: React.FC = () => {
                 <img
                   id="authorNameProfileImg"
                   className="author-image"
-                  src={authorImage || '/images/gradient_color.gif'}
+                  src={authorImage || '/live/images/gradient_color.gif'}
                 />
                 <div className="author-info">
                   <div id="authorName" className="author-name">
@@ -670,12 +787,12 @@ export const LivePage: React.FC = () => {
                 <div className="powered-by">
                   <img
                     id="partnerLogo"
-                    src="/images/gradient_color.gif"
+                    src="/live/images/gradient_color.gif"
                     alt="Partner Logo"
                     style={{ display: 'none' }}
                   />
                   <a href="https://pubpay.me" target="_blank">
-                    <img src="/images/powered_by_white_bg.png" />
+                    <img src="/live/images/powered_by_white_bg.png" />
                   </a>
                 </div>
               </div>
@@ -693,7 +810,7 @@ export const LivePage: React.FC = () => {
                   <div className="zapper-rank">1</div>
                   <img
                     className="zapper-avatar"
-                    src="/images/gradient_color.gif"
+                    src="/live/images/gradient_color.gif"
                     alt="Top Zapper"
                   />
                   <div className="zapper-info">
@@ -705,7 +822,7 @@ export const LivePage: React.FC = () => {
                   <div className="zapper-rank">2</div>
                   <img
                     className="zapper-avatar"
-                    src="/images/gradient_color.gif"
+                    src="/live/images/gradient_color.gif"
                     alt="Top Zapper"
                   />
                   <div className="zapper-info">
@@ -717,7 +834,7 @@ export const LivePage: React.FC = () => {
                   <div className="zapper-rank">3</div>
                   <img
                     className="zapper-avatar"
-                    src="/images/gradient_color.gif"
+                    src="/live/images/gradient_color.gif"
                     alt="Top Zapper"
                   />
                   <div className="zapper-info">
@@ -729,7 +846,7 @@ export const LivePage: React.FC = () => {
                   <div className="zapper-rank">4</div>
                   <img
                     className="zapper-avatar"
-                    src="/images/gradient_color.gif"
+                    src="/live/images/gradient_color.gif"
                     alt="Top Zapper"
                   />
                   <div className="zapper-info">
@@ -741,7 +858,7 @@ export const LivePage: React.FC = () => {
                   <div className="zapper-rank">5</div>
                   <img
                     className="zapper-avatar"
-                    src="/images/gradient_color.gif"
+                    src="/live/images/gradient_color.gif"
                     alt="Top Zapper"
                   />
                   <div className="zapper-info">
@@ -881,31 +998,37 @@ export const LivePage: React.FC = () => {
                   <div className="preset-inputs">
                     <select id="bgImagePreset" className="bg-preset-select">
                       <option value="">No Background (Default)</option>
-                      <option value="/images/adopting.webp">
+                      <option value="/live/images/adopting.webp">
                         Adopting Bitcoin
                       </option>
-                      <option value="/images/sky.jpg">Sky</option>
-                      <option value="/images/lightning.gif">Lightning</option>
-                      <option value="/images/bitcoin-rocket.gif">
+                      <option value="/live/images/sky.jpg">Sky</option>
+                      <option value="/live/images/lightning.gif">
+                        Lightning
+                      </option>
+                      <option value="/live/images/bitcoin-rocket.gif">
                         Bitcoin Rocket
                       </option>
-                      <option value="/images/bitcoin-astronaut.gif">
+                      <option value="/live/images/bitcoin-astronaut.gif">
                         Bitcoin Astronaut
                       </option>
-                      <option value="/images/bitcoin-space.gif">
+                      <option value="/live/images/bitcoin-space.gif">
                         Bitcoin Space
                       </option>
-                      <option value="/images/bitcoin-sunset.gif">
+                      <option value="/live/images/bitcoin-sunset.gif">
                         Bitcoin Sunset
                       </option>
-                      <option value="/images/bitcoin-rotating.gif">
+                      <option value="/live/images/bitcoin-rotating.gif">
                         Bitcoin Rotating
                       </option>
-                      <option value="/images/nostr-ostriches.gif">
+                      <option value="/live/images/nostr-ostriches.gif">
                         Nostr Ostriches
                       </option>
-                      <option value="/images/send-zaps.gif">Send Zaps</option>
-                      <option value="/images/gm-nostr.gif">GM Nostr</option>
+                      <option value="/live/images/send-zaps.gif">
+                        Send Zaps
+                      </option>
+                      <option value="/live/images/gm-nostr.gif">
+                        GM Nostr
+                      </option>
                       <option value="custom">Custom URL</option>
                     </select>
                     <div
@@ -970,7 +1093,7 @@ export const LivePage: React.FC = () => {
                   <div className="preset-preview-container">
                     <img
                       id="partnerLogoPreview"
-                      src="/images/gradient_color.gif"
+                      src="/live/images/gradient_color.gif"
                       alt="No partner logo"
                       style={{
                         height: '30px',
@@ -1237,7 +1360,7 @@ export const LivePage: React.FC = () => {
       </div>
 
       {/* Zap Notification Overlay */}
-      <ZapNotificationOverlay 
+      <ZapNotificationOverlay
         notification={zapNotification}
         onDismiss={handleNotificationDismiss}
       />

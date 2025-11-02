@@ -11,8 +11,12 @@ import { NewPayNoteOverlay } from './NewPayNoteOverlay';
 export const Layout: React.FC = () => {
   const [showQRScanner, setShowQRScanner] = useState(false);
   const showLoginForm = useUIStore(s => s.loginForm.show);
-  const showProcessing = (useUIStore as any)((s: any) => s.processingOverlay.show);
-  const processingMessage = (useUIStore as any)((s: any) => s.processingOverlay.message);
+  const showProcessing = (useUIStore as any)(
+    (s: any) => s.processingOverlay.show
+  );
+  const processingMessage = (useUIStore as any)(
+    (s: any) => s.processingOverlay.message
+  );
   const statusToast = (useUIStore as any)((s: any) => s.statusToast);
   const closeToast = (useUIStore as any)((s: any) => s.closeToast);
   const [showLoggedInForm, setShowLoggedInForm] = useState(false);
@@ -89,7 +93,8 @@ export const Layout: React.FC = () => {
   const handleScannedContent = async (decodedText: string) => {
     try {
       // Accept note/nevent for posts and npub/nprofile for profiles
-      const regex = /(note1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|nevent1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|npub1[0-9a-z]{58,}|nprofile1[0-9a-z]+)/i;
+      const regex =
+        /(note1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|nevent1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|npub1[0-9a-z]{58,}|nprofile1[0-9a-z]+)/i;
       const match = decodedText.match(regex);
       if (!match) return;
 
@@ -109,7 +114,9 @@ export const Layout: React.FC = () => {
         const pubkeyHex = (decoded.data as any).pubkey;
         window.location.href = `/profile/${pubkeyHex}`;
       } else {
-        console.error("Invalid QR code content. Expected 'note', 'nevent', 'npub' or 'nprofile'.");
+        console.error(
+          "Invalid QR code content. Expected 'note', 'nevent', 'npub' or 'nprofile'."
+        );
       }
     } catch (error) {
       console.error('Failed to decode QR code content:', error);
@@ -270,10 +277,16 @@ export const Layout: React.FC = () => {
       handleOpenNewPayNoteForm();
     };
 
-    window.addEventListener('openNewPayNoteForm', handleOpenNewPayNoteFormEvent);
+    window.addEventListener(
+      'openNewPayNoteForm',
+      handleOpenNewPayNoteFormEvent
+    );
 
     return () => {
-      window.removeEventListener('openNewPayNoteForm', handleOpenNewPayNoteFormEvent);
+      window.removeEventListener(
+        'openNewPayNoteForm',
+        handleOpenNewPayNoteFormEvent
+      );
     };
   }, [authState.isLoggedIn]);
 
@@ -308,15 +321,19 @@ export const Layout: React.FC = () => {
           const html5QrCode = new (window as any).Html5Qrcode('reader');
 
           // Start the scanner FIRST, then store it in state
-          ;(async () => {
+          (async () => {
             try {
               // enumerate cameras to allow flipping
               const cams = await (window as any).Html5Qrcode.getCameras();
               setCameraList(cams || []);
               // Prefer environment/back camera
               const saved = localStorage.getItem('qrCameraId');
-              const preferred = (cams || []).find((c: any) => c.id === saved) ||
-                (cams || []).find((c: any) => /back|rear|environment/i.test(c.label)) || (cams || [])[0];
+              const preferred =
+                (cams || []).find((c: any) => c.id === saved) ||
+                (cams || []).find((c: any) =>
+                  /back|rear|environment/i.test(c.label)
+                ) ||
+                (cams || [])[0];
               currentCameraIdRef.current = preferred ? preferred.id : undefined;
 
               await html5QrCode.start(
@@ -342,7 +359,9 @@ export const Layout: React.FC = () => {
               // After start, probe zoom/torch capabilities
               try {
                 const videoEl = document.querySelector('#reader video') as any;
-                const track = (videoEl?.srcObject as any)?.getVideoTracks?.()[0];
+                const track = (
+                  videoEl?.srcObject as any
+                )?.getVideoTracks?.()[0];
                 const caps = track?.getCapabilities?.();
                 if (caps && typeof caps.zoom !== 'undefined') {
                   setZoomSupported(true);
@@ -559,7 +578,7 @@ export const Layout: React.FC = () => {
                 href="javascript:void(0)"
                 className="sideNavLink disabled"
                 title="coming soon"
-                onClick={(e) => {
+                onClick={e => {
                   e.preventDefault();
                   closeMobileMenu();
                 }}
@@ -570,7 +589,7 @@ export const Layout: React.FC = () => {
                 href="javascript:void(0)"
                 className="sideNavLink disabled"
                 title="coming soon"
-                onClick={(e) => {
+                onClick={e => {
                   e.preventDefault();
                   closeMobileMenu();
                 }}
@@ -592,7 +611,7 @@ export const Layout: React.FC = () => {
                 href="javascript:void(0)"
                 className="sideNavLink disabled"
                 title="coming soon"
-                onClick={(e) => {
+                onClick={e => {
                   e.preventDefault();
                   closeMobileMenu();
                 }}
@@ -603,7 +622,7 @@ export const Layout: React.FC = () => {
                 href="javascript:void(0)"
                 className="sideNavLink disabled"
                 title="coming soon"
-                onClick={(e) => {
+                onClick={e => {
                   e.preventDefault();
                   closeMobileMenu();
                 }}
@@ -618,7 +637,12 @@ export const Layout: React.FC = () => {
               >
                 Settings
               </Link>
-              <a href="/live" className="sideNavLink " title="PubPay Live" onClick={closeMobileMenu}>
+              <a
+                href="/live"
+                className="sideNavLink "
+                title="PubPay Live"
+                onClick={closeMobileMenu}
+              >
                 Live
               </a>
               <Link
@@ -647,34 +671,36 @@ export const Layout: React.FC = () => {
             </div>
           </div>
           <div id="mainContent">
-            <Outlet context={{
-              authState,
-              nostrClient,
-              loadUserProfile,
-              // Hook state (single source of truth)
-              isLoading,
-              activeFeed,
-              posts,
-              followingPosts,
-              replies,
-              isLoadingMore,
-              nostrReady,
-              // Actions from hook
-              handleFeedChange,
-              loadMorePosts,
-              loadSingleNote,
-              loadReplies,
-              clearPosts,
-              // UI handlers
-              handlePayWithExtension,
-              handlePayAnonymously,
-              handleSharePost,
-              handlePostNote,
-              handleNewPayNote,
-              showNewPayNoteForm,
-              handleCloseNewPayNoteForm,
-              isPublishing
-            }} />
+            <Outlet
+              context={{
+                authState,
+                nostrClient,
+                loadUserProfile,
+                // Hook state (single source of truth)
+                isLoading,
+                activeFeed,
+                posts,
+                followingPosts,
+                replies,
+                isLoadingMore,
+                nostrReady,
+                // Actions from hook
+                handleFeedChange,
+                loadMorePosts,
+                loadSingleNote,
+                loadReplies,
+                clearPosts,
+                // UI handlers
+                handlePayWithExtension,
+                handlePayAnonymously,
+                handleSharePost,
+                handlePostNote,
+                handleNewPayNote,
+                showNewPayNoteForm,
+                handleCloseNewPayNoteForm,
+                isPublishing
+              }}
+            />
           </div>
         </div>
       </div>
@@ -694,24 +720,60 @@ export const Layout: React.FC = () => {
             Scan note/nevent or npub/nprofile QR code
           </p>
           <div id="reader"></div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginTop: '10px',
+              flexWrap: 'wrap'
+            }}
+          >
             {/* iOS-like compact controls */}
             {cameraList.length > 0 && (
               <div style={{ position: 'relative' }}>
                 <button
                   className="label"
-                  onClick={(e) => { e.preventDefault(); setShowCameraPicker(v => !v); }}
+                  onClick={e => {
+                    e.preventDefault();
+                    setShowCameraPicker(v => !v);
+                  }}
                   title="Switch Camera"
                 >
-                  <span className="material-symbols-outlined">cameraswitch</span>
+                  <span className="material-symbols-outlined">
+                    cameraswitch
+                  </span>
                 </button>
                 {showCameraPicker && (
-                  <div style={{ position: 'absolute', top: '36px', left: 0, background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', minWidth: '220px', zIndex: 10 }}>
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '36px',
+                      left: 0,
+                      background: '#fff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '10px',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
+                      minWidth: '220px',
+                      zIndex: 10
+                    }}
+                  >
                     {cameraList.map((c: any) => (
                       <div
                         key={c.id}
-                        onMouseDown={(e) => { e.preventDefault(); selectCamera(c.id); setShowCameraPicker(false); }}
-                        style={{ padding: '10px 12px', cursor: 'pointer', background: c.id === currentCameraIdRef.current ? '#f3f4f6' : '#fff' }}
+                        onMouseDown={e => {
+                          e.preventDefault();
+                          selectCamera(c.id);
+                          setShowCameraPicker(false);
+                        }}
+                        style={{
+                          padding: '10px 12px',
+                          cursor: 'pointer',
+                          background:
+                            c.id === currentCameraIdRef.current
+                              ? '#f3f4f6'
+                              : '#fff'
+                        }}
                       >
                         {c.label || c.id}
                       </div>
@@ -723,7 +785,7 @@ export const Layout: React.FC = () => {
             {torchSupported && (
               <button
                 className="label"
-                onClick={(e) => {
+                onClick={e => {
                   e.preventDefault();
                   toggleTorch();
                 }}
@@ -732,7 +794,9 @@ export const Layout: React.FC = () => {
               </button>
             )}
             {zoomSupported && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
                 <span className="label">Zoom</span>
                 <input
                   type="range"
@@ -740,7 +804,7 @@ export const Layout: React.FC = () => {
                   max={zoomMax}
                   step={zoomStep}
                   value={zoomVal}
-                  onChange={(e) => applyZoom(parseFloat(e.target.value))}
+                  onChange={e => applyZoom(parseFloat(e.target.value))}
                   style={{ width: '160px' }}
                 />
               </div>
@@ -767,7 +831,7 @@ export const Layout: React.FC = () => {
         style={{ display: showLoginForm ? 'flex' : 'none' }}
         onClick={closeLogin}
       >
-        <div className="overlayInner" onClick={(e) => e.stopPropagation()}>
+        <div className="overlayInner" onClick={e => e.stopPropagation()}>
           <div className="brand">
             PUB<span className="logoPay">PAY</span>
             <span className="logoMe">.me</span>
@@ -983,7 +1047,9 @@ export const Layout: React.FC = () => {
             </form>
           </div>
           {/* Remember option removed: sessions persist until logout */}
-          <div style={{ textAlign: 'center', marginTop: '32px', fontSize: '13px' }}>
+          <div
+            style={{ textAlign: 'center', marginTop: '32px', fontSize: '13px' }}
+          >
             <span className="label" style={{ color: '#6b7280' }}>
               Don't have an account?{' '}
               <Link
@@ -1025,10 +1091,7 @@ export const Layout: React.FC = () => {
           <p className="label">You are logged in as:</p>
           <p id="loggedInPublicKey">
             {authState.publicKey ? (
-              <a
-                href={`/profile`}
-                className="userMention"
-              >
+              <a href={`/profile`} className="userMention">
                 {authState.displayName ||
                   (typeof window !== 'undefined' && (window as any).NostrTools
                     ? (window as any).NostrTools.nip19.npubEncode(
@@ -1167,7 +1230,7 @@ export const Layout: React.FC = () => {
             id="closeInvoiceOverlay"
             href="javascript:void(0)"
             className="label"
-            onClick={(e) => {
+            onClick={e => {
               e.preventDefault();
               closeInvoice();
             }}
@@ -1188,11 +1251,25 @@ export const Layout: React.FC = () => {
             PUB<span className="logoPay">PAY</span>
             <span className="logoMe">.me</span>
           </div>
-          <p className="label" style={{ fontSize: '18px', fontWeight: 'bold', color: '#4a75ff' }}>
+          <p
+            className="label"
+            style={{ fontSize: '18px', fontWeight: 'bold', color: '#4a75ff' }}
+          >
             {processingMessage || 'Processing payment...'}
           </p>
-          <div className="formFieldGroup" style={{ justifyContent: 'center', padding: '24px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '48px', animation: 'spin 1.2s linear infinite' }}>progress_activity</span>
+          <div
+            className="formFieldGroup"
+            style={{ justifyContent: 'center', padding: '24px' }}
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{
+                fontSize: '48px',
+                animation: 'spin 1.2s linear infinite'
+              }}
+            >
+              progress_activity
+            </span>
           </div>
         </div>
       </div>
@@ -1210,8 +1287,8 @@ export const Layout: React.FC = () => {
             {statusToast.variant === 'success'
               ? 'check_circle'
               : statusToast.variant === 'error'
-              ? 'error'
-              : 'progress_activity'}
+                ? 'error'
+                : 'progress_activity'}
           </span>
           <div className="statusToastMessage">{statusToast.message}</div>
           <button

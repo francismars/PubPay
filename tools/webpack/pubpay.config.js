@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -8,7 +9,7 @@ module.exports = {
   mode: isProduction ? 'production' : 'development',
   entry: './src/index.tsx',
   output: {
-    path: path.resolve(__dirname, '../../../dist/pubpay'),
+    path: path.resolve(__dirname, '../../dist/pubpay'),
     filename: 'main.[contenthash].js',
     clean: true,
     publicPath: '/'
@@ -50,7 +51,10 @@ module.exports = {
       {
         test: /\.css$/,
         use: isProduction
-          ? [require.resolve('mini-css-extract-plugin/dist/loader'), 'css-loader']
+          ? [
+              require.resolve('mini-css-extract-plugin/dist/loader'),
+              'css-loader'
+            ]
           : ['style-loader', 'css-loader']
       },
       {
@@ -88,14 +92,43 @@ module.exports = {
       Buffer: ['buffer', 'Buffer'],
       process: 'process/browser'
     }),
+    // Copy favicon and icon files to output directory
+    // These are referenced in index.html but not imported in code, so we copy them directly
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: path.resolve(
+            __dirname,
+            '../../apps/pubpay/src/assets/images/icon'
+          ),
+          to: 'images',
+          noErrorOnMissing: true
+        },
+        // Copy PWA manifest and service worker
+        {
+          from: path.resolve(__dirname, '../../apps/pubpay/src/manifest.json'),
+          to: 'manifest.json',
+          noErrorOnMissing: true
+        },
+        {
+          from: path.resolve(__dirname, '../../apps/pubpay/src/service-worker.js'),
+          to: 'service-worker.js',
+          noErrorOnMissing: true
+        }
+      ]
+    }),
     ...(isProduction
-      ? [new (require('mini-css-extract-plugin'))({ filename: 'css/[name].[contenthash].css' })]
+      ? [
+          new (require('mini-css-extract-plugin'))({
+            filename: 'css/[name].[contenthash].css'
+          })
+        ]
       : [])
   ],
   devServer: {
     static: [
       {
-        directory: path.join(__dirname, '../../../dist/pubpay'),
+        directory: path.join(__dirname, '../../dist/pubpay'),
         publicPath: '/',
         serveIndex: false
       }

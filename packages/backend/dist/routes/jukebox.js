@@ -18,7 +18,7 @@ class JukeboxRouter {
         this.router.post('/play', this.playTrack.bind(this));
         this.router.post('/skip', this.skipTrack.bind(this));
     }
-    async getJukeboxStatus(req, res) {
+    async getJukeboxStatus(_req, res) {
         try {
             this.logger.info('Getting jukebox status');
             // Placeholder implementation
@@ -62,7 +62,7 @@ class JukeboxRouter {
             });
         }
     }
-    async skipTrack(req, res) {
+    async skipTrack(_req, res) {
         try {
             this.logger.info('Skipping current track');
             // Placeholder implementation
