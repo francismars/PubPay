@@ -268,8 +268,8 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
     >
       <div className="overlayInner">
         <div className="brand">
-          PUB<span style={{ color: '#cecece' }}>PAY</span>
-          <span style={{ color: '#00000014' }}>.me</span>
+          PUB<span className="logoPay">PAY</span>
+          <span className="logoMe">.me</span>
         </div>
         <form id="newKind1" onSubmit={handleSubmit}>
           <div className="formField">
@@ -329,17 +329,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
             ></textarea>
 
             {showMention && (
-              <div
-                style={{
-                  position: 'absolute',
-                  marginTop: '4px',
-                  border: '1px solid #e5e7eb',
-                  background: '#ffffff',
-                  borderRadius: '6px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-                  zIndex: 1000
-                }}
-              >
+              <div className="suggestionDropdown">
                 {filteredFollows.length > 0 ? (
                   filteredFollows.map((f, idx) => (
                     <div
@@ -366,42 +356,23 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                         setActiveIdx(0);
                         handleTextareaChange({ target: textarea } as any);
                       }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '6px 8px',
-                        cursor: 'pointer',
-                        background: idx === activeIdx ? '#f3f4f6' : '#fff'
-                      }}
+                      className={`suggestionItem ${idx === activeIdx ? 'active' : ''}`}
                     >
                       <img
                         src={f.picture || ''}
                         alt=""
-                        style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          background: '#eee'
-                        }}
+                        className="suggestionAvatar"
                       />
-                      <div style={{ fontSize: '13px' }}>
-                        <div style={{ fontWeight: 500 }}>{f.displayName}</div>
-                        <div style={{ color: '#6b7280' }}>
+                      <div className="suggestionInfo">
+                        <div className="suggestionName">{f.displayName}</div>
+                        <div className="suggestionNpub">
                           {f.npub.substring(0, 12)}…
                         </div>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div
-                    style={{
-                      padding: '12px 8px',
-                      color: '#6b7280',
-                      fontSize: '13px',
-                      fontStyle: 'italic'
-                    }}
-                  >
+                  <div className="suggestionNoResults">
                     No results found for "{mentionQuery}"
                   </div>
                 )}
@@ -413,16 +384,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
               <button
                 type="button"
                 onClick={() => setShowPreview(!showPreview)}
-                style={{
-                  padding: '8px 16px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  backgroundColor: '#f0f0f0',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontWeight: '500',
-                  transition: 'all 0.2s ease'
-                }}
+                className="previewButton"
               >
                 {showPreview ? 'Hide Preview' : 'Preview'}
               </button>
@@ -437,18 +399,10 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
+                className="uploadButton"
                 style={{
-                  padding: '8px 16px',
-                  fontSize: '14px',
                   cursor: isUploading ? 'wait' : 'pointer',
-                  backgroundColor: isUploading ? '#ccc' : '#f0f0f0',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontWeight: '500',
-                  transition: 'all 0.2s ease',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
+                  opacity: isUploading ? 0.5 : 1
                 }}
               >
                 {isUploading ? 'Uploading' : 'Upload'}
@@ -457,34 +411,10 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
 
             {/* Preview Panel */}
             {showPreview && previewContent && (
-              <div
-                style={{
-                  marginTop: '12px',
-                  padding: '16px',
-                  backgroundColor: '#f8f9fa',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  minHeight: '100px',
-                  maxHeight: '300px',
-                  overflow: 'auto'
-                }}
-              >
+              <div className="previewPanel">
+                <div className="previewLabel">Preview:</div>
                 <div
-                  style={{
-                    fontSize: '13px',
-                    color: '#6b7280',
-                    marginBottom: '8px',
-                    fontWeight: '500'
-                  }}
-                >
-                  Preview:
-                </div>
-                <div
-                  style={{
-                    fontSize: '15px',
-                    lineHeight: '1.5',
-                    color: '#111827'
-                  }}
+                  className="previewContent"
                   dangerouslySetInnerHTML={{ __html: previewContent }}
                 />
               </div>
@@ -677,17 +607,11 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
               />
               {zpShow && (
                 <div
+                  className="suggestionDropdown"
                   style={{
-                    position: 'absolute',
                     left: 0,
                     right: 0,
-                    top: '100%',
-                    marginTop: '4px',
-                    border: '1px solid #e5e7eb',
-                    background: '#ffffff',
-                    borderRadius: '6px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-                    zIndex: 1000
+                    top: '100%'
                   }}
                 >
                   {zpFiltered.length > 0 ? (
@@ -702,42 +626,23 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                           }
                           setZpShow(false);
                         }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          padding: '6px 8px',
-                          cursor: 'pointer',
-                          background: idx === zpActiveIdx ? '#f3f4f6' : '#fff'
-                        }}
+                        className={`suggestionItem ${idx === zpActiveIdx ? 'active' : ''}`}
                       >
                         <img
                           src={f.picture || ''}
                           alt=""
-                          style={{
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '50%',
-                            background: '#eee'
-                          }}
+                          className="suggestionAvatar"
                         />
-                        <div style={{ fontSize: '13px' }}>
-                          <div style={{ fontWeight: 500 }}>{f.displayName}</div>
-                          <div style={{ color: '#6b7280' }}>
+                        <div className="suggestionInfo">
+                          <div className="suggestionName">{f.displayName}</div>
+                          <div className="suggestionNpub">
                             {f.npub.substring(0, 12)}…
                           </div>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div
-                      style={{
-                        padding: '12px 8px',
-                        color: '#6b7280',
-                        fontSize: '13px',
-                        fontStyle: 'italic'
-                      }}
-                    >
+                    <div className="suggestionNoResults">
                       No results found for "{zpQuery}"
                     </div>
                   )}
