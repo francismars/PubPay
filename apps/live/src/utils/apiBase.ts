@@ -5,7 +5,7 @@ let cachedApiBase: string | null = null;
 /**
  * Get the API base URL for backend requests.
  * Uses lazy initialization to cache the result after first evaluation.
- * 
+ *
  * Priority:
  * 1. Webpack-injected REACT_APP_BACKEND_URL environment variable
  * 2. window.location.origin (for production via Nginx proxy)
@@ -21,7 +21,10 @@ export const getApiBase = (): string => {
 
   // Check for Webpack-injected environment variable (process.env.REACT_APP_BACKEND_URL)
   // Webpack DefinePlugin injects process.env at build time
-  const envBackendUrl = typeof process !== 'undefined' ? (process as any).env?.REACT_APP_BACKEND_URL : undefined;
+  const envBackendUrl =
+    typeof process !== 'undefined'
+      ? (process as any).env?.REACT_APP_BACKEND_URL
+      : undefined;
   if (envBackendUrl && typeof envBackendUrl === 'string') {
     result = envBackendUrl;
   } else if (typeof window !== 'undefined') {
@@ -46,4 +49,3 @@ export const getApiBase = (): string => {
   cachedApiBase = result;
   return result;
 };
-

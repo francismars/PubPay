@@ -217,21 +217,21 @@ export const useLiveFunctionality = (eventId?: string) => {
             // After the loader mounts, show the error and prefill input
             // Only prefill if cleanId is not empty and not "live"
             if (cleanId && cleanId.trim() !== '' && cleanId.trim() !== 'live') {
-            setTimeout(() => {
-              showLoadingError(msg);
-              // Ensure note loader listeners are attached after redirect
-              try {
-                setupNoteLoaderListeners();
-              } catch {}
-              const input = document.getElementById(
-                'note1LoaderInput'
-              ) as HTMLInputElement | null;
-              if (input) {
-                input.value = cleanId;
-                input.focus();
-                input.select();
-              }
-            }, 60);
+              setTimeout(() => {
+                showLoadingError(msg);
+                // Ensure note loader listeners are attached after redirect
+                try {
+                  setupNoteLoaderListeners();
+                } catch {}
+                const input = document.getElementById(
+                  'note1LoaderInput'
+                ) as HTMLInputElement | null;
+                if (input) {
+                  input.value = cleanId;
+                  input.focus();
+                  input.select();
+                }
+              }, 60);
             } else {
               // Just show error, don't prefill input
               setTimeout(() => {
@@ -1525,16 +1525,16 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (pendingZapNotificationsRef.current.has(profile.pubkey)) {
       const zapData = pendingZapNotificationsRef.current.get(profile.pubkey);
       pendingZapNotificationsRef.current.delete(profile.pubkey);
-      
+
       console.log('🏆 Processing notification for zap:', {
         amount: zapData.amount,
         pubkey: profile.pubkey.slice(0, 8),
         currentZapsCount: zaps.length
       });
-      
+
       // Get rank based on this single zap's amount (1-3 for top 3 individual zaps)
       const zapperRank = getSingleZapRank(zapData.amount);
-      
+
       // Trigger the notification now that we have the profile
       const notificationData: ZapNotification = {
         id: zapData.id,
@@ -1545,7 +1545,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         timestamp: zapData.timestamp,
         zapperRank
       };
-      
+
       console.log('🏆 Setting notification with rank:', zapperRank);
       setZapNotification(notificationData);
     }
@@ -2402,7 +2402,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
     const noteId = pathPartsWithoutLive[pathPartsWithoutLive.length - 1];
     // Keep URLs under /live/ base path
-    const cleanUrl = noteId && noteId.trim() !== '' ? `/live/${noteId}` : '/live/';
+    const cleanUrl =
+      noteId && noteId.trim() !== '' ? `/live/${noteId}` : '/live/';
 
     if (window.location.href !== window.location.origin + cleanUrl) {
       window.history.replaceState({}, '', cleanUrl);
@@ -3078,7 +3079,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       const zapRequest = JSON.parse(description9735);
       const zapperPubkey = zapRequest.pubkey;
       const zapContent = zapRequest.content || '';
-      
+
       const bolt11Tag = kind9735.tags.find(
         (tag: any) => tag[0] === 'bolt11'
       )?.[1];
@@ -3125,11 +3126,11 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (!kind1id || typeof kind1id !== 'string' || kind1id.length !== 64) {
       return;
     }
-    
+
     // Reset initial zaps flag for new note
     console.log('🔄 Resetting initialZapsLoadedRef for new note');
     initialZapsLoadedRef.current = false;
-    
+
     let isFirstStream = true;
 
     const zapsContainer = document.getElementById('zaps');
@@ -3550,31 +3551,31 @@ export const useLiveFunctionality = (eventId?: string) => {
   const getSingleZapRank = (zapAmount: number): number | undefined => {
     // Use window.zaps which is populated before the React state
     const existingZaps = (window as any).zaps || [];
-    
+
     // Get all zap amounts INCLUDING the current zap being evaluated
     const allZapAmounts = [
       ...existingZaps.map((z: any) => z.amount),
       zapAmount
     ].sort((a, b) => b - a);
-    
+
     // Get all unique amounts
     const uniqueAmounts = [...new Set(allZapAmounts)];
-    
+
     console.log('🏆 getSingleZapRank:', {
       zapAmount,
       totalZaps: existingZaps.length,
       allAmounts: allZapAmounts,
       uniqueAmounts: uniqueAmounts.slice(0, 5) // Show top 5 for debugging
     });
-    
+
     // Find where this zap amount ranks
     const rank = uniqueAmounts.indexOf(zapAmount);
-    
+
     if (rank >= 0) {
       console.log('🏆 Zap ranks at position:', rank + 1);
       return rank + 1; // Return 1, 2, 3, 4, etc.
     }
-    
+
     console.log('🏆 Could not determine rank');
     return undefined;
   };

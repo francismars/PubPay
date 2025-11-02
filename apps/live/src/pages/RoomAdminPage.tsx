@@ -458,11 +458,14 @@ export const RoomAdminPage: React.FC = () => {
           })
         )
       };
-      const res = await fetch(`${getApiBase()}/multi/${createdRoomId}/schedule`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(normalizedSchedule)
-      });
+      const res = await fetch(
+        `${getApiBase()}/multi/${createdRoomId}/schedule`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(normalizedSchedule)
+        }
+      );
       const json = await res.json();
       if (!json.success)
         throw new Error(json.error || 'Failed to set schedule');
