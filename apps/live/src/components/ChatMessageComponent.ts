@@ -118,12 +118,12 @@ export class ChatMessageComponent extends BaseComponent {
     if (this.message.author?.picture) {
       avatarImg.src = this.message.author.picture;
     } else {
-      avatarImg.src = '/images/gradient_color.gif'; // Default avatar
+      avatarImg.src = '/live/images/gradient_color.gif'; // Default avatar
     }
 
     // Add error handling for broken images
     avatarImg.onerror = () => {
-      avatarImg.src = '/images/gradient_color.gif';
+      avatarImg.src = '/live/images/gradient_color.gif';
     };
 
     return avatarImg;

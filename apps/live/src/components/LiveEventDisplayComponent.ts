@@ -502,7 +502,7 @@ export class LiveEventDisplayComponent extends BaseComponent {
       const participantElement = document.createElement('div');
       participantElement.className = 'participant';
       participantElement.innerHTML = `
-        <img src="${participant.picture || '/images/gradient_color.gif'}" alt="${participant.displayName || participant.name}" class="participant-avatar">
+        <img src="${participant.picture || '/live/images/gradient_color.gif'}" alt="${participant.displayName || participant.name}" class="participant-avatar">
         <span class="participant-name">${participant.displayName || participant.name || participant.publicKey.slice(0, 8)}...</span>
       `;
       participantsList.appendChild(participantElement);
@@ -560,7 +560,7 @@ export class LiveEventDisplayComponent extends BaseComponent {
    */
   private getAuthorAvatar(): string {
     // This would get from profile service
-    return '/images/gradient_color.gif';
+    return '/live/images/gradient_color.gif';
   }
 
   /**

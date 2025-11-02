@@ -935,7 +935,7 @@ export const RoomAdminPage: React.FC = () => {
                   ⚙️
                 </button>
                 <img
-                  src="/images/powered_by_white_bg.png"
+                  src="/live/images/powered_by_white_bg.png"
                   alt="Powered by PubPay"
                   style={{ height: '3.5vw', marginLeft: 8 }}
                 />
@@ -957,7 +957,7 @@ export const RoomAdminPage: React.FC = () => {
                   Create Room
                 </button>
                 <img
-                  src="/images/powered_by_white_bg.png"
+                  src="/live/images/powered_by_white_bg.png"
                   alt="Powered by PubPay"
                   style={{ height: '4vw', marginLeft: 8 }}
                 />
