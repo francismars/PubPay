@@ -3392,15 +3392,26 @@ body.qr-only-mode .right-side .zaps-container {
 }
 
 body.qr-only-mode .right-side {
+  position: absolute;
+  height: 45px;
+  top: 0;
+  left: 50%;
   min-width: auto;
   width: auto;
   padding: 1vw;
+  backdrop-filter: none;
+  display: flex;
+  align-items: center;
+  transform: translateX(-50%);
 }
 
 body.qr-only-mode .right-side .zaps-header {
   justify-content: flex-end;
   padding: 0;
+  border: none;
 }
+
+
 
 body.qr-only-mode .right-side .zaps-header-right {
   margin: 0;
@@ -3427,12 +3438,67 @@ body.qr-only-mode .left-side .post-info {
   justify-content: center;
   align-items: center;
   height: 100vh;
+  width: 100%;
+  padding: 0vw;
+  box-sizing: border-box;
 }
 
 body.qr-only-mode .qr-section {
   margin: 0 auto;
   width: 100%;
-  max-width: 800px;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+body.qr-only-mode .qr-code {
+  width: 100vw;
+  height: 100vh;
+  padding: 5vw 3vw 3vw 3vw;
+  max-width: 100%;
+  object-fit: contain;
+  box-sizing: border-box;
+}
+
+/* QR Only Mode - Mobile Overrides */
+@media (max-width: 768px) {
+  body.qr-only-mode .left-side {
+    height: 100vh;
+    border: none;
+  }
+
+  body.qr-only-mode .right-side {
+    position: absolute;
+    height: 37px;
+    top: 0;
+    right: 0;
+    z-index: 1000;
+  }
+
+  body.qr-only-mode .qr-code {
+    width: 100vw;
+    height: 100vh;
+    padding: 3vw;
+    max-width: 100% !important;
+    object-fit: contain;
+  }
+
+  body.qr-only-mode .qr-section {
+    padding: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  body.qr-only-mode .qr-code {
+    width: 100vw;
+    height: 100vh;
+    padding: 3vw;
+    max-width: 100% !important;
+    object-fit: contain;
+  }
 }
 
 /* Zap ranking system - Only apply when podium is enabled and NOT in grid layout */
