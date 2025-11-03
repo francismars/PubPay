@@ -1,0 +1,49 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "apps/pubpay/src/index.tsx",
+    "apps/live/src/index.tsx",
+    "apps/jukebox/src/index.tsx",
+    "packages/backend/src/index.ts"
+  ],
+  "project": [
+    "apps/**/*.{ts,tsx}",
+    "packages/**/*.{ts,tsx}",
+    "tools/**/*.{ts,tsx}"
+  ],
+  "ignore": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/archive/**",
+    "**/*.d.ts",
+    "**/eslint.config.js",
+    "**/webpack.*.js",
+    "**/ecosystem.config.js"
+  ],
+  "ignoreDependencies": [
+    "@types/*",
+    "typescript",
+    "eslint",
+    "prettier",
+    "webpack",
+    "webpack-cli",
+    "webpack-dev-server",
+    "ts-loader",
+    "css-loader",
+    "style-loader",
+    "mini-css-extract-plugin",
+    "html-webpack-plugin",
+    "copy-webpack-plugin",
+    "@eslint/js",
+    "@typescript-eslint/*",
+    "husky",
+    "lint-staged",
+    "rimraf",
+    "concurrently",
+    "tsx"
+  ],
+  "webpack": {
+    "config": "tools/webpack/*.config.js"
+  }
+}
+
