@@ -147,8 +147,10 @@ export const Layout: React.FC = () => {
     }
 
     try {
-      const result = NostrRegistrationService.recoverKeyPairFromMnemonic(recoveryMnemonic.trim());
-      
+      const result = NostrRegistrationService.recoverKeyPairFromMnemonic(
+        recoveryMnemonic.trim()
+      );
+
       if (result.success && result.keyPair && result.keyPair.privateKey) {
         // Sign in with the recovered private key
         await handleContinueWithNsec(result.keyPair.privateKey);
@@ -156,7 +158,7 @@ export const Layout: React.FC = () => {
         setShowRecoveryGroup(false);
         closeLogin();
       } else {
-        alert('Failed to recover keys: ' + (result.error || 'Invalid mnemonic'));
+        alert(`Failed to recover keys: ${result.error || 'Invalid mnemonic'}`);
       }
     } catch (error) {
       console.error('Recovery failed:', error);
@@ -187,12 +189,6 @@ export const Layout: React.FC = () => {
         console.error('Failed to copy the link:', error);
       }
     }
-  };
-
-  // Handler for new pay note from side navigation
-  const onNewPayNote = () => {
-    // This will trigger the new pay note form in FeedsPage
-    console.log('New pay note requested from side navigation');
   };
 
   // Handler for new pay note from side navigation (calls FeedsPage handler)
@@ -351,7 +347,7 @@ export const Layout: React.FC = () => {
                   html5QrCode.stop().catch(() => {});
                   await handleScannedContent(decodedText);
                 },
-                (errorMessage: string) => {
+                () => {
                   // noisy errors; keep silent or log
                 }
               );
@@ -380,7 +376,9 @@ export const Layout: React.FC = () => {
                 } else {
                   setTorchSupported(false);
                 }
-              } catch {}
+              } catch {
+                // Ignore errors when checking torch/zoom capabilities
+              }
 
               setQrScanner(html5QrCode);
               setIsScannerRunning(true);
@@ -414,7 +412,9 @@ export const Layout: React.FC = () => {
       if (track?.applyConstraints) {
         await track.applyConstraints({ advanced: [{ zoom: val }] });
       }
-    } catch {}
+    } catch {
+      // Ignore errors when applying zoom constraints
+    }
   };
 
   const selectCamera = async (deviceId: string) => {
@@ -537,7 +537,7 @@ export const Layout: React.FC = () => {
                   <span className="profileUserNameNav">
                     {authState.displayName ||
                       (authState.publicKey
-                        ? nip19.npubEncode(authState.publicKey).substring(0, 12) + '...'
+                        ? `${nip19.npubEncode(authState.publicKey).substring(0, 12)}...`
                         : '...')}
                   </span>
                 </div>
@@ -580,6 +580,17 @@ export const Layout: React.FC = () => {
                   closeMobileMenu();
                 }}
               >
+                Discovery
+              </a>
+              <a
+                href="javascript:void(0)"
+                className="sideNavLink disabled"
+                title="coming soon"
+                onClick={e => {
+                  e.preventDefault();
+                  closeMobileMenu();
+                }}
+              >
                 Splits
               </a>
               <a
@@ -597,7 +608,7 @@ export const Layout: React.FC = () => {
                 href="javascript:void(0)"
                 className="sideNavLink disabled"
                 title="coming soon"
-                onClick={(e) => {
+                onClick={e => {
                   e.preventDefault();
                   closeMobileMenu();
                 }}
@@ -840,7 +851,9 @@ export const Layout: React.FC = () => {
           <div
             className="formFieldGroup"
             id="loginFormGroup"
-            style={{ display: showNsecGroup || showRecoveryGroup ? 'none' : 'flex' }}
+            style={{
+              display: showNsecGroup || showRecoveryGroup ? 'none' : 'flex'
+            }}
           >
             <a
               href="#"
@@ -971,7 +984,7 @@ export const Layout: React.FC = () => {
                     textDecoration: 'none',
                     cursor: 'pointer'
                   }}
-                  onClick={(e) => {
+                  onClick={e => {
                     e.preventDefault();
                     setShowNsecGroup(false);
                     setShowRecoveryGroup(true);
@@ -992,7 +1005,10 @@ export const Layout: React.FC = () => {
                 handleRecoveryFromMnemonic();
               }}
             >
-              <div className="formField" style={{ textAlign: 'left', marginBottom: '20px' }}>
+              <div
+                className="formField"
+                style={{ textAlign: 'left', marginBottom: '20px' }}
+              >
                 <textarea
                   id="recoveryMnemonic"
                   placeholder="Enter your 12-word recovery phrase separated by spaces..."
@@ -1016,11 +1032,7 @@ export const Layout: React.FC = () => {
                   }}
                 />
               </div>
-              <button
-                id="continueWithRecovery"
-                className="cta"
-                type="submit"
-              >
+              <button id="continueWithRecovery" className="cta" type="submit">
                 Recover Account
               </button>
               <div style={{ textAlign: 'center', marginTop: '16px' }}>
@@ -1033,7 +1045,7 @@ export const Layout: React.FC = () => {
                     textDecoration: 'none',
                     cursor: 'pointer'
                   }}
-                  onClick={(e) => {
+                  onClick={e => {
                     e.preventDefault();
                     setShowRecoveryGroup(false);
                     setShowNsecGroup(true);
@@ -1090,7 +1102,7 @@ export const Layout: React.FC = () => {
           <p className="label">You are logged in as:</p>
           <p id="loggedInPublicKey">
             {authState.publicKey ? (
-              <a href={`/profile`} className="userMention">
+              <a href={'/profile'} className="userMention">
                 {authState.displayName ||
                   (authState.publicKey
                     ? nip19.npubEncode(authState.publicKey)
@@ -1274,11 +1286,7 @@ export const Layout: React.FC = () => {
 
       {/* Non-blocking Status Toast */}
       {statusToast?.show && (
-        <div
-          className="statusToast"
-          role="status"
-          aria-live="polite"
-        >
+        <div className="statusToast" role="status" aria-live="polite">
           <span
             className={`material-symbols-outlined statusToastIcon statusToast-${statusToast.variant}`}
           >
