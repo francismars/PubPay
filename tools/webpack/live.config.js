@@ -10,7 +10,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, '../../dist/live'),
     filename: 'main.[contenthash].js',
-    publicPath: isProduction ? '/live/' : '/',
+    publicPath: '/live/', // Same path for both dev and production
     clean: true
   },
   resolve: {
@@ -116,18 +116,26 @@ module.exports = {
   devServer: {
     static: [
       {
-        directory: path.resolve(__dirname, '../../dist/live')
+        directory: path.resolve(__dirname, '../../dist/live'),
+        publicPath: '/live/'
       },
+      // Serve images from source in dev mode (same as production)
       {
-        directory: path.resolve(__dirname, '../../apps/live/src'),
-        publicPath: '/apps/live/src'
+        directory: path.resolve(__dirname, '../../apps/live/src/assets/images'),
+        publicPath: '/live/images'
       }
     ],
     allowedHosts: 'all',
     port: 3001,
     hot: true,
     open: true,
-    historyApiFallback: true
+    historyApiFallback: {
+      index: '/live/index.html',
+      rewrites: [{ from: /^\/live/, to: '/live/index.html' }]
+    },
+    devMiddleware: {
+      publicPath: '/live/'
+    }
   },
   ...(isProduction
     ? {
