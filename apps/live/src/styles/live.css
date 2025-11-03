@@ -3412,6 +3412,18 @@ body.qr-only-mode .right-side .zaps-header {
   border: none;
 }
 
+body.qr-only-mode .right-side #partnerLogo {
+  margin-right: 3vw;
+}
+
+body.qr-only-mode .right-side #styleToggleBtn {
+  margin-left:-5vw;
+  opacity: 0.1;
+}
+
+body.qr-only-mode .right-side #styleToggleBtn:hover {
+  opacity: 1;
+}
 
 
 body.qr-only-mode .right-side .zaps-header-right {
