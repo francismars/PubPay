@@ -35,15 +35,11 @@ export const LivePage: React.FC = () => {
   }, []);
 
   const {
-    isLoading,
-    error,
     noteContent,
     authorName,
     authorImage,
-    zaps,
     totalZaps,
     totalAmount,
-    handleNoteLoaderSubmit,
     handleStyleOptionsToggle,
     handleStyleOptionsClose,
     showLoadingError,
@@ -113,7 +109,10 @@ export const LivePage: React.FC = () => {
         const liveIdentifier = pathParts[pathParts.length - 1];
         if (possibleNprofile && liveIdentifier) {
           try {
-            const decoded: any = nip19.decode(possibleNprofile as string);
+            const decoded = nip19.decode(possibleNprofile as string) as {
+              type: string;
+              data?: { pubkey?: string };
+            };
             if (decoded && decoded.type === 'nprofile') {
               const pubkey: string = decoded.data?.pubkey as string;
               if (pubkey) {
@@ -253,8 +252,7 @@ export const LivePage: React.FC = () => {
       );
     }
     // We want this to run on initial mount and when eventId changes from the router
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [validEventId]);
+  }, [validEventId, showLoadingError]);
 
   useEffect(() => {
     // Only validate if validEventId exists
@@ -291,7 +289,7 @@ export const LivePage: React.FC = () => {
           try {
             (window as any).NostrTools.nip19.decode(id);
             return true;
-          } catch (error) {
+          } catch {
             // Debug log removed
             return false;
           }
@@ -348,7 +346,7 @@ export const LivePage: React.FC = () => {
       }
     };
 
-    const handleNoteLoaderSubmitted = (event: any) => {
+    const handleNoteLoaderSubmitted = () => {
       // Debug log removed
       setShowNoteLoader(false);
       setShowMainLayout(true);
@@ -768,12 +766,12 @@ export const LivePage: React.FC = () => {
                 <div>
                   <span className="total-label">Total</span>
                   <span id="zappedTotalValue" className="total-amount">
-                    {totalAmount}
+                    {totalAmount.toLocaleString('en-US')}
                   </span>
                   <span className="total-sats">sats</span>
                   <span className="zap-count-separator">•</span>
                   <span id="zappedTotalCount" className="total-count">
-                    {totalZaps}
+                    {totalZaps.toLocaleString('en-US')}
                   </span>
                   <span className="total-zaps">zaps</span>
                 </div>
