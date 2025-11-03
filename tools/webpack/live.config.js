@@ -10,7 +10,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, '../../dist/live'),
     filename: 'main.[contenthash].js',
-    publicPath: '/live/', // Same path for both dev and production
+    publicPath: '/live/', // Same in dev and prod - simpler!
     clean: true
   },
   resolve: {
@@ -91,15 +91,12 @@ module.exports = {
       Buffer: ['buffer', 'Buffer'],
       process: 'process/browser'
     }),
-    // Copy favicon and icon files to output directory
-    // These are referenced in index.html but not imported in code, so we copy them directly
+    // Copy all images to output directory
+    // This ensures /live/images/... paths work in both dev and prod
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: path.resolve(
-            __dirname,
-            '../../apps/live/src/assets/images/icon'
-          ),
+          from: path.resolve(__dirname, '../../apps/live/src/assets/images'),
           to: 'images',
           noErrorOnMissing: true
         }
@@ -117,12 +114,7 @@ module.exports = {
     static: [
       {
         directory: path.resolve(__dirname, '../../dist/live'),
-        publicPath: '/live/'
-      },
-      // Serve images from source in dev mode (same as production)
-      {
-        directory: path.resolve(__dirname, '../../apps/live/src/assets/images'),
-        publicPath: '/live/images'
+        publicPath: '/live'
       }
     ],
     allowedHosts: 'all',
@@ -131,7 +123,11 @@ module.exports = {
     open: true,
     historyApiFallback: {
       index: '/live/index.html',
-      rewrites: [{ from: /^\/live/, to: '/live/index.html' }]
+      rewrites: [
+        { from: /^\/live$/, to: '/live/index.html' },
+        { from: /^\/live\/$/, to: '/live/index.html' },
+        { from: /^\/live\/.*/, to: '/live/index.html' }
+      ]
     },
     devMiddleware: {
       publicPath: '/live/'
