@@ -3403,6 +3403,7 @@ body.qr-only-mode .right-side {
   display: flex;
   align-items: center;
   transform: translateX(-50%);
+  overflow: visible;
 }
 
 body.qr-only-mode .right-side .zaps-header {
@@ -3457,7 +3458,8 @@ body.qr-only-mode .qr-section {
 body.qr-only-mode .qr-code {
   width: 100vw;
   height: 100vh;
-  padding: 5vw 3vw 3vw 3vw;
+  /*padding: 5vw 3vw 3vw 3vw;*/
+  padding: 3vw 3vw 3vw 3vw;
   max-width: 100%;
   object-fit: contain;
   box-sizing: border-box;
@@ -3476,6 +3478,11 @@ body.qr-only-mode .qr-code {
     top: 0;
     right: 0;
     z-index: 1000;
+    overflow: visible;
+  }
+
+  body.qr-only-mode .powered-by img {
+    height: 2vw;
   }
 
   body.qr-only-mode .qr-code {
