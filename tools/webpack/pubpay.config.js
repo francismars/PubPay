@@ -111,7 +111,10 @@ module.exports = {
           noErrorOnMissing: true
         },
         {
-          from: path.resolve(__dirname, '../../apps/pubpay/src/service-worker.js'),
+          from: path.resolve(
+            __dirname,
+            '../../apps/pubpay/src/service-worker.js'
+          ),
           to: 'service-worker.js',
           noErrorOnMissing: true
         }

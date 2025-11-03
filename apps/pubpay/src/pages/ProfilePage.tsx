@@ -142,13 +142,13 @@ const ProfilePage: React.FC = () => {
           window.location.reload();
         } else {
           alert(
-            'Failed to sign in with recovered keys: ' +
-              (signInResult.error || 'Unknown error')
+            `Failed to sign in with recovered keys: ${
+              signInResult.error || 'Unknown error'}`
           );
         }
       } else {
         alert(
-          'Failed to recover keys: ' + (result.error || 'Invalid mnemonic')
+          `Failed to recover keys: ${  result.error || 'Invalid mnemonic'}`
         );
       }
     } catch (error) {
@@ -715,8 +715,7 @@ const ProfilePage: React.FC = () => {
                     ).picture || genericUserIcon
                   : genericUserIcon;
 
-                const zapPayerNpub =
-                  nip19.npubEncode(zapPayerPubkey);
+                const zapPayerNpub = nip19.npubEncode(zapPayerPubkey);
 
                 return {
                   ...zap,
