@@ -180,7 +180,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       const numValue = parseInt(cleanValue);
       if (!isNaN(numValue)) {
         // Clamp value between min and max
-        const clampedValue = Math.max(post.zapMin, Math.min(post.zapMax, numValue));
+        const clampedValue = Math.max(
+          post.zapMin,
+          Math.min(post.zapMax, numValue)
+        );
         setZapAmount(clampedValue);
       } else if (cleanValue === '') {
         // Allow empty input temporarily
@@ -296,10 +299,12 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             localStorage.getItem('nwcConnectionString')) ||
           (typeof sessionStorage !== 'undefined' &&
             sessionStorage.getItem('nwcConnectionString'));
-        
+
         if (isAnonymousModal) {
           // Handle anonymous payment
-          useUIStore.getState().openToast('Preparing anonymous zap…', 'loading', false);
+          useUIStore
+            .getState()
+            .openToast('Preparing anonymous zap…', 'loading', false);
           setTimeout(() => {
             try {
               useUIStore.getState().closeToast();
@@ -309,9 +314,13 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         } else {
           // Handle regular payment
           if (hasNwc) {
-            useUIStore.getState().openToast('Preparing payment…', 'loading', true);
+            useUIStore
+              .getState()
+              .openToast('Preparing payment…', 'loading', true);
           } else {
-            useUIStore.getState().openToast('Preparing invoice…', 'loading', false);
+            useUIStore
+              .getState()
+              .openToast('Preparing invoice…', 'loading', false);
             setTimeout(() => {
               try {
                 useUIStore.getState().closeToast();
@@ -320,7 +329,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           }
           await onPay(post, zapAmount, zapModalComment);
         }
-        
+
         setShowZapModal(false);
         setZapModalComment('');
         setIsAnonymousModal(false);
@@ -626,9 +635,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     ? post.zapPayerName
                     : (() => {
                         if (post.zapPayer) {
-                          const npub = nip19.npubEncode(
-                            post.zapPayer
-                          );
+                          const npub = nip19.npubEncode(post.zapPayer);
                           return npub.length > 35
                             ? `${npub.substr(0, 4)}...${npub.substr(npub.length - 4, npub.length)}`
                             : npub;
@@ -680,7 +687,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       if (zapAmount > post.zapMax) setZapAmount(post.zapMax);
                     }}
                   />
-                  <span className="zapAmountSuffix">{zapAmount === 1 ? 'sat' : 'sats'}</span>
+                  <span className="zapAmountSuffix">
+                    {zapAmount === 1 ? 'sat' : 'sats'}
+                  </span>
                 </div>
                 <input
                   type="range"
@@ -718,7 +727,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   {zap.content && (
                     <div className="zapReactionTooltip">
                       {zap.content.length > 21
-                        ? zap.content.substring(0, 21) + '...'
+                        ? `${zap.content.substring(0, 21)  }...`
                         : zap.content}
                     </div>
                   )}
@@ -844,7 +853,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     {zap.content && (
                       <div className="zapReactionTooltip">
                         {zap.content.length > 21
-                          ? zap.content.substring(0, 21) + '...'
+                          ? `${zap.content.substring(0, 21)  }...`
                           : zap.content}
                       </div>
                     )}
@@ -997,7 +1006,13 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               className="overlayInner zapModal"
               onClick={e => e.stopPropagation()}
             >
-              <h3 style={{ margin: '0 0 20px 0', color: 'var(--text-primary)', textAlign: 'center' }}>
+              <h3
+                style={{
+                  margin: '0 0 20px 0',
+                  color: 'var(--text-primary)',
+                  textAlign: 'center'
+                }}
+              >
                 {isAnonymousModal ? 'Pay Anonymously' : 'Confirm Zap'}
               </h3>
 
