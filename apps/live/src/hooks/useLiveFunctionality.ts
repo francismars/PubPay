@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars, no-empty */
 // React hook for live functionality integration
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SimplePool, nip19 } from 'nostr-tools';
@@ -25,7 +26,7 @@ const DEFAULT_STYLES = {
   showTopZappers: false, // Default to hidden
   podium: false,
   zapGrid: false,
-  sectionLabels: true, // Default to showing section labels
+  sectionLabels: false, // Default to hiding section labels
   qrOnly: false, // Default to showing full layout
   showFiat: false, // Default to hiding fiat amounts
   showHistoricalPrice: false, // Default to hiding historical prices
@@ -59,9 +60,9 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Lightning service
   const lightningService = useRef<UseLightning | null>(null);
   const [lightningEnabled, setLightningEnabled] = useState(false);
-  const [lightningLNURL, setLightningLNURL] = useState<string>('');
+  const [_lightningLNURL, setLightningLNURL] = useState<string>('');
 
-  const liveDisplayRef = useRef<any>(null);
+  const _liveDisplayRef = useRef<any>(null);
 
   // Zap notification state
   const [zapNotification, setZapNotification] =
@@ -1183,7 +1184,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (zapData.timestamp) {
       zapDiv.setAttribute('data-timestamp', zapData.timestamp.toString());
     } else {
-      console.log(`⚠️ No timestamp found in live event zap data:`, zapData);
+      console.log('⚠️ No timestamp found in live event zap data:', zapData);
     }
 
     const timeStr = new Date(zapData.timestamp * 1000).toLocaleString();
@@ -6104,18 +6105,27 @@ export const useLiveFunctionality = (eventId?: string) => {
         'sectionLabelsToggle'
       ) as HTMLInputElement;
       if (sectionLabelsToggle) {
-        // Default state: section labels visible (toggle should be ON)
-        sectionLabelsToggle.checked = true;
+        // Default state: section labels hidden (toggle should be OFF)
+        sectionLabelsToggle.checked = false;
         // Apply the initial state
         const sectionLabels = document.querySelectorAll('.section-label');
         const totalLabels = document.querySelectorAll('.total-label');
         sectionLabels.forEach(label => {
-          (label as HTMLElement).style.display = 'block';
-        });
-        totalLabels.forEach(label => {
           (label as HTMLElement).style.display = 'none';
         });
-        document.body.classList.remove('show-total-labels');
+        totalLabels.forEach(label => {
+          (label as HTMLElement).style.display = 'inline';
+        });
+        document.body.classList.add('show-total-labels');
+      }
+
+      // Set default QR slide visibility
+      const qrShowNeventToggle = document.getElementById(
+        'qrShowNeventToggle'
+      ) as HTMLInputElement;
+      if (qrShowNeventToggle) {
+        // Default state: Show Nostr Event should be ON
+        qrShowNeventToggle.checked = true;
       }
     }
 
@@ -6519,7 +6529,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         opacity: parseFloat(opacitySlider.value),
         partnerLogo: currentPartnerLogo,
         bgImage: currentBackgroundImage,
-        selectedCurrency: selectedCurrency,
+        selectedCurrency,
         ...toggleStates
       };
 
