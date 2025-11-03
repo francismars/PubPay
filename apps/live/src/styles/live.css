@@ -3435,6 +3435,12 @@ body.qr-only-mode .right-side .powered-by {
   display: flex;
 }
 
+
+body.qr-only-mode .right-side  img {
+  height: 2vh;
+}
+
+
 body.qr-only-mode .left-side {
   width: 100%;
   max-width: 100%;
@@ -5028,12 +5034,12 @@ input:checked + .toggle-slider:before {
 }
 
 .zap-notification-top-copy {
-  font-size: 4vw;
+  font-size: min(4vw, 4vh);
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   z-index: 1;
-  margin-bottom: -2vw;
+  margin-bottom: min(-2vw, -2vh);
   display: inline-block;
 }
 
@@ -5052,27 +5058,31 @@ input:checked + .toggle-slider:before {
 }
 
 .zap-notification-content {
-  padding: 1vw;
+  padding: min(2vw, 2vh);
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  gap: 2vw;
+  gap: min(2vw, 2vh);
   max-width: 90vw;
-  max-height: 90vh;
+  max-height: 85vh;
   pointer-events: auto;
   transition: transform 0.3s ease;
   transform-origin: center center;
+  overflow: hidden;
 }
 
 .zap-notification-avatar {
-  width: 30vw;
-  height: 30vw;
+  width: min(30vw, 30vh);
+  height: min(30vw, 30vh);
+  max-width: 400px;
+  max-height: 400px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid;
   /* Border color applied dynamically via inline styles (matches text color) */
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   opacity: 0;
+  flex-shrink: 0;
 }
 
 .zap-notification-overlay.visible .zap-notification-avatar {
@@ -5086,16 +5096,23 @@ input:checked + .toggle-slider:before {
 .zap-notification-text-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  align-items: flex-start;
+  gap: min(1vw, 1vh);
+  align-items: center;
   justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .zap-notification-amount {
-  font-size: 10vw;
+  font-size: min(10vw, 12vh, 120px);
   font-weight: 800;
   margin: 0;
   opacity: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .zap-notification-overlay.visible .zap-notification-amount {
@@ -5108,10 +5125,14 @@ input:checked + .toggle-slider:before {
 }
 
 .zap-notification-name {
-  font-size: 5vw;
+  font-size: min(5vw, 6vh, 60px);
   font-weight: 700;
   margin: 0;
   opacity: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
   /* Inherits color from parent .zap-notification-content */
 }
 
@@ -5125,11 +5146,18 @@ input:checked + .toggle-slider:before {
 }
 
 .zap-notification-message {
-  font-size: 5vw;
+  font-size: min(4vw, 5vh, 48px);
   margin: 0;
   line-height: 1.4;
   word-wrap: break-word;
   opacity: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
   /* Inherits color from parent .zap-notification-content */
 }
 
@@ -5142,62 +5170,97 @@ input:checked + .toggle-slider:before {
   animation: fadeSlideOut 0.4s ease-in 0.1s forwards;
 }
 
-/* Mobile responsive adjustments */
-@media (max-width: 768px) {
-  .zap-notification-top-copy {
-    font-size: 3vw;
-  }
-
+/* Landscape orientation - side-by-side layout */
+@media (orientation: landscape) and (min-aspect-ratio: 4/3) {
   .zap-notification-content {
-    padding: 30px;
-    gap: 12px;
+    flex-direction: row;
+    gap: min(3vw, 3vh);
+    max-width: 85vw;
+    max-height: 70vh;
   }
 
   .zap-notification-avatar {
-    width: 140px;
-    height: 140px;
+    width: min(25vw, 35vh);
+    height: min(25vw, 35vh);
   }
 
-  .zap-notification-name {
-    font-size: 24px;
+  .zap-notification-text-container {
+    align-items: flex-start;
+    text-align: left;
+    flex: 1;
   }
 
   .zap-notification-amount {
-    font-size: 36px;
+    font-size: min(8vw, 10vh, 100px);
+  }
+
+  .zap-notification-name {
+    font-size: min(4vw, 5vh, 50px);
   }
 
   .zap-notification-message {
-    font-size: 16px;
-    max-width: 300px;
+    font-size: min(3vw, 4vh, 40px);
   }
 }
 
-/* Extra small screens */
-@media (max-width: 480px) {
-  .zap-notification-top-copy {
-    font-size: 5vw;
-  }
-
+/* Mobile responsive adjustments - Portrait orientation */
+@media (max-width: 768px) and (orientation: portrait) {
   .zap-notification-content {
-    padding: 20px;
-    gap: 10px;
+    flex-direction: column;
+    padding: min(4vw, 30px);
+    gap: min(3vw, 20px);
+    max-height: 80vh;
   }
 
   .zap-notification-avatar {
-    width: 100px;
-    height: 100px;
-  }
-
-  .zap-notification-name {
-    font-size: 20px;
+    width: min(40vw, 200px);
+    height: min(40vw, 200px);
   }
 
   .zap-notification-amount {
-    font-size: 28px;
+    font-size: min(12vw, 60px);
+  }
+
+  .zap-notification-name {
+    font-size: min(6vw, 32px);
   }
 
   .zap-notification-message {
-    font-size: 14px;
-    max-width: 250px;
+    font-size: min(5vw, 28px);
+  }
+
+  .zap-notification-text-container {
+    align-items: center;
+    text-align: center;
+  }
+}
+
+/* Extra small screens - Portrait */
+@media (max-width: 480px) and (orientation: portrait) {
+  .zap-notification-top-copy {
+    font-size: min(6vw, 24px);
+  }
+
+  .zap-notification-content {
+    padding: min(5vw, 20px);
+    gap: min(4vw, 16px);
+    max-height: 75vh;
+  }
+
+  .zap-notification-avatar {
+    width: min(45vw, 180px);
+    height: min(45vw, 180px);
+  }
+
+  .zap-notification-amount {
+    font-size: min(14vw, 56px);
+  }
+
+  .zap-notification-name {
+    font-size: min(7vw, 28px);
+  }
+
+  .zap-notification-message {
+    font-size: min(6vw, 24px);
   }
 }
