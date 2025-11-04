@@ -339,7 +339,8 @@ export const Layout: React.FC = () => {
                   : { facingMode: 'environment' },
                 {
                   fps: 10,
-                  qrbox: { width: 250, height: 250 }
+                  qrbox: { width: 250, height: 250 },
+                  aspectRatio: 1.0
                 },
                 async (decodedText: string) => {
                   console.log('QR Code scanned:', decodedText);
@@ -427,7 +428,7 @@ export const Layout: React.FC = () => {
       localStorage.setItem('qrCameraId', deviceId);
       await html5QrCode.start(
         { deviceId: { exact: deviceId } },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
         async (decodedText: string) => {
           setIsScannerRunning(false);
           setShowQRScanner(false);
@@ -730,96 +731,114 @@ export const Layout: React.FC = () => {
           <p className="label" id="titleScanner">
             Scan note/nevent or npub/nprofile QR code
           </p>
-          <div id="reader"></div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              marginTop: '10px',
-              flexWrap: 'wrap'
-            }}
-          >
-            {/* iOS-like compact controls */}
-            {cameraList.length > 0 && (
-              <div style={{ position: 'relative' }}>
-                <button
-                  className="label"
-                  onClick={e => {
-                    e.preventDefault();
-                    setShowCameraPicker(v => !v);
-                  }}
-                  title="Switch Camera"
-                >
-                  <span className="material-symbols-outlined">
-                    cameraswitch
-                  </span>
-                </button>
-                {showCameraPicker && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '36px',
-                      left: 0,
-                      background: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '10px',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-                      minWidth: '220px',
-                      zIndex: 10
+          <div id="reader" style={{ position: 'relative' }}></div>
+          
+          {/* Camera Controls Container - iPhone Style */}
+          <div className="camera-controls-container">
+            {/* Zoom Slider - Top of controls */}
+            {zoomSupported && (
+              <div className="camera-zoom-control">
+                <div className="zoom-value-display">{zoomVal.toFixed(1)}x</div>
+                <div className="zoom-slider-wrapper">
+                  <input
+                    type="range"
+                    min={zoomMin}
+                    max={zoomMax}
+                    step={zoomStep}
+                    value={zoomVal}
+                    onChange={e => applyZoom(parseFloat(e.target.value))}
+                    className="camera-zoom-slider"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Control Bar */}
+            <div className="camera-controls-bar">
+              {/* Camera Switch Button */}
+              {cameraList.length > 0 && (
+                <div className="camera-control-button-wrapper">
+                  <button
+                    className="camera-control-button"
+                    onClick={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowCameraPicker(v => !v);
                     }}
+                    title="Switch Camera"
+                    aria-label="Switch Camera"
                   >
-                    {cameraList.map((c: any) => (
+                    <span className="material-symbols-outlined camera-icon">
+                      cameraswitch
+                    </span>
+                  </button>
+                  {showCameraPicker && (
+                    <>
                       <div
-                        key={c.id}
-                        onMouseDown={e => {
+                        className="camera-picker-overlay"
+                        onClick={e => {
                           e.preventDefault();
-                          selectCamera(c.id);
+                          e.stopPropagation();
                           setShowCameraPicker(false);
                         }}
-                        style={{
-                          padding: '10px 12px',
-                          cursor: 'pointer',
-                          background:
-                            c.id === currentCameraIdRef.current
-                              ? '#f3f4f6'
-                              : '#fff'
-                        }}
-                      >
-                        {c.label || c.id}
+                      />
+                      <div className="camera-picker-menu">
+                        {cameraList.map((c: any) => (
+                          <button
+                            key={c.id}
+                            className={`camera-picker-item ${
+                              c.id === currentCameraIdRef.current
+                                ? 'active'
+                                : ''
+                            }`}
+                            onClick={e => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              selectCamera(c.id);
+                              setShowCameraPicker(false);
+                            }}
+                          >
+                            <span className="material-symbols-outlined">
+                              {/back|rear|environment/i.test(c.label)
+                                ? 'camera_rear'
+                                : /front|user|face/i.test(c.label)
+                                ? 'camera_front'
+                                : 'videocam'}
+                            </span>
+                            <span className="camera-picker-label">
+                              {c.label || c.id}
+                            </span>
+                            {c.id === currentCameraIdRef.current && (
+                              <span className="material-symbols-outlined check-icon">
+                                check
+                              </span>
+                            )}
+                          </button>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {torchSupported && (
-              <button
-                className="label"
-                onClick={e => {
-                  e.preventDefault();
-                  toggleTorch();
-                }}
-              >
-                {torchOn ? 'Torch Off' : 'Torch On'}
-              </button>
-            )}
-            {zoomSupported && (
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                <span className="label">Zoom</span>
-                <input
-                  type="range"
-                  min={zoomMin}
-                  max={zoomMax}
-                  step={zoomStep}
-                  value={zoomVal}
-                  onChange={e => applyZoom(parseFloat(e.target.value))}
-                  style={{ width: '160px' }}
-                />
-              </div>
-            )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Torch Button */}
+              {torchSupported && (
+                <button
+                  className={`camera-control-button ${torchOn ? 'active' : ''}`}
+                  onClick={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleTorch();
+                  }}
+                  title={torchOn ? 'Turn off torch' : 'Turn on torch'}
+                  aria-label={torchOn ? 'Turn off torch' : 'Turn on torch'}
+                >
+                  <span className="material-symbols-outlined camera-icon">
+                    {torchOn ? 'flashlight_on' : 'flashlight_off'}
+                  </span>
+                </button>
+              )}
+            </div>
           </div>
           <a
             id="stopScanner"
