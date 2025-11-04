@@ -7,6 +7,87 @@ export class ZapService {
         this.baseUrl = baseUrl;
     }
     /**
+     * Validate if a lightning address supports Nostr zaps
+     * Returns true if valid, false if invalid, null if validation is pending
+     */
+    static async validateLightningAddress(lud16) {
+        if (!lud16 || typeof lud16 !== 'string') {
+            return false;
+        }
+        // Check in-memory cache first (only for current session)
+        const cached = this.lightningValidationCache.get(lud16);
+        if (cached && Date.now() - cached.timestamp < this.VALIDATION_CACHE_TTL) {
+            return cached.valid;
+        }
+        // Basic format check
+        const ludSplit = lud16.split('@');
+        if (ludSplit.length !== 2) {
+            this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
+            return false;
+        }
+        try {
+            // Check if we're already validating this address (prevent duplicate calls)
+            const validationKey = `validating:${lud16}`;
+            if (this.lightningValidationCache.has(validationKey)) {
+                // Wait a bit for the ongoing validation
+                await new Promise(resolve => setTimeout(resolve, 100));
+                const cached = this.lightningValidationCache.get(lud16);
+                if (cached) {
+                    return cached.valid;
+                }
+                // If still not cached, proceed with validation
+            }
+            // Mark as validating to prevent duplicate calls
+            this.lightningValidationCache.set(validationKey, { valid: false, timestamp: Date.now() });
+            const url = `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`;
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+            try {
+                const response = await fetch(url, {
+                    signal: controller.signal,
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                clearTimeout(timeoutId);
+                this.lightningValidationCache.delete(validationKey);
+                if (!response.ok) {
+                    this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
+                    return false;
+                }
+                const lnurlinfo = await response.json();
+                const isValid = lnurlinfo.allowsNostr === true;
+                this.lightningValidationCache.set(lud16, { valid: isValid, timestamp: Date.now() });
+                return isValid;
+            }
+            catch (fetchError) {
+                clearTimeout(timeoutId);
+                this.lightningValidationCache.delete(validationKey);
+                // Network errors or timeouts - treat as invalid
+                if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+                    console.warn(`Lightning address validation timeout: ${lud16}`);
+                }
+                else {
+                    console.warn(`Lightning address validation failed: ${lud16}`, fetchError);
+                }
+                this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
+                return false;
+            }
+        }
+        catch (error) {
+            console.warn(`Lightning address validation error: ${lud16}`, error);
+            this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
+            return false;
+        }
+    }
+    /**
+     * Clear validation cache (useful for testing or manual refresh)
+     */
+    static clearValidationCache() {
+        this.lightningValidationCache.clear();
+    }
+    /**
      * Get Lightning callback URL from author's LUD16 address
      */
     async getInvoiceCallBack(eventData, authorData) {
@@ -130,19 +211,22 @@ export class ZapService {
                     // Check if password is required
                     if (AuthService.requiresPassword()) {
                         console.error('Password required to decrypt private key for zap');
-                        throw new Error('Password required to decrypt private key. Please log in again.');
+                        throw new Error('Your private key is password-protected. Please log in again and enter your password to sign zaps.');
                     }
                     // Try to decrypt with device key (automatic, no password needed)
                     privateKey = await AuthService.decryptStoredPrivateKey();
                     // Validate that decrypted key is a string and looks like nsec
                     if (!privateKey || typeof privateKey !== 'string' || !privateKey.startsWith('nsec')) {
                         console.error('Invalid decrypted private key format:', typeof privateKey);
-                        throw new Error('Invalid private key format after decryption.');
+                        throw new Error('Unable to decrypt your private key. The format appears invalid. Please log in again.');
                     }
                 }
                 catch (error) {
                     console.error('Failed to decrypt private key for zap:', error);
-                    // Re-throw the error
+                    // Re-throw with clearer message if it's our custom error, otherwise wrap it
+                    if (error instanceof Error && !error.message.includes('password') && !error.message.includes('decrypt')) {
+                        throw new Error(`Unable to sign zap: ${error.message}`);
+                    }
                     throw error;
                 }
             }
@@ -375,3 +459,6 @@ export class ZapService {
         }
     }
 }
+// In-memory cache for lightning address validation (only during processing, not persistent)
+ZapService.lightningValidationCache = new Map();
+ZapService.VALIDATION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes

@@ -12,7 +12,8 @@ import {
   getQueryClient,
   NostrRegistrationService,
   AuthService,
-  FollowService
+  FollowService,
+  ZapService
 } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 import { nip19 } from 'nostr-tools';
@@ -228,6 +229,8 @@ const ProfilePage: React.FC = () => {
 
   // Paynotes data
   const [userPaynotes, setUserPaynotes] = useState<PubPayPost[]>([]);
+  // Track lightning addresses being validated to avoid duplicate calls
+  const validatingLightningAddressesRef = React.useRef<Set<string>>(new Set());
 
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
   const [followBusy, setFollowBusy] = useState<boolean>(false);
@@ -596,7 +599,8 @@ const ProfilePage: React.FC = () => {
             isPayable: true,
             hasZapTags: true,
             zapLNURL: lud16ToZap,
-            createdAt: event.created_at || 0
+            createdAt: event.created_at || 0,
+            lightningValidating: true // Mark as validating if we have a lightning address
           };
         });
 
@@ -783,6 +787,9 @@ const ProfilePage: React.FC = () => {
         // Store the paynotes in state
         setUserPaynotes(formattedPaynotes);
 
+        // Validate lightning addresses asynchronously (don't block UI)
+        validateLightningAddresses(formattedPaynotes);
+
         // Create Set for fast lookup
         const paynoteIdsSet = new Set<string>(
           paynotes.map((e: any) => e.id).filter(Boolean)
@@ -860,6 +867,78 @@ const ProfilePage: React.FC = () => {
 
     loadActivityStats();
   }, [targetPubkey, nostrClient]);
+
+  // Validate lightning addresses for posts asynchronously
+  const validateLightningAddresses = async (posts: PubPayPost[]) => {
+    // Extract unique lightning addresses from posts
+    const lightningAddresses = new Map<string, PubPayPost[]>();
+
+    for (const post of posts) {
+      if (post.author) {
+        try {
+          const authorData = JSON.parse(post.author.content || '{}');
+          const lud16 = authorData?.lud16;
+          if (lud16 && typeof lud16 === 'string') {
+            if (!lightningAddresses.has(lud16)) {
+              lightningAddresses.set(lud16, []);
+            }
+            lightningAddresses.get(lud16)!.push(post);
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    // Validate each unique lightning address (only once per address)
+    for (const [lud16, postsWithAddress] of lightningAddresses.entries()) {
+      // Skip if already validating or validated
+      if (validatingLightningAddressesRef.current.has(lud16)) {
+        continue;
+      }
+
+      // Mark as validating
+      validatingLightningAddressesRef.current.add(lud16);
+
+      // Validate asynchronously (fire and forget)
+      ZapService.validateLightningAddress(lud16)
+        .then(isValid => {
+          // Update all posts with this lightning address using functional updates
+          setUserPaynotes(prev => prev.map(post => {
+            if (postsWithAddress.some(p => p.id === post.id)) {
+              return {
+                ...post,
+                lightningValid: isValid,
+                lightningValidating: false,
+                // Update isPayable based on validation result
+                isPayable: !!(isValid && post.hasZapTags &&
+                  (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses))
+              };
+            }
+            return post;
+          }));
+        })
+        .catch(error => {
+          console.warn(`Failed to validate lightning address ${lud16}:`, error);
+          // Mark as invalid on error
+          setUserPaynotes(prev => prev.map(post => {
+            if (postsWithAddress.some(p => p.id === post.id)) {
+              return {
+                ...post,
+                lightningValid: false,
+                lightningValidating: false,
+                isPayable: false
+              };
+            }
+            return post;
+          }));
+        })
+        .finally(() => {
+          // Remove from validating set
+          validatingLightningAddressesRef.current.delete(lud16);
+        });
+    }
+  };
 
   // Subscribe to new zaps for profile page posts
   const paynoteEventIds = useMemo(

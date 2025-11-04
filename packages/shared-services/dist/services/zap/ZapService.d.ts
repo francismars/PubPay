@@ -8,7 +8,18 @@ export interface ZapEventData {
 }
 export declare class ZapService {
     private baseUrl;
+    private static lightningValidationCache;
+    private static readonly VALIDATION_CACHE_TTL;
     constructor(baseUrl?: string);
+    /**
+     * Validate if a lightning address supports Nostr zaps
+     * Returns true if valid, false if invalid, null if validation is pending
+     */
+    static validateLightningAddress(lud16: string): Promise<boolean>;
+    /**
+     * Clear validation cache (useful for testing or manual refresh)
+     */
+    static clearValidationCache(): void;
     /**
      * Get Lightning callback URL from author's LUD16 address
      */

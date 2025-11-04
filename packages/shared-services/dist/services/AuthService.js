@@ -351,16 +351,25 @@ export class AuthService {
      * Decrypt data with password
      */
     static async decryptWithPassword(encryptedData, password) {
-        // Decode salt and IV from base64
-        const salt = Uint8Array.from(atob(encryptedData.salt), c => c.charCodeAt(0));
-        const iv = Uint8Array.from(atob(encryptedData.iv), c => c.charCodeAt(0));
-        // Derive encryption key from password
-        const encryptionKey = await this.derivePasswordEncryptionKey(password, salt);
-        // Decode encrypted data
-        const encrypted = Uint8Array.from(atob(encryptedData.encrypted), c => c.charCodeAt(0));
-        // Decrypt
-        const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, encryptionKey, encrypted);
-        return new TextDecoder().decode(decrypted);
+        try {
+            // Decode salt and IV from base64
+            const salt = Uint8Array.from(atob(encryptedData.salt), c => c.charCodeAt(0));
+            const iv = Uint8Array.from(atob(encryptedData.iv), c => c.charCodeAt(0));
+            // Derive encryption key from password
+            const encryptionKey = await this.derivePasswordEncryptionKey(password, salt);
+            // Decode encrypted data
+            const encrypted = Uint8Array.from(atob(encryptedData.encrypted), c => c.charCodeAt(0));
+            // Decrypt
+            const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, encryptionKey, encrypted);
+            return new TextDecoder().decode(decrypted);
+        }
+        catch (error) {
+            // Provide clearer error for password decryption failures
+            if (error instanceof DOMException && error.name === 'OperationError') {
+                throw new Error('The password you entered is incorrect. Please check your password and try again.');
+            }
+            throw new Error('Failed to decrypt with password. The password may be incorrect.');
+        }
     }
     /**
      * Store authentication data with encryption
@@ -427,7 +436,7 @@ export class AuthService {
             // Check for legacy plaintext format
             const legacyKey = localStorage.getItem('privateKey') ||
                 sessionStorage.getItem('privateKey');
-            if (legacyKey && !legacyKey.startsWith('{')) {
+            if (legacyKey && !legacyKey.startsWith('{') && !legacyKey.startsWith('[')) {
                 // Legacy plaintext format - migrate automatically
                 console.log('Migrating legacy plaintext private key to encrypted format...');
                 try {
@@ -454,7 +463,7 @@ export class AuthService {
             if (encryptedPrivateKey.hasPassword) {
                 // Password mode: require password
                 if (!password) {
-                    throw new Error('Password required to decrypt private key');
+                    throw new Error('Password is required to decrypt your private key. Please enter your password.');
                 }
                 return await this.decryptWithPassword(encryptedPrivateKey, password);
             }
@@ -465,10 +474,23 @@ export class AuthService {
         }
         catch (error) {
             console.error('Failed to decrypt private key:', error);
-            const errorMessage = encryptedPrivateKey.hasPassword
-                ? 'Invalid password.'
-                : 'Device key may have been cleared.';
-            throw new Error(`Failed to decrypt private key. ${errorMessage}`);
+            // Provide clearer error messages based on error type
+            if (encryptedPrivateKey.hasPassword) {
+                // Password mode errors
+                if (error instanceof Error && error.message.includes('Password is required')) {
+                    throw error; // Re-throw the original message
+                }
+                // Wrong password or decryption failed
+                throw new Error('The password you entered is incorrect. Please try again.');
+            }
+            else {
+                // Device key mode errors
+                if ((error instanceof Error && error.message.includes('OperationError')) ||
+                    (error instanceof Error && error.message.includes('decrypt'))) {
+                    throw new Error('Unable to decrypt your private key. Your browser\'s local storage may have been cleared. Please log in again.');
+                }
+                throw new Error('Failed to decrypt your private key. Please log in again.');
+            }
         }
     }
     /**
