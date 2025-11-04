@@ -937,7 +937,8 @@ body {
 
 .author-section .noteNIP05.label a,
 .author-section .noteLNAddress.label a {
-  color: #888;
+  color: var(--text-color);
+  opacity: 0.8;
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -946,7 +947,7 @@ body {
 
 .author-section .noteNIP05.label a:hover,
 .author-section .noteLNAddress.label a:hover {
-  opacity: 0.8;
+  opacity: 1;
 }
 
 .author-section .noteNIP05.label .material-symbols-outlined,
@@ -967,6 +968,28 @@ body {
 .author-section .noteNIP05.label .unverified .material-symbols-outlined,
 .author-section .noteLNAddress.label .unverified .material-symbols-outlined {
   font-size: 9px;
+}
+
+/* Text truncation for long addresses */
+.author-section .noteLNAddress.label.text-truncate {
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.author-section .noteLNAddress.label.text-truncate a {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
+  width: 60%;
+}
+
+.author-section .noteLNAddress.label.text-truncate a .material-symbols-outlined {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 3px;
 }
 
 /* Note Section */
@@ -1929,7 +1952,7 @@ body.style-panel-open .style-toggle-btn {
   width: 0;
   height: 100%;
   background-color: transparent;
-  transition: all 0.3s ease-out;
+  transition: all 0.15s ease-out;
   overflow: hidden;
 }
 
@@ -1953,7 +1976,7 @@ body.style-panel-open .style-toggle-btn {
   display: flex;
   flex-direction: column;
   transform: translateX(100%);
-  transition: transform 0.3s ease-out;
+  transition: transform 0.15s ease-out;
   border-left: 1px solid rgba(74, 117, 255, 0.2);
 }
 

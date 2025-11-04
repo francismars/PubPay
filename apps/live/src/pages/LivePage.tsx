@@ -51,6 +51,33 @@ export const LivePage: React.FC = () => {
     handleNotificationDismiss
   } = useLiveFunctionality(validEventId);
 
+  // Handle style toggle button click
+  const handleStyleToggle = () => {
+    const styleOptionsModal = document.getElementById('styleOptionsModal');
+    if (styleOptionsModal) {
+      // Check both display and show class to determine if it's open
+      const isOpen = styleOptionsModal.style.display === 'block' || 
+                    styleOptionsModal.classList.contains('show');
+      
+      if (isOpen) {
+        // Close the modal
+        styleOptionsModal.classList.remove('show');
+        document.body.classList.remove('style-panel-open');
+        // Delay hiding to allow CSS transition (150ms animation)
+        setTimeout(() => {
+          styleOptionsModal.style.display = 'none';
+        }, 150);
+      } else {
+        // Open the modal
+        styleOptionsModal.style.display = 'block';
+        // Trigger reflow to ensure transition works
+        styleOptionsModal.offsetHeight;
+        styleOptionsModal.classList.add('show');
+        document.body.classList.add('style-panel-open');
+      }
+    }
+  };
+
   // Debug: Monitor zapNotification changes
   useEffect(() => {
     console.log('📱 LivePage: zapNotification changed:', zapNotification);
@@ -469,33 +496,11 @@ export const LivePage: React.FC = () => {
   useEffect(() => {
     // Set up event listeners with a small delay to ensure DOM is ready
     setTimeout(() => {
-      const styleToggleBtn = document.getElementById('styleToggleBtn');
       const styleOptionsModal = document.getElementById('styleOptionsModal');
       const closeButton = styleOptionsModal?.querySelector('.close-button');
 
       // Note: noteLoaderSubmit event listener is handled by useLiveFunctionality hook
-
-      if (styleToggleBtn) {
-        // Debug log removed
-        styleToggleBtn.addEventListener('click', e => {
-          e.preventDefault();
-          // Debug log removed
-          const styleOptionsModal =
-            document.getElementById('styleOptionsModal');
-          // Debug log removed
-          if (styleOptionsModal) {
-            styleOptionsModal.style.display = 'block';
-            styleOptionsModal.classList.add('show');
-            document.body.classList.add('style-panel-open');
-            // Debug log removed
-
-            // NOTE: Do NOT call setupStyleOptions here - it should only be called on page load
-            // and when individual controls change, not when opening/closing the modal
-          }
-        });
-      } else {
-        // Debug log removed
-      }
+      // Note: styleToggleBtn click handler is now handled by React onClick
 
       if (closeButton) {
         closeButton.addEventListener('click', handleStyleOptionsClose);
@@ -521,7 +526,7 @@ export const LivePage: React.FC = () => {
       // Note: We can't easily remove the event listeners from setTimeout
       // This is a limitation of this approach
     };
-  }, [handleStyleOptionsToggle, handleStyleOptionsClose]);
+  }, [handleStyleOptionsClose]);
 
   return (
     <div className="live">
@@ -748,6 +753,7 @@ export const LivePage: React.FC = () => {
                         href={`https://${authorNip05.split('@')[1]}/.well-known/nostr.json?name=${authorNip05.split('@')[0]}`}
                         target="_blank"
                         rel="noopener noreferrer"
+                        className="verified-link inherit-colors"
                       >
                         <span className="material-symbols-outlined">
                           check_circle
@@ -763,12 +769,13 @@ export const LivePage: React.FC = () => {
                   </div>
 
                   {/* Lightning Address */}
-                  <div className="noteLNAddress label">
+                  <div className="noteLNAddress label text-truncate">
                     {authorLud16 ? (
                       <a
                         href={`https://${authorLud16.split('@')[1]}/.well-known/lnurlp/${authorLud16.split('@')[0]}`}
                         target="_blank"
                         rel="noopener noreferrer"
+                        className="verified-link inherit-colors"
                       >
                         <span className="material-symbols-outlined">bolt</span>
                         {authorLud16}
@@ -882,7 +889,11 @@ export const LivePage: React.FC = () => {
               </div>
 
               <div className="zaps-header-right">
-                <button id="styleToggleBtn" className="style-toggle-btn">
+                <button 
+                  id="styleToggleBtn" 
+                  className="style-toggle-btn"
+                  onClick={handleStyleToggle}
+                >
                   ⚙️
                 </button>
 
