@@ -47,6 +47,8 @@ export const useLiveFunctionality = (eventId?: string) => {
   const [authorImage, setAuthorImage] = useState<string>(
     '/live/images/gradient_color.gif'
   );
+  const [authorNip05, setAuthorNip05] = useState<string>('');
+  const [authorLud16, setAuthorLud16] = useState<string>('');
   const [zaps, setZaps] = useState<any[]>([]);
   const [totalZaps, setTotalZaps] = useState<number>(0);
   const [totalAmount, setTotalAmount] = useState<number>(0);
@@ -1642,6 +1644,8 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     const profileData = JSON.parse(profile.content || '{}');
     const picture = profileData.picture || '/live/images/gradient_color.gif';
+    const nip05 = profileData.nip05 || '';
+    const lud16 = profileData.lud16 || '';
 
     // Update the author profile image
     const authorImg = document.getElementById(
@@ -1650,6 +1654,11 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (authorImg) {
       authorImg.src = picture;
     }
+
+    // Update state with profile metadata
+    setAuthorImage(picture);
+    setAuthorNip05(nip05);
+    setAuthorLud16(lud16);
   };
 
   const startContentMonitoring = () => {
@@ -3839,6 +3848,8 @@ export const useLiveFunctionality = (eventId?: string) => {
       const profile = JSON.parse(kind0.content);
       setAuthorName(profile.name || profile.display_name || 'Anonymous');
       setAuthorImage(profile.picture || '/live/images/gradient_color.gif');
+      setAuthorNip05(profile.nip05 || '');
+      setAuthorLud16(profile.lud16 || '');
     } catch (e) {}
   };
 
@@ -7825,6 +7836,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     noteContent,
     authorName,
     authorImage,
+    authorNip05,
+    authorLud16,
     zaps,
     totalZaps,
     totalAmount,

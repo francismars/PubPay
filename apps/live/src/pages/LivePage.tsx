@@ -38,6 +38,8 @@ export const LivePage: React.FC = () => {
     noteContent,
     authorName,
     authorImage,
+    authorNip05,
+    authorLud16,
     totalZaps,
     totalAmount,
     handleStyleOptionsToggle,
@@ -737,6 +739,46 @@ export const LivePage: React.FC = () => {
                 <div className="author-info">
                   <div id="authorName" className="author-name">
                     {authorName}
+                  </div>
+                  
+                  {/* NIP-05 Verification */}
+                  <div className="noteNIP05 label">
+                    {authorNip05 ? (
+                      <a
+                        href={`https://${authorNip05.split('@')[1]}/.well-known/nostr.json?name=${authorNip05.split('@')[0]}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <span className="material-symbols-outlined">
+                          check_circle
+                        </span>
+                        {authorNip05}
+                      </a>
+                    ) : (
+                      <span className="unverified label">
+                        <span className="material-symbols-outlined">block</span>
+                        Unverified
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Lightning Address */}
+                  <div className="noteLNAddress label">
+                    {authorLud16 ? (
+                      <a
+                        href={`https://${authorLud16.split('@')[1]}/.well-known/lnurlp/${authorLud16.split('@')[0]}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <span className="material-symbols-outlined">bolt</span>
+                        {authorLud16}
+                      </a>
+                    ) : (
+                      <span className="unverified label">
+                        <span className="material-symbols-outlined">block</span>
+                        Not Payable
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
