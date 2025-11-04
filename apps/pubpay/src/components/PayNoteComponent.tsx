@@ -31,6 +31,7 @@ interface PayNoteComponentProps {
   isReply?: boolean;
   nostrClient: any; // NostrClient type
   nostrReady?: boolean;
+  paymentError?: string;
 }
 
 export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
@@ -43,13 +44,22 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     isLoggedIn,
     isReply = false,
     nostrClient,
-    nostrReady
+    nostrReady,
+    paymentError
   }) => {
+    // Debug: log payment error changes
+    useEffect(() => {
+      if (paymentError) {
+        console.log('Payment error for post', post.id, ':', paymentError);
+      }
+    }, [paymentError, post.id]);
+
     const [zapAmount, setZapAmount] = useState(post.zapMin);
     const [showZapMenu, setShowZapMenu] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
     const [customZapAmount, setCustomZapAmount] = useState('');
     const [zapComment, setZapComment] = useState('');
+    const [showCommentInput, setShowCommentInput] = useState(false);
     const [showZapModal, setShowZapModal] = useState(false);
     const [zapModalComment, setZapModalComment] = useState('');
     const [isPaying, setIsPaying] = useState(false);
@@ -117,6 +127,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           !zapActionRef.current.contains(event.target as Node)
         ) {
           setShowZapMenu(false);
+          setShowCommentInput(false);
         }
       };
 
@@ -226,6 +237,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           setShowZapMenu(false);
           setCustomZapAmount('');
           setZapComment('');
+          setShowCommentInput(false);
         }
       }
     };
@@ -250,6 +262,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           setShowZapMenu(false);
           setCustomZapAmount('');
           setZapComment('');
+          setShowCommentInput(false);
         }
       }
     };
@@ -264,7 +277,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
 
     // Handle long press start
     const handleLongPressStart = () => {
-      if (!isPayable || isReply) return;
+      if (!isPayable) return;
 
       isLongPressRef.current = false;
       longPressTimerRef.current = setTimeout(() => {
@@ -464,6 +477,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
 
             // Close zap menus
             setShowZapMenu(false);
+            setShowCommentInput(false);
           }, 300); // 300ms delay
         }
       };
@@ -740,7 +754,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           {post.hasZapTags && (
             <div className="noteCTA">
               <button
-                className={`noteMainCTA cta ${!isPayable || isReply ? 'disabled' : ''}`}
+                className={`noteMainCTA cta ${!isPayable || paymentError ? 'disabled' : ''} ${paymentError ? 'red' : ''}`}
                 onMouseDown={handleLongPressStart}
                 onMouseUp={handleLongPressEnd}
                 onMouseLeave={handleLongPressEnd}
@@ -753,7 +767,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     return;
                   }
 
-                  if (!isPayable || isReply) {
+                  if (!isPayable || paymentError) {
                     return;
                   }
                   if (!isLoggedIn) {
@@ -786,10 +800,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     setIsPaying(false);
                   }
                 }}
-                disabled={!isPayable || isReply || isPaying}
+                disabled={!isPayable || isPaying || !!paymentError}
                 title={
-                  isReply
-                    ? 'Cannot pay replies'
+                  paymentError
+                    ? paymentError
                     : !isPayable
                       ? 'This post is not payable'
                       : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
@@ -797,13 +811,15 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                         : ''
                 }
               >
-                {isPaying
-                  ? 'Paying…'
-                  : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
-                    ? 'Paid'
-                    : !isPayable || isReply
-                      ? 'Not Payable'
-                      : 'Pay'}
+                {paymentError
+                  ? paymentError
+                  : isPaying
+                    ? 'Paying…'
+                    : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
+                      ? 'Paid'
+                      : !isPayable
+                        ? 'Not Payable'
+                        : 'Pay'}
               </button>
             </div>
           )}
@@ -870,7 +886,11 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 onClick={e => {
                   e.preventDefault();
                   if (!hasValidLightning) return;
-                  setShowZapMenu(!showZapMenu);
+                  const newState = !showZapMenu;
+                  setShowZapMenu(newState);
+                  if (!newState) {
+                    setShowCommentInput(false);
+                  }
                 }}
                 style={{ position: 'relative' }}
                 title={
@@ -886,23 +906,70 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   onClick={e => e.stopPropagation()}
                 >
                   <div className="zapMenuCustom">
-                    <input
-                      type="number"
-                      id="customZapInput"
-                      placeholder="sats"
-                      min="1"
-                      value={customZapAmount}
-                      onChange={e => setCustomZapAmount(e.target.value)}
-                      onClick={e => e.stopPropagation()}
-                    />
-                    <textarea
-                      id="zapCommentInput"
-                      placeholder="Add a note (optional)"
-                      value={zapComment}
-                      onChange={e => setZapComment(e.target.value)}
-                      onClick={e => e.stopPropagation()}
-                      rows={2}
-                    />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+                      <input
+                        type="number"
+                        id="customZapInput"
+                        placeholder="sats"
+                        min="1"
+                        value={customZapAmount}
+                        onChange={e => setCustomZapAmount(e.target.value)}
+                        onClick={e => e.stopPropagation()}
+                        style={{ flex: 1 }}
+                      />
+                      {!showCommentInput && (
+                        <button
+                          type="button"
+                          onClick={e => {
+                            e.stopPropagation();
+                            setShowCommentInput(true);
+                          }}
+                          style={{
+                            padding: '0',
+                            background: 'transparent',
+                            border: '2px solid var(--border-color)',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            color: 'var(--text-secondary)',
+                            whiteSpace: 'nowrap',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            transition: 'all 0.2s ease',
+                            minWidth: '36px',
+                            width: '36px',
+                            boxSizing: 'border-box',
+                            alignSelf: 'stretch'
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.background = 'var(--hover-bg)';
+                            e.currentTarget.style.borderColor = 'var(--text-secondary)';
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.borderColor = 'var(--border-color)';
+                          }}
+                          title="Add comment"
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '18px', verticalAlign: 'middle' }}>
+                            comment
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                    {showCommentInput && (
+                      <textarea
+                        id="zapCommentInput"
+                        placeholder="Comment (optional)"
+                        value={zapComment}
+                        onChange={e => setZapComment(e.target.value)}
+                        onClick={e => e.stopPropagation()}
+                        rows={2}
+                        style={{ marginTop: '8px' }}
+                        autoFocus
+                      />
+                    )}
                     <button
                       id="customZapButton"
                       onClick={async e => {
@@ -979,10 +1046,20 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   </a>
 
                   <a
-                    href={`/live?note=${post.id}`}
+                    href={`/live/${
+                      /^[0-9a-f]{64}$/i.test(post.id)
+                        ? nip19.noteEncode(post.id)
+                        : post.id
+                    }`}
                     className="toolTipLink dropdown-element"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    onClick={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const noteId = /^[0-9a-f]{64}$/i.test(post.id)
+                        ? nip19.noteEncode(post.id)
+                        : post.id;
+                      window.open(`/live/${noteId}`, '_blank', 'noopener,noreferrer');
+                    }}
                   >
                     View on live
                   </a>
@@ -1061,7 +1138,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
 
               <textarea
                 id="zapModalComment"
-                placeholder="Add a note (optional)"
+                placeholder="Comment (optional)"
                 value={zapModalComment}
                 onChange={e => setZapModalComment(e.target.value)}
                 rows={3}

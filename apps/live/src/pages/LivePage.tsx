@@ -60,6 +60,68 @@ export const LivePage: React.FC = () => {
     const stripNostrPrefix = (id: string) => id?.replace(/^nostr:/, '') ?? '';
 
     try {
+      // If we have a valid eventId from the route, use it directly and skip path parsing
+      if (validEventId) {
+        const candidate = stripNostrPrefix(validEventId);
+        const validPrefixes = ['note1', 'nevent1', 'naddr1', 'nprofile1'];
+
+        // Validate the prefix
+        if (validPrefixes.some(p => candidate.startsWith(p))) {
+          try {
+            // Decode to ensure the identifier is a valid NIP-19 bech32
+            nip19.decode(candidate);
+            // Valid identifier from route - show main layout
+            setShowNoteLoader(false);
+            setShowMainLayout(true);
+            return;
+          } catch {
+            // Invalid bech32 format - show error
+            setShowNoteLoader(true);
+            setShowMainLayout(false);
+            showLoadingError(
+              'Invalid nostr identifier format. Please check the note ID and try again.'
+            );
+            return;
+          }
+        } else {
+          // Invalid prefix - show error
+          setShowNoteLoader(true);
+          setShowMainLayout(false);
+          showLoadingError(
+            'Invalid format. Please enter a valid nostr identifier (note1/nevent1/naddr1/nprofile1).'
+          );
+          return;
+        }
+      }
+
+      // Check for ?note= query parameter (from pubpay "View on live" link)
+      const urlParams = new URLSearchParams(window.location.search);
+      const noteParam = urlParams.get('note');
+      if (noteParam) {
+        let noteId = noteParam.trim();
+
+        // If it's a hex string (64 chars), convert to note1 bech32
+        if (/^[0-9a-f]{64}$/i.test(noteId)) {
+          try {
+            noteId = nip19.noteEncode(noteId);
+          } catch (error) {
+            console.error('Failed to encode note ID:', error);
+            // Remove query param and show loader
+            const newUrl = window.location.pathname;
+            window.history.replaceState({}, '', newUrl);
+            setShowNoteLoader(true);
+            setShowMainLayout(false);
+            return;
+          }
+        }
+
+        // Navigate to /live/{noteId}
+        const newUrl = `/live/${noteId}`;
+        window.history.replaceState({}, '', newUrl);
+        // The component will re-render with the new path, so we can return here
+        return;
+      }
+
       const currentPath = window.location.pathname;
 
       // CRITICAL: If we're not under /live/, redirect to /live/ immediately
