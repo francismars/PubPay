@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { useUIStore } from '@pubpay/shared-services';
 import { BlossomService } from '@pubpay/shared-services';
+import { GOAL_MAX } from '@pubpay/shared-services';
 import { formatContent } from '../utils/contentFormatter';
 
 interface NewPayNoteOverlayProps {
@@ -19,7 +20,6 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
   nostrClient
 }) => {
   const [paymentType, setPaymentType] = useState<'fixed' | 'range' | 'goal'>('fixed');
-  const [showGoal, setShowGoal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewContent, setPreviewContent] = useState('');
@@ -90,7 +90,6 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
       await onSubmit(data);
       onClose();
       setPaymentType('fixed'); // Reset to default
-      setShowGoal(false); // Reset goal
     } catch (error) {
       console.error('Failed to post note:', error);
     }
@@ -282,14 +281,14 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
         <form id="newKind1" onSubmit={handleSubmit}>
           <div className="formField">
             <label htmlFor="payNoteContent" className="label">
-              Your Payment Request
+              Your Note
             </label>
             <textarea
               ref={textareaRef}
               id="payNoteContent"
               name="payNoteContent"
               rows={4}
-              placeholder="Payment Request Description"
+              placeholder="Description"
               onPaste={handlePaste}
               onChange={handleTextareaChange}
               onKeyDown={e => {
@@ -429,124 +428,95 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
             )}
           </div>
 
-          <fieldset className="formField formSelector">
-            <legend className="uppercase">Select type</legend>
-            <div>
-              <input
-                type="radio"
-                id="fixedFlow"
-                name="paymentType"
-                value="fixed"
-                checked={paymentType === 'fixed'}
-                onChange={e => {
-                  if (e.target.checked) setPaymentType('fixed');
-                }}
-              />
-              <label htmlFor="fixedFlow">Fixed</label>
-            </div>
-            <div>
-              <input
-                type="radio"
-                id="rangeFlow"
-                name="paymentType"
-                value="range"
-                checked={paymentType === 'range'}
-                onChange={e => {
-                  if (e.target.checked) setPaymentType('range');
-                }}
-              />
-              <label htmlFor="rangeFlow">Range</label>
-            </div>
-            <div>
-              <input
-                type="checkbox"
-                id="goalFlow"
-                checked={showGoal}
-                onChange={e => setShowGoal(e.target.checked)}
-              />
-              <label htmlFor="goalFlow">Goal</label>
-            </div>
-          </fieldset>
-
-          <div
-            className="formFieldGroup"
-            id="fixedInterface"
-            style={{ display: paymentType === 'fixed' ? 'block' : 'none' }}
-          >
-            <div className="formField">
-              <label htmlFor="zapFixed" className="label">
-                Fixed Amount* <span className="tagName">zap-min = zap-max</span>
-              </label>
-              <input
-                type="number"
-                min={1}
-                id="zapFixed"
-                placeholder="1"
-                name="zapFixed"
-                required={paymentType === 'fixed'}
-              />
-            </div>
-          </div>
-
-          <div
-            className="formFieldGroup"
-            id="rangeInterface"
-            style={{ display: paymentType === 'range' ? 'flex' : 'none' }}
-          >
-            <div className="formField">
-              <label htmlFor="zapMin" className="label">
-                Minimum* <span className="tagName">zap-min</span>
-              </label>
-              <input
-                type="number"
-                min={1}
-                id="zapMin"
-                placeholder="1"
-                name="zapMin"
-                required={paymentType === 'range'}
-              />
-            </div>
-            <div className="formField">
-              <label htmlFor="zapMax" className="label">
-                Maximum* <span className="tagName">zap-max</span>
-              </label>
-              <input
-                type="number"
-                min={1}
-                id="zapMax"
-                placeholder="1000000000"
-                name="zapMax"
-                required={paymentType === 'range'}
-              />
-            </div>
-          </div>
-
-          <div
-            className="formFieldGroup"
-            id="goalInterface"
-            style={{ display: showGoal ? 'block' : 'none' }}
-          >
-            <div className="formField">
-              <label htmlFor="zapGoal" className="label">
-                Goal Amount* <span className="tagName">zap-goal</span>
-              </label>
-              <input
-                type="number"
-                min={1}
-                id="zapGoal"
-                placeholder="100000"
-                name="zapGoal"
-                required={showGoal}
-              />
-            </div>
-          </div>
-
           <details className="formField">
             <summary className="legend summaryOptions">
-              Advanced Options
+              Payment Options (Optional)
             </summary>
 
             {/* Inline mentions implemented; dedicated tag UI removed */}
+
+            <fieldset className="formField formSelector">
+              <legend className="uppercase">Accepted Payment Amount</legend>
+              <div>
+                <input
+                  type="radio"
+                  id="fixedFlow"
+                  name="paymentType"
+                  value="fixed"
+                  checked={paymentType === 'fixed'}
+                  onChange={e => {
+                    if (e.target.checked) setPaymentType('fixed');
+                  }}
+                />
+                <label htmlFor="fixedFlow">Fixed</label>
+              </div>
+              <div>
+                <input
+                  type="radio"
+                  id="rangeFlow"
+                  name="paymentType"
+                  value="range"
+                  checked={paymentType === 'range'}
+                  onChange={e => {
+                    if (e.target.checked) setPaymentType('range');
+                  }}
+                />
+                <label htmlFor="rangeFlow">Range</label>
+              </div>
+            </fieldset>
+
+            <div
+              className="formFieldGroup"
+              id="fixedInterface"
+              style={{ display: paymentType === 'fixed' ? 'block' : 'none' }}
+            >
+              <div className="formField">
+                <label htmlFor="zapFixed" className="label">
+                  Fixed Amount* <span className="tagName">zap-min = zap-max</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  id="zapFixed"
+                  placeholder="1"
+                  name="zapFixed"
+                  required={paymentType === 'fixed'}
+                />
+              </div>
+            </div>
+
+            <div
+              className="formFieldGroup"
+              id="rangeInterface"
+              style={{ display: paymentType === 'range' ? 'flex' : 'none' }}
+            >
+              <div className="formField">
+                <label htmlFor="zapMin" className="label">
+                  Minimum* <span className="tagName">zap-min</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  id="zapMin"
+                  placeholder="1"
+                  name="zapMin"
+                  required={paymentType === 'range'}
+                />
+              </div>
+              <div className="formField">
+                <label htmlFor="zapMax" className="label">
+                  Maximum* <span className="tagName">zap-max</span>
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  id="zapMax"
+                  placeholder="1000000000"
+                  name="zapMax"
+                  required={paymentType === 'range'}
+                />
+              </div>
+            </div>
 
             <div className="formFieldGroup">
               <div className="formField">
@@ -561,16 +531,17 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                   name="zapUses"
                 />
               </div>
-              <div className="formField disabled">
-                <label htmlFor="zapIncrement" className="label">
-                  Increment <span className="tagName"></span>
+              <div className="formField" id="goalInterface">
+                <label htmlFor="zapGoal" className="label">
+                  Goal Amount <span className="tagName">zap-goal</span>
                 </label>
                 <input
-                  type="text"
-                  id="zapIncrement"
-                  placeholder="0"
-                  name="zapIncrement"
-                  disabled
+                  type="number"
+                  min={1}
+                  max={GOAL_MAX}
+                  id="zapGoal"
+                  placeholder="100000"
+                  name="zapGoal"
                 />
               </div>
             </div>
