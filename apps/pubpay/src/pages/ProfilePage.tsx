@@ -111,6 +111,15 @@ const ProfilePage: React.FC = () => {
   const [qrCodeData, setQrCodeData] = useState('');
   const [qrCodeType, setQrCodeType] = useState<'npub' | 'lightning'>('npub');
 
+  // JSON Viewer state
+  const [showJSON, setShowJSON] = useState(false);
+  const [jsonContent, setJsonContent] = useState('');
+
+  const handleViewRaw = (post: PubPayPost) => {
+    setJsonContent(JSON.stringify(post.event, null, 2));
+    setShowJSON(true);
+  };
+
   // Recovery handler
   const handleRecoveryFromMnemonic = async () => {
     if (!recoveryMnemonic.trim()) {
@@ -1308,7 +1317,7 @@ const ProfilePage: React.FC = () => {
                     onPay={handlePayWithExtension}
                     onPayAnonymously={handlePayAnonymously}
                     onShare={handleSharePost}
-                    onViewRaw={() => {}}
+                    onViewRaw={handleViewRaw}
                     isLoggedIn={isLoggedIn}
                     nostrClient={nostrClient}
                     nostrReady={nostrReady}
@@ -1493,6 +1502,31 @@ const ProfilePage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* JSON Viewer Overlay */}
+      <div
+        className="overlayContainer"
+        id="viewJSON"
+        style={{
+          display: 'flex',
+          visibility: showJSON ? 'visible' : 'hidden',
+          opacity: showJSON ? 1 : 0,
+          pointerEvents: showJSON ? 'auto' : 'none'
+        }}
+        onClick={() => setShowJSON(false)}
+      >
+        <div className="overlayInner" onClick={e => e.stopPropagation()}>
+          <pre id="noteJSON">{jsonContent}</pre>
+          <a
+            id="closeJSON"
+            href="#"
+            className="label"
+            onClick={() => setShowJSON(false)}
+          >
+            close
+          </a>
+        </div>
+      </div>
     </div>
   );
 };

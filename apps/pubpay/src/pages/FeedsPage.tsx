@@ -750,7 +750,12 @@ export const FeedsPage: React.FC = () => {
       <div
         className="overlayContainer"
         id="viewJSON"
-        style={{ display: showJSON ? 'flex' : 'none' }}
+        style={{
+          display: 'flex',
+          visibility: showJSON ? 'visible' : 'hidden',
+          opacity: showJSON ? 1 : 0,
+          pointerEvents: showJSON ? 'auto' : 'none'
+        }}
         onClick={() => setShowJSON(false)}
       >
         <div className="overlayInner" onClick={e => e.stopPropagation()}>

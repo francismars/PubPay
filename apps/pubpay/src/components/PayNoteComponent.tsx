@@ -1070,15 +1070,20 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         </div>
 
         {/* Zap Confirmation Modal */}
-        {showZapModal && (
-          <div
-            className="overlayContainer"
-            onClick={() => {
-              setShowZapModal(false);
-              setZapModalComment('');
-              setIsAnonymousModal(false);
-            }}
-          >
+        <div
+          className="overlayContainer"
+          style={{
+            display: 'flex',
+            visibility: showZapModal ? 'visible' : 'hidden',
+            opacity: showZapModal ? 1 : 0,
+            pointerEvents: showZapModal ? 'auto' : 'none'
+          }}
+          onClick={() => {
+            setShowZapModal(false);
+            setZapModalComment('');
+            setIsAnonymousModal(false);
+          }}
+        >
             <div
               className="overlayInner zapModal"
               onClick={e => e.stopPropagation()}
@@ -1193,7 +1198,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               </div>
             </div>
           </div>
-        )}
       </div>
     );
   }

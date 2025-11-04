@@ -264,7 +264,12 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
     <div
       className="overlayContainer"
       id="newPayNoteForm"
-      style={{ display: isVisible ? 'flex' : 'none' }}
+      style={{
+        display: 'flex',
+        visibility: isVisible ? 'visible' : 'hidden',
+        opacity: isVisible ? 1 : 0,
+        pointerEvents: isVisible ? 'auto' : 'none'
+      }}
       onClick={onClose}
     >
       <div className="overlayInner" onClick={e => e.stopPropagation()}>
