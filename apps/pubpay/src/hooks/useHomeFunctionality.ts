@@ -619,12 +619,25 @@ export const useHomeFunctionality = () => {
       if (encryptedPrivateKey) {
         try {
           privateKey = await AuthService.decryptStoredPrivateKey(password);
+          // If decryption succeeded but we have a password-protected key and no private key, something is wrong
+          if (AuthService.requiresPassword() && !privateKey) {
+            requiresPassword = true;
+          }
         } catch (error) {
           console.error('Failed to decrypt private key:', error);
-          // If password required but not provided, return flag
-          if (AuthService.requiresPassword() && !password) {
-            requiresPassword = true;
+          // If password is required
+          if (AuthService.requiresPassword()) {
+            if (!password) {
+              // Password not provided
+              requiresPassword = true;
+            } else {
+              // Password was provided but incorrect - throw error to indicate wrong password
+              throw new Error('The password you entered is incorrect. Please check your password and try again.');
+            }
             privateKey = null;
+          } else {
+            // Device key mode - re-throw the error
+            throw error;
           }
         }
       } else {
@@ -647,18 +660,19 @@ export const useHomeFunctionality = () => {
         }
       }
 
-      // Only set auth state if we have private key (or no private key needed for extension/externalSigner)
-      if (privateKey || method !== 'nsec') {
+      // Set auth state - user should appear logged in even if private key isn't decrypted yet
+      // This allows users with password-protected keys to browse while being prompted for password
+      if (publicKey && method) {
         setAuthState({
           isLoggedIn: true,
           publicKey,
-          privateKey,
+          privateKey, // May be null if password-protected and password not provided
           signInMethod: method as 'extension' | 'nsec' | 'externalSigner',
           userProfile: null,
           displayName: null
         });
 
-        // Load user profile and follow suggestions
+        // Load user profile and follow suggestions (can be done without private key)
         if (nostrClientRef.current && publicKey) {
           loadUserProfile(publicKey);
           try {
@@ -673,7 +687,8 @@ export const useHomeFunctionality = () => {
         }
       }
 
-      return { requiresPassword };
+      // Return whether password is still required (true if password-protected and no private key)
+      return { requiresPassword: requiresPassword || (AuthService.requiresPassword() && !privateKey) };
     }
     return { requiresPassword: false };
   };

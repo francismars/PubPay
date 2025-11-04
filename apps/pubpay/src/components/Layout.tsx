@@ -32,6 +32,7 @@ export const Layout: React.FC = () => {
   const [nsecPassword, setNsecPassword] = useState('');
   const [showRecoveryGroup, setShowRecoveryGroup] = useState(false);
   const [recoveryMnemonic, setRecoveryMnemonic] = useState('');
+  const [recoveryPassword, setRecoveryPassword] = useState('');
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [passwordPromptPassword, setPasswordPromptPassword] = useState('');
   // Remember me removed: always persist until logout
@@ -90,6 +91,7 @@ export const Layout: React.FC = () => {
     setNsecPassword('');
     setShowRecoveryGroup(false);
     setRecoveryMnemonic('');
+    setRecoveryPassword('');
     setShowPasswordPrompt(false);
     setPasswordPromptPassword('');
   };
@@ -185,13 +187,42 @@ export const Layout: React.FC = () => {
   const handlePasswordPromptSubmit = async () => {
     try {
       if (!passwordPromptPassword.trim()) {
+        // Show validation message
+        try {
+          useUIStore.getState().openToast('Please enter your password', 'error', false);
+          setTimeout(() => {
+            try {
+              useUIStore.getState().closeToast();
+            } catch {}
+          }, 2000);
+        } catch (toastError) {
+          console.warn('Failed to show toast:', toastError);
+        }
         return;
       }
+
       const result = await checkAuthStatus(passwordPromptPassword);
-      if (result.requiresPassword) {
-        // Password was incorrect
+      
+      // Check the result - if requiresPassword is false, the password was correct
+      if (!result.requiresPassword) {
+        // Success - password was correct and private key is now decrypted
+        setPasswordPromptPassword('');
+        setShowPasswordPrompt(false);
+        // Show success feedback
         try {
-          useUIStore.getState().openToast('Invalid password. Please try again.', 'error', false);
+          useUIStore.getState().openToast('Password accepted. Welcome back!', 'success', false);
+          setTimeout(() => {
+            try {
+              useUIStore.getState().closeToast();
+            } catch {}
+          }, 2000);
+        } catch (toastError) {
+          console.warn('Failed to show toast:', toastError);
+        }
+      } else {
+        // Password was incorrect (still requires password means it failed)
+        try {
+          useUIStore.getState().openToast('Incorrect password. Please check your password and try again.', 'error', false);
           setTimeout(() => {
             try {
               useUIStore.getState().closeToast();
@@ -201,23 +232,25 @@ export const Layout: React.FC = () => {
           console.warn('Failed to show toast:', toastError);
         }
         setPasswordPromptPassword('');
-      } else {
-        // Success - password was correct
-        setPasswordPromptPassword('');
-        setShowPasswordPrompt(false);
       }
     } catch (error) {
       console.error('Password prompt failed:', error);
-      // Show error message
+      // Extract user-friendly error message
+      const errorMessage = error instanceof Error 
+        ? (error.message.includes('incorrect') || error.message.includes('password') 
+            ? error.message 
+            : 'Incorrect password. Please check your password and try again.')
+        : 'Incorrect password. Please check your password and try again.';
+      
       try {
-        useUIStore.getState().openToast('Invalid password. Please try again.', 'error', false);
+        useUIStore.getState().openToast(errorMessage, 'error', false);
         setTimeout(() => {
           try {
             useUIStore.getState().closeToast();
           } catch (toastError) {
             console.warn('Failed to close toast:', toastError);
           }
-        }, 3000);
+        }, 4000);
       } catch (toastError) {
         console.warn('Failed to show toast:', toastError);
       }
@@ -228,11 +261,20 @@ export const Layout: React.FC = () => {
   // Check if password is required on mount and when auth state changes
   useEffect(() => {
     const checkPasswordRequirement = async () => {
+      // Check if user is authenticated and has password-protected key
       if (AuthService.isAuthenticated() && AuthService.requiresPassword()) {
-        // Check if we already have private key in state
-        if (!authState.privateKey && authState.signInMethod === 'nsec') {
+        // Show password prompt if:
+        // 1. User is logged in with nsec method
+        // 2. Private key is not yet decrypted (null)
+        if (authState.isLoggedIn && authState.signInMethod === 'nsec' && !authState.privateKey) {
           setShowPasswordPrompt(true);
+        } else if (authState.privateKey) {
+          // Private key is now available, hide the prompt
+          setShowPasswordPrompt(false);
         }
+      } else if (authState.privateKey) {
+        // Not password-protected or key is available, hide prompt
+        setShowPasswordPrompt(false);
       }
     };
 
@@ -251,9 +293,10 @@ export const Layout: React.FC = () => {
       );
 
       if (result.success && result.keyPair && result.keyPair.privateKey) {
-        // Sign in with the recovered private key
-        await handleContinueWithNsec(result.keyPair.privateKey);
+        // Sign in with the recovered private key and optional password
+        await handleContinueWithNsec(result.keyPair.privateKey, recoveryPassword || undefined);
         setRecoveryMnemonic('');
+        setRecoveryPassword('');
         setShowRecoveryGroup(false);
         closeLogin();
       } else {
@@ -1188,10 +1231,40 @@ export const Layout: React.FC = () => {
                     backgroundColor: 'var(--input-bg)',
                     color: 'var(--text-primary)',
                     boxSizing: 'border-box',
-                    marginBottom: '0'
+                    marginBottom: '12px'
                   }}
                 />
               </div>
+              <input
+                type="password"
+                id="recoveryPasswordInput"
+                placeholder="Password (optional, for extra security)"
+                className="inputField"
+                value={recoveryPassword}
+                onChange={e => setRecoveryPassword(e.target.value)}
+                autoComplete="new-password"
+                style={{
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  border: '2px solid var(--border-color)',
+                  borderRadius: '6px',
+                  padding: '12px 16px',
+                  width: '100%',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                  marginBottom: '12px'
+                }}
+              />
+              <p
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--text-secondary)',
+                  margin: '0 0 12px 0',
+                  textAlign: 'left'
+                }}
+              >
+                Optional: Set a password to encrypt your private key. You'll need to enter it each session.
+              </p>
               <button id="continueWithRecovery" className="cta" type="submit">
                 Recover Account
               </button>
@@ -1464,8 +1537,8 @@ export const Layout: React.FC = () => {
           visibility: showPasswordPrompt ? 'visible' : 'hidden',
           opacity: showPasswordPrompt ? 1 : 0,
           pointerEvents: showPasswordPrompt ? 'auto' : 'none',
-          alignItems: 'center',
-          justifyContent: 'center'
+          transition: 'opacity 0.2s ease-out',
+          willChange: showPasswordPrompt ? 'opacity' : 'auto'
         }}
         onClick={() => {
           // Don't close on outside click - password is required
@@ -1474,7 +1547,12 @@ export const Layout: React.FC = () => {
         <div
           className="overlayInner"
           onClick={e => e.stopPropagation()}
-          style={{ maxWidth: '400px', width: '90%' }}
+          style={{
+            maxWidth: '400px',
+            width: '90%',
+            transform: 'none !important',
+            animation: 'none !important'
+          }}
         >
           <div className="brand">
             PUB<span className="logoPay">PAY</span>
@@ -1523,11 +1601,31 @@ export const Layout: React.FC = () => {
             <button
               type="submit"
               className="cta"
-              style={{ width: '100%' }}
+              style={{ width: '100%', marginBottom: '12px' }}
             >
               Unlock
             </button>
           </form>
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <a
+              href="#"
+              className="label"
+              onClick={(e) => {
+                e.preventDefault();
+                handleLogout();
+                setShowPasswordPrompt(false);
+                setPasswordPromptPassword('');
+              }}
+              style={{
+                color: 'var(--text-secondary)',
+                textDecoration: 'underline',
+                fontSize: '13px',
+                cursor: 'pointer'
+              }}
+            >
+              Logout
+            </a>
+          </div>
         </div>
       </div>
 

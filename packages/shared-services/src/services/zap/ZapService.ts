@@ -186,18 +186,21 @@ export class ZapService {
           // Check if password is required
           if (AuthService.requiresPassword()) {
             console.error('Password required to decrypt private key for zap');
-            throw new Error('Password required to decrypt private key. Please log in again.');
+            throw new Error('Your private key is password-protected. Please log in again and enter your password to sign zaps.');
           }
           // Try to decrypt with device key (automatic, no password needed)
           privateKey = await AuthService.decryptStoredPrivateKey();
           // Validate that decrypted key is a string and looks like nsec
           if (!privateKey || typeof privateKey !== 'string' || !privateKey.startsWith('nsec')) {
             console.error('Invalid decrypted private key format:', typeof privateKey);
-            throw new Error('Invalid private key format after decryption.');
+            throw new Error('Unable to decrypt your private key. The format appears invalid. Please log in again.');
           }
         } catch (error) {
           console.error('Failed to decrypt private key for zap:', error);
-          // Re-throw the error
+          // Re-throw with clearer message if it's our custom error, otherwise wrap it
+          if (error instanceof Error && !error.message.includes('password') && !error.message.includes('decrypt')) {
+            throw new Error(`Unable to sign zap: ${error.message}`);
+          }
           throw error;
         }
       } else if (!privateKey) {
@@ -329,7 +332,7 @@ export class ZapService {
         throw new Error(errorMessage);
       }
 
-        const { pr: invoice } = responseData;
+      const { pr: invoice } = responseData;
         // Extract zap request ID from the signed zap request event
         const zapRequestID = (zapFinalized as any)?.id || '';
         // Pass the zap request event ID (for matching when zap receipt arrives) and post event ID
