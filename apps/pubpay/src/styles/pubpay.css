@@ -15,8 +15,8 @@
 }
 
 body.dark-mode {
-  --bg-primary: #0d0d0d;
-  --bg-secondary: #131313;
+  --bg-primary: #010101;
+  --bg-secondary: #0e0e0e;
   --bg-tertiary: #252525;
   --text-primary: #e5e5e5;
   --text-secondary: #b8b8b8;
@@ -27,7 +27,7 @@ body.dark-mode {
   --input-bg: #1a1a1a;
   --hover-bg: #111111;
   --overlay-bg: rgba(0, 0, 0, 0.85);
-  --nav-bg: rgba(26, 26, 26, 0.7);
+  --nav-bg: rgba(9, 9, 9, 0.7);
 }
 
 body {
@@ -523,7 +523,6 @@ body.jukebox {
 
 #nav {
   width: 100%;
-  border-bottom: 1px solid var(--border-light);
   position: fixed;
   top: 0;
   z-index: 10001;
@@ -848,7 +847,6 @@ a.feedSelectorLink.active {
 .paynote {
   display: flex;
   padding: 20px 30px 30px 20px;
-  border: 1px solid var(--border-light);
   margin-top: 30px;
   column-gap: 15px;
   background-color: var(--bg-secondary);
@@ -1289,6 +1287,7 @@ body.dark-mode .zapGoalBarFill {
 
 .noteHeroZaps {
   padding-bottom: 10px;
+  padding-top: 10px;
 }
 
 .noteHeroZaps .zapReactionAmount {
