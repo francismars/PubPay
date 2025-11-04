@@ -104,18 +104,19 @@ module.exports = {
           to: 'images',
           noErrorOnMissing: true
         },
-        // Only copy PWA manifest and service worker in production
+        // Copy manifest.json in both dev and prod (referenced in HTML)
+        {
+          from: path.resolve(
+            __dirname,
+            '../../apps/pubpay/src/manifest.json'
+          ),
+          to: 'manifest.json',
+          noErrorOnMissing: true
+        },
+        // Only copy service worker in production
         ...(
           isProduction
             ? [
-                {
-                  from: path.resolve(
-                    __dirname,
-                    '../../apps/pubpay/src/manifest.json'
-                  ),
-                  to: 'manifest.json',
-                  noErrorOnMissing: true
-                },
                 {
                   from: path.resolve(
                     __dirname,
