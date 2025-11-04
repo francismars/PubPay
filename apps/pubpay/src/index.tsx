@@ -58,19 +58,19 @@ const LoadingFallback: React.FC = () => {
   }, []);
 
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      fontSize: '18px',
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+    fontSize: '18px',
       color: 'var(--text-secondary)',
       backgroundColor: 'var(--bg-primary)',
       transition: 'background-color 0.3s ease, color 0.3s ease'
-    }}>
-      Loading...
-    </div>
-  );
+  }}>
+    Loading...
+  </div>
+);
 };
 
 const App: React.FC = () => {

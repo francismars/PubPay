@@ -1,6 +1,7 @@
 // import { NostrEvent } from '@/types/nostr'; // Unused import
 import { nip57, nip19, getEventHash, generateSecretKey, finalizeEvent } from 'nostr-tools';
 import { RELAYS } from '../../utils/constants';
+import { AuthService } from '../AuthService';
 export class ZapService {
     constructor(baseUrl = '') {
         this.baseUrl = baseUrl;
@@ -112,17 +113,46 @@ export class ZapService {
     /**
      * Sign and send zap event
      */
-    async signZapEvent(zapEvent, callbackToZap, amountPay, lud16ToZap, eventoToZapID, anonymousZap = false) {
+    async signZapEvent(zapEvent, callbackToZap, amountPay, lud16ToZap, eventoToZapID, anonymousZap = false, decryptedPrivateKey // Optional: decrypted private key from auth state
+    ) {
         try {
-            // Check for authentication state in localStorage/sessionStorage (React app)
-            const publicKey = localStorage.getItem('publicKey') ||
-                sessionStorage.getItem('publicKey');
-            const signInMethod = localStorage.getItem('signInMethod') ||
-                sessionStorage.getItem('signInMethod');
-            const privateKey = localStorage.getItem('privateKey') ||
-                sessionStorage.getItem('privateKey');
+            // Check for authentication state using AuthService
+            const { publicKey, encryptedPrivateKey, method: signInMethod } = AuthService.getStoredAuthData();
             console.log('Sign in method:', signInMethod);
             console.log('Public key:', publicKey);
+            console.log('Has encrypted private key:', !!encryptedPrivateKey);
+            console.log('Has decrypted private key from auth state:', !!decryptedPrivateKey);
+            // Use decrypted private key from auth state if provided (for password-encrypted keys)
+            let privateKey = decryptedPrivateKey || null;
+            // If not provided, try to decrypt from storage
+            if (!privateKey && encryptedPrivateKey && signInMethod === 'nsec') {
+                try {
+                    // Check if password is required
+                    if (AuthService.requiresPassword()) {
+                        console.error('Password required to decrypt private key for zap');
+                        throw new Error('Password required to decrypt private key. Please log in again.');
+                    }
+                    // Try to decrypt with device key (automatic, no password needed)
+                    privateKey = await AuthService.decryptStoredPrivateKey();
+                    // Validate that decrypted key is a string and looks like nsec
+                    if (!privateKey || typeof privateKey !== 'string' || !privateKey.startsWith('nsec')) {
+                        console.error('Invalid decrypted private key format:', typeof privateKey);
+                        throw new Error('Invalid private key format after decryption.');
+                    }
+                }
+                catch (error) {
+                    console.error('Failed to decrypt private key for zap:', error);
+                    // Re-throw the error
+                    throw error;
+                }
+            }
+            else if (!privateKey) {
+                // Check for legacy plaintext format (for backward compatibility)
+                const legacyKey = localStorage.getItem('privateKey') || sessionStorage.getItem('privateKey');
+                if (legacyKey && !legacyKey.startsWith('{') && !legacyKey.startsWith('[')) {
+                    privateKey = legacyKey;
+                }
+            }
             console.log('Has private key:', !!privateKey);
             let zapFinalized;
             if (anonymousZap === true) {
@@ -155,8 +185,14 @@ export class ZapService {
                     console.error('No private key found. Please sign in first.');
                     return false;
                 }
-                const { data } = nip19.decode(privateKey);
-                zapFinalized = finalizeEvent(zapEvent, data);
+                // Decrypt returns the nsec string, decode it to get the hex bytes
+                const decoded = nip19.decode(privateKey);
+                if (decoded.type !== 'nsec') {
+                    console.error('Invalid nsec format in decrypted private key');
+                    return false;
+                }
+                const privateKeyBytes = decoded.data;
+                zapFinalized = finalizeEvent(zapEvent, privateKeyBytes);
             }
             else {
                 console.log('No valid signing method found, falling back to anonymous zap');
@@ -210,8 +246,10 @@ export class ZapService {
                 throw new Error(errorMessage);
             }
             const { pr: invoice } = responseData;
-            // Pass the post event ID (eventID), not the zap event ID
-            await this.handleFetchedInvoice(invoice, eventID, amount);
+            // Extract zap request ID from the signed zap request event
+            const zapRequestID = zapFinalized?.id || '';
+            // Pass the zap request event ID (for matching when zap receipt arrives) and post event ID
+            await this.handleFetchedInvoice(invoice, eventID, amount, zapRequestID);
         }
         catch (error) {
             // Re-throw errors that we explicitly threw (they have our error messages)
@@ -226,10 +264,11 @@ export class ZapService {
     /**
      * Handle fetched invoice (matches original handleFetchedInvoice)
      */
-    async handleFetchedInvoice(invoice, zapEventID, amount = 0) {
+    async handleFetchedInvoice(invoice, zapEventID, amount = 0, zapRequestID = '') {
         console.log('handleFetchedInvoice called with:', {
             invoice: `${invoice.substring(0, 50)}...`,
-            zapEventID
+            zapEventID,
+            zapRequestID
         });
         // If NWC is configured, pay via NWC and do not open invoice overlay
         try {
@@ -320,9 +359,16 @@ export class ZapService {
         // Fallback only when no NWC configuration is present
         try {
             const { useUIStore } = await import('../state/uiStore');
+            // eventId: post event ID (for finding recipient)
+            // zapRequestId: zap request event ID (for closing when payment detected)
             useUIStore
                 .getState()
-                .openInvoice({ bolt11: invoice, amount, eventId: zapEventID });
+                .openInvoice({
+                bolt11: invoice,
+                amount,
+                eventId: zapEventID, // Post event ID for finding recipient
+                zapRequestId: zapRequestID // Zap request event ID for closing
+            });
         }
         catch (e) {
             console.error('Failed to open invoice overlay via store:', e);

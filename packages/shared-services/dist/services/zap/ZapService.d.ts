@@ -20,7 +20,7 @@ export declare class ZapService {
     /**
      * Sign and send zap event
      */
-    signZapEvent(zapEvent: unknown, callbackToZap: string, amountPay: number, lud16ToZap: string, eventoToZapID: string, anonymousZap?: boolean): Promise<boolean>;
+    signZapEvent(zapEvent: unknown, callbackToZap: string, amountPay: number, lud16ToZap: string, eventoToZapID: string, anonymousZap?: boolean, decryptedPrivateKey?: string | null): Promise<boolean>;
     /**
      * Get invoice and handle payment (matches original getInvoiceandPay)
      */
@@ -28,5 +28,5 @@ export declare class ZapService {
     /**
      * Handle fetched invoice (matches original handleFetchedInvoice)
      */
-    handleFetchedInvoice(invoice: string, zapEventID: string, amount?: number): Promise<void>;
+    handleFetchedInvoice(invoice: string, zapEventID: string, amount?: number, zapRequestID?: string): Promise<void>;
 }

@@ -1,14 +1,14 @@
 import { create } from 'zustand';
 export const useUIStore = create(set => ({
-    invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '' },
+    invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '', zapRequestId: '' },
     processingOverlay: { show: false, message: '' },
     statusToast: { show: false, message: '', variant: 'info', persist: false },
     followSuggestions: [],
     loginForm: { show: false },
     newPayNoteForm: { show: false },
-    openInvoice: ({ bolt11, amount, eventId }) => set({ invoiceOverlay: { show: true, bolt11, amount, eventId } }),
+    openInvoice: ({ bolt11, amount, eventId, zapRequestId }) => set({ invoiceOverlay: { show: true, bolt11, amount, eventId, zapRequestId } }),
     closeInvoice: () => set({
-        invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '' }
+        invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '', zapRequestId: '' }
     }),
     openProcessing: (message = 'Processing payment...') => set({ processingOverlay: { show: true, message } }),
     closeProcessing: () => set({ processingOverlay: { show: false, message: '' } }),

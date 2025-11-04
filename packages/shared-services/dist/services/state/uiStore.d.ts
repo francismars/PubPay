@@ -3,6 +3,7 @@ type InvoiceOverlayState = {
     bolt11: string;
     amount: number;
     eventId: string;
+    zapRequestId?: string;
 };
 type StatusToastState = {
     show: boolean;
@@ -34,6 +35,7 @@ type UIState = {
         bolt11: string;
         amount: number;
         eventId: string;
+        zapRequestId?: string;
     }) => void;
     closeInvoice: () => void;
     openProcessing: (message?: string) => void;
