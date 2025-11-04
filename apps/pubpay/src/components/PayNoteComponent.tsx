@@ -632,59 +632,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             </div>
           )}
 
-          {/* Zap Goal Progress - only show when zap-goal tag exists */}
-          {post.zapGoal && post.zapGoal > 0 && (() => {
-            // Filter zaps by amount limits (same logic as totalZapsAccounting)
-            const zapsWithinLimits = post.zaps.filter(zap => {
-              const amount = zap.zapAmount || 0;
-              const min = post.zapMin || 0;
-              const max = post.zapMax || 0;
-
-              if (min > 0 && max > 0) {
-                return amount >= min && amount <= max;
-              } else if (min > 0 && max === 0) {
-                return amount >= min;
-              } else if (min === 0 && max > 0) {
-                return amount <= max;
-              } else {
-                return true;
-              }
-            });
-
-            // Cap count at zapUses if specified
-            const zapsToCount = post.zapUses && post.zapUses > 0
-              ? zapsWithinLimits.slice(0, post.zapUses)
-              : zapsWithinLimits;
-
-            const currentAmount = zapsToCount.reduce(
-              (sum, zap) => sum + (zap.zapAmount || 0),
-              0
-            );
-
-            const progress = Math.min((currentAmount / post.zapGoal) * 100, 100);
-            const percentage = Math.round(progress);
-
-            return (
-              <div className="zapGoalProgress">
-                <div className="zapGoalText">
-                  <span className="zapGoalCurrent">
-                    {currentAmount.toLocaleString()}
-                  </span>
-                  <span className="zapGoalSeparator"> / </span>
-                  <span className="zapGoalTarget">
-                    {post.zapGoal.toLocaleString()} sats
-                  </span>
-                  <span className="zapGoalPercentage"> ({percentage}%)</span>
-                </div>
-                <div className="zapGoalBar">
-                  <div
-                    className="zapGoalBarFill"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })()}
 
           {/* Zap Payer */}
           {post.zapPayer && (
@@ -802,21 +749,60 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             );
             const totalCount = zapsToCount.length;
 
+            // Calculate goal progress if zap-goal exists
+            let goalProgress = null;
+            let goalPercentage = null;
+            if (post.zapGoal && post.zapGoal > 0) {
+              const progress = Math.min((totalAmount / post.zapGoal) * 100, 100);
+              goalProgress = progress;
+              goalPercentage = Math.round(progress);
+            }
+
             return (
               <div className="totalZapsAccounting">
-                <div className="totalZapsAmount">
-                  <span className="totalZapsNumber">
-                    {totalAmount.toLocaleString()}
-                  </span>
-                  <span className="totalZapsLabel">sats</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                  {post.zapGoal && post.zapGoal > 0 ? (
+                    <>
+                      <div className="totalZapsGoal">
+                        <span className="totalZapsNumber">
+                          {totalAmount.toLocaleString()} / {post.zapGoal.toLocaleString()}
+                        </span>
+                        <span className="totalZapsLabel"> sats ({goalPercentage}%)</span>
+                      </div>
+                      <div className="totalZapsSeparator">·</div>
+                      <div className="totalZapsCount">
+                        <span className="totalZapsNumber">{totalCount}</span>
+                        <span className="totalZapsLabel">
+                          {totalCount === 1 ? 'zap' : 'zaps'}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="totalZapsAmount">
+                        <span className="totalZapsNumber">
+                          {totalAmount.toLocaleString()}
+                        </span>
+                        <span className="totalZapsLabel">sats</span>
+                      </div>
+                      <div className="totalZapsSeparator">·</div>
+                      <div className="totalZapsCount">
+                        <span className="totalZapsNumber">{totalCount}</span>
+                        <span className="totalZapsLabel">
+                          {totalCount === 1 ? 'zap' : 'zaps'}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div className="totalZapsSeparator">·</div>
-                <div className="totalZapsCount">
-                  <span className="totalZapsNumber">{totalCount}</span>
-                  <span className="totalZapsLabel">
-                    {totalCount === 1 ? 'zap' : 'zaps'}
-                  </span>
-                </div>
+                {post.zapGoal && post.zapGoal > 0 && goalProgress !== null && (
+                  <div className="zapGoalBar">
+                    <div
+                      className="zapGoalBarFill"
+                      style={{ width: `${goalProgress}%` }}
+                    />
+                  </div>
+                )}
               </div>
             );
           })()}
