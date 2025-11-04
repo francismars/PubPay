@@ -718,38 +718,43 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
 
             return (
               <div className="totalZapsAccounting">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', flexWrap: 'wrap' }}>
                   {post.zapGoal && post.zapGoal > 0 ? (
                     <>
                       <div className="totalZapsGoal">
                         <span className="totalZapsNumber">
                           {totalAmount.toLocaleString()} / {post.zapGoal.toLocaleString()}
                         </span>
-                        <span className="totalZapsLabel"> sats ({goalPercentage}%)</span>
+                        <span className="label"> sats ({goalPercentage}%)</span>
                       </div>
                       <div className="totalZapsSeparator">·</div>
                       <div className="totalZapsCount">
                         <span className="totalZapsNumber">{totalCount}</span>
-                        <span className="totalZapsLabel">
+                        <span className="label">
                           {totalCount === 1 ? 'zap' : 'zaps'}
                         </span>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div className="totalZapsAmount">
-                        <span className="totalZapsNumber">
-                          {totalAmount.toLocaleString()}
-                        </span>
-                        <span className="totalZapsLabel">sats</span>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div className="totalZapsAmount">
+                          <span className="totalZapsNumber">
+                            {totalAmount.toLocaleString()}
+                          </span>
+                          <span className="label">sats</span>
+                        </div>
+                        <div className="totalZapsSeparator">·</div>
+                        <div className="totalZapsCount">
+                          <span className="totalZapsNumber">{totalCount}</span>
+                          <span className="label">
+                            {totalCount === 1 ? 'zap' : 'zaps'}
+                          </span>
+                        </div>
+                        
                       </div>
-                      <div className="totalZapsSeparator">·</div>
-                      <div className="totalZapsCount">
-                        <span className="totalZapsNumber">{totalCount}</span>
-                        <span className="totalZapsLabel">
-                          {totalCount === 1 ? 'zap' : 'zaps'}
-                        </span>
-                      </div>
+                     
                     </>
                   )}
                 </div>
@@ -761,6 +766,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     />
                   </div>
                 )}
+                 <div className="zapTotalLabel">
+                  {post.zapGoal && post.zapGoal > 0 && goalProgress !== null  ? 'Progess' : 'Totals'}
+                  </div>
+                  
               </div>
             );
           })()}
@@ -769,24 +778,28 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           {post.hasZapTags && (
             <div className="noteValues">
               <div className="zapMinContainer">
+
                 <div className="zapMin">
+
                   <span className="zapMinVal">
                     {post.zapMin.toLocaleString()}
-                  </span>
+                  </span><br/>
                   <span className="label">sats</span>
                 </div>
                 <div className="zapMinLabel">
-                  {post.zapMin !== post.zapMax ? 'Min' : ''}
+                  {post.zapMin !== post.zapMax ? 'Min' : 'Fixed Amount'}
                 </div>
               </div>
 
               {post.zapMin !== post.zapMax && (
                 <div className="zapMaxContainer">
+                  
                   <div className="zapMax">
+                
+                    <span className="label">sats</span>
                     <span className="zapMaxVal">
                       {post.zapMax.toLocaleString()}
                     </span>
-                    <span className="label">sats</span>
                   </div>
                   <div className="zapMaxLabel">Max</div>
                 </div>

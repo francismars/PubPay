@@ -474,7 +474,7 @@ body.dark-mode .skeleton {
   border-color: transparent;
 }
 .zapReaction:hover img {
-  border-color: transparent;
+  border: #ffffff61 0.1px solid;
   box-shadow: #00000014 0px 0px 2px 1px;
 }
 
@@ -1074,15 +1074,15 @@ body.dark-mode .noteAuthor .label a {
 
 .noteContent {
   font-size: 18px;
-  margin: 20px 0px;
   font-weight: 300;
   word-break: break-word;
   letter-spacing: 0.03rem;
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 6px;
-  padding: 4px;
-  margin: 16px -4px;
+  padding: 4px 0px;
+  margin: 16px 0px;
+  line-height: 1.5;
 }
 
 .noteContent:hover {
@@ -1143,10 +1143,27 @@ body.dark-mode .noteAuthor .label a {
   flex-direction: column;
   flex: 1;
   align-items: flex-start;
+  gap: 3px;
+}
+
+.zapMinContainer {
+  order: 1;
 }
 
 .zapUsesContainer {
-  text-align: right;
+  order: 2;
+  text-align: center;
+  display: flex;
+  align-items: flex-end;
+}
+
+/* Center uses container when max is present */
+.noteValues:has(.zapMaxContainer) .zapUsesContainer {
+  align-items: center;
+}
+
+.zapMaxContainer {
+  order: 3;
   display: flex;
   align-items: flex-end;
 }
@@ -1155,8 +1172,8 @@ body.dark-mode .noteAuthor .label a {
 .zapMaxLabel,
 .zapUsesLabel {
   margin: 3px 0;
-  color: gray;
-  font-size: 15px;
+  color:var(--text-tertiary);
+  font-size: 12px;
   text-align: center;
 }
 
@@ -1198,10 +1215,10 @@ body.dark-mode .noteAuthor .label a {
 .totalZapsAccounting {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 3px;
   margin: 20px 0 20px 0;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
@@ -1223,6 +1240,12 @@ body.dark-mode .noteAuthor .label a {
   font-weight: 400;
   font-size: 12px;
   color: var(--text-tertiary);
+}
+
+.zapTotalLabel {
+  color: var(--text-tertiary);
+  letter-spacing: 0.05em;
+  width: 100%;
 }
 
 .totalZapsSeparator {
@@ -1286,7 +1309,7 @@ body.dark-mode .zapGoalBarFill {
 .noteHeroZaps {
   border-top: 1px solid var(--border-light);
   padding-bottom: 10px;
-  padding-top: 10px;
+  padding-top: 20px;
 }
 
 .noteHeroZaps .zapReactionAmount {
@@ -1299,6 +1322,7 @@ body.dark-mode .zapGoalBarFill {
   display: flex;
   column-gap: 10px;
   font-size: 10px;
+  justify-content: flex-end;
 }
 
 .noteAction {
@@ -1411,6 +1435,7 @@ button.cta:active {
   /* letter-spacing: 0.08rem; */
   font-weight: 600;
   border: #b2c4ff 1px solid;
+  margin: 10px 0px 40px 0px;
 }
 
 .paynote .cta:hover {
@@ -2587,7 +2612,7 @@ textarea:focus::placeholder {
 }
 
 .zapAmountField {
-  margin-bottom: 10px;
+  margin-bottom: 18px;
   width: 100%;
   font-size: 30px;
   font-weight: 300;
@@ -2620,7 +2645,7 @@ textarea:focus::placeholder {
 .zapAmountSuffix {
   position: absolute;
   right: 16px;
-  bottom: 25px;
+  bottom: 32px;
   font-size: 20px;
   font-weight: 200;
   color: var(--text-primary);
@@ -2936,7 +2961,7 @@ textarea:focus::placeholder {
 /* Tablet and mobile: compact layout with profile in header */
 @media screen and (max-width: 768px) {
   .paynote {
-    padding: 16px 24px 24px 16px;
+    padding: 16px 24px 24px 24px;
     margin-top: 24px;
     display: grid;
     grid-template-columns: auto 1fr;
@@ -2998,12 +3023,25 @@ textarea:focus::placeholder {
 
   .totalZapsAccounting {
     flex-wrap: wrap;
-    padding: 6px 12px;
+    padding: 16px 0px;
     margin: 12px 0 6px 0;
   }
 
+  .noteActionsReactions {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .noteZapReactions {
+    max-width: 1000px;
+  }
+
+  .noteActionsReactions .noteActions {
+    justify-content: flex-end;
+  }
+
   .totalZapsNumber {
-    font-size: 14px;
+    font-size: 20px;
   }
 
   .totalZapsLabel {
@@ -3013,7 +3051,7 @@ textarea:focus::placeholder {
 
 @media screen and (max-width: 480px) {
   .paynote {
-    padding: 14px 20px 20px 10px;
+    padding: 14px 20px 20px 20px;
     margin-top: 20px;
   }
 
