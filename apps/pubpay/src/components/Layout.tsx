@@ -720,7 +720,12 @@ export const Layout: React.FC = () => {
       <div
         className="overlayContainer"
         id="qrScanner"
-        style={{ display: showQRScanner ? 'flex' : 'none' }}
+        style={{
+          display: 'flex',
+          visibility: showQRScanner ? 'visible' : 'hidden',
+          opacity: showQRScanner ? 1 : 0,
+          pointerEvents: showQRScanner ? 'auto' : 'none'
+        }}
         onClick={() => setShowQRScanner(false)}
       >
         <div className="overlayInner" onClick={e => e.stopPropagation()}>
@@ -858,7 +863,12 @@ export const Layout: React.FC = () => {
       <div
         className="overlayContainer"
         id="loginForm"
-        style={{ display: showLoginForm ? 'flex' : 'none' }}
+        style={{
+          display: 'flex',
+          visibility: showLoginForm ? 'visible' : 'hidden',
+          opacity: showLoginForm ? 1 : 0,
+          pointerEvents: showLoginForm ? 'auto' : 'none'
+        }}
         onClick={closeLogin}
       >
         <div className="overlayInner" onClick={e => e.stopPropagation()}>
@@ -1112,7 +1122,12 @@ export const Layout: React.FC = () => {
       <div
         className="overlayContainer"
         id="loggedInForm"
-        style={{ display: showLoggedInForm ? 'flex' : 'none' }}
+        style={{
+          display: 'flex',
+          visibility: showLoggedInForm ? 'visible' : 'hidden',
+          opacity: showLoggedInForm ? 1 : 0,
+          pointerEvents: showLoggedInForm ? 'auto' : 'none'
+        }}
         onClick={() => setShowLoggedInForm(false)}
       >
         <div className="overlayInner" onClick={e => e.stopPropagation()}>
@@ -1153,7 +1168,12 @@ export const Layout: React.FC = () => {
       <div
         className="overlayContainer"
         id="invoiceOverlay"
-        style={{ display: showInvoiceOverlay ? 'flex' : 'none' }}
+        style={{
+          display: 'flex',
+          visibility: showInvoiceOverlay ? 'visible' : 'hidden',
+          opacity: showInvoiceOverlay ? 1 : 0,
+          pointerEvents: showInvoiceOverlay ? 'auto' : 'none'
+        }}
         onClick={closeInvoice}
       >
         <div className="overlayInner" onClick={e => e.stopPropagation()}>
@@ -1275,7 +1295,12 @@ export const Layout: React.FC = () => {
       <div
         className="overlayContainer"
         id="processingOverlay"
-        style={{ display: showProcessing ? 'flex' : 'none' }}
+        style={{
+          display: 'flex',
+          visibility: showProcessing ? 'visible' : 'hidden',
+          opacity: showProcessing ? 1 : 0,
+          pointerEvents: showProcessing ? 'auto' : 'none'
+        }}
       >
         <div className="overlayInner">
           <div className="brand">

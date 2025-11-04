@@ -1412,6 +1412,11 @@ body.dark-mode .overlayInner {
   border: 1px solid var(--border-color);
 }
 
+#viewJSON.overlayContainer {
+  align-items: center;
+  justify-content: center;
+}
+
 #viewJSON .overlayInner {
   max-width: 1000px;
 }
@@ -1431,10 +1436,11 @@ body.dark-mode .overlayInner {
   padding-bottom: 40px;
 }
 
-#newPayNoteForm,
-#viewJSON {
+#newPayNoteForm {
   display: none;
 }
+
+/* Keep flex layout for #viewJSON to prevent layout shift - it always uses display: flex via inline styles */
 
 .formField,
 textarea,
