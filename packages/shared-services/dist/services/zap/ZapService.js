@@ -61,8 +61,13 @@ export class ZapService {
             };
         }
         catch (error) {
+            // Re-throw errors that we explicitly threw (they have our error messages)
+            if (error instanceof Error && error.message.startsWith('CAN\'T PAY:')) {
+                throw error;
+            }
+            // For unexpected errors, wrap and throw
             console.error('Error getting invoice callback:', error);
-            return null;
+            throw new Error('CAN\'T PAY: Failed to fetch lud16');
         }
     }
     /**
@@ -168,6 +173,11 @@ export class ZapService {
             return true;
         }
         catch (error) {
+            // Re-throw errors that have our error messages (from getInvoiceandPay)
+            if (error instanceof Error && error.message.startsWith('CAN\'T PAY:')) {
+                throw error;
+            }
+            // For other errors, log and return false
             console.error('Error signing zap event:', error);
             return false;
         }
@@ -205,7 +215,13 @@ export class ZapService {
             await this.handleFetchedInvoice(invoice, zapFinalized.id);
         }
         catch (error) {
+            // Re-throw errors that we explicitly threw (they have our error messages)
+            if (error instanceof Error && error.message.startsWith('CAN\'T PAY:')) {
+                throw error;
+            }
+            // For unexpected errors, wrap and throw
             console.error('Error getting invoice and paying:', error);
+            throw new Error('CAN\'T PAY: Failed to get invoice');
         }
     }
     /**
