@@ -93,6 +93,39 @@ export const Layout: React.FC = () => {
 
   const handleScannedContent = async (decodedText: string) => {
     try {
+      // Check if it's an nsec (for login)
+      if (decodedText.startsWith('nsec1')) {
+        try {
+          // Validate that it's a valid nsec by decoding it
+          const decoded = nip19.decode(decodedText);
+          if (decoded.type === 'nsec') {
+            // Close QR scanner
+            setShowQRScanner(false);
+            // Close login overlay if open
+            closeLogin();
+            // Automatically log in with the nsec
+            await handleContinueWithNsec(decodedText);
+            // Show success toast
+            try {
+              useUIStore.getState().openToast('Successfully logged in with nsec!', 'success', false);
+              setTimeout(() => {
+                try {
+                  useUIStore.getState().closeToast();
+                } catch (toastError) {
+                  console.warn('Failed to close toast:', toastError);
+                }
+              }, 2000);
+            } catch (toastError) {
+              console.warn('Failed to show toast:', toastError);
+            }
+            return;
+          }
+        } catch (nsecError) {
+          // Invalid nsec, try other formats
+          console.error('Invalid nsec format:', nsecError);
+        }
+      }
+
       // Accept note/nevent for posts and npub/nprofile for profiles
       const regex =
         /(note1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|nevent1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,}|npub1[0-9a-z]{58,}|nprofile1[0-9a-z]+)/i;
@@ -116,7 +149,7 @@ export const Layout: React.FC = () => {
         window.location.href = `/profile/${pubkeyHex}`;
       } else {
         console.error(
-          "Invalid QR code content. Expected 'note', 'nevent', 'npub' or 'nprofile'."
+          'Invalid QR code content. Expected \'note\', \'nevent\', \'npub\' or \'nprofile\'.'
         );
       }
     } catch (error) {
@@ -734,7 +767,7 @@ export const Layout: React.FC = () => {
             <span className="logoMe">.me</span>
           </div>
           <p className="label" id="titleScanner">
-            Scan note/nevent or npub/nprofile QR code
+            Scan note/nevent, npub/nprofile, or nsec QR code
           </p>
           <div id="reader" style={{ position: 'relative' }}></div>
           
