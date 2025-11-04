@@ -509,7 +509,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         }
       >
         <div className="noteProfileImg">
-          <a href={`/profile/${post.event.pubkey}`}>
+          <a href={`/profile/${nip19.npubEncode(post.event.pubkey)}`}>
             <img className="userImg" src={profilePicture} alt="Profile" />
           </a>
         </div>
@@ -518,7 +518,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             <div className="noteAuthor">
               <div className="noteDisplayName">
                 <a
-                  href={`/profile/${post.event.pubkey}`}
+                  href={`/profile/${nip19.npubEncode(post.event.pubkey)}`}
                   className="noteAuthorLink"
                 >
                   {displayName}
