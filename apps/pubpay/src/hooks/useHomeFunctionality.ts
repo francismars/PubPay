@@ -1652,17 +1652,17 @@ export const useHomeFunctionality = () => {
       let callback;
       try {
         callback = await zapServiceRef.current.getInvoiceCallBack(
-          post.event,
-          post.author
-        );
-        if (!callback) {
+        post.event,
+        post.author
+      );
+      if (!callback) {
           const errorMessage = "CAN'T PAY: Failed to get Lightning callback";
           setPaymentErrors(prev => {
             const next = new Map(prev);
             next.set(post.id, errorMessage);
             return next;
           });
-          console.error('Failed to get Lightning callback');
+        console.error('Failed to get Lightning callback');
           return;
         }
         // Clear error if callback succeeds
@@ -1707,32 +1707,32 @@ export const useHomeFunctionality = () => {
       // Sign and send zap event (ZapService will branch per sign-in method)
       // Note: signZapEvent may throw errors with "CAN'T PAY:" prefix
       try {
-        const success = await zapServiceRef.current.signZapEvent(
-          zapEventData.zapEvent,
-          callback.callbackToZap,
-          zapEventData.amountPay,
-          callback.lud16ToZap,
-          post.id,
-          false // not anonymous
-        );
+      const success = await zapServiceRef.current.signZapEvent(
+        zapEventData.zapEvent,
+        callback.callbackToZap,
+        zapEventData.amountPay,
+        callback.lud16ToZap,
+        post.id,
+        false // not anonymous
+      );
 
-        if (success) {
-          console.log('Zap payment initiated successfully');
-          // The ZapService will trigger the payment UI via custom event
+      if (success) {
+        console.log('Zap payment initiated successfully');
+        // The ZapService will trigger the payment UI via custom event
           // Clear error on success
           setPaymentErrors(prev => {
             const next = new Map(prev);
             next.delete(post.id);
             return next;
           });
-        } else {
+      } else {
           const errorMessage = "CAN'T PAY: Failed to sign and send zap event";
           setPaymentErrors(prev => {
             const next = new Map(prev);
             next.set(post.id, errorMessage);
             return next;
           });
-          console.error('Failed to sign and send zap event');
+        console.error('Failed to sign and send zap event');
         }
       } catch (signError) {
         // signZapEvent can throw errors from getInvoiceandPay
@@ -1786,17 +1786,17 @@ export const useHomeFunctionality = () => {
       let callback;
       try {
         callback = await zapServiceRef.current.getInvoiceCallBack(
-          post.event,
-          post.author
-        );
-        if (!callback) {
+        post.event,
+        post.author
+      );
+      if (!callback) {
           const errorMessage = "CAN'T PAY: Failed to get Lightning callback";
           setPaymentErrors(prev => {
             const next = new Map(prev);
             next.set(post.id, errorMessage);
             return next;
           });
-          console.error('Failed to get Lightning callback');
+        console.error('Failed to get Lightning callback');
           return;
         }
         // Clear error if callback succeeds
@@ -1834,32 +1834,32 @@ export const useHomeFunctionality = () => {
       // Sign and send zap event (anonymous = true)
       // Note: signZapEvent may throw errors with "CAN'T PAY:" prefix
       try {
-        const success = await zapServiceRef.current.signZapEvent(
-          zapEventData.zapEvent,
-          callback.callbackToZap,
-          zapEventData.amountPay,
-          callback.lud16ToZap,
-          post.id,
-          true // anonymous zap
-        );
+      const success = await zapServiceRef.current.signZapEvent(
+        zapEventData.zapEvent,
+        callback.callbackToZap,
+        zapEventData.amountPay,
+        callback.lud16ToZap,
+        post.id,
+        true // anonymous zap
+      );
 
-        if (success) {
-          console.log('Anonymous zap payment initiated successfully');
-          // The ZapService will trigger the payment UI via custom event
+      if (success) {
+        console.log('Anonymous zap payment initiated successfully');
+        // The ZapService will trigger the payment UI via custom event
           // Clear error on success
           setPaymentErrors(prev => {
             const next = new Map(prev);
             next.delete(post.id);
             return next;
           });
-        } else {
+      } else {
           const errorMessage = "CAN'T PAY: Failed to initiate anonymous zap payment";
           setPaymentErrors(prev => {
             const next = new Map(prev);
             next.set(post.id, errorMessage);
             return next;
           });
-          console.error('Failed to initiate anonymous zap payment');
+        console.error('Failed to initiate anonymous zap payment');
         }
       } catch (signError) {
         // signZapEvent can throw errors from getInvoiceandPay
@@ -2492,18 +2492,18 @@ export const useHomeFunctionality = () => {
         }
 
         zapSubscriptionRef.current = nostrClientRef.current.subscribeToEvents(
-          [
-            {
-              kinds: [9735],
-              '#e': eventIds
-            }
-          ],
-          async (zapEvent: NostrEvent) => {
-            // Type guard to ensure this is a zap event
-            if (zapEvent.kind !== 9735) return;
+        [
+          {
+            kinds: [9735],
+            '#e': eventIds
+          }
+        ],
+        async (zapEvent: NostrEvent) => {
+          // Type guard to ensure this is a zap event
+          if (zapEvent.kind !== 9735) return;
             // Extra guard in single post mode: ensure zap references our event id or reply IDs
-            if (singlePostMode && singlePostEventId) {
-              const eTag = zapEvent.tags.find(t => t[0] === 'e');
+          if (singlePostMode && singlePostEventId) {
+            const eTag = zapEvent.tags.find(t => t[0] === 'e');
               if (!eTag || !eTag[1]) {
                 console.log('Zap event rejected: no e tag or event ID');
                 return;
@@ -2515,40 +2515,40 @@ export const useHomeFunctionality = () => {
                 return;
               }
               console.log('Zap event accepted for single post mode:', eTag[1], 'is main post:', eTag[1] === singlePostEventId, 'is reply:', replyIds.includes(eTag[1]));
-            }
-            // Add to batch for processing
+          }
+          // Add to batch for processing
             console.log('Adding zap event to batch:', zapEvent.id);
-            zapBatchRef.current.push(zapEvent as Kind9735Event);
+          zapBatchRef.current.push(zapEvent as Kind9735Event);
 
-            // Clear existing timeout
-            if (zapBatchTimeoutRef.current) {
-              clearTimeout(zapBatchTimeoutRef.current);
-            }
+          // Clear existing timeout
+          if (zapBatchTimeoutRef.current) {
+            clearTimeout(zapBatchTimeoutRef.current);
+          }
 
-            // Process batch after 500ms delay (or immediately if batch is large)
-            if (zapBatchRef.current.length >= 10) {
-              // Process immediately if batch is large
+          // Process batch after 500ms delay (or immediately if batch is large)
+          if (zapBatchRef.current.length >= 10) {
+            // Process immediately if batch is large
+            const batchToProcess = [...zapBatchRef.current];
+            zapBatchRef.current = [];
+            await processZapBatch(batchToProcess);
+          } else {
+            // Process after delay
+            zapBatchTimeoutRef.current = setTimeout(async () => {
               const batchToProcess = [...zapBatchRef.current];
               zapBatchRef.current = [];
               await processZapBatch(batchToProcess);
-            } else {
-              // Process after delay
-              zapBatchTimeoutRef.current = setTimeout(async () => {
-                const batchToProcess = [...zapBatchRef.current];
-                zapBatchRef.current = [];
-                await processZapBatch(batchToProcess);
-              }, 500);
-            }
-          },
-          {
-            oneose: () => {
-              console.log('Zap subscription EOS');
-            },
-            onclosed: () => {
-              console.log('Zap subscription closed');
-            }
+            }, 500);
           }
-        );
+        },
+        {
+          oneose: () => {
+            console.log('Zap subscription EOS');
+          },
+          onclosed: () => {
+            console.log('Zap subscription closed');
+          }
+        }
+      );
       }
     }
 

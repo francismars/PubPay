@@ -53,6 +53,100 @@ body {
   }
 }
 
+/* Skeleton Loading Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Skeleton Base Styles - Minimalist Brand Aligned */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 0%,
+    rgba(74, 117, 255, 0.03) 25%,
+    var(--bg-tertiary) 50%,
+    rgba(74, 117, 255, 0.03) 75%,
+    var(--bg-tertiary) 100%
+  );
+  background-size: 2000px 100%;
+  animation: shimmer 2.5s infinite;
+  border-radius: 6px;
+}
+
+body.dark-mode .skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 0%,
+    rgba(74, 117, 255, 0.05) 25%,
+    var(--bg-tertiary) 50%,
+    rgba(74, 117, 255, 0.05) 75%,
+    var(--bg-tertiary) 100%
+  );
+  background-size: 2000px 100%;
+}
+
+.paynote.skeleton-loader {
+  pointer-events: none;
+  user-select: none;
+}
+
+.paynote.skeleton-loader .skeleton-text {
+  height: 16px;
+  margin: 4px 0;
+}
+
+.paynote.skeleton-loader .skeleton-text.short {
+  width: 60%;
+}
+
+.paynote.skeleton-loader .skeleton-text.medium {
+  width: 80%;
+}
+
+.paynote.skeleton-loader .skeleton-text.long {
+  width: 100%;
+}
+
+.paynote.skeleton-loader .skeleton-text.tiny {
+  width: 40%;
+  height: 12px;
+}
+
+.paynote.skeleton-loader .skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.paynote.skeleton-loader .skeleton-button {
+  height: 40px;
+  width: 100px;
+  border-radius: 6px;
+}
+
+.paynote.skeleton-loader .skeleton-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+.paynote.skeleton-loader .noteActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.paynote.skeleton-loader .skeleton-value {
+  height: 24px;
+  width: 60px;
+  border-radius: 6px;
+}
+
 /* Status Toast Notification */
 .statusToast {
   position: fixed;
