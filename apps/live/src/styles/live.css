@@ -895,7 +895,7 @@ body {
 .main-layout .author-section,
 .live .author-section {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .author-image {
@@ -921,6 +921,52 @@ body {
   font-weight: 600;
   color: var(--text-color);
   margin: 0;
+}
+
+#authorName {
+  margin-bottom: 3px;
+}
+
+/* NIP-05 and Lightning Address in author section */
+.author-section .noteNIP05.label,
+.author-section .noteLNAddress.label {
+  font-size: 10px;
+  margin-top: 0;
+  opacity: 0.6;
+}
+
+.author-section .noteNIP05.label a,
+.author-section .noteLNAddress.label a {
+  color: #888;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.author-section .noteNIP05.label a:hover,
+.author-section .noteLNAddress.label a:hover {
+  opacity: 0.8;
+}
+
+.author-section .noteNIP05.label .material-symbols-outlined,
+.author-section .noteLNAddress.label .material-symbols-outlined {
+  font-size: 10px;
+}
+
+.author-section .noteNIP05.label .unverified,
+.author-section .noteLNAddress.label .unverified {
+  font-size: 9px;
+  font-weight: bold;
+  color: #9d4d4d;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.author-section .noteNIP05.label .unverified .material-symbols-outlined,
+.author-section .noteLNAddress.label .unverified .material-symbols-outlined {
+  font-size: 9px;
 }
 
 /* Note Section */
@@ -4812,7 +4858,7 @@ input:checked + .toggle-slider:before {
 .action-btn {
   padding: 16px 32px;
   border: none;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -4873,7 +4919,7 @@ input:checked + .toggle-slider:before {
   background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
   color: #fff;
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: 6px;
   margin: 8px 0 16px 0;
   font-size: 14px;
   font-weight: 500;
