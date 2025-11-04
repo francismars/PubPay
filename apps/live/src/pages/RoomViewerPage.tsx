@@ -36,6 +36,8 @@ export const RoomViewerPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const [view, setView] = useState<ViewPayload | null>(null);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
+  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
+  const [previousShouldSlideOut, setPreviousShouldSlideOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [serverNowIso, setServerNowIso] = useState<string | null>(null);
@@ -62,6 +64,75 @@ export const RoomViewerPage: React.FC = () => {
         : null,
     [items, actualIndex]
   );
+
+  // Track previous index for slide-out animation
+  const prevActualIndexRef = useRef<number | null>(null);
+  const slideOutTimerRef = useRef<number | null>(null);
+  const clearTimerRef = useRef<number | null>(null);
+  const currentPreviousIndexRef = useRef<number | null>(null);
+  
+  useEffect(() => {
+    if (items.length > 0) {
+      const normalized = actualIndex % items.length;
+      const prevNormalized = prevActualIndexRef.current !== null 
+        ? prevActualIndexRef.current % items.length 
+        : null;
+      
+      // If index changed, update previousIndex to the old value
+      if (prevNormalized !== null && prevNormalized !== normalized) {
+        // Clear any existing timers from previous transitions
+        if (slideOutTimerRef.current !== null) {
+          clearTimeout(slideOutTimerRef.current);
+          slideOutTimerRef.current = null;
+        }
+        if (clearTimerRef.current !== null) {
+          clearTimeout(clearTimerRef.current);
+          clearTimerRef.current = null;
+        }
+        
+        // Reset state for new transition
+        // The new incoming slide (z-index: 2) will cover the old previous slide anyway
+        setPreviousIndex(prevNormalized);
+        currentPreviousIndexRef.current = prevNormalized;
+        setPreviousShouldSlideOut(false); // Start with previous staying in place
+        
+        // After new slide finishes sliding in (500ms), start sliding out previous
+        slideOutTimerRef.current = window.setTimeout(() => {
+          // Double-check we're still on the same transition before sliding out
+          if (currentPreviousIndexRef.current === prevNormalized) {
+            setPreviousShouldSlideOut(true);
+          }
+          slideOutTimerRef.current = null;
+        }, 500);
+        
+        // Clear previousIndex after previous finishes sliding out (500ms slide-in + 500ms slide-out)
+        clearTimerRef.current = window.setTimeout(() => {
+          // Only clear if this is still the current previous slide
+          if (currentPreviousIndexRef.current === prevNormalized) {
+            setPreviousIndex(null);
+            setPreviousShouldSlideOut(false);
+            currentPreviousIndexRef.current = null;
+          }
+          clearTimerRef.current = null;
+        }, 1000);
+      }
+      
+      // Store current as ref for next change
+      prevActualIndexRef.current = actualIndex;
+    }
+  }, [actualIndex, items.length]);
+  
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (slideOutTimerRef.current !== null) {
+        clearTimeout(slideOutTimerRef.current);
+      }
+      if (clearTimerRef.current !== null) {
+        clearTimeout(clearTimerRef.current);
+      }
+    };
+  }, []);
   const iframeRefs = useRef<
     Map<string, React.RefObject<HTMLIFrameElement | null>>
   >(new Map());
@@ -854,7 +925,27 @@ export const RoomViewerPage: React.FC = () => {
               )}
               {items.length > 0 ? (
                 items.map((item, idx) => {
-                  const isActive = idx === actualIndex % items.length;
+                  const normalizedIdx = idx % items.length;
+                  const normalizedActual = actualIndex % items.length;
+                  const isActive = normalizedIdx === normalizedActual;
+                  const isPrevious = previousIndex !== null && normalizedIdx === previousIndex;
+                  
+                  // Determine slide direction and z-index
+                  let transform: string;
+                  let zIndex: number;
+                  
+                  if (isActive) {
+                    transform = 'translateX(0)'; // Active: slide in from right to center
+                    zIndex = 2; // On top during slide-in
+                  } else if (isPrevious) {
+                    // Previous: stays in place until new slide finishes, then slides out left
+                    transform = previousShouldSlideOut ? 'translateX(-100%)' : 'translateX(0)';
+                    zIndex = 1; // Underneath the incoming slide
+                  } else {
+                    transform = 'translateX(100%)'; // Others: wait off-screen right
+                    zIndex = 0;
+                  }
+                  
                   const base = window.location.origin;
                   // Items are Nostr note IDs - load them via /live/ route
                   return (
@@ -871,11 +962,10 @@ export const RoomViewerPage: React.FC = () => {
                         height: '100%',
                         border: '0',
                         display: 'block',
-                        opacity: isActive ? 1 : 0,
-                        visibility: isActive ? 'visible' : 'hidden',
-                        transition: 'opacity 0.3s ease-in-out',
+                        transform,
+                        transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
                         pointerEvents: isActive ? 'auto' : 'none',
-                        zIndex: isActive ? 1 : 0
+                        zIndex
                       }}
                     />
                   );
