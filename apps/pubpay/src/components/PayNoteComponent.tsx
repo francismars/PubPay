@@ -68,6 +68,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const [heroZaps, setHeroZaps] = useState<ProcessedZap[]>([]);
     const [overflowZaps, setOverflowZaps] = useState<ProcessedZap[]>([]);
     const [formattedContent, setFormattedContent] = useState<string>('');
+    const [timeTick, setTimeTick] = useState(Date.now()); // Force re-render for time updates
     const zapMenuRef = useRef<HTMLDivElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const zapActionRef = useRef<HTMLAnchorElement>(null);
@@ -139,6 +140,15 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         document.removeEventListener('click', handleClickOutside);
       };
     }, [showZapMenu]);
+
+    // Update time display every minute
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setTimeTick(Date.now());
+      }, 60000); // Update every minute
+
+      return () => clearInterval(interval);
+    }, []);
 
     const authorData = post.author
       ? (() => {
@@ -600,6 +610,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             </div>
 
             <div className="noteDate label">{timeAgo(post.createdAt)}</div>
+            {/* timeTick forces re-render every minute to update time display */}
+            {timeTick && null}
           </div>
 
           {/* Content */}
