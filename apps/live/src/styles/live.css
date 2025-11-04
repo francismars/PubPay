@@ -91,7 +91,7 @@ body.livestream .live-event-status .status-indicator.status-live {
 /* Mobile responsive adjustments for noteLoader */
 @media (max-width: 768px) {
   .live #noteLoaderContainer {
-    padding: 0;
+    padding: 0 !important;
     box-sizing: border-box;
     overflow-x: hidden;
     overflow-y: auto;
@@ -102,14 +102,18 @@ body.livestream .live-event-status .status-indicator.status-live {
   }
 
   .live #noteLoader {
-    width: 100vw;
-    max-width: 100vw;
+    width: 100% !important;
+    max-width: 100% !important;
     min-height: 100vh;
     padding: 0;
-    border-radius: 0;
+    border: none !important;
+    border-radius: 0 !important;
     overflow: visible;
     position: relative;
   }
+
+
+  
 
   /* Ensure no horizontal overflow */
   .live #noteLoader * {
@@ -164,7 +168,7 @@ body.livestream .live-event-status .status-indicator.status-live {
     max-width: 100%;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    overflow: hidden;
+    overflow: visible;
   }
 
   /* Make button-container stack vertically on mobile */
@@ -383,7 +387,8 @@ body.livestream .live-event-status .status-indicator.status-live {
 .app-header {
   text-align: center;
   margin-bottom: 25px;
-  padding: 20px;
+  margin-top: 0;
+  padding: 0 20px 20px 20px;
   background: transparent;
   border-radius: 0;
   border: none;
@@ -414,7 +419,8 @@ body.livestream .live-event-status .status-indicator.status-live {
 .live .app-header {
   text-align: center;
   margin-bottom: 32px;
-  padding: 20px 0;
+  margin-top: 0;
+  padding: 0 0 20px 0;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -463,7 +469,7 @@ body.livestream .live-event-status .status-indicator.status-live {
   border-style: solid;
   border-color: rgb(225, 232, 237);
   border-image: initial;
-  border-radius: 12px;
+  border-radius: 6px;
   background: white;
   transition: 0.3s;
 }
@@ -485,7 +491,7 @@ body.livestream .live-event-status .status-indicator.status-live {
   color: #fff;
   border: 2px solid transparent;
   padding: 16px 32px;
-  border-radius: 12px;
+  border-radius: 6px;
   font-size: 16px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
@@ -698,7 +704,8 @@ body {
 .live .app-header {
   text-align: center;
   margin-bottom: 32px;
-  padding: 20px 0;
+  margin-top: 0;
+  padding: 0 0 20px 0;
   background: transparent;
   border: none;
   border-radius: 0;
@@ -2593,14 +2600,16 @@ body.style-panel-open .main-layout {
 /* Portrait Swiper Styling - Complete from Legacy */
 .live #noteLoader .portrait-swiper {
   width: 100%;
-  height: 45vw;
-  max-height: 600px;
+  height: auto;
+  aspect-ratio: 4 / 4;
+  max-height: 1000px;
   margin: 0 0 20px 0 !important;
   border-radius: 0;
   overflow: hidden;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   position: relative;
   text-decoration: none;
+  touch-action: pan-y pinch-zoom;
 }
 
 .live #noteLoader .portrait-swiper .swiper {
@@ -2608,6 +2617,7 @@ body.style-panel-open .main-layout {
   height: 100%;
   margin: 0 !important;
   border-radius: 0;
+  touch-action: pan-y pinch-zoom;
 }
 
 .live #noteLoader .portrait-swiper .swiper-wrapper {
@@ -2615,6 +2625,7 @@ body.style-panel-open .main-layout {
   height: 100%;
   margin: 0 !important;
   border-radius: 0;
+  touch-action: pan-y pinch-zoom;
 }
 
 .live #noteLoader .portrait-swiper .swiper-slide {
@@ -2626,12 +2637,18 @@ body.style-panel-open .main-layout {
   margin: 0 !important;
   border-radius: 0;
   flex-shrink: 0;
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .live #noteLoader .portrait-swiper .swiper-slide img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* Gradient overlay for seamless blending */
@@ -2655,17 +2672,65 @@ body.style-panel-open .main-layout {
 /* Mobile responsive adjustments for portrait swiper */
 @media (max-width: 768px) {
   .live #noteLoader .portrait-swiper {
-    height: 60vw;
-    max-height: 500px;
-    margin-bottom: 15px;
+    height: auto;
+    aspect-ratio: 4 / 4;
+    max-height: none;
+    margin-bottom: 0;
+    border-radius: 0 !important;
+    border: none !important;
+    touch-action: pan-y pinch-zoom !important;
+  }
+
+  .live #noteLoader .portrait-swiper .swiper {
+    touch-action: pan-y pinch-zoom !important;
+    border-radius: 0 !important;
+  }
+
+  .live #noteLoader .portrait-swiper .swiper-wrapper {
+    touch-action: pan-y pinch-zoom !important;
+    border-radius: 0 !important;
+  }
+
+  .live #noteLoader .portrait-swiper .swiper-slide {
+    touch-action: pan-y pinch-zoom !important;
+    border-radius: 0 !important;
+  }
+
+  .live #noteLoader .portrait-swiper .swiper-slide img {
+    pointer-events: none !important;
+    touch-action: none !important;
   }
 }
 
 @media (max-width: 480px) {
   .live #noteLoader .portrait-swiper {
-    height: 90vw;
-    max-height: 450px;
-    margin-bottom: 12px;
+    height: auto;
+    aspect-ratio: 4 / 4;
+    max-height: none;
+    margin-bottom: 0;
+    border-radius: 0 !important;
+    border: none !important;
+    touch-action: pan-y pinch-zoom !important;
+  }
+
+  .live #noteLoader .portrait-swiper .swiper {
+    touch-action: pan-y pinch-zoom !important;
+    border-radius: 0 !important;
+  }
+
+  .live #noteLoader .portrait-swiper .swiper-wrapper {
+    touch-action: pan-y pinch-zoom !important;
+    border-radius: 0 !important;
+  }
+
+  .live #noteLoader .portrait-swiper .swiper-slide {
+    touch-action: pan-y pinch-zoom !important;
+    border-radius: 0 !important;
+  }
+
+  .live #noteLoader .portrait-swiper .swiper-slide img {
+    pointer-events: none !important;
+    touch-action: none !important;
   }
 }
 
