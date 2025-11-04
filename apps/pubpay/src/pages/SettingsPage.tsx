@@ -32,6 +32,9 @@ const SettingsPage: React.FC = () => {
     >
   >({});
   const [expandedRelay, setExpandedRelay] = useState<string | null>(null);
+  const [showNsec, setShowNsec] = useState(false);
+  const [nsec, setNsec] = useState<string | null>(null);
+  const [copiedNsec, setCopiedNsec] = useState(false);
 
   useEffect(() => {
     // Load dark mode preference from localStorage
@@ -71,6 +74,12 @@ const SettingsPage: React.FC = () => {
         setNwcNotifications(parsed.notifications || []);
       }
     } catch {}
+
+    // Check if user logged in with nsec
+    const savedNsec = localStorage.getItem('privateKey');
+    if (savedNsec) {
+      setNsec(savedNsec);
+    }
   }, []);
 
   // Watch for changes in nwcUri to update button label
@@ -211,6 +220,23 @@ const SettingsPage: React.FC = () => {
         new CustomEvent('relaysUpdated', { detail: { relays: updatedRelays } })
       );
     } catch {}
+  };
+
+  const handleCopyNsec = () => {
+    if (nsec) {
+      navigator.clipboard.writeText(nsec);
+      setCopiedNsec(true);
+      setTimeout(() => setCopiedNsec(false), 2000);
+      
+      try {
+        useUIStore.getState().openToast('Nsec copied to clipboard', 'success', false);
+        setTimeout(() => {
+          try {
+            useUIStore.getState().closeToast();
+          } catch {}
+        }, 2000);
+      } catch {}
+    }
   };
 
   const handleSaveNwc = () => {
@@ -490,9 +516,9 @@ const SettingsPage: React.FC = () => {
                   );
                 })}
               </div>
-            </div>
 
-            <div className="featureBlockLast">
+
+              <div className="featureBlockLast">
               <h5>Add New Relay</h5>
               <p className="featureDescription descriptionSmall">
                 Add a custom Nostr relay (must start with wss://)
@@ -516,6 +542,12 @@ const SettingsPage: React.FC = () => {
                 </button>
               </div>
             </div>
+
+
+            
+            </div>
+
+            
 
             <div className="featureBlock">
               <h3 className="featureTitle">Nostr Wallet Connect (NWC)</h3>
@@ -584,6 +616,81 @@ const SettingsPage: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {nsec && (
+              <div className="featureBlock">
+                <h3 className="featureTitle">Keys</h3>
+                <p className="featureDescription descriptionWithMargin">
+                  Back up your private key (nsec). You used the nsec login method
+                  to sign in. Keep this key safe and secure!
+                </p>
+                
+                <div style={{ marginBottom: '16px' }}>
+                  <div
+                    style={{
+                      background: '#fef3c7',
+                      border: '1px solid #f59e0b',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      marginBottom: '12px',
+                      fontSize: '13px',
+                      color: '#92400e'
+                    }}
+                  >
+                    <strong>⚠️ Security Warning:</strong> Never share your nsec with
+                    anyone! Anyone with access to your nsec can control your
+                    account and steal your funds.
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                      onClick={() => setShowNsec(!showNsec)}
+                      className="addButton"
+                      style={{ flex: 'none' }}
+                    >
+                      {showNsec ? 'Hide Nsec' : 'Reveal Nsec'}
+                    </button>
+                    
+                    {showNsec && (
+                      <button
+                        onClick={handleCopyNsec}
+                        className="addButton"
+                        style={{ flex: 'none' }}
+                      >
+                        {copiedNsec ? '✓ Copied' : 'Copy'}
+                      </button>
+                    )}
+                  </div>
+                  
+                  {showNsec && (
+                    <div
+                      style={{
+                        marginTop: '12px',
+                        padding: '12px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        wordBreak: 'break-all',
+                        fontFamily: 'monospace',
+                        fontSize: '12px',
+                        color: 'var(--text-primary)'
+                      }}
+                    >
+                      {nsec}
+                    </div>
+                  )}
+                </div>
+                
+                <p
+                  className="featureDescription"
+                  style={{ fontSize: '12px', opacity: 0.7 }}
+                >
+                  Store your nsec in a secure password manager or write it down
+                  and keep it in a safe place. You'll need it to restore your
+                  account if you lose access.
+                </p>
+              </div>
+            )}
           </section>
         </div>
       </div>
