@@ -110,20 +110,24 @@ export const Layout: React.FC = () => {
           if (decoded.type === 'nsec') {
             // Close QR scanner
             setShowQRScanner(false);
-            // Close login overlay if open
-            closeLogin();
-            // Automatically log in with the nsec
-            await handleContinueWithNsec(decodedText);
-            // Show success toast
+            // Open login form and show nsec input group
+            resetLoginForm();
+            openLogin();
+            setShowNsecGroup(true);
+            // Pre-fill the nsec input with scanned value
+            setNsecInput(decodedText);
+            // Clear password field to allow user to optionally set one
+            setNsecPassword('');
+            // Show info toast
             try {
-              useUIStore.getState().openToast('Successfully logged in with nsec!', 'success', false);
+              useUIStore.getState().openToast('Nsec scanned. Add optional password to encrypt your key.', 'info', false);
               setTimeout(() => {
                 try {
                   useUIStore.getState().closeToast();
                 } catch (toastError) {
                   console.warn('Failed to close toast:', toastError);
                 }
-              }, 2000);
+              }, 3000);
             } catch (toastError) {
               console.warn('Failed to show toast:', toastError);
             }
