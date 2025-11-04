@@ -3854,8 +3854,78 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const processNoteContent = async (content: string): Promise<string> => {
-    // This is a simplified version - the full implementation would process images and mentions
-    return content;
+    if (!content) return '';
+    
+    // Escape HTML to prevent XSS and ensure we're working with plain text
+    let processed = content
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+    
+    // Now process the escaped text for mentions and links
+    processed = processed
+      // Process nostr: mentions (npub, nprofile, note, nevent, naddr)
+      .replace(
+        /nostr:((npub|nprofile|note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+        (_m, identifier) => {
+          const clean = String(identifier);
+          const shortId =
+            clean.length > 35
+              ? `${clean.substring(0, 8)}...${clean.substring(clean.length - 8)}`
+              : clean;
+          
+          // Determine the link based on identifier type
+          let linkPath = '';
+          if (clean.startsWith('npub') || clean.startsWith('nprofile')) {
+            linkPath = `/profile/${clean}`;
+          } else if (clean.startsWith('note') || clean.startsWith('nevent')) {
+            linkPath = `/note/${clean}`;
+          } else if (clean.startsWith('naddr')) {
+            linkPath = `/live/${clean}`;
+          }
+          
+          return `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
+        }
+      )
+      // Process standalone identifiers without nostr: prefix
+      .replace(
+        /(?:^|\s)((npub|nprofile|note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+        (match, identifier) => {
+          const clean = String(identifier);
+          const shortId =
+            clean.length > 35
+              ? `${clean.substring(0, 8)}...${clean.substring(clean.length - 8)}`
+              : clean;
+          
+          // Determine the link based on identifier type
+          let linkPath = '';
+          if (clean.startsWith('npub') || clean.startsWith('nprofile')) {
+            linkPath = `/profile/${clean}`;
+          } else if (clean.startsWith('note') || clean.startsWith('nevent')) {
+            linkPath = `/note/${clean}`;
+          } else if (clean.startsWith('naddr')) {
+            linkPath = `/live/${clean}`;
+          }
+          
+          // Preserve the leading whitespace if present
+          const leadingSpace = match.startsWith(' ') ? ' ' : '';
+          return `${leadingSpace}<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
+        }
+      )
+      // Process regular URLs (must not be inside quotes)
+      .replace(
+        /(?:^|\s)(https?:\/\/[^\s&lt;&gt;]+)/g,
+        (match, url) => {
+          const leadingSpace = match.startsWith(' ') ? ' ' : '';
+          return `${leadingSpace}<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        }
+      )
+      // Convert line breaks to <br />
+      .replace(/\n/g, '<br />');
+    
+    return processed;
   };
 
   const loadLiveEvent = async (naddr: string) => {
