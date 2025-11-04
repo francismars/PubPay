@@ -27,14 +27,14 @@ const AboutPage: React.FC = () => {
           />
         </div>
         <h2 className="aboutHeroTitle">
-          Request Payments,
+          Get paid instantly.
           <br />
-          Get Paid Publicly
+          Anywhere, anytime.
         </h2>
         <p className="aboutHeroSubtitle">
-          PubPay lets you create payment requests that anyone can pay with just
-          a few clicks. Whether you're collecting donations, splitting bills, or
-          selling services — get paid instantly.
+        Whether you're collecting donations, splitting bills, or
+        selling services, PubPay lets you create payment requests that can be paid with just
+          a few clicks.
         </p>
 
         <div className="aboutContent">
@@ -54,8 +54,7 @@ const AboutPage: React.FC = () => {
             <div className="featureBlock">
               <h3 className="featureTitle">Lightning-Fast Payments</h3>
               <p className="featureDescription">
-                Receive payments instantly using Bitcoin's Lightning Network. No
-                waiting, no delays—money arrives in seconds with minimal fees.
+                No waiting, no delays. Money arrives in seconds with minimal fees.
               </p>
             </div>
 
@@ -82,19 +81,17 @@ const AboutPage: React.FC = () => {
             </div>
 
             <div className="featureBlock">
-              <h3 className="featureTitle">Works Everywhere</h3>
+              <h3 className="featureTitle">See Who Paid</h3>
               <p className="featureDescription">
-                Built on open standards, PubPay works with any Bitcoin Lightning
-                wallet. Share your requests anywhere—social media, messaging
-                apps, or email.
+                All payments are transparent and verifiable.
               </p>
             </div>
 
             <div className="featureBlockLast">
-              <h3 className="featureTitle">See Who Paid</h3>
+              <h3 className="featureTitle">Works Everywhere</h3>
               <p className="featureDescription">
-                All payments are transparent and verifiable. Perfect for
-                tracking donations, splitting bills, or managing group payments.
+                Built on open standards, PubPay works with any Bitcoin Lightning
+                wallet.
               </p>
             </div>
           </section>
@@ -106,24 +103,28 @@ const AboutPage: React.FC = () => {
               <div className="useCaseCard">
                 <h3 className="useCaseTitle">Donations</h3>
                 <p className="useCaseDescription">
-                  Create public donation requests with fixed or range payment
-                  amounts, allowing supporters to contribute easily.
+                  Create public donation requests. Allow supporters to contribute easily.
                 </p>
               </div>
 
               <div className="useCaseCard">
-                <h3 className="useCaseTitle">Service Payments</h3>
+                <h3 className="useCaseTitle">Bill Splitting</h3>
                 <p className="useCaseDescription">
-                  Request payments for services with payer restrictions to
-                  ensure only authorized payers can complete transactions.
+                 Let everyone contribute their share. 
                 </p>
               </div>
 
               <div className="useCaseCard">
-                <h3 className="useCaseTitle">Event Ticketing</h3>
+                <h3 className="useCaseTitle">Services</h3>
                 <p className="useCaseDescription">
-                  Use usage limits (
-                  <code className="useCaseCode">zap-uses</code>) to control the
+                  Request payments for services limited to authorized payers.
+                </p>
+              </div>
+
+              <div className="useCaseCard">
+                <h3 className="useCaseTitle">Events</h3>
+                <p className="useCaseDescription">
+                  Use usage limits to control the
                   number of tickets sold.
                 </p>
               </div>
@@ -131,24 +132,14 @@ const AboutPage: React.FC = () => {
               <div className="useCaseCard">
                 <h3 className="useCaseTitle">Crowdfunding</h3>
                 <p className="useCaseDescription">
-                  Set up range payment requests to allow contributors to donate
-                  any amount within a specified range.
+                  Contributors can donate any amount within a specified range.
                 </p>
               </div>
 
               <div className="useCaseCard">
-                <h3 className="useCaseTitle">Transparent Payments</h3>
+                <h3 className="useCaseTitle">Verifiable</h3>
                 <p className="useCaseDescription">
-                  Create publicly verifiable payment requests, ensuring
-                  transparency and trust in all transactions.
-                </p>
-              </div>
-
-              <div className="useCaseCard">
-                <h3 className="useCaseTitle">Bill Splitting</h3>
-                <p className="useCaseDescription">
-                  Easily split bills among friends and family. Share one payment
-                  link and let everyone contribute their share.
+                  Ensure transparency in all payments.
                 </p>
               </div>
             </div>
@@ -192,20 +183,13 @@ const AboutPage: React.FC = () => {
             <div className="ctaSection">
               <h3 className="ctaTitle">Ready to Get Started?</h3>
               <p className="ctaSubtitle">
-                Join the decentralized payment revolution. Create your first
-                paynote today.
+                Create your first paynote today.
               </p>
               <button className="ctaButton" onClick={handleGetStarted}>
                 Start Using PubPay
               </button>
             </div>
           </section>
-
-          <div className="aboutFooter">
-            <p className="aboutFooterText">
-              Built on Nostr Protocol • Decentralized • Censorship-Resistant
-            </p>
-          </div>
         </div>
       </div>
     </div>
