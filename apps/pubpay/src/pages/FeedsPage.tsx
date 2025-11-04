@@ -751,8 +751,9 @@ export const FeedsPage: React.FC = () => {
         className="overlayContainer"
         id="viewJSON"
         style={{ display: showJSON ? 'flex' : 'none' }}
+        onClick={() => setShowJSON(false)}
       >
-        <div className="overlayInner">
+        <div className="overlayInner" onClick={e => e.stopPropagation()}>
           <pre id="noteJSON">{jsonContent}</pre>
           <a
             id="closeJSON"
