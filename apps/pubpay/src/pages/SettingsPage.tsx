@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RELAYS } from '@pubpay/shared-services';
 import { useUIStore } from '@pubpay/shared-services';
+import { GenericQR } from '@pubpay/shared-ui';
 
 const SettingsPage: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
@@ -35,6 +36,7 @@ const SettingsPage: React.FC = () => {
   const [showNsec, setShowNsec] = useState(false);
   const [nsec, setNsec] = useState<string | null>(null);
   const [copiedNsec, setCopiedNsec] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
 
   useEffect(() => {
     // Load dark mode preference from localStorage
@@ -82,39 +84,26 @@ const SettingsPage: React.FC = () => {
     }
   }, []);
 
-  // Watch for changes in nwcUri to update button label
   useEffect(() => {
     const savedNwc = localStorage.getItem('nwcConnectionString');
 
-    // If field is empty
     if (!nwcUri) {
-      if (savedNwc) {
-        // There's a saved connection but field is empty - should be able to clear
-        setNwcButtonLabel('Clear');
-      } else {
-        setNwcButtonLabel('Save');
-      }
+      setNwcButtonLabel(savedNwc ? 'Clear' : 'Save');
       return;
     }
 
-    // If field has content
-    if (savedNwc && nwcUri === savedNwc) {
-      // Field matches saved connection - button should be "Clear"
-      setNwcButtonLabel('Clear');
-    } else {
-      // Field has been modified or is new - button should be "Save"
-      setNwcButtonLabel('Save');
-    }
+    setNwcButtonLabel(savedNwc && nwcUri === savedNwc ? 'Clear' : 'Save');
   }, [nwcUri]);
 
-  // Fetch NIP-11 info for relays
   useEffect(() => {
     let cancelled = false;
+
     const fetchInfo = async (url: string) => {
       setRelayInfo(prev => ({
         ...prev,
         [url]: { ...(prev[url] || {}), loading: true }
       }));
+
       try {
         const httpUrl = url
           .replace('ws://', 'http://')
@@ -122,9 +111,12 @@ const SettingsPage: React.FC = () => {
         const resp = await fetch(httpUrl, {
           headers: { Accept: 'application/nostr+json' }
         });
+
         if (!resp.ok) throw new Error(String(resp.status));
+
         const json = await resp.json();
         if (cancelled) return;
+
         setRelayInfo(prev => ({
           ...prev,
           [url]: {
@@ -145,7 +137,7 @@ const SettingsPage: React.FC = () => {
               json?.limitation?.min_pow_difficulty ?? json.min_pow_difficulty
           }
         }));
-      } catch (_e) {
+      } catch {
         if (cancelled) return;
         setRelayInfo(prev => ({
           ...prev,
@@ -153,17 +145,18 @@ const SettingsPage: React.FC = () => {
         }));
       }
     };
-    // kick off fetches for current list
-    relays.forEach(r => fetchInfo(r));
+
+    relays.forEach(fetchInfo);
+
     return () => {
       cancelled = true;
     };
   }, [relays]);
 
-  // Derive a safe display identifier for the current NWC URI (no secrets)
   const nwcDisplayId = (() => {
     try {
       if (!nwcUri) return '';
+
       const normalized = nwcUri
         .replace(/^nostr\+walletconnect:\/\//i, 'https://')
         .replace(/^nostrnwc:\/\//i, 'https://');
@@ -171,6 +164,7 @@ const SettingsPage: React.FC = () => {
       const id =
         (url.hostname || '').trim() ||
         (url.pathname || '').replace(/^\/+/, '').trim();
+
       if (!id) return '';
       return id.length > 12 ? `${id.substring(0, 12)}…` : id;
     } catch {
@@ -223,20 +217,22 @@ const SettingsPage: React.FC = () => {
   };
 
   const handleCopyNsec = () => {
-    if (nsec) {
-      navigator.clipboard.writeText(nsec);
-      setCopiedNsec(true);
-      setTimeout(() => setCopiedNsec(false), 2000);
-      
-      try {
-        useUIStore.getState().openToast('Nsec copied to clipboard', 'success', false);
-        setTimeout(() => {
-          try {
-            useUIStore.getState().closeToast();
-          } catch {}
-        }, 2000);
-      } catch {}
-    }
+    if (!nsec) return;
+
+    navigator.clipboard.writeText(nsec);
+    setCopiedNsec(true);
+    setTimeout(() => setCopiedNsec(false), 2000);
+
+    try {
+      useUIStore
+        .getState()
+        .openToast('Nsec copied to clipboard', 'success', false);
+      setTimeout(() => {
+        try {
+          useUIStore.getState().closeToast();
+        } catch {}
+      }, 2000);
+    } catch {}
   };
 
   const handleSaveNwc = () => {
@@ -322,7 +318,7 @@ const SettingsPage: React.FC = () => {
       <div className="aboutContainer">
         <div className="aboutContent">
           <section className="aboutSection">
-            <div className="featureBlockLast">
+            <div className="featureBlock">
               <h3 className="featureTitle">Dark Mode</h3>
               <div className="settingsRow">
                 <div className="settingsRowContent">
@@ -642,13 +638,21 @@ const SettingsPage: React.FC = () => {
                     account and steal your funds.
                   </div>
                   
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button
                       onClick={() => setShowNsec(!showNsec)}
                       className="addButton"
                       style={{ flex: 'none' }}
                     >
                       {showNsec ? 'Hide Nsec' : 'Reveal Nsec'}
+                    </button>
+                    
+                    <button
+                      onClick={() => setShowQRModal(true)}
+                      className="addButton"
+                      style={{ flex: 'none' }}
+                    >
+                      Show QR
                     </button>
                     
                     {showNsec && (
@@ -694,6 +698,92 @@ const SettingsPage: React.FC = () => {
           </section>
         </div>
       </div>
+
+      {/* QR Code Modal */}
+      {nsec && (
+        <div 
+          className="overlayContainer"
+          style={{
+            display: 'flex',
+            visibility: showQRModal ? 'visible' : 'hidden',
+            opacity: showQRModal ? 1 : 0,
+            pointerEvents: showQRModal ? 'auto' : 'none',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onClick={() => setShowQRModal(false)}
+        >
+          <div
+            className="overlayInner"
+            style={{ 
+              textAlign: 'center', 
+              maxWidth: '400px',
+              margin: 'auto'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 style={{ margin: '0 0 16px 0' }}>
+              Nsec QR Code
+            </h3>
+            
+            <p style={{
+              fontSize: '13px',
+              opacity: 0.8,
+              marginBottom: '24px'
+            }}>
+              Scan this QR code to import your nsec into a compatible wallet
+            </p>
+
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: '8px',
+                padding: '20px',
+                marginBottom: '20px',
+                display: 'inline-block'
+              }}
+            >
+              <GenericQR data={nsec} width={280} height={280} />
+            </div>
+
+            <div
+              style={{
+                background: '#fef3c7',
+                border: '1px solid #f59e0b',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '12px',
+                color: '#92400e',
+                marginBottom: '16px',
+                textAlign: 'left'
+              }}
+            >
+              <strong>⚠️ Warning:</strong> Anyone who scans this QR code will have
+              full access to your account. Only use this in a secure, private
+              location.
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              <button
+                onClick={handleCopyNsec}
+                className="addButton"
+              >
+                {copiedNsec ? '✓ Copied' : 'Copy Nsec'}
+              </button>
+              <button
+                onClick={() => setShowQRModal(false)}
+                className="addButton"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  color: 'var(--text-primary)'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
