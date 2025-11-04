@@ -155,10 +155,16 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const nip05 = authorData?.nip05;
     const lud16 = authorData?.lud16;
     const hasValidLightning = !!lud16 && /.+@.+\..+/.test(lud16);
+    // Use validation result if available, otherwise fall back to format check
+    const isLightningValid = post.lightningValid !== undefined
+      ? post.lightningValid
+      : hasValidLightning;
 
-    // Check if note is payable - must have lud16 AND not reached zap uses target
+    // Check if note is payable - must have valid lightning address AND not reached zap uses target
+    // If validation shows invalid, don't allow payment
     const isPayable =
       post.isPayable &&
+      isLightningValid &&
       (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses);
 
     // Format time ago
@@ -549,14 +555,41 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               {/* Lightning Address */}
               <div className="noteLNAddress label">
                 {lud16 ? (
-                  <a
-                    href={`https://${lud16.split('@')[1]}/.well-known/lnurlp/${lud16.split('@')[0]}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <span className="material-symbols-outlined">bolt</span>
-                    {lud16}
-                  </a>
+                  post.lightningValid === false ? (
+                    // Invalid lightning address - still clickable
+                    <a
+                      href={`https://${lud16.split('@')[1]}/.well-known/lnurlp/${lud16.split('@')[0]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="unverified label"
+                      title="Lightning address does not support Nostr zaps"
+                    >
+                      <span className="material-symbols-outlined">block</span>
+                      {lud16}
+                    </a>
+                  ) : post.lightningValidating ? (
+                    // Validating - still clickable
+                    <a
+                      href={`https://${lud16.split('@')[1]}/.well-known/lnurlp/${lud16.split('@')[0]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="label"
+                      title="Validating lightning address..."
+                    >
+                      <span className="material-symbols-outlined validating-icon">hourglass_empty</span>
+                      {lud16}
+                    </a>
+                  ) : (
+                    // Valid lightning address
+                    <a
+                      href={`https://${lud16.split('@')[1]}/.well-known/lnurlp/${lud16.split('@')[0]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <span className="material-symbols-outlined">bolt</span>
+                      {lud16}
+                    </a>
+                  )
                 ) : (
                   <span className="unverified label">
                     <span className="material-symbols-outlined">block</span>

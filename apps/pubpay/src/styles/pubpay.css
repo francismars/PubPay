@@ -2461,6 +2461,17 @@ textarea:focus::placeholder {
   color: #de0000;
 }
 
+/* Lightning address validation icon animation */
+.noteLNAddress .validating-icon {
+  animation: spin 1.5s linear infinite;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  width: 1em;
+  height: 1em;
+}
+
 .noteLNAddress.label .unverified {
   font-size: 10px;
   font-weight: bold;

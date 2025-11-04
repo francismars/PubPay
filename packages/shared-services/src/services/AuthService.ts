@@ -491,30 +491,30 @@ export class AuthService {
     password: string
   ): Promise<string> {
     try {
-      // Decode salt and IV from base64
-      const salt = Uint8Array.from(atob(encryptedData.salt), c => c.charCodeAt(0));
-      const iv = Uint8Array.from(atob(encryptedData.iv), c => c.charCodeAt(0));
+    // Decode salt and IV from base64
+    const salt = Uint8Array.from(atob(encryptedData.salt), c => c.charCodeAt(0));
+    const iv = Uint8Array.from(atob(encryptedData.iv), c => c.charCodeAt(0));
 
-      // Derive encryption key from password
-      const encryptionKey = await this.derivePasswordEncryptionKey(
-        password,
-        salt
-      );
+    // Derive encryption key from password
+    const encryptionKey = await this.derivePasswordEncryptionKey(
+      password,
+      salt
+    );
 
-      // Decode encrypted data
-      const encrypted = Uint8Array.from(
-        atob(encryptedData.encrypted),
-        c => c.charCodeAt(0)
-      );
+    // Decode encrypted data
+    const encrypted = Uint8Array.from(
+      atob(encryptedData.encrypted),
+      c => c.charCodeAt(0)
+    );
 
-      // Decrypt
-      const decrypted = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv },
-        encryptionKey,
-        encrypted
-      );
+    // Decrypt
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      encryptionKey,
+      encrypted
+    );
 
-      return new TextDecoder().decode(decrypted);
+    return new TextDecoder().decode(decrypted);
     } catch (error) {
       // Provide clearer error for password decryption failures
       if (error instanceof DOMException && error.name === 'OperationError') {

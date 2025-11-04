@@ -55,6 +55,8 @@ export interface PubPayPost {
   hasZapTags?: boolean;
   zapLNURL?: string;
   createdAt: number;
+  lightningValid?: boolean; // true if valid, false if invalid, undefined if not validated yet
+  lightningValidating?: boolean; // true if validation is in progress
 }
 
 interface AuthState {
@@ -100,6 +102,8 @@ export const useHomeFunctionality = () => {
   // Profile cache to prevent duplicate requests
   const profileCacheRef = useRef<Map<string, Kind0Event>>(new Map());
   const pendingProfileRequestsRef = useRef<Set<string>>(new Set());
+  // Track lightning addresses being validated to avoid duplicate calls
+  const validatingLightningAddressesRef = useRef<Set<string>>(new Set());
 
   // Zap batch processing
   const zapBatchRef = useRef<Kind9735Event[]>([]);
@@ -948,6 +952,9 @@ export const useHomeFunctionality = () => {
       if (zapEvents.length > 0) {
         await loadZapsForPosts(kind1Events, zapEvents, feed);
       }
+
+      // Validate lightning addresses asynchronously (don't block UI)
+      validateLightningAddresses(basicPosts, feed);
     } catch (err) {
       console.error('Failed to load posts:', err);
       console.error(
@@ -1077,7 +1084,12 @@ export const useHomeFunctionality = () => {
         const hasLud16 = !!(authorData as any).lud16;
         const hasZapTags = !!(zapMinTag || zapMaxTag);
         post.hasZapTags = hasZapTags;
+        // Initially set isPayable based on format check, will be updated after validation
         post.isPayable = (hasLud16 || !!(post as any).zapLNURL) && hasZapTags;
+        // Mark as validating if we have a lightning address to validate
+        if (hasLud16) {
+          post.lightningValidating = true;
+        }
       } catch {
         const hasZapTags = !!(zapMinTag || zapMaxTag);
         post.hasZapTags = hasZapTags;
@@ -1089,6 +1101,137 @@ export const useHomeFunctionality = () => {
 
     // Sort by creation time (newest first) - matches legacy behavior
     return posts.sort((a, b) => b.createdAt - a.createdAt);
+  };
+
+  // Validate lightning addresses for posts asynchronously
+  const validateLightningAddresses = async (
+    posts: PubPayPost[],
+    feed: 'global' | 'following' | 'replies'
+  ) => {
+    // Extract unique lightning addresses from posts
+    const lightningAddresses = new Map<string, PubPayPost[]>();
+    
+    for (const post of posts) {
+      if (post.author) {
+        try {
+          const authorData = JSON.parse(post.author.content || '{}');
+          const lud16 = authorData?.lud16;
+          if (lud16 && typeof lud16 === 'string') {
+            if (!lightningAddresses.has(lud16)) {
+              lightningAddresses.set(lud16, []);
+            }
+            lightningAddresses.get(lud16)!.push(post);
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    // Validate each unique lightning address (only once per address)
+    for (const [lud16, postsWithAddress] of lightningAddresses.entries()) {
+      // Skip if already validating or validated
+      if (validatingLightningAddressesRef.current.has(lud16)) {
+        continue;
+      }
+
+      // Mark as validating
+      validatingLightningAddressesRef.current.add(lud16);
+
+      // Validate asynchronously (fire and forget)
+      ZapService.validateLightningAddress(lud16)
+        .then(isValid => {
+          // Update all posts with this lightning address using functional updates
+          if (feed === 'following') {
+            setFollowingPosts(prev => prev.map(post => {
+              if (postsWithAddress.some(p => p.id === post.id)) {
+                return {
+                  ...post,
+                  lightningValid: isValid,
+                  lightningValidating: false,
+                  // Update isPayable based on validation result
+                  isPayable: !!(isValid && post.hasZapTags &&
+                    (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses))
+                };
+              }
+              return post;
+            }));
+          } else if (feed === 'replies') {
+            setReplies(prev => prev.map(post => {
+              if (postsWithAddress.some(p => p.id === post.id)) {
+                return {
+                  ...post,
+                  lightningValid: isValid,
+                  lightningValidating: false,
+                  // Update isPayable based on validation result
+                  isPayable: !!(isValid && post.hasZapTags &&
+                    (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses))
+                };
+              }
+              return post;
+            }));
+          } else {
+            setPosts(prev => prev.map(post => {
+              if (postsWithAddress.some(p => p.id === post.id)) {
+                return {
+                  ...post,
+                  lightningValid: isValid,
+                  lightningValidating: false,
+                  // Update isPayable based on validation result
+                  isPayable: !!(isValid && post.hasZapTags &&
+                    (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses))
+                };
+              }
+              return post;
+            }));
+          }
+        })
+        .catch(error => {
+          console.warn(`Failed to validate lightning address ${lud16}:`, error);
+          // Mark as invalid on error
+          if (feed === 'following') {
+            setFollowingPosts(prev => prev.map(post => {
+              if (postsWithAddress.some(p => p.id === post.id)) {
+                return {
+                  ...post,
+                  lightningValid: false,
+                  lightningValidating: false,
+                  isPayable: false
+                };
+              }
+              return post;
+            }));
+          } else if (feed === 'replies') {
+            setReplies(prev => prev.map(post => {
+              if (postsWithAddress.some(p => p.id === post.id)) {
+                return {
+                  ...post,
+                  lightningValid: false,
+                  lightningValidating: false,
+                  isPayable: false
+                };
+              }
+              return post;
+            }));
+          } else {
+            setPosts(prev => prev.map(post => {
+              if (postsWithAddress.some(p => p.id === post.id)) {
+                return {
+                  ...post,
+                  lightningValid: false,
+                  lightningValidating: false,
+                  isPayable: false
+                };
+              }
+              return post;
+            }));
+          }
+        })
+        .finally(() => {
+          // Remove from validating set
+          validatingLightningAddressesRef.current.delete(lud16);
+        });
+    }
   };
 
   // Load zaps separately and update posts (like legacy subscribeKind9735)
@@ -1438,11 +1581,14 @@ export const useHomeFunctionality = () => {
       // Debug logging removed - no zap-payer tags found in current feed
 
       // Check if payable
-      const isPayable =
-        !!(
-          author &&
-          safeJson<Record<string, unknown>>(author.content, {})['lud16']
-        ) || !!zapLNURL;
+      const authorData = author
+        ? safeJson<Record<string, unknown>>(author.content, {})
+        : {};
+      const hasLud16 = !!(authorData as any).lud16;
+      const hasZapTags = !!(zapMinTag || zapMaxTag);
+      const isPayable = (hasLud16 || !!zapLNURL) && hasZapTags;
+      // Mark as validating if we have a lightning address to validate
+      const lightningValidating = hasLud16;
 
       posts.push({
         id: event.id,
@@ -1457,10 +1603,11 @@ export const useHomeFunctionality = () => {
         zapGoal,
         content: event.content,
         isPayable,
-        hasZapTags: !!(zapMinTag || zapMaxTag),
+        hasZapTags,
         zapPayer,
         zapLNURL,
-        createdAt: event.created_at
+        createdAt: event.created_at,
+        lightningValidating
       });
     }
 
@@ -2252,6 +2399,8 @@ export const useHomeFunctionality = () => {
 
       if (processedPosts.length > 0) {
         setPosts(processedPosts);
+        // Validate lightning addresses for single note
+        validateLightningAddresses(processedPosts, 'global');
       }
 
       // Load replies to this note
@@ -2395,6 +2544,8 @@ export const useHomeFunctionality = () => {
       const repliesWithLevels = calculateReplyLevels(sortedReplies);
 
       setReplies(repliesWithLevels);
+      // Validate lightning addresses for replies (use 'replies' feed type)
+      validateLightningAddresses(repliesWithLevels, 'replies');
     } catch (err) {
       console.error('Failed to load replies:', err);
     }

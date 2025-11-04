@@ -15,9 +15,104 @@ export interface ZapEventData {
 
 export class ZapService {
   private baseUrl: string;
+  // In-memory cache for lightning address validation (only during processing, not persistent)
+  private static lightningValidationCache = new Map<string, { valid: boolean; timestamp: number }>();
+  private static readonly VALIDATION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(baseUrl: string = '') {
     this.baseUrl = baseUrl;
+  }
+
+  /**
+   * Validate if a lightning address supports Nostr zaps
+   * Returns true if valid, false if invalid, null if validation is pending
+   */
+  static async validateLightningAddress(lud16: string): Promise<boolean> {
+    if (!lud16 || typeof lud16 !== 'string') {
+      return false;
+    }
+
+    // Check in-memory cache first (only for current session)
+    const cached = this.lightningValidationCache.get(lud16);
+    if (cached && Date.now() - cached.timestamp < this.VALIDATION_CACHE_TTL) {
+      return cached.valid;
+    }
+
+    // Basic format check
+    const ludSplit = lud16.split('@');
+    if (ludSplit.length !== 2) {
+      this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
+      return false;
+    }
+
+    try {
+      // Check if we're already validating this address (prevent duplicate calls)
+      const validationKey = `validating:${lud16}`;
+      if (this.lightningValidationCache.has(validationKey)) {
+        // Wait a bit for the ongoing validation
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const cached = this.lightningValidationCache.get(lud16);
+        if (cached) {
+          return cached.valid;
+        }
+        // If still not cached, proceed with validation
+      }
+
+      // Mark as validating to prevent duplicate calls
+      this.lightningValidationCache.set(validationKey, { valid: false, timestamp: Date.now() });
+
+      const url = `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+      try {
+        const response = await fetch(url, {
+          signal: controller.signal,
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        clearTimeout(timeoutId);
+        this.lightningValidationCache.delete(validationKey);
+
+        if (!response.ok) {
+          this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
+          return false;
+        }
+
+        const lnurlinfo = await response.json();
+        const isValid = lnurlinfo.allowsNostr === true;
+
+        this.lightningValidationCache.set(lud16, { valid: isValid, timestamp: Date.now() });
+        return isValid;
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        this.lightningValidationCache.delete(validationKey);
+        
+        // Network errors or timeouts - treat as invalid
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          console.warn(`Lightning address validation timeout: ${lud16}`);
+        } else {
+          console.warn(`Lightning address validation failed: ${lud16}`, fetchError);
+        }
+        
+        this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
+        return false;
+      }
+    } catch (error) {
+      console.warn(`Lightning address validation error: ${lud16}`, error);
+      this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
+      return false;
+    }
+  }
+
+  /**
+   * Clear validation cache (useful for testing or manual refresh)
+   */
+  static clearValidationCache(): void {
+    this.lightningValidationCache.clear();
   }
 
   /**
