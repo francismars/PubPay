@@ -1036,17 +1036,21 @@ body {
 .qr-code {
   width: 100%;
   max-width: 50vw;
+  max-height: 50vh;
   height: auto;
-  margin-bottom: 8px;
+  
   display: block;
   margin-left: auto;
   margin-right: auto;
+  object-fit: contain;
 }
 
 .lightning-qr-slide .qr-code {
   width: 100%;
   max-width: 50vw;
+  max-height: 50vh;
   height: auto;
+  object-fit: contain;
 }
 
 /* QR Swiper */
@@ -1123,6 +1127,9 @@ body {
 .qr-swiper .swiper-wrapper {
   height: auto;
   min-height: 250px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
 }
 
 /* QR slide visibility CSS */
@@ -1200,7 +1207,7 @@ body.qr-blend-active .left-side {
   color: var(--text-color);
   opacity: 0.9;
   margin-bottom: 4px;
-  margin-top: 8px;
+  margin-top: 3px;
   font-weight: 600;
   text-align: center;
   max-width: 80%;
@@ -2099,7 +2106,7 @@ body.style-panel-open .style-toggle-btn {
     width: 100%;
     height: 40vh;
     border-right: none;
-    border-bottom: 2px solid
+    border-bottom: 1px solid
       color-mix(in srgb, var(--text-color) 20%, transparent);
   }
 
@@ -2390,7 +2397,7 @@ body.style-panel-open .style-toggle-btn {
     width: 100%;
     height: 40vh;
     border-right: none;
-    border-bottom: 2px solid
+    border-bottom: 1px solid
       color-mix(in srgb, var(--text-color) 20%, transparent);
   }
 
@@ -2434,16 +2441,24 @@ body.style-panel-open .style-toggle-btn {
 
   .qr-code,
   .lightning-qr-slide .qr-code {
-    max-width: 120px;
+    max-width: 100%;
+    max-height: 36vh;
+    height: auto;
+    width: auto;
+    object-fit: contain;
   }
 
   .qr-swiper {
-    min-height: 140px;
+    min-height: 50vw;
     padding-top: 20px;
   }
 
   .qr-swiper .swiper-wrapper {
-    min-height: 140px;
+    min-height: 40vh;
+    height: auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
   }
 
   .qr-section {
@@ -2454,16 +2469,24 @@ body.style-panel-open .style-toggle-btn {
 @media (max-width: 480px) {
   .qr-code,
   .lightning-qr-slide .qr-code {
-    max-width: 100px;
+    max-width: 90%;
+    max-height: 40vh;
+    height: auto;
+    width: auto;
+    object-fit: contain;
   }
 
   .qr-swiper {
-    min-height: 120px;
+    min-height: 100vw;
     padding-top: 15px;
   }
 
   .qr-swiper .swiper-wrapper {
-    min-height: 120px;
+    min-height: 45vh;
+    height: auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
   }
 
   .zapper-name {
@@ -3439,7 +3462,7 @@ body.flex-direction-invert .main-layout {
 }
 
 body.flex-direction-invert .left-side {
-  border-left: 2px solid color-mix(in srgb, var(--text-color) 20%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--text-color) 20%, transparent);
 }
 
 body.flex-direction-invert .right-side {
