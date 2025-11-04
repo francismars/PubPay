@@ -1484,7 +1484,13 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const updateProfile = (profile: any) => {
-    const profileData = JSON.parse(profile.content || '{}');
+    let profileData: any = {};
+    try {
+      profileData = JSON.parse(profile.content || '{}');
+    } catch (error) {
+      console.warn('Failed to parse profile content:', error);
+      profileData = {};
+    }
     const name =
       profileData.display_name ||
       profileData.displayName ||
@@ -1642,7 +1648,13 @@ export const useLiveFunctionality = (eventId?: string) => {
   const updateLiveEventHostProfile = (profile: any) => {
     // Debug log removed
 
-    const profileData = JSON.parse(profile.content || '{}');
+    let profileData: any = {};
+    try {
+      profileData = JSON.parse(profile.content || '{}');
+    } catch (error) {
+      console.warn('Failed to parse live event host profile:', error);
+      profileData = {};
+    }
     const picture = profileData.picture || '/live/images/gradient_color.gif';
     const nip05 = profileData.nip05 || '';
     const lud16 = profileData.lud16 || '';
@@ -3217,8 +3229,15 @@ export const useLiveFunctionality = (eventId?: string) => {
           (tag: any) => tag[0] === 'description'
         )?.[1];
         if (description9735) {
-          const kind9734 = JSON.parse(description9735);
-          kind9734PKs.push(kind9734.pubkey);
+          try {
+            const kind9734 = JSON.parse(description9735);
+            if (kind9734.pubkey) {
+              kind9734PKs.push(kind9734.pubkey);
+            }
+          } catch (error) {
+            console.warn('Failed to parse zap description for pubkey extraction:', error);
+            // Skip this zap if we can't parse it
+          }
         }
       }
     }
@@ -3286,9 +3305,18 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Mark this zap as processed
       processedZapIDs.add(kind9735.id);
 
-      const description9735 = JSON.parse(
-        kind9735.tags.find((tag: any) => tag[0] == 'description')?.[1] || '{}'
-      );
+      let description9735;
+      try {
+        const descriptionTag = kind9735.tags.find((tag: any) => tag[0] == 'description')?.[1];
+        if (!descriptionTag || descriptionTag.trim() === '') {
+          description9735 = {};
+        } else {
+          description9735 = JSON.parse(descriptionTag);
+        }
+      } catch (error) {
+        console.warn('Failed to parse zap description:', error);
+        description9735 = {};
+      }
       const pubkey9735 = description9735.pubkey;
       const bolt119735 = kind9735.tags.find(
         (tag: any) => tag[0] == 'bolt11'
@@ -3319,13 +3347,19 @@ export const useLiveFunctionality = (eventId?: string) => {
         (kind0: any) => pubkey9735 === kind0.pubkey
       );
       if (kind0fromkind9735) {
-        const content = JSON.parse(kind0fromkind9735.content);
-        const displayName = content.displayName;
-        kind0name = displayName ? content.displayName : content.display_name;
-        kind0finalName = kind0name != '' ? kind0name : content.name;
-        kind0picture = content.picture;
-        kind0npub = nip19.npubEncode(kind0fromkind9735.pubkey) || '';
-        profileData = content;
+        try {
+          const content = JSON.parse(kind0fromkind9735.content || '{}');
+          const displayName = content.displayName;
+          kind0name = displayName ? content.displayName : content.display_name;
+          kind0finalName = kind0name != '' ? kind0name : content.name;
+          kind0picture = content.picture;
+          kind0npub = nip19.npubEncode(kind0fromkind9735.pubkey) || '';
+          profileData = content;
+        } catch (error) {
+          console.warn('Failed to parse profile content for zapper:', error);
+          // Use defaults if profile parsing fails
+          kind0npub = nip19.npubEncode(kind0fromkind9735.pubkey) || '';
+        }
       }
 
       const json9735 = {
@@ -3856,74 +3890,94 @@ export const useLiveFunctionality = (eventId?: string) => {
   const processNoteContent = async (content: string): Promise<string> => {
     if (!content) return '';
     
-    // Escape HTML to prevent XSS and ensure we're working with plain text
-    let processed = content
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+    let processed = content;
     
-    // Now process the escaped text for mentions and links
-    processed = processed
-      // Process nostr: mentions (npub, nprofile, note, nevent, naddr)
-      .replace(
-        /nostr:((npub|nprofile|note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-        (_m, identifier) => {
-          const clean = String(identifier);
-          const shortId =
-            clean.length > 35
-              ? `${clean.substring(0, 8)}...${clean.substring(clean.length - 8)}`
-              : clean;
-          
-          // Determine the link based on identifier type
-          let linkPath = '';
-          if (clean.startsWith('npub') || clean.startsWith('nprofile')) {
-            linkPath = `/profile/${clean}`;
-          } else if (clean.startsWith('note') || clean.startsWith('nevent')) {
-            linkPath = `/note/${clean}`;
-          } else if (clean.startsWith('naddr')) {
-            linkPath = `/live/${clean}`;
-          }
-          
-          return `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
+    // First, process media URLs BEFORE escaping HTML
+    // This prevents URLs from being broken by HTML escaping
+    
+    // Handle video URLs (mp4, webm, ogg, mov)
+    processed = processed.replace(
+      /(https?:\/\/[^\s<>]+)\.(mp4|webm|ogg|mov)/gi,
+      (match) => `<div class="video-container" style="position: relative; width: 100%; max-width: 600px; margin: 12px 0;">
+        <video src="${match}" controls style="width: 100%; border-radius: 8px; background: #000;">
+          Your browser does not support the video tag.
+        </video>
+      </div>`
+    );
+    
+    // Handle image URLs (jpg, jpeg, png, gif, webp)
+    processed = processed.replace(
+      /(https?:\/\/[^\s<>]+)\.(jpg|jpeg|png|gif|webp)/gi,
+      (match) => `<div class="image-container" style="margin: 12px 0;">
+        <img src="${match}" style="max-width: 100%; border-radius: 8px;" alt="Image" />
+      </div>`
+    );
+    
+    // Process nostr: mentions (npub, nprofile, note, nevent, naddr)
+    processed = processed.replace(
+      /nostr:((npub|nprofile|note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+      (_m, identifier) => {
+        const clean = String(identifier);
+        const shortId =
+          clean.length > 35
+            ? `${clean.substring(0, 8)}...${clean.substring(clean.length - 8)}`
+            : clean;
+        
+        // Determine the link based on identifier type
+        let linkPath = '';
+        if (clean.startsWith('npub') || clean.startsWith('nprofile')) {
+          linkPath = `/profile/${clean}`;
+        } else if (clean.startsWith('note') || clean.startsWith('nevent')) {
+          linkPath = `/note/${clean}`;
+        } else if (clean.startsWith('naddr')) {
+          linkPath = `/live/${clean}`;
         }
-      )
-      // Process standalone identifiers without nostr: prefix
-      .replace(
-        /(?:^|\s)((npub|nprofile|note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-        (match, identifier) => {
-          const clean = String(identifier);
-          const shortId =
-            clean.length > 35
-              ? `${clean.substring(0, 8)}...${clean.substring(clean.length - 8)}`
-              : clean;
-          
-          // Determine the link based on identifier type
-          let linkPath = '';
-          if (clean.startsWith('npub') || clean.startsWith('nprofile')) {
-            linkPath = `/profile/${clean}`;
-          } else if (clean.startsWith('note') || clean.startsWith('nevent')) {
-            linkPath = `/note/${clean}`;
-          } else if (clean.startsWith('naddr')) {
-            linkPath = `/live/${clean}`;
-          }
-          
-          // Preserve the leading whitespace if present
-          const leadingSpace = match.startsWith(' ') ? ' ' : '';
-          return `${leadingSpace}<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
+        
+        return `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
+      }
+    );
+    
+    // Process standalone identifiers without nostr: prefix
+    processed = processed.replace(
+      /(?:^|\s)((npub|nprofile|note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+      (match, identifier) => {
+        const clean = String(identifier);
+        const shortId =
+          clean.length > 35
+            ? `${clean.substring(0, 8)}...${clean.substring(clean.length - 8)}`
+            : clean;
+        
+        // Determine the link based on identifier type
+        let linkPath = '';
+        if (clean.startsWith('npub') || clean.startsWith('nprofile')) {
+          linkPath = `/profile/${clean}`;
+        } else if (clean.startsWith('note') || clean.startsWith('nevent')) {
+          linkPath = `/note/${clean}`;
+        } else if (clean.startsWith('naddr')) {
+          linkPath = `/live/${clean}`;
         }
-      )
-      // Process regular URLs (must not be inside quotes)
-      .replace(
-        /(?:^|\s)(https?:\/\/[^\s&lt;&gt;]+)/g,
-        (match, url) => {
-          const leadingSpace = match.startsWith(' ') ? ' ' : '';
-          return `${leadingSpace}<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        
+        // Preserve the leading whitespace if present
+        const leadingSpace = match.startsWith(' ') ? ' ' : '';
+        return `${leadingSpace}<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
+      }
+    );
+    
+    // Process regular URLs (but skip if already processed as video/image)
+    processed = processed.replace(
+      /(?:^|\s)(https?:\/\/[^\s<>]+)/g,
+      (match, url) => {
+        // Skip if this URL was already processed as video or image
+        if (processed.includes(`src="${url}"`)) {
+          return match;
         }
-      )
-      // Convert line breaks to <br />
-      .replace(/\n/g, '<br />');
+        const leadingSpace = match.startsWith(' ') ? ' ' : '';
+        return `${leadingSpace}<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      }
+    );
+    
+    // Convert line breaks to <br />
+    processed = processed.replace(/\n/g, '<br />');
     
     return processed;
   };
