@@ -139,7 +139,7 @@ const ProfilePage: React.FC = () => {
         );
 
         if (signInResult.success && signInResult.publicKey) {
-          AuthService.storeAuthData(
+          await AuthService.storeAuthData(
             signInResult.publicKey,
             result.keyPair.privateKey,
             'nsec'

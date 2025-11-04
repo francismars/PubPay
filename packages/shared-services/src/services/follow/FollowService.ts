@@ -112,13 +112,30 @@ export class FollowService {
       content: ''
     };
 
-    const { method, privateKey } = AuthService.getStoredAuthData();
+    const { encryptedPrivateKey, method } = AuthService.getStoredAuthData();
+
+    // Decrypt private key if needed (device key mode - automatic)
+    let privateKey: string | null = null;
+    if (encryptedPrivateKey && method === 'nsec') {
+      try {
+        // Try to decrypt with device key (automatic, no password needed)
+        privateKey = await AuthService.decryptStoredPrivateKey();
+      } catch (error) {
+        // If password is required, return false
+        alert('Password required to decrypt private key. Please log in again.');
+        return false;
+      }
+    }
+
     let signed: any;
     if (method === 'extension') {
       if ((window as any).nostr)
         signed = await (window as any).nostr.signEvent(event);
     } else if (method === 'nsec' && privateKey) {
       const decoded = nip19.decode(privateKey);
+      if (decoded.type !== 'nsec') {
+        return false;
+      }
       signed = finalizeEvent(event, decoded.data as Uint8Array);
     } else if (method === 'externalSigner') {
       alert('Following via external signer is not yet supported.');
@@ -151,13 +168,30 @@ export class FollowService {
       content: ''
     };
 
-    const { method, privateKey } = AuthService.getStoredAuthData();
+    const { encryptedPrivateKey, method } = AuthService.getStoredAuthData();
+    
+    // Decrypt private key if needed (device key mode - automatic)
+    let privateKey: string | null = null;
+    if (encryptedPrivateKey && method === 'nsec') {
+      try {
+        // Try to decrypt with device key (automatic, no password needed)
+        privateKey = await AuthService.decryptStoredPrivateKey();
+      } catch (error) {
+        // If password is required, return false
+        alert('Password required to decrypt private key. Please log in again.');
+        return false;
+      }
+    }
+    
     let signed: any;
     if (method === 'extension') {
       if ((window as any).nostr)
         signed = await (window as any).nostr.signEvent(event);
     } else if (method === 'nsec' && privateKey) {
       const decoded = nip19.decode(privateKey);
+      if (decoded.type !== 'nsec') {
+        return false;
+      }
       signed = finalizeEvent(event, decoded.data as Uint8Array);
     } else if (method === 'externalSigner') {
       alert('Unfollow via external signer is not yet supported.');

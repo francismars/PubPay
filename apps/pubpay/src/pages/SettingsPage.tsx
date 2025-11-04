@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RELAYS } from '@pubpay/shared-services';
+import { RELAYS, AuthService } from '@pubpay/shared-services';
 import { useUIStore } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 
@@ -37,6 +37,9 @@ const SettingsPage: React.FC = () => {
   const [nsec, setNsec] = useState<string | null>(null);
   const [copiedNsec, setCopiedNsec] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [passwordPromptPassword, setPasswordPromptPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     // Load dark mode preference from localStorage
@@ -77,11 +80,47 @@ const SettingsPage: React.FC = () => {
       }
     } catch {}
 
-    // Check if user logged in with nsec
-    const savedNsec = localStorage.getItem('privateKey');
-    if (savedNsec) {
-      setNsec(savedNsec);
-    }
+    // Check if user logged in with nsec and load decrypted nsec
+    const loadNsec = async () => {
+      try {
+        const { encryptedPrivateKey, method } = AuthService.getStoredAuthData();
+        
+        // Only show nsec if user logged in with nsec method
+        if (method !== 'nsec') {
+          return;
+        }
+
+        if (encryptedPrivateKey) {
+          // Check if password is required
+          if (AuthService.requiresPassword()) {
+            // Don't auto-load if password is required - user needs to enter password
+            setNsec(null);
+            return;
+          }
+          
+          // Decrypt using device key (automatic)
+          try {
+            const decryptedNsec = await AuthService.decryptStoredPrivateKey();
+            if (decryptedNsec) {
+              setNsec(decryptedNsec);
+            }
+          } catch (error) {
+            console.error('Failed to decrypt nsec:', error);
+            setNsec(null);
+          }
+        } else {
+          // Legacy plaintext format (for backward compatibility)
+          const legacyKey = localStorage.getItem('privateKey') || sessionStorage.getItem('privateKey');
+          if (legacyKey && !legacyKey.startsWith('{') && !legacyKey.startsWith('[')) {
+            setNsec(legacyKey);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load nsec:', error);
+      }
+    };
+
+    loadNsec();
   }, []);
 
   useEffect(() => {
@@ -233,6 +272,46 @@ const SettingsPage: React.FC = () => {
         } catch {}
       }, 2000);
     } catch {}
+  };
+
+  const handleRevealNsec = async () => {
+    if (showNsec) {
+      setShowNsec(false);
+      return;
+    }
+
+    // Check if password is required
+    if (AuthService.requiresPassword() && !nsec) {
+      setShowPasswordPrompt(true);
+      setPasswordPromptPassword('');
+      setPasswordError('');
+      return;
+    }
+
+    setShowNsec(true);
+  };
+
+  const handlePasswordPromptSubmit = async () => {
+    if (!passwordPromptPassword.trim()) {
+      setPasswordError('Please enter your password');
+      return;
+    }
+
+    try {
+      const decryptedNsec = await AuthService.decryptStoredPrivateKey(passwordPromptPassword.trim());
+      if (decryptedNsec) {
+        setNsec(decryptedNsec);
+        setShowPasswordPrompt(false);
+        setShowNsec(true);
+        setPasswordPromptPassword('');
+        setPasswordError('');
+      } else {
+        setPasswordError('Failed to decrypt nsec');
+      }
+    } catch (error) {
+      console.error('Failed to decrypt nsec with password:', error);
+      setPasswordError('Invalid password. Please try again.');
+    }
   };
 
   const handleSaveNwc = () => {
@@ -613,7 +692,7 @@ const SettingsPage: React.FC = () => {
               )}
             </div>
 
-            {nsec && (
+            {AuthService.isAuthenticated() && AuthService.getStoredAuthData().method === 'nsec' && (
               <div className="featureBlock">
                 <h3 className="featureTitle">Keys</h3>
                 <p className="featureDescription descriptionWithMargin">
@@ -640,20 +719,22 @@ const SettingsPage: React.FC = () => {
                   
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button
-                      onClick={() => setShowNsec(!showNsec)}
+                      onClick={handleRevealNsec}
                       className="addButton"
                       style={{ flex: 'none' }}
                     >
                       {showNsec ? 'Hide Nsec' : 'Reveal Nsec'}
                     </button>
                     
-                    <button
-                      onClick={() => setShowQRModal(true)}
-                      className="addButton"
-                      style={{ flex: 'none' }}
-                    >
-                      Show QR
-                    </button>
+                    {nsec && (
+                      <button
+                        onClick={() => setShowQRModal(true)}
+                        className="addButton"
+                        style={{ flex: 'none' }}
+                      >
+                        Show QR
+                      </button>
+                    )}
                     
                     {showNsec && (
                       <button
@@ -696,6 +777,97 @@ const SettingsPage: React.FC = () => {
               </div>
             )}
           </section>
+        </div>
+      </div>
+
+      {/* Password Prompt Overlay */}
+      <div
+        className="overlayContainer"
+        style={{
+          display: 'flex',
+          visibility: showPasswordPrompt ? 'visible' : 'hidden',
+          opacity: showPasswordPrompt ? 1 : 0,
+          pointerEvents: showPasswordPrompt ? 'auto' : 'none',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        onClick={() => {
+          setShowPasswordPrompt(false);
+          setPasswordPromptPassword('');
+          setPasswordError('');
+        }}
+      >
+        <div
+          className="overlayInner"
+          style={{
+            textAlign: 'center',
+            maxWidth: '400px',
+            margin: 'auto'
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <h3 style={{ margin: '0 0 16px 0' }}>
+            Enter Password
+          </h3>
+
+          <p style={{
+            fontSize: '13px',
+            opacity: 0.8,
+            marginBottom: '24px'
+          }}>
+            Your private key is encrypted with a password. Enter your password to reveal it.
+          </p>
+
+          <input
+            type="password"
+            placeholder="Password"
+            className="inputField"
+            value={passwordPromptPassword}
+            onChange={e => {
+              setPasswordPromptPassword(e.target.value);
+              setPasswordError('');
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                handlePasswordPromptSubmit();
+              }
+            }}
+            autoFocus
+            style={{
+              width: '100%',
+              marginBottom: '12px'
+            }}
+          />
+
+          {passwordError && (
+            <div style={{
+              color: '#dc2626',
+              fontSize: '13px',
+              marginBottom: '12px',
+              textAlign: 'left'
+            }}>
+              {passwordError}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <button
+              className="addButton"
+              onClick={() => {
+                setShowPasswordPrompt(false);
+                setPasswordPromptPassword('');
+                setPasswordError('');
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              className="addButton"
+              onClick={handlePasswordPromptSubmit}
+            >
+              Reveal
+            </button>
+          </div>
         </div>
       </div>
 

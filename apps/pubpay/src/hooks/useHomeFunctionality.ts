@@ -246,7 +246,7 @@ export const useHomeFunctionality = () => {
 
   // Check authentication status
   useEffect(() => {
-    checkAuthStatus();
+    checkAuthStatus().catch(console.error);
 
     // Handle external signer return
     const handleVisibilityChange = async () => {
@@ -254,7 +254,7 @@ export const useHomeFunctionality = () => {
         // First, process sign-in return (npub from clipboard)
         const result = await AuthService.handleExternalSignerReturn();
         if (result.success && result.publicKey) {
-          AuthService.storeAuthData(result.publicKey, null, 'externalSigner');
+          await AuthService.storeAuthData(result.publicKey, null, 'externalSigner');
 
           setAuthState({
             isLoggedIn: true,
@@ -608,33 +608,74 @@ export const useHomeFunctionality = () => {
     };
   }, []);
 
-  const checkAuthStatus = () => {
+  const checkAuthStatus = async (password?: string): Promise<{ requiresPassword: boolean }> => {
     if (AuthService.isAuthenticated()) {
-      const { publicKey, privateKey, method } = AuthService.getStoredAuthData();
+      const { publicKey, encryptedPrivateKey, method } = AuthService.getStoredAuthData();
 
-      setAuthState({
-        isLoggedIn: true,
-        publicKey,
-        privateKey,
-        signInMethod: method as 'extension' | 'nsec' | 'externalSigner',
-        userProfile: null,
-        displayName: null
-      });
-
-      // Load user profile and follow suggestions
-      if (nostrClientRef.current && publicKey) {
-        loadUserProfile(publicKey);
+      let privateKey: string | null = null;
+      let requiresPassword = false;
+      
+      // Decrypt private key if available
+      if (encryptedPrivateKey) {
         try {
-          (async () => {
-            const suggestions = await FollowService.getFollowSuggestions(
-              nostrClientRef.current,
-              publicKey
-            );
-            useUIStore.getState().setFollowSuggestions(suggestions);
-          })();
-        } catch {}
+          privateKey = await AuthService.decryptStoredPrivateKey(password);
+        } catch (error) {
+          console.error('Failed to decrypt private key:', error);
+          // If password required but not provided, return flag
+          if (AuthService.requiresPassword() && !password) {
+            requiresPassword = true;
+            privateKey = null;
+          }
+        }
+      } else {
+        // Legacy format or no private key
+        const legacyKey = localStorage.getItem('privateKey') || sessionStorage.getItem('privateKey');
+        if (legacyKey && !legacyKey.startsWith('{')) {
+          // Legacy plaintext - migrate automatically
+          console.log('Migrating legacy plaintext private key to encrypted format...');
+          try {
+            // Encrypt the legacy key (device key mode, no password)
+            await AuthService.storeAuthData(publicKey || '', legacyKey, method || 'nsec');
+            console.log('Legacy key migrated successfully');
+            // Now decrypt and use
+            privateKey = await AuthService.decryptStoredPrivateKey();
+          } catch (migrationError) {
+            console.error('Failed to migrate legacy key:', migrationError);
+            // Fallback: use plaintext temporarily
+            privateKey = legacyKey;
+          }
+        }
       }
+
+      // Only set auth state if we have private key (or no private key needed for extension/externalSigner)
+      if (privateKey || method !== 'nsec') {
+        setAuthState({
+          isLoggedIn: true,
+          publicKey,
+          privateKey,
+          signInMethod: method as 'extension' | 'nsec' | 'externalSigner',
+          userProfile: null,
+          displayName: null
+        });
+
+        // Load user profile and follow suggestions
+        if (nostrClientRef.current && publicKey) {
+          loadUserProfile(publicKey);
+          try {
+            (async () => {
+              const suggestions = await FollowService.getFollowSuggestions(
+                nostrClientRef.current,
+                publicKey
+              );
+              useUIStore.getState().setFollowSuggestions(suggestions);
+            })();
+          } catch {}
+        }
+      }
+
+      return { requiresPassword };
     }
+    return { requiresPassword: false };
   };
 
   const loadUserProfile = async (pubkey: string) => {
@@ -1506,7 +1547,7 @@ export const useHomeFunctionality = () => {
       const result = await AuthService.signInWithExtension();
 
       if (result.success && result.publicKey) {
-        AuthService.storeAuthData(
+        await AuthService.storeAuthData(
           result.publicKey,
           result.privateKey || null,
           'extension'
@@ -1567,15 +1608,16 @@ export const useHomeFunctionality = () => {
     console.log('Nsec sign in initiated...');
   };
 
-  const handleContinueWithNsec = async (nsec: string) => {
+  const handleContinueWithNsec = async (nsec: string, password?: string) => {
     try {
       const result = await AuthService.signInWithNsec(nsec);
 
       if (result.success && result.publicKey) {
-        AuthService.storeAuthData(
+        await AuthService.storeAuthData(
           result.publicKey,
           result.privateKey || null,
-          'nsec'
+          'nsec',
+          password
         );
 
         setAuthState({
@@ -1706,6 +1748,7 @@ export const useHomeFunctionality = () => {
 
       // Sign and send zap event (ZapService will branch per sign-in method)
       // Note: signZapEvent may throw errors with "CAN'T PAY:" prefix
+      // Pass decrypted private key from auth state if available (for password-encrypted keys)
       try {
       const success = await zapServiceRef.current.signZapEvent(
         zapEventData.zapEvent,
@@ -1713,7 +1756,8 @@ export const useHomeFunctionality = () => {
         zapEventData.amountPay,
         callback.lud16ToZap,
         post.id,
-        false // not anonymous
+        false, // not anonymous
+        authState.privateKey // Pass decrypted private key from auth state
       );
 
       if (success) {
@@ -1840,7 +1884,8 @@ export const useHomeFunctionality = () => {
         zapEventData.amountPay,
         callback.lud16ToZap,
         post.id,
-        true // anonymous zap
+        true, // anonymous zap
+        null // No private key for anonymous zaps
       );
 
       if (success) {
@@ -2754,8 +2799,8 @@ export const useHomeFunctionality = () => {
           zapRequestEventId = zapData.id || '';
         }
         if (zapRequestEventId) {
-          const { eventId, show } = useUIStore.getState().invoiceOverlay;
-          if (show && eventId === zapRequestEventId) {
+          const { zapRequestId, show } = useUIStore.getState().invoiceOverlay;
+          if (show && zapRequestId === zapRequestEventId) {
             useUIStore.getState().closeInvoice();
           }
         }
@@ -3299,6 +3344,7 @@ export const useHomeFunctionality = () => {
     loadSingleNote,
     loadReplies,
     clearPosts,
-    loadUserProfile
+    loadUserProfile,
+    checkAuthStatus
   };
 };

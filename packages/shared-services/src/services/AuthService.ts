@@ -9,6 +9,13 @@ export interface AuthResult {
   error?: string;
 }
 
+export interface EncryptedPrivateKey {
+  encrypted: string;
+  salt: string;
+  iv: string;
+  hasPassword: boolean;
+}
+
 export class AuthService {
   private static readonly METHODS = [
     'extension',
@@ -74,10 +81,8 @@ export class AuthService {
 
       // Set up visibility change listener to detect when external signer opens
       const navigationAttempted = await new Promise<boolean>(resolve => {
-        let attempted = false;
         const handleVisibilityChange = () => {
           if (document.visibilityState === 'hidden') {
-            attempted = true;
             resolve(true);
           }
         };
@@ -99,7 +104,7 @@ export class AuthService {
         sessionStorage.removeItem('signIn');
         return {
           success: false,
-          error: "Failed to launch 'nostrsigner': Redirection did not occur."
+          error: 'Failed to launch \'nostrsigner\': Redirection did not occur.'
         };
       }
 
@@ -200,7 +205,9 @@ export class AuthService {
           } else if (/^[0-9a-f]{64}$/i.test(clean)) {
             publicKey = clean.toLowerCase();
           }
-        } catch {}
+        } catch (decodeError) {
+          console.warn('Failed to decode public key:', decodeError);
+        }
 
         if (
           !publicKey ||
@@ -248,7 +255,9 @@ export class AuthService {
             const txt = await navigator.clipboard.readText();
             const val = (txt || '').trim();
             if (val) return val;
-          } catch {}
+          } catch (clipboardError) {
+            console.warn('Clipboard access failed:', clipboardError);
+          }
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       } else {
@@ -266,7 +275,8 @@ export class AuthService {
           const text = textArea.value;
           document.body.removeChild(textArea);
           if (result && text && text.trim()) return text.trim();
-        } catch (err) {
+        } catch (execError) {
+          console.warn('execCommand paste failed:', execError);
           document.body.removeChild(textArea);
         }
       }
@@ -275,7 +285,9 @@ export class AuthService {
       try {
         const manual = window.prompt('Paste data from signer');
         if (manual && manual.trim()) return manual.trim();
-      } catch {}
+      } catch (promptError) {
+        console.warn('Prompt failed:', promptError);
+      }
 
       return null;
     } catch (error) {
@@ -285,43 +297,362 @@ export class AuthService {
   }
 
   /**
-   * Store authentication data
+   * Get or create device key for encryption
    */
-  static storeAuthData(
+  private static async getOrCreateDeviceKey(): Promise<string> {
+    let deviceKey = localStorage.getItem('_dk'); // device key
+
+    if (!deviceKey) {
+      // Generate random 256-bit key and store as base64
+      const keyBytes = crypto.getRandomValues(new Uint8Array(32));
+      deviceKey = btoa(String.fromCharCode(...keyBytes));
+      localStorage.setItem('_dk', deviceKey);
+    }
+
+    return deviceKey;
+  }
+
+  /**
+   * Derive encryption key from device key
+   */
+  private static async deriveDeviceEncryptionKey(): Promise<CryptoKey> {
+    const deviceKey = await this.getOrCreateDeviceKey();
+
+    // Import device key as raw key material
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(deviceKey),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
+    );
+
+    // Derive encryption key using PBKDF2
+    const saltBytes = new TextEncoder().encode('pubpay-device-salt');
+    const saltArray = new Uint8Array(saltBytes);
+    const saltBuffer = saltArray.buffer;
+
+    const encryptionKey = await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: saltBuffer, // Fixed salt for device key
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+
+    return encryptionKey;
+  }
+
+  /**
+   * Derive encryption key from password
+   */
+  private static async derivePasswordEncryptionKey(
+    password: string,
+    salt: Uint8Array
+  ): Promise<CryptoKey> {
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(password),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
+    );
+
+    // Ensure salt is a proper BufferSource (copy to new ArrayBuffer)
+    const saltArray = new Uint8Array(salt);
+    const saltBuffer = saltArray.buffer;
+
+    const encryptionKey = await crypto.subtle.deriveKey(
+      {
+        name: 'PBKDF2',
+        salt: saltBuffer,
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+
+    return encryptionKey;
+  }
+
+  /**
+   * Encrypt data with device key
+   */
+  private static async encryptWithDeviceKey(
+    data: string
+  ): Promise<EncryptedPrivateKey> {
+    const encryptionKey = await this.deriveDeviceEncryptionKey();
+
+    // Generate random IV
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    // Encrypt
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      encryptionKey,
+      new TextEncoder().encode(data)
+    );
+
+    // Convert to base64
+    const encryptedBase64 = btoa(
+      String.fromCharCode(...new Uint8Array(encrypted))
+    );
+    const ivBase64 = btoa(String.fromCharCode(...iv));
+
+    // Use a dummy salt for device key mode (not used, but consistent structure)
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const saltBase64 = btoa(String.fromCharCode(...salt));
+
+    return {
+      encrypted: encryptedBase64,
+      salt: saltBase64,
+      iv: ivBase64,
+      hasPassword: false
+    };
+  }
+
+  /**
+   * Encrypt data with password
+   */
+  private static async encryptWithPassword(
+    data: string,
+    password: string
+  ): Promise<EncryptedPrivateKey> {
+    // Generate random salt
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const encryptionKey = await this.derivePasswordEncryptionKey(
+      password,
+      salt
+    );
+
+    // Generate random IV
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+
+    // Encrypt
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      encryptionKey,
+      new TextEncoder().encode(data)
+    );
+
+    // Convert to base64
+    const encryptedBase64 = btoa(
+      String.fromCharCode(...new Uint8Array(encrypted))
+    );
+    const ivBase64 = btoa(String.fromCharCode(...iv));
+    const saltBase64 = btoa(String.fromCharCode(...salt));
+
+    return {
+      encrypted: encryptedBase64,
+      salt: saltBase64,
+      iv: ivBase64,
+      hasPassword: true
+    };
+  }
+
+  /**
+   * Decrypt data with device key
+   */
+  private static async decryptWithDeviceKey(
+    encryptedData: EncryptedPrivateKey
+  ): Promise<string> {
+    const encryptionKey = await this.deriveDeviceEncryptionKey();
+
+    // Decode from base64
+    const encrypted = Uint8Array.from(
+      atob(encryptedData.encrypted),
+      c => c.charCodeAt(0)
+    );
+    const iv = Uint8Array.from(atob(encryptedData.iv), c => c.charCodeAt(0));
+
+    // Decrypt
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      encryptionKey,
+      encrypted
+    );
+
+    return new TextDecoder().decode(decrypted);
+  }
+
+  /**
+   * Decrypt data with password
+   */
+  static async decryptWithPassword(
+    encryptedData: EncryptedPrivateKey,
+    password: string
+  ): Promise<string> {
+    // Decode salt and IV from base64
+    const salt = Uint8Array.from(atob(encryptedData.salt), c => c.charCodeAt(0));
+    const iv = Uint8Array.from(atob(encryptedData.iv), c => c.charCodeAt(0));
+
+    // Derive encryption key from password
+    const encryptionKey = await this.derivePasswordEncryptionKey(
+      password,
+      salt
+    );
+
+    // Decode encrypted data
+    const encrypted = Uint8Array.from(
+      atob(encryptedData.encrypted),
+      c => c.charCodeAt(0)
+    );
+
+    // Decrypt
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      encryptionKey,
+      encrypted
+    );
+
+    return new TextDecoder().decode(decrypted);
+  }
+
+  /**
+   * Store authentication data with encryption
+   */
+  static async storeAuthData(
     publicKey: string,
     privateKey: string | null,
-    method: string
-  ): void {
+    method: string,
+    password?: string
+  ): Promise<void> {
     // Always persist until explicit logout
     localStorage.setItem('publicKey', publicKey);
     localStorage.setItem('signInMethod', method);
+
     if (privateKey) {
-      localStorage.setItem('privateKey', privateKey);
+      let encryptedData: EncryptedPrivateKey;
+
+      if (password) {
+        // Password mode: encrypt with password
+        encryptedData = await this.encryptWithPassword(privateKey, password);
+      } else {
+        // Default mode: encrypt with device key
+        encryptedData = await this.encryptWithDeviceKey(privateKey);
+      }
+
+      // Store encrypted private key (this will overwrite any legacy plaintext)
+      localStorage.setItem(
+        'privateKey',
+        JSON.stringify(encryptedData)
+      );
+      // Also clear from sessionStorage if it exists there
+      sessionStorage.removeItem('privateKey');
+    } else {
+      // If no private key provided, ensure any legacy plaintext is cleared
+      localStorage.removeItem('privateKey');
+      sessionStorage.removeItem('privateKey');
     }
   }
 
   /**
-   * Get stored authentication data
+   * Get stored authentication data (returns encrypted private key, not decrypted)
    */
   static getStoredAuthData(): {
     publicKey: string | null;
-    privateKey: string | null;
+    encryptedPrivateKey: EncryptedPrivateKey | null;
     method: string | null;
   } {
     const publicKey =
       localStorage.getItem('publicKey') || sessionStorage.getItem('publicKey');
-    const privateKey =
+    const privateKeyStr =
       localStorage.getItem('privateKey') ||
       sessionStorage.getItem('privateKey');
     const method =
       localStorage.getItem('signInMethod') ||
       sessionStorage.getItem('signInMethod');
 
+    let encryptedPrivateKey: EncryptedPrivateKey | null = null;
+    if (privateKeyStr) {
+      try {
+        // Try to parse as encrypted format
+        encryptedPrivateKey = JSON.parse(privateKeyStr) as EncryptedPrivateKey;
+      } catch {
+        // Legacy format: plaintext (for backward compatibility)
+        // This will be migrated to encrypted format on next login
+        encryptedPrivateKey = null;
+      }
+    }
+
     return {
       publicKey,
-      privateKey,
+      encryptedPrivateKey,
       method: method as any
     };
+  }
+
+  /**
+   * Decrypt stored private key (requires password if password mode)
+   * Automatically migrates legacy plaintext to encrypted format
+   */
+  static async decryptStoredPrivateKey(
+    password?: string
+  ): Promise<string | null> {
+    const { encryptedPrivateKey, publicKey, method } = this.getStoredAuthData();
+
+    if (!encryptedPrivateKey) {
+      // Check for legacy plaintext format
+      const legacyKey =
+        localStorage.getItem('privateKey') ||
+        sessionStorage.getItem('privateKey');
+      if (legacyKey && !legacyKey.startsWith('{')) {
+        // Legacy plaintext format - migrate automatically
+        console.log('Migrating legacy plaintext private key to encrypted format...');
+        try {
+          // Encrypt the legacy key (device key mode, no password)
+          await this.storeAuthData(publicKey || '', legacyKey, method || 'nsec');
+          console.log('Legacy key migrated successfully');
+          // Now decrypt and return
+          const { encryptedPrivateKey: newEncrypted } = this.getStoredAuthData();
+          if (newEncrypted) {
+            return await this.decryptWithDeviceKey(newEncrypted);
+          }
+          // Fallback: return the plaintext (shouldn't happen)
+          return legacyKey;
+        } catch (migrationError) {
+          console.error('Failed to migrate legacy key:', migrationError);
+          // Return plaintext as fallback
+          return legacyKey;
+        }
+      }
+      return null;
+    }
+
+    try {
+      if (encryptedPrivateKey.hasPassword) {
+        // Password mode: require password
+        if (!password) {
+          throw new Error('Password required to decrypt private key');
+        }
+        return await this.decryptWithPassword(encryptedPrivateKey, password);
+      } else {
+        // Device key mode: decrypt automatically
+        return await this.decryptWithDeviceKey(encryptedPrivateKey);
+      }
+    } catch (error) {
+      console.error('Failed to decrypt private key:', error);
+      const errorMessage = encryptedPrivateKey.hasPassword
+        ? 'Invalid password.'
+        : 'Device key may have been cleared.';
+      throw new Error(`Failed to decrypt private key. ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Check if stored private key requires password
+   */
+  static requiresPassword(): boolean {
+    const { encryptedPrivateKey } = this.getStoredAuthData();
+    return encryptedPrivateKey?.hasPassword === true;
   }
 
   /**
@@ -335,6 +666,8 @@ export class AuthService {
     sessionStorage.removeItem('privateKey');
     sessionStorage.removeItem('signInMethod');
     sessionStorage.removeItem('signIn');
+    // Note: We don't clear device key (_dk) as it's used for encryption
+    // User can clear it manually if they want to reset encryption
   }
 
   /**
@@ -376,11 +709,20 @@ export class AuthService {
   }
 
   /**
-   * Get current user's private key
+   * Get current user's private key (decrypted)
+   * Note: This will throw if password is required but not provided
    */
-  static getCurrentUserPrivateKey(): string | null {
-    const { privateKey } = this.getStoredAuthData();
-    return this.validateStoredAuthData() ? privateKey : null;
+  static async getCurrentUserPrivateKey(
+    password?: string
+  ): Promise<string | null> {
+    if (!this.validateStoredAuthData()) {
+      return null;
+    }
+    try {
+      return await this.decryptStoredPrivateKey(password);
+    } catch {
+      return null;
+    }
   }
 
   /**

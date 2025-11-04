@@ -5,6 +5,12 @@ export interface AuthResult {
     method?: 'extension' | 'externalSigner' | 'nsec';
     error?: string;
 }
+export interface EncryptedPrivateKey {
+    encrypted: string;
+    salt: string;
+    iv: string;
+    hasPassword: boolean;
+}
 export declare class AuthService {
     private static readonly METHODS;
     /**
@@ -28,17 +34,54 @@ export declare class AuthService {
      */
     private static accessClipboard;
     /**
-     * Store authentication data
+     * Get or create device key for encryption
      */
-    static storeAuthData(publicKey: string, privateKey: string | null, method: string): void;
+    private static getOrCreateDeviceKey;
     /**
-     * Get stored authentication data
+     * Derive encryption key from device key
+     */
+    private static deriveDeviceEncryptionKey;
+    /**
+     * Derive encryption key from password
+     */
+    private static derivePasswordEncryptionKey;
+    /**
+     * Encrypt data with device key
+     */
+    private static encryptWithDeviceKey;
+    /**
+     * Encrypt data with password
+     */
+    private static encryptWithPassword;
+    /**
+     * Decrypt data with device key
+     */
+    private static decryptWithDeviceKey;
+    /**
+     * Decrypt data with password
+     */
+    static decryptWithPassword(encryptedData: EncryptedPrivateKey, password: string): Promise<string>;
+    /**
+     * Store authentication data with encryption
+     */
+    static storeAuthData(publicKey: string, privateKey: string | null, method: string, password?: string): Promise<void>;
+    /**
+     * Get stored authentication data (returns encrypted private key, not decrypted)
      */
     static getStoredAuthData(): {
         publicKey: string | null;
-        privateKey: string | null;
+        encryptedPrivateKey: EncryptedPrivateKey | null;
         method: string | null;
     };
+    /**
+     * Decrypt stored private key (requires password if password mode)
+     * Automatically migrates legacy plaintext to encrypted format
+     */
+    static decryptStoredPrivateKey(password?: string): Promise<string | null>;
+    /**
+     * Check if stored private key requires password
+     */
+    static requiresPassword(): boolean;
     /**
      * Clear authentication data
      */
@@ -56,9 +99,10 @@ export declare class AuthService {
      */
     static getCurrentUserPublicKey(): string | null;
     /**
-     * Get current user's private key
+     * Get current user's private key (decrypted)
+     * Note: This will throw if password is required but not provided
      */
-    static getCurrentUserPrivateKey(): string | null;
+    static getCurrentUserPrivateKey(password?: string): Promise<string | null>;
     /**
      * Get current user's sign-in method
      */

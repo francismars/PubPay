@@ -6,7 +6,8 @@ import {
   NostrRegistrationService,
   NostrKeyPair,
   ProfileData,
-  BlossomService
+  BlossomService,
+  AuthService
 } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 import { nip19 } from 'nostr-tools';
@@ -43,6 +44,7 @@ const RegisterPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'privateKey' | 'mnemonic'>(
     'mnemonic'
   );
+  const [registrationPassword, setRegistrationPassword] = useState('');
   const pictureInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const openLogin = useUIStore(s => s.openLogin);
@@ -50,7 +52,7 @@ const RegisterPage: React.FC = () => {
   const setAuth = useAuthStore(s => s.setAuth);
 
   // Handle backup acknowledgement and login
-  const handleBackupAcknowledgement = () => {
+  const handleBackupAcknowledgement = async () => {
     if (!generatedKeys) return;
 
     try {
@@ -64,10 +66,13 @@ const RegisterPage: React.FC = () => {
           .join('');
       }
 
-      // Store authentication data in localStorage first
-      localStorage.setItem('publicKey', hexPublicKey);
-      localStorage.setItem('privateKey', generatedKeys.privateKey); // nsec format
-      localStorage.setItem('signInMethod', 'nsec');
+      // Store authentication data with encryption (device key or password)
+      await AuthService.storeAuthData(
+        hexPublicKey,
+        generatedKeys.privateKey, // nsec format
+        'nsec',
+        registrationPassword.trim() || undefined // Optional password
+      );
 
       // Update auth state
       setAuth({
@@ -858,6 +863,43 @@ const RegisterPage: React.FC = () => {
                   />
                   <span>I've backed up my keys</span>
                 </label>
+                
+                <div style={{ marginTop: '16px', marginBottom: '16px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '8px', 
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: 'var(--text-primary)'
+                  }}>
+                    Password (optional, for extra security)
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="Password (optional)"
+                    value={registrationPassword}
+                    onChange={e => setRegistrationPassword(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      fontSize: '14px',
+                      border: '2px solid var(--border-color)',
+                      borderRadius: '6px',
+                      backgroundColor: 'var(--input-bg)',
+                      color: 'var(--text-primary)',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <p style={{
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    marginTop: '8px',
+                    marginBottom: '0'
+                  }}>
+                    Optional: Set a password to encrypt your private key with extra security. You'll need to enter it each session.
+                  </p>
+                </div>
+
                 <button
                   className="profileSaveButton fullWidth"
                   onClick={handleBackupAcknowledgement}

@@ -31,10 +31,22 @@ export class BlossomService {
     hash?: string
   ): Promise<any> {
     const storedAuth = AuthService.getStoredAuthData();
-    const { privateKey, publicKey, method: signInMethod } = storedAuth;
+    const { encryptedPrivateKey, publicKey, method: signInMethod } = storedAuth;
 
     if (!publicKey || !signInMethod) {
       throw new Error('Not authenticated');
+    }
+
+    // Decrypt private key if needed (device key mode - automatic)
+    let privateKey: string | null = null;
+    if (encryptedPrivateKey && signInMethod === 'nsec') {
+      try {
+        // Try to decrypt with device key (automatic, no password needed)
+        privateKey = await AuthService.decryptStoredPrivateKey();
+      } catch (error) {
+        // If password is required, throw error
+        throw new Error('Password required to decrypt private key. Please log in again.');
+      }
     }
 
     // Compute file hash if provided
@@ -84,8 +96,11 @@ export class BlossomService {
       }
       signedEvent = await (window as any).nostr.signEvent(authEvent);
     } else if (signInMethod === 'nsec' && privateKey) {
-      const { type, data } = nip19.decode(privateKey);
-      const privateKeyBytes = data as Uint8Array;
+      const decoded = nip19.decode(privateKey);
+      if (decoded.type !== 'nsec') {
+        throw new Error('Invalid nsec format');
+      }
+      const privateKeyBytes = decoded.data as Uint8Array;
       signedEvent = finalizeEvent(authEvent, privateKeyBytes);
     } else if (signInMethod === 'externalSigner') {
       // For external signer, set pubkey and hash first

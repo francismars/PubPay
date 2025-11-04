@@ -4,7 +4,8 @@ type InvoiceOverlayState = {
   show: boolean;
   bolt11: string;
   amount: number;
-  eventId: string;
+  eventId: string; // Post event ID (for finding recipient)
+  zapRequestId?: string; // Zap request event ID (for closing when payment detected)
 };
 
 type StatusToastState = {
@@ -32,6 +33,7 @@ type UIState = {
     bolt11: string;
     amount: number;
     eventId: string;
+    zapRequestId?: string;
   }) => void;
   closeInvoice: () => void;
   openProcessing: (message?: string) => void;
@@ -56,17 +58,17 @@ type UIState = {
 };
 
 export const useUIStore = create<UIState>(set => ({
-  invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '' },
+  invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '', zapRequestId: '' },
   processingOverlay: { show: false, message: '' },
   statusToast: { show: false, message: '', variant: 'info', persist: false },
   followSuggestions: [],
   loginForm: { show: false },
   newPayNoteForm: { show: false },
-  openInvoice: ({ bolt11, amount, eventId }) =>
-    set({ invoiceOverlay: { show: true, bolt11, amount, eventId } }),
+  openInvoice: ({ bolt11, amount, eventId, zapRequestId }) =>
+    set({ invoiceOverlay: { show: true, bolt11, amount, eventId, zapRequestId } }),
   closeInvoice: () =>
     set({
-      invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '' }
+      invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '', zapRequestId: '' }
     }),
   openProcessing: (message = 'Processing payment...') =>
     set({ processingOverlay: { show: true, message } }),

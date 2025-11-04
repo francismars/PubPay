@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, Outlet } from 'react-router-dom';
-import { useUIStore, NostrRegistrationService } from '@pubpay/shared-services';
+import { useUIStore, NostrRegistrationService, AuthService } from '@pubpay/shared-services';
 import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { InvoiceQR } from '@pubpay/shared-ui';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
@@ -29,8 +29,11 @@ export const Layout: React.FC = () => {
   const closeLogin = useUIStore(s => s.closeLogin);
   const [showNsecGroup, setShowNsecGroup] = useState(false);
   const [nsecInput, setNsecInput] = useState('');
+  const [nsecPassword, setNsecPassword] = useState('');
   const [showRecoveryGroup, setShowRecoveryGroup] = useState(false);
   const [recoveryMnemonic, setRecoveryMnemonic] = useState('');
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [passwordPromptPassword, setPasswordPromptPassword] = useState('');
   // Remember me removed: always persist until logout
   const [qrScanner, setQrScanner] = useState<any>(null);
   const [isScannerRunning, setIsScannerRunning] = useState(false);
@@ -76,15 +79,19 @@ export const Layout: React.FC = () => {
     handlePayWithExtension,
     handlePayAnonymously,
     handlePostNote,
-    loadUserProfile
+    loadUserProfile,
+    checkAuthStatus
   } = useHomeFunctionality();
 
   // Reset login form to main state
   const resetLoginForm = () => {
     setShowNsecGroup(false);
     setNsecInput('');
+    setNsecPassword('');
     setShowRecoveryGroup(false);
     setRecoveryMnemonic('');
+    setShowPasswordPrompt(false);
+    setPasswordPromptPassword('');
   };
 
   const handleQRScannerOpen = () => {
@@ -166,13 +173,71 @@ export const Layout: React.FC = () => {
     }
   };
 
-  const handleNsecContinue = () => {
+  const handleNsecContinue = async () => {
     if (nsecInput.trim()) {
-      handleContinueWithNsec(nsecInput);
+      await handleContinueWithNsec(nsecInput, nsecPassword || undefined);
       setNsecInput('');
+      setNsecPassword('');
       closeLogin();
     }
   };
+
+  const handlePasswordPromptSubmit = async () => {
+    try {
+      if (!passwordPromptPassword.trim()) {
+        return;
+      }
+      const result = await checkAuthStatus(passwordPromptPassword);
+      if (result.requiresPassword) {
+        // Password was incorrect
+        try {
+          useUIStore.getState().openToast('Invalid password. Please try again.', 'error', false);
+          setTimeout(() => {
+            try {
+              useUIStore.getState().closeToast();
+            } catch {}
+          }, 3000);
+        } catch (toastError) {
+          console.warn('Failed to show toast:', toastError);
+        }
+        setPasswordPromptPassword('');
+      } else {
+        // Success - password was correct
+        setPasswordPromptPassword('');
+        setShowPasswordPrompt(false);
+      }
+    } catch (error) {
+      console.error('Password prompt failed:', error);
+      // Show error message
+      try {
+        useUIStore.getState().openToast('Invalid password. Please try again.', 'error', false);
+        setTimeout(() => {
+          try {
+            useUIStore.getState().closeToast();
+          } catch (toastError) {
+            console.warn('Failed to close toast:', toastError);
+          }
+        }, 3000);
+      } catch (toastError) {
+        console.warn('Failed to show toast:', toastError);
+      }
+      setPasswordPromptPassword('');
+    }
+  };
+
+  // Check if password is required on mount and when auth state changes
+  useEffect(() => {
+    const checkPasswordRequirement = async () => {
+      if (AuthService.isAuthenticated() && AuthService.requiresPassword()) {
+        // Check if we already have private key in state
+        if (!authState.privateKey && authState.signInMethod === 'nsec') {
+          setShowPasswordPrompt(true);
+        }
+      }
+    };
+
+    checkPasswordRequirement().catch(console.error);
+  }, [authState.isLoggedIn, authState.privateKey, authState.signInMethod]);
 
   const handleRecoveryFromMnemonic = async () => {
     if (!recoveryMnemonic.trim()) {
@@ -1024,15 +1089,46 @@ export const Layout: React.FC = () => {
                   padding: '12px 16px',
                   width: '100%',
                   fontSize: '14px',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  marginBottom: '12px'
                 }}
               />
+              <input
+                type="password"
+                id="nsecPasswordInput"
+                placeholder="Password (optional, for extra security)"
+                className="inputField"
+                value={nsecPassword}
+                onChange={e => setNsecPassword(e.target.value)}
+                autoComplete="new-password"
+                style={{
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  border: '2px solid var(--border-color)',
+                  borderRadius: '6px',
+                  padding: '12px 16px',
+                  width: '100%',
+                  fontSize: '14px',
+                  boxSizing: 'border-box',
+                  marginBottom: '12px'
+                }}
+              />
+              <p
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--text-secondary)',
+                  margin: '0 0 12px 0',
+                  textAlign: 'left'
+                }}
+              >
+                Optional: Set a password to encrypt your private key. You'll need to enter it each session.
+              </p>
               <button
                 id="continueWithNsec"
                 className="cta"
                 type="submit"
                 onClick={async () => {
-                  await handleContinueWithNsec(nsecInput);
+                  await handleContinueWithNsec(nsecInput, nsecPassword || undefined);
                   closeLogin();
                 }}
               >
@@ -1356,6 +1452,82 @@ export const Layout: React.FC = () => {
           >
             Close
           </a>
+        </div>
+      </div>
+
+      {/* Password Prompt Overlay */}
+      <div
+        className="overlayContainer"
+        id="passwordPromptOverlay"
+        style={{
+          display: 'flex',
+          visibility: showPasswordPrompt ? 'visible' : 'hidden',
+          opacity: showPasswordPrompt ? 1 : 0,
+          pointerEvents: showPasswordPrompt ? 'auto' : 'none',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+        onClick={() => {
+          // Don't close on outside click - password is required
+        }}
+      >
+        <div
+          className="overlayInner"
+          onClick={e => e.stopPropagation()}
+          style={{ maxWidth: '400px', width: '90%' }}
+        >
+          <div className="brand">
+            PUB<span className="logoPay">PAY</span>
+            <span className="logoMe">.me</span>
+          </div>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: 'var(--text-primary)' }}>
+            Enter Password
+          </h3>
+          <p
+            style={{
+              fontSize: '14px',
+              color: 'var(--text-secondary)',
+              margin: '0 0 24px 0'
+            }}
+          >
+            Your private key is encrypted with a password. Please enter it to continue.
+          </p>
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              handlePasswordPromptSubmit();
+            }}
+          >
+            <input
+              type="password"
+              id="passwordPromptInput"
+              placeholder="Enter your password"
+              className="inputField"
+              value={passwordPromptPassword}
+              onChange={e => setPasswordPromptPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              autoFocus
+              style={{
+                backgroundColor: 'var(--input-bg)',
+                color: 'var(--text-primary)',
+                border: '2px solid var(--border-color)',
+                borderRadius: '6px',
+                padding: '12px 16px',
+                width: '100%',
+                fontSize: '14px',
+                boxSizing: 'border-box',
+                marginBottom: '16px'
+              }}
+            />
+            <button
+              type="submit"
+              className="cta"
+              style={{ width: '100%' }}
+            >
+              Unlock
+            </button>
+          </form>
         </div>
       </div>
 
