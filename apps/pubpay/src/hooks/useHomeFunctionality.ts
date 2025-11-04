@@ -3372,6 +3372,110 @@ export const useHomeFunctionality = () => {
   };
 
   // Process a new note event and add it to the feed
+  // Helper function to update zap subscription with a new event ID
+  const updateZapSubscriptionForNewPost = (newEventId: string) => {
+    if (!nostrClientRef.current || isLoading || !nostrReady) {
+      return;
+    }
+
+    // Check if we're in single post mode - if so, skip (handled by different effect)
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const qNote = params.get('note');
+        const path = window.location.pathname || '';
+        let noteRef: string | null = null;
+        if (qNote) noteRef = qNote;
+        else if (path.startsWith('/note/'))
+          noteRef = path.split('/note/')[1] || null;
+
+        if (noteRef) {
+          // We're in single post mode, skip updating here
+          return;
+        }
+      }
+    } catch {
+      // Continue if error checking for single post mode
+    }
+
+    // Check if event ID is already subscribed
+    if (subscribedEventIdsRef.current.has(newEventId)) {
+      console.log('Event ID already in zap subscription:', newEventId);
+      return;
+    }
+
+    // Get current posts from refs (they should be updated by now)
+    const currentPosts = activeFeed === 'following' ? followingPostsRef.current : postsRef.current;
+    
+    // Build new event IDs list including the new post
+    const eventIds = currentPosts.map(post => post.id);
+    
+    // Make sure the new event ID is included
+    if (!eventIds.includes(newEventId)) {
+      eventIds.push(newEventId);
+    }
+
+    // Update tracked event IDs
+    subscribedEventIdsRef.current = new Set(eventIds);
+
+    // Clean up old subscription if it exists
+    if (zapSubscriptionRef.current) {
+      try {
+        zapSubscriptionRef.current.unsubscribe();
+      } catch (e) {
+        console.warn('Error unsubscribing from old zap subscription:', e);
+      }
+    }
+
+    console.log('Updating zap subscription to include new post:', newEventId, 'total event IDs:', eventIds.length);
+
+    // Create new subscription with updated event IDs
+    zapSubscriptionRef.current = nostrClientRef.current.subscribeToEvents(
+      [
+        {
+          kinds: [9735],
+          '#e': eventIds
+        }
+      ],
+      async (zapEvent: NostrEvent) => {
+        // Type guard to ensure this is a zap event
+        if (zapEvent.kind !== 9735) return;
+        
+        // Add to batch for processing
+        console.log('Adding zap event to batch:', zapEvent.id);
+        zapBatchRef.current.push(zapEvent as Kind9735Event);
+
+        // Clear existing timeout
+        if (zapBatchTimeoutRef.current) {
+          clearTimeout(zapBatchTimeoutRef.current);
+        }
+
+        // Process batch after 500ms delay (or immediately if batch is large)
+        if (zapBatchRef.current.length >= 10) {
+          // Process immediately if batch is large
+          const batchToProcess = [...zapBatchRef.current];
+          zapBatchRef.current = [];
+          await processZapBatch(batchToProcess);
+        } else {
+          // Process after delay
+          zapBatchTimeoutRef.current = setTimeout(async () => {
+            const batchToProcess = [...zapBatchRef.current];
+            zapBatchRef.current = [];
+            await processZapBatch(batchToProcess);
+          }, 500);
+        }
+      },
+      {
+        oneose: () => {
+          console.log('Zap subscription EOS');
+        },
+        onclosed: () => {
+          console.log('Zap subscription closed');
+        }
+      }
+    );
+  };
+
   const processNewNote = async (noteEvent: Kind1Event) => {
     try {
       console.log('Processing new note:', noteEvent.id);
@@ -3444,7 +3548,10 @@ export const useHomeFunctionality = () => {
         }
 
         console.log('Adding new post to feed:', noteEvent.id);
-        return [newPost, ...prevPosts];
+        const updatedPosts = [newPost, ...prevPosts];
+        // Update ref immediately so updateZapSubscriptionForNewPost can use it
+        postsRef.current = updatedPosts;
+        return updatedPosts;
       });
 
       // Also add to following posts if we're in following mode
@@ -3454,9 +3561,15 @@ export const useHomeFunctionality = () => {
           if (exists) {
             return prevPosts;
           }
-          return [newPost, ...prevPosts];
+          const updatedPosts = [newPost, ...prevPosts];
+          // Update ref immediately so updateZapSubscriptionForNewPost can use it
+          followingPostsRef.current = updatedPosts;
+          return updatedPosts;
         });
       }
+
+      // Update zap subscription to include this new post
+      updateZapSubscriptionForNewPost(noteEvent.id);
     } catch (error) {
       console.error('Error processing new note:', error);
     }
