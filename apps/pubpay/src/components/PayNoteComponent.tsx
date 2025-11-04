@@ -750,6 +750,59 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             })}
           </div>
 
+          {/* Total Zaps Accounting - only count zaps within payment restrictions */}
+          {post.zaps.length > 0 && (() => {
+            // Filter zaps by amount limits (matches logic from useHomeFunctionality)
+            const zapsWithinLimits = post.zaps.filter(zap => {
+              const amount = zap.zapAmount || 0;
+              const min = post.zapMin || 0;
+              const max = post.zapMax || 0;
+
+              if (min > 0 && max > 0) {
+                // Both min and max specified
+                return amount >= min && amount <= max;
+              } else if (min > 0 && max === 0) {
+                // Only min specified
+                return amount >= min;
+              } else if (min === 0 && max > 0) {
+                // Only max specified
+                return amount <= max;
+              } else {
+                // No limits specified
+                return true;
+              }
+            });
+
+            // Cap count at zapUses if specified
+            const zapsToCount = post.zapUses && post.zapUses > 0
+              ? zapsWithinLimits.slice(0, post.zapUses)
+              : zapsWithinLimits;
+
+            const totalAmount = zapsToCount.reduce(
+              (sum, zap) => sum + (zap.zapAmount || 0),
+              0
+            );
+            const totalCount = zapsToCount.length;
+
+            return (
+              <div className="totalZapsAccounting">
+                <div className="totalZapsAmount">
+                  <span className="totalZapsNumber">
+                    {totalAmount.toLocaleString()}
+                  </span>
+                  <span className="totalZapsLabel">sats</span>
+                </div>
+                <div className="totalZapsSeparator">·</div>
+                <div className="totalZapsCount">
+                  <span className="totalZapsNumber">{totalCount}</span>
+                  <span className="totalZapsLabel">
+                    {totalCount === 1 ? 'zap' : 'zaps'}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Main CTA - only show for notes with zap tags */}
           {post.hasZapTags && (
             <div className="noteCTA">
@@ -821,27 +874,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                         ? 'Not Payable'
                         : 'Pay'}
               </button>
-            </div>
-          )}
-
-          {/* Total Zaps Accounting */}
-          {post.zaps.length > 0 && (
-            <div className="totalZapsAccounting">
-              <div className="totalZapsAmount">
-                <span className="totalZapsNumber">
-                  {post.zaps
-                    .reduce((sum, zap) => sum + (zap.zapAmount || 0), 0)
-                    .toLocaleString()}
-                </span>
-                <span className="totalZapsLabel">sats</span>
-              </div>
-              <div className="totalZapsSeparator">·</div>
-              <div className="totalZapsCount">
-                <span className="totalZapsNumber">{post.zaps.length}</span>
-                <span className="totalZapsLabel">
-                  {post.zaps.length === 1 ? 'zap' : 'zaps'}
-                </span>
-              </div>
             </div>
           )}
 
