@@ -23,6 +23,7 @@ export declare const ZAP_AMOUNTS: {
     MAX: number;
     DEFAULT: number;
 };
+export declare const GOAL_MAX = 2100000000000000;
 export declare const EVENT_KINDS: {
     readonly PROFILE: 0;
     readonly NOTE: 1;

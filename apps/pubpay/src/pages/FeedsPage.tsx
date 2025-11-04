@@ -326,21 +326,21 @@ export const FeedsPage: React.FC = () => {
               <>
                 {[...Array(5)].map((_, index) => (
                   <div key={index} className="paynote skeleton-loader">
-                    <div className="noteProfileImg">
+                  <div className="noteProfileImg">
                       <div className="skeleton skeleton-avatar"></div>
-                    </div>
-                    <div className="noteData">
-                      <div className="noteHeader">
-                        <div className="noteAuthor">
-                          <div className="noteDisplayName">
+                  </div>
+                  <div className="noteData">
+                    <div className="noteHeader">
+                      <div className="noteAuthor">
+                        <div className="noteDisplayName">
                             <div className="skeleton skeleton-text short"></div>
-                          </div>
-                          <div className="noteNIP05 label">
+                        </div>
+                        <div className="noteNIP05 label">
                             <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
-                          </div>
-                          <div className="noteLNAddress label">
+                        </div>
+                        <div className="noteLNAddress label">
                             <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
-                          </div>
+                    </div>
                         </div>
                         <div className="noteDate label">
                           <div className="skeleton skeleton-text tiny"></div>
@@ -351,39 +351,39 @@ export const FeedsPage: React.FC = () => {
                         <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
                         <div className="skeleton skeleton-text medium"></div>
                       </div>
-                      <div className="noteValues">
-                        <div className="zapMinContainer">
-                          <div className="zapMin">
+                    <div className="noteValues">
+                      <div className="zapMinContainer">
+                        <div className="zapMin">
                             <div className="skeleton skeleton-value"></div>
-                          </div>
+                        </div>
                           <div className="zapMinLabel">
                             <div className="skeleton skeleton-text tiny"></div>
                           </div>
-                        </div>
-                        <div className="zapMaxContainer">
-                          <div className="zapMax">
+                      </div>
+                      <div className="zapMaxContainer">
+                        <div className="zapMax">
                             <div className="skeleton skeleton-value"></div>
-                          </div>
+                        </div>
                           <div className="zapMaxLabel">
                             <div className="skeleton skeleton-text tiny"></div>
                           </div>
-                        </div>
-                        <div className="zapUsesContainer">
-                          <div className="zapUses">
+                      </div>
+                      <div className="zapUsesContainer">
+                        <div className="zapUses">
                             <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
                             <div className="skeleton skeleton-value" style={{ display: 'inline-block', marginLeft: '4px' }}></div>
-                          </div>
+                        </div>
                           <div className="zapUsesLabel">
                             <div className="skeleton skeleton-text tiny"></div>
                           </div>
-                        </div>
                       </div>
-                      <div className="noteCTA">
+                    </div>
+                    <div className="noteCTA">
                         <div className="skeleton skeleton-button"></div>
-                      </div>
-                      <div className="noteActionsReactions">
-                        <div className="noteZaps noteZapReactions"></div>
-                        <div className="noteActions">
+                    </div>
+                    <div className="noteActionsReactions">
+                      <div className="noteZaps noteZapReactions"></div>
+                      <div className="noteActions">
                           <div className="skeleton skeleton-icon"></div>
                           <div className="skeleton skeleton-icon"></div>
                           <div className="skeleton skeleton-icon"></div>
@@ -492,16 +492,16 @@ export const FeedsPage: React.FC = () => {
           <>
             {[...Array(5)].map((_, index) => (
               <div key={index} className="paynote skeleton-loader">
-                <div className="noteProfileImg">
+              <div className="noteProfileImg">
                   <div className="skeleton skeleton-avatar"></div>
-                </div>
-                <div className="noteData">
-                  <div className="noteHeader">
-                    <div className="noteAuthor">
-                      <div className="noteDisplayName">
+              </div>
+              <div className="noteData">
+                <div className="noteHeader">
+                  <div className="noteAuthor">
+                    <div className="noteDisplayName">
                         <div className="skeleton skeleton-text short"></div>
-                      </div>
-                      <div className="noteNIP05 label">
+                    </div>
+                    <div className="noteNIP05 label">
                         <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
                       </div>
                       <div className="noteLNAddress label">
@@ -516,37 +516,37 @@ export const FeedsPage: React.FC = () => {
                     <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
                     <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
                     <div className="skeleton skeleton-text medium"></div>
-                  </div>
-                  <div className="noteValues">
-                    <div className="zapMinContainer">
-                      <div className="zapMin">
+                </div>
+                <div className="noteValues">
+                  <div className="zapMinContainer">
+                    <div className="zapMin">
                         <div className="skeleton skeleton-value"></div>
-                        <span className="label">sats</span>
-                      </div>
-                      <div className="zapMinLabel">Min</div>
+                      <span className="label">sats</span>
                     </div>
-                    <div className="zapMaxContainer">
-                      <div className="zapMax">
-                        <div className="skeleton skeleton-value"></div>
-                        <span className="label">sats</span>
-                      </div>
-                      <div className="zapMaxLabel">Max</div>
-                    </div>
-                    <div className="zapUsesContainer">
-                      <div className="zapUses">
-                        <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
-                        <span className="label">of</span>
-                        <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
-                      </div>
-                      <div className="zapUsesLabel">Uses</div>
-                    </div>
+                    <div className="zapMinLabel">Min</div>
                   </div>
-                  <div className="noteCTA">
+                  <div className="zapMaxContainer">
+                    <div className="zapMax">
+                        <div className="skeleton skeleton-value"></div>
+                      <span className="label">sats</span>
+                    </div>
+                    <div className="zapMaxLabel">Max</div>
+                  </div>
+                  <div className="zapUsesContainer">
+                    <div className="zapUses">
+                        <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
+                      <span className="label">of</span>
+                        <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
+                    </div>
+                    <div className="zapUsesLabel">Uses</div>
+                  </div>
+                </div>
+                <div className="noteCTA">
                     <div className="skeleton skeleton-button"></div>
-                  </div>
-                  <div className="noteActionsReactions">
-                    <div className="noteZaps noteZapReactions"></div>
-                    <div className="noteActions">
+                </div>
+                <div className="noteActionsReactions">
+                  <div className="noteZaps noteZapReactions"></div>
+                  <div className="noteActions">
                       <div className="skeleton skeleton-icon"></div>
                       <div className="skeleton skeleton-icon"></div>
                       <div className="skeleton skeleton-icon"></div>

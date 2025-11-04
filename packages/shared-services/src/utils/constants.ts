@@ -34,6 +34,9 @@ export const ZAP_AMOUNTS = {
   DEFAULT: 100
 };
 
+// Total Bitcoin supply: 21 million BTC = 2,100,000,000,000,000 sats
+export const GOAL_MAX = 2100000000000000;
+
 export const EVENT_KINDS = {
   PROFILE: 0,
   NOTE: 1,

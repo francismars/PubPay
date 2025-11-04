@@ -24,9 +24,9 @@ export declare class ZapService {
     /**
      * Get invoice and handle payment (matches original getInvoiceandPay)
      */
-    getInvoiceandPay(callback: string, amount: number, zapFinalized: unknown, lud16: string, _eventID: string): Promise<void>;
+    getInvoiceandPay(callback: string, amount: number, zapFinalized: unknown, lud16: string, eventID: string): Promise<void>;
     /**
      * Handle fetched invoice (matches original handleFetchedInvoice)
      */
-    handleFetchedInvoice(invoice: string, zapEventID: string): Promise<void>;
+    handleFetchedInvoice(invoice: string, zapEventID: string, amount?: number): Promise<void>;
 }

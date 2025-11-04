@@ -906,12 +906,12 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 {paymentError
                   ? paymentError
                   : isPaying
-                    ? 'Paying…'
-                    : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
-                      ? 'Paid'
+                  ? 'Paying…'
+                  : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
+                    ? 'Paid'
                       : !isPayable
-                        ? 'Not Payable'
-                        : 'Pay'}
+                      ? 'Not Payable'
+                      : 'Pay'}
               </button>
             </div>
           )}
@@ -978,16 +978,16 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 >
                   <div className="zapMenuCustom">
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
-                      <input
-                        type="number"
-                        id="customZapInput"
-                        placeholder="sats"
-                        min="1"
-                        value={customZapAmount}
-                        onChange={e => setCustomZapAmount(e.target.value)}
-                        onClick={e => e.stopPropagation()}
+                    <input
+                      type="number"
+                      id="customZapInput"
+                      placeholder="sats"
+                      min="1"
+                      value={customZapAmount}
+                      onChange={e => setCustomZapAmount(e.target.value)}
+                      onClick={e => e.stopPropagation()}
                         style={{ flex: 1 }}
-                      />
+                    />
                       {!showCommentInput && (
                         <button
                           type="button"
@@ -1030,16 +1030,16 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       )}
                     </div>
                     {showCommentInput && (
-                      <textarea
-                        id="zapCommentInput"
+                    <textarea
+                      id="zapCommentInput"
                         placeholder="Comment (optional)"
-                        value={zapComment}
-                        onChange={e => setZapComment(e.target.value)}
-                        onClick={e => e.stopPropagation()}
-                        rows={2}
+                      value={zapComment}
+                      onChange={e => setZapComment(e.target.value)}
+                      onClick={e => e.stopPropagation()}
+                      rows={2}
                         style={{ marginTop: '8px' }}
                         autoFocus
-                      />
+                    />
                     )}
                     <button
                       id="customZapButton"
@@ -1141,20 +1141,20 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         </div>
 
         {/* Zap Confirmation Modal */}
-        <div
-          className="overlayContainer"
+          <div
+            className="overlayContainer"
           style={{
             display: 'flex',
             visibility: showZapModal ? 'visible' : 'hidden',
             opacity: showZapModal ? 1 : 0,
             pointerEvents: showZapModal ? 'auto' : 'none'
           }}
-          onClick={() => {
-            setShowZapModal(false);
-            setZapModalComment('');
-            setIsAnonymousModal(false);
-          }}
-        >
+            onClick={() => {
+              setShowZapModal(false);
+              setZapModalComment('');
+              setIsAnonymousModal(false);
+            }}
+          >
             <div
               className="overlayInner zapModal"
               onClick={e => e.stopPropagation()}

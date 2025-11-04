@@ -1224,7 +1224,7 @@ export const Layout: React.FC = () => {
                 <span className="label" style={{ fontSize: '16px' }}>{recipientName}</span>
                 {amountInSats > 0 && (
                   <span className="label" style={{ fontSize: '16px' }}>{amountInSats.toLocaleString()} sats</span>
-                )}
+          )}
               </div>
             );
           })()}
