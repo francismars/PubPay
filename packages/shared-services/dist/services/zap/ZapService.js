@@ -38,22 +38,22 @@ export class ZapService {
                 response = await fetch(`https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`);
             }
             catch {
-                errorResponse = "CAN'T PAY: Failed to fetch lud16";
+                errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
             }
             if (!response || response === undefined) {
-                errorResponse = "CAN'T PAY: Failed to fetch lud16";
+                errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
             }
             if (errorResponse) {
                 console.error(errorResponse);
-                return null;
+                throw new Error(errorResponse);
             }
             const lnurlinfo = await response.json();
             if (!(lnurlinfo.allowsNostr === true)) {
-                errorResponse = "CAN'T PAY: No nostr support";
+                errorResponse = 'CAN\'T PAY: No nostr support';
             }
             if (errorResponse) {
                 console.error(errorResponse);
-                return null;
+                throw new Error(errorResponse);
             }
             return {
                 callbackToZap: lnurlinfo.callback,
@@ -81,7 +81,7 @@ export class ZapService {
                 event: eventData,
                 pubkey: eventData.pubkey,
                 amount: amountPay,
-                comment: comment,
+                comment,
                 relays: RELAYS
             });
             console.log('Created zap event:', zapEvent);
@@ -190,14 +190,16 @@ export class ZapService {
             const responseFinal = await fetch(callString);
             if (!responseFinal.ok) {
                 const errorText = await responseFinal.text();
+                const errorMessage = 'CAN\'T PAY: Failed to get invoice';
                 console.error('Failed to get invoice from callback:', responseFinal.status, errorText);
-                return;
+                throw new Error(errorMessage);
             }
             const responseData = await responseFinal.json();
             console.log('Lightning service response:', responseData);
             if (!responseData.pr) {
+                const errorMessage = 'CAN\'T PAY: Failed to get invoice';
                 console.error('No invoice (pr) in response:', responseData);
-                return;
+                throw new Error(errorMessage);
             }
             const { pr: invoice } = responseData;
             await this.handleFetchedInvoice(invoice, zapFinalized.id);

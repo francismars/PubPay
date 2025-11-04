@@ -30,6 +30,7 @@ export const FeedsPage: React.FC = () => {
     replies,
     isLoadingMore,
     nostrReady,
+    paymentErrors,
     handleFeedChange,
     loadMorePosts,
     loadSingleNote,
@@ -60,6 +61,7 @@ export const FeedsPage: React.FC = () => {
     replies: PubPayPost[];
     isLoadingMore: boolean;
     nostrReady: boolean;
+    paymentErrors: Map<string, string>;
     handleFeedChange: (feed: 'global' | 'following') => void;
     loadMorePosts: () => Promise<void | unknown>;
     loadSingleNote: (eventId: string) => Promise<void>;
@@ -565,6 +567,7 @@ export const FeedsPage: React.FC = () => {
               isLoggedIn={authState.isLoggedIn}
               nostrClient={nostrClient}
               nostrReady={nostrReady}
+              paymentError={paymentErrors.get(post.id)}
             />
           ))
         )}
@@ -598,7 +601,7 @@ export const FeedsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Render replies when in single note mode (match legacy wrapper and disabled Pay) */}
+        {/* Render replies when in single note mode */}
         {singleNoteMode &&
           replies.map((reply: PubPayPost) => (
             <PayNoteComponent
@@ -612,6 +615,7 @@ export const FeedsPage: React.FC = () => {
               isReply={true}
               nostrClient={nostrClient}
               nostrReady={nostrReady}
+              paymentError={paymentErrors.get(reply.id)}
             />
           ))}
       </div>
@@ -736,6 +740,7 @@ export const FeedsPage: React.FC = () => {
               isLoggedIn={authState.isLoggedIn}
               nostrClient={nostrClient}
               nostrReady={nostrReady}
+              paymentError={paymentErrors.get(post.id)}
             />
           ))
         )}

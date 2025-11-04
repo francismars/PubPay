@@ -64,7 +64,8 @@ const ProfilePage: React.FC = () => {
     handlePayWithExtension,
     handlePayAnonymously,
     handleSharePost,
-    nostrReady
+    nostrReady,
+    paymentErrors
   } = useOutletContext<{
     authState: any;
     nostrClient: any;
@@ -80,6 +81,7 @@ const ProfilePage: React.FC = () => {
     ) => void;
     handleSharePost: (post: PubPayPost) => void;
     nostrReady: boolean;
+    paymentErrors: Map<string, string>;
   }>();
   const isLoggedIn = authState?.isLoggedIn;
   const userProfile = authState?.userProfile;
@@ -1310,6 +1312,7 @@ const ProfilePage: React.FC = () => {
                     isLoggedIn={isLoggedIn}
                     nostrClient={nostrClient}
                     nostrReady={nostrReady}
+                    paymentError={paymentErrors?.get(post.id)}
                   />
                 ))}
               </div>

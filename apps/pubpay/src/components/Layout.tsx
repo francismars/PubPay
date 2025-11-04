@@ -61,6 +61,7 @@ export const Layout: React.FC = () => {
     replies,
     isLoadingMore,
     nostrReady,
+    paymentErrors,
     handleFeedChange,
     loadMorePosts,
     loadSingleNote,
@@ -692,6 +693,7 @@ export const Layout: React.FC = () => {
                 replies,
                 isLoadingMore,
                 nostrReady,
+                paymentErrors,
                 // Actions from hook
                 handleFeedChange,
                 loadMorePosts,

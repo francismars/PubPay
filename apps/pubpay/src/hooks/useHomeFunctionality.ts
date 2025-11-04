@@ -83,6 +83,10 @@ export const useHomeFunctionality = () => {
     userProfile: null,
     displayName: null
   });
+  // Track payment errors per post ID
+  const [paymentErrors, setPaymentErrors] = useState<Map<string, string>>(
+    new Map()
+  );
 
   const nostrClientRef = useRef<NostrClient | null>(null);
   const lightningServiceRef = useRef<LightningService | null>(null);
@@ -1614,12 +1618,37 @@ export const useHomeFunctionality = () => {
       }
 
       // Get Lightning callback (pass raw author object, not parsed content)
-      const callback = await zapServiceRef.current.getInvoiceCallBack(
-        post.event,
-        post.author
-      );
-      if (!callback) {
-        console.error('Failed to get Lightning callback');
+      let callback;
+      try {
+        callback = await zapServiceRef.current.getInvoiceCallBack(
+          post.event,
+          post.author
+        );
+        if (!callback) {
+          const errorMessage = "CAN'T PAY: Failed to get Lightning callback";
+          setPaymentErrors(prev => {
+            const next = new Map(prev);
+            next.set(post.id, errorMessage);
+            return next;
+          });
+          console.error('Failed to get Lightning callback');
+          return;
+        }
+        // Clear error if callback succeeds
+        setPaymentErrors(prev => {
+          const next = new Map(prev);
+          next.delete(post.id);
+          return next;
+        });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "CAN'T PAY: Payment failed";
+        setPaymentErrors(prev => {
+          const next = new Map(prev);
+          next.set(post.id, errorMessage);
+          return next;
+        });
+        console.error('Failed to get Lightning callback:', error);
         return;
       }
 
@@ -1645,22 +1674,55 @@ export const useHomeFunctionality = () => {
       }
 
       // Sign and send zap event (ZapService will branch per sign-in method)
-      const success = await zapServiceRef.current.signZapEvent(
-        zapEventData.zapEvent,
-        callback.callbackToZap,
-        zapEventData.amountPay,
-        callback.lud16ToZap,
-        post.id,
-        false // not anonymous
-      );
+      // Note: signZapEvent may throw errors with "CAN'T PAY:" prefix
+      try {
+        const success = await zapServiceRef.current.signZapEvent(
+          zapEventData.zapEvent,
+          callback.callbackToZap,
+          zapEventData.amountPay,
+          callback.lud16ToZap,
+          post.id,
+          false // not anonymous
+        );
 
-      if (success) {
-        console.log('Zap payment initiated successfully');
-        // The ZapService will trigger the payment UI via custom event
-      } else {
-        console.error('Failed to sign and send zap event');
+        if (success) {
+          console.log('Zap payment initiated successfully');
+          // The ZapService will trigger the payment UI via custom event
+          // Clear error on success
+          setPaymentErrors(prev => {
+            const next = new Map(prev);
+            next.delete(post.id);
+            return next;
+          });
+        } else {
+          const errorMessage = "CAN'T PAY: Failed to sign and send zap event";
+          setPaymentErrors(prev => {
+            const next = new Map(prev);
+            next.set(post.id, errorMessage);
+            return next;
+          });
+          console.error('Failed to sign and send zap event');
+        }
+      } catch (signError) {
+        // signZapEvent can throw errors from getInvoiceandPay
+        const errorMessage =
+          signError instanceof Error ? signError.message : "CAN'T PAY: Payment failed";
+        setPaymentErrors(prev => {
+          const next = new Map(prev);
+          next.set(post.id, errorMessage);
+          return next;
+        });
+        console.error('Error in signZapEvent:', signError);
+        return; // Don't continue after error
       }
     } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "CAN'T PAY: Payment failed";
+      setPaymentErrors(prev => {
+        const next = new Map(prev);
+        next.set(post.id, errorMessage);
+        return next;
+      });
       console.error('Payment failed:', err);
     }
   };
@@ -1690,12 +1752,37 @@ export const useHomeFunctionality = () => {
       }
 
       // Get Lightning callback (pass raw author object, not parsed content)
-      const callback = await zapServiceRef.current.getInvoiceCallBack(
-        post.event,
-        post.author
-      );
-      if (!callback) {
-        console.error('Failed to get Lightning callback');
+      let callback;
+      try {
+        callback = await zapServiceRef.current.getInvoiceCallBack(
+          post.event,
+          post.author
+        );
+        if (!callback) {
+          const errorMessage = "CAN'T PAY: Failed to get Lightning callback";
+          setPaymentErrors(prev => {
+            const next = new Map(prev);
+            next.set(post.id, errorMessage);
+            return next;
+          });
+          console.error('Failed to get Lightning callback');
+          return;
+        }
+        // Clear error if callback succeeds
+        setPaymentErrors(prev => {
+          const next = new Map(prev);
+          next.delete(post.id);
+          return next;
+        });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "CAN'T PAY: Payment failed";
+        setPaymentErrors(prev => {
+          const next = new Map(prev);
+          next.set(post.id, errorMessage);
+          return next;
+        });
+        console.error('Failed to get Lightning callback:', error);
         return;
       }
 
@@ -1714,22 +1801,55 @@ export const useHomeFunctionality = () => {
       }
 
       // Sign and send zap event (anonymous = true)
-      const success = await zapServiceRef.current.signZapEvent(
-        zapEventData.zapEvent,
-        callback.callbackToZap,
-        zapEventData.amountPay,
-        callback.lud16ToZap,
-        post.id,
-        true // anonymous zap
-      );
+      // Note: signZapEvent may throw errors with "CAN'T PAY:" prefix
+      try {
+        const success = await zapServiceRef.current.signZapEvent(
+          zapEventData.zapEvent,
+          callback.callbackToZap,
+          zapEventData.amountPay,
+          callback.lud16ToZap,
+          post.id,
+          true // anonymous zap
+        );
 
-      if (success) {
-        console.log('Anonymous zap payment initiated successfully');
-        // The ZapService will trigger the payment UI via custom event
-      } else {
-        console.error('Failed to initiate anonymous zap payment');
+        if (success) {
+          console.log('Anonymous zap payment initiated successfully');
+          // The ZapService will trigger the payment UI via custom event
+          // Clear error on success
+          setPaymentErrors(prev => {
+            const next = new Map(prev);
+            next.delete(post.id);
+            return next;
+          });
+        } else {
+          const errorMessage = "CAN'T PAY: Failed to initiate anonymous zap payment";
+          setPaymentErrors(prev => {
+            const next = new Map(prev);
+            next.set(post.id, errorMessage);
+            return next;
+          });
+          console.error('Failed to initiate anonymous zap payment');
+        }
+      } catch (signError) {
+        // signZapEvent can throw errors from getInvoiceandPay
+        const errorMessage =
+          signError instanceof Error ? signError.message : "CAN'T PAY: Payment failed";
+        setPaymentErrors(prev => {
+          const next = new Map(prev);
+          next.set(post.id, errorMessage);
+          return next;
+        });
+        console.error('Error in signZapEvent (anonymous):', signError);
+        return; // Don't continue after error
       }
     } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "CAN'T PAY: Payment failed";
+      setPaymentErrors(prev => {
+        const next = new Map(prev);
+        next.set(post.id, errorMessage);
+        return next;
+      });
       console.error('Anonymous zap payment failed:', err);
     }
   };
@@ -2621,12 +2741,13 @@ export const useHomeFunctionality = () => {
         }
       }
 
-      // Extract zap payer pubkey from description tag
+      // Extract zap payer pubkey and content from description tag
       const descriptionTag = zapEvent.tags.find(
         tag => tag[0] === 'description'
       );
       let zapPayerPubkey = '';
       let isAnonymousZap = false;
+      let zapContent = '';
 
       if (descriptionTag) {
         try {
@@ -2634,6 +2755,14 @@ export const useHomeFunctionality = () => {
             parseZapDescription(descriptionTag[1] || undefined) || {};
           zapPayerPubkey = zapData.pubkey || '';
           isAnonymousZap = !zapData.pubkey;
+          // Extract content from zap description (the zap message/comment)
+          if (
+            zapData &&
+            'content' in zapData &&
+            typeof zapData.content === 'string'
+          ) {
+            zapContent = zapData.content;
+          }
         } catch {
           zapPayerPubkey = '';
           isAnonymousZap = true;
@@ -2681,6 +2810,7 @@ export const useHomeFunctionality = () => {
         zapPayerPubkey,
         zapPayerPicture,
         zapPayerNpub,
+        content: zapContent,
         isNewZap: true // Mark as new zap for lightning effect
       };
     } catch (error) {
@@ -2893,6 +3023,7 @@ export const useHomeFunctionality = () => {
     nostrReady,
     authState,
     nostrClient: nostrClientRef.current,
+    paymentErrors,
     handleFeedChange,
     handleQRScanner,
     handleLogin,

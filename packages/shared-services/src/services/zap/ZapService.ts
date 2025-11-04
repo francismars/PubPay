@@ -66,26 +66,26 @@ export class ZapService {
           `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`
         );
       } catch {
-        errorResponse = "CAN'T PAY: Failed to fetch lud16";
+        errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
       }
 
       if (!response || response === undefined) {
-        errorResponse = "CAN'T PAY: Failed to fetch lud16";
+        errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
       }
 
       if (errorResponse) {
         console.error(errorResponse);
-        return null;
+        throw new Error(errorResponse);
       }
 
       const lnurlinfo = await response!.json();
       if (!(lnurlinfo.allowsNostr === true)) {
-        errorResponse = "CAN'T PAY: No nostr support";
+        errorResponse = 'CAN\'T PAY: No nostr support';
       }
 
       if (errorResponse) {
         console.error(errorResponse);
-        return null;
+        throw new Error(errorResponse);
       }
 
       return {
@@ -93,8 +93,13 @@ export class ZapService {
         lud16ToZap: lud16
       };
     } catch (error) {
+      // Re-throw errors that we explicitly threw (they have our error messages)
+      if (error instanceof Error && error.message.startsWith('CAN\'T PAY:')) {
+        throw error;
+      }
+      // For unexpected errors, wrap and throw
       console.error('Error getting invoice callback:', error);
-      return null;
+      throw new Error('CAN\'T PAY: Failed to fetch lud16');
     }
   }
 
@@ -124,7 +129,7 @@ export class ZapService {
         event: eventData as any,
         pubkey: (eventData as any).pubkey,
         amount: amountPay,
-        comment: comment,
+        comment,
         relays: RELAYS
       });
 
@@ -238,6 +243,11 @@ export class ZapService {
 
       return true;
     } catch (error) {
+      // Re-throw errors that have our error messages (from getInvoiceandPay)
+      if (error instanceof Error && error.message.startsWith('CAN\'T PAY:')) {
+        throw error;
+      }
+      // For other errors, log and return false
       console.error('Error signing zap event:', error);
       return false;
     }
@@ -269,26 +279,34 @@ export class ZapService {
 
       if (!responseFinal.ok) {
         const errorText = await responseFinal.text();
+        const errorMessage = 'CAN\'T PAY: Failed to get invoice';
         console.error(
           'Failed to get invoice from callback:',
           responseFinal.status,
           errorText
         );
-        return;
+        throw new Error(errorMessage);
       }
 
       const responseData = await responseFinal.json();
       console.log('Lightning service response:', responseData);
 
       if (!responseData.pr) {
+        const errorMessage = 'CAN\'T PAY: Failed to get invoice';
         console.error('No invoice (pr) in response:', responseData);
-        return;
+        throw new Error(errorMessage);
       }
 
       const { pr: invoice } = responseData;
       await this.handleFetchedInvoice(invoice, (zapFinalized as any).id);
     } catch (error) {
+      // Re-throw errors that we explicitly threw (they have our error messages)
+      if (error instanceof Error && error.message.startsWith('CAN\'T PAY:')) {
+        throw error;
+      }
+      // For unexpected errors, wrap and throw
       console.error('Error getting invoice and paying:', error);
+      throw new Error('CAN\'T PAY: Failed to get invoice');
     }
   }
 
