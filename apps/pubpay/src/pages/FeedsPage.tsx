@@ -4,7 +4,6 @@ import { useOutletContext, useLocation } from 'react-router-dom';
 // import { useUIStore } from '@pubpay/shared-services';
 import { PayNoteComponent } from '../components/PayNoteComponent';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
-import { genericUserIcon } from '../assets/images';
 import { nip19 } from 'nostr-tools';
 
 // FeedsPageProps intentionally omitted; consuming via Outlet context
@@ -255,88 +254,69 @@ export const FeedsPage: React.FC = () => {
           // Show dummy posts while loading
           <>
             {/* First dummy post - always show */}
-            <div className="paynote blink">
+            <div className="paynote skeleton-loader">
               <div className="noteProfileImg">
-                <img className="userImg" src={genericUserIcon} alt="Profile" />
+                <div className="skeleton skeleton-avatar"></div>
               </div>
               <div className="noteData">
                 <div className="noteHeader">
                   <div className="noteAuthor">
                     <div className="noteDisplayName">
-                      <a
-                        href="#"
-                        className="noteAuthorLink disabled"
-                        target="_blank"
-                      >
-                        Loading...
-                      </a>
+                      <div className="skeleton skeleton-text short"></div>
                     </div>
                     <div className="noteNIP05 label">
-                      <a href="#" target="_blank">
-                        <span className="material-symbols-outlined">
-                          check_circle
-                        </span>
-                        loading@example.com
-                      </a>
+                      <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
                     </div>
                     <div className="noteLNAddress label">
-                      <a href="#" target="_blank">
-                        <span className="material-symbols-outlined">bolt</span>
-                        loading@example.com
-                      </a>
+                      <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
                     </div>
                   </div>
-                  <div className="noteDate label">Loading...</div>
+                  <div className="noteDate label">
+                    <div className="skeleton skeleton-text tiny"></div>
+                  </div>
                 </div>
-                <div className="noteContent disabled">Loading posts...</div>
+                <div className="noteContent">
+                  <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
+                  <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
+                  <div className="skeleton skeleton-text medium"></div>
+                </div>
                 <div className="noteValues">
                   <div className="zapMinContainer">
                     <div className="zapMin">
-                      <span className="zapMinVal disabled">Loading...</span>
-                      <span className="label">sats</span>
+                      <div className="skeleton skeleton-value"></div>
                     </div>
-                    <div className="zapMinLabel">Min</div>
+                    <div className="zapMinLabel">
+                      <div className="skeleton skeleton-text tiny"></div>
+                    </div>
                   </div>
                   <div className="zapMaxContainer">
                     <div className="zapMax">
-                      <span className="zapMaxVal disabled">Loading...</span>
-                      <span className="label">sats</span>
+                      <div className="skeleton skeleton-value"></div>
                     </div>
-                    <div className="zapMaxLabel">Max</div>
+                    <div className="zapMaxLabel">
+                      <div className="skeleton skeleton-text tiny"></div>
+                    </div>
                   </div>
                   <div className="zapUsesContainer">
                     <div className="zapUses">
-                      <span className="zapUsesCurrent disabled">0</span>
-                      <span className="label">of</span>
-                      <span className="zapUsesTotal disabled">5</span>
+                      <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
+                      <div className="skeleton skeleton-value" style={{ display: 'inline-block', marginLeft: '4px' }}></div>
                     </div>
-                    <div className="zapUsesLabel">Uses</div>
+                    <div className="zapUsesLabel">
+                      <div className="skeleton skeleton-text tiny"></div>
+                    </div>
                   </div>
                 </div>
                 <div className="noteCTA">
-                  <button className="noteMainCTA cta disabled">Pay</button>
+                  <div className="skeleton skeleton-button"></div>
                 </div>
                 <div className="noteActionsReactions">
                   <div className="noteZaps noteZapReactions"></div>
                   <div className="noteActions">
-                    <a className="noteAction disabled">
-                      <span className="material-symbols-outlined">bolt</span>
-                    </a>
-                    <a className="noteAction disabled">
-                      <span className="material-symbols-outlined">
-                        favorite
-                      </span>
-                    </a>
-                    <a className="noteAction disabled">
-                      <span className="material-symbols-outlined">
-                        ios_share
-                      </span>
-                    </a>
-                    <button className="noteAction dropdown disabled">
-                      <span className="material-symbols-outlined disabled">
-                        more_horiz
-                      </span>
-                    </button>
+                    <div className="skeleton skeleton-icon"></div>
+                    <div className="skeleton skeleton-icon"></div>
+                    <div className="skeleton skeleton-icon"></div>
+                    <div className="skeleton skeleton-icon"></div>
                   </div>
                 </div>
               </div>
@@ -344,194 +324,75 @@ export const FeedsPage: React.FC = () => {
             {/* Close conditional rendering for normal mode dummy posts */}
             {!singleNoteMode && (
               <>
-                <div className="paynote blink">
-                  <div className="noteProfileImg">
-                    <img
-                      className="userImg"
-                      src={genericUserIcon}
-                      alt="Profile"
-                    />
-                  </div>
-                  <div className="noteData">
-                    <div className="noteHeader">
-                      <div className="noteAuthor">
-                        <div className="noteDisplayName">
-                          <a
-                            href="#"
-                            className="noteAuthorLink disabled"
-                            target="_blank"
-                          >
-                            Loading...
-                          </a>
-                        </div>
-                        <div className="noteNIP05 label">
-                          <a href="#" target="_blank">
-                            <span className="material-symbols-outlined">
-                              check_circle
-                            </span>
-                            loading@example.com
-                          </a>
-                        </div>
-                        <div className="noteLNAddress label">
-                          <a href="#" target="_blank">
-                            <span className="material-symbols-outlined">
-                              bolt
-                            </span>
-                            loading@example.com
-                          </a>
-                        </div>
-                      </div>
-                      <div className="noteDate label">Loading...</div>
+                {[...Array(5)].map((_, index) => (
+                  <div key={index} className="paynote skeleton-loader">
+                    <div className="noteProfileImg">
+                      <div className="skeleton skeleton-avatar"></div>
                     </div>
-                    <div className="noteContent disabled">Loading posts...</div>
-                    <div className="noteValues">
-                      <div className="zapMinContainer">
-                        <div className="zapMin">
-                          <span className="zapMinVal disabled">Loading...</span>
-                          <span className="label">sats</span>
+                    <div className="noteData">
+                      <div className="noteHeader">
+                        <div className="noteAuthor">
+                          <div className="noteDisplayName">
+                            <div className="skeleton skeleton-text short"></div>
+                          </div>
+                          <div className="noteNIP05 label">
+                            <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
+                          </div>
+                          <div className="noteLNAddress label">
+                            <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
+                          </div>
                         </div>
-                        <div className="zapMinLabel">Min</div>
-                      </div>
-                      <div className="zapMaxContainer">
-                        <div className="zapMax">
-                          <span className="zapMaxVal disabled">Loading...</span>
-                          <span className="label">sats</span>
+                        <div className="noteDate label">
+                          <div className="skeleton skeleton-text tiny"></div>
                         </div>
-                        <div className="zapMaxLabel">Max</div>
                       </div>
-                      <div className="zapUsesContainer">
-                        <div className="zapUses">
-                          <span className="zapUsesCurrent disabled">0</span>
-                          <span className="label">of</span>
-                          <span className="zapUsesTotal disabled">5</span>
+                      <div className="noteContent">
+                        <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
+                        <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
+                        <div className="skeleton skeleton-text medium"></div>
+                      </div>
+                      <div className="noteValues">
+                        <div className="zapMinContainer">
+                          <div className="zapMin">
+                            <div className="skeleton skeleton-value"></div>
+                          </div>
+                          <div className="zapMinLabel">
+                            <div className="skeleton skeleton-text tiny"></div>
+                          </div>
                         </div>
-                        <div className="zapUsesLabel">Uses</div>
+                        <div className="zapMaxContainer">
+                          <div className="zapMax">
+                            <div className="skeleton skeleton-value"></div>
+                          </div>
+                          <div className="zapMaxLabel">
+                            <div className="skeleton skeleton-text tiny"></div>
+                          </div>
+                        </div>
+                        <div className="zapUsesContainer">
+                          <div className="zapUses">
+                            <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
+                            <div className="skeleton skeleton-value" style={{ display: 'inline-block', marginLeft: '4px' }}></div>
+                          </div>
+                          <div className="zapUsesLabel">
+                            <div className="skeleton skeleton-text tiny"></div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="noteCTA">
-                      <button className="noteMainCTA cta disabled">Pay</button>
-                    </div>
-                    <div className="noteActionsReactions">
-                      <div className="noteZaps noteZapReactions"></div>
-                      <div className="noteActions">
-                        <a className="noteAction disabled">
-                          <span className="material-symbols-outlined">
-                            bolt
-                          </span>
-                        </a>
-                        <a className="noteAction disabled">
-                          <span className="material-symbols-outlined">
-                            favorite
-                          </span>
-                        </a>
-                        <a className="noteAction disabled">
-                          <span className="material-symbols-outlined">
-                            ios_share
-                          </span>
-                        </a>
-                        <button className="noteAction dropdown disabled">
-                          <span className="material-symbols-outlined disabled">
-                            more_horiz
-                          </span>
-                        </button>
+                      <div className="noteCTA">
+                        <div className="skeleton skeleton-button"></div>
+                      </div>
+                      <div className="noteActionsReactions">
+                        <div className="noteZaps noteZapReactions"></div>
+                        <div className="noteActions">
+                          <div className="skeleton skeleton-icon"></div>
+                          <div className="skeleton skeleton-icon"></div>
+                          <div className="skeleton skeleton-icon"></div>
+                          <div className="skeleton skeleton-icon"></div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div className="paynote blink">
-                  <div className="noteProfileImg">
-                    <img
-                      className="userImg"
-                      src={genericUserIcon}
-                      alt="Profile"
-                    />
-                  </div>
-                  <div className="noteData">
-                    <div className="noteHeader">
-                      <div className="noteAuthor">
-                        <div className="noteDisplayName">
-                          <a
-                            href="#"
-                            className="noteAuthorLink disabled"
-                            target="_blank"
-                          >
-                            Loading...
-                          </a>
-                        </div>
-                        <div className="noteNIP05 label">
-                          <a href="#" target="_blank">
-                            <span className="material-symbols-outlined">
-                              check_circle
-                            </span>
-                            loading@example.com
-                          </a>
-                        </div>
-                        <div className="noteLNAddress label">
-                          <a href="#" target="_blank">
-                            <span className="material-symbols-outlined">
-                              bolt
-                            </span>
-                            loading@example.com
-                          </a>
-                        </div>
-                      </div>
-                      <div className="noteDate label">Loading...</div>
-                    </div>
-                    <div className="noteContent disabled">Loading posts...</div>
-                    <div className="noteValues">
-                      <div className="zapMinContainer">
-                        <div className="zapMin">
-                          <span className="zapMinVal disabled">Loading...</span>
-                          <span className="label">sats</span>
-                        </div>
-                        <div className="zapMinLabel">Min</div>
-                      </div>
-                      <div className="zapMaxContainer">
-                        <div className="zapMax">
-                          <span className="zapMaxVal disabled">Loading...</span>
-                          <span className="label">sats</span>
-                        </div>
-                        <div className="zapMaxLabel">Max</div>
-                      </div>
-                      <div className="zapUsesContainer">
-                        <div className="zapUses">
-                          <span className="zapUsesCurrent disabled">0</span>
-                          <span className="label">of</span>
-                          <span className="zapUsesTotal disabled">5</span>
-                        </div>
-                        <div className="zapUsesLabel">Uses</div>
-                      </div>
-                    </div>
-                    <div className="noteCTA">
-                      <button className="noteMainCTA cta disabled">Pay</button>
-                    </div>
-                    <div className="noteActionsReactions">
-                      <div className="noteZaps noteZapReactions"></div>
-                      <div className="noteActions">
-                        <a className="noteAction disabled">
-                          <span className="material-symbols-outlined">
-                            bolt
-                          </span>
-                        </a>
-                        <a className="noteAction disabled">
-                          <span className="material-symbols-outlined">
-                            favorite
-                          </span>
-                        </a>
-                        <a className="noteAction disabled">
-                          <span className="material-symbols-outlined">
-                            ios_share
-                          </span>
-                        </a>
-                        <button className="noteAction dropdown disabled">
-                          <span className="material-symbols-outlined disabled">
-                            more_horiz
-                          </span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                ))}
               </>
             )}
           </>
@@ -629,94 +490,72 @@ export const FeedsPage: React.FC = () => {
         {isLoading && followingPosts.length === 0 ? (
           // Show dummy posts while loading following
           <>
-            <div className="paynote blink">
-              <div className="noteProfileImg">
-                <img className="userImg" src={genericUserIcon} alt="Profile" />
-              </div>
-              <div className="noteData">
-                <div className="noteHeader">
-                  <div className="noteAuthor">
-                    <div className="noteDisplayName">
-                      <a
-                        href="#"
-                        className="noteAuthorLink disabled"
-                        target="_blank"
-                      >
-                        Loading...
-                      </a>
+            {[...Array(5)].map((_, index) => (
+              <div key={index} className="paynote skeleton-loader">
+                <div className="noteProfileImg">
+                  <div className="skeleton skeleton-avatar"></div>
+                </div>
+                <div className="noteData">
+                  <div className="noteHeader">
+                    <div className="noteAuthor">
+                      <div className="noteDisplayName">
+                        <div className="skeleton skeleton-text short"></div>
+                      </div>
+                      <div className="noteNIP05 label">
+                        <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
+                      </div>
+                      <div className="noteLNAddress label">
+                        <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
+                      </div>
                     </div>
-                    <div className="noteNIP05 label">
-                      <a href="#" target="_blank">
-                        <span className="material-symbols-outlined">
-                          check_circle
-                        </span>
-                        loading@example.com
-                      </a>
-                    </div>
-                    <div className="noteLNAddress label">
-                      <a href="#" target="_blank">
-                        <span className="material-symbols-outlined">bolt</span>
-                        loading@example.com
-                      </a>
+                    <div className="noteDate label">
+                      <div className="skeleton skeleton-text tiny"></div>
                     </div>
                   </div>
-                  <div className="noteDate label">Loading...</div>
-                </div>
-                <div className="noteContent disabled">
-                  Loading following posts...
-                </div>
-                <div className="noteValues">
-                  <div className="zapMinContainer">
-                    <div className="zapMin">
-                      <span className="zapMinVal disabled">Loading...</span>
-                      <span className="label">sats</span>
-                    </div>
-                    <div className="zapMinLabel">Min</div>
+                  <div className="noteContent">
+                    <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
+                    <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
+                    <div className="skeleton skeleton-text medium"></div>
                   </div>
-                  <div className="zapMaxContainer">
-                    <div className="zapMax">
-                      <span className="zapMaxVal disabled">Loading...</span>
-                      <span className="label">sats</span>
+                  <div className="noteValues">
+                    <div className="zapMinContainer">
+                      <div className="zapMin">
+                        <div className="skeleton skeleton-value"></div>
+                        <span className="label">sats</span>
+                      </div>
+                      <div className="zapMinLabel">Min</div>
                     </div>
-                    <div className="zapMaxLabel">Max</div>
-                  </div>
-                  <div className="zapUsesContainer">
-                    <div className="zapUses">
-                      <span className="zapUsesCurrent disabled">0</span>
-                      <span className="label">of</span>
-                      <span className="zapUsesTotal disabled">5</span>
+                    <div className="zapMaxContainer">
+                      <div className="zapMax">
+                        <div className="skeleton skeleton-value"></div>
+                        <span className="label">sats</span>
+                      </div>
+                      <div className="zapMaxLabel">Max</div>
                     </div>
-                    <div className="zapUsesLabel">Uses</div>
+                    <div className="zapUsesContainer">
+                      <div className="zapUses">
+                        <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
+                        <span className="label">of</span>
+                        <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
+                      </div>
+                      <div className="zapUsesLabel">Uses</div>
+                    </div>
                   </div>
-                </div>
-                <div className="noteCTA">
-                  <button className="noteMainCTA cta disabled">Pay</button>
-                </div>
-                <div className="noteActionsReactions">
-                  <div className="noteZaps noteZapReactions"></div>
-                  <div className="noteActions">
-                    <a className="noteAction disabled">
-                      <span className="material-symbols-outlined">bolt</span>
-                    </a>
-                    <a className="noteAction disabled">
-                      <span className="material-symbols-outlined">
-                        favorite
-                      </span>
-                    </a>
-                    <a className="noteAction disabled">
-                      <span className="material-symbols-outlined">
-                        ios_share
-                      </span>
-                    </a>
-                    <button className="noteAction dropdown disabled">
-                      <span className="material-symbols-outlined disabled">
-                        more_horiz
-                      </span>
-                    </button>
+                  <div className="noteCTA">
+                    <div className="skeleton skeleton-button"></div>
+                  </div>
+                  <div className="noteActionsReactions">
+                    <div className="noteZaps noteZapReactions"></div>
+                    <div className="noteActions">
+                      <div className="skeleton skeleton-icon"></div>
+                      <div className="skeleton skeleton-icon"></div>
+                      <div className="skeleton skeleton-icon"></div>
+                      <div className="skeleton skeleton-icon"></div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            ))}
           </>
         ) : followingPosts.length === 0 ? (
           <div
