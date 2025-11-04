@@ -289,6 +289,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
               name="payNoteContent"
               rows={4}
               placeholder="Description"
+              required
               onPaste={handlePaste}
               onChange={handleTextareaChange}
               onKeyDown={e => {
@@ -428,95 +429,102 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
             )}
           </div>
 
+          {/* Payment Options Section */}
+          <div className="formField">
+            <label className="label" style={{ marginBottom: '20px', fontSize: '13px', textTransform: 'uppercase' }}>
+              Payment Options (Optional)
+            </label>
+
+            {/* Accepted Payment Amount - dropdown with inline inputs */}
+            <div className="formFieldGroup paymentAmountGroup">
+              <div className="formField paymentTypeSelect">
+                <label htmlFor="paymentType" className="label">
+                  Requested
+                </label>
+                <select
+                  id="paymentType"
+                  name="paymentType"
+                  value={paymentType}
+                  onChange={e => setPaymentType(e.target.value as 'fixed' | 'range')}
+                  className="paymentTypeDropdown"
+                >
+                  <option value="fixed">Fixed</option>
+                  <option value="range">Range</option>
+                </select>
+              </div>
+
+              {/* Fixed Amount Input */}
+              {paymentType === 'fixed' && (
+                <div className="formField paymentAmountInput">
+                  <label htmlFor="zapFixed" className="label">
+                    Amount <span className="tagName">zap-min = zap-max</span>
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    id="zapFixed"
+                    placeholder="1"
+                    name="zapFixed"
+                    className="paymentAmountField"
+                  />
+                </div>
+              )}
+
+              {/* Range Inputs */}
+              {paymentType === 'range' && (
+                <>
+                  <div className="formField paymentAmountInput">
+                    <label htmlFor="zapMin" className="label">
+                      Minimum <span className="tagName">zap-min</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      id="zapMin"
+                      placeholder="1"
+                      name="zapMin"
+                      className="paymentAmountField"
+                    />
+                  </div>
+                  <div className="formField paymentAmountInput">
+                    <label htmlFor="zapMax" className="label">
+                      Maximum <span className="tagName">zap-max</span>
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      id="zapMax"
+                      placeholder="1000000000"
+                      name="zapMax"
+                      className="paymentAmountField"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Zap Goal - moved above Payment Options */}
+            <div className="formField" id="goalInterface">
+              <label htmlFor="zapGoal" className="label">
+                Goal Amount <span className="tagName">zap-goal</span>
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={GOAL_MAX}
+                id="zapGoal"
+                placeholder="100000"
+                name="zapGoal"
+              />
+            </div>
+          </div>
+
           <details className="formField">
             <summary className="legend summaryOptions">
-              Payment Options (Optional)
+              Advanced
             </summary>
 
             {/* Inline mentions implemented; dedicated tag UI removed */}
-
-            <fieldset className="formField formSelector">
-              <legend className="uppercase">Accepted Payment Amount</legend>
-              <div>
-                <input
-                  type="radio"
-                  id="fixedFlow"
-                  name="paymentType"
-                  value="fixed"
-                  checked={paymentType === 'fixed'}
-                  onChange={e => {
-                    if (e.target.checked) setPaymentType('fixed');
-                  }}
-                />
-                <label htmlFor="fixedFlow">Fixed</label>
-              </div>
-              <div>
-                <input
-                  type="radio"
-                  id="rangeFlow"
-                  name="paymentType"
-                  value="range"
-                  checked={paymentType === 'range'}
-                  onChange={e => {
-                    if (e.target.checked) setPaymentType('range');
-                  }}
-                />
-                <label htmlFor="rangeFlow">Range</label>
-              </div>
-            </fieldset>
-
-            <div
-              className="formFieldGroup"
-              id="fixedInterface"
-              style={{ display: paymentType === 'fixed' ? 'block' : 'none' }}
-            >
-              <div className="formField">
-                <label htmlFor="zapFixed" className="label">
-                  Fixed Amount* <span className="tagName">zap-min = zap-max</span>
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  id="zapFixed"
-                  placeholder="1"
-                  name="zapFixed"
-                  required={paymentType === 'fixed'}
-                />
-              </div>
-            </div>
-
-            <div
-              className="formFieldGroup"
-              id="rangeInterface"
-              style={{ display: paymentType === 'range' ? 'flex' : 'none' }}
-            >
-              <div className="formField">
-                <label htmlFor="zapMin" className="label">
-                  Minimum* <span className="tagName">zap-min</span>
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  id="zapMin"
-                  placeholder="1"
-                  name="zapMin"
-                  required={paymentType === 'range'}
-                />
-              </div>
-              <div className="formField">
-                <label htmlFor="zapMax" className="label">
-                  Maximum* <span className="tagName">zap-max</span>
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  id="zapMax"
-                  placeholder="1000000000"
-                  name="zapMax"
-                  required={paymentType === 'range'}
-                />
-              </div>
-            </div>
 
             <div className="formFieldGroup">
               <div className="formField">
@@ -529,19 +537,6 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                   id="zapUses"
                   placeholder="1"
                   name="zapUses"
-                />
-              </div>
-              <div className="formField" id="goalInterface">
-                <label htmlFor="zapGoal" className="label">
-                  Goal Amount <span className="tagName">zap-goal</span>
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={GOAL_MAX}
-                  id="zapGoal"
-                  placeholder="100000"
-                  name="zapGoal"
                 />
               </div>
             </div>
@@ -676,7 +671,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
             </div>
           </details>
           <button type="submit" id="postNote" className="cta">
-            {isPublishing ? 'Publishing...' : 'Publish'}
+            {isPublishing ? 'Publishing...' : 'Publish Note'}
           </button>
         </form>
         <a id="cancelNewNote" href="#" className="label" onClick={onClose}>

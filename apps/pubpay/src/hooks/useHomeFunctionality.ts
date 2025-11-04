@@ -2146,27 +2146,30 @@ export const useHomeFunctionality = () => {
       // Build tags array
       const tags: string[][] = [['t', 'pubpay']];
 
-      // Add zap amount tags
-      let zapMinAmount, zapMaxAmount;
-      if (paymentType === 'fixed') {
-        const amount = parseInt(zapFixed ?? '1') || 1;
-        zapMinAmount = amount * 1000; // Convert to millisatoshis
-        zapMaxAmount = amount * 1000;
-      } else if (paymentType === 'range') {
-        zapMinAmount = (parseInt(zapMin ?? '1') || 1) * 1000;
-        zapMaxAmount = (parseInt(zapMax ?? '1000000') || 1000000) * 1000;
-
-        if (zapMaxAmount < zapMinAmount) {
-          console.error('Maximum amount must be greater than minimum amount');
-          return;
+      // Add zap amount tags only if payment type is selected and values are provided
+      if (paymentType === 'fixed' && zapFixed && zapFixed.trim() !== '') {
+        const amount = parseInt(zapFixed);
+        if (!isNaN(amount) && amount > 0) {
+          const zapMinAmount = amount * 1000; // Convert to millisatoshis
+          const zapMaxAmount = amount * 1000;
+          tags.push(['zap-min', zapMinAmount.toString()]);
+          tags.push(['zap-max', zapMaxAmount.toString()]);
         }
-      } else {
-        console.error('Please select a payment type');
-        return;
+      } else if (paymentType === 'range' && zapMin && zapMin.trim() !== '' && zapMax && zapMax.trim() !== '') {
+        const minAmount = parseInt(zapMin);
+        const maxAmount = parseInt(zapMax);
+        if (!isNaN(minAmount) && !isNaN(maxAmount) && minAmount > 0 && maxAmount > 0) {
+          if (maxAmount < minAmount) {
+            console.error('Maximum amount must be greater than minimum amount');
+            return;
+          }
+          const zapMinAmount = minAmount * 1000;
+          const zapMaxAmount = maxAmount * 1000;
+          tags.push(['zap-min', zapMinAmount.toString()]);
+          tags.push(['zap-max', zapMaxAmount.toString()]);
+        }
       }
-
-      tags.push(['zap-min', zapMinAmount.toString()]);
-      tags.push(['zap-max', zapMaxAmount.toString()]);
+      // If no payment type or no values provided, don't add zap tags (payment is optional)
 
       // Add zap-goal tag if provided (convert to millisats for consistency)
       if (zapGoal && parseInt(zapGoal) > 0) {
