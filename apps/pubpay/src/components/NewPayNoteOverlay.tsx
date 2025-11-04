@@ -394,7 +394,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                 onClick={() => setShowPreview(!showPreview)}
                 className="previewButton"
               >
-                {showPreview ? 'Hide Preview' : 'Preview'}
+                {showPreview ? 'Hide Preview' : 'Show Preview'}
               </button>
               <input
                 type="file"
