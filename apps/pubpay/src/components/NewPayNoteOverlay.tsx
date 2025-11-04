@@ -18,7 +18,8 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
   isPublishing = false,
   nostrClient
 }) => {
-  const [paymentType, setPaymentType] = useState<'fixed' | 'range'>('fixed');
+  const [paymentType, setPaymentType] = useState<'fixed' | 'range' | 'goal'>('fixed');
+  const [showGoal, setShowGoal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewContent, setPreviewContent] = useState('');
@@ -89,6 +90,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
       await onSubmit(data);
       onClose();
       setPaymentType('fixed'); // Reset to default
+      setShowGoal(false); // Reset goal
     } catch (error) {
       console.error('Failed to post note:', error);
     }
@@ -455,15 +457,14 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
               />
               <label htmlFor="rangeFlow">Range</label>
             </div>
-            <div className="disabled">
+            <div>
               <input
-                type="radio"
-                id="targetFlow"
-                name="paymentType"
-                value="target"
-                disabled
+                type="checkbox"
+                id="goalFlow"
+                checked={showGoal}
+                onChange={e => setShowGoal(e.target.checked)}
               />
-              <label htmlFor="targetFlow">Target</label>
+              <label htmlFor="goalFlow">Goal</label>
             </div>
           </fieldset>
 
@@ -516,6 +517,26 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                 placeholder="1000000000"
                 name="zapMax"
                 required={paymentType === 'range'}
+              />
+            </div>
+          </div>
+
+          <div
+            className="formFieldGroup"
+            id="goalInterface"
+            style={{ display: showGoal ? 'block' : 'none' }}
+          >
+            <div className="formField">
+              <label htmlFor="zapGoal" className="label">
+                Goal Amount* <span className="tagName">zap-goal</span>
+              </label>
+              <input
+                type="number"
+                min={1}
+                id="zapGoal"
+                placeholder="100000"
+                name="zapGoal"
+                required={showGoal}
               />
             </div>
           </div>

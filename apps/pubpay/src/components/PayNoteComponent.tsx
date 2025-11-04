@@ -632,6 +632,60 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             </div>
           )}
 
+          {/* Zap Goal Progress - only show when zap-goal tag exists */}
+          {post.zapGoal && post.zapGoal > 0 && (() => {
+            // Filter zaps by amount limits (same logic as totalZapsAccounting)
+            const zapsWithinLimits = post.zaps.filter(zap => {
+              const amount = zap.zapAmount || 0;
+              const min = post.zapMin || 0;
+              const max = post.zapMax || 0;
+
+              if (min > 0 && max > 0) {
+                return amount >= min && amount <= max;
+              } else if (min > 0 && max === 0) {
+                return amount >= min;
+              } else if (min === 0 && max > 0) {
+                return amount <= max;
+              } else {
+                return true;
+              }
+            });
+
+            // Cap count at zapUses if specified
+            const zapsToCount = post.zapUses && post.zapUses > 0
+              ? zapsWithinLimits.slice(0, post.zapUses)
+              : zapsWithinLimits;
+
+            const currentAmount = zapsToCount.reduce(
+              (sum, zap) => sum + (zap.zapAmount || 0),
+              0
+            );
+
+            const progress = Math.min((currentAmount / post.zapGoal) * 100, 100);
+            const percentage = Math.round(progress);
+
+            return (
+              <div className="zapGoalProgress">
+                <div className="zapGoalText">
+                  <span className="zapGoalCurrent">
+                    {currentAmount.toLocaleString()}
+                  </span>
+                  <span className="zapGoalSeparator"> / </span>
+                  <span className="zapGoalTarget">
+                    {post.zapGoal.toLocaleString()} sats
+                  </span>
+                  <span className="zapGoalPercentage"> ({percentage}%)</span>
+                </div>
+                <div className="zapGoalBar">
+                  <div
+                    className="zapGoalBarFill"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Zap Payer */}
           {post.zapPayer && (
             <div className="zapPayer">
@@ -681,42 +735,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               </div>
             </div>
           )}
-
-          {/* Zap Slider for Range */}
-          {post.zapMin !== post.zapMax &&
-            isPayable &&
-            (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses) && (
-              <div className="zapSliderContainer">
-                <div className="zapAmountInput">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    className="zapAmountField"
-                    value={zapAmount.toLocaleString()}
-                    onChange={e => handleZapAmountInput(e.target.value)}
-                    onFocus={e => e.target.select()}
-                    onBlur={() => {
-                      // Ensure value is within bounds on blur
-                      if (zapAmount < post.zapMin) setZapAmount(post.zapMin);
-                      if (zapAmount > post.zapMax) setZapAmount(post.zapMax);
-                    }}
-                  />
-                  <span className="zapAmountSuffix">
-                    {zapAmount === 1 ? 'sat' : 'sats'}
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  className="zapSlider"
-                  min={post.zapMin}
-                  max={post.zapMax}
-                  value={zapAmount}
-                  onChange={e =>
-                    handleZapSliderChange(parseInt(e.target.value))
-                  }
-                />
-              </div>
-            )}
 
           {/* Hero Zaps - for zaps within target */}
           <div className="noteHeroZaps noteZapReactions">
@@ -802,6 +820,42 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               </div>
             );
           })()}
+
+          {/* Zap Slider for Range - directly above pay button */}
+          {post.zapMin !== post.zapMax &&
+            isPayable &&
+            (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses) && (
+              <div className="zapSliderContainer">
+                <div className="zapAmountInput">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="zapAmountField"
+                    value={zapAmount.toLocaleString()}
+                    onChange={e => handleZapAmountInput(e.target.value)}
+                    onFocus={e => e.target.select()}
+                    onBlur={() => {
+                      // Ensure value is within bounds on blur
+                      if (zapAmount < post.zapMin) setZapAmount(post.zapMin);
+                      if (zapAmount > post.zapMax) setZapAmount(post.zapMax);
+                    }}
+                  />
+                  <span className="zapAmountSuffix">
+                    {zapAmount === 1 ? 'sat' : 'sats'}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  className="zapSlider"
+                  min={post.zapMin}
+                  max={post.zapMax}
+                  value={zapAmount}
+                  onChange={e =>
+                    handleZapSliderChange(parseInt(e.target.value))
+                  }
+                />
+              </div>
+            )}
 
           {/* Main CTA - only show for notes with zap tags */}
           {post.hasZapTags && (
