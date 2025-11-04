@@ -261,11 +261,9 @@ export class ZapService {
     amount: number,
     zapFinalized: unknown,
     lud16: string,
-    _eventID: string
+    eventID: string
   ): Promise<void> {
     try {
-      // reference to avoid unused param lint
-      _eventID;
       if (!zapFinalized) {
         console.error('Cannot get invoice - zapFinalized is undefined');
         return;
@@ -298,7 +296,8 @@ export class ZapService {
       }
 
       const { pr: invoice } = responseData;
-      await this.handleFetchedInvoice(invoice, (zapFinalized as any).id);
+      // Pass the post event ID (eventID), not the zap event ID
+      await this.handleFetchedInvoice(invoice, eventID, amount);
     } catch (error) {
       // Re-throw errors that we explicitly threw (they have our error messages)
       if (error instanceof Error && error.message.startsWith('CAN\'T PAY:')) {
@@ -315,7 +314,8 @@ export class ZapService {
    */
   async handleFetchedInvoice(
     invoice: string,
-    zapEventID: string
+    zapEventID: string,
+    amount: number = 0
   ): Promise<void> {
     console.log('handleFetchedInvoice called with:', {
       invoice: `${invoice.substring(0, 50)}...`,
@@ -416,7 +416,7 @@ export class ZapService {
       const { useUIStore } = await import('../state/uiStore');
       useUIStore
         .getState()
-        .openInvoice({ bolt11: invoice, amount: 0, eventId: zapEventID });
+        .openInvoice({ bolt11: invoice, amount, eventId: zapEventID });
     } catch (e) {
       console.error('Failed to open invoice overlay via store:', e);
     }

@@ -1181,18 +1181,53 @@ export const Layout: React.FC = () => {
             PUB<span className="logoPay">PAY</span>
             <span className="logoMe">.me</span>
           </div>
-          <p id="qrcodeTitle" className="label">
-            Scan Invoice to Pay Zap
-          </p>
-          {useUIStore.getState().invoiceOverlay.amount > 0 && (
-            <p
-              className="label"
-              style={{ fontSize: '18px', fontWeight: 'bold', color: '#4a75ff' }}
-            >
-              {useUIStore.getState().invoiceOverlay.amount.toLocaleString()}{' '}
-              sats
-            </p>
-          )}
+          {(() => {
+            const invoiceOverlay = useUIStore.getState().invoiceOverlay;
+            // Convert from millisats to sats
+            const amountInSats = invoiceOverlay.amount > 0 ? Math.floor(invoiceOverlay.amount / 1000) : 0;
+            const eventId = invoiceOverlay.eventId;
+
+            // Find the post by eventId to get author info
+            let recipientName = 'Anonymous';
+            let recipientPicture = genericUserIcon;
+
+            if (eventId) {
+              // Check posts, followingPosts, and replies
+              const allPosts = [...posts, ...followingPosts, ...replies];
+              const post = allPosts.find(p => p.id === eventId);
+
+              if (post && post.author) {
+                try {
+                  const authorData = JSON.parse(post.author.content || '{}');
+                  recipientName = authorData?.display_name || authorData?.name || 'Anonymous';
+                  recipientPicture = authorData?.picture || genericUserIcon;
+                } catch {
+                  // Use defaults
+                }
+              }
+            }
+
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', marginBottom: '8px' }}>
+                <span className="label" style={{ fontSize: '16px' }}>Pay</span>
+                <img
+                  src={recipientPicture}
+                  alt={recipientName}
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    flexShrink: 0
+                  }}
+                />
+                <span className="label" style={{ fontSize: '16px' }}>{recipientName}</span>
+                {amountInSats > 0 && (
+                  <span className="label" style={{ fontSize: '16px' }}>{amountInSats.toLocaleString()} sats</span>
+                )}
+              </div>
+            );
+          })()}
           <InvoiceQR bolt11={useUIStore.getState().invoiceOverlay.bolt11} />
           <p id="qrcodeTitle" className="label">
             Otherwise:
