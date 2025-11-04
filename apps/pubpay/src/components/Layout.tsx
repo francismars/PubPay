@@ -1120,13 +1120,13 @@ export const Layout: React.FC = () => {
                 aria-hidden="true"
               />
               <input
-                type="password"
+                type="text"
                 id="nsecInput"
                 placeholder="Enter your nsec"
                 className="inputField"
                 value={nsecInput}
                 onChange={e => setNsecInput(e.target.value)}
-                autoComplete="new-password"
+                autoComplete="off"
                 required
                 style={{
                   backgroundColor: 'var(--input-bg)',
@@ -1137,7 +1137,8 @@ export const Layout: React.FC = () => {
                   width: '100%',
                   fontSize: '14px',
                   boxSizing: 'border-box',
-                  marginBottom: '12px'
+                  marginBottom: '12px',
+                  fontFamily: 'monospace'
                 }}
               />
               <input
