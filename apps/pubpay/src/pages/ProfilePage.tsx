@@ -570,12 +570,14 @@ const ProfilePage: React.FC = () => {
           let zapMaxUses = 0;
           let lud16ToZap = '';
 
+          let zapGoal: number | undefined;
           event.tags.forEach((tag: any[]) => {
             if (tag[0] === 'zap-min')
               zapMin = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
             if (tag[0] === 'zap-max')
               zapMax = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
             if (tag[0] === 'zap-uses') zapMaxUses = parseInt(tag[1]) || 0;
+            if (tag[0] === 'zap-goal') zapGoal = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
             if (tag[0] === 'zap-lnurl') lud16ToZap = tag[1] || '';
           });
 
@@ -589,6 +591,7 @@ const ProfilePage: React.FC = () => {
             zapMax,
             zapUses: zapMaxUses,
             zapUsesCurrent: 0, // Will be calculated by PayNoteComponent
+            zapGoal,
             content: event.content || '',
             isPayable: true,
             hasZapTags: true,

@@ -761,23 +761,23 @@ export const Layout: React.FC = () => {
             {/* Bottom Control Bar */}
             <div className="camera-controls-bar">
               {/* Camera Switch Button */}
-              {cameraList.length > 0 && (
+            {cameraList.length > 0 && (
                 <div className="camera-control-button-wrapper">
-                  <button
+                <button
                     className="camera-control-button"
-                    onClick={e => {
-                      e.preventDefault();
+                  onClick={e => {
+                    e.preventDefault();
                       e.stopPropagation();
-                      setShowCameraPicker(v => !v);
-                    }}
-                    title="Switch Camera"
+                    setShowCameraPicker(v => !v);
+                  }}
+                  title="Switch Camera"
                     aria-label="Switch Camera"
-                  >
+                >
                     <span className="material-symbols-outlined camera-icon">
-                      cameraswitch
-                    </span>
-                  </button>
-                  {showCameraPicker && (
+                    cameraswitch
+                  </span>
+                </button>
+                {showCameraPicker && (
                     <>
                       <div
                         className="camera-picker-overlay"
@@ -788,20 +788,20 @@ export const Layout: React.FC = () => {
                         }}
                       />
                       <div className="camera-picker-menu">
-                        {cameraList.map((c: any) => (
+                    {cameraList.map((c: any) => (
                           <button
-                            key={c.id}
+                        key={c.id}
                             className={`camera-picker-item ${
                               c.id === currentCameraIdRef.current
                                 ? 'active'
                                 : ''
                             }`}
                             onClick={e => {
-                              e.preventDefault();
+                          e.preventDefault();
                               e.stopPropagation();
-                              selectCamera(c.id);
-                              setShowCameraPicker(false);
-                            }}
+                          selectCamera(c.id);
+                          setShowCameraPicker(false);
+                        }}
                           >
                             <span className="material-symbols-outlined">
                               {/back|rear|environment/i.test(c.label)
@@ -811,7 +811,7 @@ export const Layout: React.FC = () => {
                                 : 'videocam'}
                             </span>
                             <span className="camera-picker-label">
-                              {c.label || c.id}
+                        {c.label || c.id}
                             </span>
                             {c.id === currentCameraIdRef.current && (
                               <span className="material-symbols-outlined check-icon">
@@ -819,31 +819,31 @@ export const Layout: React.FC = () => {
                               </span>
                             )}
                           </button>
-                        ))}
-                      </div>
+                    ))}
+                  </div>
                     </>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
+            )}
 
               {/* Torch Button */}
-              {torchSupported && (
-                <button
+            {torchSupported && (
+              <button
                   className={`camera-control-button ${torchOn ? 'active' : ''}`}
-                  onClick={e => {
-                    e.preventDefault();
+                onClick={e => {
+                  e.preventDefault();
                     e.stopPropagation();
-                    toggleTorch();
-                  }}
+                  toggleTorch();
+                }}
                   title={torchOn ? 'Turn off torch' : 'Turn on torch'}
                   aria-label={torchOn ? 'Turn off torch' : 'Turn on torch'}
-                >
+              >
                   <span className="material-symbols-outlined camera-icon">
                     {torchOn ? 'flashlight_on' : 'flashlight_off'}
                   </span>
-                </button>
-              )}
-            </div>
+              </button>
+            )}
+              </div>
           </div>
           <a
             id="stopScanner"

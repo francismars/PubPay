@@ -46,6 +46,7 @@ export interface PubPayPost {
   zapMax: number;
   zapUses: number;
   zapUsesCurrent: number;
+  zapGoal?: number;
   zapPayer?: string;
   zapPayerPicture?: string;
   zapPayerName?: string;
@@ -103,6 +104,28 @@ export const useHomeFunctionality = () => {
   // Zap batch processing
   const zapBatchRef = useRef<Kind9735Event[]>([]);
   const zapBatchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Track zap subscription to avoid recreating it unnecessarily
+  const zapSubscriptionRef = useRef<any>(null);
+  const subscribedEventIdsRef = useRef<Set<string>>(new Set());
+  
+  // Use refs to track posts/replies without causing re-renders
+  const postsRef = useRef<PubPayPost[]>([]);
+  const followingPostsRef = useRef<PubPayPost[]>([]);
+  const repliesRef = useRef<PubPayPost[]>([]);
+  
+  // Keep refs in sync with state
+  useEffect(() => {
+    postsRef.current = posts;
+  }, [posts]);
+  
+  useEffect(() => {
+    followingPostsRef.current = followingPosts;
+  }, [followingPosts]);
+  
+  useEffect(() => {
+    repliesRef.current = replies;
+  }, [replies]);
 
   // Initialize services (only once)
   useEffect(() => {
@@ -929,6 +952,7 @@ export const useHomeFunctionality = () => {
         zapAmount: 0,
         zaps: [],
         zapUsesCurrent: 0,
+        zapGoal: undefined,
         isPayable: true,
         hasZapTags: false,
         content: event.content
@@ -938,6 +962,7 @@ export const useHomeFunctionality = () => {
       const zapMinTag = event.tags.find(tag => tag[0] === 'zap-min');
       const zapMaxTag = event.tags.find(tag => tag[0] === 'zap-max');
       const zapUsesTag = event.tags.find(tag => tag[0] === 'zap-uses');
+      const zapGoalTag = event.tags.find(tag => tag[0] === 'zap-goal');
       const zapPayerTag = event.tags.find(tag => tag[0] === 'zap-payer');
       const zapLNURLTag = event.tags.find(tag => tag[0] === 'zap-lnurl');
 
@@ -949,6 +974,9 @@ export const useHomeFunctionality = () => {
       }
       if (zapUsesTag && zapUsesTag[1]) {
         post.zapUses = parseInt(zapUsesTag[1]) || 0;
+      }
+      if (zapGoalTag && zapGoalTag[1]) {
+        post.zapGoal = parseInt(zapGoalTag[1]) / 1000 || undefined; // Convert from millisats to sats
       }
       if (zapPayerTag && zapPayerTag[1]) {
         post.zapPayer = zapPayerTag[1];
@@ -1305,12 +1333,14 @@ export const useHomeFunctionality = () => {
       const zapMinTag = event.tags.find(tag => tag[0] === 'zap-min');
       const zapMaxTag = event.tags.find(tag => tag[0] === 'zap-max');
       const zapUsesTag = event.tags.find(tag => tag[0] === 'zap-uses');
+      const zapGoalTag = event.tags.find(tag => tag[0] === 'zap-goal');
       const zapPayerTag = event.tags.find(tag => tag[0] === 'zap-payer');
       const zapLNURLTag = event.tags.find(tag => tag[0] === 'zap-lnurl');
 
       const zapMin = zapMinTag ? parseInt(zapMinTag[1] || '0') / 1000 : 0;
       const zapMax = zapMaxTag ? parseInt(zapMaxTag[1] || '0') / 1000 : zapMin;
       const zapUses = zapUsesTag ? parseInt(zapUsesTag[1] || '0') : 0;
+      const zapGoal = zapGoalTag ? parseInt(zapGoalTag[1] || '0') / 1000 : undefined; // Convert from millisats to sats
 
       // Filter zaps by amount limits for usage counting (matches legacy behavior)
       const zapsWithinLimits = zaps.filter(zap => {
@@ -1368,6 +1398,7 @@ export const useHomeFunctionality = () => {
         zapMax,
         zapUses,
         zapUsesCurrent,
+        zapGoal,
         content: event.content,
         isPayable,
         hasZapTags: !!(zapMinTag || zapMaxTag),
@@ -1894,6 +1925,7 @@ export const useHomeFunctionality = () => {
         zapFixed,
         zapMin,
         zapMax,
+        zapGoal,
         zapUses,
         zapPayer,
         overrideLNURL
@@ -1928,6 +1960,12 @@ export const useHomeFunctionality = () => {
 
       tags.push(['zap-min', zapMinAmount.toString()]);
       tags.push(['zap-max', zapMaxAmount.toString()]);
+
+      // Add zap-goal tag if provided (convert to millisats for consistency)
+      if (zapGoal && parseInt(zapGoal) > 0) {
+        const zapGoalAmount = parseInt(zapGoal) * 1000; // Convert to millisatoshis
+        tags.push(['zap-goal', zapGoalAmount.toString()]);
+      }
 
       // Add optional tags
       if (zapUses && parseInt(zapUses) > 0) {
@@ -2336,7 +2374,7 @@ export const useHomeFunctionality = () => {
     } catch {}
 
     // Determine which posts to subscribe to based on active feed
-    const currentPosts = activeFeed === 'following' ? followingPosts : posts;
+    const currentPosts = activeFeed === 'following' ? followingPostsRef.current : postsRef.current;
 
     // If in following mode and user follows nobody, don't set up subscription
     if (
@@ -2416,60 +2454,102 @@ export const useHomeFunctionality = () => {
     }
 
     // Subscribe to new zaps for all current posts
-    let zapsSub: any = null;
+    // Only recreate subscription if event IDs have actually changed
+    let eventIds: string[] = [];
+    if (singlePostMode && singlePostEventId) {
+      // In single post mode, include both the main post and all reply IDs
+      const replyIds = repliesRef.current.map(reply => reply.id);
+      eventIds = [singlePostEventId, ...replyIds];
+    } else if (currentPosts.length > 0) {
+      eventIds = currentPosts.map(post => post.id);
+    }
+
+    // Check if event IDs have changed
+    const currentEventIdsSet = new Set(eventIds);
+    const eventIdsChanged = 
+      eventIds.length !== subscribedEventIdsRef.current.size ||
+      eventIds.some(id => !subscribedEventIdsRef.current.has(id)) ||
+      Array.from(subscribedEventIdsRef.current).some(id => !currentEventIdsSet.has(id));
+
+    // Only create/update subscription if event IDs changed or subscription doesn't exist
     if ((singlePostMode && singlePostEventId) || currentPosts.length > 0) {
-      const eventIds =
-        singlePostMode && singlePostEventId
-          ? [singlePostEventId]
-          : currentPosts.map(post => post.id);
-
-      zapsSub = nostrClientRef.current.subscribeToEvents(
-        [
-          {
-            kinds: [9735],
-            '#e': eventIds
+      if (!zapSubscriptionRef.current || eventIdsChanged) {
+        // Clean up old subscription if it exists
+        if (zapSubscriptionRef.current) {
+          try {
+            zapSubscriptionRef.current.unsubscribe();
+          } catch (e) {
+            console.warn('Error unsubscribing from old zap subscription:', e);
           }
-        ],
-        async (zapEvent: NostrEvent) => {
-          // Type guard to ensure this is a zap event
-          if (zapEvent.kind !== 9735) return;
-          // Extra guard in single post mode: ensure zap references our event id
-          if (singlePostMode && singlePostEventId) {
-            const eTag = zapEvent.tags.find(t => t[0] === 'e');
-            if (!eTag || eTag[1] !== singlePostEventId) return;
-          }
-          // Add to batch for processing
-          zapBatchRef.current.push(zapEvent as Kind9735Event);
+        }
 
-          // Clear existing timeout
-          if (zapBatchTimeoutRef.current) {
-            clearTimeout(zapBatchTimeoutRef.current);
-          }
+        // Update tracked event IDs
+        subscribedEventIdsRef.current = currentEventIdsSet;
 
-          // Process batch after 500ms delay (or immediately if batch is large)
-          if (zapBatchRef.current.length >= 10) {
-            // Process immediately if batch is large
-            const batchToProcess = [...zapBatchRef.current];
-            zapBatchRef.current = [];
-            await processZapBatch(batchToProcess);
-          } else {
-            // Process after delay
-            zapBatchTimeoutRef.current = setTimeout(async () => {
+        console.log('Creating/updating zap subscription with event IDs:', eventIds.length, 'in single post mode:', singlePostMode);
+        if (singlePostMode && singlePostEventId) {
+          console.log('Single post mode - main post:', singlePostEventId, 'replies:', repliesRef.current.length);
+        }
+
+        zapSubscriptionRef.current = nostrClientRef.current.subscribeToEvents(
+          [
+            {
+              kinds: [9735],
+              '#e': eventIds
+            }
+          ],
+          async (zapEvent: NostrEvent) => {
+            // Type guard to ensure this is a zap event
+            if (zapEvent.kind !== 9735) return;
+            // Extra guard in single post mode: ensure zap references our event id or reply IDs
+            if (singlePostMode && singlePostEventId) {
+              const eTag = zapEvent.tags.find(t => t[0] === 'e');
+              if (!eTag || !eTag[1]) {
+                console.log('Zap event rejected: no e tag or event ID');
+                return;
+              }
+              // Check if it's for the main post or any reply
+              const replyIds = repliesRef.current.map(reply => reply.id);
+              if (eTag[1] !== singlePostEventId && !replyIds.includes(eTag[1])) {
+                console.log('Zap event rejected: event ID not in main post or replies', eTag[1], 'main:', singlePostEventId, 'replies:', replyIds);
+                return;
+              }
+              console.log('Zap event accepted for single post mode:', eTag[1], 'is main post:', eTag[1] === singlePostEventId, 'is reply:', replyIds.includes(eTag[1]));
+            }
+            // Add to batch for processing
+            console.log('Adding zap event to batch:', zapEvent.id);
+            zapBatchRef.current.push(zapEvent as Kind9735Event);
+
+            // Clear existing timeout
+            if (zapBatchTimeoutRef.current) {
+              clearTimeout(zapBatchTimeoutRef.current);
+            }
+
+            // Process batch after 500ms delay (or immediately if batch is large)
+            if (zapBatchRef.current.length >= 10) {
+              // Process immediately if batch is large
               const batchToProcess = [...zapBatchRef.current];
               zapBatchRef.current = [];
               await processZapBatch(batchToProcess);
-            }, 500);
-          }
-        },
-        {
-          oneose: () => {
-            console.log('Zap subscription EOS');
+            } else {
+              // Process after delay
+              zapBatchTimeoutRef.current = setTimeout(async () => {
+                const batchToProcess = [...zapBatchRef.current];
+                zapBatchRef.current = [];
+                await processZapBatch(batchToProcess);
+              }, 500);
+            }
           },
-          onclosed: () => {
-            console.log('Zap subscription closed');
+          {
+            oneose: () => {
+              console.log('Zap subscription EOS');
+            },
+            onclosed: () => {
+              console.log('Zap subscription closed');
+            }
           }
-        }
-      );
+        );
+      }
     }
 
     return () => {
@@ -2489,15 +2569,132 @@ export const useHomeFunctionality = () => {
           console.warn('Error unsubscribing from new notes subscription:', e);
         }
       }
-      if (zapsSub) {
+      if (zapSubscriptionRef.current) {
         try {
-          zapsSub.unsubscribe();
+          zapSubscriptionRef.current.unsubscribe();
         } catch (e) {
           console.warn('Error unsubscribing from zaps subscription:', e);
         }
+        zapSubscriptionRef.current = null;
       }
     };
-  }, [activeFeed, isLoading, nostrReady]); // Only re-subscribe when feed changes, loading state changes, or nostr client becomes ready
+  }, [activeFeed, isLoading, nostrReady]); // Re-subscribe when feed changes, loading state changes, or nostr client becomes ready
+
+  // Update zap subscription when replies change in single post mode
+  useEffect(() => {
+    if (!nostrClientRef.current || isLoading || !nostrReady) {
+      return;
+    }
+
+    // Check if we're in single post mode
+    let singlePostMode = false;
+    let singlePostEventId: string | null = null;
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const qNote = params.get('note');
+        const path = window.location.pathname || '';
+        let noteRef: string | null = null;
+        if (qNote) noteRef = qNote;
+        else if (path.startsWith('/note/'))
+          noteRef = path.split('/note/')[1] || null;
+
+        if (noteRef) {
+          try {
+            const decoded = nip19.decode(noteRef);
+            if (decoded.type === 'note' || decoded.type === 'nevent') {
+              singlePostEventId =
+                (decoded as any).data?.id || (decoded as any).data || null;
+              singlePostMode = !!singlePostEventId;
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+
+    // Only update if in single post mode
+    if (!singlePostMode || !singlePostEventId) {
+      return;
+    }
+
+    // Get current reply IDs
+    const replyIds = repliesRef.current.map(reply => reply.id);
+    const eventIds = [singlePostEventId, ...replyIds];
+    const currentEventIdsSet = new Set(eventIds);
+
+    // Check if event IDs have changed
+    const eventIdsChanged =
+      eventIds.length !== subscribedEventIdsRef.current.size ||
+      eventIds.some(id => !subscribedEventIdsRef.current.has(id)) ||
+      Array.from(subscribedEventIdsRef.current).some(id => !currentEventIdsSet.has(id));
+
+    // Only update if event IDs changed (or subscription doesn't exist yet)
+    if (eventIdsChanged || !zapSubscriptionRef.current) {
+      // Clean up old subscription
+      if (zapSubscriptionRef.current) {
+        try {
+          zapSubscriptionRef.current.unsubscribe();
+        } catch (e) {
+          console.warn('Error unsubscribing from old zap subscription:', e);
+        }
+      }
+
+      // Update tracked event IDs
+      subscribedEventIdsRef.current = currentEventIdsSet;
+
+      console.log('Updating zap subscription for replies - event IDs:', eventIds.length, 'main post:', singlePostEventId, 'replies:', repliesRef.current.length);
+
+      // Create new subscription
+      zapSubscriptionRef.current = nostrClientRef.current.subscribeToEvents(
+        [
+          {
+            kinds: [9735],
+            '#e': eventIds
+          }
+        ],
+        async (zapEvent: NostrEvent) => {
+          if (zapEvent.kind !== 9735) return;
+          const eTag = zapEvent.tags.find(t => t[0] === 'e');
+          if (!eTag || !eTag[1]) {
+            console.log('Zap event rejected (separate useEffect): no e tag or event ID');
+            return;
+          }
+          // Get current reply IDs from ref (always use latest)
+          const currentReplyIds = repliesRef.current.map(reply => reply.id);
+          if (eTag[1] !== singlePostEventId && !currentReplyIds.includes(eTag[1])) {
+            console.log('Zap event rejected (separate useEffect): event ID not in main post or replies', eTag[1], 'main:', singlePostEventId, 'replies:', currentReplyIds);
+            return;
+          }
+          console.log('Zap event accepted (separate useEffect):', eTag[1], 'is main post:', eTag[1] === singlePostEventId, 'is reply:', currentReplyIds.includes(eTag[1]));
+          zapBatchRef.current.push(zapEvent as Kind9735Event);
+
+          if (zapBatchTimeoutRef.current) {
+            clearTimeout(zapBatchTimeoutRef.current);
+          }
+
+          if (zapBatchRef.current.length >= 10) {
+            const batchToProcess = [...zapBatchRef.current];
+            zapBatchRef.current = [];
+            await processZapBatch(batchToProcess);
+          } else {
+            zapBatchTimeoutRef.current = setTimeout(async () => {
+              const batchToProcess = [...zapBatchRef.current];
+              zapBatchRef.current = [];
+              await processZapBatch(batchToProcess);
+            }, 500);
+          }
+        },
+        {
+          oneose: () => {
+            console.log('Zap subscription EOS');
+          },
+          onclosed: () => {
+            console.log('Zap subscription closed');
+          }
+        }
+      );
+    }
+  }, [replies, isLoading, nostrReady]); // Only update when replies change
 
   // Process zaps in batches to reduce relay load
   const processZapBatch = async (zapEvents: Kind9735Event[]) => {
@@ -2664,6 +2861,61 @@ export const useHomeFunctionality = () => {
 
         newPosts[postIndex] = updatedPost;
         return newPosts;
+      });
+
+      // Also update replies if this post exists there
+      setReplies(prevReplies => {
+        const newReplies = [...prevReplies];
+        const replyIndex = newReplies.findIndex(reply => reply.id === postId);
+        if (replyIndex === -1) {
+          console.log('Zap processed: reply not found in replies array for postId:', postId);
+          return newReplies;
+        }
+        console.log('Zap processed: updating reply at index', replyIndex, 'for postId:', postId);
+
+        const reply = newReplies[replyIndex];
+        if (!reply) return newReplies;
+
+        // Check for duplicates
+        const existingZapInState = reply.zaps.find(
+          zap => zap.id === zapEvent.id
+        );
+        if (existingZapInState) {
+          return newReplies;
+        }
+
+        // Check if the new zap is within amount limits for usage counting
+        const isWithinLimits = (() => {
+          const amount = processedZap.zapAmount;
+          const min = reply.zapMin;
+          const max = reply.zapMax;
+
+          // Match legacy filtering logic
+          if (min > 0 && max > 0) {
+            // Both min and max specified
+            return amount >= min && amount <= max;
+          } else if (min > 0 && max === 0) {
+            // Only min specified
+            return amount >= min;
+          } else if (min === 0 && max > 0) {
+            // Only max specified
+            return amount <= max;
+          } else {
+            // No limits specified
+            return true;
+          }
+        })();
+
+        // Add the new zap to the reply
+        const updatedReply: PubPayPost = {
+          ...reply,
+          zaps: [...reply.zaps, processedZap],
+          zapAmount: reply.zapAmount + processedZap.zapAmount,
+          zapUsesCurrent: reply.zapUsesCurrent + (isWithinLimits ? 1 : 0)
+        };
+
+        newReplies[replyIndex] = updatedReply;
+        return newReplies;
       });
     }
   };
@@ -2940,6 +3192,7 @@ export const useHomeFunctionality = () => {
         zapAmount: 0,
         zaps: [],
         zapUsesCurrent: 0,
+        zapGoal: undefined,
         isPayable: true,
         hasZapTags: false,
         content: noteEvent.content
@@ -2949,6 +3202,7 @@ export const useHomeFunctionality = () => {
       const zapMinTag = noteEvent.tags.find(tag => tag[0] === 'zap-min');
       const zapMaxTag = noteEvent.tags.find(tag => tag[0] === 'zap-max');
       const zapUsesTag = noteEvent.tags.find(tag => tag[0] === 'zap-uses');
+      const zapGoalTag = noteEvent.tags.find(tag => tag[0] === 'zap-goal');
 
       if (zapMinTag && zapMinTag[1]) {
         newPost.zapMin = parseInt(zapMinTag[1]) / 1000 || 0; // Divide by 1000 for sats
@@ -2958,6 +3212,9 @@ export const useHomeFunctionality = () => {
       }
       if (zapUsesTag && zapUsesTag[1]) {
         newPost.zapUses = parseInt(zapUsesTag[1]) || 0; // Only set if tag exists
+      }
+      if (zapGoalTag && zapGoalTag[1]) {
+        newPost.zapGoal = parseInt(zapGoalTag[1]) / 1000 || undefined; // Convert from millisats to sats
       }
 
       // Set hasZapTags based on whether zap tags exist
