@@ -1531,6 +1531,28 @@ body.dark-mode .overlayInner {
   max-width: 1000px;
 }
 
+/* Password prompt overlay - always centered, prevent layout shift */
+#passwordPromptOverlay.overlayContainer {
+  align-items: center;
+  justify-content: center;
+  /* Ensure consistent positioning from the start */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Prevent animation conflicts */
+  animation: none;
+}
+
+/* Disable slideUp animation for password prompt to prevent jump */
+#passwordPromptOverlay .overlayInner {
+  animation: none;
+  transform: none;
+  /* Ensure no transform is applied initially */
+  will-change: auto;
+}
+
 #noteJSON {
   width: 100%;
   /* background: #f3f3f3; */

@@ -306,11 +306,17 @@ const SettingsPage: React.FC = () => {
         setPasswordPromptPassword('');
         setPasswordError('');
       } else {
-        setPasswordError('Failed to decrypt nsec');
+        setPasswordError('Unable to decrypt your private key. Please try again.');
       }
     } catch (error) {
       console.error('Failed to decrypt nsec with password:', error);
-      setPasswordError('Invalid password. Please try again.');
+      // Extract user-friendly error message
+      const errorMessage = error instanceof Error 
+        ? (error.message.includes('incorrect') || error.message.includes('password') 
+            ? error.message 
+            : 'Incorrect password. Please check your password and try again.')
+        : 'Incorrect password. Please check your password and try again.';
+      setPasswordError(errorMessage);
     }
   };
 

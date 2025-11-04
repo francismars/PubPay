@@ -122,7 +122,7 @@ export class FollowService {
         privateKey = await AuthService.decryptStoredPrivateKey();
       } catch (error) {
         // If password is required, return false
-        alert('Password required to decrypt private key. Please log in again.');
+        alert('Your private key is password-protected. Please log in again and enter your password to follow users.');
         return false;
       }
     }
@@ -178,7 +178,7 @@ export class FollowService {
         privateKey = await AuthService.decryptStoredPrivateKey();
       } catch (error) {
         // If password is required, return false
-        alert('Password required to decrypt private key. Please log in again.');
+        alert('Your private key is password-protected. Please log in again and enter your password to unfollow users.');
         return false;
       }
     }
