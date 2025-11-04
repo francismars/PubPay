@@ -1,6 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
 export const NotFoundPage: React.FC = () => {
+  // Initialize dark mode on mount (since this page is outside Layout)
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (savedDarkMode) {
+      document.body.classList.add('dark-mode');
+    }
+  }, []);
+
   return (
     <div className="notFoundPage">
       <div className="notFoundContent">

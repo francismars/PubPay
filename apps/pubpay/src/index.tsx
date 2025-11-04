@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
@@ -47,19 +47,31 @@ import './assets/images/icon/ms-icon-144x144.png';
 import './assets/images/icon/ms-icon-150x150.png';
 import './assets/images/icon/ms-icon-310x310.png';
 
-// Simple loading fallback
-const LoadingFallback: React.FC = () => (
-  <div style={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    fontSize: '18px',
-    color: '#666'
-  }}>
-    Loading...
-  </div>
-);
+// Simple loading fallback with dark mode support
+const LoadingFallback: React.FC = () => {
+  // Initialize dark mode on mount
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    if (savedDarkMode) {
+      document.body.classList.add('dark-mode');
+    }
+  }, []);
+
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '100vh',
+      fontSize: '18px',
+      color: 'var(--text-secondary)',
+      backgroundColor: 'var(--bg-primary)',
+      transition: 'background-color 0.3s ease, color 0.3s ease'
+    }}>
+      Loading...
+    </div>
+  );
+};
 
 const App: React.FC = () => {
   return (
