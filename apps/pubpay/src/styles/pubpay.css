@@ -4663,3 +4663,101 @@ body.dark-mode .profileDetails {
 body.dark-mode .profilePublicKey {
   color: #ffffff;
 }
+
+/* 404 Not Found Page - Brand Aligned */
+.notFoundPage {
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  font-family: 'Inter', sans-serif;
+  padding: 20px;
+}
+
+.notFoundContent {
+  text-align: center;
+  max-width: 600px;
+  width: 100%;
+}
+
+.notFoundContent .brand {
+  font-family: 'Russo One', sans-serif;
+  font-size: 32px;
+  font-weight: 400;
+  margin-bottom: 40px;
+  letter-spacing: 0.02em;
+}
+
+.notFoundContent .logoPub {
+  color: #4a75ff;
+}
+
+.notFoundContent .logoPay {
+  color: var(--text-primary);
+}
+
+.notFoundContent .logoMe {
+  color: var(--text-primary);
+  opacity: 0.12;
+}
+
+body.dark-mode .notFoundContent .logoMe {
+  opacity: 0.25;
+}
+
+.notFoundContent .errorCode {
+  font-size: 120px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4a75ff 0%, #3b5bdb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 20px;
+  font-family: 'Inter', sans-serif;
+}
+
+.notFoundContent h1 {
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.notFoundContent p {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: 0 0 32px 0;
+  line-height: 1.5;
+}
+
+.notFoundContent .cta {
+  display: inline-block;
+  background: linear-gradient(135deg, #4a75ff 0%, #3b5bdb 100%);
+  color: #ffffff;
+  padding: 14px 32px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 12px rgba(74, 117, 255, 0.3);
+  transition: all 0.2s ease;
+  font-family: 'Inter', sans-serif;
+  min-width: 200px;
+  max-width: 200px;
+}
+
+.notFoundContent .cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(74, 117, 255, 0.4);
+  background: linear-gradient(135deg, #3b5bdb 0%, #2c4bc7 100%);
+}
+
+.notFoundContent .cta:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(74, 117, 255, 0.3);
+}
