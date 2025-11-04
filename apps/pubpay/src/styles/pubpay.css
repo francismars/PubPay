@@ -1114,8 +1114,6 @@ body.dark-mode .noteAuthor .label a {
 .noteValues {
   display: flex;
   justify-content: space-between;
-  margin: 21px 0 0px 0;
-  border-top: 1px solid var(--border-light);
   padding: 8px 0;
   font-size: 20px;
   line-height: 1;
@@ -1201,7 +1199,7 @@ body.dark-mode .noteAuthor .label a {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin: 20px 0 30px 0;
+  margin: 20px 0 20px 0;
   border-radius: 6px;
   font-size: 13px;
   color: var(--text-secondary);
@@ -1286,6 +1284,7 @@ body.dark-mode .zapGoalBarFill {
 }
 
 .noteHeroZaps {
+  border-top: 1px solid var(--border-light);
   padding-bottom: 10px;
   padding-top: 10px;
 }
@@ -2555,10 +2554,6 @@ textarea:focus::placeholder {
 
 .originZap {
   position: relative;
-}
-
-.zapSliderContainer {
-  margin: 15px 0;
 }
 
 .zapAmountInput {

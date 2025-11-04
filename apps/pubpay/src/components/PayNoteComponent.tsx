@@ -591,48 +591,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             }}
           />
 
-          {/* Zap Values - only show for notes with zap tags */}
-          {post.hasZapTags && (
-            <div className="noteValues">
-              <div className="zapMinContainer">
-                <div className="zapMin">
-                  <span className="zapMinVal">
-                    {post.zapMin.toLocaleString()}
-                  </span>
-                  <span className="label">sats</span>
-                </div>
-                <div className="zapMinLabel">
-                  {post.zapMin !== post.zapMax ? 'Min' : ''}
-                </div>
-              </div>
-
-              {post.zapMin !== post.zapMax && (
-                <div className="zapMaxContainer">
-                  <div className="zapMax">
-                    <span className="zapMaxVal">
-                      {post.zapMax.toLocaleString()}
-                    </span>
-                    <span className="label">sats</span>
-                  </div>
-                  <div className="zapMaxLabel">Max</div>
-                </div>
-              )}
-
-              {post.zapUses > 1 && (
-                <div className="zapUsesContainer">
-                  <div className="zapUses">
-                    <span className="zapUsesCurrent">
-                      {post.zapUsesCurrent}
-                    </span>
-                    <span className="label">of</span>
-                    <span className="zapUsesTotal">{post.zapUses}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-
           {/* Zap Payer */}
           {post.zapPayer && (
             <div className="zapPayer">
@@ -806,6 +764,47 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               </div>
             );
           })()}
+
+          {/* Zap Values - only show for notes with zap tags, right above slider */}
+          {post.hasZapTags && (
+            <div className="noteValues">
+              <div className="zapMinContainer">
+                <div className="zapMin">
+                  <span className="zapMinVal">
+                    {post.zapMin.toLocaleString()}
+                  </span>
+                  <span className="label">sats</span>
+                </div>
+                <div className="zapMinLabel">
+                  {post.zapMin !== post.zapMax ? 'Min' : ''}
+                </div>
+              </div>
+
+              {post.zapMin !== post.zapMax && (
+                <div className="zapMaxContainer">
+                  <div className="zapMax">
+                    <span className="zapMaxVal">
+                      {post.zapMax.toLocaleString()}
+                    </span>
+                    <span className="label">sats</span>
+                  </div>
+                  <div className="zapMaxLabel">Max</div>
+                </div>
+              )}
+
+              {post.zapUses > 1 && (
+                <div className="zapUsesContainer">
+                  <div className="zapUses">
+                    <span className="zapUsesCurrent">
+                      {post.zapUsesCurrent}
+                    </span>
+                    <span className="label">of</span>
+                    <span className="zapUsesTotal">{post.zapUses}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Zap Slider for Range - directly above pay button */}
           {post.zapMin !== post.zapMax &&
