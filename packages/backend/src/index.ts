@@ -75,7 +75,7 @@ export class BackendServer {
     try {
       const fs = require('fs');
       if (fs.existsSync(distPath)) {
-        this.app.use(express.static('dist'));
+    this.app.use(express.static('dist'));
       }
     } catch {
       // dist directory doesn't exist, skip static file serving
@@ -128,7 +128,7 @@ export class BackendServer {
       const fs = require('fs');
       const indexPath = path.resolve(__dirname, '../dist/index.html');
       if (fs.existsSync(indexPath)) {
-        res.sendFile('index.html', { root: 'dist' });
+      res.sendFile('index.html', { root: 'dist' });
       } else {
         // If no index.html, return 404 for non-API routes
         if (!req.path.startsWith('/api') && !req.path.startsWith('/lightning') &&

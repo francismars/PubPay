@@ -90,19 +90,16 @@ export class ZapService {
       } catch (fetchError) {
         clearTimeout(timeoutId);
         this.lightningValidationCache.delete(validationKey);
-        
-        // Network errors or timeouts - treat as invalid
-        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-          console.warn(`Lightning address validation timeout: ${lud16}`);
-        } else {
-          console.warn(`Lightning address validation failed: ${lud16}`, fetchError);
-        }
-        
+
+        // Network errors, timeouts, or CORS errors - treat as invalid silently
+        // CORS errors are common when servers don't allow cross-origin requests
+        // Don't log these as they're expected behavior for many lightning servers
         this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
         return false;
       }
     } catch (error) {
-      console.warn(`Lightning address validation error: ${lud16}`, error);
+      // Handle any other errors silently (including CORS)
+      // CORS errors are expected when servers don't allow cross-origin requests
       this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
       return false;
     }
