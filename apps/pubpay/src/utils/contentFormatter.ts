@@ -78,77 +78,68 @@ export async function formatContent(
   nostrClient?: any
 ): Promise<string> {
   // Process mentions in order: bare npub first (before adding HTML), then prefixed versions
+  // Use position-based replacement to handle duplicate mentions correctly
+  
+  const processedRanges: Array<{start: number, end: number, replacement: string}> = [];
   
   // First, handle bare npub mentions (match all, filter by prefix check)
   const allNpubMatches = Array.from(content.matchAll(/\b((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi));
   
-  if (allNpubMatches.length > 0) {
-    const bareReplacements = await Promise.all(
-      allNpubMatches.map(async matchObj => {
-        const match = matchObj[0];
-        const offset = matchObj.index || 0;
-        
-        // Check if it's preceded by nostr: or @
-        const prefix = content.substring(Math.max(0, offset - 7), offset);
-        if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
-          return { match, replacement: match };
-        }
-        
-        const displayName = await getMentionUserName(match, nostrClient);
-        return {
-          match,
-          replacement: `<a href="/profile/${match}" class="nostrMention">${displayName}</a>`
-        };
-      })
-    );
-
-    bareReplacements.forEach(({ match, replacement }) => {
-      content = content.replace(match, replacement);
+  for (const matchObj of allNpubMatches) {
+    const match = matchObj[0];
+    const offset = matchObj.index || 0;
+    
+    // Check if it's preceded by nostr: or @
+    const prefix = content.substring(Math.max(0, offset - 7), offset);
+    if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
+      continue; // Skip this one, it will be processed with its prefix
+    }
+    
+    const displayName = await getMentionUserName(match, nostrClient);
+    const replacement = `<a href="/profile/${match}" class="nostrMention">${displayName}</a>`;
+    processedRanges.push({
+      start: offset,
+      end: offset + match.length,
+      replacement: replacement
     });
   }
 
   // Handle nostr:npub mentions
-  const nostrNpubMatches = content.match(
-    /nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
-  );
-
-  if (nostrNpubMatches) {
-    const replacements = await Promise.all(
-      nostrNpubMatches.map(async match => {
-        const cleanMatch = match.replace(/^nostr:/i, '');
-        const displayName = await getMentionUserName(cleanMatch, nostrClient);
-        return {
-          match,
-          replacement: `<a href="/profile/${cleanMatch}" class="nostrMention">${displayName}</a>`
-        };
-      })
-    );
-
-    replacements.forEach(({ match, replacement }) => {
-      content = content.replace(match, replacement);
+  const nostrNpubMatches = Array.from(content.matchAll(/nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi));
+  
+  for (const matchObj of nostrNpubMatches) {
+    const match = matchObj[0];
+    const offset = matchObj.index || 0;
+    const cleanMatch = match.replace(/^nostr:/i, '');
+    const displayName = await getMentionUserName(cleanMatch, nostrClient);
+    const replacement = `<a href="/profile/${cleanMatch}" class="nostrMention">${displayName}</a>`;
+    processedRanges.push({
+      start: offset,
+      end: offset + match.length,
+      replacement: replacement
     });
   }
 
   // Handle @npub mentions
-  const atNpubMatches = content.match(
-    /@((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
-  );
-
-  if (atNpubMatches) {
-    const replacements = await Promise.all(
-      atNpubMatches.map(async match => {
-        const cleanMatch = match.replace(/^@/i, '');
-        const displayName = await getMentionUserName(cleanMatch, nostrClient);
-        return {
-          match,
-          replacement: `<a href="/profile/${cleanMatch}" class="nostrMention">@${displayName}</a>`
-        };
-      })
-    );
-
-    replacements.forEach(({ match, replacement }) => {
-      content = content.replace(match, replacement);
+  const atNpubMatches = Array.from(content.matchAll(/@((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi));
+  
+  for (const matchObj of atNpubMatches) {
+    const match = matchObj[0];
+    const offset = matchObj.index || 0;
+    const cleanMatch = match.replace(/^@/i, '');
+    const displayName = await getMentionUserName(cleanMatch, nostrClient);
+    const replacement = `<a href="/profile/${cleanMatch}" class="nostrMention">${displayName}</a>`;
+    processedRanges.push({
+      start: offset,
+      end: offset + match.length,
+      replacement: replacement
     });
+  }
+  
+  // Apply all replacements in reverse order to maintain correct positions
+  processedRanges.sort((a, b) => b.start - a.start);
+  for (const range of processedRanges) {
+    content = content.substring(0, range.start) + range.replacement + content.substring(range.end);
   }
 
   // Handle hex pubkey mentions (64-character hex strings)
