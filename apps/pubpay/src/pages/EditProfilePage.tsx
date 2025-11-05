@@ -689,7 +689,7 @@ const EditProfilePage: React.FC = () => {
           </div>
 
           <div className="profileFormField">
-            <label htmlFor="editNip05">NIP-05 Identifier</label>
+            <label htmlFor="editNip05">Identifier (nip-05)</label>
             <input
               type="text"
               id="editNip05"

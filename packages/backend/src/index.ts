@@ -3,7 +3,6 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import helmet from 'helmet';
-import compression from 'compression';
 import dotenv from 'dotenv';
 import { Request, Response, NextFunction } from 'express';
 import { LightningRouter } from './routes/lightning';
@@ -11,6 +10,7 @@ import { LiveRouter } from './routes/live';
 import { JukeboxRouter } from './routes/jukebox';
 import { ErrorHandler } from './middleware/errorHandler';
 import { RoomsRouter } from './routes/rooms';
+import { Nip05Router } from './routes/nip05';
 import { Logger } from './utils/logger';
 
 import path from 'path';
@@ -70,16 +70,19 @@ export class BackendServer {
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
     // Static files (for serving built frontend)
-    this.app.use(express.static('dist'));
+    // Only serve if dist directory exists
+    const distPath = path.resolve(__dirname, '../dist');
+    try {
+      const fs = require('fs');
+      if (fs.existsSync(distPath)) {
+        this.app.use(express.static('dist'));
+      }
+    } catch {
+      // dist directory doesn't exist, skip static file serving
+    }
   }
 
   private initializeRoutes(): void {
-    // API routes
-    this.app.use('/lightning', new LightningRouter().getRouter());
-    this.app.use('/live', new LiveRouter().getRouter());
-    this.app.use('/multi', new RoomsRouter().getRouter());
-    this.app.use('/jukebox', new JukeboxRouter().getRouter());
-
     // Health check endpoint
     this.app.get('/health', (_req, res) => {
       res.json({
@@ -90,9 +93,56 @@ export class BackendServer {
       });
     });
 
+    // API routes
+    this.app.use('/lightning', new LightningRouter().getRouter());
+    this.app.use('/live', new LiveRouter().getRouter());
+    this.app.use('/multi', new RoomsRouter().getRouter());
+    this.app.use('/jukebox', new JukeboxRouter().getRouter());
+
+    // Create NIP-05 router and service instance (shared)
+    const nip05Router = new Nip05Router();
+    const nip05Service = nip05Router.getService();
+
+    // Serve .well-known/nostr.json for NIP-05 (MUST be before catch-all route)
+    // Use the same service instance as the router to ensure data consistency
+    this.app.get('/.well-known/nostr.json', (req: Request, res: Response) => {
+      try {
+        const json = nip05Service.getNostrJson();
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.json(json);
+      } catch (error) {
+        this.logger.error('Error serving nostr.json:', error);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to generate nostr.json'
+        });
+      }
+    });
+
+    this.app.use('/nip05', nip05Router.getRouter());
+
     // Serve React app for all other routes (SPA fallback)
-    this.app.get('*', (_req, res) => {
-      res.sendFile('index.html', { root: 'dist' });
+    // Only if dist/index.html exists
+    this.app.get('*', (req: Request, res: Response, next: NextFunction) => {
+      const fs = require('fs');
+      const indexPath = path.resolve(__dirname, '../dist/index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile('index.html', { root: 'dist' });
+      } else {
+        // If no index.html, return 404 for non-API routes
+        if (!req.path.startsWith('/api') && !req.path.startsWith('/lightning') &&
+            !req.path.startsWith('/live') && !req.path.startsWith('/multi') &&
+            !req.path.startsWith('/jukebox') && !req.path.startsWith('/nip05')) {
+          res.status(404).json({
+            success: false,
+            error: 'Route not found',
+            path: req.path
+          });
+        } else {
+          next();
+        }
+      }
     });
   }
 
