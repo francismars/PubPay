@@ -908,7 +908,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   </div>
                 )}
                  <div className="zapTotalLabel">
-                  {post.zapGoal && post.zapGoal > 0 && goalProgress !== null  ? 'Progess' : 'Totals'}
+                  {post.zapGoal && post.zapGoal > 0 && goalProgress !== null  ? 'Progress' : 'Totals'}
                   </div>
                   
               </div>
