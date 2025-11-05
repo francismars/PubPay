@@ -9,7 +9,8 @@ export interface Nip05Registration {
   userChoice: string; // User's chosen prefix
   suffix: string; // Generated 4-digit numeric suffix
   fullName: string; // userChoice + suffix
-  pubkey: string; // Nostr public key (npub)
+  pubkey: string; // Nostr public key (npub format) - for display/user-facing
+  pubkeyHex: string; // Nostr public key (hex format) - for nostr.json output
   domain: string; // Your domain
   paid: boolean;
   paymentProof?: string; // LNbits payment ID or invoice
@@ -96,9 +97,22 @@ export class Nip05Service {
       throw new Error('Invalid Nostr public key. Must be npub format.');
     }
 
-    // Check rate limiting: max 5 registrations per pubkey
+    // Decode npub to hex format
+    let pubkeyHex: string;
+    try {
+      const decoded = nip19.decode(pubkey);
+      if (decoded.type === 'npub') {
+        pubkeyHex = decoded.data as string;
+      } else {
+        throw new Error('Invalid npub format');
+      }
+    } catch (error) {
+      throw new Error(`Failed to decode npub: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+
+    // Check rate limiting: max 5 registrations per pubkey (check by hex to avoid duplicates)
     const existingRegistrations = Array.from(this.registrations.values()).filter(
-      r => r.pubkey === pubkey
+      r => (r.pubkeyHex || this.npubToHex(r.pubkey)) === pubkeyHex
     );
     if (existingRegistrations.length >= 5) {
       throw new Error(
@@ -143,7 +157,8 @@ export class Nip05Service {
       userChoice: userChoice.toLowerCase(), // Normalize to lowercase
       suffix: finalSuffix,
       fullName,
-      pubkey,
+      pubkey, // Store npub for user-facing display
+      pubkeyHex, // Store hex for nostr.json output
       domain: this.DOMAIN,
       paid: true,
       paymentProof,
@@ -200,7 +215,26 @@ export class Nip05Service {
   }
 
   /**
+   * Helper to convert npub to hex (for backward compatibility with old registrations)
+   */
+  private npubToHex(npub: string): string {
+    try {
+      if (npub.startsWith('npub')) {
+        const decoded = nip19.decode(npub);
+        if (decoded.type === 'npub') {
+          return decoded.data as string;
+        }
+      }
+      // Assume it's already hex
+      return npub;
+    } catch {
+      return npub; // Fallback to original value
+    }
+  }
+
+  /**
    * Generate nostr.json content
+   * Always outputs hex format (NIP-05 requirement)
    */
   private generateNostrJson(name?: string): Nip05Json {
     const names: Record<string, string> = {};
@@ -208,26 +242,9 @@ export class Nip05Service {
     // Only include paid registrations
     for (const reg of this.registrations.values()) {
       if (reg.paid) {
-        // Convert npub to hex format (NIP-05 requires hex, not npub)
-        let pubkeyHex: string;
-        try {
-          if (reg.pubkey.startsWith('npub')) {
-            // Decode npub to hex
-            const decoded = nip19.decode(reg.pubkey);
-            if (decoded.type === 'npub') {
-              pubkeyHex = decoded.data as string;
-            } else {
-              this.logger.warn(`Invalid npub format for ${reg.fullName}: ${reg.pubkey}`);
-              continue; // Skip invalid pubkeys
-            }
-          } else {
-            // Assume it's already hex (64 char hex string)
-            pubkeyHex = reg.pubkey;
-          }
-        } catch (error) {
-          this.logger.error(`Failed to decode pubkey for ${reg.fullName}:`, error);
-          continue; // Skip invalid pubkeys
-        }
+        // Always use hex format for nostr.json (NIP-05 requires hex, not npub)
+        // Use pubkeyHex if available, otherwise convert from npub (for backward compatibility)
+        const pubkeyHex = reg.pubkeyHex || this.npubToHex(reg.pubkey);
 
         // If name filter is provided, only include matching names
         if (name) {
@@ -288,10 +305,25 @@ export class Nip05Service {
       const data = await fs.readFile(this.storagePath, 'utf-8');
       const registrations = JSON.parse(data) as Nip05Registration[];
       
-      // Convert date strings back to Date objects
+      let migratedCount = 0;
+      
+      // Convert date strings back to Date objects and migrate old registrations
       for (const reg of registrations) {
         reg.createdAt = new Date(reg.createdAt);
+        
+        // Backward compatibility: if pubkeyHex is missing, generate it from npub
+        if (!reg.pubkeyHex && reg.pubkey) {
+          reg.pubkeyHex = this.npubToHex(reg.pubkey);
+          migratedCount++;
+        }
+        
         this.registrations.set(reg.fullName, reg);
+      }
+      
+      // If we migrated any registrations, save them back with the new format
+      if (migratedCount > 0) {
+        this.logger.info(`Migrated ${migratedCount} registrations to include pubkeyHex`);
+        await this.saveRegistrations();
       }
       
       this.logger.info(`Loaded ${registrations.length} NIP-05 registrations`);
