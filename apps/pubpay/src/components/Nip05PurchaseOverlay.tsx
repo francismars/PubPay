@@ -39,7 +39,16 @@ interface Nip05Registration {
   error?: string;
 }
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3002';
+// Get backend URL from environment variable, with fallback
+// Normalize to remove trailing slash to avoid double slashes in URLs
+const getBackendUrl = () => {
+  const url = process.env.REACT_APP_API_BASE_URL ||
+              process.env.REACT_APP_BACKEND_URL ||
+              'http://localhost:3002';
+  return url.replace(/\/$/, ''); // Remove trailing slash
+};
+
+const BACKEND_URL = getBackendUrl();
 
 export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
   pubkey,

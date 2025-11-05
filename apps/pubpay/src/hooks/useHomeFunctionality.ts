@@ -641,7 +641,7 @@ export const useHomeFunctionality = () => {
           if (AuthService.requiresPassword()) {
             if (!password) {
               // Password not provided
-              requiresPassword = true;
+            requiresPassword = true;
             } else {
               // Password was provided but incorrect - throw error to indicate wrong password
               throw new Error('The password you entered is incorrect. Please check your password and try again.');
@@ -675,29 +675,29 @@ export const useHomeFunctionality = () => {
       // Set auth state - user should appear logged in even if private key isn't decrypted yet
       // This allows users with password-protected keys to browse while being prompted for password
       if (publicKey && method) {
-        setAuthState({
-          isLoggedIn: true,
-          publicKey,
+      setAuthState({
+        isLoggedIn: true,
+        publicKey,
           privateKey, // May be null if password-protected and password not provided
-          signInMethod: method as 'extension' | 'nsec' | 'externalSigner',
-          userProfile: null,
-          displayName: null
-        });
+        signInMethod: method as 'extension' | 'nsec' | 'externalSigner',
+        userProfile: null,
+        displayName: null
+      });
 
         // Load user profile and follow suggestions (can be done without private key)
-        if (nostrClientRef.current && publicKey) {
-          loadUserProfile(publicKey);
-          try {
-            (async () => {
-              const suggestions = await FollowService.getFollowSuggestions(
-                nostrClientRef.current,
-                publicKey
-              );
-              useUIStore.getState().setFollowSuggestions(suggestions);
-            })();
-          } catch {}
-        }
+      if (nostrClientRef.current && publicKey) {
+        loadUserProfile(publicKey);
+        try {
+          (async () => {
+            const suggestions = await FollowService.getFollowSuggestions(
+              nostrClientRef.current,
+              publicKey
+            );
+            useUIStore.getState().setFollowSuggestions(suggestions);
+          })();
+        } catch {}
       }
+    }
 
       // Return whether password is still required (true if password-protected and no private key)
       return { requiresPassword: requiresPassword || (AuthService.requiresPassword() && !privateKey) };
@@ -2328,13 +2328,13 @@ export const useHomeFunctionality = () => {
         const maxAmount = parseInt(zapMax);
         if (!isNaN(minAmount) && !isNaN(maxAmount) && minAmount > 0 && maxAmount > 0) {
           if (maxAmount < minAmount) {
-            console.error('Maximum amount must be greater than minimum amount');
-            return;
-          }
+          console.error('Maximum amount must be greater than minimum amount');
+          return;
+        }
           const zapMinAmount = minAmount * 1000;
           const zapMaxAmount = maxAmount * 1000;
-          tags.push(['zap-min', zapMinAmount.toString()]);
-          tags.push(['zap-max', zapMaxAmount.toString()]);
+      tags.push(['zap-min', zapMinAmount.toString()]);
+      tags.push(['zap-max', zapMaxAmount.toString()]);
         }
       }
       // If no payment type or no values provided, don't add zap tags (payment is optional)
@@ -3768,7 +3768,7 @@ export const useHomeFunctionality = () => {
         if (newPostInArray) {
           validateLightningAddresses([newPostInArray], activeFeed);
           validateNip05s([newPostInArray], activeFeed);
-        }
+      }
       }, 100);
     } catch (error) {
       console.error('Error processing new note:', error);
