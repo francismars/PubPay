@@ -4894,16 +4894,15 @@ body.dark-mode .profilePublicKey {
   color: #ffffff;
 }
 
-/* 404 Not Found Page - Brand Aligned */
+/* 404 Not Found Page - Within Layout */
 .notFoundPage {
   box-sizing: border-box;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
-  background: var(--bg-primary);
+  min-height: 60vh;
   font-family: 'Inter', sans-serif;
-  padding: 20px;
+  padding: 60px 20px;
 }
 
 .notFoundContent {
@@ -4912,33 +4911,8 @@ body.dark-mode .profilePublicKey {
   width: 100%;
 }
 
-.notFoundContent .brand {
-  font-family: 'Russo One', sans-serif;
-  font-size: 32px;
-  font-weight: 400;
-  margin-bottom: 40px;
-  letter-spacing: 0.02em;
-}
-
-.notFoundContent .logoPub {
-  color: #4a75ff;
-}
-
-.notFoundContent .logoPay {
-  color: var(--text-primary);
-}
-
-.notFoundContent .logoMe {
-  color: var(--text-primary);
-  opacity: 0.12;
-}
-
-body.dark-mode .notFoundContent .logoMe {
-  opacity: 0.25;
-}
-
 .notFoundContent .errorCode {
-  font-size: 120px;
+  font-size: 80px;
   font-weight: 700;
   background: linear-gradient(135deg, #4a75ff 0%, #3b5bdb 100%);
   -webkit-background-clip: text;

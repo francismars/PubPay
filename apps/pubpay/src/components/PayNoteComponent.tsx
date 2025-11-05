@@ -80,24 +80,62 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     // Format content: baseline first, then upgrade when nostr is ready
     useEffect(() => {
       const raw = post.event.content || '';
-      // Baseline formatting: linkify only nostr:npubs and URLs, no client required
-      const baseline = raw
-        .replace(
-          /nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-          (_m, npub) => {
-            const clean = String(npub);
-            const shortId =
-              clean.length > 35
-                ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
-                : clean;
-            return `<a href="/profile/${clean}" class="nostrMention">${shortId}</a>`;
+      // Baseline formatting: linkify nostr:npub, @npub, bare npub, and URLs
+      let baseline = raw;
+      
+      // Process mentions in order: bare npub first (before adding any HTML), then prefixed versions
+      
+      // First, handle bare npub mentions (process before other formats to avoid conflicts)
+      baseline = baseline.replace(
+        /\b((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi,
+        (match, _p1, _p2, offset) => {
+          // Check if it's preceded by nostr: or @
+          const prefix = baseline.substring(Math.max(0, offset - 7), offset);
+          if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
+            return match;
           }
-        )
+          const shortId =
+            match.length > 35
+              ? `${match.substr(0, 4)}...${match.substr(match.length - 4)}`
+              : match;
+          return `<a href="/profile/${match}" class="nostrMention">${shortId}</a>`;
+        }
+      );
+      
+      // Handle nostr:npub mentions
+      baseline = baseline.replace(
+        /nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+        (_m, npub) => {
+          const clean = String(npub);
+          const shortId =
+            clean.length > 35
+              ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
+              : clean;
+          return `<a href="/profile/${clean}" class="nostrMention">${shortId}</a>`;
+        }
+      );
+      
+      // Handle @npub mentions
+      baseline = baseline.replace(
+        /@((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+        (_m, npub) => {
+          const clean = String(npub);
+          const shortId =
+            clean.length > 35
+              ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
+              : clean;
+          return `<a href="/profile/${clean}" class="nostrMention">@${shortId}</a>`;
+        }
+      );
+      
+      // Handle URLs
+      baseline = baseline
         .replace(
           /(https?:\/\/[^\s<]+)/g,
           '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
         )
         .replace(/\n/g, '<br />');
+      
       setFormattedContent(baseline);
 
       const upgrade = async () => {
