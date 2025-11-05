@@ -13,6 +13,7 @@ export interface EncryptedPrivateKey {
 }
 export declare class AuthService {
     private static readonly METHODS;
+    private static decryptedKeyCache;
     /**
      * Sign in with Nostr extension
      */
@@ -76,6 +77,7 @@ export declare class AuthService {
     /**
      * Decrypt stored private key (requires password if password mode)
      * Automatically migrates legacy plaintext to encrypted format
+     * Uses in-memory cache for password-protected keys (cleared on page reload)
      */
     static decryptStoredPrivateKey(password?: string): Promise<string | null>;
     /**

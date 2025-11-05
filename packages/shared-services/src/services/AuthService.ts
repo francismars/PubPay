@@ -23,6 +23,9 @@ export class AuthService {
     'nsec'
   ] as const;
 
+  // In-memory cache for decrypted private key (cleared on page reload)
+  private static decryptedKeyCache: string | null = null;
+
   /**
    * Sign in with Nostr extension
    */
@@ -601,6 +604,7 @@ export class AuthService {
   /**
    * Decrypt stored private key (requires password if password mode)
    * Automatically migrates legacy plaintext to encrypted format
+   * Uses in-memory cache for password-protected keys (cleared on page reload)
    */
   static async decryptStoredPrivateKey(
     password?: string
@@ -637,11 +641,26 @@ export class AuthService {
 
     try {
       if (encryptedPrivateKey.hasPassword) {
-        // Password mode: require password
-        if (!password) {
+        // Password mode: check in-memory cache first
+        if (this.decryptedKeyCache && !password) {
+          // Use cached decrypted key if no new password provided
+          return this.decryptedKeyCache;
+        }
+        
+        // Password mode: require password if not cached
+        if (!password && !this.decryptedKeyCache) {
           throw new Error('Password is required to decrypt your private key. Please enter your password.');
         }
-        return await this.decryptWithPassword(encryptedPrivateKey, password);
+        
+        // Decrypt with password
+        const decryptedKey = await this.decryptWithPassword(encryptedPrivateKey, password!);
+        
+        // Cache the decrypted key in memory for this session
+        if (decryptedKey) {
+          this.decryptedKeyCache = decryptedKey;
+        }
+        
+        return decryptedKey;
       } else {
         // Device key mode: decrypt automatically
         return await this.decryptWithDeviceKey(encryptedPrivateKey);
@@ -687,6 +706,8 @@ export class AuthService {
     sessionStorage.removeItem('privateKey');
     sessionStorage.removeItem('signInMethod');
     sessionStorage.removeItem('signIn');
+    // Clear in-memory cache
+    this.decryptedKeyCache = null;
     // Note: We don't clear device key (_dk) as it's used for encryption
     // User can clear it manually if they want to reset encryption
   }

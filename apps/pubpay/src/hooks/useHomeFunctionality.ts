@@ -481,7 +481,10 @@ export const useHomeFunctionality = () => {
 
                 // Wait a bit for profile to reload, then navigate
                 await new Promise(resolve => setTimeout(resolve, 1000));
-                window.location.href = '/profile';
+                // Navigate using pushState to avoid page reload
+                window.history.pushState({}, '', '/profile');
+                // Trigger popstate to reload the page component
+                window.dispatchEvent(new PopStateEvent('popstate'));
               }
             }
           } catch (e) {
@@ -619,10 +622,11 @@ export const useHomeFunctionality = () => {
       let privateKey: string | null = null;
       let requiresPassword = false;
       
-      // Decrypt private key if available
+      // Decrypt private key if available (AuthService handles in-memory cache internally)
       if (encryptedPrivateKey) {
         try {
           privateKey = await AuthService.decryptStoredPrivateKey(password);
+          
           // If decryption succeeded but we have a password-protected key and no private key, something is wrong
           if (AuthService.requiresPassword() && !privateKey) {
             requiresPassword = true;

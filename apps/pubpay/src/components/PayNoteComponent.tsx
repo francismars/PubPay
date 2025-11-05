@@ -1,5 +1,6 @@
 // PayNoteComponent - Renders individual PubPay posts
 import React, { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../assets/images';
 import { nip19 } from 'nostr-tools';
@@ -47,6 +48,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     nostrReady,
     paymentError
   }) => {
+    const navigate = useNavigate();
+    
     // Debug: log payment error changes
     useEffect(() => {
       if (paymentError) {
@@ -563,20 +566,20 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         }
       >
         <div className="noteProfileImg">
-          <a href={`/profile/${nip19.npubEncode(post.event.pubkey)}`}>
+          <Link to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}>
             <img className="userImg" src={profilePicture} alt="Profile" />
-          </a>
+          </Link>
         </div>
         <div className="noteData">
           <div className="noteHeader">
             <div className="noteAuthor">
               <div className="noteDisplayName">
-                <a
-                  href={`/profile/${nip19.npubEncode(post.event.pubkey)}`}
+                <Link
+                  to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}
                   className="noteAuthorLink"
                 >
                   {displayName}
-                </a>
+                </Link>
               </div>
 
               {/* NIP-05 Verification */}
@@ -658,15 +661,26 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             onClick={e => {
               // Check if the clicked element is a link or inside a link
               const target = e.target as HTMLElement;
-              const isLink = target.tagName === 'A' || target.closest('a');
+              const clickedLink = target.tagName === 'A' ? target as HTMLAnchorElement : target.closest('a');
 
-              if (!isLink) {
-                console.log('noteContent clicked for post:', post.id);
-                // Navigate to single note view using NIP-19 encoding
-                const nevent = nip19.noteEncode(post.id);
-                console.log('Navigating to single note:', nevent);
-                window.location.href = `/note/${nevent}`;
+              if (clickedLink) {
+                // Check if it's an internal profile or note link
+                const href = clickedLink.getAttribute('href');
+                if (href && (href.startsWith('/profile/') || href.startsWith('/note/'))) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate(href);
+                  return;
+                }
+                // External links or other types - let them work normally
+                return;
               }
+
+              // Clicking on the note content (not a link) - navigate to single note view
+              console.log('noteContent clicked for post:', post.id);
+              const nevent = nip19.noteEncode(post.id);
+              console.log('Navigating to single note:', nevent);
+              navigate(`/note/${nevent}`);
             }}
             style={{ cursor: 'pointer' }}
             dangerouslySetInnerHTML={{
@@ -732,18 +746,18 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   key={index}
                   className={`zapReaction ${zap.isNewZap ? 'newZap' : ''}`}
                 >
-                  <a href={`/profile/${zap.zapPayerPubkey}`}>
+                  <Link to={`/profile/${zap.zapPayerPubkey}`}>
                     <img
                       className="userImg"
                       src={zap.zapPayerPicture || genericUserIcon}
                     />
-                  </a>
-                  <a
-                    href={`/note/${nip19.noteEncode(zap.id)}`}
+                  </Link>
+                  <Link
+                    to={`/note/${nip19.noteEncode(zap.id)}`}
                     className="zapReactionAmount"
                   >
                     {zap.zapAmount ? zap.zapAmount.toLocaleString() : '0'}
-                  </a>
+                  </Link>
                   {zap.content && (
                     <div className="zapReactionTooltip">
                       {zap.content.length > 21
@@ -1021,18 +1035,18 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     key={index}
                     className={`zapReaction ${zap.isNewZap ? 'newZap' : ''}`}
                   >
-                    <a href={`/profile/${zap.zapPayerPubkey}`}>
+                    <Link to={`/profile/${zap.zapPayerPubkey}`}>
                       <img
                         className="userImg"
                         src={zap.zapPayerPicture || genericUserIcon}
                       />
-                    </a>
-                    <a
-                      href={`/note/${nip19.noteEncode(zap.id)}`}
+                    </Link>
+                    <Link
+                      to={`/note/${nip19.noteEncode(zap.id)}`}
                       className="zapReactionAmount"
                     >
                       {zap.zapAmount ? zap.zapAmount.toLocaleString() : '0'}
-                    </a>
+                    </Link>
                     {zap.content && (
                       <div className="zapReactionTooltip">
                         {zap.content.length > 21

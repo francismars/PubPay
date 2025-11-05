@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, Outlet } from 'react-router-dom';
+import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useUIStore, NostrRegistrationService, AuthService } from '@pubpay/shared-services';
 import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { InvoiceQR } from '@pubpay/shared-ui';
@@ -9,6 +9,7 @@ import { nip19 } from 'nostr-tools';
 import { NewPayNoteOverlay } from './NewPayNoteOverlay';
 
 export const Layout: React.FC = () => {
+  const navigate = useNavigate();
   const [showQRScanner, setShowQRScanner] = useState(false);
   const showLoginForm = useUIStore(s => s.loginForm.show);
   const showProcessing = (useUIStore as any)(
@@ -149,17 +150,17 @@ export const Layout: React.FC = () => {
       const decoded = nip19.decode(token);
 
       if (decoded.type === 'note') {
-        window.location.href = `/note/${token}`;
+        navigate(`/note/${token}`);
       } else if (decoded.type === 'nevent') {
         const noteID = (decoded.data as any).id;
         const note1 = nip19.noteEncode(noteID);
-        window.location.href = `/note/${note1}`;
+        navigate(`/note/${note1}`);
       } else if (decoded.type === 'npub') {
         const pubkeyHex = decoded.data as string;
-        window.location.href = `/profile/${pubkeyHex}`;
+        navigate(`/profile/${pubkeyHex}`);
       } else if (decoded.type === 'nprofile') {
         const pubkeyHex = (decoded.data as any).pubkey;
-        window.location.href = `/profile/${pubkeyHex}`;
+        navigate(`/profile/${pubkeyHex}`);
       } else {
         console.error(
           'Invalid QR code content. Expected \'note\', \'nevent\', \'npub\' or \'nprofile\'.'
@@ -800,14 +801,14 @@ export const Layout: React.FC = () => {
               >
                 Wallet
               </Link>
-              <a
-                href="/live"
+              <Link
+                to="/live"
                 className="sideNavLink "
                 title="PubPay Live"
                 onClick={closeMobileMenu}
               >
                 Live
-              </a>
+              </Link>
               <Link
                 to="/about"
                 className="sideNavLink"
@@ -1353,12 +1354,12 @@ export const Layout: React.FC = () => {
           <p className="label">You are logged in as:</p>
           <p id="loggedInPublicKey">
             {authState.publicKey ? (
-              <a href={'/profile'} className="userMention">
+              <Link to="/profile" className="userMention">
                 {authState.displayName ||
                   (authState.publicKey
                     ? nip19.npubEncode(authState.publicKey)
                     : '')}
-              </a>
+              </Link>
             ) : (
               'Unknown'
             )}
