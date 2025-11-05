@@ -86,9 +86,9 @@ const RegisterPage: React.FC = () => {
 
       console.log('User logged in after backup acknowledgement');
 
-      // Use window.location to force a full page reload and ensure auth state is properly initialized
+      // Navigate without page reload to preserve in-memory cache
       setTimeout(() => {
-        window.location.href = '/profile';
+        navigate('/profile');
       }, 1000);
     } catch (error) {
       console.error('Failed to login user:', error);
