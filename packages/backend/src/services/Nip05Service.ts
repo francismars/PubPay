@@ -201,13 +201,21 @@ export class Nip05Service {
   /**
    * Generate nostr.json content
    */
-  private generateNostrJson(): Nip05Json {
+  private generateNostrJson(name?: string): Nip05Json {
     const names: Record<string, string> = {};
     
     // Only include paid registrations
     for (const reg of this.registrations.values()) {
       if (reg.paid) {
-        names[reg.fullName] = reg.pubkey;
+        // If name filter is provided, only include matching names
+        if (name) {
+          if (reg.fullName === name) {
+            names[reg.fullName] = reg.pubkey;
+          }
+        } else {
+          // No filter - include all
+          names[reg.fullName] = reg.pubkey;
+        }
       }
     }
 
@@ -244,9 +252,10 @@ export class Nip05Service {
 
   /**
    * Get nostr.json content (for serving)
+   * @param name Optional name filter - if provided, only returns that specific name
    */
-  getNostrJson(): Nip05Json {
-    return this.generateNostrJson();
+  getNostrJson(name?: string): Nip05Json {
+    return this.generateNostrJson(name);
   }
 
   /**
