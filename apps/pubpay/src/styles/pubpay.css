@@ -2647,6 +2647,18 @@ textarea:focus::placeholder {
   height: 1em;
 }
 
+/* NIP-05 validation icon animation */
+.noteNIP05 .validating-icon,
+.profileLightningLink .validating-icon {
+  animation: spin 1.5s linear infinite;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
+  width: 1em;
+  height: 1em;
+}
+
 .noteLNAddress.label .unverified {
   font-size: 10px;
   font-weight: bold;

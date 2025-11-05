@@ -464,17 +464,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         }
       }
 
-      // Debug counts
-      console.log('Zap classification', {
-        postId: post.id,
-        total: post.zaps.length,
-        withinRestrictions: withinRestrictions.length,
-        outsideRestrictions: outsideRestrictions.length,
-        zapMin,
-        zapMax,
-        zapPayer: post.zapPayer || null,
-        zapUses: post.zapUses
-      });
 
       // Keep original arrival order (post.zaps already oldest-first; new zaps append at end)
 
@@ -612,16 +601,44 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               {/* NIP-05 Verification */}
               <div className="noteNIP05 label">
                 {nip05 ? (
-                  <a
-                    href={`https://${nip05.split('@')[1]}/.well-known/nostr.json?name=${nip05.split('@')[0]}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <span className="material-symbols-outlined">
-                      check_circle
-                    </span>
-                    {nip05}
-                  </a>
+                  post.nip05Valid === false ? (
+                    // Invalid NIP-05 - still clickable
+                    <a
+                      href={`https://${nip05.split('@')[1]}/.well-known/nostr.json?name=${nip05.split('@')[0]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="unverified label"
+                      title="NIP-05 identifier does not match this profile"
+                    >
+                      <span className="material-symbols-outlined">block</span>
+                      {nip05}
+                    </a>
+                  ) : post.nip05Validating ? (
+                    // Validating - still clickable
+                    <a
+                      href={`https://${nip05.split('@')[1]}/.well-known/nostr.json?name=${nip05.split('@')[0]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="label"
+                      title="Validating NIP-05 identifier..."
+                    >
+                      <span className="material-symbols-outlined validating-icon">
+                        hourglass_empty
+                      </span>
+                      {nip05}
+                    </a>
+                  ) : (
+                    // Valid NIP-05
+                    <a
+                      href={`https://${nip05.split('@')[1]}/.well-known/nostr.json?name=${nip05.split('@')[0]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Verified NIP-05 identifier"
+                    >
+                      <span className="material-symbols-outlined">check_circle</span>
+                      {nip05}
+                    </a>
+                  )
                 ) : (
                   <span className="unverified label">
                     <span className="material-symbols-outlined">block</span>

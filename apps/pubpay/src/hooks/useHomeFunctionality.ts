@@ -9,7 +9,7 @@ import { getQueryClient } from '@pubpay/shared-services';
 import { LightningService } from '@pubpay/shared-services';
 import { FollowService, useUIStore, NostrUtil } from '@pubpay/shared-services';
 import { AuthService } from '@pubpay/shared-services';
-import { ZapService } from '@pubpay/shared-services';
+import { ZapService, Nip05ValidationService } from '@pubpay/shared-services';
 import { BlossomService } from '@pubpay/shared-services';
 import {
   NostrFilter,
@@ -57,6 +57,8 @@ export interface PubPayPost {
   createdAt: number;
   lightningValid?: boolean; // true if valid, false if invalid, undefined if not validated yet
   lightningValidating?: boolean; // true if validation is in progress
+  nip05Valid?: boolean; // true if valid, false if invalid, undefined if not validated yet
+  nip05Validating?: boolean; // true if validation is in progress
 }
 
 interface AuthState {
@@ -104,6 +106,8 @@ export const useHomeFunctionality = () => {
   const pendingProfileRequestsRef = useRef<Set<string>>(new Set());
   // Track lightning addresses being validated to avoid duplicate calls
   const validatingLightningAddressesRef = useRef<Set<string>>(new Set());
+  // Track NIP-05 identifiers being validated to avoid duplicate calls
+  const validatingNip05sRef = useRef<Set<string>>(new Set());
 
   // Zap batch processing
   const zapBatchRef = useRef<Kind9735Event[]>([]);
@@ -959,6 +963,7 @@ export const useHomeFunctionality = () => {
 
       // Validate lightning addresses asynchronously (don't block UI)
       validateLightningAddresses(basicPosts, feed);
+      validateNip05s(basicPosts, feed);
     } catch (err) {
       console.error('Failed to load posts:', err);
       console.error(
@@ -1086,6 +1091,7 @@ export const useHomeFunctionality = () => {
             )
           : {};
         const hasLud16 = !!(authorData as any).lud16;
+        const hasNip05 = !!(authorData as any).nip05;
         const hasZapTags = !!(zapMinTag || zapMaxTag);
         post.hasZapTags = hasZapTags;
         // Initially set isPayable based on format check, will be updated after validation
@@ -1093,6 +1099,10 @@ export const useHomeFunctionality = () => {
         // Mark as validating if we have a lightning address to validate
         if (hasLud16) {
           post.lightningValidating = true;
+        }
+        // Mark as validating if we have a NIP-05 identifier to validate
+        if (hasNip05) {
+          post.nip05Validating = true;
         }
       } catch {
         const hasZapTags = !!(zapMinTag || zapMaxTag);
@@ -1234,6 +1244,149 @@ export const useHomeFunctionality = () => {
         .finally(() => {
           // Remove from validating set
           validatingLightningAddressesRef.current.delete(lud16);
+        });
+    }
+  };
+
+  const validateNip05s = async (
+    posts: PubPayPost[],
+    feed: 'global' | 'following' | 'replies'
+  ) => {
+    // Extract unique NIP-05 identifiers from posts with their pubkeys
+    const nip05s = new Map<string, { nip05: string; pubkey: string; posts: PubPayPost[] }>();
+    
+    for (const post of posts) {
+      if (post.author) {
+        try {
+          const authorData = JSON.parse(post.author.content || '{}');
+          const nip05 = authorData?.nip05;
+          if (nip05 && typeof nip05 === 'string' && post.event.pubkey) {
+            const key = `${nip05}:${post.event.pubkey}`;
+            if (!nip05s.has(key)) {
+              nip05s.set(key, { nip05, pubkey: post.event.pubkey, posts: [] });
+            }
+            nip05s.get(key)!.posts.push(post);
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    // Validate each unique NIP-05 identifier (only once per identifier:pubkey combo)
+    for (const [key, { nip05, pubkey, posts: postsWithNip05 }] of nip05s.entries()) {
+      // Skip if already validating
+      if (validatingNip05sRef.current.has(key)) {
+        continue;
+      }
+
+      // Mark as validating
+      validatingNip05sRef.current.add(key);
+
+      // Set validating state for all posts with this NIP-05
+      if (feed === 'following') {
+        setFollowingPosts(prev => prev.map(post => {
+          if (postsWithNip05.some(p => p.id === post.id)) {
+            return { ...post, nip05Validating: true };
+          }
+          return post;
+        }));
+      } else if (feed === 'replies') {
+        setReplies(prev => prev.map(post => {
+          if (postsWithNip05.some(p => p.id === post.id)) {
+            return { ...post, nip05Validating: true };
+          }
+          return post;
+        }));
+      } else {
+        setPosts(prev => prev.map(post => {
+          if (postsWithNip05.some(p => p.id === post.id)) {
+            return { ...post, nip05Validating: true };
+          }
+          return post;
+        }));
+      }
+
+      // Validate asynchronously (fire and forget)
+      Nip05ValidationService.validateNip05(nip05, pubkey)
+        .then(isValid => {
+          // Update all posts with this NIP-05 using functional updates
+          if (feed === 'following') {
+            setFollowingPosts(prev => prev.map(post => {
+              if (postsWithNip05.some(p => p.id === post.id)) {
+                return {
+                  ...post,
+                  nip05Valid: isValid,
+                  nip05Validating: false
+                };
+              }
+              return post;
+            }));
+          } else if (feed === 'replies') {
+            setReplies(prev => prev.map(post => {
+              if (postsWithNip05.some(p => p.id === post.id)) {
+                return {
+                  ...post,
+                  nip05Valid: isValid,
+                  nip05Validating: false
+                };
+              }
+              return post;
+            }));
+          } else {
+            setPosts(prev => prev.map(post => {
+              if (postsWithNip05.some(p => p.id === post.id)) {
+                return {
+                  ...post,
+                  nip05Valid: isValid,
+                  nip05Validating: false
+                };
+              }
+              return post;
+            }));
+          }
+        })
+        .catch(error => {
+          console.warn(`Failed to validate NIP-05 ${nip05}:`, error);
+          // Mark as invalid on error
+          if (feed === 'following') {
+            setFollowingPosts(prev => prev.map(post => {
+              if (postsWithNip05.some(p => p.id === post.id)) {
+                return {
+                  ...post,
+                  nip05Valid: false,
+                  nip05Validating: false
+                };
+              }
+              return post;
+            }));
+          } else if (feed === 'replies') {
+            setReplies(prev => prev.map(post => {
+              if (postsWithNip05.some(p => p.id === post.id)) {
+                return {
+                  ...post,
+                  nip05Valid: false,
+                  nip05Validating: false
+                };
+              }
+              return post;
+            }));
+          } else {
+            setPosts(prev => prev.map(post => {
+              if (postsWithNip05.some(p => p.id === post.id)) {
+                return {
+                  ...post,
+                  nip05Valid: false,
+                  nip05Validating: false
+                };
+              }
+              return post;
+            }));
+          }
+        })
+        .finally(() => {
+          // Remove from validating set
+          validatingNip05sRef.current.delete(key);
         });
     }
   };
@@ -1589,10 +1742,13 @@ export const useHomeFunctionality = () => {
         ? safeJson<Record<string, unknown>>(author.content, {})
         : {};
       const hasLud16 = !!(authorData as any).lud16;
+      const hasNip05 = !!(authorData as any).nip05;
       const hasZapTags = !!(zapMinTag || zapMaxTag);
       const isPayable = (hasLud16 || !!zapLNURL) && hasZapTags;
       // Mark as validating if we have a lightning address to validate
       const lightningValidating = hasLud16;
+      // Mark as validating if we have a NIP-05 identifier to validate
+      const nip05Validating = hasNip05;
 
       posts.push({
         id: event.id,
@@ -1611,7 +1767,8 @@ export const useHomeFunctionality = () => {
         zapPayer,
         zapLNURL,
         createdAt: event.created_at,
-        lightningValidating
+        lightningValidating,
+        nip05Validating
       });
     }
 
@@ -2415,6 +2572,7 @@ export const useHomeFunctionality = () => {
         setPosts(processedPosts);
         // Validate lightning addresses for single note
         validateLightningAddresses(processedPosts, 'global');
+        validateNip05s(processedPosts, 'global');
       }
 
       // Load replies to this note
@@ -2560,6 +2718,7 @@ export const useHomeFunctionality = () => {
       setReplies(repliesWithLevels);
       // Validate lightning addresses for replies (use 'replies' feed type)
       validateLightningAddresses(repliesWithLevels, 'replies');
+      validateNip05s(repliesWithLevels, 'replies');
     } catch (err) {
       console.error('Failed to load replies:', err);
     }
@@ -2742,7 +2901,6 @@ export const useHomeFunctionality = () => {
               console.log('Zap event accepted for single post mode:', eTag[1], 'is main post:', eTag[1] === singlePostEventId, 'is reply:', replyIds.includes(eTag[1]));
           }
           // Add to batch for processing
-            console.log('Adding zap event to batch:', zapEvent.id);
           zapBatchRef.current.push(zapEvent as Kind9735Event);
 
           // Clear existing timeout
@@ -2925,6 +3083,8 @@ export const useHomeFunctionality = () => {
   const processZapBatch = async (zapEvents: Kind9735Event[]) => {
     if (zapEvents.length === 0) return;
 
+    console.log('Processing zap batch:', zapEvents.length, 'zap events');
+
     // Collect all unique zap payer pubkeys
     const zapPayerPubkeys = new Set<string>();
     zapEvents.forEach(zapEvent => {
@@ -3093,7 +3253,6 @@ export const useHomeFunctionality = () => {
         const newReplies = [...prevReplies];
         const replyIndex = newReplies.findIndex(reply => reply.id === postId);
         if (replyIndex === -1) {
-          console.log('Zap processed: reply not found in replies array for postId:', postId);
           return newReplies;
         }
         console.log('Zap processed: updating reply at index', replyIndex, 'for postId:', postId);
@@ -3453,7 +3612,6 @@ export const useHomeFunctionality = () => {
         if (zapEvent.kind !== 9735) return;
         
         // Add to batch for processing
-        console.log('Adding zap event to batch:', zapEvent.id);
         zapBatchRef.current.push(zapEvent as Kind9735Event);
 
         // Clear existing timeout
@@ -3549,6 +3707,26 @@ export const useHomeFunctionality = () => {
       // Set hasZapTags based on whether zap tags exist
       newPost.hasZapTags = !!(zapMinTag || zapMaxTag);
 
+      // Check author data for lightning address and NIP-05
+      try {
+        const authorData = author
+          ? safeJson<Record<string, any>>(author.content || '{}', {})
+          : {};
+        const hasLud16 = !!(authorData as any).lud16;
+        const hasNip05 = !!(authorData as any).nip05;
+        
+        // Mark as validating if we have a lightning address to validate
+        if (hasLud16) {
+          newPost.lightningValidating = true;
+        }
+        // Mark as validating if we have a NIP-05 identifier to validate
+        if (hasNip05) {
+          newPost.nip05Validating = true;
+        }
+      } catch {
+        // Ignore parse errors
+      }
+
       // Add the new post to the beginning of the posts array (most recent first)
       setPosts(prevPosts => {
         // Check if post already exists to prevent duplicates
@@ -3581,6 +3759,17 @@ export const useHomeFunctionality = () => {
 
       // Update zap subscription to include this new post
       updateZapSubscriptionForNewPost(noteEvent.id);
+
+      // Trigger validation for lightning addresses and NIP-05 on the new post
+      // Use a small delay to ensure the post is in state before validating
+      setTimeout(() => {
+        const postsArray = activeFeed === 'following' ? followingPostsRef.current : postsRef.current;
+        const newPostInArray = postsArray.find(p => p.id === noteEvent.id);
+        if (newPostInArray) {
+          validateLightningAddresses([newPostInArray], activeFeed);
+          validateNip05s([newPostInArray], activeFeed);
+        }
+      }, 100);
     } catch (error) {
       console.error('Error processing new note:', error);
     }

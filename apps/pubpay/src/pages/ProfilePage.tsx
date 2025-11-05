@@ -13,7 +13,8 @@ import {
   NostrRegistrationService,
   AuthService,
   FollowService,
-  ZapService
+  ZapService,
+  Nip05ValidationService
 } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 import { nip19, finalizeEvent, verifyEvent } from 'nostr-tools';
@@ -227,6 +228,8 @@ const ProfilePage: React.FC = () => {
     lightningAddress: '',
     nip05: ''
   });
+  const [nip05Valid, setNip05Valid] = useState<boolean | null>(null);
+  const [nip05Validating, setNip05Validating] = useState(false);
 
   // Loading state for external profiles
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
@@ -245,6 +248,8 @@ const ProfilePage: React.FC = () => {
   const [userPaynotes, setUserPaynotes] = useState<PubPayPost[]>([]);
   // Track lightning addresses being validated to avoid duplicate calls
   const validatingLightningAddressesRef = React.useRef<Set<string>>(new Set());
+  // Track NIP-05 identifiers being validated to avoid duplicate calls
+  const validatingNip05sRef = React.useRef<Set<string>>(new Set());
 
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
   const [followBusy, setFollowBusy] = useState<boolean>(false);
@@ -441,6 +446,27 @@ const ProfilePage: React.FC = () => {
 
     loadProfileData();
   }, [isOwnProfile, targetPubkey, userProfile, nostrClient]);
+
+  // Validate NIP-05 when it changes
+  useEffect(() => {
+    if (!profileData.nip05 || !targetPubkey) {
+      setNip05Valid(null);
+      setNip05Validating(false);
+      return;
+    }
+
+    setNip05Validating(true);
+    Nip05ValidationService.validateNip05(profileData.nip05, targetPubkey)
+      .then(isValid => {
+        setNip05Valid(isValid);
+        setNip05Validating(false);
+      })
+      .catch(error => {
+        console.warn('Failed to validate NIP-05:', error);
+        setNip05Valid(false);
+        setNip05Validating(false);
+      });
+  }, [profileData.nip05, targetPubkey]);
 
   // Load activity stats (frontend-only, counts)
   useEffect(() => {
@@ -640,6 +666,15 @@ const ProfilePage: React.FC = () => {
               const authorProfile = profileMap.get(paynote.event.pubkey);
               if (authorProfile) {
                 paynote.author = authorProfile;
+                // Set initial validating state for NIP-05 if present
+                try {
+                  const authorData = JSON.parse(authorProfile.content || '{}');
+                  if (authorData?.nip05) {
+                    paynote.nip05Validating = true;
+                  }
+                } catch {
+                  // Ignore parse errors
+                }
               }
             });
 
@@ -803,6 +838,8 @@ const ProfilePage: React.FC = () => {
 
         // Validate lightning addresses asynchronously (don't block UI)
         validateLightningAddresses(formattedPaynotes);
+        // Validate NIP-05 identifiers asynchronously (don't block UI)
+        validateNip05s(formattedPaynotes);
 
         // Create Set for fast lookup
         const paynoteIdsSet = new Set<string>(
@@ -950,6 +987,83 @@ const ProfilePage: React.FC = () => {
         .finally(() => {
           // Remove from validating set
           validatingLightningAddressesRef.current.delete(lud16);
+        });
+    }
+  };
+
+  // Validate NIP-05 identifiers for posts asynchronously
+  const validateNip05s = async (posts: PubPayPost[]) => {
+    // Extract unique NIP-05 identifiers from posts with their pubkeys
+    const nip05s = new Map<string, { nip05: string; pubkey: string; posts: PubPayPost[] }>();
+
+    for (const post of posts) {
+      if (post.author) {
+        try {
+          const authorData = JSON.parse(post.author.content || '{}');
+          const nip05 = authorData?.nip05;
+          if (nip05 && typeof nip05 === 'string' && post.event.pubkey) {
+            const key = `${nip05}:${post.event.pubkey}`;
+            if (!nip05s.has(key)) {
+              nip05s.set(key, { nip05, pubkey: post.event.pubkey, posts: [] });
+            }
+            nip05s.get(key)!.posts.push(post);
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+    }
+
+    // Validate each unique NIP-05 identifier (only once per identifier:pubkey combo)
+    for (const [key, { nip05, pubkey, posts: postsWithNip05 }] of nip05s.entries()) {
+      // Skip if already validating
+      if (validatingNip05sRef.current.has(key)) {
+        continue;
+      }
+
+      // Mark as validating
+      validatingNip05sRef.current.add(key);
+
+      // Set validating state for all posts with this NIP-05
+      setUserPaynotes(prev => prev.map(post => {
+        if (postsWithNip05.some(p => p.id === post.id)) {
+          return { ...post, nip05Validating: true };
+        }
+        return post;
+      }));
+
+      // Validate asynchronously (fire and forget)
+      Nip05ValidationService.validateNip05(nip05, pubkey)
+        .then(isValid => {
+          // Update all posts with this NIP-05 using functional updates
+          setUserPaynotes(prev => prev.map(post => {
+            if (postsWithNip05.some(p => p.id === post.id)) {
+              return {
+                ...post,
+                nip05Valid: isValid,
+                nip05Validating: false
+              };
+            }
+            return post;
+          }));
+        })
+        .catch(error => {
+          console.warn(`Failed to validate NIP-05 ${nip05}:`, error);
+          // Mark as invalid on error
+          setUserPaynotes(prev => prev.map(post => {
+            if (postsWithNip05.some(p => p.id === post.id)) {
+              return {
+                ...post,
+                nip05Valid: false,
+                nip05Validating: false
+              };
+            }
+            return post;
+          }));
+        })
+        .finally(() => {
+          // Remove from validating set
+          validatingNip05sRef.current.delete(key);
         });
     }
   };
@@ -1470,8 +1584,32 @@ const ProfilePage: React.FC = () => {
                               href={`https://${profileData.nip05.split('@')[1]}/.well-known/nostr.json?name=${profileData.nip05.split('@')[0]}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="profileLightningLink"
+                              className={
+                                nip05Valid === false
+                                  ? 'profileLightningLink unverified'
+                                  : nip05Validating
+                                    ? 'profileLightningLink'
+                                    : 'profileLightningLink'
+                              }
+                              title={
+                                nip05Valid === false
+                                  ? 'NIP-05 identifier does not match this profile'
+                                  : nip05Validating
+                                    ? 'Validating NIP-05 identifier...'
+                                    : nip05Valid === true
+                                      ? 'Verified NIP-05 identifier'
+                                      : 'NIP-05 identifier'
+                              }
                             >
+                              {nip05Validating ? (
+                                <span className="material-symbols-outlined validating-icon">
+                                  hourglass_empty
+                                </span>
+                              ) : nip05Valid === false ? (
+                                <span className="material-symbols-outlined">block</span>
+                              ) : nip05Valid === true ? (
+                                <span className="material-symbols-outlined">check_circle</span>
+                              ) : null}
                               {profileData.nip05}
                             </a>
                             <button
@@ -1489,7 +1627,7 @@ const ProfilePage: React.FC = () => {
                           </>
                         ) : (
                           <>
-                            <span className="profileEmptyField">Not set</span>
+                          <span className="profileEmptyField">Not set</span>
                             {isOwnProfile && (
                               <button
                                 className="profileCopyButton"
