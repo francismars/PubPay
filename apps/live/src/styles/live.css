@@ -1589,6 +1589,7 @@ body.style-panel-open .style-toggle-btn {
 /* Zap Items */
 .zap {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
@@ -1601,6 +1602,7 @@ body.style-panel-open .style-toggle-btn {
 
 .zapperProfile {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
   flex: 1;
@@ -2561,17 +2563,28 @@ body.style-panel-open .style-toggle-btn {
 
 /* ===== LIVE EVENT TWO-COLUMN LAYOUT ===== */
 
-.live-event-two-column {
-  height: 100%;
+/* Adjust zaps-container for live events to remove scrolling (columns will handle it) */
+.livestream .zaps-container {
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.live-event-two-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .live-event-columns {
   display: flex;
-  height: 100%;
+  flex: 1;
   gap: 10px;
   width: 100%;
   box-sizing: border-box;
+  min-height: 0;
 }
 
 .live-event-zaps-only {
@@ -3106,11 +3119,17 @@ body.style-panel-open .main-layout {
 
 /* ===== LIVE EVENT ZAP STYLES ===== */
 .live-event-zap {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
   margin-bottom: 15px;
   padding: 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.1);
   font-style: normal;
+  width: auto;
 }
 
 .live-event-zap * {
@@ -3158,33 +3177,6 @@ body.style-panel-open .main-layout {
 .live-event-zap .zap-content {
   margin-top: 0 !important;
   margin-left: 48px; /* Align with text after image */
-}
-
-/* ===== LIVE EVENT TWO-COLUMN LAYOUT ===== */
-.live-event-two-column {
-  height: 100%;
-  overflow: hidden;
-}
-
-.live-event-columns {
-  display: flex;
-  height: 100%;
-  gap: 10px;
-  box-sizing: border-box;
-}
-
-.live-event-zaps-only {
-  flex: 0 0 calc(70% - 7px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.live-event-activity {
-  flex: 0 0 calc(30% - 3px);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 /* Activity list specific styles */
@@ -4166,10 +4158,542 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 }
 
 .zaps-list.grid-layout .zapperInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   width: 100%;
   min-width: 0;
   flex: 1;
+}
+
+/* ===== LIVE EVENT GRID LAYOUT (APPLY SAME GRID TO COLUMNS) ===== */
+
+/* Apply grid layout to zaps-only-list and activity-list */
+.zaps-only-list.grid-layout,
+.activity-list.grid-layout {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px;
+}
+
+.zaps-only-list.grid-layout .zapperProfile,
+.activity-list.grid-layout .zapperProfile {
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.zaps-only-list.grid-layout .zap .zapperProfile,
+.activity-list.grid-layout .zap .zapperProfile,
+.zaps-only-list.grid-layout .live-event-zap .zapperProfile,
+.activity-list.grid-layout .live-event-zap .zapperProfile {
+  gap: 0;
+}
+
+.zaps-only-list.grid-layout .zap .zapperAmount,
+.activity-list.grid-layout .zap .zapperAmount,
+.zaps-only-list.grid-layout .live-event-zap .zapperAmount,
+.activity-list.grid-layout .live-event-zap .zapperAmount {
+  margin-left: 0;
+}
+
+/* Center fiat-amount in grid layout */
+.zaps-list.grid-layout .zap .fiat-amount,
+.zaps-only-list.grid-layout .zap .fiat-amount,
+.zaps-only-list.grid-layout .live-event-zap .fiat-amount,
+.zaps-only-list.grid-layout .zap-only-item .fiat-amount {
+  text-align: center;
+  width: 100%;
+}
+
+/* Override basic zap styles for grid layout */
+.zaps-only-list.grid-layout .zap,
+.activity-list.grid-layout .zap,
+.zaps-only-list.grid-layout .live-event-zap,
+.activity-list.grid-layout .live-event-zap,
+.zaps-only-list.grid-layout .zap-only-item,
+.activity-list.grid-layout .zap-only-item {
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  display: flex !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  margin-bottom: 0;
+  overflow: hidden;
+}
+
+/* Keep chat messages in normal horizontal layout - don't apply grid styles */
+.activity-list.grid-layout .live-chat-message {
+  flex-direction: row !important;
+  align-items: flex-start !important;
+  text-align: left !important;
+  display: flex !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  margin-bottom: 4px !important;
+}
+
+/* Base styles for grid layout elements */
+.zaps-only-list.grid-layout .zapperProfileImg,
+.activity-list.grid-layout .zapperProfileImg {
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.zaps-only-list.grid-layout .zapperName,
+.activity-list.grid-layout .zapperName {
+  font-weight: 600;
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.zaps-only-list.grid-layout .zap .zapperMessage,
+.activity-list.grid-layout .zap .zapperMessage,
+.zaps-only-list.grid-layout .live-event-zap .zapperMessage,
+.activity-list.grid-layout .live-event-zap .zapperMessage {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  display: block;
+  box-sizing: border-box;
+}
+
+.zaps-only-list.grid-layout .zapperMessage,
+.activity-list.grid-layout .zapperMessage {
+  font-weight: 300;
+  color: var(--text-color);
+  opacity: 0.8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Container for each row - use CSS Grid */
+.zaps-only-list.grid-layout .zap-row,
+.activity-list.grid-layout .zap-row {
+  display: grid;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+/* Row 1: 1 big zap */
+.zaps-only-list.grid-layout .zap-row.row-1,
+.activity-list.grid-layout .zap-row.row-1 {
+  grid-template-columns: 1fr;
+}
+
+.zaps-only-list.grid-layout .zap.row-1,
+.activity-list.grid-layout .zap.row-1,
+.zaps-only-list.grid-layout .live-event-zap.row-1,
+.activity-list.grid-layout .live-event-zap.row-1,
+.zaps-only-list.grid-layout .zap-only-item.row-1,
+.activity-list.grid-layout .zap-only-item.row-1 {
+  padding: 24px;
+  min-height: 160px;
+}
+
+.zaps-only-list.grid-layout .zap.row-1 .zapperProfileImg,
+.activity-list.grid-layout .zap.row-1 .zapperProfileImg,
+.zaps-only-list.grid-layout .live-event-zap.row-1 .zapperProfileImg,
+.activity-list.grid-layout .live-event-zap.row-1 .zapperProfileImg,
+.zaps-only-list.grid-layout .zap-only-item.row-1 .zapperProfileImg,
+.activity-list.grid-layout .zap-only-item.row-1 .zapperProfileImg {
+  width: 6vw;
+  height: 6vw;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.zaps-only-list.grid-layout .zap.row-1 .zapperName,
+.activity-list.grid-layout .zap.row-1 .zapperName,
+.zaps-only-list.grid-layout .live-event-zap.row-1 .zapperName,
+.activity-list.grid-layout .live-event-zap.row-1 .zapperName,
+.zaps-only-list.grid-layout .zap-only-item.row-1 .zapperName,
+.activity-list.grid-layout .zap-only-item.row-1 .zapperName {
+  font-size: 1.5vw;
+  margin-bottom: 6px;
+  font-weight: bold;
+}
+
+.zaps-only-list.grid-layout .zap.row-1 .zapperMessage,
+.activity-list.grid-layout .zap.row-1 .zapperMessage,
+.zaps-only-list.grid-layout .live-event-zap.row-1 .zapperMessage,
+.activity-list.grid-layout .live-event-zap.row-1 .zapperMessage,
+.zaps-only-list.grid-layout .zap-only-item.row-1 .zapperMessage,
+.activity-list.grid-layout .zap-only-item.row-1 .zapperMessage {
+  font-size: 1.2vw;
+  opacity: 0.8;
+  margin-bottom: 12px;
+}
+
+.zaps-only-list.grid-layout .zap.row-1 .zapperAmountSats,
+.activity-list.grid-layout .zap.row-1 .zapperAmountSats,
+.zaps-only-list.grid-layout .live-event-zap.row-1 .zapperAmountSats,
+.activity-list.grid-layout .live-event-zap.row-1 .zapperAmountSats,
+.zaps-only-list.grid-layout .zap-only-item.row-1 .zapperAmountSats,
+.activity-list.grid-layout .zap-only-item.row-1 .zapperAmountSats {
+  font-size: 1.8vw;
+  font-weight: bold;
+}
+
+.zaps-only-list.grid-layout .zap.row-1 .zapperAmountLabel,
+.activity-list.grid-layout .zap.row-1 .zapperAmountLabel,
+.zaps-only-list.grid-layout .live-event-zap.row-1 .zapperAmountLabel,
+.activity-list.grid-layout .live-event-zap.row-1 .zapperAmountLabel,
+.zaps-only-list.grid-layout .zap-only-item.row-1 .zapperAmountLabel,
+.activity-list.grid-layout .zap-only-item.row-1 .zapperAmountLabel {
+  font-size: 1.2vw;
+  opacity: 0.8;
+}
+
+/* Row 2: 2 medium zaps */
+.zaps-only-list.grid-layout .zap-row.row-2,
+.activity-list.grid-layout .zap-row.row-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.zaps-only-list.grid-layout .zap.row-2,
+.activity-list.grid-layout .zap.row-2,
+.zaps-only-list.grid-layout .live-event-zap.row-2,
+.activity-list.grid-layout .live-event-zap.row-2,
+.zaps-only-list.grid-layout .zap-only-item.row-2,
+.activity-list.grid-layout .zap-only-item.row-2 {
+  padding: 18px;
+  min-height: 130px;
+}
+
+.zaps-only-list.grid-layout .zap.row-2 .zapperProfileImg,
+.activity-list.grid-layout .zap.row-2 .zapperProfileImg,
+.zaps-only-list.grid-layout .live-event-zap.row-2 .zapperProfileImg,
+.activity-list.grid-layout .live-event-zap.row-2 .zapperProfileImg,
+.zaps-only-list.grid-layout .zap-only-item.row-2 .zapperProfileImg,
+.activity-list.grid-layout .zap-only-item.row-2 .zapperProfileImg {
+  width: 4vw;
+  height: 4vw;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.zaps-only-list.grid-layout .zap.row-2 .zapperName,
+.activity-list.grid-layout .zap.row-2 .zapperName,
+.zaps-only-list.grid-layout .live-event-zap.row-2 .zapperName,
+.activity-list.grid-layout .live-event-zap.row-2 .zapperName,
+.zaps-only-list.grid-layout .zap-only-item.row-2 .zapperName,
+.activity-list.grid-layout .zap-only-item.row-2 .zapperName {
+  font-size: 1.3vw;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+.zaps-only-list.grid-layout .zap.row-2 .zapperMessage,
+.activity-list.grid-layout .zap.row-2 .zapperMessage,
+.zaps-only-list.grid-layout .live-event-zap.row-2 .zapperMessage,
+.activity-list.grid-layout .live-event-zap.row-2 .zapperMessage,
+.zaps-only-list.grid-layout .zap-only-item.row-2 .zapperMessage,
+.activity-list.grid-layout .zap-only-item.row-2 .zapperMessage {
+  font-size: 1vw;
+  opacity: 0.8;
+  margin-bottom: 8px;
+}
+
+.zaps-only-list.grid-layout .zap.row-2 .zapperAmountSats,
+.activity-list.grid-layout .zap.row-2 .zapperAmountSats,
+.zaps-only-list.grid-layout .live-event-zap.row-2 .zapperAmountSats,
+.activity-list.grid-layout .live-event-zap.row-2 .zapperAmountSats,
+.zaps-only-list.grid-layout .zap-only-item.row-2 .zapperAmountSats,
+.activity-list.grid-layout .zap-only-item.row-2 .zapperAmountSats {
+  font-size: 1.5vw;
+  font-weight: bold;
+}
+
+.zaps-only-list.grid-layout .zap.row-2 .zapperAmountLabel,
+.activity-list.grid-layout .zap.row-2 .zapperAmountLabel,
+.zaps-only-list.grid-layout .live-event-zap.row-2 .zapperAmountLabel,
+.activity-list.grid-layout .live-event-zap.row-2 .zapperAmountLabel,
+.zaps-only-list.grid-layout .zap-only-item.row-2 .zapperAmountLabel,
+.activity-list.grid-layout .zap-only-item.row-2 .zapperAmountLabel {
+  font-size: 1vw;
+  opacity: 0.8;
+}
+
+/* Row 3: 4 smaller zaps */
+.zaps-only-list.grid-layout .zap-row.row-3,
+.activity-list.grid-layout .zap-row.row-3 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.zaps-only-list.grid-layout .zap.row-3,
+.activity-list.grid-layout .zap.row-3,
+.zaps-only-list.grid-layout .live-event-zap.row-3,
+.activity-list.grid-layout .live-event-zap.row-3,
+.zaps-only-list.grid-layout .zap-only-item.row-3,
+.activity-list.grid-layout .zap-only-item.row-3 {
+  padding: 14px;
+  min-height: 110px;
+}
+
+.zaps-only-list.grid-layout .zap.row-3 .zapperProfileImg,
+.activity-list.grid-layout .zap.row-3 .zapperProfileImg,
+.zaps-only-list.grid-layout .live-event-zap.row-3 .zapperProfileImg,
+.activity-list.grid-layout .live-event-zap.row-3 .zapperProfileImg,
+.zaps-only-list.grid-layout .zap-only-item.row-3 .zapperProfileImg,
+.activity-list.grid-layout .zap-only-item.row-3 .zapperProfileImg {
+  width: 3vw;
+  height: 3vw;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.zaps-only-list.grid-layout .zap.row-3 .zapperName,
+.activity-list.grid-layout .zap.row-3 .zapperName,
+.zaps-only-list.grid-layout .live-event-zap.row-3 .zapperName,
+.activity-list.grid-layout .live-event-zap.row-3 .zapperName,
+.zaps-only-list.grid-layout .zap-only-item.row-3 .zapperName,
+.activity-list.grid-layout .zap-only-item.row-3 .zapperName {
+  font-size: 1.1vw;
+  margin-bottom: 3px;
+  font-weight: bold;
+}
+
+.zaps-only-list.grid-layout .zap.row-3 .zapperMessage,
+.activity-list.grid-layout .zap.row-3 .zapperMessage,
+.zaps-only-list.grid-layout .live-event-zap.row-3 .zapperMessage,
+.activity-list.grid-layout .live-event-zap.row-3 .zapperMessage,
+.zaps-only-list.grid-layout .zap-only-item.row-3 .zapperMessage,
+.activity-list.grid-layout .zap-only-item.row-3 .zapperMessage {
+  font-size: 0.9vw;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
+.zaps-only-list.grid-layout .zap.row-3 .zapperAmountSats,
+.activity-list.grid-layout .zap.row-3 .zapperAmountSats,
+.zaps-only-list.grid-layout .live-event-zap.row-3 .zapperAmountSats,
+.activity-list.grid-layout .live-event-zap.row-3 .zapperAmountSats,
+.zaps-only-list.grid-layout .zap-only-item.row-3 .zapperAmountSats,
+.activity-list.grid-layout .zap-only-item.row-3 .zapperAmountSats {
+  font-size: 1.3vw;
+  font-weight: bold;
+}
+
+.zaps-only-list.grid-layout .zap.row-3 .zapperAmountLabel,
+.activity-list.grid-layout .zap.row-3 .zapperAmountLabel,
+.zaps-only-list.grid-layout .live-event-zap.row-3 .zapperAmountLabel,
+.activity-list.grid-layout .live-event-zap.row-3 .zapperAmountLabel,
+.zaps-only-list.grid-layout .zap-only-item.row-3 .zapperAmountLabel,
+.activity-list.grid-layout .zap-only-item.row-3 .zapperAmountLabel {
+  font-size: 0.9vw;
+  opacity: 0.8;
+}
+
+/* Row 4: 8 even smaller zaps */
+.zaps-only-list.grid-layout .zap-row.row-4,
+.activity-list.grid-layout .zap-row.row-4 {
+  grid-template-columns: repeat(8, 1fr);
+}
+
+.zaps-only-list.grid-layout .zap.row-4,
+.activity-list.grid-layout .zap.row-4,
+.zaps-only-list.grid-layout .live-event-zap.row-4,
+.activity-list.grid-layout .live-event-zap.row-4,
+.zaps-only-list.grid-layout .zap-only-item.row-4,
+.activity-list.grid-layout .zap-only-item.row-4 {
+  padding: 10px;
+  min-height: 90px;
+}
+
+.zaps-only-list.grid-layout .zap.row-4 .zapperProfileImg,
+.activity-list.grid-layout .zap.row-4 .zapperProfileImg,
+.zaps-only-list.grid-layout .live-event-zap.row-4 .zapperProfileImg,
+.activity-list.grid-layout .live-event-zap.row-4 .zapperProfileImg,
+.zaps-only-list.grid-layout .zap-only-item.row-4 .zapperProfileImg,
+.activity-list.grid-layout .zap-only-item.row-4 .zapperProfileImg {
+  width: 2vw;
+  height: 2vw;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.zaps-only-list.grid-layout .zap.row-4 .zapperName,
+.activity-list.grid-layout .zap.row-4 .zapperName,
+.zaps-only-list.grid-layout .live-event-zap.row-4 .zapperName,
+.activity-list.grid-layout .live-event-zap.row-4 .zapperName,
+.zaps-only-list.grid-layout .zap-only-item.row-4 .zapperName,
+.activity-list.grid-layout .zap-only-item.row-4 .zapperName {
+  font-size: 0.9vw;
+  margin-bottom: 3px;
+  font-weight: bold;
+}
+
+.zaps-only-list.grid-layout .zap.row-4 .zapperMessage,
+.activity-list.grid-layout .zap.row-4 .zapperMessage,
+.zaps-only-list.grid-layout .live-event-zap.row-4 .zapperMessage,
+.activity-list.grid-layout .live-event-zap.row-4 .zapperMessage,
+.zaps-only-list.grid-layout .zap-only-item.row-4 .zapperMessage,
+.activity-list.grid-layout .zap-only-item.row-4 .zapperMessage {
+  font-size: 0.7vw;
+  opacity: 0.8;
+  margin-bottom: 5px;
+}
+
+.zaps-only-list.grid-layout .zap.row-4 .zapperAmountSats,
+.activity-list.grid-layout .zap.row-4 .zapperAmountSats,
+.zaps-only-list.grid-layout .live-event-zap.row-4 .zapperAmountSats,
+.activity-list.grid-layout .live-event-zap.row-4 .zapperAmountSats,
+.zaps-only-list.grid-layout .zap-only-item.row-4 .zapperAmountSats,
+.activity-list.grid-layout .zap-only-item.row-4 .zapperAmountSats {
+  font-size: 1.1vw;
+  font-weight: bold;
+}
+
+.zaps-only-list.grid-layout .zap.row-4 .zapperAmountLabel,
+.activity-list.grid-layout .zap.row-4 .zapperAmountLabel,
+.zaps-only-list.grid-layout .live-event-zap.row-4 .zapperAmountLabel,
+.activity-list.grid-layout .live-event-zap.row-4 .zapperAmountLabel,
+.zaps-only-list.grid-layout .zap-only-item.row-4 .zapperAmountLabel,
+.activity-list.grid-layout .zap-only-item.row-4 .zapperAmountLabel {
+  font-size: 0.7vw;
+  opacity: 0.8;
+}
+
+/* Row 5+: 16+ tiny zaps */
+.zaps-only-list.grid-layout .zap-row.row-5,
+.activity-list.grid-layout .zap-row.row-5 {
+  grid-template-columns: repeat(16, 1fr);
+}
+
+.zaps-only-list.grid-layout .zap.row-5,
+.activity-list.grid-layout .zap.row-5,
+.zaps-only-list.grid-layout .live-event-zap.row-5,
+.activity-list.grid-layout .live-event-zap.row-5,
+.zaps-only-list.grid-layout .zap-only-item.row-5,
+.activity-list.grid-layout .zap-only-item.row-5 {
+  padding: 8px;
+  min-height: 70px;
+}
+
+.zaps-only-list.grid-layout .zap.row-5 .zapperProfileImg,
+.activity-list.grid-layout .zap.row-5 .zapperProfileImg,
+.zaps-only-list.grid-layout .live-event-zap.row-5 .zapperProfileImg,
+.activity-list.grid-layout .live-event-zap.row-5 .zapperProfileImg,
+.zaps-only-list.grid-layout .zap-only-item.row-5 .zapperProfileImg,
+.activity-list.grid-layout .zap-only-item.row-5 .zapperProfileImg {
+  width: 1vw;
+  height: 1vw;
+  margin-bottom: 3px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.zaps-only-list.grid-layout .zap.row-5 .zapperName,
+.activity-list.grid-layout .zap.row-5 .zapperName,
+.zaps-only-list.grid-layout .live-event-zap.row-5 .zapperName,
+.activity-list.grid-layout .live-event-zap.row-5 .zapperName,
+.zaps-only-list.grid-layout .zap-only-item.row-5 .zapperName,
+.activity-list.grid-layout .zap-only-item.row-5 .zapperName {
+  font-size: 0.8vw;
+  margin-bottom: 2px;
+  font-weight: bold;
+}
+
+.zaps-only-list.grid-layout .zap.row-5 .zapperMessage,
+.activity-list.grid-layout .zap.row-5 .zapperMessage,
+.zaps-only-list.grid-layout .live-event-zap.row-5 .zapperMessage,
+.activity-list.grid-layout .live-event-zap.row-5 .zapperMessage,
+.zaps-only-list.grid-layout .zap-only-item.row-5 .zapperMessage,
+.activity-list.grid-layout .zap-only-item.row-5 .zapperMessage {
+  font-size: 0.6vw;
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.zaps-only-list.grid-layout .zap.row-5 .zapperAmountSats,
+.activity-list.grid-layout .zap.row-5 .zapperAmountSats,
+.zaps-only-list.grid-layout .live-event-zap.row-5 .zapperAmountSats,
+.activity-list.grid-layout .live-event-zap.row-5 .zapperAmountSats,
+.zaps-only-list.grid-layout .zap-only-item.row-5 .zapperAmountSats,
+.activity-list.grid-layout .zap-only-item.row-5 .zapperAmountSats {
+  font-size: 0.6vw;
+  font-weight: bold;
+}
+
+.zaps-only-list.grid-layout .zap.row-5 .zapperAmountLabel,
+.activity-list.grid-layout .zap.row-5 .zapperAmountLabel,
+.zaps-only-list.grid-layout .live-event-zap.row-5 .zapperAmountLabel,
+.activity-list.grid-layout .live-event-zap.row-5 .zapperAmountLabel,
+.zaps-only-list.grid-layout .zap-only-item.row-5 .zapperAmountLabel,
+.activity-list.grid-layout .zap-only-item.row-5 .zapperAmountLabel {
+  font-size: 0.6vw;
+  opacity: 0.8;
+}
+
+.zaps-only-list.grid-layout .zap .zapperInfo,
+.activity-list.grid-layout .zap .zapperInfo,
+.zaps-only-list.grid-layout .live-event-zap .zapperInfo,
+.activity-list.grid-layout .live-event-zap .zapperInfo,
+.zaps-only-list.grid-layout .zap-only-item .zapperInfo,
+.activity-list.grid-layout .zap-only-item .zapperInfo {
+  overflow: hidden;
+  width: 100%;
+}
+
+.zaps-only-list.grid-layout .zapperInfo,
+.activity-list.grid-layout .zapperInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+}
+
+.zaps-only-list.grid-layout .zapperAmount,
+.activity-list.grid-layout .zapperAmount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 body.flex-direction-invert .main-layout .right-side,
@@ -4449,12 +4973,18 @@ body.show-top-zappers #top-zappers-bar {
 }
 
 .zap-only-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
   margin-bottom: 10px;
   padding: 10px;
   background: white;
   border: 1px solid #e9ecef;
   border-radius: 8px;
   transition: all 0.3s ease;
+  width: auto;
 }
 
 .zap-only-item:hover {
