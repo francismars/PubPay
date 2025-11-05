@@ -1807,6 +1807,13 @@ export const useHomeFunctionality = () => {
   const handleLogout = () => {
     AuthService.clearAuthData();
 
+    // Check if user wants to clear NWC on logout
+    const clearNwcOnLogout = localStorage.getItem('clearNwcOnLogout');
+    if (clearNwcOnLogout === 'true') {
+      localStorage.removeItem('nwcConnectionString');
+      localStorage.removeItem('nwcCapabilities');
+    }
+
     setAuthState({
       isLoggedIn: false,
       publicKey: null,

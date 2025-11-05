@@ -10,6 +10,7 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const EditProfilePage = lazy(() => import('./pages/EditProfilePage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const WalletPage = lazy(() => import('./pages/WalletPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
 // Import CSS
@@ -86,6 +87,7 @@ const App: React.FC = () => {
             <Route path="edit-profile" element={<EditProfilePage />} />
             <Route path="register" element={<RegisterPage />} />
             <Route path="settings" element={<SettingsPage />} />
+            <Route path="settings/wallet" element={<WalletPage />} />
             <Route path="note/:noteId" element={<FeedsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>

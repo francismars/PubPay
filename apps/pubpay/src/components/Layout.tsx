@@ -792,6 +792,14 @@ export const Layout: React.FC = () => {
               >
                 Settings
               </Link>
+              <Link
+                to="/settings/wallet"
+                className="sideNavLink"
+                title="Wallet"
+                onClick={closeMobileMenu}
+              >
+                Wallet
+              </Link>
               <a
                 href="/live"
                 className="sideNavLink "
