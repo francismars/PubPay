@@ -6,8 +6,6 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { Request, Response, NextFunction } from 'express';
 import { LightningRouter } from './routes/lightning';
-import { LiveRouter } from './routes/live';
-import { JukeboxRouter } from './routes/jukebox';
 import { ErrorHandler } from './middleware/errorHandler';
 import { RoomsRouter } from './routes/rooms';
 import { Nip05Router } from './routes/nip05';
@@ -95,9 +93,7 @@ export class BackendServer {
 
     // API routes
     this.app.use('/lightning', new LightningRouter().getRouter());
-    this.app.use('/live', new LiveRouter().getRouter());
     this.app.use('/multi', new RoomsRouter().getRouter());
-    this.app.use('/jukebox', new JukeboxRouter().getRouter());
 
     // Create NIP-05 router and service instance (shared)
     const nip05Router = new Nip05Router();
@@ -105,9 +101,11 @@ export class BackendServer {
 
     // Serve .well-known/nostr.json for NIP-05 (MUST be before catch-all route)
     // Use the same service instance as the router to ensure data consistency
+    // Supports optional ?name=<name> query parameter for filtering
     this.app.get('/.well-known/nostr.json', (req: Request, res: Response) => {
       try {
-        const json = nip05Service.getNostrJson();
+        const name = req.query.name as string | undefined;
+        const json = nip05Service.getNostrJson(name);
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Access-Control-Allow-Origin', '*');
         return res.json(json);
@@ -132,8 +130,7 @@ export class BackendServer {
       } else {
         // If no index.html, return 404 for non-API routes
         if (!req.path.startsWith('/api') && !req.path.startsWith('/lightning') &&
-            !req.path.startsWith('/live') && !req.path.startsWith('/multi') &&
-            !req.path.startsWith('/jukebox') && !req.path.startsWith('/nip05')) {
+            !req.path.startsWith('/multi') && !req.path.startsWith('/nip05')) {
           res.status(404).json({
             success: false,
             error: 'Route not found',
