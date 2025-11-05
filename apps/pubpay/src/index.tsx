@@ -87,8 +87,8 @@ const App: React.FC = () => {
             <Route path="register" element={<RegisterPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="note/:noteId" element={<FeedsPage />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
-          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
