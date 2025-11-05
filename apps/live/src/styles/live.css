@@ -2600,6 +2600,31 @@ body.style-panel-open .style-toggle-btn {
   padding: 0;
   margin: 0;
   min-width: 0;
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-color) transparent;
+}
+
+/* Webkit scrollbar styling for Chrome/Safari/Edge */
+.zaps-only-list::-webkit-scrollbar,
+.activity-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.zaps-only-list::-webkit-scrollbar-track,
+.activity-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.zaps-only-list::-webkit-scrollbar-thumb,
+.activity-list::-webkit-scrollbar-thumb {
+  background-color: var(--text-color);
+  border-radius: 4px;
+}
+
+.zaps-only-list::-webkit-scrollbar-thumb:hover,
+.activity-list::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
 }
 
 /* Zap-only column styling */
@@ -4366,6 +4391,27 @@ body.show-top-zappers #top-zappers-bar {
 /* Live Event Activity List */
 .activity-list {
   overflow-y: auto;
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-color) transparent;
+}
+
+/* Webkit scrollbar styling for Chrome/Safari/Edge */
+.activity-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.activity-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.activity-list::-webkit-scrollbar-thumb {
+  background-color: var(--text-color);
+  border-radius: 4px;
+}
+
+.activity-list::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
 }
 
 .activity-list .live-chat-message,
@@ -4379,6 +4425,27 @@ body.show-top-zappers #top-zappers-bar {
 /* Live Event Zaps Only List */
 .zaps-only-list {
   overflow-y: auto;
+  /* Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-color) transparent;
+}
+
+/* Webkit scrollbar styling for Chrome/Safari/Edge */
+.zaps-only-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.zaps-only-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.zaps-only-list::-webkit-scrollbar-thumb {
+  background-color: var(--text-color);
+  border-radius: 4px;
+}
+
+.zaps-only-list::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
 }
 
 .zap-only-item {
