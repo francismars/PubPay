@@ -4149,6 +4149,83 @@ export const useLiveFunctionality = (eventId?: string) => {
     } catch (e) {}
   };
 
+  // Helper to get display name for npub/nprofile
+  const getMentionUserName = async (identifier: string): Promise<string> => {
+    try {
+      let pubkey: string;
+      
+      // Decode npub/nprofile to get pubkey
+      const decoded = nip19.decode(identifier);
+      if (decoded.type === 'npub') {
+        pubkey = decoded.data;
+      } else if (decoded.type === 'nprofile') {
+        pubkey = decoded.data.pubkey;
+      } else {
+        // Not a user identifier, return shortened version
+        return identifier.length > 35
+          ? `${identifier.substr(0, 4)}...${identifier.substr(identifier.length - 4)}`
+          : identifier;
+      }
+      
+      // Check if profile is already cached
+      const profiles = (window as any).profiles || {};
+      let profile = profiles[pubkey];
+      
+      // If not cached, fetch it
+      if (!profile && (window as any).pool && (window as any).relays) {
+        try {
+          profile = await new Promise((resolve) => {
+            const timeout = setTimeout(() => resolve(null), 2000); // 2 second timeout
+            
+            const sub = (window as any).pool.subscribe(
+              (window as any).relays,
+              { kinds: [0], authors: [pubkey] },
+              {
+                onevent(event: any) {
+                  clearTimeout(timeout);
+                  // Cache the profile
+                  profiles[pubkey] = event;
+                  sub.close();
+                  resolve(event);
+                },
+                oneose() {
+                  clearTimeout(timeout);
+                  sub.close();
+                  resolve(null);
+                }
+              }
+            );
+          });
+        } catch (e) {
+          console.error('Error fetching profile:', e);
+        }
+      }
+      
+      // Parse profile and get display name
+      if (profile && profile.content) {
+        try {
+          const profileData = JSON.parse(profile.content);
+          const displayName = profileData.display_name || profileData.displayName || profileData.name;
+          if (displayName) {
+            return displayName;
+          }
+        } catch (e) {
+          console.error('Error parsing profile data:', e);
+        }
+      }
+      
+      // Fallback to shortened identifier
+      return identifier.length > 35
+        ? `${identifier.substr(0, 4)}...${identifier.substr(identifier.length - 4)}`
+        : identifier;
+    } catch (error) {
+      console.error('Error getting mention username:', error);
+      return identifier.length > 35
+        ? `${identifier.substr(0, 4)}...${identifier.substr(identifier.length - 4)}`
+        : identifier;
+    }
+  };
+
   const processNoteContent = async (content: string): Promise<string> => {
     if (!content) return '';
     
@@ -4175,21 +4252,106 @@ export const useLiveFunctionality = (eventId?: string) => {
       </div>`
     );
     
-    // Process nostr: mentions (npub, nprofile, note, nevent, naddr)
+    // Process mentions in order: bare npub/note first (before adding any HTML), then prefixed versions
+    // Match paynote's logic - fetch usernames asynchronously
+    // Use a Map to track which positions have been processed to avoid double-processing
+    
+    const processedRanges: Array<{start: number, end: number, replacement: string}> = [];
+    
+    // First, handle bare npub/nprofile mentions (process before other formats to avoid conflicts)
+    const bareNpubMatches = Array.from(processed.matchAll(/\b((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi));
+    
+    for (const matchObj of bareNpubMatches) {
+      const match = matchObj[0];
+      const offset = matchObj.index || 0;
+      
+      // Check if it's preceded by nostr: or @
+      const prefix = processed.substring(Math.max(0, offset - 7), offset);
+      if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
+        continue; // Skip this one, it will be processed with its prefix
+      }
+      
+      const displayName = await getMentionUserName(match);
+      const replacement = `<a href="/profile/${match}" class="nostrMention" target="_blank">${displayName}</a>`;
+      processedRanges.push({
+        start: offset,
+        end: offset + match.length,
+        replacement: replacement
+      });
+    }
+    
+    // Handle bare note/nevent/naddr mentions (no username fetching needed)
+    const bareNoteMatches = Array.from(processed.matchAll(/\b((note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi));
+    
+    for (const matchObj of bareNoteMatches) {
+      const match = matchObj[0];
+      const offset = matchObj.index || 0;
+      
+      // Check if it's preceded by nostr: or @
+      const prefix = processed.substring(Math.max(0, offset - 7), offset);
+      if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
+        continue; // Skip this one, it will be processed with its prefix
+      }
+      
+      const clean = String(match);
+      const shortId =
+        clean.length > 35
+          ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
+          : clean;
+      
+      let linkPath = '';
+      if (clean.startsWith('note') || clean.startsWith('nevent')) {
+        linkPath = `/note/${clean}`;
+      } else if (clean.startsWith('naddr')) {
+        linkPath = `/live/${clean}`;
+      }
+      
+      const replacement = `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
+      processedRanges.push({
+        start: offset,
+        end: offset + match.length,
+        replacement: replacement
+      });
+    }
+    
+    // Apply replacements in reverse order to maintain correct positions
+    processedRanges.sort((a, b) => b.start - a.start);
+    for (const range of processedRanges) {
+      processed = processed.substring(0, range.start) + range.replacement + processed.substring(range.end);
+    }
+    
+    // Handle nostr:npub/nprofile mentions
+    const nostrNpubMatches = processed.match(/nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi);
+    
+    if (nostrNpubMatches) {
+      const replacements = await Promise.all(
+        nostrNpubMatches.map(async match => {
+          const cleanMatch = match.replace(/^nostr:/i, '');
+          const displayName = await getMentionUserName(cleanMatch);
+          return {
+            match,
+            replacement: `<a href="/profile/${cleanMatch}" class="nostrMention" target="_blank">${displayName}</a>`
+          };
+        })
+      );
+      
+      replacements.forEach(({ match, replacement }) => {
+        processed = processed.replace(match, replacement);
+      });
+    }
+    
+    // Handle nostr:note/nevent/naddr mentions (no username fetching)
     processed = processed.replace(
-      /nostr:((npub|nprofile|note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+      /nostr:((note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
       (_m, identifier) => {
         const clean = String(identifier);
         const shortId =
           clean.length > 35
-            ? `${clean.substring(0, 8)}...${clean.substring(clean.length - 8)}`
+            ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
             : clean;
         
-        // Determine the link based on identifier type
         let linkPath = '';
-        if (clean.startsWith('npub') || clean.startsWith('nprofile')) {
-          linkPath = `/profile/${clean}`;
-        } else if (clean.startsWith('note') || clean.startsWith('nevent')) {
+        if (clean.startsWith('note') || clean.startsWith('nevent')) {
           linkPath = `/note/${clean}`;
         } else if (clean.startsWith('naddr')) {
           linkPath = `/live/${clean}`;
@@ -4199,29 +4361,44 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     );
     
-    // Process standalone identifiers without nostr: prefix
+    // Handle @npub/@nprofile mentions
+    const atNpubMatches = processed.match(/@((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi);
+    
+    if (atNpubMatches) {
+      const replacements = await Promise.all(
+        atNpubMatches.map(async match => {
+          const cleanMatch = match.replace(/^@/i, '');
+          const displayName = await getMentionUserName(cleanMatch);
+          return {
+            match,
+            replacement: `<a href="/profile/${cleanMatch}" class="nostrMention" target="_blank">${displayName}</a>`
+          };
+        })
+      );
+      
+      replacements.forEach(({ match, replacement }) => {
+        processed = processed.replace(match, replacement);
+      });
+    }
+    
+    // Handle @note/@nevent/@naddr mentions (no username fetching)
     processed = processed.replace(
-      /(?:^|\s)((npub|nprofile|note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-      (match, identifier) => {
+      /@((note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+      (_m, identifier) => {
         const clean = String(identifier);
         const shortId =
           clean.length > 35
-            ? `${clean.substring(0, 8)}...${clean.substring(clean.length - 8)}`
+            ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
             : clean;
         
-        // Determine the link based on identifier type
         let linkPath = '';
-        if (clean.startsWith('npub') || clean.startsWith('nprofile')) {
-          linkPath = `/profile/${clean}`;
-        } else if (clean.startsWith('note') || clean.startsWith('nevent')) {
+        if (clean.startsWith('note') || clean.startsWith('nevent')) {
           linkPath = `/note/${clean}`;
         } else if (clean.startsWith('naddr')) {
           linkPath = `/live/${clean}`;
         }
         
-        // Preserve the leading whitespace if present
-        const leadingSpace = match.startsWith(' ') ? ' ' : '';
-        return `${leadingSpace}<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
+        return `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
       }
     );
     

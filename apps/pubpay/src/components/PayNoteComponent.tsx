@@ -86,50 +86,77 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       // Baseline formatting: linkify nostr:npub, @npub, bare npub, and URLs
       let baseline = raw;
       
-      // Process mentions in order: bare npub first (before adding any HTML), then prefixed versions
+      // Process mentions using position-based replacement to handle duplicate mentions correctly
+      const processedRanges: Array<{start: number, end: number, replacement: string}> = [];
       
       // First, handle bare npub mentions (process before other formats to avoid conflicts)
-      baseline = baseline.replace(
-        /\b((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi,
-        (match, _p1, _p2, offset) => {
-          // Check if it's preceded by nostr: or @
-          const prefix = baseline.substring(Math.max(0, offset - 7), offset);
-          if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
-            return match;
-          }
-          const shortId =
-            match.length > 35
-              ? `${match.substr(0, 4)}...${match.substr(match.length - 4)}`
-              : match;
-          return `<a href="/profile/${match}" class="nostrMention">${shortId}</a>`;
+      const bareNpubMatches = Array.from(baseline.matchAll(/\b((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi));
+      
+      for (const matchObj of bareNpubMatches) {
+        const match = matchObj[0];
+        const offset = matchObj.index || 0;
+        
+        // Check if it's preceded by nostr: or @
+        const prefix = baseline.substring(Math.max(0, offset - 7), offset);
+        if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
+          continue; // Skip, will be processed with prefix
         }
-      );
+        
+        const shortId =
+          match.length > 35
+            ? `${match.substr(0, 4)}...${match.substr(match.length - 4)}`
+            : match;
+        const replacement = `<a href="/profile/${match}" class="nostrMention">${shortId}</a>`;
+        processedRanges.push({
+          start: offset,
+          end: offset + match.length,
+          replacement: replacement
+        });
+      }
       
       // Handle nostr:npub mentions
-      baseline = baseline.replace(
-        /nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-        (_m, npub) => {
-          const clean = String(npub);
-          const shortId =
-            clean.length > 35
-              ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
-              : clean;
-          return `<a href="/profile/${clean}" class="nostrMention">${shortId}</a>`;
-        }
-      );
+      const nostrNpubMatches = Array.from(baseline.matchAll(/nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi));
+      
+      for (const matchObj of nostrNpubMatches) {
+        const match = matchObj[0];
+        const offset = matchObj.index || 0;
+        const clean = match.replace(/^nostr:/i, '');
+        const shortId =
+          clean.length > 35
+            ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
+            : clean;
+        const replacement = `<a href="/profile/${clean}" class="nostrMention">${shortId}</a>`;
+        processedRanges.push({
+          start: offset,
+          end: offset + match.length,
+          replacement: replacement
+        });
+      }
       
       // Handle @npub mentions
-      baseline = baseline.replace(
-        /@((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-        (_m, npub) => {
-          const clean = String(npub);
-          const shortId =
-            clean.length > 35
-              ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
-              : clean;
-          return `<a href="/profile/${clean}" class="nostrMention">@${shortId}</a>`;
-        }
-      );
+      const atNpubMatches = Array.from(baseline.matchAll(/@((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi));
+      
+      for (const matchObj of atNpubMatches) {
+        const match = matchObj[0];
+        const offset = matchObj.index || 0;
+        const clean = match.replace(/^@/i, '');
+        const shortId =
+          clean.length > 35
+            ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
+            : clean;
+        const replacement = `<a href="/profile/${clean}" class="nostrMention">${shortId}</a>`;
+        processedRanges.push({
+          start: offset,
+          end: offset + match.length,
+          replacement: replacement
+        });
+      }
+      
+      // Apply all replacements in reverse order to maintain correct positions
+      processedRanges.sort((a, b) => b.start - a.start);
+      for (const range of processedRanges) {
+        baseline = baseline.substring(0, range.start) + range.replacement + baseline.substring(range.end);
+      }
       
       // Handle URLs
       baseline = baseline
