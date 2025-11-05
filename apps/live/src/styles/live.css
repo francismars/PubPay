@@ -1084,6 +1084,7 @@ body {
   padding: 0;
   min-height: 250px;
   position: relative;
+  overflow: hidden; /* Prevent slides from showing outside container */
 }
 
 .qr-swiper .swiper-slide {
@@ -1095,6 +1096,8 @@ body {
   opacity: inherit;
   font-family: inherit;
   font-weight: inherit;
+  width: 100%; /* Ensure slide takes full width */
+  flex-shrink: 0; /* Prevent slides from shrinking */
 }
 
 .qr-swiper .swiper-pagination {
@@ -1152,7 +1155,8 @@ body {
   min-height: 250px;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start; /* Align slides to start to prevent centering issues */
+  width: 100%; /* Ensure wrapper takes full width */
 }
 
 /* QR slide visibility CSS */
@@ -3120,8 +3124,8 @@ body.style-panel-open .main-layout {
 /* ===== LIVE EVENT ZAP STYLES ===== */
 .live-event-zap {
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: space-between;
   text-align: left;
   margin-bottom: 15px;

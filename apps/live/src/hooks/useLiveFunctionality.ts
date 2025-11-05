@@ -2301,6 +2301,35 @@ export const useLiveFunctionality = (eventId?: string) => {
     localStorage.removeItem('pubpay-styles');
     // Debug log removed
 
+    // Reset fiat options to defaults
+    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+    const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
+    const showHistoricalPriceToggle = document.getElementById('showHistoricalPriceToggle') as HTMLInputElement;
+    const showHistoricalChangeToggle = document.getElementById('showHistoricalChangeToggle') as HTMLInputElement;
+    const fiatOnlyToggle = document.getElementById('fiatOnlyToggle') as HTMLInputElement;
+    
+    if (showFiatToggle) showFiatToggle.checked = false;
+    if (currencySelector) currencySelector.value = 'USD';
+    if (showHistoricalPriceToggle) showHistoricalPriceToggle.checked = false;
+    if (showHistoricalChangeToggle) showHistoricalChangeToggle.checked = false;
+    if (fiatOnlyToggle) fiatOnlyToggle.checked = false;
+    
+    // Hide fiat-related groups
+    const currencySelectorGroup = document.getElementById('currencySelectorGroup');
+    const historicalPriceGroup = document.getElementById('historicalPriceGroup');
+    const historicalChangeGroup = document.getElementById('historicalChangeGroup');
+    const fiatOnlyGroup = document.getElementById('fiatOnlyGroup');
+    
+    if (currencySelectorGroup) currencySelectorGroup.style.display = 'none';
+    if (historicalPriceGroup) historicalPriceGroup.style.display = 'none';
+    if (historicalChangeGroup) historicalChangeGroup.style.display = 'none';
+    if (fiatOnlyGroup) fiatOnlyGroup.style.display = 'none';
+    
+    // Remove fiat amounts from display
+    document.querySelectorAll('.fiat-amount').forEach(el => {
+      (el as HTMLElement).style.display = 'none';
+    });
+
     // Apply light mode preset
     applyPreset('lightMode');
   };
@@ -8012,7 +8041,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Initialize Swiper with proper configuration
     try {
       (window as any).qrSwiper = new (window as any).Swiper('.qr-swiper', {
-        loop: visibleSlides.length > 1,
+        loop: visibleSlides.length > 2, // Only enable loop for 3+ slides to avoid duplication issues with 2 slides
         autoplay:
           visibleSlides.length > 1
             ? {
@@ -8025,6 +8054,9 @@ export const useLiveFunctionality = (eventId?: string) => {
           el: '.swiper-pagination',
           clickable: true
         },
+        slidesPerView: 1, // Ensure only 1 slide is visible at a time
+        centeredSlides: true, // Center the active slide
+        spaceBetween: 0, // No space between slides
         on: {
           init() {
             const swiperEl = (this as any).el || (window as any).qrSwiper?.el;

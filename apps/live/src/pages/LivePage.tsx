@@ -1286,6 +1286,13 @@ export const LivePage: React.FC = () => {
                     <span>QR Only (Hide Everything Else)</span>
                   </label>
                 </div>
+              </div>
+            </div>
+
+            {/* Fiat Currency Section */}
+            <div className="style-section">
+              <h3 className="section-title">FIAT CURRENCY</h3>
+              <div className="toggles-container">
                 <div className="style-option-group toggle-group">
                   <label className="toggle-label">
                     <div className="toggle-switch">
