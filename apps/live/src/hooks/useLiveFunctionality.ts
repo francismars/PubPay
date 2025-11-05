@@ -1300,6 +1300,25 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Update total zapped amount
     updateLiveEventZapTotal();
 
+    // Re-organize grid layout if active (for live events)
+    const zapGridToggle = document.getElementById(
+      'zapGridToggle'
+    ) as HTMLInputElement;
+    if (zapGridToggle && zapGridToggle.checked && zapsOnlyContainer) {
+      // Check if zaps-only-list has grid-layout class
+      const isGridActive = zapsOnlyContainer.classList.contains('grid-layout');
+      
+      if (isGridActive) {
+        // Debounce the re-organize to avoid excessive calls during rapid zap influx
+        if ((window as any).gridReorganizeTimeout) {
+          clearTimeout((window as any).gridReorganizeTimeout);
+        }
+        (window as any).gridReorganizeTimeout = setTimeout(() => {
+          organizeZapsHierarchically();
+        }, 300);
+      }
+    }
+
     // Apply fiat conversion if enabled
     const showFiatToggle = document.getElementById(
       'showFiatToggle'
@@ -1602,26 +1621,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Add the two-column class to the container
     zapsContainer.classList.add('live-event-two-column');
-
-    // Disable and grey out the grid toggle for live events
-    const zapGridToggle = document.getElementById(
-      'zapGridToggle'
-    ) as HTMLInputElement;
-    if (zapGridToggle) {
-      zapGridToggle.disabled = true;
-
-      // Add disabled class to the parent toggle group
-      const toggleGroup = zapGridToggle.closest('.toggle-group');
-      if (toggleGroup) {
-        toggleGroup.classList.add('grid-toggle-disabled');
-      }
-
-      // Also add to the label as fallback
-      const gridLabel = zapGridToggle.closest('label');
-      if (gridLabel) {
-        gridLabel.classList.add('grid-toggle-disabled');
-      }
-    }
   };
 
   const subscribeLiveEventHostProfile = async (hostPubkey: string) => {
@@ -2302,6 +2301,35 @@ export const useLiveFunctionality = (eventId?: string) => {
     localStorage.removeItem('pubpay-styles');
     // Debug log removed
 
+    // Reset fiat options to defaults
+    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
+    const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
+    const showHistoricalPriceToggle = document.getElementById('showHistoricalPriceToggle') as HTMLInputElement;
+    const showHistoricalChangeToggle = document.getElementById('showHistoricalChangeToggle') as HTMLInputElement;
+    const fiatOnlyToggle = document.getElementById('fiatOnlyToggle') as HTMLInputElement;
+    
+    if (showFiatToggle) showFiatToggle.checked = false;
+    if (currencySelector) currencySelector.value = 'USD';
+    if (showHistoricalPriceToggle) showHistoricalPriceToggle.checked = false;
+    if (showHistoricalChangeToggle) showHistoricalChangeToggle.checked = false;
+    if (fiatOnlyToggle) fiatOnlyToggle.checked = false;
+    
+    // Hide fiat-related groups
+    const currencySelectorGroup = document.getElementById('currencySelectorGroup');
+    const historicalPriceGroup = document.getElementById('historicalPriceGroup');
+    const historicalChangeGroup = document.getElementById('historicalChangeGroup');
+    const fiatOnlyGroup = document.getElementById('fiatOnlyGroup');
+    
+    if (currencySelectorGroup) currencySelectorGroup.style.display = 'none';
+    if (historicalPriceGroup) historicalPriceGroup.style.display = 'none';
+    if (historicalChangeGroup) historicalChangeGroup.style.display = 'none';
+    if (fiatOnlyGroup) fiatOnlyGroup.style.display = 'none';
+    
+    // Remove fiat amounts from display
+    document.querySelectorAll('.fiat-amount').forEach(el => {
+      (el as HTMLElement).style.display = 'none';
+    });
+
     // Apply light mode preset
     applyPreset('lightMode');
   };
@@ -2611,11 +2639,114 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (zapGridToggle) zapGridToggle.checked = zapGrid;
     const zapsList = document.getElementById('zaps');
     if (zapsList) {
-      zapsList.classList.toggle('grid-layout', zapGrid);
-      if (zapGrid) {
-        organizeZapsHierarchically();
+      // Check if we're in live event mode (has two-column layout)
+      const isLiveEvent = zapsList.classList.contains(
+        'live-event-two-column'
+      );
+      
+      if (isLiveEvent) {
+        // Apply grid layout ONLY to zaps-only-list, NOT activity-list
+        const zapsOnlyList = document.getElementById('zaps-only-list');
+        
+        if (zapGrid) {
+          if (zapsOnlyList) {
+            zapsOnlyList.classList.add('grid-layout');
+            // Force reflow
+            void zapsOnlyList.offsetHeight;
+          }
+          // Organize zaps after a brief delay to ensure DOM is ready
+          setTimeout(() => {
+            organizeZapsHierarchically();
+          }, 100);
+          
+          // Start periodic re-organization to catch new zaps during load
+          if ((window as any).gridPeriodicCheckInterval) {
+            clearInterval((window as any).gridPeriodicCheckInterval);
+          }
+          (window as any).gridPeriodicCheckInterval = setInterval(() => {
+            const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+            const container = document.getElementById('zaps-only-list');
+            if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
+              // Check if there are zaps outside of .zap-row containers
+              const allZaps = container.querySelectorAll('.zap, .live-event-zap, .zap-only-item');
+              const zapsInRows = container.querySelectorAll('.zap-row .zap, .zap-row .live-event-zap, .zap-row .zap-only-item');
+              
+              if (allZaps.length !== zapsInRows.length) {
+                // Some zaps are not in rows, re-organize
+                console.log('Re-organizing grid on load: found zaps outside rows', allZaps.length, 'total vs', zapsInRows.length, 'in rows');
+                organizeZapsHierarchically();
+              }
+            }
+          }, 2000); // Check every 2 seconds
+        } else {
+          // Stop periodic check on load if grid is disabled
+          if ((window as any).gridPeriodicCheckInterval) {
+            clearInterval((window as any).gridPeriodicCheckInterval);
+            (window as any).gridPeriodicCheckInterval = null;
+          }
+          
+          // Clean up FIRST (this sets inline styles to force row layout)
+          cleanupHierarchicalOrganization();
+          // Then remove the class after cleanup
+          setTimeout(() => {
+            if (zapsOnlyList) {
+              zapsOnlyList.classList.remove('grid-layout');
+              // Force reflow
+              void zapsOnlyList.offsetHeight;
+            }
+            // Also ensure .zaps-list doesn't have grid-layout
+            const zapsListElements = document.querySelectorAll('.zaps-list');
+            zapsListElements.forEach(list => list.classList.remove('grid-layout'));
+          }, 10);
+        }
       } else {
-        cleanupHierarchicalOrganization();
+        // Regular kind1 note mode
+        if (zapGrid) {
+          zapsList.classList.add('grid-layout');
+          // Force reflow
+          void zapsList.offsetHeight;
+          setTimeout(() => {
+            organizeZapsHierarchically();
+          }, 100);
+          
+          // Start periodic re-organization for kind1 notes on load
+          if ((window as any).gridPeriodicCheckInterval) {
+            clearInterval((window as any).gridPeriodicCheckInterval);
+          }
+          (window as any).gridPeriodicCheckInterval = setInterval(() => {
+            const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+            const container = document.getElementById('zaps');
+            if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
+              // Check if there are zaps outside of .zap-row containers
+              const allZaps = container.querySelectorAll('.zap');
+              const zapsInRows = container.querySelectorAll('.zap-row .zap');
+              
+              if (allZaps.length !== zapsInRows.length) {
+                // Some zaps are not in rows, re-organize
+                console.log('Re-organizing grid on load: found zaps outside rows', allZaps.length, 'total vs', zapsInRows.length, 'in rows');
+                organizeZapsHierarchically();
+              }
+            }
+          }, 2000); // Check every 2 seconds
+        } else {
+          // Stop periodic check on load if grid is disabled
+          if ((window as any).gridPeriodicCheckInterval) {
+            clearInterval((window as any).gridPeriodicCheckInterval);
+            (window as any).gridPeriodicCheckInterval = null;
+          }
+          
+          // Clean up FIRST (this sets inline styles to force row layout)
+          cleanupHierarchicalOrganization();
+          // Then remove the class after cleanup
+          setTimeout(() => {
+            zapsList.classList.remove('grid-layout');
+            // Force reflow
+            void zapsList.offsetHeight;
+            // Also ensure .zaps-list doesn't have grid-layout
+            const zapsListElements = document.querySelectorAll('.zaps-list');
+            zapsListElements.forEach(list => list.classList.remove('grid-layout'));
+          }, 10);
+        }
       }
     }
 
@@ -3628,45 +3759,148 @@ export const useLiveFunctionality = (eventId?: string) => {
     return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
-  const cleanupHierarchicalOrganization = () => {
-    const zapsList = document.getElementById('zaps');
-    if (!zapsList) return;
-
-    // Skip if this is a live event (has two-column layout)
-    if (zapsList.classList.contains('live-event-two-column')) {
-      // Debug log removed
-      return;
-    }
-
+  // Helper function to cleanup hierarchical organization in a container
+  const cleanupHierarchicalOrganizationInContainer = (container: HTMLElement) => {
     // Remove all row containers and move zaps back to the main container
-    const existingRows = zapsList.querySelectorAll('.zap-row');
+    const existingRows = container.querySelectorAll('.zap-row');
     existingRows.forEach(row => {
       // Move all zaps from this row back to the main container
       const zapsInRow = Array.from(row.children);
       zapsInRow.forEach(zap => {
+        const zapElement = zap as HTMLElement;
         // Remove row classes and global podium classes from individual zaps
-        zap.className = zap.className.replace(/row-\d+/g, '');
-        zap.className = zap.className.replace(/podium-global-\d+/g, '');
+        zapElement.className = zapElement.className.replace(/row-\d+/g, '');
+        zapElement.className = zapElement.className.replace(/podium-global-\d+/g, '');
+        
+        // Force row layout by setting inline styles (will override everything)
+        zapElement.style.flexDirection = 'row';
+        zapElement.style.alignItems = 'center';
+        zapElement.style.justifyContent = 'space-between';
+        zapElement.style.textAlign = 'left';
+        zapElement.style.width = 'auto';
+        
+        // Reset nested elements to row layout
+        const profile = zapElement.querySelector('.zapperProfile') as HTMLElement;
+        if (profile) {
+          profile.style.flexDirection = 'row';
+          profile.style.alignItems = 'center';
+        }
+        
+        const info = zapElement.querySelector('.zapperInfo') as HTMLElement;
+        if (info) {
+          info.style.flexDirection = 'column';
+          info.style.alignItems = 'flex-start';
+          info.style.textAlign = 'left';
+        }
+        
+        const amount = zapElement.querySelector('.zapperAmount') as HTMLElement;
+        if (amount) {
+          amount.style.flexDirection = 'row';
+          amount.style.alignItems = 'baseline';
+        }
+        
         // Move zap back to main container
-        zapsList.appendChild(zap);
+        container.appendChild(zapElement);
       });
       // Remove the empty row container
       row.remove();
     });
+    
+    // After cleanup, remove inline styles after a frame to let CSS take over
+    setTimeout(() => {
+      const allZaps = container.querySelectorAll('.zap, .live-event-zap, .zap-only-item');
+      allZaps.forEach(zap => {
+        const zapElement = zap as HTMLElement;
+        zapElement.style.removeProperty('flex-direction');
+        zapElement.style.removeProperty('align-items');
+        zapElement.style.removeProperty('justify-content');
+        zapElement.style.removeProperty('text-align');
+        zapElement.style.removeProperty('width');
+        
+        const profile = zapElement.querySelector('.zapperProfile') as HTMLElement;
+        if (profile) {
+          profile.style.removeProperty('flex-direction');
+          profile.style.removeProperty('align-items');
+        }
+        
+        const info = zapElement.querySelector('.zapperInfo') as HTMLElement;
+        if (info) {
+          info.style.removeProperty('flex-direction');
+          info.style.removeProperty('align-items');
+          info.style.removeProperty('text-align');
+        }
+        
+        const amount = zapElement.querySelector('.zapperAmount') as HTMLElement;
+        if (amount) {
+          amount.style.removeProperty('flex-direction');
+          amount.style.removeProperty('align-items');
+        }
+      });
+    }, 0);
   };
 
-  const organizeZapsHierarchically = () => {
+  const cleanupHierarchicalOrganization = () => {
     const zapsList = document.getElementById('zaps');
     if (!zapsList) return;
 
-    // Skip if this is a live event (has two-column layout)
+    // Check if this is a live event (has two-column layout)
     if (zapsList.classList.contains('live-event-two-column')) {
-      // Debug log removed
-      return;
+      // Only cleanup zaps-only-list (activity-list never has grid layout)
+      const zapsOnlyList = document.getElementById('zaps-only-list');
+      
+      if (zapsOnlyList) {
+        cleanupHierarchicalOrganizationInContainer(zapsOnlyList);
+      }
+    } else {
+      // Regular kind1 note mode - cleanup main zaps list
+      cleanupHierarchicalOrganizationInContainer(zapsList);
     }
+    
+    // Also ensure .zaps-list elements don't have grid-layout class
+    const allZapsLists = document.querySelectorAll('.zaps-list');
+    allZapsLists.forEach(list => {
+      list.classList.remove('grid-layout');
+    });
+  };
 
-    const zaps = Array.from(zapsList.querySelectorAll('.zap'));
+  // Helper function to organize zaps in a container
+  const organizeZapsInContainer = (container: HTMLElement, sortByAmount: boolean = true) => {
+    // For activity list, only organize zaps, not chat messages
+    const selector = sortByAmount 
+      ? '.zap, .live-event-zap, .zap-only-item'  // zaps-only-list: only zaps
+      : '.live-event-zap';  // activity-list: only zaps (not chat messages)
+    
+    const zaps = Array.from(container.querySelectorAll(selector));
     if (zaps.length === 0) return;
+
+    // Clear inline styles from all zaps so CSS grid layout can take over
+    zaps.forEach(zap => {
+      const zapElement = zap as HTMLElement;
+      zapElement.style.removeProperty('flex-direction');
+      zapElement.style.removeProperty('align-items');
+      zapElement.style.removeProperty('justify-content');
+      zapElement.style.removeProperty('text-align');
+      zapElement.style.removeProperty('width');
+      
+      const profile = zapElement.querySelector('.zapperProfile') as HTMLElement;
+      if (profile) {
+        profile.style.removeProperty('flex-direction');
+        profile.style.removeProperty('align-items');
+      }
+      
+      const info = zapElement.querySelector('.zapperInfo') as HTMLElement;
+      if (info) {
+        info.style.removeProperty('flex-direction');
+        info.style.removeProperty('align-items');
+        info.style.removeProperty('text-align');
+      }
+      
+      const amount = zapElement.querySelector('.zapperAmount') as HTMLElement;
+      if (amount) {
+        amount.style.removeProperty('flex-direction');
+        amount.style.removeProperty('align-items');
+      }
+    });
 
     // Clear existing row classes and podium classes
     zaps.forEach(zap => {
@@ -3676,26 +3910,34 @@ export const useLiveFunctionality = (eventId?: string) => {
     });
 
     // Remove existing row containers
-    const existingRows = zapsList.querySelectorAll('.zap-row');
+    const existingRows = container.querySelectorAll('.zap-row');
     existingRows.forEach(row => row.remove());
 
-    // Sort zaps by amount (highest first) for podium application
+    // Sort zaps by amount (highest first) or by timestamp (newest first)
     const sortedZaps = [...zaps].sort((a, b) => {
-      const amountA = parseInt(
-        a
-          .querySelector('.zapperAmountSats')
-          ?.textContent?.replace(/[^\d]/g, '') || '0'
-      );
-      const amountB = parseInt(
-        b
-          .querySelector('.zapperAmountSats')
-          ?.textContent?.replace(/[^\d]/g, '') || '0'
-      );
-      return amountB - amountA;
+      if (sortByAmount) {
+        // Sort by amount (for zaps-only-list)
+        const amountA = parseInt(
+          a
+            .querySelector('.zapperAmountSats')
+            ?.textContent?.replace(/[^\d]/g, '') || '0'
+        );
+        const amountB = parseInt(
+          b
+            .querySelector('.zapperAmountSats')
+            ?.textContent?.replace(/[^\d]/g, '') || '0'
+        );
+        return amountB - amountA;
+      } else {
+        // Sort by timestamp (for activity-list) - newest first
+        const timestampA = parseInt((a as HTMLElement).dataset.timestamp || '0');
+        const timestampB = parseInt((b as HTMLElement).dataset.timestamp || '0');
+        return timestampB - timestampA;
+      }
     });
 
-    // Apply podium classes to top 3 zaps
-    if (document.body.classList.contains('podium-enabled')) {
+    // Apply podium classes to top 3 zaps (only when sorting by amount)
+    if (sortByAmount && document.body.classList.contains('podium-enabled')) {
       console.log(
         'Applying podium classes in grid layout. Top 3 zaps:',
         sortedZaps.slice(0, 3).map(zap => ({
@@ -3731,7 +3973,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         currentIndex++;
       }
 
-      zapsList.appendChild(rowContainer);
+      container.appendChild(rowContainer);
 
       // Double the zaps per row for next row
       zapsPerRow *= 2;
@@ -3750,6 +3992,26 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
         break;
       }
+    }
+  };
+
+  const organizeZapsHierarchically = () => {
+    const zapsList = document.getElementById('zaps');
+    if (!zapsList) return;
+
+    // Check if this is a live event (has two-column layout)
+    if (zapsList.classList.contains('live-event-two-column')) {
+      // Only organize zaps-only-list in grid layout
+      // Activity list stays as chronological list (not affected by grid toggle)
+      const zapsOnlyList = document.getElementById('zaps-only-list');
+      
+      if (zapsOnlyList) {
+        // Sort by amount (highest first) for zaps-only column
+        organizeZapsInContainer(zapsOnlyList, true);
+      }
+    } else {
+      // Regular kind1 note mode - organize in main zaps list by amount
+      organizeZapsInContainer(zapsList, true);
     }
   };
 
@@ -3887,6 +4149,83 @@ export const useLiveFunctionality = (eventId?: string) => {
     } catch (e) {}
   };
 
+  // Helper to get display name for npub/nprofile
+  const getMentionUserName = async (identifier: string): Promise<string> => {
+    try {
+      let pubkey: string;
+      
+      // Decode npub/nprofile to get pubkey
+      const decoded = nip19.decode(identifier);
+      if (decoded.type === 'npub') {
+        pubkey = decoded.data;
+      } else if (decoded.type === 'nprofile') {
+        pubkey = decoded.data.pubkey;
+      } else {
+        // Not a user identifier, return shortened version
+        return identifier.length > 35
+          ? `${identifier.substr(0, 4)}...${identifier.substr(identifier.length - 4)}`
+          : identifier;
+      }
+      
+      // Check if profile is already cached
+      const profiles = (window as any).profiles || {};
+      let profile = profiles[pubkey];
+      
+      // If not cached, fetch it
+      if (!profile && (window as any).pool && (window as any).relays) {
+        try {
+          profile = await new Promise((resolve) => {
+            const timeout = setTimeout(() => resolve(null), 2000); // 2 second timeout
+            
+            const sub = (window as any).pool.subscribe(
+              (window as any).relays,
+              { kinds: [0], authors: [pubkey] },
+              {
+                onevent(event: any) {
+                  clearTimeout(timeout);
+                  // Cache the profile
+                  profiles[pubkey] = event;
+                  sub.close();
+                  resolve(event);
+                },
+                oneose() {
+                  clearTimeout(timeout);
+                  sub.close();
+                  resolve(null);
+                }
+              }
+            );
+          });
+        } catch (e) {
+          console.error('Error fetching profile:', e);
+        }
+      }
+      
+      // Parse profile and get display name
+      if (profile && profile.content) {
+        try {
+          const profileData = JSON.parse(profile.content);
+          const displayName = profileData.display_name || profileData.displayName || profileData.name;
+          if (displayName) {
+            return displayName;
+          }
+        } catch (e) {
+          console.error('Error parsing profile data:', e);
+        }
+      }
+      
+      // Fallback to shortened identifier
+      return identifier.length > 35
+        ? `${identifier.substr(0, 4)}...${identifier.substr(identifier.length - 4)}`
+        : identifier;
+    } catch (error) {
+      console.error('Error getting mention username:', error);
+      return identifier.length > 35
+        ? `${identifier.substr(0, 4)}...${identifier.substr(identifier.length - 4)}`
+        : identifier;
+    }
+  };
+
   const processNoteContent = async (content: string): Promise<string> => {
     if (!content) return '';
     
@@ -3913,21 +4252,106 @@ export const useLiveFunctionality = (eventId?: string) => {
       </div>`
     );
     
-    // Process nostr: mentions (npub, nprofile, note, nevent, naddr)
+    // Process mentions in order: bare npub/note first (before adding any HTML), then prefixed versions
+    // Match paynote's logic - fetch usernames asynchronously
+    // Use a Map to track which positions have been processed to avoid double-processing
+    
+    const processedRanges: Array<{start: number, end: number, replacement: string}> = [];
+    
+    // First, handle bare npub/nprofile mentions (process before other formats to avoid conflicts)
+    const bareNpubMatches = Array.from(processed.matchAll(/\b((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi));
+    
+    for (const matchObj of bareNpubMatches) {
+      const match = matchObj[0];
+      const offset = matchObj.index || 0;
+      
+      // Check if it's preceded by nostr: or @
+      const prefix = processed.substring(Math.max(0, offset - 7), offset);
+      if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
+        continue; // Skip this one, it will be processed with its prefix
+      }
+      
+      const displayName = await getMentionUserName(match);
+      const replacement = `<a href="/profile/${match}" class="nostrMention" target="_blank">${displayName}</a>`;
+      processedRanges.push({
+        start: offset,
+        end: offset + match.length,
+        replacement: replacement
+      });
+    }
+    
+    // Handle bare note/nevent/naddr mentions (no username fetching needed)
+    const bareNoteMatches = Array.from(processed.matchAll(/\b((note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi));
+    
+    for (const matchObj of bareNoteMatches) {
+      const match = matchObj[0];
+      const offset = matchObj.index || 0;
+      
+      // Check if it's preceded by nostr: or @
+      const prefix = processed.substring(Math.max(0, offset - 7), offset);
+      if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
+        continue; // Skip this one, it will be processed with its prefix
+      }
+      
+      const clean = String(match);
+      const shortId =
+        clean.length > 35
+          ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
+          : clean;
+      
+      let linkPath = '';
+      if (clean.startsWith('note') || clean.startsWith('nevent')) {
+        linkPath = `/note/${clean}`;
+      } else if (clean.startsWith('naddr')) {
+        linkPath = `/live/${clean}`;
+      }
+      
+      const replacement = `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
+      processedRanges.push({
+        start: offset,
+        end: offset + match.length,
+        replacement: replacement
+      });
+    }
+    
+    // Apply replacements in reverse order to maintain correct positions
+    processedRanges.sort((a, b) => b.start - a.start);
+    for (const range of processedRanges) {
+      processed = processed.substring(0, range.start) + range.replacement + processed.substring(range.end);
+    }
+    
+    // Handle nostr:npub/nprofile mentions
+    const nostrNpubMatches = processed.match(/nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi);
+    
+    if (nostrNpubMatches) {
+      const replacements = await Promise.all(
+        nostrNpubMatches.map(async match => {
+          const cleanMatch = match.replace(/^nostr:/i, '');
+          const displayName = await getMentionUserName(cleanMatch);
+          return {
+            match,
+            replacement: `<a href="/profile/${cleanMatch}" class="nostrMention" target="_blank">${displayName}</a>`
+          };
+        })
+      );
+      
+      replacements.forEach(({ match, replacement }) => {
+        processed = processed.replace(match, replacement);
+      });
+    }
+    
+    // Handle nostr:note/nevent/naddr mentions (no username fetching)
     processed = processed.replace(
-      /nostr:((npub|nprofile|note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+      /nostr:((note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
       (_m, identifier) => {
         const clean = String(identifier);
         const shortId =
           clean.length > 35
-            ? `${clean.substring(0, 8)}...${clean.substring(clean.length - 8)}`
+            ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
             : clean;
         
-        // Determine the link based on identifier type
         let linkPath = '';
-        if (clean.startsWith('npub') || clean.startsWith('nprofile')) {
-          linkPath = `/profile/${clean}`;
-        } else if (clean.startsWith('note') || clean.startsWith('nevent')) {
+        if (clean.startsWith('note') || clean.startsWith('nevent')) {
           linkPath = `/note/${clean}`;
         } else if (clean.startsWith('naddr')) {
           linkPath = `/live/${clean}`;
@@ -3937,29 +4361,44 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     );
     
-    // Process standalone identifiers without nostr: prefix
+    // Handle @npub/@nprofile mentions
+    const atNpubMatches = processed.match(/@((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi);
+    
+    if (atNpubMatches) {
+      const replacements = await Promise.all(
+        atNpubMatches.map(async match => {
+          const cleanMatch = match.replace(/^@/i, '');
+          const displayName = await getMentionUserName(cleanMatch);
+          return {
+            match,
+            replacement: `<a href="/profile/${cleanMatch}" class="nostrMention" target="_blank">${displayName}</a>`
+          };
+        })
+      );
+      
+      replacements.forEach(({ match, replacement }) => {
+        processed = processed.replace(match, replacement);
+      });
+    }
+    
+    // Handle @note/@nevent/@naddr mentions (no username fetching)
     processed = processed.replace(
-      /(?:^|\s)((npub|nprofile|note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-      (match, identifier) => {
+      /@((note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
+      (_m, identifier) => {
         const clean = String(identifier);
         const shortId =
           clean.length > 35
-            ? `${clean.substring(0, 8)}...${clean.substring(clean.length - 8)}`
+            ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
             : clean;
         
-        // Determine the link based on identifier type
         let linkPath = '';
-        if (clean.startsWith('npub') || clean.startsWith('nprofile')) {
-          linkPath = `/profile/${clean}`;
-        } else if (clean.startsWith('note') || clean.startsWith('nevent')) {
+        if (clean.startsWith('note') || clean.startsWith('nevent')) {
           linkPath = `/note/${clean}`;
         } else if (clean.startsWith('naddr')) {
           linkPath = `/live/${clean}`;
         }
         
-        // Preserve the leading whitespace if present
-        const leadingSpace = match.startsWith(' ') ? ' ' : '';
-        return `${leadingSpace}<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
+        return `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
       }
     );
     
@@ -4640,28 +5079,114 @@ export const useLiveFunctionality = (eventId?: string) => {
         const isLiveEvent = zapsList.classList.contains(
           'live-event-two-column'
         );
+        
         if (isLiveEvent) {
-          // Reset the toggle since we're not applying the change
-          const zapGridToggle = document.getElementById(
-            'zapGridToggle'
-          ) as HTMLInputElement;
-          if (zapGridToggle) {
-            zapGridToggle.checked = !checked;
+          // Apply grid layout ONLY to zaps-only-list, NOT activity-list
+          const zapsOnlyList = document.getElementById('zaps-only-list');
+          
+          if (checked) {
+            if (zapsOnlyList) {
+              zapsOnlyList.classList.add('grid-layout');
+              // Force reflow to apply grid-layout class
+              void zapsOnlyList.offsetHeight;
+            }
+            setTimeout(() => {
+              organizeZapsHierarchically();
+            }, 10);
+            
+            // Start periodic re-organization to catch new zaps during load
+            if ((window as any).gridPeriodicCheckInterval) {
+              clearInterval((window as any).gridPeriodicCheckInterval);
+            }
+            (window as any).gridPeriodicCheckInterval = setInterval(() => {
+              const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+              const container = document.getElementById('zaps-only-list');
+              if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
+                // Check if there are zaps outside of .zap-row containers
+                const allZaps = container.querySelectorAll('.zap, .live-event-zap, .zap-only-item');
+                const zapsInRows = container.querySelectorAll('.zap-row .zap, .zap-row .live-event-zap, .zap-row .zap-only-item');
+                
+                if (allZaps.length !== zapsInRows.length) {
+                  // Some zaps are not in rows, re-organize
+                  console.log('Re-organizing grid: found zaps outside rows', allZaps.length, 'total vs', zapsInRows.length, 'in rows');
+                  organizeZapsHierarchically();
+                }
+              }
+            }, 2000); // Check every 2 seconds
+          } else {
+            // Stop periodic check
+            if ((window as any).gridPeriodicCheckInterval) {
+              clearInterval((window as any).gridPeriodicCheckInterval);
+              (window as any).gridPeriodicCheckInterval = null;
+            }
+            
+            // Clean up FIRST (this sets inline styles to force row layout)
+            cleanupHierarchicalOrganization();
+            // Then remove the class after cleanup
+            setTimeout(() => {
+              if (zapsOnlyList) {
+                zapsOnlyList.classList.remove('grid-layout');
+                // Force reflow to ensure styles are recalculated
+                void zapsOnlyList.offsetHeight;
+              }
+              // Also ensure .zaps-list doesn't have grid-layout
+              const zapsListElements = document.querySelectorAll('.zaps-list');
+              zapsListElements.forEach(list => list.classList.remove('grid-layout'));
+            }, 10);
           }
-          return;
-        }
-
-        zapsList.classList.toggle('grid-layout', checked);
-        if (checked) {
-          organizeZapsHierarchically();
         } else {
-          // Clean up hierarchical organization when grid mode is disabled
-          cleanupHierarchicalOrganization();
-        }
+          // Regular kind1 note mode
+          if (checked) {
+            zapsList.classList.add('grid-layout');
+            // Force reflow to apply grid-layout class
+            void zapsList.offsetHeight;
+            setTimeout(() => {
+              organizeZapsHierarchically();
+            }, 10);
+            
+            // Start periodic re-organization for kind1 notes too
+            if ((window as any).gridPeriodicCheckInterval) {
+              clearInterval((window as any).gridPeriodicCheckInterval);
+            }
+            (window as any).gridPeriodicCheckInterval = setInterval(() => {
+              const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+              const container = document.getElementById('zaps');
+              if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
+                // Check if there are zaps outside of .zap-row containers
+                const allZaps = container.querySelectorAll('.zap');
+                const zapsInRows = container.querySelectorAll('.zap-row .zap');
+                
+                if (allZaps.length !== zapsInRows.length) {
+                  // Some zaps are not in rows, re-organize
+                  console.log('Re-organizing grid: found zaps outside rows', allZaps.length, 'total vs', zapsInRows.length, 'in rows');
+                  organizeZapsHierarchically();
+                }
+              }
+            }, 2000); // Check every 2 seconds
+          } else {
+            // Stop periodic check
+            if ((window as any).gridPeriodicCheckInterval) {
+              clearInterval((window as any).gridPeriodicCheckInterval);
+              (window as any).gridPeriodicCheckInterval = null;
+            }
+            
+            // Clean up FIRST (this sets inline styles to force row layout)
+            cleanupHierarchicalOrganization();
+            // Then remove the class after cleanup
+            setTimeout(() => {
+              zapsList.classList.remove('grid-layout');
+              // Force reflow to ensure styles are recalculated
+              void zapsList.offsetHeight;
+              // Also ensure .zaps-list doesn't have grid-layout
+              const zapsListElements = document.querySelectorAll('.zaps-list');
+              zapsListElements.forEach(list => list.classList.remove('grid-layout'));
+            }, 10);
+          }
 
-        // Re-render zaps to apply/remove podium styling based on current state
-        if (zaps.length > 0) {
-          drawKinds9735(zaps);
+          // Re-render zaps to apply/remove podium styling based on current state
+          if (zaps.length > 0) {
+            drawKinds9735(zaps);
+          }
         }
       }
       updateStyleURL();
@@ -5974,10 +6499,63 @@ export const useLiveFunctionality = (eventId?: string) => {
               zapGridToggle: (checked: boolean) => {
                 const zapsList = document.getElementById('zaps');
                 if (zapsList) {
-                  if (checked) {
-                    zapsList.classList.add('grid-layout');
+                  // Check if we're in live event mode (has two-column layout)
+                  const isLiveEvent = zapsList.classList.contains(
+                    'live-event-two-column'
+                  );
+                  
+                  if (isLiveEvent) {
+                    // Apply grid layout ONLY to zaps-only-list, NOT activity-list
+                    const zapsOnlyList = document.getElementById('zaps-only-list');
+                    
+                    if (checked) {
+                      if (zapsOnlyList) {
+                        zapsOnlyList.classList.add('grid-layout');
+                        // Force reflow
+                        void zapsOnlyList.offsetHeight;
+                      }
+                      // Organize zaps after a brief delay to ensure DOM is ready
+                      setTimeout(() => {
+                        organizeZapsHierarchically();
+                      }, 100);
+                    } else {
+                      // Clean up FIRST (this sets inline styles to force row layout)
+                      cleanupHierarchicalOrganization();
+                      // Then remove the class after cleanup
+                      setTimeout(() => {
+                        if (zapsOnlyList) {
+                          zapsOnlyList.classList.remove('grid-layout');
+                          // Force reflow
+                          void zapsOnlyList.offsetHeight;
+                        }
+                        // Also ensure .zaps-list doesn't have grid-layout
+                        const zapsListElements = document.querySelectorAll('.zaps-list');
+                        zapsListElements.forEach(list => list.classList.remove('grid-layout'));
+                      }, 10);
+                    }
                   } else {
-                    zapsList.classList.remove('grid-layout');
+                    // Regular kind1 note mode
+                    if (checked) {
+                      zapsList.classList.add('grid-layout');
+                      // Force reflow
+                      void zapsList.offsetHeight;
+                      // Organize zaps after a brief delay to ensure DOM is ready
+                      setTimeout(() => {
+                        organizeZapsHierarchically();
+                      }, 100);
+                    } else {
+                      // Clean up FIRST (this sets inline styles to force row layout)
+                      cleanupHierarchicalOrganization();
+                      // Then remove the class after cleanup
+                      setTimeout(() => {
+                        zapsList.classList.remove('grid-layout');
+                        // Force reflow
+                        void zapsList.offsetHeight;
+                        // Also ensure .zaps-list doesn't have grid-layout
+                        const zapsListElements = document.querySelectorAll('.zaps-list');
+                        zapsListElements.forEach(list => list.classList.remove('grid-layout'));
+                      }, 10);
+                    }
                   }
                 }
               },
@@ -7640,7 +8218,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Initialize Swiper with proper configuration
     try {
       (window as any).qrSwiper = new (window as any).Swiper('.qr-swiper', {
-        loop: visibleSlides.length > 1,
+        loop: visibleSlides.length > 2, // Only enable loop for 3+ slides to avoid duplication issues with 2 slides
         autoplay:
           visibleSlides.length > 1
             ? {
@@ -7653,6 +8231,9 @@ export const useLiveFunctionality = (eventId?: string) => {
           el: '.swiper-pagination',
           clickable: true
         },
+        slidesPerView: 1, // Ensure only 1 slide is visible at a time
+        centeredSlides: true, // Center the active slide
+        spaceBetween: 0, // No space between slides
         on: {
           init() {
             const swiperEl = (this as any).el || (window as any).qrSwiper?.el;
