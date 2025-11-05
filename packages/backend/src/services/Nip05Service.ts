@@ -2,6 +2,7 @@
 import { Logger } from '../utils/logger';
 import fs from 'fs/promises';
 import path from 'path';
+import { nip19 } from 'nostr-tools';
 
 export interface Nip05Registration {
   id: string;
@@ -207,14 +208,35 @@ export class Nip05Service {
     // Only include paid registrations
     for (const reg of this.registrations.values()) {
       if (reg.paid) {
+        // Convert npub to hex format (NIP-05 requires hex, not npub)
+        let pubkeyHex: string;
+        try {
+          if (reg.pubkey.startsWith('npub')) {
+            // Decode npub to hex
+            const decoded = nip19.decode(reg.pubkey);
+            if (decoded.type === 'npub') {
+              pubkeyHex = decoded.data as string;
+            } else {
+              this.logger.warn(`Invalid npub format for ${reg.fullName}: ${reg.pubkey}`);
+              continue; // Skip invalid pubkeys
+            }
+          } else {
+            // Assume it's already hex (64 char hex string)
+            pubkeyHex = reg.pubkey;
+          }
+        } catch (error) {
+          this.logger.error(`Failed to decode pubkey for ${reg.fullName}:`, error);
+          continue; // Skip invalid pubkeys
+        }
+
         // If name filter is provided, only include matching names
         if (name) {
           if (reg.fullName === name) {
-            names[reg.fullName] = reg.pubkey;
+            names[reg.fullName] = pubkeyHex;
           }
         } else {
           // No filter - include all
-          names[reg.fullName] = reg.pubkey;
+          names[reg.fullName] = pubkeyHex;
         }
       }
     }
