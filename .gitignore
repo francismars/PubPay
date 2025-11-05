@@ -60,3 +60,7 @@ jspm_packages/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# NIP-05 data files (runtime state)
+packages/backend/nip05-registrations.json
+packages/backend/public/.well-known/nostr.json

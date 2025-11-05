@@ -687,7 +687,7 @@ const RegisterPage: React.FC = () => {
               </div>
 
               <div className="profileFormField">
-                <label htmlFor="nip05">NIP-05 Identifier</label>
+                <label htmlFor="nip05">Identifier (nip-05)</label>
                 <input
                   type="text"
                   id="nip05"

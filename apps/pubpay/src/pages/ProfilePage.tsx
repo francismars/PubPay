@@ -16,8 +16,9 @@ import {
   ZapService
 } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
-import { nip19 } from 'nostr-tools';
+import { nip19, finalizeEvent, verifyEvent } from 'nostr-tools';
 import { PayNoteComponent } from '../components/PayNoteComponent';
+import { Nip05PurchaseOverlay } from '../components/Nip05PurchaseOverlay';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { parseZapDescription, safeJson } from '@pubpay/shared-utils';
 import bolt11 from 'bolt11';
@@ -116,6 +117,9 @@ const ProfilePage: React.FC = () => {
   const [showJSON, setShowJSON] = useState(false);
   const [jsonContent, setJsonContent] = useState('');
 
+  // NIP-05 Purchase overlay state
+  const [showNip05Purchase, setShowNip05Purchase] = useState(false);
+
   const handleViewRaw = (post: PubPayPost) => {
     setJsonContent(JSON.stringify(post.event, null, 2));
     setShowJSON(true);
@@ -202,6 +206,16 @@ const ProfilePage: React.FC = () => {
   };
 
   const targetPubkey = getHexPubkey(pubkey || publicKey);
+
+  // Get npub for NIP-05 purchase
+  const getNpubForPurchase = (): string => {
+    if (!publicKey) return '';
+    try {
+      return nip19.npubEncode(publicKey);
+    } catch {
+      return publicKey;
+    }
+  };
 
   // Profile data state
   const [profileData, setProfileData] = useState({
@@ -1448,7 +1462,7 @@ const ProfilePage: React.FC = () => {
 
                   {(isOwnProfile || profileData.nip05) && (
                     <div className="profileDetailItem">
-                      <label>NIP-05 Identifier</label>
+                      <label>Identifier (nip-05)</label>
                       <div className="profileDetailValue">
                         {profileData.nip05 ? (
                           <>
@@ -1465,7 +1479,7 @@ const ProfilePage: React.FC = () => {
                               onClick={e =>
                                 handleCopyToClipboard(
                                   profileData.nip05,
-                                  'NIP-05 Identifier',
+                                  'Identifier (nip-05)',
                                   e
                                 )
                               }
@@ -1474,7 +1488,17 @@ const ProfilePage: React.FC = () => {
                             </button>
                           </>
                         ) : (
-                          <span className="profileEmptyField">Not set</span>
+                          <>
+                            <span className="profileEmptyField">Not set</span>
+                            {isOwnProfile && (
+                              <button
+                                className="profileCopyButton"
+                                onClick={() => setShowNip05Purchase(true)}
+                              >
+                                Buy NIP-05
+                              </button>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -1779,6 +1803,135 @@ const ProfilePage: React.FC = () => {
           </a>
         </div>
       </div>
+
+      {/* NIP-05 Purchase Overlay */}
+      {showNip05Purchase && publicKey && (
+        <Nip05PurchaseOverlay
+          pubkey={getNpubForPurchase()}
+          onSuccess={async (nip05: string) => {
+            setShowNip05Purchase(false);
+            // Update profile data to show the new NIP-05
+            setProfileData(prev => ({ ...prev, nip05 }));
+            
+            // Update kind 0 profile event with new NIP-05
+            if (nostrClient && publicKey && authState?.privateKey && authState?.signInMethod === 'nsec') {
+              try {
+                // Get existing profile content
+                const queryClient = getQueryClient();
+                const profileMap = await ensureProfiles(
+                  queryClient,
+                  nostrClient,
+                  [publicKey]
+                );
+                const profileEvent = profileMap.get(publicKey);
+                
+                let existingProfile: Record<string, any> = {};
+                if (profileEvent?.content) {
+                  try {
+                    const content =
+                      typeof profileEvent.content === 'string'
+                        ? JSON.parse(profileEvent.content)
+                        : profileEvent.content;
+                    existingProfile = content || {};
+                  } catch (e) {
+                    console.warn('Failed to parse existing profile:', e);
+                  }
+                }
+
+                // Merge with new NIP-05
+                const profileDataForNostr: Record<string, any> = {
+                  ...existingProfile,
+                  nip05: nip05
+                };
+
+                // Remove empty strings
+                Object.keys(profileDataForNostr).forEach(key => {
+                  if (profileDataForNostr[key] === '' || profileDataForNostr[key] === null) {
+                    delete profileDataForNostr[key];
+                  }
+                });
+
+                // Create and sign event
+                const eventTemplate = {
+                  kind: 0,
+                  pubkey: publicKey,
+                  created_at: Math.floor(Date.now() / 1000),
+                  tags: [],
+                  content: JSON.stringify(profileDataForNostr)
+                };
+
+                const decoded = nip19.decode(authState.privateKey);
+                const signedEvent = finalizeEvent(
+                  eventTemplate,
+                  decoded.data as unknown as Uint8Array
+                );
+
+                if (!verifyEvent(signedEvent)) {
+                  throw new Error('Failed to create valid signed event');
+                }
+
+                // Publish the event
+                await nostrClient.publishEvent(signedEvent);
+
+                // Clear cache to force fresh fetch
+                queryClient.removeQueries({ queryKey: ['profile', publicKey] });
+                queryClient.invalidateQueries({ queryKey: ['profile', publicKey] });
+
+                useUIStore.getState().openToast(
+                  `NIP-05 registered and profile updated: ${nip05}`,
+                  'success',
+                  false
+                );
+              } catch (error) {
+                console.error('Failed to update profile with NIP-05:', error);
+                useUIStore.getState().openToast(
+                  `NIP-05 registered: ${nip05}. Please update your profile manually to include it.`,
+                  'info',
+                  false
+                );
+              }
+            } else {
+              // Extension sign-in or no private key - just show success
+              useUIStore.getState().openToast(
+                `NIP-05 registered: ${nip05}. Please update your profile to include it.`,
+                'success',
+                false
+              );
+            }
+            
+            setTimeout(() => {
+              useUIStore.getState().closeToast();
+            }, 3000);
+            
+            // Refresh profile data
+            if (nostrClient && publicKey) {
+              try {
+                const queryClient = getQueryClient();
+                queryClient.removeQueries({ queryKey: ['profile', publicKey] });
+                const profileMap = await ensureProfiles(
+                  queryClient,
+                  nostrClient,
+                  [publicKey]
+                );
+                const profileEvent = profileMap.get(publicKey);
+                if (profileEvent?.content) {
+                  const content =
+                    typeof profileEvent.content === 'string'
+                      ? JSON.parse(profileEvent.content)
+                      : profileEvent.content;
+                  setProfileData(prev => ({
+                    ...prev,
+                    nip05: content.nip05 || nip05
+                  }));
+                }
+              } catch (error) {
+                console.error('Failed to refresh profile:', error);
+              }
+            }
+          }}
+          onClose={() => setShowNip05Purchase(false)}
+        />
+      )}
     </div>
   );
 };
