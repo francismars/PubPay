@@ -1,6 +1,7 @@
 // Application constants
 
-export const RELAYS = [
+// Default relays for reading (fetching events)
+export const DEFAULT_READ_RELAYS = [
   'wss://nostr.mom',
   'wss://nos.lol',
   'wss://relay.primal.net',
@@ -9,6 +10,19 @@ export const RELAYS = [
   'wss://relay.damus.io',
   'wss://relay.nostr.band'
 ];
+
+// Default relays for writing (publishing events)
+export const DEFAULT_WRITE_RELAYS = [
+  'wss://nostr.mom',
+  'wss://relay.primal.net',
+  'wss://nostr.bitcoiner.social',
+  'wss://relay.snort.social',
+  'wss://relay.damus.io',
+  'wss://relay.nostr.band'
+];
+
+// Legacy constant: union of all default relays (for backward compatibility)
+export const RELAYS = [...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])];
 
 export const DEFAULT_STYLES = {
   textColor: '#000000',
