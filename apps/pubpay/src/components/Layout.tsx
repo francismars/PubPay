@@ -315,8 +315,9 @@ export const Layout: React.FC = () => {
 
   // Handler functions for FeedsPage
   const handleSharePost = async (post: PubPayPost) => {
-    const noteID = post.id;
-    const shareURL = `${window.location.origin}/?note=${noteID}`;
+    // Use note1 format (NIP-19) for share links - matches the /note/:noteId route
+    const noteId = nip19.noteEncode(post.id);
+    const shareURL = `${window.location.origin}/note/${noteId}`;
 
     if (navigator.share) {
       try {
