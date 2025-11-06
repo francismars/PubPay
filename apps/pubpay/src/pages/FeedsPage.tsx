@@ -426,6 +426,7 @@ export const FeedsPage: React.FC = () => {
               onShare={handleSharePost}
               onViewRaw={handleViewRaw}
               isLoggedIn={authState.isLoggedIn}
+              currentUserPublicKey={authState.publicKey}
               nostrClient={nostrClient}
               nostrReady={nostrReady}
               paymentError={paymentErrors.get(post.id)}
@@ -577,6 +578,7 @@ export const FeedsPage: React.FC = () => {
               onShare={handleSharePost}
               onViewRaw={handleViewRaw}
               isLoggedIn={authState.isLoggedIn}
+              currentUserPublicKey={authState.publicKey}
               nostrClient={nostrClient}
               nostrReady={nostrReady}
               paymentError={paymentErrors.get(post.id)}

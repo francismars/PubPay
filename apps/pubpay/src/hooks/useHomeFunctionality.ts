@@ -1113,10 +1113,12 @@ export const useHomeFunctionality = () => {
           : {};
         const hasLud16 = !!(authorData as any).lud16;
         const hasNip05 = !!(authorData as any).nip05;
-        const hasZapTags = !!(zapMinTag || zapMaxTag);
+        // hasZapTags should be true if any zap-related tag exists (zap-min, zap-max, zap-uses, zap-goal)
+        const hasZapTags = !!(zapMinTag || zapMaxTag || zapUsesTag || zapGoalTag);
         post.hasZapTags = hasZapTags;
-        // Initially set isPayable based on format check, will be updated after validation
-        post.isPayable = (hasLud16 || !!(post as any).zapLNURL) && hasZapTags;
+        // isPayable requires: lightning address AND payment amount (zap-min or zap-max)
+        const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
+        post.isPayable = (hasLud16 || !!(post as any).zapLNURL) && hasPaymentAmount;
         // Mark as validating if we have a lightning address to validate
         if (hasLud16) {
           post.lightningValidating = true;
@@ -1126,9 +1128,12 @@ export const useHomeFunctionality = () => {
           post.nip05Validating = true;
         }
       } catch {
-        const hasZapTags = !!(zapMinTag || zapMaxTag);
+        // hasZapTags should be true if any zap-related tag exists (zap-min, zap-max, zap-uses, zap-goal)
+        const hasZapTags = !!(zapMinTag || zapMaxTag || zapUsesTag || zapGoalTag);
         post.hasZapTags = hasZapTags;
-        post.isPayable = !!(post as any).zapLNURL && hasZapTags;
+        // isPayable requires: lightning address AND payment amount (zap-min or zap-max)
+        const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
+        post.isPayable = !!(post as any).zapLNURL && hasPaymentAmount;
       }
 
       posts.push(post);
@@ -1756,6 +1761,31 @@ export const useHomeFunctionality = () => {
       const zapPayer = zapPayerTag?.[1];
       const zapLNURL = zapLNURLTag?.[1];
 
+      // Extract zap-payer profile picture and name if zap-payer tag exists
+      let zapPayerPicture: string | undefined = undefined;
+      let zapPayerName: string | undefined = undefined;
+      if (zapPayer) {
+        const zapPayerProfile = profileEvents.find(p => p.pubkey === zapPayer);
+        if (zapPayerProfile) {
+          try {
+            const profileData = safeJson<Record<string, any>>(
+              zapPayerProfile.content,
+              {}
+            );
+            zapPayerPicture =
+              (profileData as any).picture || genericUserIcon;
+            zapPayerName =
+              (profileData as any).display_name ||
+              (profileData as any).name ||
+              undefined;
+          } catch {
+            zapPayerPicture = genericUserIcon;
+          }
+        } else {
+          zapPayerPicture = genericUserIcon;
+        }
+      }
+
       // Debug logging removed - no zap-payer tags found in current feed
 
       // Check if payable
@@ -1764,8 +1794,11 @@ export const useHomeFunctionality = () => {
         : {};
       const hasLud16 = !!(authorData as any).lud16;
       const hasNip05 = !!(authorData as any).nip05;
-      const hasZapTags = !!(zapMinTag || zapMaxTag);
-      const isPayable = (hasLud16 || !!zapLNURL) && hasZapTags;
+      // hasZapTags should be true if any zap-related tag exists (zap-min, zap-max, zap-uses, zap-goal)
+      const hasZapTags = !!(zapMinTag || zapMaxTag || zapUsesTag || zapGoalTag);
+      // isPayable requires: lightning address AND payment amount (zap-min or zap-max)
+      const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
+      const isPayable = (hasLud16 || !!zapLNURL) && hasPaymentAmount;
       // Mark as validating if we have a lightning address to validate
       const lightningValidating = hasLud16;
       // Mark as validating if we have a NIP-05 identifier to validate
@@ -1786,6 +1819,8 @@ export const useHomeFunctionality = () => {
         isPayable,
         hasZapTags,
         zapPayer,
+        zapPayerPicture,
+        zapPayerName,
         zapLNURL,
         createdAt: event.created_at,
         lightningValidating,
@@ -2548,6 +2583,15 @@ export const useHomeFunctionality = () => {
 
       // Extract zap payer pubkeys and load their profiles
       const zapPayerPubkeys = new Set<string>();
+      // Also include zap-payer from the note itself (even if there are no zaps yet)
+      try {
+        const zapPayerTagFromNote = kind1Events[0]?.tags?.find(
+          (t: string[]) => t[0] === 'zap-payer' && t[1]
+        );
+        if (zapPayerTagFromNote && zapPayerTagFromNote[1]) {
+          zapPayerPubkeys.add(zapPayerTagFromNote[1]);
+        }
+      } catch {}
       zapEvents.forEach(zap => {
         const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
         let hasPubkeyInDescription = false;
@@ -3725,8 +3769,8 @@ export const useHomeFunctionality = () => {
         newPost.zapGoal = parseInt(zapGoalTag[1]) / 1000 || undefined; // Convert from millisats to sats
       }
 
-      // Set hasZapTags based on whether zap tags exist
-      newPost.hasZapTags = !!(zapMinTag || zapMaxTag);
+      // Set hasZapTags based on whether zap tags exist (zap-min, zap-max, zap-uses, zap-goal)
+      newPost.hasZapTags = !!(zapMinTag || zapMaxTag || zapUsesTag || zapGoalTag);
 
       // Check author data for lightning address and NIP-05
       try {

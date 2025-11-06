@@ -612,6 +612,7 @@ const ProfilePage: React.FC = () => {
           let zapMax = 0;
           let zapMaxUses = 0;
           let lud16ToZap = '';
+          let zapPayerPubkey = '';
 
           let zapGoal: number | undefined;
           event.tags.forEach((tag: any[]) => {
@@ -622,6 +623,7 @@ const ProfilePage: React.FC = () => {
             if (tag[0] === 'zap-uses') zapMaxUses = parseInt(tag[1]) || 0;
             if (tag[0] === 'zap-goal') zapGoal = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
             if (tag[0] === 'zap-lnurl') lud16ToZap = tag[1] || '';
+            if (tag[0] === 'zap-payer') zapPayerPubkey = tag[1] || '';
           });
 
           return {
@@ -638,6 +640,7 @@ const ProfilePage: React.FC = () => {
             content: event.content || '',
             isPayable: true,
             hasZapTags: true,
+            zapPayer: zapPayerPubkey || undefined,
             zapLNURL: lud16ToZap,
             createdAt: event.created_at || 0,
             lightningValidating: true // Mark as validating if we have a lightning address
@@ -686,8 +689,15 @@ const ProfilePage: React.FC = () => {
               eventIds
             );
 
-            // Extract zap payer pubkeys
+            // Extract zap payer pubkeys from both notes and zap events
             const zapPayerPubkeys = new Set<string>();
+            // First, collect zap-payer pubkeys from the notes themselves
+            formattedPaynotes.forEach(paynote => {
+              if (paynote.zapPayer) {
+                zapPayerPubkeys.add(paynote.zapPayer);
+              }
+            });
+            // Then, collect zap-payer pubkeys from zap events
             zapEvents.forEach((zap: any) => {
               const descriptionTag = zap.tags.find(
                 (tag: any[]) => tag[0] === 'description'
@@ -824,6 +834,29 @@ const ProfilePage: React.FC = () => {
               paynote.zaps = processedZaps;
               paynote.zapAmount = totalZapAmount;
               paynote.zapUsesCurrent = zapUsesCurrent;
+
+              // Set zap-payer picture and name if zap-payer tag exists
+              if (paynote.zapPayer) {
+                const zapPayerProfile = zapPayerProfileMap.get(paynote.zapPayer);
+                if (zapPayerProfile) {
+                  try {
+                    const profileData = safeJson<Record<string, any>>(
+                      zapPayerProfile.content || '{}',
+                      {}
+                    );
+                    paynote.zapPayerPicture =
+                      (profileData as any).picture || genericUserIcon;
+                    paynote.zapPayerName =
+                      (profileData as any).display_name ||
+                      (profileData as any).name ||
+                      undefined;
+                  } catch {
+                    paynote.zapPayerPicture = genericUserIcon;
+                  }
+                } else {
+                  paynote.zapPayerPicture = genericUserIcon;
+                }
+              }
             });
           } catch (error) {
             console.error(
@@ -1733,6 +1766,7 @@ const ProfilePage: React.FC = () => {
                     onShare={handleSharePost}
                     onViewRaw={handleViewRaw}
                     isLoggedIn={isLoggedIn}
+                    currentUserPublicKey={publicKey}
                     nostrClient={nostrClient}
                     nostrReady={nostrReady}
                     paymentError={paymentErrors?.get(post.id)}
