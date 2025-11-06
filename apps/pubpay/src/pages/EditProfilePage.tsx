@@ -583,25 +583,25 @@ const EditProfilePage: React.FC = () => {
               <div
                 className="profileAvatarFallback"
                 style={{ display: profileData.picture ? 'none' : 'flex' }}
-              >
-                {profileData.displayName
-                  ? profileData.displayName.charAt(0).toUpperCase()
-                  : 'U'}
-              </div>
+                >
+                  {profileData.displayName
+                    ? profileData.displayName.charAt(0).toUpperCase()
+                    : 'U'}
+                </div>
             </div>
             <div className="profileUserDetails">
               <h2>{profileData.displayName || 'Anonymous User'}</h2>
               <p>{profileData.bio || 'No bio provided'}</p>
-              {profileData.website && (
-                <a
-                  href={profileData.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                {profileData.website && (
+                    <a
+                      href={profileData.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
                   className="profileWebsite"
-                >
-                  {profileData.website}
-                </a>
-              )}
+                    >
+                      {profileData.website}
+                    </a>
+                )}
             </div>
           </div>
         </div>

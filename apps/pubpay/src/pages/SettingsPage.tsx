@@ -148,7 +148,7 @@ const SettingsPage: React.FC = () => {
               }
             })
           );
-        } catch {}
+    } catch {}
       }
     }
 

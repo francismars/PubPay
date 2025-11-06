@@ -246,9 +246,10 @@ export class Nip05Service {
         // Use pubkeyHex if available, otherwise convert from npub (for backward compatibility)
         const pubkeyHex = reg.pubkeyHex || this.npubToHex(reg.pubkey);
 
-        // If name filter is provided, only include matching names
-        if (name) {
-          if (reg.fullName === name) {
+        // If name filter is provided and not empty, only include matching names
+        // Empty string should be treated as "no filter" (undefined)
+        if (name && name.trim() !== '') {
+          if (reg.fullName === name.trim()) {
             names[reg.fullName] = pubkeyHex;
           }
         } else {

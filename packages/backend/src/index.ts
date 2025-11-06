@@ -104,7 +104,9 @@ export class BackendServer {
     // Supports optional ?name=<name> query parameter for filtering
     this.app.get('/.well-known/nostr.json', (req: Request, res: Response) => {
       try {
-        const name = req.query.name as string | undefined;
+        // Extract name parameter, treat empty string as undefined (no filter)
+        const nameParam = req.query.name as string | undefined;
+        const name = nameParam && nameParam.trim() !== '' ? nameParam.trim() : undefined;
         const json = nip05Service.getNostrJson(name);
         // CORS is handled by the cors() middleware above
         // Content-Type is set by res.json()
