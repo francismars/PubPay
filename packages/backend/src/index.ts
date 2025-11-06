@@ -106,8 +106,8 @@ export class BackendServer {
       try {
         const name = req.query.name as string | undefined;
         const json = nip05Service.getNostrJson(name);
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        // CORS is handled by the cors() middleware above
+        // Content-Type is set by res.json()
         return res.json(json);
       } catch (error) {
         this.logger.error('Error serving nostr.json:', error);
