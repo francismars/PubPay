@@ -157,8 +157,8 @@ export const useHomeFunctionality = () => {
                 initialRelays = parsed;
               } else if (parsed.every(r => typeof r === 'string')) {
                 // Old format: string[] - pass as is (will be handled by NostrClient)
-                initialRelays = parsed;
-              }
+              initialRelays = parsed;
+            }
             }
           } else {
             // No saved relays - initialize from constants to ensure correct default read/write config
