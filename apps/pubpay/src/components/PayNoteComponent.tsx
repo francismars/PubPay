@@ -29,6 +29,7 @@ interface PayNoteComponentProps {
   onShare: any;
   onViewRaw: any;
   isLoggedIn: boolean;
+  currentUserPublicKey?: string | null; // Current logged-in user's public key (hex)
   isReply?: boolean;
   nostrClient: any; // NostrClient type
   nostrReady?: boolean;
@@ -43,6 +44,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     onShare,
     onViewRaw,
     isLoggedIn,
+    currentUserPublicKey,
     isReply = false,
     nostrClient,
     nostrReady,
@@ -238,12 +240,74 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       ? post.lightningValid
       : hasValidLightning;
 
-    // Check if note is payable - must have valid lightning address AND not reached zap uses target
+    // Check if note has payment amount defined (zap-min or zap-max)
+    const hasPaymentAmount = post.zapMin > 0 || post.zapMax > 0;
+    
+    // Calculate total amount from zaps within limits (for goal checking)
+    // Must respect: amount limits (zap-min/zap-max) and zap-payer restriction (if present)
+    // CRITICAL: Sort zaps by created_at (oldest first) to ensure correct order for zap-uses and zap-goal
+    const sortedZapsForTotals = [...post.zaps].sort((a, b) => {
+      const timeA = a.created_at || 0;
+      const timeB = b.created_at || 0;
+      return timeA - timeB; // Oldest first
+    });
+    
+    const hasZapPayerRestrictionForTotals = !!post.zapPayer;
+    const zapsWithinLimits = sortedZapsForTotals.filter(zap => {
+      const amount = zap.zapAmount || 0;
+      const min = post.zapMin || 0;
+      const max = post.zapMax || 0;
+
+      // Check amount range
+      let isWithinRange = true;
+      if (min > 0 && max > 0) {
+        isWithinRange = amount >= min && amount <= max;
+      } else if (min > 0 && max === 0) {
+        isWithinRange = amount >= min;
+      } else if (min === 0 && max > 0) {
+        isWithinRange = amount <= max;
+      }
+
+      // Check zap-payer restriction
+      const matchesPayer = !hasZapPayerRestrictionForTotals || zap.zapPayerPubkey === post.zapPayer;
+
+      return isWithinRange && matchesPayer;
+    });
+
+    const zapsToCount = post.zapUses && post.zapUses > 0
+      ? zapsWithinLimits.slice(0, post.zapUses)
+      : zapsWithinLimits;
+
+    const totalAmount = zapsToCount.reduce(
+      (sum, zap) => sum + (zap.zapAmount || 0),
+      0
+    );
+
+    // Check if restrictions have been met
+    const zapUsesReached = post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses;
+    const zapGoalReached = post.zapGoal && post.zapGoal > 0 && totalAmount >= post.zapGoal;
+    const restrictionsMet = zapUsesReached || zapGoalReached;
+    
+    // Check if current user matches zap-payer restriction (if present)
+    const hasZapPayerRestriction = !!post.zapPayer;
+    const isCurrentUserZapPayer = hasZapPayerRestriction && 
+      currentUserPublicKey && 
+      currentUserPublicKey === post.zapPayer;
+    
+    // Check if note is payable - must have:
+    // 1. Valid lightning address
+    // 2. zap-min or zap-max tags (payment amount defined)
+    // 3. Not reached zap uses target (if zap-uses is set)
+    // 4. If zap-payer restriction exists, current user must be the zap-payer
     // If validation shows invalid, don't allow payment
+    // If no payment amount, don't show pay button (but don't mark as "not payable")
     const isPayable =
+      hasPaymentAmount &&
       post.isPayable &&
       isLightningValid &&
-      (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses);
+      (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses) &&
+      !zapGoalReached &&
+      (!hasZapPayerRestriction || isCurrentUserZapPayer);
 
     // Format time ago
     const timeAgo = (timestamp: number): string => {
@@ -443,17 +507,55 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         return;
       }
 
-      const zapMin = post.zapMin;
-      const zapMax = post.zapMax;
-      const hasZapPayerRestriction = !!post.zapPayer;
+      // CRITICAL: Sort zaps by created_at (oldest first) to ensure correct order for zap-uses and zap-goal
+      // This ensures the first N zaps (by time) are counted, not random order
+      const sortedZaps = [...post.zaps].sort((a, b) => {
+        const timeA = a.created_at || 0;
+        const timeB = b.created_at || 0;
+        return timeA - timeB; // Oldest first
+      });
 
-      // Classify zaps based on tag restrictions: amount range and zap-payer (if present)
+      const zapMin = post.zapMin || 0;
+      const zapMax = post.zapMax || 0;
+      const hasZapPayerRestriction = !!post.zapPayer;
+      const hasZapUsesRestriction = !!(post.zapUses && post.zapUses > 0);
+      
+      // Check if there are any restrictions at all
+      const hasAnyRestrictions = 
+        zapMin > 0 || 
+        zapMax > 0 || 
+        hasZapPayerRestriction || 
+        hasZapUsesRestriction;
+
+      // If no restrictions, all zaps go to hero (zapReaction) - maintain chronological order
+      if (!hasAnyRestrictions) {
+        setHeroZaps([...sortedZaps]);
+        setOverflowZaps([]);
+        return;
+      }
+
+      // With restrictions: classify zaps based on amount range and zap-payer (if present)
+      // Process in chronological order to ensure first N zaps are counted correctly
       const withinRestrictions: ProcessedZap[] = [];
       const outsideRestrictions: ProcessedZap[] = [];
 
-      for (const zap of post.zaps) {
-        const isWithinRange =
-          zap.zapAmount >= zapMin && zap.zapAmount <= zapMax;
+      for (const zap of sortedZaps) {
+        // Check amount range: if min/max are set, zap must be within range
+        let isWithinRange = true;
+        if (zapMin > 0 || zapMax > 0) {
+          if (zapMin > 0 && zapMax > 0) {
+            // Both min and max specified
+            isWithinRange = zap.zapAmount >= zapMin && zap.zapAmount <= zapMax;
+          } else if (zapMin > 0) {
+            // Only min specified
+            isWithinRange = zap.zapAmount >= zapMin;
+          } else if (zapMax > 0) {
+            // Only max specified
+            isWithinRange = zap.zapAmount <= zapMax;
+          }
+        }
+        
+        // Check zap-payer restriction
         const matchesPayer =
           !hasZapPayerRestriction || zap.zapPayerPubkey === post.zapPayer;
 
@@ -463,7 +565,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           outsideRestrictions.push(zap);
         }
       }
-
 
       // Keep original arrival order (post.zaps already oldest-first; new zaps append at end)
 
@@ -685,12 +786,12 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       {lud16}
                     </a>
                   )
-                ) : (
+                ) : hasPaymentAmount ? (
                   <span className="unverified label">
                     <span className="material-symbols-outlined">block</span>
                     Not Payable
                   </span>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -814,27 +915,40 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             })}
           </div>
 
-          {/* Total Zaps Accounting - only count zaps within payment restrictions */}
-          {post.zaps.length > 0 && (() => {
-            // Filter zaps by amount limits (matches logic from useHomeFunctionality)
-            const zapsWithinLimits = post.zaps.filter(zap => {
+          {/* Total Zaps Accounting - only count zaps within payment restrictions
+              Always show if zap-goal exists, even with zero zaps */}
+          {(post.zaps.length > 0 || (post.zapGoal && post.zapGoal > 0)) && (() => {
+            // CRITICAL: Sort zaps by created_at (oldest first) to ensure correct order for zap-uses and zap-goal
+            const sortedZapsForAccounting = [...post.zaps].sort((a, b) => {
+              const timeA = a.created_at || 0;
+              const timeB = b.created_at || 0;
+              return timeA - timeB; // Oldest first
+            });
+            
+            // Filter zaps by amount limits and zap-payer restriction (matches logic from useHomeFunctionality)
+            const hasZapPayerRestriction = !!post.zapPayer;
+            const zapsWithinLimits = sortedZapsForAccounting.filter(zap => {
               const amount = zap.zapAmount || 0;
               const min = post.zapMin || 0;
               const max = post.zapMax || 0;
 
+              // Check amount range
+              let isWithinRange = true;
               if (min > 0 && max > 0) {
                 // Both min and max specified
-                return amount >= min && amount <= max;
+                isWithinRange = amount >= min && amount <= max;
               } else if (min > 0 && max === 0) {
                 // Only min specified
-                return amount >= min;
+                isWithinRange = amount >= min;
               } else if (min === 0 && max > 0) {
                 // Only max specified
-                return amount <= max;
-              } else {
-                // No limits specified
-                return true;
+                isWithinRange = amount <= max;
               }
+
+              // Check zap-payer restriction
+              const matchesPayer = !hasZapPayerRestriction || zap.zapPayerPubkey === post.zapPayer;
+
+              return isWithinRange && matchesPayer;
             });
 
             // Cap count at zapUses if specified
@@ -847,6 +961,11 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               0
             );
             const totalCount = zapsToCount.length;
+
+            // Don't show if total is 0, unless there's a zap-goal (goal should always be visible)
+            if (totalAmount === 0 && totalCount === 0 && !(post.zapGoal && post.zapGoal > 0)) {
+              return null;
+            }
 
             // Calculate goal progress if zap-goal exists
             let goalProgress = null;
@@ -918,25 +1037,24 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           {/* Zap Values - only show for notes with zap tags, right above slider */}
           {post.hasZapTags && (
             <div className="noteValues">
-              <div className="zapMinContainer">
-
-                <div className="zapMin">
-
-                  <span className="zapMinVal">
-                    {post.zapMin.toLocaleString()}
-                  </span><br/>
-                  <span className="label">sats</span>
+              {/* Only show Min/Max if zap-min or zap-max tags exist (zapMin > 0) */}
+              {post.zapMin > 0 && (
+                <div className="zapMinContainer">
+                  <div className="zapMin">
+                    <span className="zapMinVal">
+                      {post.zapMin.toLocaleString()}
+                    </span><br/>
+                    <span className="label">sats</span>
+                  </div>
+                  <div className="zapMinLabel">
+                    {post.zapMin !== post.zapMax ? 'Min' : 'Fixed Amount'}
+                  </div>
                 </div>
-                <div className="zapMinLabel">
-                  {post.zapMin !== post.zapMax ? 'Min' : 'Fixed Amount'}
-                </div>
-              </div>
+              )}
 
-              {post.zapMin !== post.zapMax && (
+              {post.zapMin > 0 && post.zapMin !== post.zapMax && (
                 <div className="zapMaxContainer">
-                  
                   <div className="zapMax">
-                
                     <span className="label">sats</span>
                     <span className="zapMaxVal">
                       {post.zapMax.toLocaleString()}
@@ -946,7 +1064,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 </div>
               )}
 
-              {post.zapUses > 1 && (
+              {/* Show zap-uses even if no min/max */}
+              {post.zapUses > 0 && (
                 <div className="zapUsesContainer">
                   <div className="zapUses">
                     <span className="zapUsesCurrent">
@@ -955,6 +1074,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     <span className="label">of</span>
                     <span className="zapUsesTotal">{post.zapUses}</span>
                   </div>
+                  <div className="zapUsesLabel">Uses</div>
                 </div>
               )}
             </div>
@@ -996,11 +1116,12 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               </div>
             )}
 
-          {/* Main CTA - only show for notes with zap tags */}
-          {post.hasZapTags && (
+          {/* Main CTA - show for notes with zap tags AND (payment amount defined OR restrictions met)
+              Button will be disabled if zap-payer restriction exists and current user is not the zap-payer */}
+          {post.hasZapTags && (hasPaymentAmount || restrictionsMet) && (
             <div className="noteCTA">
               <button
-                className={`noteMainCTA cta ${!isPayable || paymentError ? 'disabled' : ''} ${paymentError ? 'red' : ''}`}
+                className={`noteMainCTA cta ${restrictionsMet || !isPayable || paymentError ? 'disabled' : ''} ${paymentError ? 'red' : ''} ${restrictionsMet ? 'paid' : ''}`}
                 onMouseDown={handleLongPressStart}
                 onMouseUp={handleLongPressEnd}
                 onMouseLeave={handleLongPressEnd}
@@ -1013,7 +1134,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     return;
                   }
 
-                  if (!isPayable || paymentError) {
+                  if (restrictionsMet || !isPayable || paymentError) {
                     return;
                   }
                   if (!isLoggedIn) {
@@ -1046,24 +1167,30 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     setIsPaying(false);
                   }
                 }}
-                disabled={!isPayable || isPaying || !!paymentError}
+                disabled={restrictionsMet || !isPayable || isPaying || !!paymentError}
                 title={
                   paymentError
                     ? paymentError
-                    : !isPayable
-                      ? 'This post is not payable'
-                      : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
-                        ? 'This post has been fully paid'
-                        : ''
+                    : restrictionsMet
+                      ? 'This post has been fully paid'
+                      : hasZapPayerRestriction && !isCurrentUserZapPayer
+                        ? 'Only the specified payer can pay this post'
+                      : !isPayable
+                        ? 'This post is not payable'
+                        : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
+                          ? 'This post has been fully paid'
+                          : ''
                 }
               >
                 {paymentError
                   ? paymentError
                   : isPaying
                   ? 'Paying…'
-                  : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
+                  : restrictionsMet
                     ? 'Paid'
-                      : !isPayable
+                    : hasZapPayerRestriction && !isCurrentUserZapPayer
+                      ? 'Authorized Payer Only'
+                    : !isPayable
                       ? 'Not Payable'
                       : 'Pay'}
               </button>
