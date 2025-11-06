@@ -5022,21 +5022,29 @@ body.dark-mode .useCaseCode {
 }
 
 .removeButton {
-  margin-left: 12px;
-  padding: 6px 12px;
-  font-size: 12px;
-  background-color: #8a252e;
+  margin-left: auto;
+  padding: 8px 16px;
+  font-size: 13px;
+  background-color: #dc3545;
   color: #fff;
   border: 1px solid #dc3545;
   border-radius: 6px;
   cursor: pointer;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .removeButton:hover {
-  background-color: #ff5869;
-  border-color: #c82333;
+  background-color: #c82333;
+  border-color: #bd2130;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.removeButton:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(220, 53, 69, 0.2);
 }
 
 .addRelayContainer {
@@ -5065,12 +5073,71 @@ body.dark-mode .relayInput {
 .relayItemCard {
   border: 1px solid var(--border-color) !important;
   border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 10px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.relayItemCard:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-color: var(--border-light);
 }
 
 body.dark-mode .relayItemCard {
   border-color: var(--border-color) !important;
+}
+
+body.dark-mode .relayItemCard:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.relayItemHeader {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+  position: relative;
+}
+
+.relayStatusIndicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1), 0 0 4px rgba(0, 0, 0, 0.1);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.relayUrl {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 13px;
+  color: var(--text-primary);
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.relayControls {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .relayItemBody {
@@ -5082,6 +5149,103 @@ body.dark-mode .relayItemCard {
 body.dark-mode .relayItemBody {
   border-top-color: var(--border-color);
   color: var(--text-primary);
+}
+
+.relayToggleLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.relayToggleLabel .toggleSwitch {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+
+.relayToggleText {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.relayToggleLabel:hover .relayToggleText {
+  color: var(--text-primary);
+}
+
+.relayItemHeader .removeButton {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+/* Mobile responsive styles for relay header */
+@media screen and (max-width: 630px) {
+  .relayItemHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0px;
+    padding: 8px 0;
+  }
+
+  .relayUrl {
+    width: 100%;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .relayControls {
+    width: 100%;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 0;
+  }
+
+  .relayToggleLabel {
+    flex: 1;
+    justify-content: center;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: none !important;
+  }
+
+
+  body.dark-mode .relayToggleLabel {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  body.dark-mode .relayToggleLabel:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  }
+
+  .relayItemHeader .removeButton {
+    width: 100%;
+    margin-top: 8px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    min-height: 48px;
+    border-radius: 8px;
+  }
+
+  .relayToggleText {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .relayStatusIndicator {
+    width: 12px;
+    height: 12px;
+  }
 }
 
 .addButton {

@@ -6,19 +6,41 @@ import {
   EventHandler,
   Subscription
 } from '@pubpay/shared-types';
-import { RELAYS } from '../../utils/constants';
-import { QueryClient } from '@tanstack/react-query';
+import { DEFAULT_READ_RELAYS, DEFAULT_WRITE_RELAYS } from '../../utils/constants';
 import { SimplePool } from 'nostr-tools';
+
+interface RelayConfig {
+  url: string;
+  read: boolean;
+  write: boolean;
+}
 
 export class NostrClient {
   private pool!: SimplePool; // Initialized in initializePool()
-  private relays: string[];
+  private readRelays: string[];
+  private writeRelays: string[];
   private connections: Map<string, RelayConnection> = new Map();
   private subscriptions: Map<string, Subscription> = new Map();
   private inFlightRequests: Map<string, Promise<NostrEvent[]>> = new Map();
 
-  constructor(relays: string[] = RELAYS) {
-    this.relays = relays;
+  constructor(relays?: string[] | RelayConfig[]) {
+    if (!relays || relays.length === 0) {
+      // Default: use DEFAULT_READ_RELAYS for reading and DEFAULT_WRITE_RELAYS for writing
+      this.readRelays = [...DEFAULT_READ_RELAYS];
+      this.writeRelays = [...DEFAULT_WRITE_RELAYS];
+    } else if (typeof relays[0] === 'string') {
+      // Legacy format: string array - use for both read and write
+      this.readRelays = relays as string[];
+      this.writeRelays = relays as string[];
+    } else {
+      // New format: RelayConfig array
+      const relayConfigs = relays as RelayConfig[];
+      this.readRelays = relayConfigs.filter(r => r.read).map(r => r.url);
+      this.writeRelays = relayConfigs.filter(r => r.write).map(r => r.url);
+
+      // No fallback - if user disables all relays, respect their choice
+      // Validation in SettingsPage prevents this from happening
+    }
     this.initializePool();
   }
 
@@ -95,7 +117,8 @@ export class NostrClient {
       // Convert NostrFilter to compatible format for SimplePool
       // SimplePool.subscribe expects a single Filter, not an array
       const poolFilter = filter as any; // Type assertion for index signatures
-      const sub = this.pool.subscribe(this.relays, poolFilter, {
+        // Use read relays for subscribing/fetching events
+        const sub = this.pool.subscribe(this.readRelays, poolFilter, {
         onevent: (event: NostrEvent) => {
           if (timeoutId) {
             clearTimeout(timeoutId);
@@ -117,13 +140,6 @@ export class NostrClient {
       });
       subscriptions.push(sub);
     });
-
-    // Create a combined subscription object
-    const sub = {
-      close: () => {
-        subscriptions.forEach(s => s.close());
-      }
-    };
 
     this.subscriptions.set(subscriptionId, subscription);
     return subscription;
@@ -225,8 +241,12 @@ export class NostrClient {
    * Publish an event to relays
    */
   async publishEvent(event: NostrEvent): Promise<void> {
+    if (this.writeRelays.length === 0) {
+      throw new Error('No write relays configured. Cannot publish event.');
+    }
     try {
-      await this.pool.publish(this.relays, event);
+      // Use write relays for publishing events
+      await this.pool.publish(this.writeRelays, event);
     } catch (error: any) {
       const msg = String(error?.message || error || '');
 
@@ -272,6 +292,7 @@ export class NostrClient {
     powRelays: { relay: string; bits: number }[];
     issues: string[];
   }> {
+    // Use write relays for health summary (testing publish capability)
     const results = await this.testAllRelays(event);
 
     const workingRelays = results.filter(r => r.success).map(r => r.relay);
@@ -316,7 +337,7 @@ export class NostrClient {
     });
 
     const summary = {
-      totalRelays: this.relays.length,
+      totalRelays: this.writeRelays.length,
       workingRelays,
       failedRelays,
       powRelays,
@@ -356,7 +377,8 @@ export class NostrClient {
   ): Promise<{ relay: string; success: boolean; error?: string }[]> {
     const results = [];
 
-    for (const relay of this.relays) {
+    // Test write relays (publish capability)
+    for (const relay of this.writeRelays) {
       const result = await this.testRelayPublish(event, relay);
       results.push({
         relay,
@@ -393,8 +415,8 @@ export class NostrClient {
           throw new Error('Nostr pool not initialized');
         }
 
-        if (!this.relays || this.relays.length === 0) {
-          throw new Error('No relays configured');
+        if (!this.readRelays || this.readRelays.length === 0) {
+          throw new Error('No read relays configured. Cannot fetch events.');
         }
 
         if (!filters || filters.length === 0) {
@@ -477,7 +499,8 @@ export class NostrClient {
         // SimplePool.subscribe expects a single Filter, not an array
         const subscriptions = cleanFilters.map(filter => {
           const poolFilter = filter as any; // Type assertion for index signatures
-          return this.pool.subscribe(this.relays, poolFilter, {
+          // Use read relays for fetching events
+          return this.pool.subscribe(this.readRelays, poolFilter, {
             onevent(event: NostrEvent) {
               events.push(event);
             },
@@ -561,26 +584,44 @@ export class NostrClient {
   }
 
   /**
-   * Add a new relay
+   * Add a new relay (adds to both read and write by default)
    */
-  addRelay(relayUrl: string): void {
-    if (!this.relays.includes(relayUrl)) {
-      this.relays.push(relayUrl);
+  addRelay(relayUrl: string, read: boolean = true, write: boolean = true): void {
+    if (!this.readRelays.includes(relayUrl) && read) {
+      this.readRelays.push(relayUrl);
+    }
+    if (!this.writeRelays.includes(relayUrl) && write) {
+      this.writeRelays.push(relayUrl);
     }
   }
 
   /**
-   * Remove a relay
+   * Remove a relay from both read and write
    */
   removeRelay(relayUrl: string): void {
-    this.relays = this.relays.filter(url => url !== relayUrl);
+    this.readRelays = this.readRelays.filter(url => url !== relayUrl);
+    this.writeRelays = this.writeRelays.filter(url => url !== relayUrl);
   }
 
   /**
-   * Get current relays
+   * Get current read relays
+   */
+  getReadRelays(): string[] {
+    return [...this.readRelays];
+  }
+
+  /**
+   * Get current write relays
+   */
+  getWriteRelays(): string[] {
+    return [...this.writeRelays];
+  }
+
+  /**
+   * Get all relays (read or write)
    */
   getRelays(): string[] {
-    return [...this.relays];
+    return [...new Set([...this.readRelays, ...this.writeRelays])];
   }
 
   /**
@@ -604,7 +645,7 @@ export class NostrClient {
         if (closeMethod.length === 0) {
           closeMethod();
         }
-      } catch (_err) {
+      } catch {
         // Ignore close errors (can occur in StrictMode double-unmounts)
       }
     }

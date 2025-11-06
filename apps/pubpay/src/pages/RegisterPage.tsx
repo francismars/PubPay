@@ -18,7 +18,10 @@ interface RegisterPageProps {
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { authState } = useOutletContext<{ authState: any }>();
+  const { authState, checkAuthStatus } = useOutletContext<{ 
+    authState: any; 
+    checkAuthStatus?: (password?: string) => Promise<{ requiresPassword: boolean }>;
+  }>();
   const [formData, setFormData] = useState({
     displayName: '',
     bio: '',
@@ -74,13 +77,20 @@ const RegisterPage: React.FC = () => {
         registrationPassword.trim() || undefined // Optional password
       );
 
-      // Update auth state
+      // Update auth state via checkAuthStatus to sync with useHomeFunctionality hook
+      // This ensures the hook's authState is properly updated
+      if (checkAuthStatus) {
+        const password = registrationPassword.trim() || undefined;
+        await checkAuthStatus(password);
+      } else {
+        // Fallback: Update Zustand store directly if checkAuthStatus not available
       setAuth({
         isLoggedIn: true,
         publicKey: hexPublicKey,
         displayName: formData.displayName || 'Anonymous',
         signInMethod: 'nsec'
       });
+      }
 
       openToast('Successfully logged in with your new account!', 'success');
 

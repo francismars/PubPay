@@ -131,6 +131,93 @@ const EditProfilePage: React.FC = () => {
     setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Handle paste-to-upload for picture/banner using clipboard image
+  const handleClipboardImage = async (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    target: 'picture' | 'banner'
+  ) => {
+    try {
+      const items = e.clipboardData?.items || [];
+      let imageFile: File | null = null;
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (it.kind === 'file' && it.type.startsWith('image/')) {
+          const blob = it.getAsFile();
+          if (blob) {
+            imageFile = new File(
+              [blob],
+              `pasted.${blob.type.split('/')[1] || 'png'}`,
+              {
+                type: blob.type
+              }
+            );
+            break;
+          }
+        }
+      }
+      if (!imageFile) return; // no image in clipboard; allow default paste
+
+      // Prevent pasting the image as text
+      e.preventDefault();
+
+      if (target === 'picture') setUploadingPicture(true);
+      if (target === 'banner') setUploadingBanner(true);
+
+      uploadTypeRef.current = target;
+      if (authState?.signInMethod === 'externalSigner') {
+        sessionStorage.setItem('BlossomUploadType', target);
+      }
+
+      updateToast(`Uploading ${target}...`, 'loading', false);
+
+      const blossomService = new BlossomService();
+      const hash = await blossomService.uploadFile(imageFile);
+
+      // Extract extension from MIME type
+      const extFromType =
+        imageFile.type === 'image/jpeg'
+          ? 'jpg'
+          : imageFile.type === 'image/png'
+            ? 'png'
+            : imageFile.type === 'image/gif'
+              ? 'gif'
+              : imageFile.type === 'image/webp'
+                ? 'webp'
+                : null;
+
+      const imageUrl = blossomService.getFileUrl(hash, extFromType || undefined);
+
+      if (target === 'picture') {
+        setProfileData(prev => ({ ...prev, picture: imageUrl }));
+      } else {
+        setProfileData(prev => ({ ...prev, banner: imageUrl }));
+      }
+
+      updateToast(`${target === 'picture' ? 'Picture' : 'Banner'} uploaded successfully!`, 'success', false);
+      setTimeout(() => closeToast(), 2000);
+      uploadTypeRef.current = null;
+    } catch (error) {
+      console.error(`Failed to upload ${target}:`, error);
+      // Don't show error if it's external signer redirect (will be handled on return)
+      if (!(error instanceof Error && error.message.includes('redirect'))) {
+        updateToast(
+          `Failed to upload ${target}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          'error',
+          true
+        );
+      }
+      // If external signer, keep uploading state true - will be cleared on return
+      if (authState?.signInMethod !== 'externalSigner') {
+        if (target === 'picture') {
+          setUploadingPicture(false);
+        } else {
+          setUploadingBanner(false);
+        }
+        uploadTypeRef.current = null;
+      }
+    }
+  };
+
   // Handle profile picture upload
   const handlePictureUpload = async (
     e: React.ChangeEvent<HTMLInputElement>
@@ -459,70 +546,62 @@ const EditProfilePage: React.FC = () => {
         </div>
 
         {/* Preview Section */}
-        <div style={{ marginBottom: '30px' }}>
-          <h3 style={{ marginBottom: '20px' }}>Preview</h3>
-          <div className="profileSettingsCard">
-            <div
-              style={{
-                display: 'flex',
-                marginBottom: '15px',
-                alignItems: 'flex-start'
-              }}
-            >
+        <div className="profileSection" id="profilePreview" style={{ marginBottom: '30px' }}>
+          {/* Banner Image */}
+          <div className="profileBanner">
+            {profileData.banner ? (
+              <img
+                src={profileData.banner}
+                alt="Profile banner"
+                className="profileBannerImage"
+                onError={e => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="profileBannerPlaceholder">Banner image</div>
+            )}
+          </div>
+
+          <div className="profileUserInfo">
+            <div className="profileAvatar">
               {profileData.picture ? (
                 <img
                   src={profileData.picture}
                   alt="Profile"
-                  style={{
-                    width: '60px',
-                    height: '60px',
-                    borderRadius: '50%',
-                    marginRight: '15px',
-                    objectFit: 'cover'
-                  }}
+                  className="profileAvatarImage"
                   onError={e => {
                     e.currentTarget.style.display = 'none';
+                    const fallback = e.currentTarget
+                      .nextElementSibling as HTMLElement;
+                    if (fallback) {
+                      fallback.style.display = 'flex';
+                    }
                   }}
                 />
-              ) : (
-                <div
-                  style={{
-                    width: '60px',
-                    height: '60px',
-                    borderRadius: '50%',
-                    backgroundColor: '#ddd',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: '15px',
-                    fontSize: '24px'
-                  }}
-                >
-                  {profileData.displayName
-                    ? profileData.displayName.charAt(0).toUpperCase()
-                    : 'U'}
-                </div>
-              )}
-              <div>
-                <h4 style={{ margin: '0 0 5px 0' }}>
-                  {profileData.displayName || 'Anonymous User'}
-                </h4>
-                <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-                  {profileData.bio || 'No bio provided'}
-                </p>
-                {profileData.website && (
-                  <p style={{ margin: '5px 0', fontSize: '14px' }}>
-                    <a
-                      href={profileData.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: '#4a75ff' }}
-                    >
-                      {profileData.website}
-                    </a>
-                  </p>
-                )}
+              ) : null}
+              <div
+                className="profileAvatarFallback"
+                style={{ display: profileData.picture ? 'none' : 'flex' }}
+              >
+                {profileData.displayName
+                  ? profileData.displayName.charAt(0).toUpperCase()
+                  : 'U'}
               </div>
+            </div>
+            <div className="profileUserDetails">
+              <h2>{profileData.displayName || 'Anonymous User'}</h2>
+              <p>{profileData.bio || 'No bio provided'}</p>
+              {profileData.website && (
+                <a
+                  href={profileData.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="profileWebsite"
+                >
+                  {profileData.website}
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -599,6 +678,7 @@ const EditProfilePage: React.FC = () => {
                 id="editPicture"
                 value={profileData.picture}
                 onChange={e => handleInputChange('picture', e.target.value)}
+                onPaste={e => handleClipboardImage(e, 'picture')}
                 className="profileFormInput"
                 placeholder="https://example.com/profile.jpg or upload"
               />
@@ -653,6 +733,7 @@ const EditProfilePage: React.FC = () => {
                 id="editBanner"
                 value={profileData.banner}
                 onChange={e => handleInputChange('banner', e.target.value)}
+                onPaste={e => handleClipboardImage(e, 'banner')}
                 className="profileFormInput"
                 placeholder="https://example.com/banner.jpg or upload"
               />

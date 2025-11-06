@@ -9,7 +9,7 @@ import { getQueryClient } from '@pubpay/shared-services';
 import { LightningService } from '@pubpay/shared-services';
 import { FollowService, useUIStore, NostrUtil } from '@pubpay/shared-services';
 import { AuthService } from '@pubpay/shared-services';
-import { ZapService, Nip05ValidationService } from '@pubpay/shared-services';
+import { ZapService, Nip05ValidationService, DEFAULT_READ_RELAYS, DEFAULT_WRITE_RELAYS } from '@pubpay/shared-services';
 import { BlossomService } from '@pubpay/shared-services';
 import {
   NostrFilter,
@@ -145,20 +145,35 @@ export const useHomeFunctionality = () => {
     const initializeServices = () => {
       try {
         // Initialize Nostr client with user custom relays if present
-        let initialRelays: string[] | undefined = undefined;
+        let initialRelays: string[] | Array<{ url: string; read: boolean; write: boolean }> | undefined = undefined;
         try {
           const savedRelays = localStorage.getItem('customRelays');
           if (savedRelays) {
             const parsed = JSON.parse(savedRelays);
-            if (
-              Array.isArray(parsed) &&
-              parsed.every(r => typeof r === 'string')
-            ) {
-              initialRelays = parsed;
+            if (Array.isArray(parsed)) {
+              // Check if it's the new format (RelayConfig[]) or old format (string[])
+              if (parsed.length > 0 && typeof parsed[0] === 'object' && 'url' in parsed[0]) {
+                // New format: RelayConfig[]
+                initialRelays = parsed;
+              } else if (parsed.every(r => typeof r === 'string')) {
+                // Old format: string[] - pass as is (will be handled by NostrClient)
+                initialRelays = parsed;
+              }
             }
+          } else {
+            // No saved relays - initialize from constants to ensure correct default read/write config
+            // This matches what SettingsPage does, ensuring consistency
+            const allDefaultRelays = [...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])];
+            initialRelays = allDefaultRelays.map(url => ({
+              url,
+              read: DEFAULT_READ_RELAYS.includes(url),
+              write: DEFAULT_WRITE_RELAYS.includes(url)
+            }));
+            // Save to localStorage so SettingsPage can load it
+            localStorage.setItem('customRelays', JSON.stringify(initialRelays));
           }
         } catch {}
-        nostrClientRef.current = new NostrClient(initialRelays);
+        nostrClientRef.current = new NostrClient(initialRelays as any);
 
         // Initialize Lightning service
         const lightningConfig: LightningConfig = {
@@ -197,11 +212,17 @@ export const useHomeFunctionality = () => {
     const handleRelaysUpdated = (e: Event) => {
       try {
         const detail = (e as CustomEvent).detail as
-          | { relays?: string[] }
+          | { relays?: string[]; relayConfig?: Array<{ url: string; read: boolean; write: boolean }> }
           | undefined;
-        const nextRelays =
-          detail && Array.isArray(detail.relays) ? detail.relays : undefined;
-        nostrClientRef.current = new NostrClient(nextRelays);
+        // Prefer relayConfig (new format) over relays (old format)
+        let nextRelays: string[] | Array<{ url: string; read: boolean; write: boolean }> | undefined = undefined;
+        if (detail?.relayConfig && Array.isArray(detail.relayConfig)) {
+          nextRelays = detail.relayConfig;
+        } else if (detail?.relays && Array.isArray(detail.relays)) {
+          // Fallback to old format for backward compatibility
+          nextRelays = detail.relays;
+        }
+        nostrClientRef.current = new NostrClient(nextRelays as any);
         console.log('Nostr client reinitialized with relays:', nextRelays);
       } catch {}
     };

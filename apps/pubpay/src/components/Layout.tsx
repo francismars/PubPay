@@ -840,6 +840,7 @@ export const Layout: React.FC = () => {
                 authState,
                 nostrClient,
                 loadUserProfile,
+                checkAuthStatus,
                 // Hook state (single source of truth)
                 isLoading,
                 activeFeed,

@@ -1,11 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { RELAYS, AuthService } from '@pubpay/shared-services';
+import { DEFAULT_READ_RELAYS, DEFAULT_WRITE_RELAYS, AuthService } from '@pubpay/shared-services';
 import { useUIStore } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 
+interface RelayConfig {
+  url: string;
+  read: boolean;
+  write: boolean;
+}
+
 const SettingsPage: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
-  const [relays, setRelays] = useState<string[]>([...RELAYS]);
+  const [relays, setRelays] = useState<RelayConfig[]>(() => {
+    // Initialize with default relays
+    // Use DEFAULT_READ_RELAYS for read, DEFAULT_WRITE_RELAYS for write
+    const allDefaultRelays = [...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])];
+    return allDefaultRelays.map(url => ({
+      url,
+      read: DEFAULT_READ_RELAYS.includes(url),
+      write: DEFAULT_WRITE_RELAYS.includes(url)
+    }));
+  });
   const [newRelay, setNewRelay] = useState('');
   const [relayInfo, setRelayInfo] = useState<
     Record<
@@ -49,9 +64,91 @@ const SettingsPage: React.FC = () => {
     const savedRelays = localStorage.getItem('customRelays');
     if (savedRelays) {
       try {
-        setRelays(JSON.parse(savedRelays));
+        const parsed = JSON.parse(savedRelays);
+        // Handle both old format (string[]) and new format (RelayConfig[])
+        if (Array.isArray(parsed)) {
+          if (parsed.length > 0 && typeof parsed[0] === 'string') {
+            // Old format: migrate to new format
+            const migrated = parsed.map((url: string) => ({ url, read: true, write: true }));
+            setRelays(migrated);
+            localStorage.setItem('customRelays', JSON.stringify(migrated));
+            // Dispatch event to update NostrClient
+            try {
+              window.dispatchEvent(
+                new CustomEvent('relaysUpdated', {
+                  detail: {
+                    relays: migrated.map(r => r.url),
+                    relayConfig: migrated
+                  }
+                })
+              );
+            } catch {}
+          } else {
+            // New format - validate that at least one read and one write relay exists
+            const relayConfigs = parsed as RelayConfig[];
+            const hasReadRelay = relayConfigs.some(r => r.read);
+            const hasWriteRelay = relayConfigs.some(r => r.write);
+            
+            // If validation fails, reset to default (all enabled)
+            if (!hasReadRelay || !hasWriteRelay) {
+              console.warn('Invalid relay configuration detected - resetting to defaults');
+              const fixed = relayConfigs.map(r => ({ url: r.url, read: true, write: true }));
+              setRelays(fixed);
+              localStorage.setItem('customRelays', JSON.stringify(fixed));
+              useUIStore.getState().openToast('Relay configuration was invalid and has been reset. Please reconfigure your relays.', 'error');
+              // Dispatch event to update NostrClient
+              try {
+                window.dispatchEvent(
+                  new CustomEvent('relaysUpdated', {
+                    detail: {
+                      relays: fixed.map(r => r.url),
+                      relayConfig: fixed
+                    }
+                  })
+                );
+              } catch {}
+            } else {
+              setRelays(relayConfigs);
+            }
+          }
+        }
       } catch (e) {
         console.error('Failed to load relays:', e);
+      }
+    } else {
+      // No saved relays - check if useHomeFunctionality already initialized it
+      const savedRelaysCheck = localStorage.getItem('customRelays');
+      if (savedRelaysCheck) {
+        // useHomeFunctionality already initialized, just load it
+        try {
+          const parsed = JSON.parse(savedRelaysCheck);
+          if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && 'url' in parsed[0]) {
+            setRelays(parsed as RelayConfig[]);
+          }
+        } catch (e) {
+          console.error('Failed to load relays:', e);
+        }
+      } else {
+        // Initialize from constants and save to localStorage
+        const allDefaultRelays = [...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])];
+        const initialRelays = allDefaultRelays.map(url => ({
+          url,
+          read: DEFAULT_READ_RELAYS.includes(url),
+          write: DEFAULT_WRITE_RELAYS.includes(url)
+        }));
+        setRelays(initialRelays);
+        localStorage.setItem('customRelays', JSON.stringify(initialRelays));
+        // Dispatch event to update NostrClient with initial config
+        try {
+          window.dispatchEvent(
+            new CustomEvent('relaysUpdated', {
+              detail: {
+                relays: initialRelays.map(r => r.url),
+                relayConfig: initialRelays
+              }
+            })
+          );
+        } catch {}
       }
     }
 
@@ -149,7 +246,7 @@ const SettingsPage: React.FC = () => {
       }
     };
 
-    relays.forEach(fetchInfo);
+    relays.forEach(relay => fetchInfo(relay.url));
 
     return () => {
       cancelled = true;
@@ -173,15 +270,15 @@ const SettingsPage: React.FC = () => {
     if (
       newRelay &&
       newRelay.startsWith('wss://') &&
-      !relays.includes(newRelay)
+      !relays.some(r => r.url === newRelay)
     ) {
-      const updatedRelays = [...relays, newRelay];
+      const updatedRelays = [...relays, { url: newRelay, read: true, write: true }];
       setRelays(updatedRelays);
       localStorage.setItem('customRelays', JSON.stringify(updatedRelays));
       try {
         window.dispatchEvent(
           new CustomEvent('relaysUpdated', {
-            detail: { relays: updatedRelays }
+            detail: { relays: updatedRelays.map(r => r.url) }
           })
         );
       } catch {}
@@ -190,12 +287,49 @@ const SettingsPage: React.FC = () => {
   };
 
   const handleRemoveRelay = (relayToRemove: string) => {
-    const updatedRelays = relays.filter(relay => relay !== relayToRemove);
+    const updatedRelays = relays.filter(relay => relay.url !== relayToRemove);
     setRelays(updatedRelays);
     localStorage.setItem('customRelays', JSON.stringify(updatedRelays));
     try {
       window.dispatchEvent(
-        new CustomEvent('relaysUpdated', { detail: { relays: updatedRelays } })
+        new CustomEvent('relaysUpdated', { 
+          detail: { relays: updatedRelays.map(r => r.url) } 
+        })
+      );
+    } catch {}
+  };
+
+  const handleRelayTypeChange = (relayUrl: string, type: 'read' | 'write', checked: boolean) => {
+    const updatedRelays = relays.map(relay => 
+      relay.url === relayUrl ? { ...relay, [type]: checked } : relay
+    );
+    
+    // Validation: Ensure at least one relay has read enabled, and at least one has write enabled
+    const hasReadRelay = updatedRelays.some(r => r.read);
+    const hasWriteRelay = updatedRelays.some(r => r.write);
+    
+    if (!checked) {
+      // If unchecking, check if this would leave us with no read/write relays
+      if (type === 'read' && !hasReadRelay) {
+        useUIStore.getState().openToast('At least one relay must be enabled for reading. Cannot disable all read relays.', 'error');
+        return;
+      }
+      if (type === 'write' && !hasWriteRelay) {
+        useUIStore.getState().openToast('At least one relay must be enabled for writing. Cannot disable all write relays.', 'error');
+        return;
+      }
+    }
+    
+    setRelays(updatedRelays);
+    localStorage.setItem('customRelays', JSON.stringify(updatedRelays));
+    try {
+      window.dispatchEvent(
+        new CustomEvent('relaysUpdated', { 
+          detail: { 
+            relays: updatedRelays.map(r => r.url),
+            relayConfig: updatedRelays
+          } 
+        })
       );
     } catch {}
   };
@@ -262,7 +396,7 @@ const SettingsPage: React.FC = () => {
             : 'Incorrect password. Please check your password and try again.')
         : 'Incorrect password. Please check your password and try again.';
       setPasswordError(errorMessage);
-    }
+      }
   };
 
   return (
@@ -299,56 +433,70 @@ const SettingsPage: React.FC = () => {
             <div className="featureBlock">
               <h3 className="featureTitle">Connected Relays</h3>
               <p className="featureDescription descriptionWithMargin">
-                Manage your Nostr relay connections for sending and receiving
-                paynotes
+                Manage your Nostr relay connections. <strong>Read</strong> relays are used to fetch events (posts, profiles, zaps). <strong>Write</strong> relays are used to publish events (when you post or update your profile).
               </p>
 
               <div className="relayList">
                 {relays.map((relay, index) => {
-                  const info = relayInfo[relay];
+                  const info = relayInfo[relay.url];
                   const statusColor = info?.loading
                     ? '#f59e0b'
                     : info?.ok
                       ? '#10b981'
                       : '#ef4444';
-                  const isExpanded = expandedRelay === relay;
+                  const isExpanded = expandedRelay === relay.url;
                   return (
                     <div key={index} className="relayItemCard">
                       <div
                         className="relayItemHeader"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          cursor: 'pointer'
-                        }}
                         onClick={() =>
-                          setExpandedRelay(isExpanded ? null : relay)
+                          setExpandedRelay(isExpanded ? null : relay.url)
                         }
                       >
                         <span
                           className="relayUrl"
-                          title={relay}
-                          style={{ display: 'flex', alignItems: 'center' }}
+                          title={relay.url}
                         >
                           <span
+                            className="relayStatusIndicator"
                             style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: '50%',
-                              backgroundColor: statusColor,
-                              display: 'inline-block',
-                              marginRight: 6
+                              backgroundColor: statusColor
                             }}
                           />
-                          {relay}
+                          {relay.url}
                         </span>
+                        <div className="relayControls" onClick={e => e.stopPropagation()}>
+                          <label className="relayToggleLabel">
+                            <span className="relayToggleText">Read</span>
+                            <label className="toggleSwitch">
+                              <input
+                                type="checkbox"
+                                checked={relay.read}
+                                onChange={e => handleRelayTypeChange(relay.url, 'read', e.target.checked)}
+                                onClick={e => e.stopPropagation()}
+                              />
+                              <span className="toggleCircle" />
+                            </label>
+                          </label>
+                          <label className="relayToggleLabel">
+                            <span className="relayToggleText">Write</span>
+                            <label className="toggleSwitch">
+                              <input
+                                type="checkbox"
+                                checked={relay.write}
+                                onChange={e => handleRelayTypeChange(relay.url, 'write', e.target.checked)}
+                                onClick={e => e.stopPropagation()}
+                              />
+                              <span className="toggleCircle" />
+                            </label>
+                          </label>
+                        </div>
                         <button
                           onClick={e => {
                             e.stopPropagation();
-                            handleRemoveRelay(relay);
+                            handleRemoveRelay(relay.url);
                           }}
                           className="removeButton"
-                          style={{ marginLeft: 'auto' }}
                         >
                           Remove
                         </button>
@@ -381,7 +529,7 @@ const SettingsPage: React.FC = () => {
                                 />
                               )}
                               <div style={{ fontWeight: 600 }}>
-                                {info?.name || relay}
+                                {info?.name || relay.url}
                               </div>
                             </div>
                           )}

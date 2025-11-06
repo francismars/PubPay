@@ -2440,10 +2440,42 @@ export class NostrRegistrationService {
       // Create the profile event
       const profileEvent = this.createProfileEvent(privateKey, profileData);
 
-      // Initialize NostrClient with default relays
-      const defaultRelays = RELAYS;
+      // Load user's relay configuration from localStorage if available
+      let relayConfig: string[] | Array<{ url: string; read: boolean; write: boolean }> | undefined = undefined;
 
-      const client = new NostrClient(relays || defaultRelays);
+      if (relays) {
+        // If relays parameter provided, use it (legacy support)
+        relayConfig = relays;
+      } else {
+        // Try to load from localStorage
+        try {
+          if (typeof window !== 'undefined' && window.localStorage) {
+            const savedRelays = window.localStorage.getItem('customRelays');
+            if (savedRelays) {
+              const parsed = JSON.parse(savedRelays);
+              if (Array.isArray(parsed)) {
+                // Check if it's new format (RelayConfig[]) or old format (string[])
+                if (parsed.length > 0 && typeof parsed[0] === 'object' && 'url' in parsed[0]) {
+                  // New format: RelayConfig[] - use as is
+                  relayConfig = parsed;
+                } else if (parsed.every((r: any) => typeof r === 'string')) {
+                  // Old format: string[] - use as is
+                  relayConfig = parsed;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to load relay configuration from localStorage:', e);
+        }
+
+        // Fallback to default relays if no configuration found
+        if (!relayConfig) {
+          relayConfig = RELAYS;
+        }
+      }
+
+      const client = new NostrClient(relayConfig);
 
       // Publish the event to relays with simplified error handling
       try {
