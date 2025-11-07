@@ -101,6 +101,16 @@ export const Layout: React.FC = () => {
     setShowQRScanner(true);
   };
 
+  // Handle navigation to home feed - clear posts if coming from single note mode
+  const handleNavigateToHome = () => {
+    const currentPath = window.location.pathname;
+    // If we're on a note page, clear posts to ensure feed reloads
+    if (currentPath.startsWith('/note/')) {
+      clearPosts();
+    }
+    // Navigation will happen via Link component
+  };
+
   const handleScannedContent = async (decodedText: string) => {
     try {
       // Check if it's an nsec (for login)
@@ -634,7 +644,7 @@ export const Layout: React.FC = () => {
               <span></span>
               <span></span>
             </button>
-            <Link id="logo" to="/">
+            <Link id="logo" to="/" onClick={handleNavigateToHome}>
               PUB<span className="logoPay">PAY</span>
               <span className="logoMe">.me</span>
               <span className="version">alpha 0.03</span>
@@ -708,7 +718,10 @@ export const Layout: React.FC = () => {
                 to="/"
                 className="sideNavLink"
                 title="Home Feed"
-                onClick={closeMobileMenu}
+                onClick={(e) => {
+                  handleNavigateToHome();
+                  closeMobileMenu();
+                }}
               >
                 Home
               </Link>
