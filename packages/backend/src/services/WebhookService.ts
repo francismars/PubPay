@@ -97,10 +97,10 @@ export class WebhookService {
 
       // Process payment and create zap
       const amount = webhookData.amount || 1000; // Default to 1 sat if not provided
-      const comment = webhookData.comment || 'Lightning payment';
+      const comment = webhookData.comment || '';
 
       this.logger.info(
-        `⚡ Processing Lightning payment: ${amount} sats for event ${eventId} with comment: "${comment}"`
+        `⚡ Processing Lightning payment: ${amount} sats for event ${eventId}${comment ? ` with comment: "${comment}"` : ' (no comment)'}`
       );
 
       try {

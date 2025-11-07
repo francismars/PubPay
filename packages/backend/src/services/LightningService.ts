@@ -108,12 +108,16 @@ export class LightningService {
     eventId: string,
     _frontendSessionId: string
   ): Promise<{ lnurl: string; id: string }> {
+    // Construct webhook URL: base URL + /lightning/webhook
+    const baseUrl = this.config.webhookUrl?.trim().replace(/\/+$/, '') || '';
+    const webhookUrl = baseUrl ? `${baseUrl}/lightning/webhook` : undefined;
+
     const requestBody = {
       description: `PubPay Live - Real-time Tip Tracker`,
       min: 1000, // 1 sat minimum
       max: 100000000, // 1M sats maximum
       comment_chars: 200,
-      webhook_url: this.config.webhookUrl,
+      webhook_url: webhookUrl,
       success_text: 'You just experienced the future of live payments!',
       currency: 'sat'
     };

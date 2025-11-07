@@ -31,7 +31,10 @@ Modern TypeScript Express server providing API endpoints for PubPay's Lightning 
    # Lightning Configuration
    LNBITS_URL=https://legend.lnbits.com
    LNBITS_API_KEY=your_lnbits_api_key_here
-   WEBHOOK_URL=https://yourdomain.com/lightning/webhook
+   # Webhook URL - BASE URL only (backend appends /lightning/webhook automatically)
+   # For development with ngrok: WEBHOOK_URL=https://your-ngrok-url.ngrok.io
+   # For production: WEBHOOK_URL=https://yourdomain.com
+   WEBHOOK_URL=https://yourdomain.com
 
    # Frontend Configuration (for React apps)
    REACT_APP_API_BASE_URL=http://localhost:3002
