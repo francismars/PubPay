@@ -413,133 +413,89 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Create Lightning QR slide
   const createLightningQRSlide = (lnurl: string) => {
-    // Debug log removed
-    // Debug log removed
-
-    // Check if Lightning QR slide already exists
-    let lightningSlide = document.getElementById('lightningQRSlide');
-    if (lightningSlide) {
-      // Update existing QR code
-      const qrElement = lightningSlide.querySelector('#lightningQRCode');
-
-      if (qrElement && QRious) {
-        try {
-          // Calculate QR size to match other QR codes
-          const qrSize = Math.min(
-            window.innerWidth * 0.6,
-            window.innerHeight * 0.7
-          );
-
-          // Use unified QR code generation function
-          generateQRCode('lightningQRCode', lnurl, qrSize);
-
-          // Set the Lightning QR link href (same as legacy implementation)
-          const lightningQRLink = document.getElementById(
-            'lightningQRLink'
-          ) as HTMLAnchorElement;
-          if (lightningQRLink) {
-            lightningQRLink.href = `lightning:${lnurl}`;
-          }
-
-          // Apply blend mode after Lightning QR code is updated
-          updateBlendMode();
-        } catch (error) {
-          console.error('❌ Error updating QR code:', error);
-        }
-      } else {
-        // Recreate the slide structure if QR element is missing
-        lightningSlide.innerHTML = `
-          <div class="qr-slide-title">Lightning <span class="qr-data-preview" id="qrDataPreview4"></span></div>
-          <a href="" target="_blank" id="lightningQRLink">
-            <div id="lightningQRCode" class="qr-code"></div>
-          </a>
-          <div class="qr-slide-label">Scan with Lightning Wallet</div>
-        `;
-
-        // Now create the QR code
-        const newQrElement = document.getElementById('lightningQRCode');
-        if (newQrElement && QRious) {
-          const qrSize = Math.min(
-            window.innerWidth * 0.6,
-            window.innerHeight * 0.7
-          );
-          updateBlendMode();
-        } else {
-          console.error(
-            '❌ Still unable to create QR code after structure fix'
-          );
-        }
-      }
-      return;
-    }
-
-    // Use the existing hardcoded Lightning QR slide from HTML
-    lightningSlide = document.getElementById('lightningQRSlide');
-    if (lightningSlide) {
-      // Update the existing slide structure to match the HTML format
-      lightningSlide.innerHTML = `
-        <div class="qr-slide-title">Lightning <span class="qr-data-preview" id="qrDataPreview4"></span></div>
-        <a href="" target="_blank" id="lightningQRLink">
-          <div id="lightningQRCode" class="qr-code"></div>
-        </a>
-        <div class="qr-slide-label">Scan with Lightning Wallet</div>
-      `;
-
-      // Make sure it's visible
-      lightningSlide.style.display = 'block';
-    } else {
+    const lightningSlide = document.getElementById('lightningQRSlide');
+    if (!lightningSlide) {
       console.error('❌ Lightning QR slide not found in HTML');
       return;
     }
 
-    // Generate QR code
-    if (QRious) {
-      const qrElement = document.getElementById('lightningQRCode');
-
-      if (qrElement) {
-        try {
-          // Calculate QR size to match other QR codes
-          const qrSize = Math.min(
-            window.innerWidth * 0.6,
-            window.innerHeight * 0.7
-          );
-
-          // Use unified QR code generation function
-          generateQRCode('lightningQRCode', lnurl, qrSize);
-
-          // Set the Lightning QR link href (same as legacy implementation)
-          const lightningQRLink = document.getElementById(
-            'lightningQRLink'
-          ) as HTMLAnchorElement;
-          if (lightningQRLink) {
-            lightningQRLink.href = `lightning:${lnurl}`;
-          }
-
-          // Force the QR swiper to be visible after QR creation
-          const qrSwiper = document.querySelector('.qr-swiper') as HTMLElement;
-          if (qrSwiper) {
-            qrSwiper.style.display = 'block';
-          }
-
-          updateBlendMode();
-        } catch (error) {
-          console.error('❌ Error creating QR code:', error);
-        }
-      } else {
-        console.error('❌ QR element not found after creation');
-      }
-    } else {
+    if (!QRious) {
       console.error('❌ QRious library not available');
-      console.log('🔍 Available QRious:', typeof QRious);
+      return;
     }
 
-    // Store reference globally
-    (window as any).lightningQRSlide = lightningSlide;
+    // Ensure slide structure exists
+    let qrElement = lightningSlide.querySelector('#lightningQRCode');
+    if (!qrElement) {
+      lightningSlide.innerHTML = `
+        <a href="" target="_blank" id="lightningQRLink">
+          <div id="lightningQRCode" class="qr-code"></div>
+        </a>
+        <div class="qr-slide-title">
+          <span class="qr-data-preview" id="qrDataPreview4"></span>
+        </div>
+        <div class="qr-slide-label">Scan with Lightning Wallet</div>
+      `;
+      qrElement = lightningSlide.querySelector('#lightningQRCode');
+    }
 
-    // Apply blend mode after Lightning QR code is generated
-    updateBlendMode();
+    if (!qrElement) {
+      console.error('❌ Unable to create QR code element');
+      return;
+    }
 
-    // Debug log removed
+    try {
+      const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
+
+      // Generate QR code after DOM is ready
+      requestAnimationFrame(() => {
+        generateQRCode('lightningQRCode', lnurl, qrSize);
+      });
+
+      // Set Lightning QR link
+      const lightningQRLink = document.getElementById('lightningQRLink') as HTMLAnchorElement;
+      if (lightningQRLink) {
+        lightningQRLink.href = `lightning:${lnurl}`;
+      }
+
+      // Set QR data preview text (uppercase, max 60 chars)
+      const qrDataPreview4 = document.getElementById('qrDataPreview4');
+      if (qrDataPreview4) {
+        const previewText = lnurl.length > 60 ? `${lnurl.substring(0, 60)}...` : lnurl;
+        qrDataPreview4.textContent = previewText.toUpperCase();
+      }
+
+      // Ensure slide is visible and in swiper
+      const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper') as HTMLElement;
+      if (swiperWrapper && !swiperWrapper.contains(lightningSlide)) {
+        swiperWrapper.appendChild(lightningSlide);
+      }
+      lightningSlide.style.display = 'block';
+
+      const qrSwiper = document.querySelector('.qr-swiper') as HTMLElement;
+      if (qrSwiper) {
+        qrSwiper.style.display = 'block';
+      }
+
+      // Reinitialize swiper and navigate to lightning slide
+      setTimeout(() => {
+        if (typeof initializeQRSwiper === 'function') {
+          initializeQRSwiper();
+          const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper') as HTMLElement;
+          if (swiperWrapper && (window as any).qrSwiper) {
+            const slides = Array.from(swiperWrapper.children);
+            const lightningSlideIndex = slides.findIndex(slide => slide.id === 'lightningQRSlide');
+            if (lightningSlideIndex >= 0) {
+              (window as any).qrSwiper.slideTo(lightningSlideIndex, 0);
+            }
+          }
+        }
+      }, 100);
+
+      updateBlendMode();
+    } catch (error) {
+      console.error('❌ Error creating Lightning QR code:', error);
+    }
   };
 
   // Initialize QR code placeholders for when no eventId is provided
@@ -580,6 +536,11 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     ];
 
+    // Truncate function for preview text
+    const truncate = (text: string, maxLength: number = 60) => {
+      return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+    };
+
     qrcodeContainers.forEach(({ element, value, link, preview }) => {
       if (element && QRious) {
         generateQRCode(element.id, value, qrSize);
@@ -589,7 +550,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
 
         if (preview) {
-          preview.textContent = value;
+          preview.textContent = truncate(value.toUpperCase());
         }
       }
     });
@@ -1924,13 +1885,42 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const generateQRCode = (elementId: string, value: string, size: number) => {
     const element = document.getElementById(elementId);
-    if (element && QRious) {
-      element.innerHTML = '';
+    if (!element || !QRious) {
+      if (!element) console.error('❌ QR code element not found:', elementId);
+      if (!QRious) console.error('❌ QRious library not available');
+      return;
+    }
+
+    try {
+      const originalDisplay = element.style.display;
+      element.style.display = 'block';
+
+      const isImg = element.tagName === 'IMG';
+      let targetElement: HTMLElement;
+
+      if (isImg) {
+        (element as HTMLImageElement).src = '';
+        targetElement = element;
+      } else {
+        // For div or other elements, create canvas inside
+        element.innerHTML = '';
+        const canvas = document.createElement('canvas');
+        canvas.className = 'qr-code';
+        element.appendChild(canvas);
+        targetElement = canvas;
+      }
+
       new QRious({
-        element,
+        element: targetElement,
         size: size * 0.9,
         value
       });
+
+      if (originalDisplay) {
+        element.style.display = originalDisplay;
+      }
+    } catch (error) {
+      console.error('❌ Error generating QR code:', error);
     }
   };
 
@@ -1963,9 +1953,14 @@ export const useLiveFunctionality = (eventId?: string) => {
     const qrDataPreview2 = document.getElementById('qrDataPreview2');
     const qrDataPreview3 = document.getElementById('qrDataPreview3');
 
-    if (qrDataPreview1) qrDataPreview1.textContent = njumpUrl;
-    if (qrDataPreview2) qrDataPreview2.textContent = nostrNaddr;
-    if (qrDataPreview3) qrDataPreview3.textContent = naddrId;
+    // Set preview text in uppercase (max 60 chars to prevent overflow)
+    const truncate = (text: string, maxLength: number = 60) => {
+      return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+    };
+
+    if (qrDataPreview1) qrDataPreview1.textContent = truncate(njumpUrl.toUpperCase());
+    if (qrDataPreview2) qrDataPreview2.textContent = truncate(nostrNaddr.toUpperCase());
+    if (qrDataPreview3) qrDataPreview3.textContent = truncate(naddrId.toUpperCase());
   };
 
   const generateLiveEventQRCodes = (liveEvent: any) => {
@@ -4092,20 +4087,12 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Set link href
         if (link) (link as HTMLAnchorElement).href = value;
 
-        // Set data preview (more characters for web links)
+        // Set data preview (uppercase, max 60 chars)
         if (preview) {
-          let cleanValue = value;
-          let maxLength = 10; // Default for nostr formats
-
-          if (value.startsWith('https://')) {
-            cleanValue = value.substring(8); // Remove 'https://'
-            maxLength = 20; // Show more for web links
-          } else if (value.startsWith('nostr:')) {
-            cleanValue = value.substring(6); // Remove 'nostr:'
-          }
-          // Always add ellipsis to show truncation
-          const previewText = `${cleanValue.substring(0, maxLength)}...`;
-          preview.textContent = previewText;
+          const truncate = (text: string, maxLength: number = 60) => {
+            return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
+          };
+          preview.textContent = truncate(value.toUpperCase());
         }
       }
     });
