@@ -6,6 +6,7 @@ const QRious = require('qrious') as any;
 const bolt11 = require('bolt11') as any;
 import { UseLightning } from './useLightning';
 import { ZapNotification } from '@live/types';
+import { DEFAULT_READ_RELAYS } from '@pubpay/shared-services';
 
 // Flag to prevent multiple simultaneous calls to setupNoteLoaderListeners
 let setupNoteLoaderListenersInProgress = false;
@@ -130,12 +131,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
         // Initialize Nostr pool and relays
         (window as any).pool = new SimplePool();
-        (window as any).relays = [
-          'wss://relay.damus.io',
-          'wss://relay.snort.social',
-          'wss://nos.lol',
-          'wss://relay.nostr.band'
-        ];
+        (window as any).relays = DEFAULT_READ_RELAYS;
 
         // Initialize portrait swiper
         if (typeof window !== 'undefined' && (window as any).Swiper) {
@@ -307,13 +303,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       // Initialize Nostr pool and relays for note loader
       (window as any).pool = new SimplePool();
-      (window as any).relays = [
-        'wss://relay.damus.io',
-        'wss://relay.snort.social',
-        'wss://nos.lol',
-        'wss://relay.primal.net',
-        'wss://relay.nostr.band'
-      ];
+      (window as any).relays = DEFAULT_READ_RELAYS;
 
       // Initialize portrait swiper for note loader (with delay to ensure DOM is ready)
       setTimeout(() => {
@@ -1300,9 +1290,17 @@ export const useLiveFunctionality = (eventId?: string) => {
       authors: [pubkey]
     };
 
+    // Track newest event per pubkey
+    const newestProfile = new Map<string, { event: any; timestamp: number }>();
+
     const sub = (window as any).pool.subscribe((window as any).relays, filter, {
       onevent(profile: any) {
-        updateProfile(profile);
+        const existing = newestProfile.get(profile.pubkey);
+        // Only process if this is the newest event we've seen
+        if (!existing || profile.created_at > existing.timestamp) {
+          newestProfile.set(profile.pubkey, { event: profile, timestamp: profile.created_at });
+          updateProfile(profile);
+        }
       },
       oneose() {
         // Debug log removed
@@ -1592,9 +1590,17 @@ export const useLiveFunctionality = (eventId?: string) => {
       authors: [hostPubkey]
     };
 
+    // Track newest event per pubkey
+    const newestProfile = new Map<string, { event: any; timestamp: number }>();
+
     const sub = (window as any).pool.subscribe((window as any).relays, filter, {
       onevent(profile: any) {
-        updateLiveEventHostProfile(profile);
+        const existing = newestProfile.get(profile.pubkey);
+        // Only process if this is the newest event we've seen
+        if (!existing || profile.created_at > existing.timestamp) {
+          newestProfile.set(profile.pubkey, { event: profile, timestamp: profile.created_at });
+          updateLiveEventHostProfile(profile);
+        }
       },
       oneose() {
         // Debug log removed
@@ -3197,6 +3203,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       return;
     }
 
+    // Track newest event per pubkey
+    const newestProfile = new Map<string, { event: any; timestamp: number }>();
+
     const sub = pool.subscribe(
       [...relays],
       {
@@ -3205,7 +3214,12 @@ export const useLiveFunctionality = (eventId?: string) => {
       },
       {
         onevent(kind0: any) {
-          drawKind0(kind0);
+          const existing = newestProfile.get(kind0.pubkey);
+          // Only process if this is the newest event we've seen
+          if (!existing || kind0.created_at > existing.timestamp) {
+            newestProfile.set(kind0.pubkey, { event: kind0, timestamp: kind0.created_at });
+            drawKind0(kind0);
+          }
         },
         oneose() {},
         onclosed() {}
@@ -3347,7 +3361,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     const relays = (window as any).relays;
     const kind9734PKs: string[] = [];
     const kind0fromkind9735List: any[] = [];
-    const kind0fromkind9735Seen = new Set();
+    // Map to track newest event per pubkey (by created_at)
+    const kind0fromkind9735Map = new Map<string, any>();
 
     for (const kind9735 of kinds9735) {
       if (kind9735.tags) {
@@ -3381,14 +3396,17 @@ export const useLiveFunctionality = (eventId?: string) => {
       },
       {
         onevent(kind0: any) {
-          if (!kind0fromkind9735Seen.has(kind0.pubkey)) {
-            kind0fromkind9735Seen.add(kind0.pubkey);
-            kind0fromkind9735List.push(kind0);
+          const existing = kind0fromkind9735Map.get(kind0.pubkey);
+          // Keep the newest event (highest created_at)
+          if (!existing || kind0.created_at > existing.created_at) {
+            kind0fromkind9735Map.set(kind0.pubkey, kind0);
             // Update profile to trigger notification if pending
             updateProfile(kind0);
           }
         },
         async oneose() {
+          // Convert map values to array (only newest events per pubkey)
+          kind0fromkind9735List.push(...Array.from(kind0fromkind9735Map.values()));
           // Debug log removed
           createkinds9735JSON(kinds9735, kind0fromkind9735List);
         },
@@ -4170,10 +4188,13 @@ export const useLiveFunctionality = (eventId?: string) => {
               {
                 onevent(event: any) {
                   clearTimeout(timeout);
-                  // Cache the profile
-                  profiles[pubkey] = event;
+                  // Keep the newest profile event (highest created_at)
+                  const existing = profiles[pubkey];
+                  if (!existing || event.created_at > existing.created_at) {
+                    profiles[pubkey] = event;
+                  }
                   sub.close();
-                  resolve(event);
+                  resolve(profiles[pubkey]);
                 },
                 oneose() {
                   clearTimeout(timeout);
