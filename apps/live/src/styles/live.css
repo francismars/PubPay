@@ -1093,6 +1093,10 @@ body.qr-only-mode .qr-code{
   object-fit: contain;
 }
 
+.lightning-qr-slide .qr-slide-label {
+  color: var(--text-color);
+}
+
 /* QR Swiper */
 .qr-swiper {
   width: 100%;
@@ -1202,6 +1206,7 @@ body.qr-blend-active .qr-swiper .qr-slide-title,
 body.qr-blend-active .qr-swiper .qr-slide-label {
   mix-blend-mode: normal;
   isolation: isolate;
+  color: var(--text-color) !important;
 }
 
 /* Fix blend mode issues - disable backdrop filter when QR blend is active */
@@ -1248,7 +1253,7 @@ body.qr-blend-active .left-side {
 
 .qr-slide-title {
   font-size: max(1vw, 10px);
-  color: var(--text-color);
+  color: var(--text-color) !important;
   opacity: 0.9;
   margin-bottom: 4px;
   margin-top: 3px;
@@ -1266,6 +1271,12 @@ body.qr-blend-active .left-side {
   text-transform: uppercase;
 }
 
+/* Ensure ellipsis in QR slide titles uses correct color */
+.swiper-slide .qr-slide-title,
+.qr-swiper .qr-slide-title {
+  color: var(--text-color) !important;
+}
+
 .qr-slide-title .qr-data-preview {
   font-weight: 400;
   opacity: 0.6;
@@ -1277,11 +1288,17 @@ body.qr-blend-active .left-side {
 
 .qr-slide-label {
   font-size: max(0.8vw, 10px);
-  color: var(--text-color);
+  color: var(--text-color) !important;
   opacity: 0.7;
   margin-top: 0px;
   font-weight: 500;
   text-align: center;
+}
+
+/* Ensure all QR slide labels use correct color, even when moved between containers */
+.swiper-slide .qr-slide-label,
+.qr-swiper .qr-slide-label {
+  color: var(--text-color) !important;
 }
 
 .qr-data-preview {
