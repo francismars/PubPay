@@ -13,10 +13,13 @@ LNBITS_API_KEY=your_lnbits_api_key_here
 
 # Webhook URL - REQUIRED for payment notifications
 # LNbits will send payment notifications here
-# For development:
-WEBHOOK_URL=http://localhost:3002
+# This should be the BASE URL (without path) - the backend will append /lightning/webhook
+# For development (using ngrok or similar tunnel):
+# WEBHOOK_URL=https://your-ngrok-url.ngrok.io
 # For production:
 # WEBHOOK_URL=https://yourdomain.com
+# NOTE: localhost won't work because LNbits (on the internet) can't reach it!
+# Use a tunneling service like ngrok for development: https://ngrok.com
 ```
 
 ### Optional (Have defaults)
