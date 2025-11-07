@@ -13,6 +13,7 @@ import { validateEventData } from '../../utils/validation';
 export class EventManager {
   private nostrClient: NostrClient;
   private profileCache: Map<string, User> = new Map();
+  private profileEventTimestamps: Map<string, number> = new Map();
 
   constructor(nostrClient: NostrClient) {
     this.nostrClient = nostrClient;
@@ -128,8 +129,25 @@ export class EventManager {
         about: profileData.about || ''
       };
 
-      // Cache the profile
-      this.profileCache.set(event.pubkey, user);
+      // Cache the profile only if it's newer than existing cached profile
+      // Note: We store the event's created_at in a separate map to compare
+      const existing = this.profileCache.get(event.pubkey);
+      if (!existing || !this.profileEventTimestamps.has(event.pubkey)) {
+        // No existing profile or timestamp, cache this one
+        this.profileCache.set(event.pubkey, user);
+        this.profileEventTimestamps.set(event.pubkey, event.created_at);
+      } else {
+        const existingTimestamp = this.profileEventTimestamps.get(event.pubkey)!;
+        if (event.created_at > existingTimestamp) {
+          // This event is newer, update cache
+          this.profileCache.set(event.pubkey, user);
+          this.profileEventTimestamps.set(event.pubkey, event.created_at);
+        } else {
+          // Existing profile is newer, return existing
+          return existing;
+        }
+      }
+      
       return user;
     } catch (error) {
       console.error('Error handling profile event:', error);

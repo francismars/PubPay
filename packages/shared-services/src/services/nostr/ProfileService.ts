@@ -97,16 +97,24 @@ export class ProfileService {
           }
         ]);
 
-        // Process each event
+        // Deduplicate by pubkey, keeping the newest event (highest created_at)
+        const deduplicated = new Map<string, Kind0Event>();
         for (const event of events) {
           if (event.kind === 0) {
-            const profile = await this.eventManager.handleProfileEvent(
-              event as Kind0Event
-            );
-            if (profile) {
-              profiles.set(profile.publicKey, profile);
-              this.cacheProfile(profile);
+            const kind0Event = event as Kind0Event;
+            const existing = deduplicated.get(kind0Event.pubkey);
+            if (!existing || kind0Event.created_at > existing.created_at) {
+              deduplicated.set(kind0Event.pubkey, kind0Event);
             }
+          }
+        }
+
+        // Process each deduplicated event
+        for (const event of deduplicated.values()) {
+          const profile = await this.eventManager.handleProfileEvent(event);
+          if (profile) {
+            profiles.set(profile.publicKey, profile);
+            this.cacheProfile(profile);
           }
         }
 
