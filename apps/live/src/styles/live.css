@@ -1271,7 +1271,8 @@ body.qr-blend-active .left-side {
   opacity: 0.6;
   margin-left: 4px;
   font-size: 0.85em;
-  text-transform: none;
+  text-transform: uppercase;
+  color: var(--text-color);
 }
 
 .qr-slide-label {
