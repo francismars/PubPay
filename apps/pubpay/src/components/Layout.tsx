@@ -718,7 +718,7 @@ export const Layout: React.FC = () => {
                 to="/"
                 className="sideNavLink"
                 title="Home Feed"
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
                   handleNavigateToHome();
                   closeMobileMenu();
                 }}
