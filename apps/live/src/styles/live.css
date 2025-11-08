@@ -3610,7 +3610,9 @@ body.qr-only-mode .right-side {
   align-items: center;
   transform: translateX(-50%);
   overflow: visible;
+  z-index: 1000;
 }
+
 
 body.qr-only-mode .right-side .zaps-header {
   justify-content: flex-end;
@@ -3689,6 +3691,33 @@ body.qr-only-mode .qr-code {
   box-sizing: border-box;
 }
 
+/* Show QR slide labels and titles in QR-only mode */
+body.qr-only-mode .qr-slide-label,
+body.qr-only-mode .qr-slide-title {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+body.qr-only-mode .qr-slide-label {
+  font-size: max(1.2vw, 14px);
+  margin-top: 1vh;
+  font-weight: 600;
+}
+
+body.qr-only-mode .qr-slide-title {
+  font-size: max(1vw, 12px);
+  margin-bottom: 0.5vh;
+}
+
+/* Show swiper pagination in QR-only mode */
+body.qr-only-mode .swiper-pagination {
+  display: block !important;
+  visibility: visible !important;
+  position: relative;
+  margin-top: 1.5vh;
+}
+
 /* QR Only Mode - Mobile Overrides */
 @media (max-width: 768px) {
   body.qr-only-mode .left-side {
@@ -3720,6 +3749,15 @@ body.qr-only-mode .qr-code {
   body.qr-only-mode .qr-section {
     padding: 0;
   }
+
+  body.qr-only-mode .qr-slide-label {
+    font-size: max(2vw, 14px);
+    margin-top: 2vh;
+  }
+
+  body.qr-only-mode .qr-slide-title {
+    font-size: max(1.8vw, 12px);
+  }
 }
 
 @media (max-width: 480px) {
@@ -3729,6 +3767,15 @@ body.qr-only-mode .qr-code {
     padding: 3vw;
     max-width: 100% !important;
     object-fit: contain;
+  }
+
+  body.qr-only-mode .qr-slide-label {
+    font-size: 16px;
+    margin-top: 2vh;
+  }
+
+  body.qr-only-mode .qr-slide-title {
+    font-size: 14px;
   }
 }
 
