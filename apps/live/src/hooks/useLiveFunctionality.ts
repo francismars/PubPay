@@ -8060,66 +8060,52 @@ export const useLiveFunctionality = (eventId?: string) => {
       return;
     }
 
-    // Show/hide slides based on settings by moving them between containers
-    if (webLinkSlide) {
-      if (showWebLink) {
+    // Define slide order for proper positioning
+    const slideOrder = [
+      { slide: webLinkSlide, show: showWebLink, name: 'webLink' },
+      { slide: neventSlide, show: showNevent, name: 'nevent' },
+      { slide: noteSlide, show: showNote, name: 'note' },
+      { slide: lightningSlide, show: showLightning, name: 'lightning' }
+    ];
+
+    // Process slides in order to maintain proper sequence
+    slideOrder.forEach((slideInfo, index) => {
+      const { slide, show, name } = slideInfo;
+      
+      if (!slide) return;
+
+      if (show) {
         // Move to swiper wrapper if not already there
-        if (!swiperWrapper.contains(webLinkSlide)) {
-          swiperWrapper.appendChild(webLinkSlide);
+        if (!swiperWrapper.contains(slide)) {
+          // Find the correct position to insert
+          let inserted = false;
+          const existingSlides = Array.from(swiperWrapper.children);
+          
+          // Insert before the first slide that comes after this one in slideOrder
+          for (let i = index + 1; i < slideOrder.length; i++) {
+            const nextSlide = slideOrder[i].slide;
+            if (nextSlide && existingSlides.includes(nextSlide)) {
+              swiperWrapper.insertBefore(slide, nextSlide);
+              inserted = true;
+              break;
+            }
+          }
+          
+          // If no slide found after, append to end
+          if (!inserted) {
+            swiperWrapper.appendChild(slide);
+          }
         }
-        webLinkSlide.style.display = 'block';
+        slide.style.display = 'block';
+        console.log(`✅ ${name} slide visible`);
       } else {
         // Move to hidden container
-        hiddenSlidesContainer.appendChild(webLinkSlide);
-      }
-    } else {
-    }
-
-    if (neventSlide) {
-      if (showNevent) {
-        // Move to swiper wrapper if not already there
-        if (!swiperWrapper.contains(neventSlide)) {
-          swiperWrapper.appendChild(neventSlide);
+        if (swiperWrapper.contains(slide)) {
+          hiddenSlidesContainer.appendChild(slide);
+          console.log(`👁️ ${name} slide hidden`);
         }
-        neventSlide.style.display = 'block';
-      } else {
-        // Move to hidden container
-        hiddenSlidesContainer.appendChild(neventSlide);
       }
-    }
-
-    if (noteSlide) {
-      if (showNote) {
-        // Move to swiper wrapper if not already there
-        if (!swiperWrapper.contains(noteSlide)) {
-          swiperWrapper.appendChild(noteSlide);
-        }
-        noteSlide.style.display = 'block';
-      } else {
-        // Move to hidden container
-        hiddenSlidesContainer.appendChild(noteSlide);
-      }
-    }
-
-    if (lightningSlide) {
-      console.log('🔍 Processing Lightning slide:', {
-        showLightning,
-        isInSwiper: swiperWrapper.contains(lightningSlide),
-        slideDisplay: lightningSlide.style.display
-      });
-
-      if (showLightning) {
-        // Move to swiper wrapper if not already there
-        if (!swiperWrapper.contains(lightningSlide)) {
-          swiperWrapper.appendChild(lightningSlide);
-        }
-        lightningSlide.style.display = 'block';
-      } else {
-        // Move to hidden container
-        hiddenSlidesContainer.appendChild(lightningSlide);
-      }
-    } else {
-    }
+    });
 
     // Count visible slides (those in the swiper wrapper)
     const visibleSlides = Array.from(swiperWrapper.children).filter(slide =>
@@ -8196,7 +8182,13 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Initialize QR swiper with proper configuration
   const initializeQRSwiper = () => {
-    // Debug log removed
+    console.log('🔄 Initializing QR Swiper...');
+
+    // Remove any existing error messages
+    const existingError = document.querySelector('.qr-swiper-error');
+    if (existingError) {
+      existingError.remove();
+    }
 
     // Destroy existing swiper
     if ((window as any).qrSwiper) {
@@ -8205,7 +8197,24 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
-    if (!swiperWrapper) return;
+    if (!swiperWrapper) {
+      console.warn('⚠️ QR Swiper wrapper not found in DOM');
+      return;
+    }
+
+    // Check if Swiper library is loaded
+    if (typeof (window as any).Swiper === 'undefined') {
+      console.error('❌ Swiper library not loaded');
+      const qrSection = document.querySelector('.qr-section');
+      if (qrSection) {
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'qr-swiper-error';
+        errorMsg.style.cssText = 'color: var(--text-color); padding: 20px; text-align: center;';
+        errorMsg.textContent = 'Slideshow library failed to load. Please refresh the page.';
+        qrSection.appendChild(errorMsg);
+      }
+      return;
+    }
 
     // Count visible slides
     const visibleSlides = Array.from(swiperWrapper.children).filter(slide =>
@@ -8213,7 +8222,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     );
 
     if (visibleSlides.length === 0) {
-      // Debug log removed
+      console.log('👁️ No visible QR slides, hiding container');
       const qrSwiperContainer = document.querySelector(
         '.qr-swiper'
       ) as HTMLElement;
@@ -8328,8 +8337,19 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       // Progress tracking is now handled by swiper event handlers
 
-      // Debug log removed
-    } catch (error) {}
+      console.log('✅ QR Swiper initialized successfully with', visibleSlides.length, 'slides');
+    } catch (error) {
+      console.error('❌ Failed to initialize QR Swiper:', error);
+      // Show error to user if swiper fails
+      const qrSection = document.querySelector('.qr-section');
+      if (qrSection) {
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'qr-swiper-error';
+        errorMsg.style.cssText = 'color: var(--text-color); padding: 20px; text-align: center;';
+        errorMsg.textContent = 'QR slideshow failed to load. Please refresh the page.';
+        qrSection.appendChild(errorMsg);
+      }
+    }
   };
 
   // Progress bar tracking system
@@ -8339,8 +8359,6 @@ export const useLiveFunctionality = (eventId?: string) => {
   let pausedProgress: number = 0;
 
   const startProgressTracking = () => {
-    // Debug log removed
-
     // Clear any existing interval
     if (progressInterval) {
       clearInterval(progressInterval);
@@ -8349,21 +8367,30 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     const qrSwiper = (window as any).qrSwiper;
     if (!qrSwiper?.el) {
-      // Debug log removed
+      console.warn('⚠️ QR Swiper not available for progress tracking');
       return;
+    }
+
+    // Skip progress tracking if only 1 slide (no autoplay)
+    const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
+    if (swiperWrapper) {
+      const visibleSlides = Array.from(swiperWrapper.children).filter(slide =>
+        slide.classList.contains('swiper-slide')
+      );
+      if (visibleSlides.length <= 1) {
+        return; // No need to track progress for single slide
+      }
     }
 
     const activeBullet = qrSwiper.el.querySelector(
       '.swiper-pagination-bullet-active'
     );
     if (!activeBullet) {
-      // Debug log removed
       return;
     }
 
     // Only start if the bullet has the progress-animating class
     if (!activeBullet.classList.contains('progress-animating')) {
-      // Debug log removed
       return;
     }
 
@@ -8374,8 +8401,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     pausedProgress = 0; // Reset paused progress for new slide
     const autoplayDelay = qrSwiper.params?.autoplay?.delay || 10000;
 
-    // Debug log removed
-
     progressInterval = setInterval(() => {
       const elapsed = Date.now() - (progressStartTime || 0);
       const progress = Math.min((elapsed / autoplayDelay) * 100, 100);
@@ -8384,7 +8409,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       activeBullet.style.setProperty('--progress', `${progress}%`);
 
       if (progress >= 100) {
-        // Debug log removed
         clearInterval(progressInterval!);
         progressInterval = null;
       }
