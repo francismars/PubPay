@@ -60,6 +60,8 @@ interface StyleEditorProps {
   initialStyles?: StyleConfig;
   onSave: (styles: StyleConfig) => void;
   onCancel?: () => void;
+  renderButtons?: boolean;
+  onChange?: (styles: StyleConfig) => void;
 }
 
 const bgImagePresets = [
@@ -84,7 +86,9 @@ const partnerLogoPresets = [
 export const StyleEditor: React.FC<StyleEditorProps> = ({
   initialStyles = {},
   onSave,
-  onCancel
+  onCancel,
+  renderButtons = true,
+  onChange
 }) => {
   const [styles, setStyles] = useState<StyleConfig>(() => ({
     ...DEFAULT_STYLES,
@@ -95,8 +99,22 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
   const [showCustomLogo, setShowCustomLogo] = useState(!!styles.partnerLogo && !partnerLogoPresets.includes(styles.partnerLogo));
 
   const updateStyle = useCallback((key: keyof StyleConfig, value: unknown) => {
-    setStyles(prev => ({ ...prev, [key]: value }));
-  }, []);
+    setStyles(prev => {
+      const updated = { ...prev, [key]: value };
+      if (onChange) {
+        // Only include non-default values when calling onChange
+        const cleaned: StyleConfig = {};
+        Object.entries(updated).forEach(([k, v]) => {
+          const kk = k as keyof StyleConfig;
+          if (v !== DEFAULT_STYLES[kk]) {
+            (cleaned as any)[kk] = v;
+          }
+        });
+        onChange(cleaned);
+      }
+      return updated;
+    });
+  }, [onChange]);
 
   const importFromUrl = useCallback(() => {
     if (!urlImport.trim()) return;
@@ -166,43 +184,215 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
     onSave(cleaned);
   }, [styles, onSave]);
 
+  const presets: Record<string, Partial<StyleConfig>> = {
+    lightMode: {
+      textColor: '#000000',
+      bgColor: '#ffffff',
+      bgImage: '',
+      qrInvert: false,
+      qrScreenBlend: false,
+      qrMultiplyBlend: false,
+      qrShowWebLink: false,
+      qrShowNevent: true,
+      qrShowNote: false,
+      layoutInvert: false,
+      hideZapperContent: false,
+      showTopZappers: false,
+      podium: false,
+      zapGrid: false,
+      opacity: 1.0,
+      textOpacity: 1.0,
+      partnerLogo: ''
+    },
+    darkMode: {
+      textColor: '#ffffff',
+      bgColor: '#000000',
+      bgImage: '',
+      qrInvert: false,
+      qrScreenBlend: false,
+      qrMultiplyBlend: false,
+      qrShowWebLink: false,
+      qrShowNevent: true,
+      qrShowNote: false,
+      layoutInvert: false,
+      hideZapperContent: false,
+      showTopZappers: false,
+      podium: false,
+      zapGrid: false,
+      opacity: 1.0,
+      textOpacity: 1.0,
+      partnerLogo: ''
+    },
+    cosmic: {
+      textColor: '#ffffff',
+      bgColor: '#0a0a1a',
+      bgImage: '/live/images/bitcoin-space.gif',
+      qrInvert: false,
+      qrScreenBlend: true,
+      qrMultiplyBlend: false,
+      qrShowWebLink: false,
+      qrShowNevent: true,
+      qrShowNote: false,
+      layoutInvert: false,
+      hideZapperContent: false,
+      showTopZappers: false,
+      podium: true,
+      zapGrid: false,
+      opacity: 0.4,
+      textOpacity: 1.0,
+      partnerLogo: ''
+    },
+    vibrant: {
+      textColor: '#ffd700',
+      bgColor: '#2d1b69',
+      bgImage: '/live/images/nostr-ostriches.gif',
+      qrInvert: false,
+      qrScreenBlend: false,
+      qrMultiplyBlend: false,
+      qrShowWebLink: false,
+      qrShowNevent: true,
+      qrShowNote: false,
+      layoutInvert: false,
+      hideZapperContent: false,
+      showTopZappers: false,
+      podium: false,
+      zapGrid: false,
+      opacity: 0.6,
+      textOpacity: 1.0,
+      partnerLogo: ''
+    },
+    electric: {
+      textColor: '#00ffff',
+      bgColor: '#000033',
+      bgImage: '/live/images/send-zaps.gif',
+      qrInvert: false,
+      qrScreenBlend: true,
+      qrMultiplyBlend: false,
+      qrShowWebLink: false,
+      qrShowNevent: true,
+      qrShowNote: false,
+      layoutInvert: false,
+      hideZapperContent: false,
+      showTopZappers: false,
+      podium: false,
+      zapGrid: false,
+      opacity: 0.7,
+      textOpacity: 1.0,
+      partnerLogo: ''
+    },
+    warm: {
+      textColor: '#ff8c42',
+      bgColor: '#2c1810',
+      bgImage: '/live/images/bitcoin-sunset.gif',
+      qrInvert: false,
+      qrScreenBlend: false,
+      qrMultiplyBlend: false,
+      qrShowWebLink: false,
+      qrShowNevent: true,
+      qrShowNote: false,
+      layoutInvert: false,
+      hideZapperContent: false,
+      showTopZappers: false,
+      podium: false,
+      zapGrid: false,
+      opacity: 0.8,
+      textOpacity: 1.0,
+      partnerLogo: ''
+    },
+    adopting: {
+      textColor: '#eedb5f',
+      bgColor: '#05051f',
+      bgImage: '/live/images/adopting.webp',
+      qrInvert: false,
+      qrScreenBlend: false,
+      qrMultiplyBlend: false,
+      qrShowWebLink: false,
+      qrShowNevent: true,
+      qrShowNote: false,
+      layoutInvert: false,
+      hideZapperContent: false,
+      showTopZappers: false,
+      podium: false,
+      zapGrid: false,
+      opacity: 0.7,
+      textOpacity: 1.0,
+      partnerLogo: 'https://adoptingbitcoin.org/images/AB-logo.svg'
+    },
+    bitcoinConf: {
+      textColor: '#ffffff',
+      bgColor: '#000000',
+      bgImage: '/live/images/sky.jpg',
+      qrInvert: false,
+      qrScreenBlend: false,
+      qrMultiplyBlend: false,
+      qrShowWebLink: false,
+      qrShowNevent: true,
+      qrShowNote: false,
+      layoutInvert: false,
+      hideZapperContent: false,
+      showTopZappers: false,
+      podium: false,
+      zapGrid: false,
+      opacity: 0.7,
+      textOpacity: 1.0,
+      partnerLogo: 'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg'
+    }
+  };
+
+  const applyPreset = useCallback((presetName: string) => {
+    const preset = presets[presetName];
+    if (preset) {
+      const updatedStyles = { ...DEFAULT_STYLES, ...preset };
+      setStyles(updatedStyles);
+      setShowCustomBg(!!preset.bgImage && !bgImagePresets.includes(preset.bgImage || ''));
+      setShowCustomLogo(!!preset.partnerLogo && !partnerLogoPresets.includes(preset.partnerLogo || ''));
+      
+      // Notify parent component of the change
+      if (onChange) {
+        // Only include non-default values when calling onChange
+        const cleaned: StyleConfig = {};
+        Object.entries(updatedStyles).forEach(([k, v]) => {
+          const kk = k as keyof StyleConfig;
+          if (v !== DEFAULT_STYLES[kk]) {
+            (cleaned as any)[kk] = v;
+          }
+        });
+        onChange(cleaned);
+      }
+    }
+  }, [onChange]);
+
   return (
-    <div style={{ padding: 16, maxHeight: '80vh', overflowY: 'auto' }}>
-      {/* URL Import Section */}
-      <div style={{ marginBottom: 24, padding: 12, background: '#f0f7ff', border: '1px solid #bfdbfe', borderRadius: 8 }}>
-        <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: '14px' }}>
-          Import from LivePage URL
-        </label>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            type="text"
-            value={urlImport}
-            onChange={(e) => setUrlImport(e.target.value)}
-            placeholder="Paste a styled LivePage URL here..."
-            style={{
-              flex: 1,
-              padding: '8px 12px',
-              border: '1px solid #ddd',
-              borderRadius: 6,
-              fontSize: '13px'
-            }}
-          />
-          <button
-            onClick={importFromUrl}
-            disabled={!urlImport.trim()}
-            style={{
-              padding: '8px 16px',
-              background: urlImport.trim() ? '#4a75ff' : '#ccc',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              cursor: urlImport.trim() ? 'pointer' : 'not-allowed',
-              fontSize: '13px',
-              fontWeight: 600
-            }}
-          >
-            Import
-          </button>
+    <div style={{ padding: 16 }}>
+      {/* Style Presets Section */}
+      <div style={{ marginBottom: 24 }}>
+        <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 600 }}>Quick Presets</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
+          {Object.entries(presets).map(([name, _]) => (
+            <button
+              key={name}
+              onClick={() => applyPreset(name)}
+              style={{
+                padding: '10px 12px',
+                background: '#f3f4f6',
+                border: '1px solid #ddd',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: 500,
+                textTransform: 'capitalize',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#e5e7eb';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#f3f4f6';
+              }}
+            >
+              {name === 'bitcoinConf' ? 'Bitcoin Conf' : name}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -548,57 +738,105 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div style={{ display: 'flex', gap: 12, marginTop: 24, paddingTop: 16, borderTop: '1px solid #e5e7eb' }}>
-        <button
-          onClick={resetToDefaults}
-          style={{
-            flex: 1,
-            padding: '10px 16px',
-            background: '#f3f4f6',
-            border: '1px solid #ddd',
-            borderRadius: 6,
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 600
-          }}
-        >
-          Reset to Defaults
-        </button>
-        {onCancel && (
-          <button
-            onClick={onCancel}
+      {/* URL Import Section - Moved to End */}
+      <div style={{ marginBottom: 24, padding: 12, background: '#f0f7ff', border: '1px solid #bfdbfe', borderRadius: 8 }}>
+        <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: '14px' }}>
+          Import from LivePage URL
+        </label>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            type="text"
+            value={urlImport}
+            onChange={(e) => setUrlImport(e.target.value)}
+            placeholder="Paste a styled LivePage URL here..."
             style={{
               flex: 1,
-              padding: '10px 16px',
-              background: '#f3f4f6',
+              padding: '8px 12px',
               border: '1px solid #ddd',
               borderRadius: 6,
-              cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '13px'
+            }}
+          />
+          <button
+            onClick={importFromUrl}
+            disabled={!urlImport.trim()}
+            style={{
+              padding: '8px 16px',
+              background: urlImport.trim() ? '#4a75ff' : '#ccc',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              cursor: urlImport.trim() ? 'pointer' : 'not-allowed',
+              fontSize: '13px',
               fontWeight: 600
             }}
           >
-            Cancel
+            Import
           </button>
-        )}
-        <button
-          onClick={handleSave}
-          style={{
-            flex: 1,
-            padding: '10px 16px',
-            background: '#4a75ff',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 6,
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 600
-          }}
-        >
-          Save Styles
-        </button>
+        </div>
       </div>
+
+      {renderButtons && (
+        <>
+          {/* Action Buttons */}
+          <div style={{ 
+            display: 'flex', 
+            gap: 12, 
+            marginTop: 24, 
+            paddingTop: 16, 
+            borderTop: '1px solid #e5e7eb'
+          }}>
+            <button
+              onClick={resetToDefaults}
+              style={{
+                flex: 1,
+                padding: '10px 16px',
+                background: '#f3f4f6',
+                border: '1px solid #ddd',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 600
+              }}
+            >
+              Reset to Defaults
+            </button>
+            {onCancel && (
+              <button
+                onClick={onCancel}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  background: '#f3f4f6',
+                  border: '1px solid #ddd',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 600
+                }}
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              onClick={handleSave}
+              style={{
+                flex: 1,
+                padding: '10px 16px',
+                background: '#4a75ff',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 600
+              }}
+            >
+              Save Styles
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -309,6 +309,7 @@ export const RoomViewerPage: React.FC = () => {
     return queryString ? `${baseUrl}?${queryString}` : baseUrl;
   }, []);
 
+
   const copyRoomId = useCallback(() => {
     if (!roomId) return;
     navigator.clipboard.writeText(roomId);
@@ -995,9 +996,21 @@ export const RoomViewerPage: React.FC = () => {
                   // Items are Nostr note IDs - load them via /live/ route
                   const baseUrl = `${base}/live/${encodeURIComponent(item)}`;
                   const styledUrl = buildStyledUrl(baseUrl, styleConfig);
+                  // Include style config in key to force reload when styles change
+                  // Create a stable hash by sorting keys
+                  const styleHash = styleConfig 
+                    ? JSON.stringify(
+                        Object.keys(styleConfig)
+                          .sort()
+                          .reduce((acc, key) => {
+                            acc[key] = (styleConfig as any)[key];
+                            return acc;
+                          }, {} as Record<string, unknown>)
+                      )
+                    : '';
                   return (
                     <iframe
-                      key={item}
+                      key={`${item}-${styleHash}`}
                       ref={getIframeRef(item)}
                       src={styledUrl}
                       title={`Live Viewer ${idx + 1}`}

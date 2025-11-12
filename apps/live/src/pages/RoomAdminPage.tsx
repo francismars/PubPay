@@ -62,6 +62,8 @@ export const RoomAdminPage: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showStyleModal, setShowStyleModal] = useState(false);
   const [roomStyleConfig, setRoomStyleConfig] = useState<StyleConfig | null>(null);
+  const [currentEditingStyles, setCurrentEditingStyles] = useState<StyleConfig | null>(null);
+  const [styleEditorKey, setStyleEditorKey] = useState(0);
   const [showAddSlotModal, setShowAddSlotModal] = useState(false);
   const [newSlotStart, setNewSlotStart] = useState('');
   const [newSlotEnd, setNewSlotEnd] = useState('');
@@ -923,7 +925,10 @@ export const RoomAdminPage: React.FC = () => {
                   ↗
                 </button>
                 <button
-                  onClick={() => setShowStyleModal(true)}
+                  onClick={() => {
+                    setCurrentEditingStyles(roomStyleConfig);
+                    setShowStyleModal(true);
+                  }}
                   aria-label="Style Settings"
                   title="Style Settings"
                   style={{
@@ -1654,8 +1659,9 @@ export const RoomAdminPage: React.FC = () => {
                 ✕
               </button>
             </div>
-            <div style={{ overflowY: 'auto', flex: 1 }}>
+            <div style={{ overflowY: 'auto', flex: 1, position: 'relative' }}>
               <StyleEditor
+                key={styleEditorKey}
                 initialStyles={roomStyleConfig || undefined}
                 onSave={async (styles) => {
                   setBusy(true);
@@ -1682,7 +1688,95 @@ export const RoomAdminPage: React.FC = () => {
                   }
                 }}
                 onCancel={() => setShowStyleModal(false)}
+                renderButtons={false}
+                onChange={(styles) => setCurrentEditingStyles(styles)}
               />
+            </div>
+            {/* Action Buttons - Always Visible */}
+            <div style={{
+              display: 'flex',
+              gap: 12,
+              padding: '16px 20px',
+              borderTop: '1px solid #e5e7eb',
+              background: '#ffffff',
+              borderRadius: '0 0 12px 12px'
+            }}>
+              <button
+                onClick={() => {
+                  // Reset to defaults by remounting StyleEditor with empty initialStyles
+                  setCurrentEditingStyles({});
+                  setStyleEditorKey(prev => prev + 1);
+                }}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  background: '#f3f4f6',
+                  border: '1px solid #ddd',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 600
+                }}
+              >
+                Reset to Defaults
+              </button>
+              <button
+                onClick={() => setShowStyleModal(false)}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  background: '#f3f4f6',
+                  border: '1px solid #ddd',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 600
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const stylesToSave = currentEditingStyles || {};
+                  setBusy(true);
+                  setError(null);
+                  setSuccess(null);
+                  try {
+                    const res = await fetch(`${getApiBase()}/multi/${createdRoomId}/style`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(stylesToSave)
+                    });
+                    const json = await res.json();
+                    if (!json.success) throw new Error(json.error || 'Failed to save styles');
+                    setRoomStyleConfig(stylesToSave);
+                    setSuccess('Styles saved successfully');
+                    setTimeout(() => {
+                      setShowStyleModal(false);
+                      setSuccess(null);
+                    }, 1500);
+                  } catch (e: unknown) {
+                    setError(e instanceof Error ? e.message : 'Error saving styles');
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                disabled={busy}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  background: '#4a75ff',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  opacity: busy ? 0.7 : 1
+                }}
+              >
+                Save Styles
+              </button>
             </div>
           </div>
         </div>
