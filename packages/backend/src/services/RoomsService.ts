@@ -3,6 +3,34 @@ import { Logger } from '../utils/logger';
 
 export type RotationPolicy = 'round_robin' | 'random' | 'weighted';
 
+export interface RoomStyleConfig {
+  textColor?: string;
+  bgColor?: string;
+  bgImage?: string;
+  opacity?: number;
+  textOpacity?: number;
+  qrInvert?: boolean;
+  qrScreenBlend?: boolean;
+  qrMultiplyBlend?: boolean;
+  qrShowWebLink?: boolean;
+  qrShowNevent?: boolean;
+  qrShowNote?: boolean;
+  layoutInvert?: boolean;
+  hideZapperContent?: boolean;
+  showTopZappers?: boolean;
+  podium?: boolean;
+  zapGrid?: boolean;
+  sectionLabels?: boolean;
+  qrOnly?: boolean;
+  showFiat?: boolean;
+  showHistoricalPrice?: boolean;
+  showHistoricalChange?: boolean;
+  fiatOnly?: boolean;
+  lightning?: boolean;
+  selectedCurrency?: string;
+  partnerLogo?: string;
+}
+
 export interface RoomConfig {
   id: string;
   name: string;
@@ -12,6 +40,7 @@ export interface RoomConfig {
   rotationPolicy: RotationPolicy;
   rotationIntervalSec: number;
   defaultItems: string[]; // note1/nevent1 refs
+  styleConfig?: RoomStyleConfig;
 }
 
 export interface ScheduleItem {
@@ -191,6 +220,20 @@ export class RoomsService {
       ...room.config,
       ...updates,
       id: room.config.id
+    };
+    room.version += 1;
+    return room.config;
+  }
+
+  public updateStyleConfig(
+    roomId: string,
+    styleConfig: RoomStyleConfig
+  ): RoomConfig {
+    const room = this.rooms.get(roomId);
+    if (!room) throw new Error('Room not found');
+    room.config = {
+      ...room.config,
+      styleConfig
     };
     room.version += 1;
     return room.config;

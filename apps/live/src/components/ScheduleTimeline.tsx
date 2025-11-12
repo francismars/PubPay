@@ -1855,6 +1855,18 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({
                       new Date(slot.endAt).getTime() -
                       new Date(slot.startAt).getTime();
                     const durationMinutes = Math.round(duration / 60000);
+                    const hasLives = (slot.lives || []).length > 0;
+                    const livesCount = (slot.lives || []).length;
+
+                    // Determine base color based on state
+                    let baseColor: string;
+                    if (isActive) {
+                      baseColor = hasLives ? '#4caf50' : '#81c784'; // Lighter green if no lives
+                    } else if (overlaps.length > 0) {
+                      baseColor = '#ff9800';
+                    } else {
+                      baseColor = hasLives ? '#2196f3' : '#90caf9'; // Lighter blue if no lives
+                    }
 
                     return (
                       <div
@@ -1870,15 +1882,13 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({
                           width: `${width}%`,
                           top: 24 + idx * 80,
                           height: 70,
-                          background: isActive
-                            ? '#4caf50'
-                            : overlaps.length > 0
-                              ? '#ff9800'
-                              : '#2196f3',
+                          background: baseColor,
                           border:
                             overlaps.length > 0
                               ? '2px solid #f44336'
-                              : '1px solid #1976d2',
+                              : hasLives
+                                ? '2px solid rgba(255,255,255,0.5)'
+                                : '2px dashed rgba(255,255,255,0.3)',
                           borderRadius: 4,
                           padding: 4,
                           cursor: dragging ? 'grabbing' : 'pointer',
@@ -1891,6 +1901,7 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({
                           overflow: 'hidden',
                           minWidth: 0,
                           userSelect: 'none',
+                          opacity: hasLives ? 1 : 0.7,
                           zIndex:
                             editingSlot === idx
                               ? 999
@@ -2043,10 +2054,24 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                             width: '100%',
-                            minWidth: 0
+                            minWidth: 0,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontWeight: hasLives ? 'bold' : 'normal'
                           }}
                         >
-                          {(slot.lives || []).length} LIVES
+                          {hasLives ? (
+                            <>
+                              <span style={{ fontSize: '12px' }}>🔴</span>
+                              <span>{livesCount} LIVE{livesCount !== 1 ? 'S' : ''}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span style={{ fontSize: '12px', opacity: 0.6 }}>⚪</span>
+                              <span style={{ opacity: 0.8 }}>NO LIVES</span>
+                            </>
+                          )}
                           {overlaps.length > 0 && ' ⚠ Conflict!'}
                         </div>
                       </div>
@@ -2463,10 +2488,24 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({
                     width: 16,
                     height: 16,
                     background: '#2196f3',
-                    borderRadius: 2
+                    borderRadius: 2,
+                    border: '2px solid rgba(255,255,255,0.5)'
                   }}
                 ></div>
-                <span>Scheduled</span>
+                <span>Scheduled (with lives)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div
+                  style={{
+                    width: 16,
+                    height: 16,
+                    background: '#90caf9',
+                    borderRadius: 2,
+                    border: '2px dashed rgba(255,255,255,0.3)',
+                    opacity: 0.7
+                  }}
+                ></div>
+                <span>Scheduled (no lives)</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <div
