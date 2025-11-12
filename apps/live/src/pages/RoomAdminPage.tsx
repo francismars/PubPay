@@ -63,7 +63,7 @@ export const RoomAdminPage: React.FC = () => {
   const [showStyleModal, setShowStyleModal] = useState(false);
   const [roomStyleConfig, setRoomStyleConfig] = useState<StyleConfig | null>(null);
   const [currentEditingStyles, setCurrentEditingStyles] = useState<StyleConfig | null>(null);
-  const [styleEditorKey, setStyleEditorKey] = useState(0);
+  const styleEditorResetRef = React.useRef<(() => void) | null>(null);
   const [showAddSlotModal, setShowAddSlotModal] = useState(false);
   const [newSlotStart, setNewSlotStart] = useState('');
   const [newSlotEnd, setNewSlotEnd] = useState('');
@@ -1605,11 +1605,11 @@ export const RoomAdminPage: React.FC = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.4)',
+            zIndex: 1000,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000
+            background: 'rgba(0,0,0,0.4)'
           }}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
@@ -1618,50 +1618,26 @@ export const RoomAdminPage: React.FC = () => {
           }}
         >
           <div
+            className="style-options-content"
             style={{
-              width: 'min(900px, 94vw)',
+              border: '1px solid rgb(229, 231, 235)',
+              width: 'min(600px, 94vw)',
               maxHeight: '90vh',
-              background: '#ffffff',
               borderRadius: 12,
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 10px 32px rgba(0,0,0,0.2)',
-              display: 'flex',
-              flexDirection: 'column'
+              transform: 'none',
+              borderLeft: 'none',
+              boxShadow: '0 10px 32px rgba(0,0,0,0.2)'
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '16px 20px',
-                borderBottom: '1px solid #e5e7eb'
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Style Settings</h3>
-              <button
-                onClick={() => setShowStyleModal(false)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 24,
-                  color: '#666',
-                  padding: 0,
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                ✕
+            <div className="style-options-header">
+              <h2>STYLE OPTIONS</h2>
+              <button className="close-button" onClick={() => setShowStyleModal(false)}>
+                &times;
               </button>
             </div>
-            <div style={{ overflowY: 'auto', flex: 1, position: 'relative' }}>
+            <div className="style-options-body">
               <StyleEditor
-                key={styleEditorKey}
                 initialStyles={roomStyleConfig || undefined}
                 onSave={async (styles) => {
                   setBusy(true);
@@ -1690,48 +1666,25 @@ export const RoomAdminPage: React.FC = () => {
                 onCancel={() => setShowStyleModal(false)}
                 renderButtons={false}
                 onChange={(styles) => setCurrentEditingStyles(styles)}
+                resetRef={styleEditorResetRef}
               />
             </div>
             {/* Action Buttons - Always Visible */}
-            <div style={{
-              display: 'flex',
-              gap: 12,
-              padding: '16px 20px',
-              borderTop: '1px solid #e5e7eb',
-              background: '#ffffff',
-              borderRadius: '0 0 12px 12px'
-            }}>
+            <div className="style-actions">
               <button
                 onClick={() => {
-                  // Reset to defaults by remounting StyleEditor with empty initialStyles
-                  setCurrentEditingStyles({});
-                  setStyleEditorKey(prev => prev + 1);
+                  // Call the reset function exposed by StyleEditor
+                  if (styleEditorResetRef.current) {
+                    styleEditorResetRef.current();
+                  }
                 }}
-                style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  background: '#f3f4f6',
-                  border: '1px solid #ddd',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 600
-                }}
+                className="action-btn secondary"
               >
-                Reset to Defaults
+                Reset
               </button>
               <button
                 onClick={() => setShowStyleModal(false)}
-                style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  background: '#f3f4f6',
-                  border: '1px solid #ddd',
-                  borderRadius: 6,
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 600
-                }}
+                className="action-btn secondary"
               >
                 Cancel
               </button>
@@ -1762,17 +1715,10 @@ export const RoomAdminPage: React.FC = () => {
                   }
                 }}
                 disabled={busy}
+                className="action-btn primary"
                 style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  background: '#4a75ff',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 6,
-                  cursor: busy ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  opacity: busy ? 0.7 : 1
+                  opacity: busy ? 0.7 : 1,
+                  cursor: busy ? 'not-allowed' : 'pointer'
                 }}
               >
                 Save Styles
