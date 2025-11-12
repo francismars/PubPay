@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getApiBase } from '../utils/apiBase';
+import { StyleConfig } from '../components/StyleEditor';
 
 // Fullscreen vendor typings
 type VendorFullscreenElement = HTMLElement & {
@@ -43,6 +44,7 @@ export const RoomViewerPage: React.FC = () => {
   const [serverNowIso, setServerNowIso] = useState<string | null>(null);
   const [roomName, setRoomName] = useState<string>('');
   const [showIdCopied, setShowIdCopied] = useState(false);
+  const [styleConfig, setStyleConfig] = useState<StyleConfig | null>(null);
   const esRef = useRef<EventSource | null>(null);
   const navigate = useNavigate();
 
@@ -239,7 +241,7 @@ export const RoomViewerPage: React.FC = () => {
     [roomId, navigate]
   );
 
-  // Fetch room details (name)
+  // Fetch room details (name and style config)
   const fetchRoomDetails = useCallback(async () => {
     if (!roomId) return;
     try {
@@ -256,14 +258,56 @@ export const RoomViewerPage: React.FC = () => {
       }
       if (res.ok) {
         const json = await res.json();
-        if (json?.success && json?.data?.config?.name) {
-          setRoomName(json.data.config.name);
+        if (json?.success && json?.data?.config) {
+          if (json.data.config.name) {
+            setRoomName(json.data.config.name);
+          }
+          if (json.data.config.styleConfig) {
+            setStyleConfig(json.data.config.styleConfig);
+          } else {
+            setStyleConfig(null);
+          }
         }
       }
     } catch {
-      // Ignore errors - room name is optional
+      // Ignore errors - room name and style config are optional
     }
   }, [roomId]);
+
+  // Build URL with style parameters
+  const buildStyledUrl = useCallback((baseUrl: string, styles: StyleConfig | null): string => {
+    if (!styles || Object.keys(styles).length === 0) {
+      return baseUrl;
+    }
+    const params = new URLSearchParams();
+    if (styles.textColor) params.set('textColor', styles.textColor);
+    if (styles.bgColor) params.set('bgColor', styles.bgColor);
+    if (styles.bgImage) params.set('bgImage', styles.bgImage);
+    if (styles.opacity !== undefined) params.set('opacity', String(styles.opacity));
+    if (styles.textOpacity !== undefined) params.set('textOpacity', String(styles.textOpacity));
+    if (styles.qrInvert) params.set('qrInvert', 'true');
+    if (styles.qrScreenBlend) params.set('qrScreenBlend', 'true');
+    if (styles.qrMultiplyBlend) params.set('qrMultiplyBlend', 'true');
+    if (styles.qrShowWebLink) params.set('qrShowWebLink', 'true');
+    if (styles.qrShowNevent !== undefined) params.set('qrShowNevent', String(styles.qrShowNevent));
+    if (styles.qrShowNote) params.set('qrShowNote', 'true');
+    if (styles.layoutInvert) params.set('layoutInvert', 'true');
+    if (styles.hideZapperContent) params.set('hideZapperContent', 'true');
+    if (styles.showTopZappers) params.set('showTopZappers', 'true');
+    if (styles.podium) params.set('podium', 'true');
+    if (styles.zapGrid) params.set('zapGrid', 'true');
+    if (styles.sectionLabels) params.set('sectionLabels', 'true');
+    if (styles.qrOnly) params.set('qrOnly', 'true');
+    if (styles.showFiat) params.set('showFiat', 'true');
+    if (styles.showHistoricalPrice) params.set('showHistoricalPrice', 'true');
+    if (styles.showHistoricalChange) params.set('showHistoricalChange', 'true');
+    if (styles.fiatOnly) params.set('fiatOnly', 'true');
+    if (styles.lightning) params.set('lightning', 'true');
+    if (styles.selectedCurrency) params.set('selectedCurrency', styles.selectedCurrency);
+    if (styles.partnerLogo) params.set('partnerLogo', styles.partnerLogo);
+    const queryString = params.toString();
+    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+  }, []);
 
   const copyRoomId = useCallback(() => {
     if (!roomId) return;
@@ -328,7 +372,8 @@ export const RoomViewerPage: React.FC = () => {
       // no refetch needed; server will emit a fresh snapshot right after update
     });
     es.addEventListener('config-updated', () => {
-      // no refetch needed; server will emit a fresh snapshot
+      // Refetch room details to get updated styleConfig
+      fetchRoomDetails();
     });
     es.onerror = () => {
       // Let EventSource auto-reconnect
@@ -339,7 +384,7 @@ export const RoomViewerPage: React.FC = () => {
       es.close();
       esRef.current = null;
     };
-  }, [roomId, isSimulating]);
+  }, [roomId, isSimulating, fetchRoomDetails]);
 
   // Simulation controls
   const stepTime = useCallback(
@@ -948,11 +993,13 @@ export const RoomViewerPage: React.FC = () => {
                   
                   const base = window.location.origin;
                   // Items are Nostr note IDs - load them via /live/ route
+                  const baseUrl = `${base}/live/${encodeURIComponent(item)}`;
+                  const styledUrl = buildStyledUrl(baseUrl, styleConfig);
                   return (
                     <iframe
                       key={item}
                       ref={getIframeRef(item)}
-                      src={`${base}/live/${encodeURIComponent(item)}`}
+                      src={styledUrl}
                       title={`Live Viewer ${idx + 1}`}
                       style={{
                         position: 'absolute',

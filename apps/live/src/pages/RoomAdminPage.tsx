@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ScheduleTimeline, Slot } from '../components/ScheduleTimeline';
+import { StyleEditor, StyleConfig } from '../components/StyleEditor';
 
 import { getApiBase } from '../utils/apiBase';
 
@@ -18,7 +19,7 @@ export const RoomAdminPage: React.FC = () => {
     {
       "startAt": "${new Date(Date.now() + 5 * 60 * 1000).toISOString()}",
       "endAt": "${new Date(Date.now() + 35 * 60 * 1000).toISOString()}",
-      "lives": [ { "ref": "note1example..." }, { "ref": "nevent1example..." } ]
+      "lives": [ { "ref": "nevent1qqsq5rk25y4th65h92qqkm825d9a943az3hs4cnajvl2mspvlyz2dss3npprf" }, { "ref": "nevent1qqspkmsxj6mq0s6n4xdephwscj7qh8py84e8q765r77aqez7srx57lqflrceu" } ]
     }
   ]
 }`);
@@ -59,6 +60,8 @@ export const RoomAdminPage: React.FC = () => {
   const [showPretalxModal, setShowPretalxModal] = useState(false);
   const [showPretalxDebug, setShowPretalxDebug] = useState(true);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showStyleModal, setShowStyleModal] = useState(false);
+  const [roomStyleConfig, setRoomStyleConfig] = useState<StyleConfig | null>(null);
   const [showAddSlotModal, setShowAddSlotModal] = useState(false);
   const [newSlotStart, setNewSlotStart] = useState('');
   const [newSlotEnd, setNewSlotEnd] = useState('');
@@ -344,12 +347,14 @@ export const RoomAdminPage: React.FC = () => {
             rotationPolicy: 'round_robin' | 'random' | 'weighted';
             rotationIntervalSec: number;
             defaultItems: string[];
+            styleConfig?: StyleConfig;
           };
           setCreatedRoomId(cfg.id);
           setName(cfg.name || '');
           setPolicy(cfg.rotationPolicy);
           setIntervalSec(cfg.rotationIntervalSec || 60);
           setDefaultItems((cfg.defaultItems || []).join('\n'));
+          setRoomStyleConfig(cfg.styleConfig || null);
           // Preload schedule JSON if present
           if (json.data.schedule) {
             setScheduleJson(JSON.stringify(json.data.schedule, null, 2));
@@ -916,6 +921,25 @@ export const RoomAdminPage: React.FC = () => {
                   }}
                 >
                   ↗
+                </button>
+                <button
+                  onClick={() => setShowStyleModal(true)}
+                  aria-label="Style Settings"
+                  title="Style Settings"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    fontSize: 14
+                  }}
+                >
+                  🎨
                 </button>
                 <button
                   onClick={() => setShowSettingsModal(true)}
@@ -1565,6 +1589,100 @@ export const RoomAdminPage: React.FC = () => {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Style Settings Modal */}
+      {showStyleModal && createdRoomId && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowStyleModal(false);
+            }
+          }}
+        >
+          <div
+            style={{
+              width: 'min(900px, 94vw)',
+              maxHeight: '90vh',
+              background: '#ffffff',
+              borderRadius: 12,
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 10px 32px rgba(0,0,0,0.2)',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '16px 20px',
+                borderBottom: '1px solid #e5e7eb'
+              }}
+            >
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600 }}>Style Settings</h3>
+              <button
+                onClick={() => setShowStyleModal(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 24,
+                  color: '#666',
+                  padding: 0,
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              <StyleEditor
+                initialStyles={roomStyleConfig || undefined}
+                onSave={async (styles) => {
+                  setBusy(true);
+                  setError(null);
+                  setSuccess(null);
+                  try {
+                    const res = await fetch(`${getApiBase()}/multi/${createdRoomId}/style`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(styles)
+                    });
+                    const json = await res.json();
+                    if (!json.success) throw new Error(json.error || 'Failed to save styles');
+                    setRoomStyleConfig(styles);
+                    setSuccess('Styles saved successfully');
+                    setTimeout(() => {
+                      setShowStyleModal(false);
+                      setSuccess(null);
+                    }, 1500);
+                  } catch (e: unknown) {
+                    setError(e instanceof Error ? e.message : 'Error saving styles');
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                onCancel={() => setShowStyleModal(false)}
+              />
             </div>
           </div>
         </div>

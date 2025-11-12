@@ -20,6 +20,7 @@ export class RoomsRouter {
     this.router.post('/', this.createRoom.bind(this));
     this.router.put('/:roomId', this.updateRoom.bind(this));
     this.router.put('/:roomId/schedule', this.setSchedule.bind(this));
+    this.router.put('/:roomId/style', this.updateStyleConfig.bind(this));
     this.router.post('/:roomId/import/pretalx', this.importPretalx.bind(this));
     this.router.get('/pretalx/health', this.pretalxHealth.bind(this));
     this.router.get('/pretalx/schedules', this.pretalxSchedules.bind(this));
@@ -140,6 +141,32 @@ export class RoomsRouter {
       this.logger.error('Error updating room', error);
       const message =
         error instanceof Error ? error.message : 'Failed to update room';
+      const status = message === 'Room not found' ? 404 : 500;
+      res.status(status).json({ success: false, error: message });
+    }
+  }
+
+  private updateStyleConfig(req: Request, res: Response): void {
+    try {
+      const { roomId } = req.params;
+      const styleConfig = req.body || {};
+      const updated = this.rooms.updateStyleConfig(roomId, styleConfig);
+      res.json({ success: true, data: updated });
+      // Broadcast config update
+      this.broadcast(roomId, 'config-updated', { config: updated });
+      try {
+        const view = this.rooms.getView(roomId);
+        this.broadcast(roomId, 'snapshot', {
+          version: this.rooms.getRoom(roomId)?.version,
+          view
+        });
+      } catch (e) {
+        this.logger.warn('Failed to broadcast snapshot after style update', e);
+      }
+    } catch (error) {
+      this.logger.error('Error updating style config', error);
+      const message =
+        error instanceof Error ? error.message : 'Failed to update style config';
       const status = message === 'Room not found' ? 404 : 500;
       res.status(status).json({ success: false, error: message });
     }
@@ -561,7 +588,8 @@ export class RoomsRouter {
         apiPath.includes('/slots/') ||
         apiPath.includes('/submissions/') ||
         apiPath.includes('/rooms/') ||
-        apiPath.includes('/speakers/');
+        apiPath.includes('/speakers/') ||
+        apiPath.includes('/answers/');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const pretalxApi = pretalx as any;
       const rawData = isListEndpoint
