@@ -338,25 +338,41 @@ export class NostrService {
 
     try {
       // Add timeout to profile fetch (15 seconds for production network latency)
-      const profilePromise = this.pool.get(relaysToUse, {
-        kinds: [0],
-        authors: [pubkey]
-      });
-      
-      const timeoutPromise = new Promise<null>((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout after 15 seconds')), 15000)
-      );
-      
       const startTime = Date.now();
-      const profile = await Promise.race([
-        profilePromise,
-        timeoutPromise
-      ]) as any;
+
+      let profile: any = null;
+      let fetchError: Error | null = null;
+
+      try {
+        const profilePromise = this.pool.get(relaysToUse, {
+          kinds: [0],
+          authors: [pubkey]
+        });
+
+        const timeoutPromise = new Promise<null>((_, reject) =>
+          setTimeout(() => reject(new Error('Profile fetch timeout after 15 seconds')), 15000)
+        );
+
+        profile = await Promise.race([
+          profilePromise,
+          timeoutPromise
+        ]) as any;
+      } catch (error) {
+        fetchError = error instanceof Error ? error : new Error(String(error));
+        this.logger.warn('⚠️ Profile fetch error:', {
+          error: fetchError.message,
+          errorStack: fetchError.stack,
+          pubkey: pubkey.substring(0, 16) + '...',
+          relays: relaysToUse
+        });
+      }
+
       const fetchDuration = Date.now() - startTime;
-      
+
       this.logger.info('⏱️ Profile fetch completed', {
         duration: `${fetchDuration}ms`,
-        found: !!profile
+        found: !!profile,
+        error: fetchError ? fetchError.message : null
       });
 
       if (!profile) {
