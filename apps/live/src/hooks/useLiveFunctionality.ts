@@ -3343,7 +3343,12 @@ export const useLiveFunctionality = (eventId?: string) => {
           isFirstStream = false;
           // Mark that initial zaps have loaded
           initialZapsLoadedRef.current = true;
-          subscribeKind0fromKinds9735(kinds9735);
+          // If no zaps found, show empty state immediately
+          if (kinds9735.length === 0) {
+            drawKinds9735([]);
+          } else {
+            subscribeKind0fromKinds9735(kinds9735);
+          }
         },
         onclosed() {
           clearTimeout(zapTimeoutId);
