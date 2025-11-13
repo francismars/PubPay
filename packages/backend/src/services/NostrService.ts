@@ -17,12 +17,16 @@ export class NostrService {
 
   constructor() {
     this.pool = new SimplePool();
+    // Use a comprehensive list of reliable relays for better profile discovery
     this.relays = [
       'wss://relay.damus.io',
       'wss://relay.primal.net',
       'wss://nos.lol',
       'wss://relay.snort.social',
-      'wss://relay.nostr.band'
+      'wss://relay.nostr.band',
+      'wss://nostr.mom',
+      'wss://nostr.bitcoiner.social',
+      'wss://relay.nostr.bg'
     ];
     this.logger = new Logger('NostrService');
 
@@ -333,20 +337,27 @@ export class NostrService {
     });
 
     try {
-      // Add timeout to profile fetch (10 seconds)
+      // Add timeout to profile fetch (15 seconds for production network latency)
       const profilePromise = this.pool.get(relaysToUse, {
         kinds: [0],
         authors: [pubkey]
       });
       
       const timeoutPromise = new Promise<null>((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout after 10 seconds')), 10000)
+        setTimeout(() => reject(new Error('Profile fetch timeout after 15 seconds')), 15000)
       );
       
+      const startTime = Date.now();
       const profile = await Promise.race([
         profilePromise,
         timeoutPromise
       ]) as any;
+      const fetchDuration = Date.now() - startTime;
+      
+      this.logger.info('⏱️ Profile fetch completed', {
+        duration: `${fetchDuration}ms`,
+        found: !!profile
+      });
 
       if (!profile) {
         this.logger.warn('❌ Profile not found on relays', {
