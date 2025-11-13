@@ -337,16 +337,83 @@ export class NostrService {
     });
 
     try {
-      // Add timeout to profile fetch (15 seconds for production network latency)
+      // Use subscription-based approach to ensure we wait for relay responses
+      // pool.get() might return null too quickly if connections fail silently
       const startTime = Date.now();
 
       let profile: any = null;
       let fetchError: Error | null = null;
 
       try {
-        const profilePromise = this.pool.get(relaysToUse, {
-          kinds: [0],
-          authors: [pubkey]
+        // Use subscription with oneose to ensure we wait for relay responses
+        const logger = this.logger; // Capture logger for use in callbacks
+        this.logger.info('🔄 Starting subscription-based profile fetch', {
+          pubkey: pubkey.substring(0, 16) + '...',
+          relayCount: relaysToUse.length
+        });
+        const profilePromise = new Promise<any>((resolve, reject) => {
+          let resolved = false;
+          const events: any[] = [];
+
+          logger.info('📡 Creating subscription to relays', {
+            pubkey: pubkey.substring(0, 16) + '...'
+          });
+          const sub = this.pool.subscribe(relaysToUse, {
+            kinds: [0],
+            authors: [pubkey]
+          }, {
+            onevent(event: any) {
+              logger.info('📥 Profile event received', {
+                pubkey: pubkey.substring(0, 16) + '...',
+                eventPubkey: event?.pubkey?.substring(0, 16) + '...'
+              });
+              // Collect events and take the first matching profile event
+              if (event && event.pubkey === pubkey) {
+                events.push(event);
+                // Take the first (and should be only) profile event
+                if (!resolved) {
+                  resolved = true;
+                  sub.close();
+                  resolve(event);
+                }
+              }
+            },
+            oneose() {
+              logger.info('✅ Profile subscription EOSE (end of stream)', {
+                pubkey: pubkey.substring(0, 16) + '...',
+                eventsFound: events.length
+              });
+              // End of stream - check if we got any events
+              if (!resolved) {
+                resolved = true;
+                sub.close();
+                // Return the most recent event if any, otherwise null
+                resolve(events.length > 0 ? events[0] : null);
+              }
+            },
+            onclose() {
+              logger.info('🔌 Profile subscription closed', {
+                pubkey: pubkey.substring(0, 16) + '...',
+                eventsFound: events.length,
+                resolved
+              });
+              // Only resolve if we haven't already and we have events
+              // Don't resolve with null on close - wait for oneose() instead
+              if (!resolved && events.length > 0) {
+                resolved = true;
+                resolve(events[0]);
+              }
+            }
+          });
+
+          // Add timeout
+          setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              sub.close();
+              reject(new Error('Profile fetch timeout after 15 seconds'));
+            }
+          }, 15000);
         });
 
         const timeoutPromise = new Promise<null>((_, reject) =>
