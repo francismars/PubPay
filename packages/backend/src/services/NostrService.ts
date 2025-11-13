@@ -83,19 +83,38 @@ export class NostrService {
       });
 
       // Get recipient's Lightning address from profile
-      // Use relays from nevent1 if available, combined with default relays
-      const profileRelays = relaysFromNevent.length > 0 
-        ? [...new Set([...relaysFromNevent, ...this.relays])] 
-        : this.relays;
-      this.logger.info('🔍 Getting recipient Lightning address...', {
-        relays: profileRelays,
-        relayCount: profileRelays.length
-      });
-      const lightningAddress = await this.getLightningAddress(recipientPubkey, profileRelays);
+      // Try nevent1 relays FIRST (where event was published) - profile more likely to be there
+      // If that fails, fall back to default relays
+      let lightningAddress: string | null = null;
+      
+      if (relaysFromNevent.length > 0) {
+        this.logger.info('🔍 Trying nevent1 relays first for profile lookup', {
+          neventRelays: relaysFromNevent,
+          pubkey: recipientPubkey.substring(0, 16) + '...'
+        });
+        lightningAddress = await this.getLightningAddress(recipientPubkey, relaysFromNevent);
+        
+        if (!lightningAddress) {
+          this.logger.info('⚠️ Profile not found on nevent1 relays, trying default relays', {
+            defaultRelays: this.relays
+          });
+          lightningAddress = await this.getLightningAddress(recipientPubkey, this.relays);
+        } else {
+          this.logger.info('✅ Profile found on nevent1 relays');
+        }
+      } else {
+        this.logger.info('🔍 No nevent1 relays, using default relays for profile lookup', {
+          defaultRelays: this.relays
+        });
+        lightningAddress = await this.getLightningAddress(recipientPubkey, this.relays);
+      }
       if (!lightningAddress) {
+        const relaysQueried = relaysFromNevent.length > 0 
+          ? [...relaysFromNevent, ...this.relays] 
+          : this.relays;
         this.logger.error('❌ No Lightning address found in recipient profile', {
           pubkey: recipientPubkey.substring(0, 16) + '...',
-          relaysQueried: profileRelays
+          relaysQueried: relaysQueried
         });
         throw new Error('Recipient has no Lightning address configured');
       }
@@ -339,6 +358,29 @@ export class NostrService {
     try {
       // Use subscription-based approach to ensure we wait for relay responses
       // pool.get() might return null too quickly if connections fail silently
+ubuntu@pubpay:~/pubpay/packages/backend$ node -e "
+const { SimplePool } = require('nostr-tools');
+const pool = new SimplePool();
+console.log('Testing nevent1 relays from production...');
+pool.get(['wss://no.str.cr', 'wss://nos.lol'], {
+  kinds: [0],
+  authors: ['5d3ab876c206a37ad3b094e20bfc3941df3fa21a15ac8ea76d6918473789669a']
+}).then(profile => {
+  console.log('Result:', profile ? 'Profile found!' : 'Profile not found');
+  if (profile && profile.content) {
+    try {
+      const data = JSON.parse(profile.content);
+      console.log('Lightning address:', data.lud16 || data.lud06 || 'none');
+    } catch(e) {}
+  }
+  process.exit(0);
+}).catch(err => {
+  console.error('Error:', err.message);
+  process.exit(1);
+});
+"
+Testing nevent1 relays from production...
+Result: Profile not found
       const startTime = Date.now();
 
       let profile: any = null;
@@ -354,18 +396,35 @@ export class NostrService {
         const profilePromise = new Promise<any>((resolve, reject) => {
           let resolved = false;
           const events: any[] = [];
+          const subscriptionStartTime = Date.now();
 
           logger.info('📡 Creating subscription to relays', {
-            pubkey: pubkey.substring(0, 16) + '...'
+            pubkey: pubkey.substring(0, 16) + '...',
+            relayCount: relaysToUse.length,
+            relayList: relaysToUse
           });
+          
+          // Track connection status per relay
+          const relayStatus: Record<string, { connected: boolean; eventsReceived: number; errors: string[] }> = {};
+          relaysToUse.forEach(relay => {
+            relayStatus[relay] = { connected: false, eventsReceived: 0, errors: [] };
+          });
+          
           const sub = this.pool.subscribe(relaysToUse, {
             kinds: [0],
             authors: [pubkey]
           }, {
             onevent(event: any) {
+              const relayUrl = (event as any)?._relay || 'unknown';
+              if (relayStatus[relayUrl]) {
+                relayStatus[relayUrl].eventsReceived++;
+                relayStatus[relayUrl].connected = true;
+              }
               logger.info('📥 Profile event received', {
                 pubkey: pubkey.substring(0, 16) + '...',
-                eventPubkey: event?.pubkey?.substring(0, 16) + '...'
+                eventPubkey: event?.pubkey?.substring(0, 16) + '...',
+                relay: relayUrl,
+                totalEvents: events.length + 1
               });
               // Collect events and take the first matching profile event
               if (event && event.pubkey === pubkey) {
@@ -379,23 +438,43 @@ export class NostrService {
               }
             },
             oneose() {
+              const timeSinceStart = Date.now() - subscriptionStartTime;
               logger.info('✅ Profile subscription EOSE (end of stream)', {
                 pubkey: pubkey.substring(0, 16) + '...',
-                eventsFound: events.length
+                eventsFound: events.length,
+                relaysQueried: relaysToUse.length,
+                timeSinceStart: `${timeSinceStart}ms`,
+                relayList: relaysToUse,
+                relayStatus: relayStatus
               });
               // End of stream - check if we got any events
+              // If EOSE came very quickly (< 100ms), wait longer as relays might still be connecting
+              const minWaitTime = timeSinceStart < 100 ? 2000 : 500;
+              logger.info('⏳ Waiting additional time after EOSE', {
+                minWaitTime: `${minWaitTime}ms`,
+                reason: timeSinceStart < 100 ? 'EOSE came too quickly, waiting for relay responses' : 'Normal wait'
+              });
               if (!resolved) {
-                resolved = true;
-                sub.close();
-                // Return the most recent event if any, otherwise null
-                resolve(events.length > 0 ? events[0] : null);
+                setTimeout(() => {
+                  if (!resolved) {
+                    resolved = true;
+                    sub.close();
+                    logger.info('🏁 Finalizing profile fetch after EOSE wait', {
+                      eventsFound: events.length,
+                      totalTime: `${Date.now() - subscriptionStartTime}ms`
+                    });
+                    // Return the most recent event if any, otherwise null
+                    resolve(events.length > 0 ? events[0] : null);
+                  }
+                }, minWaitTime);
               }
             },
             onclose() {
               logger.info('🔌 Profile subscription closed', {
                 pubkey: pubkey.substring(0, 16) + '...',
                 eventsFound: events.length,
-                resolved
+                resolved,
+                relayStatus: relayStatus
               });
               // Only resolve if we haven't already and we have events
               // Don't resolve with null on close - wait for oneose() instead
@@ -443,11 +522,41 @@ export class NostrService {
       });
 
       if (!profile) {
-        this.logger.warn('❌ Profile not found on relays', {
+        this.logger.warn('❌ Profile not found on relays via subscription', {
           pubkey: pubkey.substring(0, 16) + '...',
-          relays: relaysToUse
+          relays: relaysToUse,
+          duration: `${Date.now() - startTime}ms`
         });
-        return null;
+
+        // Fallback: Try using pool.get() as a last resort
+        // Sometimes pool.get() works when subscription doesn't
+        this.logger.info('🔄 Attempting fallback: pool.get()', {
+          pubkey: pubkey.substring(0, 16) + '...'
+        });
+        try {
+          const fallbackProfile = await this.pool.get(relaysToUse, {
+            kinds: [0],
+            authors: [pubkey]
+          });
+          if (fallbackProfile) {
+            this.logger.info('✅ Profile found via fallback pool.get()', {
+              pubkey: pubkey.substring(0, 16) + '...'
+            });
+            // Update profile variable so it gets processed below
+            profile = fallbackProfile as any;
+          } else {
+            this.logger.warn('⚠️ Fallback pool.get() returned null');
+          }
+        } catch (fallbackError) {
+          this.logger.warn('⚠️ Fallback pool.get() also failed', {
+            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+          });
+        }
+
+        // If fallback didn't find profile, return null
+        if (!profile) {
+          return null;
+        }
       }
 
       if (!profile.content) {
