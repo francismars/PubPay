@@ -58,10 +58,12 @@ export class NostrService {
       const decodedResult = this.decodeEventId(eventId);
       const rawEventId = decodedResult.eventId;
       const authorFromNevent = decodedResult.author;
+      const relaysFromNevent = decodedResult.relays || [];
       this.logger.info('✅ Event ID decoded:', {
         original: eventId,
         decoded: rawEventId,
-        authorFromNevent: authorFromNevent ? authorFromNevent.substring(0, 16) + '...' : 'none'
+        authorFromNevent: authorFromNevent ? authorFromNevent.substring(0, 16) + '...' : 'none',
+        relaysFromNevent: relaysFromNevent.length > 0 ? relaysFromNevent : 'none'
       });
 
       // Get recipient public key from event
@@ -77,10 +79,20 @@ export class NostrService {
       });
 
       // Get recipient's Lightning address from profile
-      this.logger.info('🔍 Getting recipient Lightning address...');
-      const lightningAddress = await this.getLightningAddress(recipientPubkey);
+      // Use relays from nevent1 if available, combined with default relays
+      const profileRelays = relaysFromNevent.length > 0 
+        ? [...new Set([...relaysFromNevent, ...this.relays])] 
+        : this.relays;
+      this.logger.info('🔍 Getting recipient Lightning address...', {
+        relays: profileRelays,
+        relayCount: profileRelays.length
+      });
+      const lightningAddress = await this.getLightningAddress(recipientPubkey, profileRelays);
       if (!lightningAddress) {
-        this.logger.error('❌ No Lightning address found in recipient profile');
+        this.logger.error('❌ No Lightning address found in recipient profile', {
+          pubkey: recipientPubkey.substring(0, 16) + '...',
+          relaysQueried: profileRelays
+        });
         throw new Error('Recipient has no Lightning address configured');
       }
       this.logger.info('✅ Lightning address found:', lightningAddress);
@@ -150,9 +162,13 @@ export class NostrService {
 
   /**
    * Decode event ID from note1... or nevent1... format
-   * Returns both the event ID and author (if available from nevent1)
+   * Returns the event ID, author, and relays (if available from nevent1)
    */
-  private decodeEventId(eventId: string): { eventId: string; author?: string } {
+  private decodeEventId(eventId: string): { 
+    eventId: string; 
+    author?: string; 
+    relays?: string[] 
+  } {
     this.logger.info('🔍 Decoding event ID:', eventId);
 
     if (eventId.startsWith('note1') || eventId.startsWith('nevent1')) {
@@ -166,15 +182,32 @@ export class NostrService {
           this.logger.info('📝 note1 decoded to:', rawId);
           return { eventId: rawId };
         } else if (eventId.startsWith('nevent1')) {
-          // nevent1... decodes to object with id and potentially author field
+          // nevent1... decodes to object with id, author, and relays fields
           const neventData = decoded.data as any;
           const rawId = neventData.id;
           const author = neventData.author;
+          // Normalize relays: remove trailing slashes and ensure wss:// prefix
+          const rawRelays = neventData.relays || [];
+          const relays = rawRelays
+            .map((r: string) => {
+              let normalized = r.trim();
+              // Remove trailing slash
+              if (normalized.endsWith('/')) {
+                normalized = normalized.slice(0, -1);
+              }
+              // Ensure it starts with wss:// or ws://
+              if (!normalized.startsWith('wss://') && !normalized.startsWith('ws://')) {
+                normalized = `wss://${normalized}`;
+              }
+              return normalized;
+            })
+            .filter((r: string) => r.length > 0);
           this.logger.info('📝 nevent1 decoded to:', {
             id: rawId,
-            author: author ? author.substring(0, 16) + '...' : 'none'
+            author: author ? author.substring(0, 16) + '...' : 'none',
+            relays: relays.length > 0 ? relays : 'none'
           });
-          return { eventId: rawId, author };
+          return { eventId: rawId, author, relays };
         }
       } catch (error) {
         this.logger.warn(
@@ -288,21 +321,86 @@ export class NostrService {
   /**
    * Get Lightning address from profile
    */
-  private async getLightningAddress(pubkey: string): Promise<string | null> {
+  private async getLightningAddress(
+    pubkey: string, 
+    relays?: string[]
+  ): Promise<string | null> {
+    const relaysToUse = relays || this.relays;
+    this.logger.info('🔍 Fetching profile from relays:', {
+      pubkey: pubkey.substring(0, 16) + '...',
+      relays: relaysToUse,
+      relayCount: relaysToUse.length
+    });
+
     try {
-      const profile = await this.pool.get(this.relays, {
+      // Add timeout to profile fetch (10 seconds)
+      const profilePromise = this.pool.get(relaysToUse, {
         kinds: [0],
         authors: [pubkey]
       });
+      
+      const timeoutPromise = new Promise<null>((_, reject) => 
+        setTimeout(() => reject(new Error('Profile fetch timeout after 10 seconds')), 10000)
+      );
+      
+      const profile = await Promise.race([
+        profilePromise,
+        timeoutPromise
+      ]) as any;
 
-      if (!profile || !profile.content) {
+      if (!profile) {
+        this.logger.warn('❌ Profile not found on relays', {
+          pubkey: pubkey.substring(0, 16) + '...',
+          relays: relaysToUse
+        });
         return null;
       }
 
-      const profileData = JSON.parse(profile.content);
-      return profileData.lud16 || profileData.lud06 || null;
+      if (!profile.content) {
+        this.logger.warn('❌ Profile has no content', {
+          pubkey: pubkey.substring(0, 16) + '...',
+          profileId: profile.id
+        });
+        return null;
+      }
+
+      this.logger.info('✅ Profile found, parsing content...', {
+        pubkey: pubkey.substring(0, 16) + '...',
+        contentLength: profile.content.length
+      });
+
+      let profileData;
+      try {
+        profileData = JSON.parse(profile.content);
+      } catch (parseError) {
+        this.logger.error('❌ Failed to parse profile JSON:', {
+          error: parseError instanceof Error ? parseError.message : String(parseError),
+          contentPreview: profile.content.substring(0, 100)
+        });
+        return null;
+      }
+
+      const lightningAddress = profileData.lud16 || profileData.lud06 || null;
+      if (lightningAddress) {
+        this.logger.info('✅ Lightning address found in profile:', {
+          address: lightningAddress,
+          type: profileData.lud16 ? 'lud16' : 'lud06'
+        });
+      } else {
+        this.logger.warn('❌ No Lightning address (lud16/lud06) in profile', {
+          pubkey: pubkey.substring(0, 16) + '...',
+          profileKeys: Object.keys(profileData)
+        });
+      }
+
+      return lightningAddress;
     } catch (error) {
-      this.logger.error('Error getting Lightning address:', error);
+      this.logger.error('❌ Error getting Lightning address:', {
+        error: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        pubkey: pubkey.substring(0, 16) + '...',
+        relays: relaysToUse
+      });
       return null;
     }
   }
