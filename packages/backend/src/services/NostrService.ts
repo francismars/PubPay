@@ -55,15 +55,19 @@ export class NostrService {
 
       // Decode event ID if it's encoded (note1... or nevent1...)
       this.logger.info('🔍 Decoding event ID...');
-      const rawEventId = this.decodeEventId(eventId);
+      const decodedResult = this.decodeEventId(eventId);
+      const rawEventId = decodedResult.eventId;
+      const authorFromNevent = decodedResult.author;
       this.logger.info('✅ Event ID decoded:', {
         original: eventId,
-        decoded: rawEventId
+        decoded: rawEventId,
+        authorFromNevent: authorFromNevent ? authorFromNevent.substring(0, 16) + '...' : 'none'
       });
 
       // Get recipient public key from event
+      // Use author from nevent1 if available, otherwise query relays
       this.logger.info('🔍 Getting recipient public key from event...');
-      const recipientPubkey = await this.getRecipientPubkey(rawEventId);
+      const recipientPubkey = authorFromNevent || await this.getRecipientPubkey(rawEventId);
       if (!recipientPubkey) {
         this.logger.error('❌ Could not determine recipient public key');
         throw new Error('Could not determine recipient public key');
@@ -146,8 +150,9 @@ export class NostrService {
 
   /**
    * Decode event ID from note1... or nevent1... format
+   * Returns both the event ID and author (if available from nevent1)
    */
-  private decodeEventId(eventId: string): string {
+  private decodeEventId(eventId: string): { eventId: string; author?: string } {
     this.logger.info('🔍 Decoding event ID:', eventId);
 
     if (eventId.startsWith('note1') || eventId.startsWith('nevent1')) {
@@ -159,12 +164,17 @@ export class NostrService {
           // note1... decodes to raw hex event ID
           const rawId = decoded.data as string;
           this.logger.info('📝 note1 decoded to:', rawId);
-          return rawId;
+          return { eventId: rawId };
         } else if (eventId.startsWith('nevent1')) {
-          // nevent1... decodes to object with id field
-          const rawId = (decoded.data as any).id;
-          this.logger.info('📝 nevent1 decoded to:', rawId);
-          return rawId;
+          // nevent1... decodes to object with id and potentially author field
+          const neventData = decoded.data as any;
+          const rawId = neventData.id;
+          const author = neventData.author;
+          this.logger.info('📝 nevent1 decoded to:', {
+            id: rawId,
+            author: author ? author.substring(0, 16) + '...' : 'none'
+          });
+          return { eventId: rawId, author };
         }
       } catch (error) {
         this.logger.warn(
@@ -174,7 +184,7 @@ export class NostrService {
     }
 
     this.logger.info('📝 Using event ID as-is:', eventId);
-    return eventId;
+    return { eventId };
   }
 
   /**
