@@ -358,29 +358,6 @@ export class NostrService {
     try {
       // Use subscription-based approach to ensure we wait for relay responses
       // pool.get() might return null too quickly if connections fail silently
-ubuntu@pubpay:~/pubpay/packages/backend$ node -e "
-const { SimplePool } = require('nostr-tools');
-const pool = new SimplePool();
-console.log('Testing nevent1 relays from production...');
-pool.get(['wss://no.str.cr', 'wss://nos.lol'], {
-  kinds: [0],
-  authors: ['5d3ab876c206a37ad3b094e20bfc3941df3fa21a15ac8ea76d6918473789669a']
-}).then(profile => {
-  console.log('Result:', profile ? 'Profile found!' : 'Profile not found');
-  if (profile && profile.content) {
-    try {
-      const data = JSON.parse(profile.content);
-      console.log('Lightning address:', data.lud16 || data.lud06 || 'none');
-    } catch(e) {}
-  }
-  process.exit(0);
-}).catch(err => {
-  console.error('Error:', err.message);
-  process.exit(1);
-});
-"
-Testing nevent1 relays from production...
-Result: Profile not found
       const startTime = Date.now();
 
       let profile: any = null;
