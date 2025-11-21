@@ -9,6 +9,7 @@ const RoomAdminPage = lazy(() => import('./pages/RoomAdminPage').then(m => ({ de
 const RoomCreatePage = lazy(() => import('./pages/RoomCreatePage').then(m => ({ default: m.RoomCreatePage })));
 const MultiLoginPage = lazy(() => import('./pages/MultiLoginPage').then(m => ({ default: m.MultiLoginPage })));
 const PretalxDiagnosePage = lazy(() => import('./pages/PretalxDiagnosePage').then(m => ({ default: m.PretalxDiagnosePage })));
+const MultiStatsPage = lazy(() => import('./pages/MultiStatsPage').then(m => ({ default: m.MultiStatsPage })));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
 // Simple loading fallback
@@ -39,6 +40,7 @@ export const LiveApp: React.FC = () => {
         <Route path="/live/pretalx/diagnose" element={<PretalxDiagnosePage />} />
         <Route path="/live/multi/:roomId" element={<RoomViewerPage />} />
         <Route path="/live/multi/:roomId/admin" element={<RoomAdminPage />} />
+        <Route path="/live/multi/:roomId/stats" element={<MultiStatsPage />} />
 
         {/* Catch-all for anything else */}
         <Route path="*" element={<NotFoundPage />} />

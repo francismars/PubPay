@@ -947,6 +947,25 @@ export const RoomAdminPage: React.FC = () => {
                   🎨
                 </button>
                 <button
+                  onClick={() => window.open(`/live/multi/${createdRoomId}/stats`, '_blank')}
+                  aria-label="Statistics"
+                  title="Statistics"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    fontSize: 14
+                  }}
+                >
+                  📊
+                </button>
+                <button
                   onClick={() => setShowSettingsModal(true)}
                   aria-label="Settings"
                   title="Settings"
