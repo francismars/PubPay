@@ -9,6 +9,7 @@ const WalletPage: React.FC = () => {
   const [nwcNotifications, setNwcNotifications] = useState<string[]>([]);
   const [nwcError, setNwcError] = useState<string>('');
   const [clearNwcOnLogout, setClearNwcOnLogout] = useState<boolean>(false);
+  const [nwcAutoPay, setNwcAutoPay] = useState<boolean>(true);
 
   useEffect(() => {
     // Load NWC connection string
@@ -34,6 +35,15 @@ const WalletPage: React.FC = () => {
     const clearOnLogout = localStorage.getItem('clearNwcOnLogout');
     if (clearOnLogout === 'true') {
       setClearNwcOnLogout(true);
+    }
+
+    // Load NWC auto-pay preference (defaults to true for backward compatibility)
+    const autoPay = localStorage.getItem('nwcAutoPay');
+    if (autoPay === 'false') {
+      setNwcAutoPay(false);
+    } else {
+      // Default to true if not set (backward compatibility)
+      setNwcAutoPay(true);
     }
   }, []);
 
@@ -70,6 +80,11 @@ const WalletPage: React.FC = () => {
   const handleClearNwcOnLogoutChange = (checked: boolean) => {
     setClearNwcOnLogout(checked);
     localStorage.setItem('clearNwcOnLogout', checked.toString());
+  };
+
+  const handleNwcAutoPayChange = (checked: boolean) => {
+    setNwcAutoPay(checked);
+    localStorage.setItem('nwcAutoPay', checked.toString());
   };
 
   const handleSaveNwc = () => {
@@ -221,6 +236,34 @@ const WalletPage: React.FC = () => {
                   )}
                 </div>
               )}
+              <div className="settingsRow" style={{ marginTop: '16px' }}>
+                <div className="settingsRowContent">
+                  <p className="featureDescription">
+                    Auto-pay with NWC (skip invoice overlay)
+                  </p>
+                  <p
+                    className="featureDescription"
+                    style={{
+                      fontSize: '11px',
+                      color: '#9ca3af',
+                      marginTop: '4px',
+                      marginBottom: 0
+                    }}
+                  >
+                    When enabled, payments automatically use NWC. When disabled,
+                    the invoice overlay will show with a "Pay with NWC" button
+                    and other payment options.
+                  </p>
+                </div>
+                <label className="toggleSwitch">
+                  <input
+                    type="checkbox"
+                    checked={nwcAutoPay}
+                    onChange={e => handleNwcAutoPayChange(e.target.checked)}
+                  />
+                  <span className="toggleCircle" />
+                </label>
+              </div>
               <div className="settingsRow" style={{ marginTop: '16px' }}>
                 <div className="settingsRowContent">
                   <p className="featureDescription">

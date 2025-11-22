@@ -65,7 +65,10 @@ export const useUIStore = create<UIState>(set => ({
   loginForm: { show: false },
   newPayNoteForm: { show: false },
   openInvoice: ({ bolt11, amount, eventId, zapRequestId }) =>
-    set({ invoiceOverlay: { show: true, bolt11, amount, eventId, zapRequestId } }),
+    set({
+      invoiceOverlay: { show: true, bolt11, amount, eventId, zapRequestId },
+      statusToast: { show: false, message: '', variant: 'info', persist: false }
+    }),
   closeInvoice: () =>
     set({
       invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '', zapRequestId: '' }
