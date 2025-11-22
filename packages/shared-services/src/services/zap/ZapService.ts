@@ -454,7 +454,7 @@ export class ZapService {
       zapEventID,
       zapRequestID
     });
-    // If NWC is configured, pay via NWC and do not open invoice overlay
+    // Check if NWC is configured and user preference for auto-pay
     try {
       const nwcUri =
         (typeof localStorage !== 'undefined' &&
@@ -462,7 +462,14 @@ export class ZapService {
         (typeof sessionStorage !== 'undefined' &&
           sessionStorage.getItem('nwcConnectionString'));
 
-      if (nwcUri) {
+      // Check user preference for auto-pay (defaults to true for backward compatibility)
+      const nwcAutoPayPref =
+        typeof localStorage !== 'undefined'
+          ? localStorage.getItem('nwcAutoPay')
+          : null;
+      const shouldAutoPay = nwcAutoPayPref === null || nwcAutoPayPref === 'true';
+
+      if (nwcUri && shouldAutoPay) {
         const { NwcClient } = await import('../nwc/NwcClient');
         try {
           const { useUIStore } = await import('../state/uiStore');
@@ -541,10 +548,12 @@ export class ZapService {
       }
     } catch (e) {
       console.warn('NWC flow error:', e);
-      return; // Do not fallback to invoice overlay when NWC is configured
+      // Continue to show invoice overlay even if NWC check failed
     }
 
-    // Fallback only when no NWC configuration is present
+    // Show invoice overlay when:
+    // 1. No NWC is configured, OR
+    // 2. NWC is configured but user prefers to see invoice overlay (nwcAutoPay = false)
     try {
       const { useUIStore } = await import('../state/uiStore');
       // eventId: post event ID (for finding recipient)

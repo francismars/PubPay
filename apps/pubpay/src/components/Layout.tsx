@@ -1460,10 +1460,158 @@ export const Layout: React.FC = () => {
             );
           })()}
           <InvoiceQR bolt11={useUIStore.getState().invoiceOverlay.bolt11} />
+          <div
+            style={{
+              marginTop: '16px',
+              marginBottom: '16px',
+              position: 'relative'
+            }}
+          >
+            <input
+              type="text"
+              readOnly
+              value={useUIStore.getState().invoiceOverlay.bolt11}
+              style={{
+                width: '100%',
+                padding: '12px 48px 12px 12px',
+                border: '1px solid #e5e7eb',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontFamily: 'monospace',
+                backgroundColor: '#f9fafb',
+                color: '#374151',
+                boxSizing: 'border-box',
+                cursor: 'text'
+              }}
+              onClick={e => {
+                (e.target as HTMLInputElement).select();
+              }}
+            />
+            <button
+              onClick={async () => {
+                const bolt11 = useUIStore.getState().invoiceOverlay.bolt11;
+                if (bolt11) {
+                  try {
+                    await navigator.clipboard.writeText(bolt11);
+                    useUIStore.getState().openToast('Invoice copied to clipboard', 'success', false);
+                    setTimeout(() => {
+                      useUIStore.getState().closeToast();
+                    }, 2000);
+                  } catch (err) {
+                    console.error('Failed to copy invoice:', err);
+                    // Fallback: select the text
+                    const textArea = document.createElement('textarea');
+                    textArea.value = bolt11;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    useUIStore.getState().openToast('Invoice copied to clipboard', 'success', false);
+                    setTimeout(() => {
+                      useUIStore.getState().closeToast();
+                    }, 2000);
+                  }
+                }
+              }}
+              style={{
+                position: 'absolute',
+                right: '3px',
+                top: '7px',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#6b7280',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.color = '#4a75ff';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.color = '#6b7280';
+              }}
+              title="Copy invoice"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                content_copy
+              </span>
+            </button>
+          </div>
           <p id="qrcodeTitle" className="label">
-            Otherwise:
+            Otherwise, Pay with:
           </p>
           <div className="formFieldGroup">
+            {(() => {
+              // Check if NWC is configured
+              const nwcUri =
+                (typeof localStorage !== 'undefined' &&
+                  localStorage.getItem('nwcConnectionString')) ||
+                (typeof sessionStorage !== 'undefined' &&
+                  sessionStorage.getItem('nwcConnectionString'));
+
+              if (nwcUri) {
+                return (
+                  <button
+                    id="payWithNwc"
+                    className="cta"
+                    onClick={async () => {
+                      const { bolt11 } = useUIStore.getState().invoiceOverlay;
+                      if (!bolt11) {
+                        useUIStore.getState().openToast('No invoice available', 'error', false);
+                        return;
+                      }
+
+                      try {
+                        useUIStore.getState().openToast('Sending invoice to wallet…', 'loading', true);
+                        const { NwcClient } = await import('@pubpay/shared-services');
+                        const client = new NwcClient(nwcUri);
+                        
+                        useUIStore.getState().updateToast('Waiting for wallet…', 'loading', true);
+
+                        const timeoutMs = 45000;
+                        const timeoutPromise = new Promise<any>(resolve => {
+                          setTimeout(() => {
+                            resolve({
+                              error: { code: 'timeout', message: 'Wallet not responding' },
+                              result: null,
+                              result_type: 'error'
+                            });
+                          }, timeoutMs);
+                        });
+
+                        const resp = await Promise.race([
+                          client.payInvoice(bolt11),
+                          timeoutPromise
+                        ]);
+
+                        if (resp && !resp.error && resp.result) {
+                          useUIStore.getState().updateToast('Paid via NWC', 'success', false);
+                          setTimeout(() => {
+                            useUIStore.getState().closeToast();
+                            useUIStore.getState().closeInvoice();
+                          }, 2000);
+                        } else {
+                          const msg =
+                            resp && resp.error && resp.error.message
+                              ? resp.error.message
+                              : 'NWC payment error';
+                          useUIStore.getState().updateToast(msg, 'error', true);
+                        }
+                      } catch (err) {
+                        console.warn('NWC payment exception:', err);
+                        useUIStore.getState().updateToast('NWC payment failed', 'error', true);
+                      }
+                    }}
+                  >
+                    NWC
+                  </button>
+                );
+              }
+              return null;
+            })()}
             <button
               id="payWithExtension"
               className="cta"
@@ -1481,7 +1629,7 @@ export const Layout: React.FC = () => {
                 }
               }}
             >
-              Pay with Extension
+              Extension
             </button>
             <button
               id="payWithWallet"
@@ -1499,48 +1647,7 @@ export const Layout: React.FC = () => {
                 }
               }}
             >
-              Pay with Wallet
-            </button>
-            <button
-              id="copyInvoice"
-              className="cta"
-              onClick={async () => {
-                const bolt11 = useUIStore.getState().invoiceOverlay.bolt11;
-                if (bolt11) {
-                  try {
-                    await navigator.clipboard.writeText(bolt11);
-                    // Change button text to "Copied!" for 1 second
-                    const button = document.getElementById('copyInvoice');
-                    if (button) {
-                      button.textContent = 'Copied!';
-                      setTimeout(() => {
-                        button.textContent = 'Copy Invoice';
-                      }, 1000);
-                    }
-                  } catch (err) {
-                    console.error('Failed to copy invoice:', err);
-                    // Fallback: select the text
-                    const textArea = document.createElement('textarea');
-                    textArea.value = bolt11;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    // Still show the "Copied!" feedback
-                    const button = document.getElementById('copyInvoice');
-                    if (button) {
-                      button.textContent = 'Copied!';
-                      setTimeout(() => {
-                        button.textContent = 'Copy Invoice';
-                      }, 1000);
-                    }
-                  }
-                } else {
-                  console.error('No invoice available to copy');
-                }
-              }}
-            >
-              Copy Invoice
+              Wallet
             </button>
           </div>
           <a
