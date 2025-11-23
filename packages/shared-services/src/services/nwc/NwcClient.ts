@@ -34,26 +34,39 @@ export class NwcClient {
     notifications?: string[];
     encryption?: string[];
   } | null> {
-    const filter = {
-      kinds: [13194],
-      authors: [this.uri.walletPubkey]
-    } as any;
-    const evt = await (this.pool as any).get(this.uri.relays, filter);
-    if (!evt) return null;
-    const content: string = evt.content || '';
-    const methods = content.trim() ? content.trim().split(/\s+/) : [];
-    const tags: string[][] = evt.tags || [];
-    const notificationsTag = tags.find(t => t[0] === 'notifications');
-    const encryptionTag = tags.find(t => t[0] === 'encryption');
-    const notifications =
-      notificationsTag && notificationsTag[1]
-        ? notificationsTag[1].split(/\s+/)
-        : undefined;
-    const encryption =
-      encryptionTag && encryptionTag[1]
-        ? encryptionTag[1].split(/\s+/)
-        : undefined;
-    return { methods, notifications, encryption };
+    try {
+      const filter = {
+        kinds: [13194],
+        authors: [this.uri.walletPubkey]
+      } as any;
+      
+      // Add timeout to get() call
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), 10000); // 10 second timeout
+      });
+      
+      const getPromise = (this.pool as any).get(this.uri.relays, filter);
+      const evt = await Promise.race([getPromise, timeoutPromise]);
+      
+      if (!evt) return null;
+      const content: string = evt.content || '';
+      const methods = content.trim() ? content.trim().split(/\s+/) : [];
+      const tags: string[][] = evt.tags || [];
+      const notificationsTag = tags.find(t => t[0] === 'notifications');
+      const encryptionTag = tags.find(t => t[0] === 'encryption');
+      const notifications =
+        notificationsTag && notificationsTag[1]
+          ? notificationsTag[1].split(/\s+/)
+          : undefined;
+      const encryption =
+        encryptionTag && encryptionTag[1]
+          ? encryptionTag[1].split(/\s+/)
+          : undefined;
+      return { methods, notifications, encryption };
+    } catch (error) {
+      console.error('Failed to get NWC info:', error);
+      return null;
+    }
   }
 
   static async validate(connectionString: string): Promise<boolean> {
@@ -92,8 +105,106 @@ export class NwcClient {
     );
   }
 
+  async getBalance(): Promise<RpcResponse<{ balance: number }>> {
+    const request: RpcRequest = {
+      method: 'get_balance',
+      params: {}
+    };
+    return await this.sendRequest<{ balance: number }>(request);
+  }
+
+  async makeInvoice(params: {
+    amount?: number;
+    description?: string;
+    description_hash?: string;
+    expiry?: number;
+  }): Promise<RpcResponse<{ invoice: string; payment_hash: string }>> {
+    const request: RpcRequest = {
+      method: 'make_invoice',
+      params
+    };
+    return await this.sendRequest<{ invoice: string; payment_hash: string }>(
+      request
+    );
+  }
+
+  async listInvoices(params?: {
+    limit?: number;
+    offset?: number;
+    pending?: boolean;
+  }): Promise<
+    RpcResponse<{
+      invoices: Array<{
+        invoice: string;
+        payment_hash: string;
+        preimage?: string;
+        payment_index?: number;
+        amount?: number;
+        paid_at?: number;
+        description?: string;
+        description_hash?: string;
+        expiry?: number;
+        created_at?: number;
+      }>;
+    }>
+  > {
+    const request: RpcRequest = {
+      method: 'list_invoices',
+      params: params || {}
+    };
+    return await this.sendRequest<{
+      invoices: Array<{
+        invoice: string;
+        payment_hash: string;
+        preimage?: string;
+        payment_index?: number;
+        amount?: number;
+        paid_at?: number;
+        description?: string;
+        description_hash?: string;
+        expiry?: number;
+        created_at?: number;
+      }>;
+    }>(request);
+  }
+
+  async lookupInvoice(
+    paymentHash: string
+  ): Promise<
+    RpcResponse<{
+      invoice: string;
+      payment_hash: string;
+      preimage?: string;
+      payment_index?: number;
+      amount?: number;
+      paid_at?: number;
+      description?: string;
+      description_hash?: string;
+      expiry?: number;
+      created_at?: number;
+    }>
+  > {
+    const request: RpcRequest = {
+      method: 'lookup_invoice',
+      params: { payment_hash: paymentHash }
+    };
+    return await this.sendRequest<{
+      invoice: string;
+      payment_hash: string;
+      preimage?: string;
+      payment_index?: number;
+      amount?: number;
+      paid_at?: number;
+      description?: string;
+      description_hash?: string;
+      expiry?: number;
+      created_at?: number;
+    }>(request);
+  }
+
   private async sendRequest<T = unknown>(
-    request: RpcRequest
+    request: RpcRequest,
+    timeoutMs: number = 60000
   ): Promise<RpcResponse<T>> {
     const now = Math.floor(Date.now() / 1000);
     const contentJson = JSON.stringify(request);
@@ -123,7 +234,18 @@ export class NwcClient {
     );
 
     // Publish
-    await (this.pool as any).publish(this.uri.relays, requestEvent);
+    try {
+      await (this.pool as any).publish(this.uri.relays, requestEvent);
+    } catch (error) {
+      return {
+        result_type: 'error',
+        result: null,
+        error: {
+          code: 'publish_failed',
+          message: error instanceof Error ? error.message : 'Failed to publish request'
+        }
+      };
+    }
 
     // Subscribe for response 23195 from wallet, tagged back to our request
     const filter = {
@@ -133,25 +255,94 @@ export class NwcClient {
       '#e': [requestEvent.id]
     } as Record<string, unknown>;
 
-    const response = await new Promise<RpcResponse<T>>(resolve => {
-      const sub = (this.pool as any).subscribe(this.uri.relays, filter, {
-        onevent: async (evt: any) => {
-          try {
-            const plaintext = await nip04.decrypt(
-              this.uri.clientSecretHex,
-              this.uri.walletPubkey,
-              evt.content
-            );
-            const parsed = JSON.parse(plaintext) as RpcResponse<T>;
-            sub.close?.();
-            resolve(parsed);
-          } catch {
-            void 0; // ignore malformed events and continue listening
-          }
+    let sub: any = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let resolved = false;
+
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      if (sub && typeof sub.close === 'function') {
+        try {
+          sub.close();
+        } catch (e) {
+          // Ignore cleanup errors
         }
-      });
+        sub = null;
+      }
+    };
+
+    const response = await new Promise<RpcResponse<T>>((resolve, reject) => {
+      try {
+        sub = (this.pool as any).subscribe(this.uri.relays, filter, {
+          onevent: async (evt: any) => {
+            if (resolved) return;
+            try {
+              const plaintext = await nip04.decrypt(
+                this.uri.clientSecretHex,
+                this.uri.walletPubkey,
+                evt.content
+              );
+              const parsed = JSON.parse(plaintext) as RpcResponse<T>;
+              resolved = true;
+              cleanup();
+              resolve(parsed);
+            } catch (err) {
+              // Ignore malformed events and continue listening
+              console.debug('Failed to decrypt/parse NWC response:', err);
+            }
+          },
+          oneose: () => {
+            // End of stored events - continue waiting for new events
+            // Don't resolve here, wait for actual response or timeout
+          },
+          onclose: () => {
+            if (resolved) return;
+            resolved = true;
+            cleanup();
+            resolve({
+              result_type: 'error',
+              result: null,
+              error: {
+                code: 'subscription_closed',
+                message: 'Subscription closed before receiving response'
+              }
+            });
+          }
+        });
+
+        // Set up timeout
+        timeoutId = setTimeout(() => {
+          if (resolved) return;
+          resolved = true;
+          cleanup();
+          resolve({
+            result_type: 'error',
+            result: null,
+            error: {
+              code: 'timeout',
+              message: 'Request timed out waiting for wallet response'
+            }
+          });
+        }, timeoutMs);
+      } catch (error) {
+        resolved = true;
+        cleanup();
+        resolve({
+          result_type: 'error',
+          result: null,
+          error: {
+            code: 'subscription_setup_failed',
+            message: error instanceof Error ? error.message : 'Failed to set up subscription'
+          }
+        });
+      }
     });
 
+    // Ensure cleanup in case promise resolves/rejects unexpectedly
+    cleanup();
     return response;
   }
 

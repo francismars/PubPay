@@ -7,6 +7,7 @@ import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../assets/images';
 import { nip19 } from 'nostr-tools';
 import { NewPayNoteOverlay } from './NewPayNoteOverlay';
+import { getActiveNWCUri, migrateOldNWCConnection } from '../utils/nwcStorage';
 
 export const Layout: React.FC = () => {
   const navigate = useNavigate();
@@ -1546,11 +1547,14 @@ export const Layout: React.FC = () => {
           <div className="formFieldGroup">
             {(() => {
               // Check if NWC is configured
-              const nwcUri =
-                (typeof localStorage !== 'undefined' &&
-                  localStorage.getItem('nwcConnectionString')) ||
-                (typeof sessionStorage !== 'undefined' &&
-                  sessionStorage.getItem('nwcConnectionString'));
+              // Migrate old format (safe to call multiple times)
+              try {
+                migrateOldNWCConnection();
+              } catch {
+                // Ignore migration errors
+              }
+
+              const nwcUri = getActiveNWCUri();
 
               if (nwcUri) {
                 return (
