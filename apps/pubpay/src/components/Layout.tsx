@@ -809,7 +809,7 @@ export const Layout: React.FC = () => {
                 Settings
               </Link>
               <Link
-                to="/settings/wallet"
+                to="/wallet"
                 className="sideNavLink"
                 title="Wallet"
                 onClick={closeMobileMenu}

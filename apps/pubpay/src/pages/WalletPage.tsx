@@ -393,12 +393,21 @@ const WalletPage: React.FC = () => {
     return (
       <div className="profilePage">
         <h1 className="profilePageTitle">Wallet</h1>
-        <div className="aboutContainer">
-          <div className="aboutContent">
-            <section className="aboutSection">
-              <div className="featureBlock">
-                <h3 className="featureTitle">Connect Your Wallet</h3>
-                <p className="featureDescription descriptionWithMargin">
+        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '24px' }}>
+          <div style={{ width: '100%' }}>
+            <section style={{ marginBottom: '24px' }}>
+              <div
+                style={{
+                  padding: '24px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)'
+                }}
+              >
+                <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', color: 'var(--text-primary)' }}>
+                  Connect Your Wallet
+                </h3>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: '1.6' }}>
                   Connect your Lightning wallet using Nostr Wallet Connect (NWC)
                   to view your balance, send payments, and receive invoices.
                 </p>
@@ -472,13 +481,14 @@ const WalletPage: React.FC = () => {
         </button>
       </div>
 
-      <div className="aboutContainer">
-        <div className="aboutContent">
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '24px' }}>
+        <div style={{ width: '100%' }}>
           {/* Balance Card */}
-          <section className="aboutSection">
-            <div className="featureBlock">
+          <section style={{ marginBottom: '24px' }}>
+            <div>
               <div
                 style={{
+                  position: 'relative',
                   textAlign: 'center',
                   padding: '32px 24px',
                   background: 'var(--bg-secondary)',
@@ -486,6 +496,55 @@ const WalletPage: React.FC = () => {
                   border: '1px solid var(--border-color)'
                 }}
               >
+                {/* Refresh button in top right */}
+                <button
+                  onClick={loadBalance}
+                  disabled={balanceLoading}
+                  style={{
+                    position: 'absolute',
+                    top: '16px',
+                    right: '16px',
+                    background: 'transparent',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    width: '36px',
+                    height: '36px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: balanceLoading ? 'wait' : 'pointer',
+                    transition: 'all 0.2s ease',
+                    color: 'var(--text-secondary)',
+                    padding: 0
+                  }}
+                  onMouseEnter={e => {
+                    if (!balanceLoading) {
+                      e.currentTarget.style.background = 'var(--bg-primary)';
+                      e.currentTarget.style.borderColor = '#4a75ff';
+                      e.currentTarget.style.color = '#4a75ff';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (!balanceLoading) {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                    }
+                  }}
+                  title="Refresh balance"
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      fontSize: '20px',
+                      animation: balanceLoading ? 'spin 1s linear infinite' : 'none',
+                      transition: 'transform 0.2s ease'
+                    }}
+                  >
+                    refresh
+                  </span>
+                </button>
+
                 <p
                   className="label"
                   style={{
@@ -511,9 +570,20 @@ const WalletPage: React.FC = () => {
                     style={{
                       color: '#ef4444',
                       fontSize: '14px',
-                      marginTop: '8px'
+                      marginTop: '8px',
+                      padding: '12px',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(239, 68, 68, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px'
                     }}
                   >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                      error_outline
+                    </span>
                     {balanceError}
                   </div>
                 ) : (
@@ -533,34 +603,29 @@ const WalletPage: React.FC = () => {
                         style={{
                           fontSize: '12px',
                           color: 'var(--text-tertiary)',
-                          marginTop: '8px'
+                          marginTop: '8px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
                         }}
                       >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                          schedule
+                        </span>
                         Updated {Math.floor((Date.now() - lastBalanceUpdate.getTime()) / 1000)}s
                         ago
                       </p>
                     )}
                   </>
                 )}
-                <button
-                  className="addButton"
-                  onClick={loadBalance}
-                  disabled={balanceLoading}
-                  style={{
-                    marginTop: '16px',
-                    fontSize: '14px',
-                    padding: '8px 16px'
-                  }}
-                >
-                  {balanceLoading ? 'Loading...' : 'Refresh'}
-                </button>
               </div>
             </div>
           </section>
 
           {/* Send/Receive Actions */}
-          <section className="aboutSection">
-            <div className="featureBlock">
+          <section style={{ marginBottom: '24px' }}>
+            <div>
               <div
                 style={{
                   display: 'grid',
@@ -607,9 +672,11 @@ const WalletPage: React.FC = () => {
           </section>
 
           {/* Transaction History */}
-          <section className="aboutSection">
-            <div className="featureBlock">
-              <h3 className="featureTitle">Recent Transactions</h3>
+          <section style={{ marginBottom: '24px' }}>
+            <div>
+              <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>
+                Recent Transactions
+              </h3>
               {transactionsLoading ? (
                 <div
                   className="skeleton"
@@ -620,28 +687,90 @@ const WalletPage: React.FC = () => {
                   }}
                 />
               ) : transactionsError ? (
-                <div style={{ marginTop: '16px', textAlign: 'center' }}>
+                <div
+                  style={{
+                    marginTop: '16px',
+                    textAlign: 'center',
+                    padding: '24px',
+                    background: 'var(--bg-secondary)',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      fontSize: '48px',
+                      color: '#ef4444',
+                      marginBottom: '12px',
+                      display: 'block'
+                    }}
+                  >
+                    error_outline
+                  </span>
                   <p
-                    className="featureDescription"
-                    style={{ color: '#ef4444', marginBottom: '8px' }}
+                    style={{
+                      color: '#ef4444',
+                      marginBottom: '16px',
+                      fontSize: '14px'
+                    }}
                   >
                     {transactionsError}
                   </p>
                   <button
-                    className="addButton"
                     onClick={loadTransactions}
-                    style={{ fontSize: '14px', padding: '8px 16px' }}
+                    disabled={transactionsLoading}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 20px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#fff',
+                      background: '#4a75ff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: transactionsLoading ? 'wait' : 'pointer',
+                      transition: 'all 0.2s ease',
+                      opacity: transactionsLoading ? 0.7 : 1
+                    }}
+                    onMouseEnter={e => {
+                      if (!transactionsLoading) {
+                        e.currentTarget.style.background = '#3d62e0';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!transactionsLoading) {
+                        e.currentTarget.style.background = '#4a75ff';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }
+                    }}
                   >
-                    Retry
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        fontSize: '18px',
+                        animation: transactionsLoading ? 'spin 1s linear infinite' : 'none'
+                      }}
+                    >
+                      {transactionsLoading ? 'refresh' : 'refresh'}
+                    </span>
+                    {transactionsLoading ? 'Retrying...' : 'Retry'}
                   </button>
                 </div>
               ) : transactions.length === 0 ? (
                 <p
-                  className="featureDescription"
-                  style={{ marginTop: '16px', textAlign: 'center' }}
-                >
-                  No transactions yet
-                </p>
+                    style={{
+                      marginTop: '16px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    No transactions yet
+                  </p>
               ) : (
                 <div style={{ marginTop: '16px' }}>
                   {transactions.map((tx, idx) => (
@@ -730,11 +859,11 @@ const WalletPage: React.FC = () => {
         isVisible={showOptionsModal}
         onClose={() => {
           setShowOptionsModal(false);
-          // Reload client if connection was changed
-          const savedNwc = localStorage.getItem('nwcConnectionString');
-          if (savedNwc) {
+          // Reload client if connection was added/changed
+          const nwcUri = getActiveNWCUri();
+          if (nwcUri) {
             try {
-              const client = new NwcClient(savedNwc);
+              const client = new NwcClient(nwcUri);
               setNwcClient(client);
             } catch (error) {
               console.error('Failed to initialize NWC client:', error);
