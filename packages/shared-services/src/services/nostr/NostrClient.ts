@@ -534,14 +534,14 @@ export class NostrClient {
           }
         };
 
-        // Timeout after 10 seconds
+        // Timeout after 3 seconds (reduced from 10s for faster loading)
         setTimeout(() => {
           if (!isComplete) {
             isComplete = true;
             subscription.close();
             resolve(events);
           }
-        }, 10000);
+        }, 3000);
       } catch (error) {
         reject(new Error(`Failed to get events: ${error}`));
       }

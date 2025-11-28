@@ -235,6 +235,8 @@ const ProfilePage: React.FC = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [loadStartTime, setLoadStartTime] = useState<number | null>(null);
+  const [profileDataLoaded, setProfileDataLoaded] = useState(false);
 
   // Activity stats (counts only for now)
   const [activityLoading, setActivityLoading] = useState(false);
@@ -246,6 +248,9 @@ const ProfilePage: React.FC = () => {
 
   // Paynotes data
   const [userPaynotes, setUserPaynotes] = useState<PubPayPost[]>([]);
+  const [isLoadingPaynotes, setIsLoadingPaynotes] = useState(false);
+  const [hasMorePaynotes, setHasMorePaynotes] = useState(false);
+  const [paynotesUntil, setPaynotesUntil] = useState<number | undefined>(undefined);
   // Track lightning addresses being validated to avoid duplicate calls
   const validatingLightningAddressesRef = React.useRef<Set<string>>(new Set());
   // Track NIP-05 identifiers being validated to avoid duplicate calls
@@ -352,12 +357,40 @@ const ProfilePage: React.FC = () => {
 
   // Load profile data - either from own profile or fetch external profile
   useEffect(() => {
+    let waitForProfileTimeout: NodeJS.Timeout | null = null;
+    
     const loadProfileData = async () => {
+      const startTime = Date.now();
+      setLoadStartTime(startTime);
+      setProfileDataLoaded(false);
       setIsLoadingProfile(false);
       setProfileError(null);
       setIsInitialLoad(true);
 
+      const markAsLoaded = () => {
+        // Ensure minimum display time for skeletons (300ms)
+        const elapsed = Date.now() - startTime;
+        const remainingTime = Math.max(0, 300 - elapsed);
+        setTimeout(() => {
+          setIsInitialLoad(false);
+          setIsLoadingProfile(false);
+          setProfileDataLoaded(true);
+        }, remainingTime);
+      };
+
       if (isOwnProfile) {
+        // For own profile, wait for userProfile to be loaded from authState
+        // If user is logged in but userProfile is null, it might still be loading
+        if (isLoggedIn && userProfile === null) {
+          // User is logged in but userProfile is null - might still be loading
+          // Wait a bit to see if it loads, then mark as loaded
+          waitForProfileTimeout = setTimeout(() => {
+            // After 500ms, if userProfile is still null, it's confirmed not available
+            markAsLoaded();
+          }, 500);
+          return; // Exit early, will re-run when userProfile changes
+        }
+        
         // Load own profile from userProfile
         if (userProfile?.content) {
           try {
@@ -379,11 +412,17 @@ const ProfilePage: React.FC = () => {
               lightningAddress: content.lud16 || '',
               nip05: content.nip05 || ''
             });
+            
+            markAsLoaded();
           } catch (error) {
             console.error('Failed to parse profile content:', error);
+            markAsLoaded();
           }
+        } else {
+          // userProfile is null and user is not logged in, or confirmed not available
+          // Mark as loaded after minimum time
+          markAsLoaded();
         }
-        setIsInitialLoad(false);
       } else if (targetPubkey && nostrClient) {
         // Validate pubkey format (use original pubkey parameter for validation)
         if (!isValidPublicKey(pubkey || publicKey)) {
@@ -434,18 +473,25 @@ const ProfilePage: React.FC = () => {
               nip05: ''
             });
           }
+          
+          markAsLoaded();
         } catch (error) {
           console.error('Failed to load external profile:', error);
           setProfileError('Failed to load profile');
-        } finally {
-          setIsLoadingProfile(false);
-          setIsInitialLoad(false);
+          markAsLoaded();
         }
       }
     };
 
     loadProfileData();
-  }, [isOwnProfile, targetPubkey, userProfile, nostrClient]);
+    
+    // Cleanup: clear timeout if component unmounts or dependencies change
+    return () => {
+      if (waitForProfileTimeout) {
+        clearTimeout(waitForProfileTimeout);
+      }
+    };
+  }, [isOwnProfile, targetPubkey, userProfile, nostrClient, isLoggedIn]);
 
   // Validate NIP-05 when it changes
   useEffect(() => {
@@ -468,26 +514,26 @@ const ProfilePage: React.FC = () => {
       });
   }, [profileData.nip05, targetPubkey]);
 
-  // Load activity stats (frontend-only, counts)
+  // Load activity stats (lightweight - IDs only for counting)
   useEffect(() => {
     const loadActivityStats = async () => {
       if (!targetPubkey || !nostrClient) return;
 
       setActivityLoading(true);
       try {
-        // Helper function to paginate and get all events
-        const getAllEvents = async (
+        // Helper function to paginate and get all event IDs (lightweight)
+        const getAllEventIds = async (
           filter: any,
           description: string
-        ): Promise<any[]> => {
-          const allEvents: any[] = [];
+        ): Promise<Set<string>> => {
+          const allEventIds = new Set<string>();
           let until: number | undefined = undefined;
           const limit = 500;
           let hasMore = true;
           let batchCount = 0;
 
           console.log(
-            `[${description}] Starting to fetch all events with filter:`,
+            `[${description}] Starting to fetch event IDs with filter:`,
             filter
           );
 
@@ -500,10 +546,6 @@ const ProfilePage: React.FC = () => {
                 ...(until ? { until } : {})
               };
 
-              console.log(
-                `[${description}] Batch ${batchCount} - Filter:`,
-                batchFilter
-              );
               const batch = (await nostrClient.getEvents([
                 batchFilter
               ])) as any[];
@@ -513,34 +555,28 @@ const ProfilePage: React.FC = () => {
               );
 
               if (batch.length === 0) {
-                console.log(`[${description}] No more events found`);
                 hasMore = false;
                 break;
               }
 
-              // Sort batch by created_at descending (newest first) to ensure consistent ordering
+              // Only extract IDs (lightweight)
+              batch.forEach((event: any) => {
+                if (event && event.id) {
+                  allEventIds.add(event.id);
+                }
+              });
+
+              // Sort to get oldest timestamp for pagination
               batch.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-
-              allEvents.push(...batch);
-
-              console.log(
-                `[${description}] Total events so far: ${allEvents.length}`
-              );
 
               // If we got fewer events than the limit, we've reached the end
               if (batch.length < limit) {
-                console.log(
-                  `[${description}] Got fewer events than limit (${batch.length} < ${limit}), reached end`
-                );
                 hasMore = false;
               } else {
                 // Set until to the oldest event's timestamp for next batch
-                const oldestEvent = batch[batch.length - 1]; // Last event is oldest (after sorting)
+                const oldestEvent = batch[batch.length - 1];
                 const oldestTimestamp = oldestEvent.created_at || 0;
-                until = oldestTimestamp - 1; // Subtract 1 to avoid overlap
-                console.log(
-                  `[${description}] Setting until to ${until} (oldest: ${oldestTimestamp})`
-                );
+                until = oldestTimestamp - 1;
               }
 
               // Safety limit to prevent infinite loops
@@ -559,55 +595,180 @@ const ProfilePage: React.FC = () => {
             }
           }
 
-          // Deduplicate by event ID
-          const uniqueEvents = new Map<string, any>();
-          for (const event of allEvents) {
-            if (event && event.id) {
-              uniqueEvents.set(event.id, event);
-            }
-          }
-
-          const finalCount = uniqueEvents.size;
           console.log(
-            `[${description}] Final count after deduplication: ${finalCount} unique events`
+            `[${description}] Final count: ${allEventIds.size} unique event IDs`
           );
 
-          return Array.from(uniqueEvents.values());
+          return allEventIds;
         };
 
-        // Fetch all kind:1 events by this user first (more reliable than filtering by tag on relay side)
-        let allNotes: any[] = [];
+        // Fetch all kind:1 event IDs by this user (lightweight - just IDs)
+        let allNoteIds: Set<string> = new Set();
         try {
-          allNotes = await getAllEvents(
+          const allNotes = await getAllEventIds(
             {
               kinds: [1],
               authors: [targetPubkey]
             },
             'all notes'
           );
-          console.log(`[stats] Fetched ${allNotes.length} total kind:1 events`);
+          allNoteIds = allNotes;
+          console.log(`[stats] Fetched ${allNoteIds.size} total kind:1 event IDs`);
         } catch (error) {
-          console.error('Error fetching all notes:', error);
-          allNotes = [];
+          console.error('Error fetching all note IDs:', error);
         }
 
-        // Filter for paynotes client-side (more reliable than relay tag filtering)
-        const paynotes = allNotes.filter((event: any) => {
-          if (!event || !event.tags) return false;
-          const hasPubpayTag = event.tags.some(
-            (tag: any[]) =>
-              Array.isArray(tag) && tag[0] === 't' && tag[1] === 'pubpay'
+        // Fetch paynote IDs (try with #t filter first, fallback to client-side filtering)
+        let paynoteIds: Set<string> = new Set();
+        try {
+          // Try querying with #t filter on relay side (more efficient)
+          const paynotesWithFilter = await getAllEventIds(
+            {
+              kinds: [1],
+              authors: [targetPubkey],
+              '#t': ['pubpay']
+            },
+            'paynotes (with filter)'
           );
-          return hasPubpayTag;
+          paynoteIds = paynotesWithFilter;
+          console.log(`[stats] Found ${paynoteIds.size} paynotes (with relay filter)`);
+        } catch (error) {
+          console.warn('Relay-side filtering failed, using all notes:', error);
+          // Fallback: if relay doesn't support #t filter, we'd need to fetch all and filter
+          // For now, use allNoteIds as approximation (will be less accurate)
+          paynoteIds = allNoteIds;
+        }
+
+        // Count zaps where:
+        //    - #e tag references one of the event IDs
+        //    - #p tag matches targetPubkey (user is the recipient)
+        const countZapsForEventIds = async (
+          eventIdsSet: Set<string>,
+          description: string
+        ): Promise<number> => {
+          if (eventIdsSet.size === 0) return 0;
+
+          const seen = new Set<string>();
+
+          // Query zaps received by this user (p tag = targetPubkey)
+          try {
+            // Get zaps where p tag matches targetPubkey
+            const receipts = (await nostrClient.getEvents([
+              { kinds: [9735], '#p': [targetPubkey], limit: 5000 }
+            ])) as any[];
+
+            // Filter to only zaps that reference events in our set
+            for (const receipt of receipts) {
+              if (!receipt || !receipt.id || !receipt.tags) continue;
+
+              // Check if this zap references one of our events
+              const eventTag = receipt.tags.find(
+                (tag: any[]) => tag[0] === 'e'
+              );
+              if (!eventTag || !eventTag[1]) continue;
+
+              const referencedEventId = eventTag[1];
+              if (eventIdsSet.has(referencedEventId)) {
+                seen.add(receipt.id);
+              }
+            }
+          } catch (error) {
+            console.error(`Error counting ${description}:`, error);
+          }
+
+          return seen.size;
+        };
+
+        const [pubpaysReceived, zapsReceived] = await Promise.all([
+          countZapsForEventIds(paynoteIds, 'pubpays received'),
+          countZapsForEventIds(allNoteIds, 'zaps received')
+        ]);
+
+        setActivityStats({
+          paynotesCreated: paynoteIds.size,
+          pubpaysReceived,
+          zapsReceived
         });
+      } catch (error) {
+        console.error('Error loading activity stats:', error);
+        // Set to zero on error
+        setActivityStats({
+          paynotesCreated: 0,
+          pubpaysReceived: 0,
+          zapsReceived: 0
+        });
+      } finally {
+        setActivityLoading(false);
+      }
+    };
 
-        console.log(
-          `[stats] Found ${paynotes.length} paynotes out of ${allNotes.length} total notes`
-        );
+    loadActivityStats();
+  }, [targetPubkey, nostrClient]);
 
-        // Convert paynotes to PubPayPost format for display
-        const formattedPaynotes: PubPayPost[] = paynotes.map((event: any) => {
-          // Extract PubPay metadata from tags (note: tags use hyphenated names)
+  // Load display paynotes (limited, with progressive rendering)
+  useEffect(() => {
+    const loadDisplayPaynotes = async (loadMore = false) => {
+      if (!targetPubkey || !nostrClient) return;
+
+      if (!loadMore) {
+        setIsLoadingPaynotes(true);
+        setUserPaynotes([]);
+        setPaynotesUntil(undefined);
+      }
+
+      try {
+        // Query paynotes with limit (for display)
+        const displayLimit = 21;
+        const filter: any = {
+          kinds: [1],
+          authors: [targetPubkey],
+          '#t': ['pubpay'],
+          limit: displayLimit
+        };
+
+        if (paynotesUntil) {
+          filter.until = paynotesUntil;
+        }
+
+        const paynoteEvents = (await nostrClient.getEvents([filter])) as any[];
+
+        if (paynoteEvents.length === 0) {
+          setHasMorePaynotes(false);
+          if (!loadMore) {
+            setIsLoadingPaynotes(false);
+          }
+          return;
+        }
+
+        // Deduplicate events by ID (multiple relays may return same events)
+        const uniqueEventsMap = new Map<string, any>();
+        paynoteEvents.forEach(event => {
+          if (!uniqueEventsMap.has(event.id)) {
+            uniqueEventsMap.set(event.id, event);
+          }
+        });
+        let deduplicatedEvents = Array.from(uniqueEventsMap.values());
+
+        // Sort by created_at (newest first)
+        deduplicatedEvents.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+
+        // Apply limit (safety check)
+        if (!loadMore) {
+          deduplicatedEvents = deduplicatedEvents.slice(0, displayLimit);
+        }
+
+        // Check if there are more posts
+        if (deduplicatedEvents.length >= displayLimit) {
+          const oldestEvent = deduplicatedEvents[deduplicatedEvents.length - 1];
+          setPaynotesUntil(oldestEvent.created_at);
+          setHasMorePaynotes(true);
+        } else {
+          setHasMorePaynotes(false);
+        }
+
+        // Convert to PubPayPost format (minimal data first)
+        const formattedPaynotes: PubPayPost[] = deduplicatedEvents.map((event: any) => {
+          // Extract PubPay metadata from tags
           let zapMin = 0;
           let zapMax = 0;
           let zapMaxUses = 0;
@@ -617,25 +778,27 @@ const ProfilePage: React.FC = () => {
           let zapGoal: number | undefined;
           event.tags.forEach((tag: any[]) => {
             if (tag[0] === 'zap-min')
-              zapMin = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
+              zapMin = Math.floor((parseInt(tag[1]) || 0) / 1000);
             if (tag[0] === 'zap-max')
-              zapMax = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
+              zapMax = Math.floor((parseInt(tag[1]) || 0) / 1000);
             if (tag[0] === 'zap-uses') zapMaxUses = parseInt(tag[1]) || 0;
-            if (tag[0] === 'zap-goal') zapGoal = Math.floor((parseInt(tag[1]) || 0) / 1000); // Convert from millisats to sats
+            if (tag[0] === 'zap-goal') zapGoal = Math.floor((parseInt(tag[1]) || 0) / 1000);
             if (tag[0] === 'zap-lnurl') lud16ToZap = tag[1] || '';
             if (tag[0] === 'zap-payer') zapPayerPubkey = tag[1] || '';
           });
 
+          // Mark as loading if no author profile yet
+          const hasAuthorProfile = false; // Will be loaded in background
           return {
             id: event.id,
             event,
-            author: null, // Will be populated by PayNoteComponent via ensureProfiles
-            zaps: [], // Will be populated by PayNoteComponent
+            author: null, // Will be loaded in background
+            zaps: [], // Will be loaded in background
             zapAmount: 0,
             zapMin,
             zapMax,
             zapUses: zapMaxUses,
-            zapUsesCurrent: 0, // Will be calculated by PayNoteComponent
+            zapUsesCurrent: 0,
             zapGoal,
             content: event.content || '',
             isPayable: true,
@@ -643,71 +806,60 @@ const ProfilePage: React.FC = () => {
             zapPayer: zapPayerPubkey || undefined,
             zapLNURL: lud16ToZap,
             createdAt: event.created_at || 0,
-            lightningValidating: true // Mark as validating if we have a lightning address
+            profileLoading: true, // Mark as loading
+            lightningValidating: true
           };
         });
 
-        // Sort by creation time (newest first)
-        formattedPaynotes.sort(
-          (a, b) => (b.event.created_at || 0) - (a.event.created_at || 0)
-        );
+        // Show paynotes immediately (progressive rendering)
+        if (loadMore) {
+          setUserPaynotes(prev => {
+            // Filter out duplicates
+            const existingIds = new Set(prev.map(p => p.id));
+            const newPosts = formattedPaynotes.filter(p => !existingIds.has(p.id));
+            return [...prev, ...newPosts];
+          });
+        } else {
+          setUserPaynotes(formattedPaynotes);
+          setIsLoadingPaynotes(false);
+        }
 
-        // Fetch author profiles for all paynotes
-        if (formattedPaynotes.length > 0 && nostrClient) {
+        // Load profiles, zaps, and zap payer profiles in background (non-blocking)
+        (async () => {
           try {
             const authorPubkeys = Array.from(
-              new Set(formattedPaynotes.map(p => p.event.pubkey))
+              new Set(deduplicatedEvents.map((e: any) => e.pubkey))
             );
-            const profileMap = await ensureProfiles(
+
+            // Load profiles and zaps in parallel
+            const [profileMap, zapEvents] = await Promise.all([
+              ensureProfiles(
               getQueryClient(),
               nostrClient,
               authorPubkeys
-            );
-
-            // Update paynotes with author data
-            formattedPaynotes.forEach(paynote => {
-              const authorProfile = profileMap.get(paynote.event.pubkey);
-              if (authorProfile) {
-                paynote.author = authorProfile;
-                // Set initial validating state for NIP-05 if present
-                try {
-                  const authorData = JSON.parse(authorProfile.content || '{}');
-                  if (authorData?.nip05) {
-                    paynote.nip05Validating = true;
-                  }
-                } catch {
-                  // Ignore parse errors
-                }
-              }
-            });
-
-            // Load zaps for all paynotes
-            const eventIds = formattedPaynotes.map(p => p.id);
-            const zapEvents = await ensureZaps(
+              ),
+              ensureZaps(
               getQueryClient(),
               nostrClient,
-              eventIds
-            );
+                deduplicatedEvents.map((e: any) => e.id)
+              )
+            ]);
 
-            // Extract zap payer pubkeys from both notes and zap events
+            // Extract zap payer pubkeys
             const zapPayerPubkeys = new Set<string>();
-            // First, collect zap-payer pubkeys from the notes themselves
-            formattedPaynotes.forEach(paynote => {
-              if (paynote.zapPayer) {
-                zapPayerPubkeys.add(paynote.zapPayer);
+            deduplicatedEvents.forEach((event: any) => {
+              const zapPayerTag = event.tags.find((tag: any[]) => tag[0] === 'zap-payer');
+              if (zapPayerTag && zapPayerTag[1]) {
+                zapPayerPubkeys.add(zapPayerTag[1]);
               }
             });
-            // Then, collect zap-payer pubkeys from zap events
             zapEvents.forEach((zap: any) => {
-              const descriptionTag = zap.tags.find(
-                (tag: any[]) => tag[0] === 'description'
-              );
+              const descriptionTag = zap.tags.find((tag: any[]) => tag[0] === 'description');
               let hasPubkeyInDescription = false;
 
               if (descriptionTag) {
                 try {
-                  const zapData =
-                    parseZapDescription(descriptionTag[1] || undefined) || {};
+                  const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
                   if (zapData.pubkey) {
                     zapPayerPubkeys.add(zapData.pubkey);
                     hasPubkeyInDescription = true;
@@ -717,7 +869,6 @@ const ProfilePage: React.FC = () => {
                 }
               }
 
-              // For anonymous zaps, use the zap event's pubkey
               if (!hasPubkeyInDescription) {
                 zapPayerPubkeys.add(zap.pubkey);
               }
@@ -733,18 +884,68 @@ const ProfilePage: React.FC = () => {
                   )
                 : new Map();
 
-            // Process zaps for each paynote
-            formattedPaynotes.forEach(paynote => {
+            // Update posts with profiles (progressive enhancement)
+            const updatePostWithProfile = (post: PubPayPost, event: any, author: any): PubPayPost => {
+              if (!author || author.content === '{}') {
+                return post;
+              }
+
+              const updatedPost = { ...post, author, profileLoading: false };
+
+              // Recalculate isPayable based on author profile
+              try {
+                const authorData = safeJson<Record<string, any>>(author.content || '{}', {});
+                const hasLud16 = !!(authorData as any).lud16;
+                const hasNip05 = !!(authorData as any).nip05;
+
+                const zapMinTag = event.tags.find((tag: any[]) => tag[0] === 'zap-min');
+                const zapMaxTag = event.tags.find((tag: any[]) => tag[0] === 'zap-max');
+                const zapLNURLTag = event.tags.find((tag: any[]) => tag[0] === 'zap-lnurl');
+                const hasZapTags = !!(zapMinTag || zapMaxTag || event.tags.find((tag: any[]) => tag[0] === 'zap-uses') || event.tags.find((tag: any[]) => tag[0] === 'zap-goal'));
+                const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
+
+                updatedPost.hasZapTags = hasZapTags;
+                updatedPost.isPayable = (hasLud16 || !!updatedPost.zapLNURL) && hasPaymentAmount;
+
+                if (hasLud16) {
+                  updatedPost.lightningValidating = true;
+                }
+                if (hasNip05) {
+                  updatedPost.nip05Validating = true;
+                }
+              } catch {
+                // Keep existing values on error
+              }
+
+              return updatedPost;
+            };
+
+            setUserPaynotes(prev => {
+              return prev.map(post => {
+                const event = deduplicatedEvents.find((e: any) => e.id === post.id);
+                if (!event) return post;
+
+                const author = profileMap.get(event.pubkey) || null;
+                return updatePostWithProfile(post, event, author);
+              });
+            });
+
+            // Process and update zaps
+            setUserPaynotes(prev => {
+              return prev.map(paynote => {
+                const event = deduplicatedEvents.find((e: any) => e.id === paynote.id);
+                if (!event) return paynote;
+
               const postZaps = zapEvents.filter((zap: any) => {
                 const eTag = zap.tags.find((tag: any[]) => tag[0] === 'e');
                 return eTag && eTag[1] === paynote.id;
               });
 
+                if (postZaps.length === 0) return paynote;
+
               // Process zaps
               const processedZaps = postZaps.map((zap: any) => {
-                const bolt11Tag = zap.tags.find(
-                  (tag: any[]) => tag[0] === 'bolt11'
-                );
+                  const bolt11Tag = zap.tags.find((tag: any[]) => tag[0] === 'bolt11');
                 let zapAmount = 0;
                 if (bolt11Tag) {
                   try {
@@ -755,26 +956,17 @@ const ProfilePage: React.FC = () => {
                   }
                 }
 
-                const descriptionTag = zap.tags.find(
-                  (tag: any[]) => tag[0] === 'description'
-                );
+                  const descriptionTag = zap.tags.find((tag: any[]) => tag[0] === 'description');
                 let zapPayerPubkey = zap.pubkey;
                 let zapContent = '';
 
                 if (descriptionTag) {
                   try {
-                    const zapData = parseZapDescription(
-                      descriptionTag[1] || undefined
-                    );
+                      const zapData = parseZapDescription(descriptionTag[1] || undefined);
                     if (zapData?.pubkey) {
                       zapPayerPubkey = zapData.pubkey;
                     }
-                    // Extract content from zap description (the zap message/comment)
-                    if (
-                      zapData &&
-                      'content' in zapData &&
-                      typeof zapData.content === 'string'
-                    ) {
+                      if (zapData && 'content' in zapData && typeof zapData.content === 'string') {
                       zapContent = zapData.content;
                     }
                   } catch {
@@ -783,7 +975,7 @@ const ProfilePage: React.FC = () => {
                 }
 
                 const zapPayerProfile = zapPayerProfileMap.get(zapPayerPubkey);
-                const zapPayerPicture = zapPayerProfile
+                  const zapPayerPicture = zapPayerProfile && zapPayerProfile.content && zapPayerProfile.content !== '{}'
                   ? (
                       safeJson<Record<string, unknown>>(
                         zapPayerProfile.content || '{}',
@@ -830,12 +1022,9 @@ const ProfilePage: React.FC = () => {
                   ? Math.min(zapsWithinLimits.length, paynote.zapUses)
                   : zapsWithinLimits.length;
 
-              // Update paynote with zap data
-              paynote.zaps = processedZaps;
-              paynote.zapAmount = totalZapAmount;
-              paynote.zapUsesCurrent = zapUsesCurrent;
-
               // Set zap-payer picture and name if zap-payer tag exists
+                let zapPayerPicture = genericUserIcon;
+                let zapPayerName: string | undefined = undefined;
               if (paynote.zapPayer) {
                 const zapPayerProfile = zapPayerProfileMap.get(paynote.zapPayer);
                 if (zapPayerProfile) {
@@ -844,113 +1033,348 @@ const ProfilePage: React.FC = () => {
                       zapPayerProfile.content || '{}',
                       {}
                     );
-                    paynote.zapPayerPicture =
-                      (profileData as any).picture || genericUserIcon;
-                    paynote.zapPayerName =
-                      (profileData as any).display_name ||
-                      (profileData as any).name ||
-                      undefined;
+                      zapPayerPicture = (profileData as any).picture || genericUserIcon;
+                      zapPayerName = (profileData as any).display_name || (profileData as any).name || undefined;
                   } catch {
-                    paynote.zapPayerPicture = genericUserIcon;
+                      zapPayerPicture = genericUserIcon;
+                    }
                   }
-                } else {
-                  paynote.zapPayerPicture = genericUserIcon;
                 }
-              }
+
+                return {
+                  ...paynote,
+                  zaps: processedZaps,
+                  zapAmount: totalZapAmount,
+                  zapUsesCurrent,
+                  zapPayerPicture,
+                  zapPayerName
+                };
+              });
             });
-          } catch (error) {
-            console.error(
-              'Failed to load profiles and zaps for paynotes:',
-              error
-            );
+
+            // Validate lightning addresses asynchronously
+            setTimeout(() => {
+              setUserPaynotes(prev => {
+                validateLightningAddresses(prev);
+                validateNip05s(prev);
+                return prev;
+              });
+            }, 100);
+          } catch (err) {
+            console.error('Error loading profiles/zaps in background:', err);
           }
-        }
-
-        // Store the paynotes in state
-        setUserPaynotes(formattedPaynotes);
-
-        // Validate lightning addresses asynchronously (don't block UI)
-        validateLightningAddresses(formattedPaynotes);
-        // Validate NIP-05 identifiers asynchronously (don't block UI)
-        validateNip05s(formattedPaynotes);
-
-        // Create Set for fast lookup
-        const paynoteIdsSet = new Set<string>(
-          paynotes.map((e: any) => e.id).filter(Boolean)
-        );
-
-        // Create Set of all note IDs (includes paynotes)
-        const allNoteIdsSet = new Set<string>(
-          allNotes.map(e => e.id).filter(Boolean)
-        );
-
-        // 3) Count zaps where:
-        //    - #e tag references one of the event IDs
-        //    - #p tag matches targetPubkey (user is the recipient)
-        const countZapsForEventIds = async (
-          eventIdsSet: Set<string>,
-          description: string
-        ): Promise<number> => {
-          if (eventIdsSet.size === 0) return 0;
-
-          // Query zaps where recipient is targetPubkey
-          // Then filter by event IDs
-          const seen = new Set<string>();
-
-          // Query zaps received by this user (p tag = targetPubkey)
-          try {
-            // Get zaps where p tag matches targetPubkey
-            const receipts = (await nostrClient.getEvents([
-              { kinds: [9735], '#p': [targetPubkey], limit: 5000 }
-            ])) as any[];
-
-            // Filter to only zaps that reference events in our set
-            for (const receipt of receipts) {
-              if (!receipt || !receipt.id || !receipt.tags) continue;
-
-              // Check if this zap references one of our events
-              const eventTag = receipt.tags.find(
-                (tag: any[]) => tag[0] === 'e'
-              );
-              if (!eventTag || !eventTag[1]) continue;
-
-              const referencedEventId = eventTag[1];
-              if (eventIdsSet.has(referencedEventId)) {
-                seen.add(receipt.id);
-              }
-            }
+        })();
           } catch (error) {
-            console.error(`Error counting ${description}:`, error);
-          }
-
-          return seen.size;
-        };
-
-        const [pubpaysReceived, zapsReceived] = await Promise.all([
-          countZapsForEventIds(paynoteIdsSet, 'pubpays received'),
-          countZapsForEventIds(allNoteIdsSet, 'zaps received')
-        ]);
-
-        setActivityStats({
-          paynotesCreated: paynoteIdsSet.size,
-          pubpaysReceived,
-          zapsReceived
-        });
-      } catch (error) {
-        console.error('Error loading activity stats:', error);
-        // Set to zero on error
-        setActivityStats({
-          paynotesCreated: 0,
-          pubpaysReceived: 0,
-          zapsReceived: 0
-        });
-      } finally {
-        setActivityLoading(false);
+        console.error('Error loading display paynotes:', error);
+        setIsLoadingPaynotes(false);
       }
     };
 
-    loadActivityStats();
+    loadDisplayPaynotes(false);
   }, [targetPubkey, nostrClient]);
+
+  // Load more paynotes handler
+  const loadMorePaynotes = React.useCallback(async () => {
+    if (!targetPubkey || !nostrClient || !hasMorePaynotes || isLoadingPaynotes) return;
+    
+    setIsLoadingPaynotes(true);
+    try {
+      const displayLimit = 21;
+      const filter: any = {
+        kinds: [1],
+        authors: [targetPubkey],
+        '#t': ['pubpay'],
+        limit: displayLimit
+      };
+
+      if (paynotesUntil) {
+        filter.until = paynotesUntil;
+      }
+
+      const paynoteEvents = (await nostrClient.getEvents([filter])) as any[];
+
+      if (paynoteEvents.length === 0) {
+        setHasMorePaynotes(false);
+        setIsLoadingPaynotes(false);
+        return;
+      }
+
+      // Deduplicate events by ID
+      const uniqueEventsMap = new Map<string, any>();
+      paynoteEvents.forEach(event => {
+        if (!uniqueEventsMap.has(event.id)) {
+          uniqueEventsMap.set(event.id, event);
+        }
+      });
+      let deduplicatedEvents = Array.from(uniqueEventsMap.values());
+      deduplicatedEvents.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+
+      // Check if there are more posts
+      if (deduplicatedEvents.length >= displayLimit) {
+        const oldestEvent = deduplicatedEvents[deduplicatedEvents.length - 1];
+        setPaynotesUntil(oldestEvent.created_at);
+        setHasMorePaynotes(true);
+      } else {
+        setHasMorePaynotes(false);
+      }
+
+      // Convert to PubPayPost format
+      const formattedPaynotes: PubPayPost[] = deduplicatedEvents.map((event: any) => {
+        let zapMin = 0;
+        let zapMax = 0;
+        let zapMaxUses = 0;
+        let lud16ToZap = '';
+        let zapPayerPubkey = '';
+        let zapGoal: number | undefined;
+
+        event.tags.forEach((tag: any[]) => {
+          if (tag[0] === 'zap-min') zapMin = Math.floor((parseInt(tag[1]) || 0) / 1000);
+          if (tag[0] === 'zap-max') zapMax = Math.floor((parseInt(tag[1]) || 0) / 1000);
+          if (tag[0] === 'zap-uses') zapMaxUses = parseInt(tag[1]) || 0;
+          if (tag[0] === 'zap-goal') zapGoal = Math.floor((parseInt(tag[1]) || 0) / 1000);
+          if (tag[0] === 'zap-lnurl') lud16ToZap = tag[1] || '';
+          if (tag[0] === 'zap-payer') zapPayerPubkey = tag[1] || '';
+        });
+
+        return {
+          id: event.id,
+          event,
+          author: null,
+          zaps: [],
+          zapAmount: 0,
+          zapMin,
+          zapMax,
+          zapUses: zapMaxUses,
+          zapUsesCurrent: 0,
+          zapGoal,
+          content: event.content || '',
+          isPayable: true,
+          hasZapTags: true,
+          zapPayer: zapPayerPubkey || undefined,
+          zapLNURL: lud16ToZap,
+          createdAt: event.created_at || 0,
+          profileLoading: true,
+          lightningValidating: true
+        };
+      });
+
+      // Add to existing paynotes
+      setUserPaynotes(prev => {
+        const existingIds = new Set(prev.map(p => p.id));
+        const newPosts = formattedPaynotes.filter(p => !existingIds.has(p.id));
+        return [...prev, ...newPosts];
+      });
+
+      setIsLoadingPaynotes(false);
+
+      // Load profiles and zaps in background (same as initial load)
+      (async () => {
+        try {
+          const authorPubkeys = Array.from(
+            new Set(deduplicatedEvents.map((e: any) => e.pubkey))
+          );
+
+          const [profileMap, zapEvents] = await Promise.all([
+            ensureProfiles(getQueryClient(), nostrClient, authorPubkeys),
+            ensureZaps(getQueryClient(), nostrClient, deduplicatedEvents.map((e: any) => e.id))
+          ]);
+
+          // Extract zap payer pubkeys
+          const zapPayerPubkeys = new Set<string>();
+          deduplicatedEvents.forEach((event: any) => {
+            const zapPayerTag = event.tags.find((tag: any[]) => tag[0] === 'zap-payer');
+            if (zapPayerTag && zapPayerTag[1]) {
+              zapPayerPubkeys.add(zapPayerTag[1]);
+            }
+          });
+          zapEvents.forEach((zap: any) => {
+            const descriptionTag = zap.tags.find((tag: any[]) => tag[0] === 'description');
+            let hasPubkeyInDescription = false;
+
+            if (descriptionTag) {
+              try {
+                const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+                if (zapData.pubkey) {
+                  zapPayerPubkeys.add(zapData.pubkey);
+                  hasPubkeyInDescription = true;
+                }
+              } catch {
+                // Handle parsing error
+              }
+            }
+
+            if (!hasPubkeyInDescription) {
+              zapPayerPubkeys.add(zap.pubkey);
+            }
+          });
+
+          const zapPayerProfileMap =
+            zapPayerPubkeys.size > 0
+              ? await ensureProfiles(getQueryClient(), nostrClient, Array.from(zapPayerPubkeys))
+              : new Map();
+
+          // Update posts with profiles
+          setUserPaynotes(prev => {
+            return prev.map(post => {
+              const event = deduplicatedEvents.find((e: any) => e.id === post.id);
+              if (!event) return post;
+
+              const author = profileMap.get(event.pubkey) || null;
+              if (author && author.content !== '{}') {
+                const updatedPost = { ...post, author, profileLoading: false };
+                try {
+                  const authorData = safeJson<Record<string, any>>(author.content || '{}', {});
+                  const hasLud16 = !!(authorData as any).lud16;
+                  const hasNip05 = !!(authorData as any).nip05;
+
+                  const zapMinTag = event.tags.find((tag: any[]) => tag[0] === 'zap-min');
+                  const zapMaxTag = event.tags.find((tag: any[]) => tag[0] === 'zap-max');
+                  const zapLNURLTag = event.tags.find((tag: any[]) => tag[0] === 'zap-lnurl');
+                  const hasZapTags = !!(zapMinTag || zapMaxTag || event.tags.find((tag: any[]) => tag[0] === 'zap-uses') || event.tags.find((tag: any[]) => tag[0] === 'zap-goal'));
+                  const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
+
+                  updatedPost.hasZapTags = hasZapTags;
+                  updatedPost.isPayable = (hasLud16 || !!updatedPost.zapLNURL) && hasPaymentAmount;
+
+                  if (hasLud16) {
+                    updatedPost.lightningValidating = true;
+                  }
+                  if (hasNip05) {
+                    updatedPost.nip05Validating = true;
+                  }
+                } catch {
+                  // Keep existing values on error
+                }
+                return updatedPost;
+              }
+              return post;
+            });
+          });
+
+          // Process and update zaps
+          setUserPaynotes(prev => {
+            return prev.map(paynote => {
+              const event = deduplicatedEvents.find((e: any) => e.id === paynote.id);
+              if (!event) return paynote;
+
+              const postZaps = zapEvents.filter((zap: any) => {
+                const eTag = zap.tags.find((tag: any[]) => tag[0] === 'e');
+                return eTag && eTag[1] === paynote.id;
+              });
+
+              if (postZaps.length === 0) return paynote;
+
+              const processedZaps = postZaps.map((zap: any) => {
+                const bolt11Tag = zap.tags.find((tag: any[]) => tag[0] === 'bolt11');
+                let zapAmount = 0;
+                if (bolt11Tag) {
+                  try {
+                    const decoded = bolt11.decode(bolt11Tag[1] || '');
+                    zapAmount = decoded.satoshis || 0;
+                  } catch {
+                    zapAmount = 0;
+                  }
+                }
+
+                const descriptionTag = zap.tags.find((tag: any[]) => tag[0] === 'description');
+                let zapPayerPubkey = zap.pubkey;
+                let zapContent = '';
+
+                if (descriptionTag) {
+                  try {
+                    const zapData = parseZapDescription(descriptionTag[1] || undefined);
+                    if (zapData?.pubkey) {
+                      zapPayerPubkey = zapData.pubkey;
+                    }
+                    if (zapData && 'content' in zapData && typeof zapData.content === 'string') {
+                      zapContent = zapData.content;
+                    }
+                  } catch {
+                    // Use zap.pubkey as fallback
+                  }
+                }
+
+                const zapPayerProfile = zapPayerProfileMap.get(zapPayerPubkey);
+                const zapPayerPicture = zapPayerProfile && zapPayerProfile.content && zapPayerProfile.content !== '{}'
+                  ? (safeJson<Record<string, unknown>>(zapPayerProfile.content || '{}', {}) as any).picture || genericUserIcon
+                  : genericUserIcon;
+
+                const zapPayerNpub = nip19.npubEncode(zapPayerPubkey);
+
+                return {
+                  ...zap,
+                  zapAmount,
+                  zapPayerPubkey,
+                  zapPayerPicture,
+                  zapPayerNpub,
+                  content: zapContent
+                };
+              });
+
+              const zapsWithinLimits = processedZaps.filter((zap: any) => {
+                const amount = zap.zapAmount;
+                const min = paynote.zapMin;
+                const max = paynote.zapMax;
+
+                if (min > 0 && max > 0) {
+                  return amount >= min && amount <= max;
+                } else if (min > 0 && max === 0) {
+                  return amount >= min;
+                } else if (min === 0 && max > 0) {
+                  return amount <= max;
+                } else {
+                  return true;
+                }
+              });
+
+              const totalZapAmount = processedZaps.reduce((sum: number, zap: any) => sum + zap.zapAmount, 0);
+              const zapUsesCurrent =
+                paynote.zapUses && paynote.zapUses > 0
+                  ? Math.min(zapsWithinLimits.length, paynote.zapUses)
+                  : zapsWithinLimits.length;
+
+              let zapPayerPicture = genericUserIcon;
+              let zapPayerName: string | undefined = undefined;
+              if (paynote.zapPayer) {
+                const zapPayerProfile = zapPayerProfileMap.get(paynote.zapPayer);
+                if (zapPayerProfile) {
+                  try {
+                    const profileData = safeJson<Record<string, any>>(zapPayerProfile.content || '{}', {});
+                    zapPayerPicture = (profileData as any).picture || genericUserIcon;
+                    zapPayerName = (profileData as any).display_name || (profileData as any).name || undefined;
+                  } catch {
+                    zapPayerPicture = genericUserIcon;
+                  }
+                }
+              }
+
+              return {
+                ...paynote,
+                zaps: processedZaps,
+                zapAmount: totalZapAmount,
+                zapUsesCurrent,
+                zapPayerPicture,
+                zapPayerName
+              };
+            });
+          });
+
+          setTimeout(() => {
+            setUserPaynotes(prev => {
+              validateLightningAddresses(prev);
+              validateNip05s(prev);
+              return prev;
+            });
+          }, 100);
+        } catch (err) {
+          console.error('Error loading profiles/zaps in background:', err);
+        }
+      })();
+    } catch (error) {
+      console.error('Error loading more paynotes:', error);
+      setIsLoadingPaynotes(false);
+    }
+  }, [targetPubkey, nostrClient, hasMorePaynotes, isLoadingPaynotes, paynotesUntil]);
 
   // Validate lightning addresses for posts asynchronously
   const validateLightningAddresses = async (posts: PubPayPost[]) => {
@@ -1370,60 +1794,74 @@ const ProfilePage: React.FC = () => {
         {isOwnProfile ? 'Profile' : 'User Profile'}
       </h1>
 
-      {isLoadingProfile || isInitialLoad ? (
-        <div className="profileSection">
-          <div
-            className="profileBanner"
-            style={{ backgroundColor: '#e9ecef' }}
-          ></div>
+      {(() => {
+        // Show skeletons if: loading, initial load, or data not confirmed loaded yet
+        // Only hide skeleton when data is confirmed loaded (profileDataLoaded = true)
+        const shouldShowSkeleton = 
+          isLoadingProfile || 
+          isInitialLoad || 
+          !profileDataLoaded;
+        return shouldShowSkeleton;
+      })() ? (
+        <div className="profileSection" id="profilePreview">
+          {/* Banner Image */}
+          <div className="profileBanner">
+            <div className="skeleton" style={{ width: '100%', height: '120px', borderRadius: '0' }}></div>
+          </div>
+
           <div className="profileUserInfo">
-            <div
-              className="profileAvatar"
-              style={{ backgroundColor: '#e9ecef' }}
-            >
+            <div className="profileAvatar">
+              <div className="skeleton skeleton-avatar" style={{ width: '100%', height: '100%', borderRadius: '50%' }}></div>
+            </div>
+            <div className="profileUserDetails">
               <div
                 style={{
-                  width: '60px',
-                  height: '60px',
-                  borderRadius: '50%',
-                  backgroundColor: '#dee2e6',
                   display: 'flex',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '24px',
-                  color: '#adb5bd'
+                  marginBottom: '8px'
                 }}
               >
-                ...
+                <h2 style={{ margin: 0 }}>
+                  <div className="skeleton skeleton-text" style={{ width: '200px', height: '24px' }}></div>
+                </h2>
+                {isOwnProfile || isLoggedIn ? (
+                  <div className="skeleton" style={{ width: '60px', height: '32px', borderRadius: '6px' }}></div>
+                ) : null}
               </div>
-            </div>
-            <div className="profileUserDetails" style={{ flex: 1 }}>
-              <div
-                style={{
-                  height: '24px',
-                  backgroundColor: '#e9ecef',
-                  borderRadius: '4px',
-                  marginBottom: '8px',
-                  width: '200px'
-                }}
-              ></div>
-              <div
-                style={{
-                  height: '16px',
-                  backgroundColor: '#e9ecef',
-                  borderRadius: '4px',
-                  marginBottom: '8px',
-                  width: '150px'
-                }}
-              ></div>
-              <div
-                style={{
-                  height: '14px',
-                  backgroundColor: '#e9ecef',
-                  borderRadius: '4px',
-                  width: '100px'
-                }}
-              ></div>
+              <div className="skeleton skeleton-text short" style={{ height: '16px', width: '150px', marginBottom: '8px' }}></div>
+              <p style={{ margin: 0 }}>
+                <div className="skeleton skeleton-text" style={{ height: '14px', width: '100%', marginBottom: '4px' }}></div>
+                <div className="skeleton skeleton-text medium" style={{ height: '14px' }}></div>
+              </p>
+
+              {/* Profile Details */}
+              <div className="profileDetails">
+                {(isOwnProfile || true) && (
+                  <div className="profileDetailItem">
+                    <label>Lightning Address</label>
+                    <div className="profileDetailValue">
+                      <div className="skeleton skeleton-text" style={{ width: '180px', height: '20px' }}></div>
+                    </div>
+                  </div>
+                )}
+                {(isOwnProfile || true) && (
+                  <div className="profileDetailItem">
+                    <label>Identifier (nip-05)</label>
+                    <div className="profileDetailValue">
+                      <div className="skeleton skeleton-text" style={{ width: '150px', height: '20px' }}></div>
+                    </div>
+                  </div>
+                )}
+                {targetPubkey && (
+                  <div className="profileDetailItem">
+                    <label>User ID (npub)</label>
+                    <div className="profileDetailValue">
+                      <div className="skeleton skeleton-text" style={{ width: '200px', height: '20px' }}></div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1489,7 +1927,15 @@ const ProfilePage: React.FC = () => {
 
             <div className="profileUserInfo">
               <div className="profileAvatar">
-                {profileData.picture ? (
+                {(() => {
+                  const shouldShowSkeleton = 
+                    isLoadingProfile || 
+                    isInitialLoad || 
+                    !profileDataLoaded;
+                  return shouldShowSkeleton;
+                })() ? (
+                  <div className="skeleton skeleton-avatar" style={{ width: '120px', height: '120px' }}></div>
+                ) : profileData.picture ? (
                   <img
                     src={profileData.picture}
                     alt="Profile"
@@ -1504,6 +1950,14 @@ const ProfilePage: React.FC = () => {
                     }}
                   />
                 ) : null}
+                {(() => {
+                  const shouldShowSkeleton = 
+                    isLoadingProfile || 
+                    isInitialLoad || 
+                    !profileDataLoaded ||
+                    (loadStartTime !== null && Date.now() - loadStartTime < 300);
+                  return !shouldShowSkeleton;
+                })() && (
                 <div
                   className="profileAvatarFallback"
                   style={{ display: profileData.picture ? 'none' : 'flex' }}
@@ -1512,6 +1966,7 @@ const ProfilePage: React.FC = () => {
                     ? profileData.displayName.charAt(0).toUpperCase()
                     : 'U'}
                 </div>
+                )}
               </div>
               <div className="profileUserDetails">
                 <div
@@ -1523,7 +1978,18 @@ const ProfilePage: React.FC = () => {
                   }}
                 >
                   <h2 style={{ margin: 0 }}>
-                    {profileData.displayName || displayName || 'Anonymous User'}
+                    {(() => {
+                      const shouldShowSkeleton = 
+                        isLoadingProfile || 
+                        isInitialLoad || 
+                        !profileDataLoaded ||
+                        (loadStartTime !== null && Date.now() - loadStartTime < 300);
+                      return shouldShowSkeleton;
+                    })() ? (
+                      <div className="skeleton skeleton-text" style={{ width: '200px', height: '28px' }}></div>
+                    ) : (
+                      profileData.displayName || displayName || 'Anonymous User'
+                    )}
                   </h2>
                   {isOwnProfile ? (
                     <button
@@ -1548,6 +2014,20 @@ const ProfilePage: React.FC = () => {
                     )
                   )}
                 </div>
+                {(() => {
+                  const shouldShowSkeleton = 
+                    isLoadingProfile || 
+                    isInitialLoad || 
+                    !profileDataLoaded;
+                  return shouldShowSkeleton;
+                })() ? (
+                  <>
+                    <div className="skeleton skeleton-text short" style={{ height: '16px', marginBottom: '8px' }}></div>
+                    <div className="skeleton skeleton-text" style={{ height: '14px', width: '100%', marginBottom: '4px' }}></div>
+                    <div className="skeleton skeleton-text medium" style={{ height: '14px' }}></div>
+                  </>
+                ) : (
+                  <>
                 {profileData.website && (
                   <a
                     href={profileData.website}
@@ -1559,6 +2039,8 @@ const ProfilePage: React.FC = () => {
                   </a>
                 )}
                 <p>{profileData.bio || 'PubPay User'}</p>
+                  </>
+                )}
 
                 {/* Profile Details */}
                 <div className="profileDetails">
@@ -1566,7 +2048,16 @@ const ProfilePage: React.FC = () => {
                     <div className="profileDetailItem">
                       <label>Lightning Address</label>
                       <div className="profileDetailValue">
-                        {profileData.lightningAddress ? (
+                        {(() => {
+                          const shouldShowSkeleton = 
+                            isLoadingProfile || 
+                            isInitialLoad || 
+                            !profileDataLoaded ||
+                            (loadStartTime !== null && Date.now() - loadStartTime < 300);
+                          return shouldShowSkeleton;
+                        })() ? (
+                          <div className="skeleton skeleton-text" style={{ width: '180px', height: '20px' }}></div>
+                        ) : profileData.lightningAddress ? (
                           <>
                             <a
                               href={`lightning:${profileData.lightningAddress}`}
@@ -1611,7 +2102,16 @@ const ProfilePage: React.FC = () => {
                     <div className="profileDetailItem">
                       <label>Identifier (nip-05)</label>
                       <div className="profileDetailValue">
-                        {profileData.nip05 ? (
+                        {(() => {
+                          const shouldShowSkeleton = 
+                            isLoadingProfile || 
+                            isInitialLoad || 
+                            !profileDataLoaded ||
+                            (loadStartTime !== null && Date.now() - loadStartTime < 300);
+                          return shouldShowSkeleton;
+                        })() ? (
+                          <div className="skeleton skeleton-text" style={{ width: '150px', height: '20px' }}></div>
+                        ) : profileData.nip05 ? (
                           <>
                             <a
                               href={`https://${profileData.nip05.split('@')[1]}/.well-known/nostr.json?name=${profileData.nip05.split('@')[0]}`}
@@ -1720,20 +2220,32 @@ const ProfilePage: React.FC = () => {
             <h2 className="profileStatsTitle">Activity Stats</h2>
             <div className="profileStatsGrid">
               <div className="profileStatCard">
-                <div className="profileStatValue">
-                  {activityLoading ? '—' : activityStats.paynotesCreated}
+                <div className="profileStatValue" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '32px' }}>
+                  {activityLoading ? (
+                    <div className="skeleton skeleton-value" style={{ width: '50px', height: '28px' }}></div>
+                  ) : (
+                    activityStats.paynotesCreated
+                  )}
                 </div>
                 <div className="profileStatLabel">Paynotes Created</div>
               </div>
               <div className="profileStatCard">
-                <div className="profileStatValue">
-                  {activityLoading ? '—' : activityStats.pubpaysReceived}
+                <div className="profileStatValue" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '32px' }}>
+                  {activityLoading ? (
+                    <div className="skeleton skeleton-value" style={{ width: '50px', height: '28px' }}></div>
+                  ) : (
+                    activityStats.pubpaysReceived
+                  )}
                 </div>
                 <div className="profileStatLabel">PubPays Received</div>
               </div>
               <div className="profileStatCard">
-                <div className="profileStatValue">
-                  {activityLoading ? '—' : activityStats.zapsReceived}
+                <div className="profileStatValue" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '32px' }}>
+                  {activityLoading ? (
+                    <div className="skeleton skeleton-value" style={{ width: '50px', height: '28px' }}></div>
+                  ) : (
+                    activityStats.zapsReceived
+                  )}
                 </div>
                 <div className="profileStatLabel">Zaps Received</div>
               </div>
@@ -1743,7 +2255,7 @@ const ProfilePage: React.FC = () => {
           {/* Paynotes Section */}
           <div className="profilePaynotesSection" style={{ marginTop: '30px' }}>
             <h2 className="profileStatsTitle">Paynotes</h2>
-            {activityLoading ? (
+            {isLoadingPaynotes && userPaynotes.length === 0 ? (
               <div
                 style={{ textAlign: 'center', padding: '40px', color: '#666' }}
               >
@@ -1772,6 +2284,25 @@ const ProfilePage: React.FC = () => {
                     paymentError={paymentErrors?.get(post.id)}
                   />
                 ))}
+                {hasMorePaynotes && (
+                  <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                    <button
+                      onClick={loadMorePaynotes}
+                      disabled={isLoadingPaynotes}
+                      style={{
+                        padding: '10px 20px',
+                        fontSize: '16px',
+                        backgroundColor: isLoadingPaynotes ? '#ccc' : '#4a75ff',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: isLoadingPaynotes ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {isLoadingPaynotes ? 'Loading...' : 'Load More'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
