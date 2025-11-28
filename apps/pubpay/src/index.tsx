@@ -87,7 +87,7 @@ const App: React.FC = () => {
             <Route path="edit-profile" element={<EditProfilePage />} />
             <Route path="register" element={<RegisterPage />} />
             <Route path="settings" element={<SettingsPage />} />
-            <Route path="settings/wallet" element={<WalletPage />} />
+            <Route path="wallet" element={<WalletPage />} />
             <Route path="note/:noteId" element={<FeedsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
