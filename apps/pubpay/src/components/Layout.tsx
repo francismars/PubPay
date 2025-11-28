@@ -894,11 +894,22 @@ export const Layout: React.FC = () => {
           display: 'flex',
           visibility: showQRScanner ? 'visible' : 'hidden',
           opacity: showQRScanner ? 1 : 0,
-          pointerEvents: showQRScanner ? 'auto' : 'none'
+          pointerEvents: showQRScanner ? 'auto' : 'none',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: 'none',
+          transition: 'none'
         }}
         onClick={() => setShowQRScanner(false)}
       >
-        <div className="overlayInner" onClick={e => e.stopPropagation()}>
+        <div
+          className="overlayInner"
+          onClick={e => e.stopPropagation()}
+          style={{
+            transform: 'none',
+            animation: 'none'
+          }}
+        >
           <div className="brand">
             PUB<span className="logoPay">PAY</span>
             <span className="logoMe">.me</span>
@@ -1037,11 +1048,22 @@ export const Layout: React.FC = () => {
           display: 'flex',
           visibility: showLoginForm ? 'visible' : 'hidden',
           opacity: showLoginForm ? 1 : 0,
-          pointerEvents: showLoginForm ? 'auto' : 'none'
+          pointerEvents: showLoginForm ? 'auto' : 'none',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: 'none',
+          transition: 'none'
         }}
         onClick={closeLogin}
       >
-        <div className="overlayInner" onClick={e => e.stopPropagation()}>
+        <div
+          className="overlayInner"
+          onClick={e => e.stopPropagation()}
+          style={{
+            transform: 'none',
+            animation: 'none'
+          }}
+        >
           <div className="brand">
             PUB<span className="logoPay">PAY</span>
             <span className="logoMe">.me</span>
@@ -1358,11 +1380,22 @@ export const Layout: React.FC = () => {
           display: 'flex',
           visibility: showLoggedInForm ? 'visible' : 'hidden',
           opacity: showLoggedInForm ? 1 : 0,
-          pointerEvents: showLoggedInForm ? 'auto' : 'none'
+          pointerEvents: showLoggedInForm ? 'auto' : 'none',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: 'none',
+          transition: 'none'
         }}
         onClick={() => setShowLoggedInForm(false)}
       >
-        <div className="overlayInner" onClick={e => e.stopPropagation()}>
+        <div
+          className="overlayInner"
+          onClick={e => e.stopPropagation()}
+          style={{
+            transform: 'none',
+            animation: 'none'
+          }}
+        >
           <div className="brand">
             PUB<span className="logoPay">PAY</span>
             <span className="logoMe">.me</span>
@@ -1404,11 +1437,22 @@ export const Layout: React.FC = () => {
           display: 'flex',
           visibility: showInvoiceOverlay ? 'visible' : 'hidden',
           opacity: showInvoiceOverlay ? 1 : 0,
-          pointerEvents: showInvoiceOverlay ? 'auto' : 'none'
+          pointerEvents: showInvoiceOverlay ? 'auto' : 'none',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: 'none',
+          transition: 'none'
         }}
         onClick={closeInvoice}
       >
-        <div className="overlayInner" onClick={e => e.stopPropagation()}>
+        <div
+          className="overlayInner"
+          onClick={e => e.stopPropagation()}
+          style={{
+            transform: 'none',
+            animation: 'none'
+          }}
+        >
           <div className="brand">
             PUB<span className="logoPay">PAY</span>
             <span className="logoMe">.me</span>
@@ -1677,8 +1721,10 @@ export const Layout: React.FC = () => {
           visibility: showPasswordPrompt ? 'visible' : 'hidden',
           opacity: showPasswordPrompt ? 1 : 0,
           pointerEvents: showPasswordPrompt ? 'auto' : 'none',
-          transition: 'opacity 0.2s ease-out',
-          willChange: showPasswordPrompt ? 'opacity' : 'auto'
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: 'none',
+          transition: 'none'
         }}
         onClick={() => {
           // Don't close on outside click - password is required
@@ -1690,8 +1736,8 @@ export const Layout: React.FC = () => {
           style={{
             maxWidth: '400px',
             width: '90%',
-            transform: 'none !important',
-            animation: 'none !important'
+            transform: 'none',
+            animation: 'none'
           }}
         >
           <div className="brand">

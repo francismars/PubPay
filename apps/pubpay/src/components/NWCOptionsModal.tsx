@@ -270,7 +270,9 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
         opacity: isVisible ? 1 : 0,
         pointerEvents: isVisible ? 'auto' : 'none',
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
+        animation: 'none',
+        transition: 'none'
       }}
       onClick={onClose}
     >

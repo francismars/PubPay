@@ -319,14 +319,23 @@ const WalletPage: React.FC = () => {
       return;
     }
 
+    // Validate amount is provided
+    if (!receiveAmount.trim()) {
+      useUIStore.getState().openToast(
+        'Please enter an amount',
+        'error',
+        false
+      );
+      setTimeout(() => useUIStore.getState().closeToast(), 2000);
+      return;
+    }
+
     setGeneratingInvoice(true);
     try {
-      const amount = receiveAmount.trim()
-        ? parseInt(receiveAmount.trim(), 10)
-        : undefined;
-      if (amount && (isNaN(amount) || amount <= 0)) {
+      const amount = parseInt(receiveAmount.trim(), 10);
+      if (isNaN(amount) || amount <= 0) {
         useUIStore.getState().openToast(
-          'Invalid amount',
+          'Invalid amount. Please enter a positive number.',
           'error',
           false
         );
@@ -337,7 +346,7 @@ const WalletPage: React.FC = () => {
 
       useUIStore.getState().openToast('Generating invoice...', 'loading', true);
       const response = await nwcClient.makeInvoice({
-        amount: amount ? amount * 1000 : undefined, // Convert to millisats
+        amount: amount * 1000, // Convert to millisats (amount is now required)
         description: receiveDescription.trim() || undefined
       });
 
@@ -883,7 +892,11 @@ const WalletPage: React.FC = () => {
             display: 'flex',
             visibility: 'visible',
             opacity: 1,
-            pointerEvents: 'auto'
+            pointerEvents: 'auto',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'none',
+            transition: 'none'
           }}
           onClick={() => {
             if (!sending) {
@@ -894,7 +907,15 @@ const WalletPage: React.FC = () => {
             }
           }}
         >
-          <div className="overlayInner" onClick={e => e.stopPropagation()}>
+          <div
+            className="overlayInner"
+            onClick={e => e.stopPropagation()}
+            style={{
+              transform: 'none',
+              animation: 'none',
+              transition: 'none'
+            }}
+          >
             <div className="brand">
               PUB<span className="logoPay">PAY</span>
               <span className="logoMe">.me</span>
@@ -1010,7 +1031,11 @@ const WalletPage: React.FC = () => {
             display: 'flex',
             visibility: 'visible',
             opacity: 1,
-            pointerEvents: 'auto'
+            pointerEvents: 'auto',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'none',
+            transition: 'none'
           }}
           onClick={() => {
             if (!generatingInvoice) {
@@ -1021,7 +1046,15 @@ const WalletPage: React.FC = () => {
             }
           }}
         >
-          <div className="overlayInner" onClick={e => e.stopPropagation()}>
+          <div
+            className="overlayInner"
+            onClick={e => e.stopPropagation()}
+            style={{
+              transform: 'none',
+              animation: 'none',
+              transition: 'none'
+            }}
+          >
             <div className="brand">
               PUB<span className="logoPay">PAY</span>
               <span className="logoMe">.me</span>
@@ -1040,14 +1073,16 @@ const WalletPage: React.FC = () => {
                       color: 'var(--text-primary)'
                     }}
                   >
-                    Amount (sats) - Optional
+                    Amount (sats) <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
                     type="number"
                     value={receiveAmount}
                     onChange={e => setReceiveAmount(e.target.value)}
-                    placeholder="Leave empty for any amount"
+                    placeholder="Enter amount in satoshis"
                     className="inputField"
+                    required
+                    min="1"
                     disabled={generatingInvoice}
                     style={{
                       backgroundColor: 'var(--input-bg)',
@@ -1120,7 +1155,7 @@ const WalletPage: React.FC = () => {
                   <button
                     className="cta"
                     onClick={handleGenerateInvoice}
-                    disabled={generatingInvoice}
+                    disabled={generatingInvoice || !receiveAmount.trim()}
                   >
                     {generatingInvoice ? 'Generating...' : 'Generate Invoice'}
                   </button>
