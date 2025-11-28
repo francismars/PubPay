@@ -229,11 +229,15 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           }
         })()
       : null;
-    const displayName =
-      authorData?.display_name || authorData?.name || 'Anonymous';
-    const profilePicture = authorData?.picture || genericUserIcon;
-    const nip05 = authorData?.nip05;
-    const lud16 = authorData?.lud16;
+    const isProfileLoading = post.profileLoading === true;
+    const displayName = isProfileLoading
+      ? '' // Will show skeleton
+      : (authorData?.display_name || authorData?.name || 'Anonymous');
+    const profilePicture = isProfileLoading
+      ? genericUserIcon // Will show skeleton
+      : (authorData?.picture || genericUserIcon);
+    const nip05 = isProfileLoading ? undefined : authorData?.nip05;
+    const lud16 = isProfileLoading ? undefined : authorData?.lud16;
     const hasValidLightning = !!lud16 && /.+@.+\..+/.test(lud16);
     // Use validation result if available, otherwise fall back to format check
     const isLightningValid = post.lightningValid !== undefined
@@ -683,25 +687,35 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         }
       >
         <div className="noteProfileImg">
-          <Link to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}>
-            <img className="userImg" src={profilePicture} alt="Profile" />
-          </Link>
+          {isProfileLoading ? (
+            <div className="skeleton skeleton-avatar" style={{ width: '48px', height: '48px', borderRadius: '50%' }}></div>
+          ) : (
+            <Link to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}>
+              <img className="userImg" src={profilePicture} alt="Profile" />
+            </Link>
+          )}
         </div>
         <div className="noteData">
           <div className="noteHeader">
             <div className="noteAuthor">
               <div className="noteDisplayName">
-                <Link
-                  to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}
-                  className="noteAuthorLink"
-                >
-                  {displayName}
-                </Link>
+                {isProfileLoading ? (
+                  <div className="skeleton skeleton-text short" style={{ display: 'inline-block', width: '120px', height: '16px' }}></div>
+                ) : (
+                  <Link
+                    to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}
+                    className="noteAuthorLink"
+                  >
+                    {displayName}
+                  </Link>
+                )}
               </div>
 
               {/* NIP-05 Verification */}
               <div className="noteNIP05 label">
-                {nip05 ? (
+                {isProfileLoading ? (
+                  <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '100px', height: '12px', marginTop: '8px' }}></div>
+                ) : nip05 ? (
                   post.nip05Valid === false ? (
                     // Invalid NIP-05 - still clickable
                     <a
@@ -750,7 +764,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
 
               {/* Lightning Address */}
               <div className="noteLNAddress label">
-                {lud16 ? (
+                {isProfileLoading ? (
+                  <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '120px', height: '12px', marginTop: '8px' }}></div>
+                ) : lud16 ? (
                   post.lightningValid === false ? (
                     // Invalid lightning address - still clickable
                     <a
