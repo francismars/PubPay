@@ -456,11 +456,37 @@ export class ZapService {
     });
     // Check if NWC is configured and user preference for auto-pay
     try {
-      const nwcUri =
-        (typeof localStorage !== 'undefined' &&
-          localStorage.getItem('nwcConnectionString')) ||
-        (typeof sessionStorage !== 'undefined' &&
-          sessionStorage.getItem('nwcConnectionString'));
+      // Helper function to get active NWC URI (checks both old and new storage formats)
+      const getActiveNWCUri = (): string | null => {
+        if (typeof localStorage === 'undefined') return null;
+        
+        // First check new multi-connection format
+        try {
+          const activeId = localStorage.getItem('nwcActiveConnectionId');
+          if (activeId) {
+            const connections = localStorage.getItem('nwcConnections');
+            if (connections) {
+              const parsed = JSON.parse(connections) as Array<{ id: string; uri: string }>;
+              const connection = parsed.find(c => c.id === activeId);
+              if (connection?.uri) {
+                return connection.uri;
+              }
+            }
+          }
+        } catch {
+          // Ignore parse errors
+        }
+        
+        // Fallback to old single connection format
+        return (
+          localStorage.getItem('nwcConnectionString') ||
+          (typeof sessionStorage !== 'undefined' &&
+            sessionStorage.getItem('nwcConnectionString')) ||
+          null
+        );
+      };
+
+      const nwcUri = getActiveNWCUri();
 
       // Check user preference for auto-pay (defaults to true for backward compatibility)
       const nwcAutoPayPref =
