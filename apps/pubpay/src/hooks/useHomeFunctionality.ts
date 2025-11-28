@@ -60,6 +60,7 @@ export interface PubPayPost {
   nip05Valid?: boolean; // true if valid, false if invalid, undefined if not validated yet
   nip05Validating?: boolean; // true if validation is in progress
   profileLoading?: boolean; // true if profile is still loading (show skeleton instead of "Anonymous"/"Unverified")
+  zapLoading?: boolean; // true if zaps are still loading (show skeleton instead of zap info)
 }
 
 interface AuthState {
@@ -2694,6 +2695,81 @@ export const useHomeFunctionality = () => {
     return loadPosts(activeFeed, true);
   };
 
+  // Process posts synchronously for immediate display (no async profile/zap loading)
+  const processPostsBasicSync = (kind1Events: Kind1Event[]): PubPayPost[] => {
+    const posts: PubPayPost[] = [];
+
+    for (const event of kind1Events) {
+      // Basic post info (no profiles/zaps yet - will be loaded in background)
+      const post: PubPayPost = {
+        id: event.id,
+        event,
+        author: {
+          kind: 0,
+          id: '',
+          pubkey: event.pubkey,
+          content: '{}',
+          created_at: 0,
+          sig: '',
+          tags: []
+        },
+        createdAt: event.created_at,
+        zapMin: 0,
+        zapMax: 0,
+        zapUses: 0,
+        zapAmount: 0,
+        zaps: [],
+        zapUsesCurrent: 0,
+        zapGoal: undefined,
+        isPayable: true,
+        hasZapTags: false,
+        content: event.content,
+        profileLoading: true, // Mark as loading
+        zapLoading: true // Mark zaps as loading
+      };
+
+      // Extract zap min/max and overrides from tags
+      const zapMinTag = event.tags.find(tag => tag[0] === 'zap-min');
+      const zapMaxTag = event.tags.find(tag => tag[0] === 'zap-max');
+      const zapUsesTag = event.tags.find(tag => tag[0] === 'zap-uses');
+      const zapGoalTag = event.tags.find(tag => tag[0] === 'zap-goal');
+      const zapPayerTag = event.tags.find(tag => tag[0] === 'zap-payer');
+      const zapLNURLTag = event.tags.find(tag => tag[0] === 'zap-lnurl');
+
+      if (zapMinTag && zapMinTag[1]) {
+        post.zapMin = Math.floor(parseInt(zapMinTag[1]) / 1000) || 0;
+      }
+      if (zapMaxTag && zapMaxTag[1]) {
+        post.zapMax = Math.floor(parseInt(zapMaxTag[1]) / 1000) || 0;
+      }
+      if (zapUsesTag && zapUsesTag[1]) {
+        post.zapUses = parseInt(zapUsesTag[1]) || 0;
+      }
+      if (zapGoalTag && zapGoalTag[1]) {
+        post.zapGoal = Math.floor(parseInt(zapGoalTag[1]) / 1000) || undefined;
+      }
+      if (zapPayerTag && zapPayerTag[1]) {
+        post.zapPayer = zapPayerTag[1];
+        post.zapPayerPicture = genericUserIcon; // Will be updated when profile loads
+      }
+
+      // Set zap LNURL override if present
+      if (zapLNURLTag && zapLNURLTag[1]) {
+        (post as any).zapLNURL = zapLNURLTag[1];
+      }
+
+      // Determine if payable (will be recalculated when profile loads)
+      const hasZapTags = !!(zapMinTag || zapMaxTag || zapUsesTag || zapGoalTag);
+      post.hasZapTags = hasZapTags;
+      const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
+      post.isPayable = hasPaymentAmount; // Will be updated when profile loads
+
+      posts.push(post);
+    }
+
+    return posts;
+  };
+
   // Load single note and its replies
   const loadSingleNote = async (eventId: string) => {
     if (!nostrClientRef.current) {
@@ -2731,96 +2807,176 @@ export const useHomeFunctionality = () => {
         return;
       }
 
-      console.log('Found single note:', kind1Events[0]);
+      // Deduplicate events by ID (multiple relays may return same events)
+      const uniqueEventsMap = new Map<string, Kind1Event>();
+      kind1Events.forEach(event => {
+        if (!uniqueEventsMap.has(event.id)) {
+          uniqueEventsMap.set(event.id, event);
+        }
+      });
+      const deduplicatedEvents = Array.from(uniqueEventsMap.values());
 
-      // Get author profile
-      const authorPubkey = kind1Events[0]?.pubkey;
+      console.log('Found single note:', deduplicatedEvents[0]);
+
+      const authorPubkey = deduplicatedEvents[0]?.pubkey;
       if (!authorPubkey) {
         console.error('No author pubkey found');
         setIsLoading(false);
         return;
       }
-      // Use ensureProfiles for centralized profile loading
-      const profileMap = await ensureProfiles(
-        getQueryClient(),
-        nostrClientRef.current!,
-        [authorPubkey]
-      );
-      const profileEvents = profileMap.get(authorPubkey)
-        ? [profileMap.get(authorPubkey)!]
-        : [];
 
-      // Load zaps for this event via react-query
-      const zapEvents = await ensureZaps(
-        getQueryClient(),
-        nostrClientRef.current!,
-        [eventId]
-      );
-
-      // Extract zap payer pubkeys and load their profiles
-      const zapPayerPubkeys = new Set<string>();
-      // Also include zap-payer from the note itself (even if there are no zaps yet)
-      try {
-        const zapPayerTagFromNote = kind1Events[0]?.tags?.find(
-          (t: string[]) => t[0] === 'zap-payer' && t[1]
-        );
-        if (zapPayerTagFromNote && zapPayerTagFromNote[1]) {
-          zapPayerPubkeys.add(zapPayerTagFromNote[1]);
-        }
-      } catch {}
-      zapEvents.forEach(zap => {
-        const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
-        let hasPubkeyInDescription = false;
-
-        if (descriptionTag) {
-          try {
-            const zapData =
-              parseZapDescription(descriptionTag[1] || undefined) || {};
-            if (zapData.pubkey) {
-              zapPayerPubkeys.add(zapData.pubkey);
-              hasPubkeyInDescription = true;
-            }
-          } catch {
-            // Handle parsing error
-          }
-        }
-
-        // For anonymous zaps (no pubkey in description), use the zap event's pubkey
-        if (!hasPubkeyInDescription) {
-          zapPayerPubkeys.add(zap.pubkey);
-        }
-      });
-
-      // Load zap payer profiles (cached & batched)
-      const zapPayerProfiles =
-        zapPayerPubkeys.size > 0
-          ? Array.from(
-              (await loadProfilesBatched(Array.from(zapPayerPubkeys))).values()
-            )
-          : [];
-
-      // Combine all profiles
-      const allProfiles = [...profileEvents, ...zapPayerProfiles];
-
-      // Process the single note
-      const processedPosts = await processPosts(
-        kind1Events,
-        allProfiles,
-        zapEvents
-      );
-
-      if (processedPosts.length > 0) {
-        setPosts(processedPosts);
-        // Validate lightning addresses for single note
-        validateLightningAddresses(processedPosts, 'global');
-        validateNip05s(processedPosts, 'global');
-      }
-
-      // Load replies to this note
-      await loadReplies(eventId);
-
+      // PROGRESSIVE RENDERING: Show post immediately with minimal data
+      const initialPosts = processPostsBasicSync(deduplicatedEvents);
+      setPosts(initialPosts);
       setIsLoading(false);
-      // Signal ready after essentials are loaded in single note mode as well
+
+      // Load profiles, zaps, and zap payer profiles in parallel (non-blocking)
+      (async () => {
+        try {
+          // Extract zap-payer pubkey from note (before zaps load)
+          const zapPayerPubkeys = new Set<string>();
+          try {
+            const zapPayerTagFromNote = deduplicatedEvents[0]?.tags?.find(
+              (t: string[]) => t[0] === 'zap-payer' && t[1]
+            );
+            if (zapPayerTagFromNote && zapPayerTagFromNote[1]) {
+              zapPayerPubkeys.add(zapPayerTagFromNote[1]);
+            }
+          } catch {}
+
+          // Load author profile and zaps in parallel
+          const [profileMap, zapEvents] = await Promise.all([
+            ensureProfiles(
+              getQueryClient(),
+              nostrClientRef.current!,
+              [authorPubkey]
+            ),
+            ensureZaps(
+              getQueryClient(),
+              nostrClientRef.current!,
+              [eventId]
+            )
+          ]);
+
+          // Extract zap payer pubkeys from zap events
+          zapEvents.forEach(zap => {
+            const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
+            let hasPubkeyInDescription = false;
+
+            if (descriptionTag) {
+              try {
+                const zapData =
+                  parseZapDescription(descriptionTag[1] || undefined) || {};
+                if (zapData.pubkey) {
+                  zapPayerPubkeys.add(zapData.pubkey);
+                  hasPubkeyInDescription = true;
+                }
+              } catch {
+                // Handle parsing error
+              }
+            }
+
+            // For anonymous zaps (no pubkey in description), use the zap event's pubkey
+            if (!hasPubkeyInDescription) {
+              zapPayerPubkeys.add(zap.pubkey);
+            }
+          });
+
+          // Load zap payer profiles (batched)
+          const zapPayerProfileMap =
+            zapPayerPubkeys.size > 0
+              ? await ensureProfiles(
+                  getQueryClient(),
+                  nostrClientRef.current!,
+                  Array.from(zapPayerPubkeys)
+                )
+              : new Map();
+
+          // Combine all profiles
+          const allProfiles = new Map(profileMap);
+          zapPayerProfileMap.forEach((profile, pubkey) => {
+            allProfiles.set(pubkey, profile);
+          });
+
+          // Update post with profile data (progressive enhancement)
+          const updatePostWithProfile = (post: PubPayPost, event: Kind1Event, author: Kind0Event | undefined): PubPayPost => {
+            if (!author || author.content === '{}') {
+              return post;
+            }
+
+            const updatedPost = { ...post, author, profileLoading: false };
+
+            // Recalculate isPayable based on author profile
+            try {
+              const authorData = safeJson<Record<string, any>>(author.content || '{}', {});
+              const hasLud16 = !!(authorData as any).lud16;
+              const hasNip05 = !!(authorData as any).nip05;
+
+              const zapMinTag = event.tags.find((tag: any[]) => tag[0] === 'zap-min');
+              const zapMaxTag = event.tags.find((tag: any[]) => tag[0] === 'zap-max');
+              const zapLNURLTag = event.tags.find((tag: any[]) => tag[0] === 'zap-lnurl');
+              const hasZapTags = !!(zapMinTag || zapMaxTag || event.tags.find((tag: any[]) => tag[0] === 'zap-uses') || event.tags.find((tag: any[]) => tag[0] === 'zap-goal'));
+              const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
+
+              updatedPost.hasZapTags = hasZapTags;
+              updatedPost.isPayable = (hasLud16 || !!(updatedPost as any).zapLNURL) && hasPaymentAmount;
+
+              if (hasLud16) {
+                updatedPost.lightningValidating = true;
+              }
+              if (hasNip05) {
+                updatedPost.nip05Validating = true;
+              }
+            } catch {
+              // Keep existing values on error
+            }
+
+            return updatedPost;
+          };
+
+          setPosts(prev => {
+            return prev.map(post => {
+              const event = deduplicatedEvents.find(e => e.id === post.id);
+              if (!event) return post;
+
+              const author = profileMap.get(event.pubkey);
+              return updatePostWithProfile(post, event, author);
+            });
+          });
+
+          // Process and update zaps
+          if (zapEvents.length > 0) {
+            const processedPosts = await processPosts(
+              deduplicatedEvents,
+              Array.from(allProfiles.values()),
+              zapEvents
+            );
+
+            if (processedPosts.length > 0) {
+              setPosts(processedPosts);
+            }
+          } else {
+            // No zaps, just mark as not loading
+            setPosts(prev => prev.map(post => ({ ...post, zapLoading: false })));
+          }
+
+          // Validate lightning addresses and NIP-05 asynchronously
+          setPosts(prev => {
+            validateLightningAddresses(prev, 'global');
+            validateNip05s(prev, 'global');
+            return prev;
+          });
+
+          // Load replies in background (non-blocking)
+          loadReplies(eventId).catch(err => {
+            console.error('Failed to load replies:', err);
+          });
+        } catch (err) {
+          console.error('Error loading profiles/zaps in background:', err);
+        }
+      })();
+
+      // Signal ready after essentials are loaded
       setNostrReady(true);
     } catch (err) {
       console.error('Failed to load single note:', err);
@@ -2877,89 +3033,171 @@ export const useHomeFunctionality = () => {
         return;
       }
 
-      console.log('Found replies:', replyEvents.length);
-
-      // Get author pubkeys for replies
-      const authorPubkeys = [
-        ...new Set(replyEvents.map(event => event.pubkey))
-      ];
-
-      // Load profiles for reply authors via react-query
-      const profileEvents = Array.from(
-        (
-          await ensureProfiles(
-            getQueryClient(),
-            nostrClientRef.current!,
-            authorPubkeys
-          )
-        ).values()
-      );
-
-      // Load zaps for reply events via react-query
-      const eventIds = replyEvents.map(event => event.id);
-      const zapEvents = await ensureZaps(
-        getQueryClient(),
-        nostrClientRef.current!,
-        eventIds
-      );
-
-      // Extract zap payer pubkeys and load their profiles
-      const zapPayerPubkeys = new Set<string>();
-      zapEvents.forEach(zap => {
-        const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
-        let hasPubkeyInDescription = false;
-
-        if (descriptionTag) {
-          try {
-            const zapData = JSON.parse(descriptionTag[1] || '{}');
-            if (zapData.pubkey) {
-              zapPayerPubkeys.add(zapData.pubkey);
-              hasPubkeyInDescription = true;
-            }
-          } catch {
-            // Handle parsing error
-          }
-        }
-
-        // For anonymous zaps (no pubkey in description), use the zap event's pubkey
-        if (!hasPubkeyInDescription) {
-          zapPayerPubkeys.add(zap.pubkey);
+      // Deduplicate replies by ID
+      const uniqueRepliesMap = new Map<string, Kind1Event>();
+      replyEvents.forEach(event => {
+        if (!uniqueRepliesMap.has(event.id)) {
+          uniqueRepliesMap.set(event.id, event);
         }
       });
+      const deduplicatedReplies = Array.from(uniqueRepliesMap.values());
 
-      // Load zap payer profiles
-      const zapPayerProfiles =
-        zapPayerPubkeys.size > 0
-          ? ((await nostrClientRef.current.getEvents([
-              {
-                kinds: [0],
-                authors: Array.from(zapPayerPubkeys)
+      // Sort by created_at (newest first)
+      deduplicatedReplies.sort((a, b) => b.created_at - a.created_at);
+
+      console.log('Found replies:', deduplicatedReplies.length);
+
+      // PROGRESSIVE RENDERING: Show replies immediately with minimal data
+      const initialReplies = processPostsBasicSync(deduplicatedReplies);
+      setReplies(initialReplies);
+
+      // Load profiles, zaps, and zap payer profiles in parallel (non-blocking)
+      (async () => {
+        try {
+          // Get author pubkeys for replies
+          const authorPubkeys = [
+            ...new Set(deduplicatedReplies.map(event => event.pubkey))
+          ];
+
+          // Load profiles and zaps in parallel
+          const eventIds = deduplicatedReplies.map(event => event.id);
+          const [profileMap, zapEvents] = await Promise.all([
+            ensureProfiles(
+              getQueryClient(),
+              nostrClientRef.current!,
+              authorPubkeys
+            ),
+            ensureZaps(
+              getQueryClient(),
+              nostrClientRef.current!,
+              eventIds
+            )
+          ]);
+
+          // Extract zap payer pubkeys
+          const zapPayerPubkeys = new Set<string>();
+          deduplicatedReplies.forEach(event => {
+            const zapPayerTag = event.tags.find((tag: any[]) => tag[0] === 'zap-payer');
+            if (zapPayerTag && zapPayerTag[1]) {
+              zapPayerPubkeys.add(zapPayerTag[1]);
+            }
+          });
+          zapEvents.forEach(zap => {
+            const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
+            let hasPubkeyInDescription = false;
+
+            if (descriptionTag) {
+              try {
+                const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
+                if (zapData.pubkey) {
+                  zapPayerPubkeys.add(zapData.pubkey);
+                  hasPubkeyInDescription = true;
+                }
+              } catch {
+                // Handle parsing error
               }
-            ])) as Kind0Event[])
-          : [];
+            }
 
-      // Combine all profiles
-      const allProfiles = [...profileEvents, ...zapPayerProfiles];
+            // For anonymous zaps (no pubkey in description), use the zap event's pubkey
+            if (!hasPubkeyInDescription) {
+              zapPayerPubkeys.add(zap.pubkey);
+            }
+          });
 
-      // Process replies
-      const processedReplies = await processPosts(
-        replyEvents,
-        allProfiles,
-        zapEvents
-      );
+          // Load zap payer profiles (batched)
+          const zapPayerProfileMap =
+            zapPayerPubkeys.size > 0
+              ? await ensureProfiles(
+                  getQueryClient(),
+                  nostrClientRef.current!,
+                  Array.from(zapPayerPubkeys)
+                )
+              : new Map();
 
-      // Sort replies by creation time (oldest first, like the original)
-      const sortedReplies = processedReplies.sort(
-        (a, b) => a.createdAt - b.createdAt
-      );
+          // Combine all profiles
+          const allProfiles = new Map(profileMap);
+          zapPayerProfileMap.forEach((profile, pubkey) => {
+            allProfiles.set(pubkey, profile);
+          });
 
-      // Calculate reply levels for proper indentation
-      const repliesWithLevels = calculateReplyLevels(sortedReplies);
+          // Update replies with profile data (progressive enhancement)
+          const updateReplyWithProfile = (reply: PubPayPost, event: Kind1Event, author: Kind0Event | undefined): PubPayPost => {
+            if (!author || author.content === '{}') {
+              return reply;
+            }
 
-      setReplies(repliesWithLevels);
-      // Validate lightning addresses for replies (use 'replies' feed type)
-      validateLightningAddresses(repliesWithLevels, 'replies');
-      validateNip05s(repliesWithLevels, 'replies');
+            const updatedReply = { ...reply, author, profileLoading: false };
+
+            // Recalculate isPayable based on author profile
+            try {
+              const authorData = safeJson<Record<string, any>>(author.content || '{}', {});
+              const hasLud16 = !!(authorData as any).lud16;
+              const hasNip05 = !!(authorData as any).nip05;
+
+              const zapMinTag = event.tags.find((tag: any[]) => tag[0] === 'zap-min');
+              const zapMaxTag = event.tags.find((tag: any[]) => tag[0] === 'zap-max');
+              const zapLNURLTag = event.tags.find((tag: any[]) => tag[0] === 'zap-lnurl');
+              const hasZapTags = !!(zapMinTag || zapMaxTag || event.tags.find((tag: any[]) => tag[0] === 'zap-uses') || event.tags.find((tag: any[]) => tag[0] === 'zap-goal'));
+              const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
+
+              updatedReply.hasZapTags = hasZapTags;
+              updatedReply.isPayable = (hasLud16 || !!(updatedReply as any).zapLNURL) && hasPaymentAmount;
+
+              if (hasLud16) {
+                updatedReply.lightningValidating = true;
+              }
+              if (hasNip05) {
+                updatedReply.nip05Validating = true;
+              }
+            } catch {
+              // Keep existing values on error
+            }
+
+            return updatedReply;
+          };
+
+          setReplies(prev => {
+            return prev.map(reply => {
+              const event = deduplicatedReplies.find(e => e.id === reply.id);
+              if (!event) return reply;
+
+              const author = profileMap.get(event.pubkey);
+              return updateReplyWithProfile(reply, event, author);
+            });
+          });
+
+          // Process and update zaps for replies
+          if (zapEvents.length > 0) {
+            const processedReplies = await processPosts(
+              deduplicatedReplies,
+              Array.from(allProfiles.values()),
+              zapEvents
+            );
+
+            if (processedReplies.length > 0) {
+              setReplies(processedReplies);
+            }
+          } else {
+            // No zaps, just mark as not loading
+            setReplies(prev => prev.map(reply => ({ ...reply, zapLoading: false })));
+          }
+
+          // Validate lightning addresses and NIP-05 asynchronously
+          setReplies(prev => {
+            validateLightningAddresses(prev, 'replies');
+            validateNip05s(prev, 'replies');
+            return prev;
+          });
+
+          // Calculate reply levels for proper indentation
+          setReplies(prev => {
+            const sortedReplies = [...prev].sort((a, b) => a.createdAt - b.createdAt);
+            return calculateReplyLevels(sortedReplies);
+          });
+        } catch (err) {
+          console.error('Error loading reply profiles/zaps in background:', err);
+        }
+      })();
     } catch (err) {
       console.error('Failed to load replies:', err);
     }
