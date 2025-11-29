@@ -1660,25 +1660,55 @@ export const Layout: React.FC = () => {
               }
               return null;
             })()}
-            <button
-              id="payWithExtension"
-              className="cta"
-              onClick={() => {
-                const { bolt11, amount } = useUIStore.getState().invoiceOverlay;
-                if (bolt11 && amount > 0) {
-                  // This would trigger the extension to pay the invoice
-                  console.log('Paying with extension:', bolt11);
-                  // For now, just show a message
-                  alert(
-                    'Extension payment not yet implemented. Please scan the QR code with your Lightning wallet.'
-                  );
-                } else {
-                  alert('No invoice available to pay');
-                }
-              }}
-            >
-              Extension
-            </button>
+            {(() => {
+              // Check if WebLN is available
+              if (window.webln) {
+                return (
+                  <button
+                    id="payWithWebLN"
+                    className="cta"
+                    onClick={async () => {
+                      const { bolt11 } = useUIStore.getState().invoiceOverlay;
+                      if (!bolt11) {
+                        useUIStore.getState().openToast('No invoice available', 'error', false);
+                        return;
+                      }
+
+                      try {
+                        // Check if WebLN is enabled
+                        const isEnabled = await window.webln!.isEnabled();
+                        
+                        if (!isEnabled) {
+                          useUIStore.getState().openToast('Requesting permission…', 'loading', true);
+                          await window.webln!.enable();
+                        }
+
+                        useUIStore.getState().updateToast('Sending payment…', 'loading', true);
+
+                        const result = await window.webln!.sendPayment(bolt11);
+
+                        if (result && result.preimage) {
+                          useUIStore.getState().updateToast('Paid via WebLN', 'success', false);
+                          setTimeout(() => {
+                            useUIStore.getState().closeToast();
+                            useUIStore.getState().closeInvoice();
+                          }, 2000);
+                        } else {
+                          useUIStore.getState().updateToast('WebLN payment failed', 'error', true);
+                        }
+                      } catch (err: any) {
+                        console.warn('WebLN payment exception:', err);
+                        const errorMessage = err?.message || 'WebLN payment failed';
+                        useUIStore.getState().updateToast(errorMessage, 'error', true);
+                      }
+                    }}
+                  >
+                    WebLN
+                  </button>
+                );
+              }
+              return null;
+            })()}
             <button
               id="payWithWallet"
               className="cta"

@@ -17,6 +17,22 @@ declare global {
         ) => Promise<string>;
       };
     };
+    webln?: {
+      isEnabled: () => Promise<boolean>;
+      enable: () => Promise<void>;
+      sendPayment: (paymentRequest: string) => Promise<{ preimage: string }>;
+      sendPaymentAsync?: (paymentRequest: string) => Promise<{ preimage: string }>;
+      getInfo: () => Promise<any>;
+      makeInvoice: (args: { amount: string | number; defaultMemo?: string }) => Promise<{ paymentRequest: string }>;
+      keysend: (args: { destination: string; amount: number; customRecords?: Record<string, string> }) => Promise<{ preimage: string }>;
+      signMessage: (message: string) => Promise<{ signature: string }>;
+      verifyMessage: (signature: string, message: string) => Promise<boolean>;
+      request: (method: string, params?: any) => Promise<any>;
+      lnurl: (lnurl: string) => Promise<any>;
+      on: (event: string, callback: (...args: any[]) => void) => void;
+      off: (event: string, callback: (...args: any[]) => void) => void;
+      getBalance?: () => Promise<{ balance: number }>;
+    };
   }
 }
 
