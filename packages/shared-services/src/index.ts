@@ -43,3 +43,6 @@ export * from './services/follow/FollowService';
 // Export utils
 export * from './utils/NostrUtil';
 export * from './utils/constants';
+export * from './utils/zapHelpers';
+export * from './utils/postHelpers';
+export * from './utils/postDataLoader';
