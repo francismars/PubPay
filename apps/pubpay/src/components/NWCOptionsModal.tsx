@@ -30,6 +30,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
   const [clearNwcOnLogout, setClearNwcOnLogout] = useState<boolean>(false);
   const [nwcAutoPay, setNwcAutoPay] = useState<boolean>(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Load connections and migrate old format on mount
   useEffect(() => {
@@ -62,6 +63,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
     setNewLabel('');
     setNewUri('');
     setError('');
+    setDeleteConfirmId(null);
   }, [isVisible]);
 
   const handleAddConnection = async () => {
@@ -209,18 +211,27 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
   };
 
   const handleDeleteConnection = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this connection?')) {
-      deleteNWCConnection(id);
-      const updated = getNWCConnections();
-      setConnections(updated);
-      
-      // Update active ID if needed
-      const newActiveId = getActiveNWCConnectionId();
-      setActiveId(newActiveId);
-      
-      useUIStore.getState().openToast('Connection deleted', 'success', false);
-      setTimeout(() => useUIStore.getState().closeToast(), 2000);
-    }
+    setDeleteConfirmId(id);
+  };
+
+  const confirmDelete = () => {
+    if (!deleteConfirmId) return;
+    
+    deleteNWCConnection(deleteConfirmId);
+    const updated = getNWCConnections();
+    setConnections(updated);
+    
+    // Update active ID if needed
+    const newActiveId = getActiveNWCConnectionId();
+    setActiveId(newActiveId);
+    
+    setDeleteConfirmId(null);
+    useUIStore.getState().openToast('Connection deleted', 'success', false);
+    setTimeout(() => useUIStore.getState().closeToast(), 2000);
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmId(null);
   };
 
   const handleSetActive = (id: string) => {
@@ -269,22 +280,41 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
         visibility: isVisible ? 'visible' : 'hidden',
         opacity: isVisible ? 1 : 0,
         pointerEvents: isVisible ? 'auto' : 'none',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
         animation: 'none',
-        transition: 'none'
+        transition: 'none',
+        padding: '20px',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        scrollbarGutter: 'stable',
+        width: '100vw',
+        boxSizing: 'border-box'
       }}
-      onClick={onClose}
+      onClick={(e) => {
+        // Don't close settings modal if delete confirmation is open
+        if (!deleteConfirmId) {
+          onClose();
+        }
+      }}
     >
       <div
         className="overlayInner"
         onClick={e => e.stopPropagation()}
         style={{
           maxWidth: '600px',
-          maxHeight: '90vh',
+          width: '100%',
+          maxHeight: 'calc(100vh - 40px)',
           overflowY: 'auto',
+          overflowX: 'hidden',
           transform: 'none',
-          animation: 'none'
+          animation: 'none',
+          margin: '20px auto',
+          display: 'flex',
+          flexDirection: 'column',
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'var(--border-color) transparent',
+          scrollbarGutter: 'stable'
         }}
       >
         <div className="brand">
@@ -724,19 +754,18 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
               ))}
             </div>
           ) : null}
-        </div>
-
-        {/* Add/Edit Connection Form */}
-        {((showAddForm && connections.length > 0) || editingId) && (
-          <div
-            style={{
-              marginBottom: '24px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              background: 'var(--bg-secondary)'
-            }}
-          >
+          
+          {/* Add/Edit Connection Form */}
+          {((showAddForm && connections.length > 0) || editingId) && (
+            <div
+              style={{
+                marginTop: '16px',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                background: 'var(--bg-secondary)'
+              }}
+            >
             {/* Form (shown when adding or editing) */}
             <div style={{ padding: '20px' }}>
               <div
@@ -1033,8 +1062,9 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                 )}
               </div>
             </div>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
 
         {/* Preferences */}
         <div className="featureBlock">
@@ -1098,6 +1128,133 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
           Close
         </a>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteConfirmId && (
+        <div
+          className="overlayContainer"
+          style={{
+            display: 'flex',
+            visibility: 'visible',
+            opacity: 1,
+            pointerEvents: 'auto',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'none',
+            transition: 'none',
+            padding: '20px',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            scrollbarGutter: 'stable',
+            width: '100vw',
+            boxSizing: 'border-box',
+            zIndex: 100001,
+            position: 'fixed',
+            top: 0,
+            left: 0
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            cancelDelete();
+          }}
+        >
+          <div
+            className="overlayInner"
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: '400px',
+              width: '100%',
+              transform: 'none',
+              animation: 'none',
+              margin: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '32px'
+            }}
+          >
+            <div className="brand" style={{ marginBottom: '20px' }}>
+              PUB<span className="logoPay">PAY</span>
+              <span className="logoMe">.me</span>
+            </div>
+            
+            <div style={{ marginBottom: '24px', textAlign: 'center' }}>
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  fontSize: '48px',
+                  color: '#ef4444',
+                  marginBottom: '16px',
+                  display: 'block'
+                }}
+              >
+                warning
+              </span>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 12px 0', color: 'var(--text-primary)' }}>
+                Delete Connection?
+              </h3>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.5' }}>
+                Are you sure you want to delete this connection? This action cannot be undone.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+              <button
+                onClick={cancelDelete}
+                style={{
+                  flex: 1,
+                  padding: '12px 20px',
+                  background: 'transparent',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'var(--bg-primary)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  flex: 1,
+                  padding: '12px 20px',
+                  background: '#ef4444',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#dc2626';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = '#ef4444';
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                  delete
+                </span>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
