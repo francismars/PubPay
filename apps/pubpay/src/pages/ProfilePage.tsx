@@ -14,7 +14,9 @@ import {
   AuthService,
   FollowService,
   ZapService,
-  Nip05ValidationService
+  Nip05ValidationService,
+  extractZapPayerPubkeys,
+  loadPostData
 } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 import { nip19, finalizeEvent, verifyEvent } from 'nostr-tools';
@@ -827,62 +829,17 @@ const ProfilePage: React.FC = () => {
         // Load profiles, zaps, and zap payer profiles in background (non-blocking)
         (async () => {
           try {
-            const authorPubkeys = Array.from(
-              new Set(deduplicatedEvents.map((e: any) => e.pubkey))
+            // Use unified loadPostData utility to load all related data
+            const postData = await loadPostData(
+              getQueryClient(),
+              nostrClient,
+              deduplicatedEvents,
+              { genericUserIcon }
             );
 
-            // Load profiles and zaps in parallel
-            const [profileMap, zapEvents] = await Promise.all([
-              ensureProfiles(
-              getQueryClient(),
-              nostrClient,
-              authorPubkeys
-              ),
-              ensureZaps(
-              getQueryClient(),
-              nostrClient,
-                deduplicatedEvents.map((e: any) => e.id)
-              )
-            ]);
-
-            // Extract zap payer pubkeys
-            const zapPayerPubkeys = new Set<string>();
-            deduplicatedEvents.forEach((event: any) => {
-              const zapPayerTag = event.tags.find((tag: any[]) => tag[0] === 'zap-payer');
-              if (zapPayerTag && zapPayerTag[1]) {
-                zapPayerPubkeys.add(zapPayerTag[1]);
-              }
-            });
-            zapEvents.forEach((zap: any) => {
-              const descriptionTag = zap.tags.find((tag: any[]) => tag[0] === 'description');
-              let hasPubkeyInDescription = false;
-
-              if (descriptionTag) {
-                try {
-                  const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
-                  if (zapData.pubkey) {
-                    zapPayerPubkeys.add(zapData.pubkey);
-                    hasPubkeyInDescription = true;
-                  }
-                } catch {
-                  // Handle parsing error
-                }
-              }
-
-              if (!hasPubkeyInDescription) {
-                zapPayerPubkeys.add(zap.pubkey);
-              }
-            });
-
-            // Load zap payer profiles
-            const zapPayerProfileMap =
-              zapPayerPubkeys.size > 0
-                ? await ensureProfiles(
-                    getQueryClient(),
-                    nostrClient,
-                    Array.from(zapPayerPubkeys)
-                  )
-                : new Map();
+            const profileMap = postData.profiles;
+            const zapEvents = postData.zaps;
+            const zapPayerProfileMap = postData.zapPayerProfiles;
 
             // Update posts with profiles (progressive enhancement)
             const updatePostWithProfile = (post: PubPayPost, event: any, author: any): PubPayPost => {
@@ -1180,33 +1137,8 @@ const ProfilePage: React.FC = () => {
           ]);
 
           // Extract zap payer pubkeys
-          const zapPayerPubkeys = new Set<string>();
-          deduplicatedEvents.forEach((event: any) => {
-            const zapPayerTag = event.tags.find((tag: any[]) => tag[0] === 'zap-payer');
-            if (zapPayerTag && zapPayerTag[1]) {
-              zapPayerPubkeys.add(zapPayerTag[1]);
-            }
-          });
-          zapEvents.forEach((zap: any) => {
-            const descriptionTag = zap.tags.find((tag: any[]) => tag[0] === 'description');
-            let hasPubkeyInDescription = false;
-
-            if (descriptionTag) {
-              try {
-                const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
-                if (zapData.pubkey) {
-                  zapPayerPubkeys.add(zapData.pubkey);
-                  hasPubkeyInDescription = true;
-                }
-              } catch {
-                // Handle parsing error
-              }
-            }
-
-            if (!hasPubkeyInDescription) {
-              zapPayerPubkeys.add(zap.pubkey);
-            }
-          });
+          // Extract zap payer pubkeys using utility function
+          const zapPayerPubkeys = extractZapPayerPubkeys(deduplicatedEvents, zapEvents);
 
           const zapPayerProfileMap =
             zapPayerPubkeys.size > 0

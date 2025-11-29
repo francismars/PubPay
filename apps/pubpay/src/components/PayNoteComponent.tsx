@@ -690,9 +690,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           {isProfileLoading ? (
             <div className="skeleton skeleton-avatar" style={{ width: '48px', height: '48px', borderRadius: '50%' }}></div>
           ) : (
-            <Link to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}>
-              <img className="userImg" src={profilePicture} alt="Profile" />
-            </Link>
+          <Link to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}>
+            <img className="userImg" src={profilePicture} alt="Profile" />
+          </Link>
           )}
         </div>
         <div className="noteData">
@@ -702,12 +702,12 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 {isProfileLoading ? (
                   <div className="skeleton skeleton-text short" style={{ display: 'inline-block', width: '120px', height: '16px' }}></div>
                 ) : (
-                  <Link
-                    to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}
-                    className="noteAuthorLink"
-                  >
-                    {displayName}
-                  </Link>
+                <Link
+                  to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}
+                  className="noteAuthorLink"
+                >
+                  {displayName}
+                </Link>
                 )}
               </div>
 
