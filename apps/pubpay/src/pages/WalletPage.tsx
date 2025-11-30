@@ -414,11 +414,13 @@ const WalletPage: React.FC = () => {
                 }}
               >
                 <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', color: 'var(--text-primary)' }}>
-                  Connect Your Wallet
+                  Connect Your Wallet (Optional)
                 </h3>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: '1.6' }}>
+                  Connect your Lightning wallet using Nostr Wallet Connect (NWC) to access advanced wallet features on this page: view your balance, send payments, and receive invoices.
+                </p>
                 <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: '1.6' }}>
-                  Connect your Lightning wallet using Nostr Wallet Connect (NWC)
-                  to view your balance, send payments, and receive invoices.
+                  <strong>Note:</strong> This is optional. PubPay provides you with multiple payment options: QR code, WebLN, NWC (if connected), or your Lightning wallet app.
                 </p>
                 <button
                   className="cta"
