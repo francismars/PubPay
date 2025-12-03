@@ -400,7 +400,8 @@ export class ZapService {
 
       const eventFinal = JSON.stringify(zapFinalized);
       const lnurl = lud16;
-      const callString = `${callback}?amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`;
+      const separator = callback.includes('?') ? '&' : '?' // if callback has query params
+      const callString = `${callback}${separator}amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`;
       console.log('Sending zap request to:', callString);
       const responseFinal = await fetch(callString);
 
