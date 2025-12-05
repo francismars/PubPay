@@ -1,6 +1,7 @@
 // InvoiceService - Handles Lightning invoice operations
 import { LightningInvoice, LightningPayment } from '@pubpay/shared-types';
 import { isValidZapAmount } from '../../utils/validation';
+import * as bolt11 from 'bolt11';
 
 export class InvoiceService {
   private invoices: Map<string, LightningInvoice> = new Map();
@@ -257,6 +258,95 @@ export class InvoiceService {
     return Array.from(data, byte => byte.toString(16).padStart(2, '0')).join(
       ''
     );
+  }
+
+  /**
+   * Parse and validate BOLT11 invoice string
+   */
+  static parseBolt11(invoice: string): {
+    success: boolean;
+    data?: {
+      amount: number;
+      description: string;
+      expiry: number;
+      timestamp: number;
+    };
+    error?: string;
+  } {
+    const trimmedInvoice = invoice.trim();
+
+    // Check if empty
+    if (!trimmedInvoice) {
+      return { success: false, error: 'Invoice is required' };
+    }
+
+    // Basic format check - must start with lnbc, lntb, or lnbcrt
+    if (!trimmedInvoice.match(/^(lnbc|lntb|lnbcrt)/i)) {
+      return { success: false, error: 'Invalid invoice format. Must start with lnbc, lntb, or lnbcrt' };
+    }
+
+    try {
+      const decoded = bolt11.decode(trimmedInvoice);
+
+      // Check if invoice is expired
+      const timestamp = decoded.timestamp || Math.floor(Date.now() / 1000);
+      const expiry = decoded.tags?.find((tag: { tagName: string; data?: number }) => tag.tagName === 'expiry')?.data || 3600;
+      const expiryTime = timestamp + expiry;
+      const currentTime = Math.floor(Date.now() / 1000);
+
+      if (currentTime > expiryTime) {
+        return { success: false, error: 'Invoice has expired' };
+      }
+
+      // Check network (mainnet vs testnet)
+      const network = decoded.network;
+      if (network && network !== 'bitcoin') {
+        // Log but allow it (testnet support)
+        console.log('Invoice network:', network);
+      }
+
+      const amount = decoded.satoshis || 0;
+      const description = decoded.tags?.find((tag: { tagName: string; data?: string }) => tag.tagName === 'description')?.data || '';
+
+      return {
+        success: true,
+        data: {
+          amount,
+          description,
+          expiry,
+          timestamp
+        }
+      };
+    } catch (error) {
+      // Provide specific error messages
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage.includes('Invalid bech32')) {
+        return { success: false, error: 'Invalid invoice format. Check for typos or missing characters.' };
+      } else if (errorMessage.includes('checksum')) {
+        return { success: false, error: 'Invalid invoice checksum. The invoice may be corrupted.' };
+      } else if (errorMessage.includes('network')) {
+        return { success: false, error: 'Unsupported network. This invoice is for a different network.' };
+      } else {
+        return { success: false, error: `Invalid invoice: ${errorMessage}` };
+      }
+    }
+  }
+
+  /**
+   * Check if a BOLT11 invoice string is expired
+   */
+  static isBolt11Expired(invoice: string): boolean {
+    try {
+      const decoded = bolt11.decode(invoice);
+      const timestamp = decoded.timestamp || Math.floor(Date.now() / 1000);
+      const expiry = decoded.tags?.find((tag: { tagName: string; data?: number }) => tag.tagName === 'expiry')?.data || 3600;
+      const expiryTime = timestamp + expiry;
+      const currentTime = Math.floor(Date.now() / 1000);
+      return currentTime > expiryTime;
+    } catch {
+      return true; // If we can't parse it, consider it expired/invalid
+    }
   }
 
   /**

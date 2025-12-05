@@ -13,6 +13,7 @@ export * from './services/api/ProfileAPI';
 export * from './services/lightning/InvoiceService';
 export * from './services/lightning/LightningService';
 export * from './services/lightning/WebhookService';
+export * from './services/lightning/LightningAddressService';
 
 // Export Nostr services
 export * from './services/nostr/EventManager';
@@ -46,3 +47,4 @@ export * from './utils/constants';
 export * from './utils/zapHelpers';
 export * from './utils/postHelpers';
 export * from './utils/postDataLoader';
+export * from './utils/paymentTypeDetector';
