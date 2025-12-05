@@ -462,6 +462,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
     if (detection.type === 'invoice') {
       parseInvoice(detection.data);
+    } else if (detection.type === 'lightning-address') {
+      setDetectedNostrPubkey(null);
+      setDetectedNostrProfile(null);
     } else if (detection.type === 'nostr-user') {
       setDetectedNostrPubkey(detection.data.pubkey);
       setDetectedNostrProfile(null);
@@ -930,7 +933,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                           setPreviewSuffix(null);
                         }, 200);
                       }}
-                      placeholder="Enter invoice, Lightning Address, npub, or type @ to mention a follow..."
+                      placeholder="Enter invoice, Lightning Address, npub, or type @..."
                       disabled={sending || fetchingInvoice}
                       style={{
                         backgroundColor: 'var(--input-bg)',
@@ -1235,6 +1238,37 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   </div>
                   <div style={{ fontSize: '12px', color: '#ef4444', lineHeight: '1.5' }}>
                     {lnurlError}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Instructions - Show when input is empty or no valid format detected yet */}
+            {!sendInput.trim() && !detectedType && (
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '12px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '8px'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-secondary)', flexShrink: 0 }}>
+                  info
+                </span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                    Accepted Formats
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                    • BOLT11 invoice (starts with lnbc, lntb, or lnbcrt)<br />
+                    • Lightning Address (e.g., user@domain.com)<br />
+                    • Nostr user (npub or nprofile)<br />
+                    • Type @ to mention a follow
                   </div>
                 </div>
               </div>
