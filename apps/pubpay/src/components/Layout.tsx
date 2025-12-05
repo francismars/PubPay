@@ -129,9 +129,13 @@ export const Layout: React.FC = () => {
       // Check if it's a BOLT11 invoice
       if (decodedText.match(/^(lnbc|lntb|lnbcrt)/i)) {
         setShowQRScanner(false);
-        // Dispatch custom event to populate wallet send page
-        window.dispatchEvent(new CustomEvent('walletScannedInvoice', { detail: { invoice: decodedText } }));
+        // Store in sessionStorage so WalletPage can pick it up after navigation
+        sessionStorage.setItem('scannedInvoice', decodedText);
         navigate('/wallet');
+        // Dispatch event after a short delay to ensure WalletPage is mounted
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('walletScannedInvoice', { detail: { invoice: decodedText } }));
+        }, 100);
         useUIStore.getState().openToast('Invoice scanned!', 'success', false);
         setTimeout(() => useUIStore.getState().closeToast(), 2000);
         return;
@@ -141,9 +145,13 @@ export const Layout: React.FC = () => {
       const lightningAddressMatch = decodedText.match(/^([a-z0-9_-]+)@([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,})$/i);
       if (lightningAddressMatch) {
         setShowQRScanner(false);
-        // Dispatch custom event to populate wallet send page
-        window.dispatchEvent(new CustomEvent('walletScannedLightningAddress', { detail: { address: decodedText } }));
+        // Store in sessionStorage so WalletPage can pick it up after navigation
+        sessionStorage.setItem('scannedLightningAddress', decodedText);
         navigate('/wallet');
+        // Dispatch event after a short delay to ensure WalletPage is mounted
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('walletScannedLightningAddress', { detail: { address: decodedText } }));
+        }, 100);
         useUIStore.getState().openToast('Lightning Address scanned!', 'success', false);
         setTimeout(() => useUIStore.getState().closeToast(), 2000);
         return;
