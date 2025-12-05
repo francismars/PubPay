@@ -684,9 +684,29 @@ const WalletPage: React.FC = () => {
 
   // Listen for scanned invoices and Lightning Addresses
   useEffect(() => {
+    // Check sessionStorage first (in case we navigated here and event was missed)
+    const scannedInvoice = sessionStorage.getItem('scannedInvoice');
+    if (scannedInvoice) {
+      sessionStorage.removeItem('scannedInvoice');
+      setSendMode('invoice');
+      setSendInvoice(scannedInvoice);
+      setShowSendModal(true);
+      return;
+    }
+
+    const scannedAddress = sessionStorage.getItem('scannedLightningAddress');
+    if (scannedAddress) {
+      sessionStorage.removeItem('scannedLightningAddress');
+      setSendMode('lightning-address');
+      setLightningAddress(scannedAddress);
+      setShowSendModal(true);
+      return;
+    }
+
     const handleScannedInvoice = (e: CustomEvent) => {
       const invoice = e.detail?.invoice;
       if (invoice) {
+        sessionStorage.removeItem('scannedInvoice');
         setSendMode('invoice');
         setSendInvoice(invoice);
         setShowSendModal(true);
@@ -696,6 +716,7 @@ const WalletPage: React.FC = () => {
     const handleScannedLightningAddress = (e: CustomEvent) => {
       const address = e.detail?.address;
       if (address) {
+        sessionStorage.removeItem('scannedLightningAddress');
         setSendMode('lightning-address');
         setLightningAddress(address);
         setShowSendModal(true);
