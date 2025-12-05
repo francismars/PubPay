@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useUIStore, NwcClient } from '@pubpay/shared-services';
+import { useOutletContext } from 'react-router-dom';
+import { useUIStore, NwcClient, FollowService, ensureProfiles, getQueryClient } from '@pubpay/shared-services';
 import { InvoiceQR } from '@pubpay/shared-ui';
 import { NWCOptionsModal } from '../components/NWCOptionsModal';
 import { getActiveNWCUri, getActiveNWCConnection, getActiveNWCConnectionId, migrateOldNWCConnection } from '../utils/nwcStorage';
 import * as bolt11 from 'bolt11';
+import { nip19 } from 'nostr-tools';
 
 interface Invoice {
   invoice: string;
@@ -17,6 +19,15 @@ interface Invoice {
 }
 
 const WalletPage: React.FC = () => {
+  // Get auth state and nostr client from outlet context
+  const {
+    authState,
+    nostrClient
+  } = useOutletContext<{
+    authState: any;
+    nostrClient: any;
+  }>();
+
   const [nwcClient, setNwcClient] = useState<NwcClient | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
@@ -27,15 +38,19 @@ const WalletPage: React.FC = () => {
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
-  const [sendInvoice, setSendInvoice] = useState('');
+
+  // Unified send input
+  const [sendInput, setSendInput] = useState('');
   const [sendDescription, setSendDescription] = useState('');
+  const [sendAmount, setSendAmount] = useState('');
   const [sending, setSending] = useState(false);
-  const [sendMode, setSendMode] = useState<'invoice' | 'lightning-address'>('invoice');
-  const [lightningAddress, setLightningAddress] = useState('');
-  const [lnAddressAmount, setLnAddressAmount] = useState('');
-  const [fetchedInvoiceFromLN, setFetchedInvoiceFromLN] = useState<string | null>(null);
-  const [fetchingInvoice, setFetchingInvoice] = useState(false);
-  const [lnurlError, setLnurlError] = useState<string>('');
+
+  // Detected type: 'invoice' | 'lightning-address' | 'nostr-user' | null
+  const [detectedType, setDetectedType] = useState<'invoice' | 'lightning-address' | 'nostr-user' | null>(null);
+  const [detectedNostrPubkey, setDetectedNostrPubkey] = useState<string | null>(null);
+  const [detectedNostrProfile, setDetectedNostrProfile] = useState<any>(null);
+
+  // Invoice state
   const [parsedInvoice, setParsedInvoice] = useState<{
     amount?: number;
     description?: string;
@@ -43,10 +58,26 @@ const WalletPage: React.FC = () => {
     timestamp?: number;
   } | null>(null);
   const [invoiceError, setInvoiceError] = useState<string>('');
+
+  // Lightning Address state
+  const [fetchedInvoiceFromLN, setFetchedInvoiceFromLN] = useState<string | null>(null);
+  const [fetchingInvoice, setFetchingInvoice] = useState(false);
+  const [lnurlError, setLnurlError] = useState<string>('');
+
+  // Nostr follow list state (for autocomplete)
+  const [followList, setFollowList] = useState<any[]>([]);
+  const [, setLoadingFollowList] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
+  const [activeMentionIndex, setActiveMentionIndex] = useState(0);
+
+  // Lightning Address domain suggestions
+  const [lnAddressDomainQuery, setLnAddressDomainQuery] = useState('');
   const [showLnAddressSuggestions, setShowLnAddressSuggestions] = useState(false);
-  const [lnAddressQuery, setLnAddressQuery] = useState('');
-  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(0);
-  const lightningAddressInputRef = useRef<HTMLInputElement>(null);
+  const [activeLnAddressIndex, setActiveLnAddressIndex] = useState(0);
+  const [previewSuffix, setPreviewSuffix] = useState<string | null>(null);
+
+  const sendInputRef = useRef<HTMLInputElement>(null);
 
   // Common Lightning Address providers
   const commonLnProviders = [
@@ -61,6 +92,15 @@ const WalletPage: React.FC = () => {
     'lightningaddress.com',
     'stacker.news'
   ];
+
+  // Filter Lightning Address providers based on query (exact matches only)
+  const filteredLnProviders = useMemo(() => {
+    const q = lnAddressDomainQuery.trim().toLowerCase();
+    if (!q) return commonLnProviders;
+    return commonLnProviders.filter(provider =>
+      provider.toLowerCase().startsWith(q)
+    );
+  }, [lnAddressDomainQuery]);
   const [receiveAmount, setReceiveAmount] = useState('');
   const [receiveDescription, setReceiveDescription] = useState('');
   const [receiveInvoice, setReceiveInvoice] = useState<string | null>(null);
@@ -73,7 +113,7 @@ const WalletPage: React.FC = () => {
   useEffect(() => {
     // Migrate old format if needed
     migrateOldNWCConnection();
-
+    
     const initializeClient = () => {
       const nwcUri = getActiveNWCUri();
       if (nwcUri) {
@@ -113,7 +153,7 @@ const WalletPage: React.FC = () => {
       const currentActiveId = getActiveNWCConnectionId();
       if (currentActiveId !== activeConnectionIdRef.current) {
         activeConnectionIdRef.current = currentActiveId;
-
+        
         // Reload client
         const nwcUri = getActiveNWCUri();
         if (nwcUri) {
@@ -183,14 +223,14 @@ const WalletPage: React.FC = () => {
           balance: rawBalance,
           balanceType: typeof rawBalance
         });
-
+        
         // According to NIP-47, get_balance should return balance in millisats
         // However, some wallet implementations may return sats directly
         // We'll check the value to auto-detect the unit
         // Typical wallet balances: 0-10M sats (0-10B millisats)
         // If value is > 1M, it's likely in millisats (1M millisats = 1k sats)
         let balanceInSats: number;
-
+        
         if (rawBalance > 1000000) {
           // Large value - likely in millisats (1M+ millisats = 1k+ sats)
           balanceInSats = Math.floor(rawBalance / 1000);
@@ -200,7 +240,7 @@ const WalletPage: React.FC = () => {
           balanceInSats = rawBalance;
           console.log(`Using balance as-is: ${balanceInSats} sats`);
         }
-
+        
         setBalance(balanceInSats);
         setLastBalanceUpdate(new Date());
       }
@@ -249,7 +289,7 @@ const WalletPage: React.FC = () => {
       console.log('Loading transactions...');
       const response = await nwcClient.listInvoices({ limit: 20 });
       console.log('listInvoices response:', response);
-
+      
       if (response.error) {
         console.error('listInvoices error:', response.error);
         setTransactionsError(response.error.message || 'Failed to load transactions');
@@ -413,25 +453,23 @@ const WalletPage: React.FC = () => {
     return { valid: true };
   }, []);
 
-  // Fetch invoice from Lightning Address
-  const fetchInvoiceFromLN = async (): Promise<string | null> => {
-    const address = lightningAddress.trim();
-    const amountStr = lnAddressAmount.trim();
+  // Fetch invoice from Lightning Address (with parameters)
+  const fetchInvoiceFromLNAddress = async (address: string, amount: number, description?: string): Promise<string | null> => {
+    const trimmedAddress = address.trim();
 
     // Validate inputs
-    if (!address || !amountStr) {
-      setLnurlError('Please enter both Lightning Address and amount');
+    if (!trimmedAddress) {
+      setLnurlError('Lightning Address is required');
       return null;
     }
 
-    const amount = parseInt(amountStr, 10);
     if (isNaN(amount) || amount <= 0) {
       setLnurlError('Please enter a valid amount (must be greater than 0)');
       return null;
     }
 
     // Validate Lightning Address format
-    const validation = validateLightningAddress(address);
+    const validation = validateLightningAddress(trimmedAddress);
     if (!validation.valid) {
       setLnurlError(validation.error || 'Invalid Lightning Address');
       return null;
@@ -442,7 +480,7 @@ const WalletPage: React.FC = () => {
     setFetchedInvoiceFromLN(null);
 
     try {
-      const addressParts = address.split('@');
+      const addressParts = trimmedAddress.split('@');
       const [username, domain] = addressParts;
 
       // Step 1: Discover LNURL-pay endpoint
@@ -499,8 +537,8 @@ const WalletPage: React.FC = () => {
       const callbackUrl = new URL(lnurlInfo.callback);
       callbackUrl.searchParams.set('amount', amountMillisats.toString());
 
-      if (sendDescription.trim()) {
-        callbackUrl.searchParams.set('comment', sendDescription.trim());
+      if (description && description.trim()) {
+        callbackUrl.searchParams.set('comment', description.trim());
       }
 
       const invoiceController = new AbortController();
@@ -550,6 +588,8 @@ const WalletPage: React.FC = () => {
     }
   };
 
+  // Legacy function removed - use fetchInvoiceFromLNAddress directly
+
   // Handle send payment
   const handleSendPayment = async () => {
     if (!nwcClient) {
@@ -558,16 +598,16 @@ const WalletPage: React.FC = () => {
       return;
     }
 
+    if (!detectedType) {
+      useUIStore.getState().openToast('Please enter an invoice, Lightning Address, or Nostr user', 'error', false);
+      setTimeout(() => useUIStore.getState().closeToast(), 2000);
+      return;
+    }
+
     let invoiceToPay: string | null = null;
 
-    if (sendMode === 'invoice') {
+    if (detectedType === 'invoice') {
       // Validate invoice
-      if (!sendInvoice.trim()) {
-        useUIStore.getState().openToast('Please enter an invoice', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), 2000);
-        return;
-      }
-
       if (invoiceError || !parsedInvoice) {
         useUIStore.getState().openToast(
           invoiceError || 'Please enter a valid invoice',
@@ -578,28 +618,17 @@ const WalletPage: React.FC = () => {
         return;
       }
 
-      invoiceToPay = sendInvoice.trim();
-    } else {
-      // Lightning Address mode - automatically fetch invoice
-      if (!lightningAddress.trim() || !lnAddressAmount.trim()) {
-        useUIStore.getState().openToast('Please enter Lightning Address and amount', 'error', false);
+      invoiceToPay = sendInput.trim();
+    } else if (detectedType === 'lightning-address') {
+      // Validate amount
+      if (!sendAmount.trim()) {
+        useUIStore.getState().openToast('Please enter an amount', 'error', false);
         setTimeout(() => useUIStore.getState().closeToast(), 2000);
         return;
       }
 
-      // Validate Lightning Address format first
-      const validation = validateLightningAddress(lightningAddress.trim());
-      if (!validation.valid) {
-        setLnurlError(validation.error || 'Invalid Lightning Address');
-        useUIStore.getState().openToast(validation.error || 'Invalid Lightning Address', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), 3000);
-        return;
-      }
-
-      // Validate amount
-      const amount = parseInt(lnAddressAmount.trim(), 10);
+      const amount = parseInt(sendAmount.trim(), 10);
       if (isNaN(amount) || amount <= 0) {
-        setLnurlError('Please enter a valid amount (must be greater than 0)');
         useUIStore.getState().openToast('Please enter a valid amount', 'error', false);
         setTimeout(() => useUIStore.getState().closeToast(), 2000);
         return;
@@ -607,10 +636,76 @@ const WalletPage: React.FC = () => {
 
       // Fetch invoice automatically
       useUIStore.getState().openToast('Fetching invoice...', 'loading', true);
-      invoiceToPay = await fetchInvoiceFromLN();
+      invoiceToPay = await fetchInvoiceFromLNAddress(sendInput.trim(), amount, sendDescription);
 
       if (!invoiceToPay) {
-        // Error already set by fetchInvoiceFromLN
+        useUIStore.getState().updateToast(
+          lnurlError || 'Failed to fetch invoice',
+          'error',
+          true
+        );
+        setTimeout(() => useUIStore.getState().closeToast(), 3000);
+        return;
+      }
+
+      useUIStore.getState().updateToast('Invoice fetched! Sending payment...', 'loading', true);
+    } else if (detectedType === 'nostr-user') {
+      // Validate amount
+      if (!sendAmount.trim()) {
+        useUIStore.getState().openToast('Please enter an amount', 'error', false);
+        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+        return;
+      }
+
+      const amount = parseInt(sendAmount.trim(), 10);
+      if (isNaN(amount) || amount <= 0) {
+        useUIStore.getState().openToast('Please enter a valid amount', 'error', false);
+        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+        return;
+      }
+
+      // Get lightning address from profile
+      if (!detectedNostrProfile) {
+        useUIStore.getState().openToast('Loading user profile...', 'loading', true);
+        try {
+          const profileMap = await ensureProfiles(getQueryClient(), nostrClient, [detectedNostrPubkey!]);
+          const profile = profileMap.get(detectedNostrPubkey!);
+          setDetectedNostrProfile(profile || null);
+          if (!profile) {
+            useUIStore.getState().updateToast('User profile not found', 'error', true);
+            setTimeout(() => useUIStore.getState().closeToast(), 3000);
+            return;
+          }
+        } catch {
+          useUIStore.getState().updateToast('Failed to load user profile', 'error', true);
+          setTimeout(() => useUIStore.getState().closeToast(), 3000);
+          return;
+        }
+      }
+
+      // Extract lud16 from profile
+      let lud16: string | null = null;
+      try {
+        const profileContent = typeof detectedNostrProfile?.content === 'string'
+          ? JSON.parse(detectedNostrProfile.content)
+          : detectedNostrProfile?.content || detectedNostrProfile;
+        lud16 = profileContent?.lud16 || profileContent?.lud06 || null;
+      } catch {
+        // Try direct access
+        lud16 = detectedNostrProfile?.lud16 || detectedNostrProfile?.lud06 || null;
+      }
+
+      if (!lud16) {
+        useUIStore.getState().updateToast('User does not have a Lightning Address', 'error', true);
+        setTimeout(() => useUIStore.getState().closeToast(), 3000);
+        return;
+      }
+
+      // Fetch invoice using lightning address
+      useUIStore.getState().updateToast('Fetching invoice...', 'loading', true);
+      invoiceToPay = await fetchInvoiceFromLNAddress(lud16, amount, sendDescription);
+
+      if (!invoiceToPay) {
         useUIStore.getState().updateToast(
           lnurlError || 'Failed to fetch invoice',
           'error',
@@ -644,15 +739,16 @@ const WalletPage: React.FC = () => {
         setTimeout(() => {
           useUIStore.getState().closeToast();
           setShowSendModal(false);
-          setSendInvoice('');
+          setSendInput('');
           setSendDescription('');
-          setLightningAddress('');
-          setLnAddressAmount('');
+          setSendAmount('');
           setFetchedInvoiceFromLN(null);
           setParsedInvoice(null);
           setInvoiceError('');
           setLnurlError('');
-          setSendMode('invoice');
+          setDetectedType(null);
+          setDetectedNostrPubkey(null);
+          setDetectedNostrProfile(null);
           loadBalance();
           loadTransactions();
         }, 2000);
@@ -669,18 +765,7 @@ const WalletPage: React.FC = () => {
     }
   };
 
-  // Parse invoice when it changes (for invoice mode)
-  useEffect(() => {
-    if (sendMode === 'invoice' && sendInvoice.trim()) {
-      parseInvoice(sendInvoice);
-    } else if (sendMode === 'lightning-address') {
-      setParsedInvoice(null);
-      setInvoiceError('');
-    } else if (sendMode === 'invoice' && !sendInvoice.trim()) {
-      setParsedInvoice(null);
-      setInvoiceError('');
-    }
-  }, [sendInvoice, sendMode, parseInvoice]);
+  // Invoice parsing is now handled in the detectInputType useEffect above
 
   // Listen for scanned invoices and Lightning Addresses
   useEffect(() => {
@@ -688,8 +773,7 @@ const WalletPage: React.FC = () => {
     const scannedInvoice = sessionStorage.getItem('scannedInvoice');
     if (scannedInvoice) {
       sessionStorage.removeItem('scannedInvoice');
-      setSendMode('invoice');
-      setSendInvoice(scannedInvoice);
+      setSendInput(scannedInvoice);
       setShowSendModal(true);
       return;
     }
@@ -697,8 +781,7 @@ const WalletPage: React.FC = () => {
     const scannedAddress = sessionStorage.getItem('scannedLightningAddress');
     if (scannedAddress) {
       sessionStorage.removeItem('scannedLightningAddress');
-      setSendMode('lightning-address');
-      setLightningAddress(scannedAddress);
+      setSendInput(scannedAddress);
       setShowSendModal(true);
       return;
     }
@@ -707,8 +790,7 @@ const WalletPage: React.FC = () => {
       const invoice = e.detail?.invoice;
       if (invoice) {
         sessionStorage.removeItem('scannedInvoice');
-        setSendMode('invoice');
-        setSendInvoice(invoice);
+        setSendInput(invoice);
         setShowSendModal(true);
       }
     };
@@ -717,8 +799,7 @@ const WalletPage: React.FC = () => {
       const address = e.detail?.address;
       if (address) {
         sessionStorage.removeItem('scannedLightningAddress');
-        setSendMode('lightning-address');
-        setLightningAddress(address);
+        setSendInput(address);
         setShowSendModal(true);
       }
     };
@@ -737,14 +818,239 @@ const WalletPage: React.FC = () => {
     window.dispatchEvent(new CustomEvent('openQRScanner'));
   };
 
-  // Filter suggestions based on query
-  const filteredLnProviders = useMemo(() => {
-    if (!lnAddressQuery) return commonLnProviders;
-    const query = lnAddressQuery.toLowerCase();
-    return commonLnProviders.filter(provider =>
-      provider.toLowerCase().includes(query)
-    );
-  }, [lnAddressQuery]);
+  // Detect input type and extract relevant data
+  const detectInputType = useCallback((input: string): { type: 'invoice' | 'lightning-address' | 'nostr-user' | null; data?: any } => {
+    const trimmed = input.trim();
+    if (!trimmed) return { type: null };
+
+    // Check for BOLT11 invoice
+    if (trimmed.match(/^(lnbc|lntb|lnbcrt)/i)) {
+      return { type: 'invoice', data: trimmed };
+    }
+
+    // Check for Lightning Address
+    const lightningAddressMatch = trimmed.match(/^([a-z0-9_-]+)@([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,})$/i);
+    if (lightningAddressMatch) {
+      return { type: 'lightning-address', data: trimmed };
+    }
+
+    // Check for Nostr npub/nprofile
+    try {
+      const decoded = nip19.decode(trimmed);
+      if (decoded.type === 'npub') {
+        return { type: 'nostr-user', data: { pubkey: decoded.data as string, npub: trimmed } };
+      } else if (decoded.type === 'nprofile') {
+        const profile = decoded.data as any;
+        return { type: 'nostr-user', data: { pubkey: profile.pubkey, npub: nip19.npubEncode(profile.pubkey) } };
+      }
+    } catch {
+      // Not a valid nostr address
+    }
+
+    // Check if it's a hex pubkey (64 chars)
+    if (trimmed.match(/^[0-9a-f]{64}$/i)) {
+      try {
+        const npub = nip19.npubEncode(trimmed);
+        return { type: 'nostr-user', data: { pubkey: trimmed, npub } };
+      } catch {
+        // Invalid hex
+      }
+    }
+
+    return { type: null };
+  }, []);
+
+  // Load follow list
+  const loadFollowList = useCallback(async () => {
+    if (!nostrClient || !authState?.isLoggedIn || !authState?.publicKey) {
+      setFollowList([]);
+      return;
+    }
+
+    setLoadingFollowList(true);
+    try {
+      const suggestions = await FollowService.getFollowSuggestions(nostrClient, authState.publicKey);
+      setFollowList(suggestions);
+    } catch (error) {
+      console.error('Failed to load follow list:', error);
+      setFollowList([]);
+    } finally {
+      setLoadingFollowList(false);
+    }
+  }, [nostrClient, authState]);
+
+  // Load follow list when modal opens and user is logged in
+  useEffect(() => {
+    if (showSendModal && authState?.isLoggedIn) {
+      loadFollowList();
+      // Also request from UI store (same as NewPayNoteOverlay)
+      try {
+        window.dispatchEvent(new CustomEvent('requestFollowSuggestions'));
+      } catch {
+        // Ignore errors
+      }
+    }
+  }, [showSendModal, authState?.isLoggedIn, loadFollowList]);
+
+  // Listen for follow suggestions updates
+  useEffect(() => {
+    if (!showSendModal) return;
+    const handleFollowingUpdated = (e: any) => {
+      try {
+        if (e?.detail?.suggestions) {
+          setFollowList(e.detail.suggestions);
+        }
+      } catch {
+        // Ignore errors
+      }
+    };
+    window.addEventListener('followingUpdated', handleFollowingUpdated);
+    return () => {
+      window.removeEventListener('followingUpdated', handleFollowingUpdated);
+    };
+  }, [showSendModal]);
+
+  // Filter follows based on mention query (only search in display name)
+  const filteredMentionFollows = useMemo(() => {
+    const q = mentionQuery.trim().toLowerCase();
+    if (!q || q.length < 1) return [];
+    return followList
+      .filter(item => {
+        return item.displayName?.toLowerCase().includes(q);
+      })
+      .slice(0, 8);
+  }, [mentionQuery, followList]);
+
+  // Detect @ mentions in input (for both Nostr users and Lightning Address domains)
+  const detectMention = useCallback(() => {
+    if (!sendInputRef.current) return;
+    const input = sendInputRef.current;
+    const value = input.value;
+    const caret = input.selectionStart || 0;
+    const upto = value.slice(0, caret);
+    const at = upto.lastIndexOf('@');
+
+    if (at === -1) {
+      setShowMentionSuggestions(false);
+      setMentionQuery('');
+      setActiveMentionIndex(0);
+      setShowLnAddressSuggestions(false);
+      setLnAddressDomainQuery('');
+      setActiveLnAddressIndex(0);
+      return;
+    }
+
+    const beforeAt = upto.slice(0, at);
+    const afterAt = upto.slice(at + 1);
+
+    // Check if there's text before @ (like "user@") - this is a Lightning Address
+    const hasTextBeforeAt = beforeAt.trim().length > 0 && /[a-z0-9_-]+/i.test(beforeAt.trim());
+
+    // Check if @ is at start or after whitespace - this is a Nostr mention
+    const isNostrMention = at === 0 || /\s/.test(beforeAt.slice(-1));
+
+    // Close suggestions if whitespace after @
+    if (/\s/.test(afterAt)) {
+      setShowMentionSuggestions(false);
+      setMentionQuery('');
+      setActiveMentionIndex(0);
+      setShowLnAddressSuggestions(false);
+      setLnAddressDomainQuery('');
+      setActiveLnAddressIndex(0);
+      return;
+    }
+
+    if (hasTextBeforeAt) {
+      // Lightning Address domain suggestions
+      setShowMentionSuggestions(false);
+      setMentionQuery('');
+      setActiveMentionIndex(0);
+      if (afterAt.length >= 0) {
+        setLnAddressDomainQuery(afterAt);
+        setShowLnAddressSuggestions(true);
+        setActiveLnAddressIndex(0);
+      } else {
+        setShowLnAddressSuggestions(false);
+        setLnAddressDomainQuery('');
+        setActiveLnAddressIndex(0);
+      }
+    } else if (isNostrMention) {
+      // Nostr user mention suggestions
+      setShowLnAddressSuggestions(false);
+      setLnAddressDomainQuery('');
+      setActiveLnAddressIndex(0);
+      if (afterAt.length >= 0) {
+        setMentionQuery(afterAt);
+        setShowMentionSuggestions(true);
+        setActiveMentionIndex(0);
+      } else {
+        setShowMentionSuggestions(false);
+        setMentionQuery('');
+        setActiveMentionIndex(0);
+      }
+    } else {
+      // @ is part of a word, close all suggestions
+      setShowMentionSuggestions(false);
+      setMentionQuery('');
+      setActiveMentionIndex(0);
+      setShowLnAddressSuggestions(false);
+      setLnAddressDomainQuery('');
+      setActiveLnAddressIndex(0);
+    }
+  }, []);
+
+  // Detect type when input changes
+  useEffect(() => {
+    if (!sendInput.trim()) {
+      setDetectedType(null);
+      setDetectedNostrPubkey(null);
+      setDetectedNostrProfile(null);
+      setParsedInvoice(null);
+      setInvoiceError('');
+      setLnurlError('');
+      setFetchedInvoiceFromLN(null);
+      return;
+    }
+
+    const detection = detectInputType(sendInput);
+    setDetectedType(detection.type);
+
+    if (detection.type === 'invoice') {
+      parseInvoice(detection.data);
+    } else if (detection.type === 'lightning-address') {
+      setParsedInvoice(null);
+      setInvoiceError('');
+    } else if (detection.type === 'nostr-user') {
+      setDetectedNostrPubkey(detection.data.pubkey);
+      // Load profile using ensureProfiles
+      if (nostrClient) {
+        ensureProfiles(getQueryClient(), nostrClient, [detection.data.pubkey])
+          .then((profileMap) => {
+            const profile = profileMap.get(detection.data.pubkey);
+            setDetectedNostrProfile(profile || null);
+          })
+          .catch(() => {
+            setDetectedNostrProfile(null);
+          });
+      }
+      setParsedInvoice(null);
+      setInvoiceError('');
+    } else {
+      setParsedInvoice(null);
+      setInvoiceError('');
+      setDetectedNostrPubkey(null);
+      setDetectedNostrProfile(null);
+    }
+  }, [sendInput, detectInputType, parseInvoice, nostrClient]);
+
+  // Common Lightning Address providers for autocomplete (if needed in future)
+  // const filteredLnProviders = useMemo(() => {
+  //   if (!suggestionQuery) return commonLnProviders;
+  //   const query = suggestionQuery.toLowerCase();
+  //   return commonLnProviders.filter(provider =>
+  //     provider.toLowerCase().includes(query)
+  //   );
+  // }, [suggestionQuery]);
 
   // Handle generate receive invoice
   const handleGenerateInvoice = async () => {
@@ -1338,14 +1644,16 @@ const WalletPage: React.FC = () => {
           onClick={() => {
             if (!sending && !fetchingInvoice) {
               setShowSendModal(false);
-              setSendInvoice('');
+              setSendInput('');
               setSendDescription('');
-              setLightningAddress('');
-              setLnAddressAmount('');
+              setSendAmount('');
               setFetchedInvoiceFromLN(null);
               setParsedInvoice(null);
+              setInvoiceError('');
               setLnurlError('');
-              setSendMode('invoice');
+              setDetectedType(null);
+              setDetectedNostrPubkey(null);
+              setDetectedNostrProfile(null);
             }
           }}
         >
@@ -1355,17 +1663,20 @@ const WalletPage: React.FC = () => {
             style={{
               transform: 'none',
               animation: 'none',
-              transition: 'none'
+              transition: 'none',
+              minHeight: '625px',
+              display: 'flex',
+              flexDirection: 'column'
             }}
           >
             <div className="brand">
               PUB<span className="logoPay">PAY</span>
               <span className="logoMe">.me</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0 }}>
               <p className="label" style={{ margin: 0 }}>
-                Send Payment
-              </p>
+              Send Payment
+            </p>
               <button
                 onClick={openQRScanner}
                 disabled={sending || fetchingInvoice}
@@ -1405,422 +1716,358 @@ const WalletPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Mode Tabs */}
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px',
-                marginBottom: '24px',
-                borderBottom: '2px solid var(--border-color)'
-              }}
-            >
-              <button
-                onClick={() => {
-                  setSendMode('invoice');
-                  setFetchedInvoiceFromLN(null);
-                  setParsedInvoice(null);
-                  setLnurlError('');
-                }}
+            {/* Main Content Area - grows to fill space */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
+            {/* Unified Send Input */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <label
                 style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: sendMode === 'invoice' ? '2px solid #4a75ff' : '2px solid transparent',
-                  color: sendMode === 'invoice' ? '#4a75ff' : 'var(--text-secondary)',
-                  cursor: 'pointer',
+                  display: 'block',
                   fontSize: '14px',
-                  fontWeight: sendMode === 'invoice' ? '600' : '400',
-                  transition: 'all 0.2s ease',
-                  marginBottom: '-2px'
+                  color: 'var(--text-primary)'
                 }}
-                disabled={sending || fetchingInvoice}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '6px' }}>
-                  receipt_long
-                </span>
-                Invoice
-              </button>
-              <button
-                onClick={() => {
-                  setSendMode('lightning-address');
-                  setSendInvoice('');
-                  setParsedInvoice(null);
-                }}
-                style={{
-                  flex: 1,
-                  padding: '12px 16px',
-                  background: 'transparent',
-                  border: 'none',
-                  borderBottom: sendMode === 'lightning-address' ? '2px solid #4a75ff' : '2px solid transparent',
-                  color: sendMode === 'lightning-address' ? '#4a75ff' : 'var(--text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: sendMode === 'lightning-address' ? '600' : '400',
-                  transition: 'all 0.2s ease',
-                  marginBottom: '-2px'
-                }}
-                disabled={sending || fetchingInvoice}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', verticalAlign: 'middle', marginRight: '6px' }}>
-                  alternate_email
-                </span>
-                Lightning Address
-              </button>
-            </div>
-
-            {sendMode === 'invoice' ? (
-              <>
-                <div style={{ marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '14px',
-                        color: 'var(--text-primary)'
+                  Send to <span style={{ color: '#ef4444' }}>*</span>
+                  {detectedType && (
+                    <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      ({detectedType === 'invoice' ? 'Invoice' : detectedType === 'lightning-address' ? 'Lightning Address' : 'Nostr User'})
+                    </span>
+                  )}
+              </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const text = await navigator.clipboard.readText();
+                        if (text && text.trim()) {
+                          setSendInput(text.trim());
+                          useUIStore.getState().openToast('Pasted from clipboard', 'success', false);
+                          setTimeout(() => useUIStore.getState().closeToast(), 2000);
+                        }
+                      } catch (error) {
+                        console.error('Failed to read clipboard:', error);
+                        useUIStore.getState().openToast('Failed to read from clipboard', 'error', false);
+                        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+                      }
+                    }}
+                    disabled={sending || fetchingInvoice}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '6px 12px',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '6px',
+                      color: 'var(--text-primary)',
+                      cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                      fontSize: '12px',
+                      transition: 'all 0.2s ease',
+                      opacity: (sending || fetchingInvoice) ? 0.5 : 1
+                    }}
+                    title="Paste from clipboard"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                      content_paste
+                    </span>
+                    Paste
+                  </button>
+                  {sendInput && (
+                    <button
+                      onClick={() => {
+                        setSendInput('');
+                        setParsedInvoice(null);
+                        setInvoiceError('');
+                        setLnurlError('');
+                        setDetectedType(null);
+                        setDetectedNostrPubkey(null);
+                        setDetectedNostrProfile(null);
                       }}
+                      disabled={sending || fetchingInvoice}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        color: 'var(--text-primary)',
+                        cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                        fontSize: '12px',
+                        transition: 'all 0.2s ease',
+                        opacity: (sending || fetchingInvoice) ? 0.5 : 1
+                      }}
+                      title="Clear"
                     >
-                      Lightning Invoice (BOLT11)
-                    </label>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={async () => {
-                          try {
-                            const text = await navigator.clipboard.readText();
-                            if (text && text.trim()) {
-                              setSendInvoice(text.trim());
-                              useUIStore.getState().openToast('Invoice pasted from clipboard', 'success', false);
-                              setTimeout(() => useUIStore.getState().closeToast(), 2000);
-                            }
-                          } catch (error) {
-                            console.error('Failed to read clipboard:', error);
-                            useUIStore.getState().openToast('Failed to read from clipboard', 'error', false);
-                            setTimeout(() => useUIStore.getState().closeToast(), 2000);
-                          }
-                        }}
-                        disabled={sending}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '6px 12px',
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '6px',
-                          color: 'var(--text-primary)',
-                          cursor: sending ? 'not-allowed' : 'pointer',
-                          fontSize: '12px',
-                          transition: 'all 0.2s ease',
-                          opacity: sending ? 0.5 : 1
-                        }}
-                        onMouseEnter={e => {
-                          if (!sending) {
-                            e.currentTarget.style.background = 'var(--bg-primary)';
-                            e.currentTarget.style.borderColor = '#4a75ff';
-                          }
-                        }}
-                        onMouseLeave={e => {
-                          if (!sending) {
-                            e.currentTarget.style.background = 'var(--bg-secondary)';
-                            e.currentTarget.style.borderColor = 'var(--border-color)';
-                          }
-                        }}
-                        title="Paste from clipboard"
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                          content_paste
-                        </span>
-                        Paste
-                      </button>
-                      {sendInvoice && (
-                        <button
-                          onClick={() => {
-                            setSendInvoice('');
-                            setParsedInvoice(null);
-                            setInvoiceError('');
-                          }}
-                          disabled={sending}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '6px 12px',
-                            background: 'var(--bg-secondary)',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '6px',
-                            color: 'var(--text-primary)',
-                            cursor: sending ? 'not-allowed' : 'pointer',
-                            fontSize: '12px',
-                            transition: 'all 0.2s ease',
-                            opacity: sending ? 0.5 : 1
-                          }}
-                          onMouseEnter={e => {
-                            if (!sending) {
-                              e.currentTarget.style.background = 'var(--bg-primary)';
-                              e.currentTarget.style.borderColor = '#ef4444';
-                              e.currentTarget.style.color = '#ef4444';
-                            }
-                          }}
-                          onMouseLeave={e => {
-                            if (!sending) {
-                              e.currentTarget.style.background = 'var(--bg-secondary)';
-                              e.currentTarget.style.borderColor = 'var(--border-color)';
-                              e.currentTarget.style.color = 'var(--text-primary)';
-                            }
-                          }}
-                          title="Clear invoice"
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                            close
-                          </span>
-                          Clear
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <textarea
-                    value={sendInvoice}
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                        close
+                      </span>
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+
+              {/* Main Input Field */}
+              <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+                {detectedType === 'invoice' ? (
+              <textarea
+                    value={sendInput}
                     onPaste={e => {
                       const pastedText = e.clipboardData.getData('text');
                       if (pastedText && pastedText.trim()) {
-                        setSendInvoice(pastedText.trim());
+                        setSendInput(pastedText.trim());
                       }
                     }}
-                    style={{
-                      width: '100%',
-                      minHeight: '100px',
-                      padding: '12px',
+                style={{
+                  width: '100%',
+                  minHeight: '100px',
+                  padding: '12px',
                       border: invoiceError ? '2px solid #ef4444' : parsedInvoice ? '2px solid #22c55e' : '2px solid var(--border-color)',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontFamily: 'monospace',
-                      backgroundColor: 'var(--input-bg)',
-                      color: 'var(--text-primary)',
-                      resize: 'vertical',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontFamily: 'monospace',
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  resize: 'vertical',
                       boxSizing: 'border-box',
                       cursor: 'text'
                     }}
-                    onChange={() => {}} // Prevent typing
+                    onChange={() => {}}
                     onKeyDown={e => {
-                      // Allow only Ctrl+V, Ctrl+A, Ctrl+C, Ctrl+X, Delete, Backspace when text is selected
-                      if (e.key === 'v' && (e.ctrlKey || e.metaKey)) {
-                        return; // Allow paste
-                      }
-                      if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
-                        return; // Allow select all
-                      }
-                      if (e.key === 'c' && (e.ctrlKey || e.metaKey)) {
-                        return; // Allow copy
-                      }
-                      if (e.key === 'x' && (e.ctrlKey || e.metaKey)) {
-                        return; // Allow cut
-                      }
+                      if (e.key === 'v' && (e.ctrlKey || e.metaKey)) return;
+                      if (e.key === 'a' && (e.ctrlKey || e.metaKey)) return;
+                      if (e.key === 'c' && (e.ctrlKey || e.metaKey)) return;
+                      if (e.key === 'x' && (e.ctrlKey || e.metaKey)) return;
                       if (e.key === 'Delete' || e.key === 'Backspace') {
-                        // Allow delete/backspace only if text is selected
                         const textarea = e.target as HTMLTextAreaElement;
                         if (textarea.selectionStart === textarea.selectionEnd) {
                           e.preventDefault();
                         }
                         return;
                       }
-                      // Prevent all other typing
                       e.preventDefault();
                     }}
-                    placeholder="Paste invoice here or click Paste button..."
+                    placeholder="Paste BOLT11 invoice here..."
                     readOnly
-                    disabled={sending}
+                    disabled={sending || fetchingInvoice}
                   />
-                  {invoiceError && (
-                    <div
-                      style={{
-                        marginTop: '12px',
-                        padding: '12px',
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(239, 68, 68, 0.2)',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '8px'
-                      }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444', flexShrink: 0 }}>
-                        error_outline
-                      </span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#ef4444', marginBottom: '4px' }}>
-                          Invalid Invoice
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#ef4444', lineHeight: '1.5' }}>
-                          {invoiceError}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {parsedInvoice && !invoiceError && (
-                    <div
-                      style={{
-                        marginTop: '12px',
-                        padding: '12px',
-                        background: 'var(--bg-secondary)',
-                        borderRadius: '8px',
-                        border: '1px solid var(--border-color)'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#22c55e' }}>
-                          check_circle
-                        </span>
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                          Invoice Valid
-                        </span>
-                      </div>
-                      {parsedInvoice.amount && (
-                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                          Amount: <strong style={{ color: 'var(--text-primary)' }}>{parsedInvoice.amount.toLocaleString()} sats</strong>
-                        </div>
-                      )}
-                      {parsedInvoice.description && (
-                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                          Description: {parsedInvoice.description}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div style={{ marginBottom: '24px' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      marginBottom: '8px',
-                      color: 'var(--text-primary)'
-                    }}
-                  >
-                    Description (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={sendDescription}
-                    onChange={e => setSendDescription(e.target.value)}
-                    placeholder="Payment description"
-                    className="inputField"
-                    disabled={sending}
-                    style={{
-                      backgroundColor: 'var(--input-bg)',
-                      color: 'var(--text-primary)',
-                      border: '2px solid var(--border-color)',
-                      borderRadius: '6px',
-                      padding: '12px 16px',
-                      width: '100%',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ marginBottom: '16px' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      marginBottom: '8px',
-                      color: 'var(--text-primary)'
-                    }}
-                  >
-                    Lightning Address <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      ref={lightningAddressInputRef}
-                      type="text"
-                      value={lightningAddress}
+                ) : (
+                  <>
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <input
+                        ref={sendInputRef}
+                        type="text"
+                        value={sendInput}
                       onChange={e => {
                         const value = e.target.value;
-                        setLightningAddress(value);
-                        setLnurlError(''); // Clear error when user types
+                        setSendInput(value);
+                        setInvoiceError('');
+                        setLnurlError('');
                         setFetchedInvoiceFromLN(null);
                         setParsedInvoice(null);
-
-                        // Check if user typed "@" to show suggestions
-                        const atIndex = value.lastIndexOf('@');
-                        if (atIndex >= 0) {
-                          const query = value.substring(atIndex + 1);
-                          setLnAddressQuery(query);
-                          setShowLnAddressSuggestions(true);
-                          setActiveSuggestionIndex(0);
-                        } else {
-                          setShowLnAddressSuggestions(false);
-                          setLnAddressQuery('');
-                        }
-                      }}
-                      onBlur={() => {
-                        // Validate on blur
-                        setTimeout(() => {
-                          setShowLnAddressSuggestions(false);
-                          if (lightningAddress.trim()) {
-                            const validation = validateLightningAddress(lightningAddress.trim());
-                            if (!validation.valid && validation.error) {
-                              setLnurlError(validation.error);
-                            } else {
-                              setLnurlError('');
-                            }
-                          } else {
-                            setLnurlError('');
-                          }
-                        }, 200); // Delay to allow click on suggestion
-                      }}
-                      onFocus={() => {
-                        // Show suggestions if "@" is present
-                        const atIndex = lightningAddress.lastIndexOf('@');
-                        if (atIndex >= 0) {
-                          const query = lightningAddress.substring(atIndex + 1);
-                          setLnAddressQuery(query);
-                          setShowLnAddressSuggestions(true);
-                        }
+                        setPreviewSuffix(null);
+                        detectMention();
                       }}
                       onKeyDown={e => {
+                        // Handle Lightning Address domain suggestions
                         if (showLnAddressSuggestions && filteredLnProviders.length > 0) {
                           if (e.key === 'ArrowDown') {
                             e.preventDefault();
-                            setActiveSuggestionIndex(prev =>
-                              prev < filteredLnProviders.length - 1 ? prev + 1 : prev
-                            );
+                            const newIndex = (activeLnAddressIndex + 1) % filteredLnProviders.length;
+                            setActiveLnAddressIndex(newIndex);
+                            // Update preview (show full suggestion)
+                            const input = sendInputRef.current;
+                            if (input) {
+                              const value = input.value;
+                              const caret = input.selectionStart || 0;
+                              const upto = value.slice(0, caret);
+                              const at = upto.lastIndexOf('@');
+                              if (at !== -1) {
+                                const before = value.slice(0, at + 1);
+                                const choice = filteredLnProviders[newIndex];
+                                const fullSuggestion = before + choice;
+                                setPreviewSuffix(fullSuggestion);
+                              }
+                            }
                           } else if (e.key === 'ArrowUp') {
                             e.preventDefault();
-                            setActiveSuggestionIndex(prev => prev > 0 ? prev - 1 : 0);
-                          } else if (e.key === 'Enter') {
+                            const newIndex = (activeLnAddressIndex - 1 + filteredLnProviders.length) % filteredLnProviders.length;
+                            setActiveLnAddressIndex(newIndex);
+                            // Update preview (show full suggestion)
+                            const input = sendInputRef.current;
+                            if (input) {
+                              const value = input.value;
+                              const caret = input.selectionStart || 0;
+                              const upto = value.slice(0, caret);
+                              const at = upto.lastIndexOf('@');
+                              if (at !== -1) {
+                                const before = value.slice(0, at + 1);
+                                const choice = filteredLnProviders[newIndex];
+                                const fullSuggestion = before + choice;
+                                setPreviewSuffix(fullSuggestion);
+                              }
+                            }
+                          } else if (e.key === 'Enter' || e.key === 'Tab') {
                             e.preventDefault();
-                            const atIndex = lightningAddress.lastIndexOf('@');
-                            if (atIndex >= 0) {
-                              const username = lightningAddress.substring(0, atIndex + 1);
-                              const selected = filteredLnProviders[activeSuggestionIndex];
-                              setLightningAddress(username + selected);
-                              setShowLnAddressSuggestions(false);
-                              setLnAddressQuery('');
-                              lightningAddressInputRef.current?.blur();
+                            const choice = filteredLnProviders[activeLnAddressIndex];
+                            if (choice) {
+                              const input = sendInputRef.current;
+                              if (!input) return;
+                              const value = input.value;
+                              const caret = input.selectionStart || 0;
+                              const upto = value.slice(0, caret);
+                              const at = upto.lastIndexOf('@');
+                              if (at !== -1) {
+                                const before = value.slice(0, at + 1);
+                                const after = value.slice(caret);
+                                const insert = choice;
+                                setSendInput(before + insert + after);
+                                setShowLnAddressSuggestions(false);
+                                setLnAddressDomainQuery('');
+                                setActiveLnAddressIndex(0);
+                                setPreviewSuffix(null);
+                                setTimeout(() => {
+                                  input.focus();
+                                  const newPos = (before + insert).length;
+                                  input.setSelectionRange(newPos, newPos);
+                                }, 0);
+                              }
                             }
                           } else if (e.key === 'Escape') {
                             setShowLnAddressSuggestions(false);
+                            setPreviewSuffix(null);
+                          } else {
+                            setPreviewSuffix(null);
                           }
                         }
+                        // Handle Nostr user mention suggestions
+                        else if (showMentionSuggestions && filteredMentionFollows.length > 0) {
+                          if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            const newIndex = (activeMentionIndex + 1) % filteredMentionFollows.length;
+                            setActiveMentionIndex(newIndex);
+                            // Update preview (show full suggestion with display name)
+                            const input = sendInputRef.current;
+                            if (input) {
+                              const value = input.value;
+                              const caret = input.selectionStart || 0;
+                              const upto = value.slice(0, caret);
+                              const at = upto.lastIndexOf('@');
+                              if (at !== -1) {
+                                const before = value.slice(0, at);
+                                const choice = filteredMentionFollows[newIndex];
+                                const displayName = choice.displayName || choice.npub;
+                                const fullSuggestion = before + displayName;
+                                setPreviewSuffix(fullSuggestion);
+                              }
+                            }
+                          } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            const newIndex = (activeMentionIndex - 1 + filteredMentionFollows.length) % filteredMentionFollows.length;
+                            setActiveMentionIndex(newIndex);
+                            // Update preview (show full suggestion with display name)
+                            const input = sendInputRef.current;
+                            if (input) {
+                              const value = input.value;
+                              const caret = input.selectionStart || 0;
+                              const upto = value.slice(0, caret);
+                              const at = upto.lastIndexOf('@');
+                              if (at !== -1) {
+                                const before = value.slice(0, at);
+                                const choice = filteredMentionFollows[newIndex];
+                                const displayName = choice.displayName || choice.npub;
+                                const fullSuggestion = before + displayName;
+                                setPreviewSuffix(fullSuggestion);
+                              }
+                            }
+                          } else if (e.key === 'Enter' || e.key === 'Tab') {
+                            e.preventDefault();
+                            const choice = filteredMentionFollows[activeMentionIndex];
+                            if (choice) {
+                              const input = sendInputRef.current;
+                              if (!input) return;
+                              const value = input.value;
+                              const caret = input.selectionStart || 0;
+                              const upto = value.slice(0, caret);
+                              const at = upto.lastIndexOf('@');
+                              if (at !== -1) {
+                                const before = value.slice(0, at);
+                                const after = value.slice(caret);
+                                // Insert npub for detection, not display name
+                                const insert = choice.npub;
+                                setSendInput(before + insert + after);
+                                setShowMentionSuggestions(false);
+                                setMentionQuery('');
+                                setActiveMentionIndex(0);
+                                setPreviewSuffix(null);
+                                setTimeout(() => {
+                                  input.focus();
+                                  const newPos = (before + insert).length;
+                                  input.setSelectionRange(newPos, newPos);
+                                }, 0);
+                              }
+                            }
+                          } else if (e.key === 'Escape') {
+                            setShowMentionSuggestions(false);
+                            setPreviewSuffix(null);
+                          } else {
+                            setPreviewSuffix(null);
+                          }
+                        } else {
+                          setPreviewSuffix(null);
+                          detectMention();
+                        }
                       }}
-                      placeholder="user@domain.com"
+                      onBlur={() => {
+                        // Delay to allow click on suggestion
+                        setTimeout(() => {
+                          setShowMentionSuggestions(false);
+                          setShowLnAddressSuggestions(false);
+                          setPreviewSuffix(null);
+                        }, 200);
+                      }}
+                      placeholder="Enter invoice, Lightning Address, npub, or type @ to mention a follow..."
                       disabled={sending || fetchingInvoice}
                       style={{
                         backgroundColor: 'var(--input-bg)',
-                        color: 'var(--text-primary)',
-                        border: lnurlError ? '2px solid #ef4444' : lightningAddress.trim() && !lnurlError ? '2px solid #22c55e' : '2px solid var(--border-color)',
+                        color: previewSuffix ? 'transparent' : 'var(--text-primary)',
+                        border: (invoiceError || lnurlError) ? '2px solid #ef4444' : (detectedType && sendInput.trim()) ? '2px solid #22c55e' : '2px solid var(--border-color)',
                         borderRadius: '6px',
                         padding: '12px 16px',
                         width: '100%',
                         fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
+                  boxSizing: 'border-box'
+                }}
                     />
+                      {previewSuffix && sendInputRef.current && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            left: '16px',
+                            top: '12px',
+                            pointerEvents: 'none',
+                            userSelect: 'none',
+                            color: 'var(--text-primary)',
+                            fontSize: '14px',
+                            opacity: 0.5,
+                            whiteSpace: 'pre',
+                            zIndex: 1,
+                            fontFamily: 'inherit',
+                            lineHeight: '1.5'
+                          }}
+                        >
+                          {previewSuffix}
+            </div>
+                      )}
+                    </div>
+                    {/* Lightning Address Domain Suggestions */}
                     {showLnAddressSuggestions && filteredLnProviders.length > 0 && (
                       <div
+                        className="suggestionDropdown"
                         style={{
                           position: 'absolute',
                           top: '100%',
@@ -1832,33 +2079,70 @@ const WalletPage: React.FC = () => {
                           borderRadius: '6px',
                           boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
                           zIndex: 1000,
-                          maxHeight: '200px',
+                          maxHeight: '150px',
                           overflowY: 'auto'
                         }}
                       >
-                        {filteredLnProviders.map((provider: string, index: number) => {
-                          const atIndex = lightningAddress.lastIndexOf('@');
-                          const username = atIndex >= 0 ? lightningAddress.substring(0, atIndex + 1) : '';
+                        {filteredLnProviders.map((provider: string, idx: number) => {
+                          const input = sendInputRef.current;
+                          if (!input) return null;
+                          const value = input.value;
+                          const caret = input.selectionStart || 0;
+                          const upto = value.slice(0, caret);
+                          const at = upto.lastIndexOf('@');
+                          const username = at >= 0 ? upto.slice(0, at + 1) : '';
                           const fullAddress = username + provider;
 
                           return (
                             <div
                               key={provider}
-                              onClick={() => {
-                                setLightningAddress(fullAddress);
-                                setShowLnAddressSuggestions(false);
-                                setLnAddressQuery('');
-                                lightningAddressInputRef.current?.focus();
+                              onMouseDown={e => {
+                                e.preventDefault();
+                                if (!input) return;
+                                const value = input.value;
+                                const caret = input.selectionStart || 0;
+                                const upto = value.slice(0, caret);
+                                const at = upto.lastIndexOf('@');
+                                if (at !== -1) {
+                                  const before = value.slice(0, at + 1);
+                                  const after = value.slice(caret);
+                                  const insert = provider;
+                                  setSendInput(before + insert + after);
+                                  setShowLnAddressSuggestions(false);
+                                  setLnAddressDomainQuery('');
+                                  setActiveLnAddressIndex(0);
+                                  setTimeout(() => {
+                                    input.focus();
+                                    const newPos = (before + insert).length;
+                                    input.setSelectionRange(newPos, newPos);
+                                  }, 0);
+                                }
                               }}
-                              onMouseEnter={() => setActiveSuggestionIndex(index)}
+                              onMouseEnter={() => {
+                                setActiveLnAddressIndex(idx);
+                                // Update preview (show full suggestion on hover)
+                                const input = sendInputRef.current;
+                                if (input) {
+                                  const value = input.value;
+                                  const caret = input.selectionStart || 0;
+                                  const upto = value.slice(0, caret);
+                                  const at = upto.lastIndexOf('@');
+                                  if (at !== -1) {
+                                    const before = value.slice(0, at + 1);
+                                    const fullSuggestion = before + provider;
+                                    setPreviewSuffix(fullSuggestion);
+                                  }
+                                }
+                              }}
+                              className={`suggestionItem ${idx === activeLnAddressIndex ? 'active' : ''}`}
                               style={{
                                 padding: '10px 16px',
                                 cursor: 'pointer',
-                                background: index === activeSuggestionIndex ? 'var(--bg-secondary)' : 'transparent',
-                                borderBottom: index < filteredLnProviders.length - 1 ? '1px solid var(--border-color)' : 'none',
+                                background: idx === activeLnAddressIndex ? 'var(--bg-secondary)' : 'transparent',
+                                borderBottom: idx < filteredLnProviders.length - 1 ? '1px solid var(--border-color)' : 'none',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '8px',
+                                gap: '12px',
                                 transition: 'background 0.15s ease'
                               }}
                             >
@@ -1866,7 +2150,7 @@ const WalletPage: React.FC = () => {
                                 alternate_email
                               </span>
                               <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '500' }}>
+                                <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
                                   {fullAddress}
                                 </div>
                                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
@@ -1878,130 +2162,391 @@ const WalletPage: React.FC = () => {
                         })}
                       </div>
                     )}
+
+                    {/* Nostr User Mention Suggestions */}
+                    {showMentionSuggestions && filteredMentionFollows.length > 0 && (
+                      <div
+                        className="suggestionDropdown"
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          marginTop: '4px',
+                          background: 'var(--card-bg)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+                          zIndex: 1000,
+                          maxHeight: '150px',
+                          overflowY: 'auto'
+                        }}
+                      >
+                        {filteredMentionFollows.map((f: any, idx: number) => (
+                          <div
+                            key={f.pubkey + idx}
+                            onMouseDown={e => {
+                              e.preventDefault();
+                              const input = sendInputRef.current;
+                              if (!input) return;
+                              const value = input.value;
+                              const caret = input.selectionStart || 0;
+                              const upto = value.slice(0, caret);
+                              const at = upto.lastIndexOf('@');
+                              if (at !== -1) {
+                                const before = value.slice(0, at);
+                                const after = value.slice(caret);
+                                // Insert npub for detection, not display name
+                                const insert = f.npub;
+                                setSendInput(before + insert + after);
+                                setShowMentionSuggestions(false);
+                                setMentionQuery('');
+                                setActiveMentionIndex(0);
+                                setPreviewSuffix(null);
+                                setTimeout(() => {
+                                  input.focus();
+                                  const newPos = (before + insert).length;
+                                  input.setSelectionRange(newPos, newPos);
+                                }, 0);
+                              }
+                            }}
+                            onMouseEnter={() => {
+                              setActiveMentionIndex(idx);
+                              // Update preview (show full suggestion with display name on hover)
+                              const input = sendInputRef.current;
+                              if (input) {
+                                const value = input.value;
+                                const caret = input.selectionStart || 0;
+                                const upto = value.slice(0, caret);
+                                const at = upto.lastIndexOf('@');
+                                if (at !== -1) {
+                                  const before = value.slice(0, at);
+                                  const displayName = f.displayName || f.npub;
+                                  const fullSuggestion = before + displayName;
+                                  setPreviewSuffix(fullSuggestion);
+                                }
+                              }
+                            }}
+                            className={`suggestionItem ${idx === activeMentionIndex ? 'active' : ''}`}
+                            style={{
+                              padding: '10px 16px',
+                              cursor: 'pointer',
+                              background: idx === activeMentionIndex ? 'var(--bg-secondary)' : 'transparent',
+                              borderBottom: idx < filteredMentionFollows.length - 1 ? '1px solid var(--border-color)' : 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              transition: 'background 0.15s ease'
+                            }}
+                          >
+                            {f.picture ? (
+                              <img
+                                src={f.picture}
+                                alt={f.displayName}
+                                className="suggestionAvatar"
+                                style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '50%',
+                                  objectFit: 'cover'
+                                }}
+                              />
+                            ) : (
+                              <div
+                                className="suggestionAvatar"
+                                style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '50%',
+                                  background: 'var(--bg-primary)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'var(--text-secondary)',
+                                  fontSize: '14px'
+                                }}
+                              >
+                                {f.displayName.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div className="suggestionInfo" style={{ flex: 1 }}>
+                              <div className="suggestionName" style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
+                                {f.displayName}
+                              </div>
+                              <div className="suggestionNpub" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                {f.npub.substring(0, 20)}…
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Error Messages */}
+              {invoiceError && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    padding: '12px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444', flexShrink: 0 }}>
+                    error_outline
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#ef4444', marginBottom: '4px' }}>
+                      Invalid Invoice
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#ef4444', lineHeight: '1.5' }}>
+                      {invoiceError}
+                    </div>
                   </div>
                 </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      marginBottom: '8px',
-                      color: 'var(--text-primary)'
-                    }}
-                  >
-                    Amount (sats) <span style={{ color: '#ef4444' }}>*</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={lnAddressAmount}
-                    onChange={e => {
-                      setLnAddressAmount(e.target.value);
-                      setLnurlError(''); // Clear error when user types
-                      setFetchedInvoiceFromLN(null);
-                      setParsedInvoice(null);
-                    }}
-                    placeholder="Enter amount in satoshis"
-                    disabled={sending || fetchingInvoice}
-                    min="1"
-                    style={{
-                      backgroundColor: 'var(--input-bg)',
-                      color: 'var(--text-primary)',
-                      border: lnurlError && !lightningAddress.trim() ? '2px solid #ef4444' : '2px solid var(--border-color)',
-                      borderRadius: '6px',
-                      padding: '12px 16px',
-                      width: '100%',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
+              )}
+
+              {lnurlError && detectedType === 'lightning-address' && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    padding: '12px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444', flexShrink: 0 }}>
+                    error_outline
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#ef4444', marginBottom: '4px' }}>
+                      Error
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#ef4444', lineHeight: '1.5' }}>
+                      {lnurlError}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ marginBottom: '16px' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      marginBottom: '8px',
-                      color: 'var(--text-primary)'
-                    }}
-                  >
-                    Description (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={sendDescription}
-                    onChange={e => setSendDescription(e.target.value)}
-                    placeholder="Payment description"
-                    disabled={sending || fetchingInvoice}
-                    style={{
-                      backgroundColor: 'var(--input-bg)',
-                      color: 'var(--text-primary)',
-                      border: '2px solid var(--border-color)',
-                      borderRadius: '6px',
-                      padding: '12px 16px',
-                      width: '100%',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-                {lnurlError && (
-                  <div
-                    style={{
-                      marginBottom: '16px',
-                      padding: '12px',
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      borderRadius: '8px',
-                      border: '1px solid rgba(239, 68, 68, 0.2)',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '8px'
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444', flexShrink: 0 }}>
-                      error_outline
+              )}
+
+              {/* Success/Info Messages */}
+              {parsedInvoice && !invoiceError && detectedType === 'invoice' && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    padding: '12px',
+                    background: 'var(--bg-secondary)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#22c55e' }}>
+                      check_circle
                     </span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: '#ef4444', marginBottom: '4px' }}>
-                        Error
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#ef4444', lineHeight: '1.5' }}>
-                        {lnurlError}
-                      </div>
-                    </div>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                      Invoice Valid
+                    </span>
                   </div>
-                )}
-                {fetchedInvoiceFromLN && parsedInvoice && !lnurlError && (
-                  <div
-                    style={{
-                      marginBottom: '16px',
-                      padding: '16px',
-                      background: 'var(--bg-secondary)',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#22c55e' }}>
-                        check_circle
-                      </span>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                        Invoice Ready
-                      </span>
+                  {parsedInvoice.amount && (
+                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                      Amount: <strong style={{ color: 'var(--text-primary)' }}>{parsedInvoice.amount.toLocaleString()} sats</strong>
                     </div>
-                    {parsedInvoice.amount && (
-                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                        Amount: <strong style={{ color: 'var(--text-primary)' }}>{parsedInvoice.amount.toLocaleString()} sats</strong>
-                      </div>
-                    )}
-                    {parsedInvoice.description && (
-                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                        Description: {parsedInvoice.description}
-                      </div>
-                    )}
+                  )}
+                  {parsedInvoice.description && (
+                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                      Description: {parsedInvoice.description}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {detectedType === 'nostr-user' && detectedNostrProfile && (
+                <div
+                  style={{
+                    padding: '12px',
+                    background: 'var(--bg-secondary)',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    {(() => {
+                      const profileContent = typeof detectedNostrProfile?.content === 'string'
+                        ? JSON.parse(detectedNostrProfile.content)
+                        : detectedNostrProfile?.content || detectedNostrProfile;
+                      const picture = profileContent?.picture;
+                      const displayName = profileContent?.display_name || profileContent?.name || 'Unknown';
+                      return (
+                        <>
+                          {picture ? (
+                            <img
+                              src={picture}
+                              alt={displayName}
+                              style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                background: 'var(--bg-primary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'var(--text-secondary)',
+                                fontSize: '16px'
+                              }}
+                            >
+                              {displayName.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                              {displayName}
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                              {(() => {
+                                try {
+                                  const profileContent = typeof detectedNostrProfile?.content === 'string'
+                                    ? JSON.parse(detectedNostrProfile.content)
+                                    : detectedNostrProfile?.content || detectedNostrProfile;
+                                  return profileContent?.lud16 || profileContent?.lud06 || 'No Lightning Address';
+                                } catch {
+                                  return 'No Lightning Address';
+                                }
+                              })()}
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
-                )}
-              </>
+                </div>
+              )}
+            </div>
+
+            {/* Amount Field (for Lightning Address and Nostr User) */}
+            {(detectedType === 'lightning-address' || detectedType === 'nostr-user') && (
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    marginBottom: '8px',
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  Amount (sats) <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="number"
+                  value={sendAmount}
+                  onChange={e => {
+                    setSendAmount(e.target.value);
+                    setLnurlError('');
+                    setFetchedInvoiceFromLN(null);
+                    setParsedInvoice(null);
+                  }}
+                  placeholder="Enter amount in satoshis"
+                  disabled={sending || fetchingInvoice}
+                  min="1"
+                  style={{
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    border: lnurlError && !sendInput.trim() ? '2px solid #ef4444' : '2px solid var(--border-color)',
+                    borderRadius: '6px',
+                    padding: '12px 16px',
+                    width: '100%',
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
             )}
+
+            {/* Fetched Invoice Preview (for Lightning Address and Nostr User) */}
+            {fetchedInvoiceFromLN && parsedInvoice && !lnurlError && (detectedType === 'lightning-address' || detectedType === 'nostr-user') && (
+              <div
+                style={{
+                  marginBottom: '16px',
+                  padding: '16px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#22c55e' }}>
+                    check_circle
+                  </span>
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                    Invoice Ready
+                  </span>
+                </div>
+                {parsedInvoice.amount && (
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                    Amount: <strong style={{ color: 'var(--text-primary)' }}>{parsedInvoice.amount.toLocaleString()} sats</strong>
+                  </div>
+                )}
+                {parsedInvoice.description && (
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                    Description: {parsedInvoice.description}
+                  </div>
+                )}
+              </div>
+            )}
+            </div>
+
+            {/* Fixed Bottom Section - Description and Buttons */}
+            <div style={{ flexShrink: 0, marginTop: 'auto' }}>
+            {/* Description Field */}
+            <div style={{ marginBottom: '16px' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  marginBottom: '8px',
+                  color: 'var(--text-primary)'
+                }}
+              >
+                Description (optional)
+              </label>
+              <input
+                type="text"
+                value={sendDescription}
+                onChange={e => setSendDescription(e.target.value)}
+                placeholder="Payment description"
+                disabled={sending || fetchingInvoice}
+                style={{
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  border: '2px solid var(--border-color)',
+                  borderRadius: '6px',
+                  padding: '12px 16px',
+                  width: '100%',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
 
             <div
               style={{
@@ -2015,14 +2560,16 @@ const WalletPage: React.FC = () => {
                 onClick={() => {
                   if (!sending && !fetchingInvoice) {
                     setShowSendModal(false);
-                    setSendInvoice('');
+                    setSendInput('');
                     setSendDescription('');
-                    setLightningAddress('');
-                    setLnAddressAmount('');
+                    setSendAmount('');
                     setFetchedInvoiceFromLN(null);
                     setParsedInvoice(null);
+                    setInvoiceError('');
                     setLnurlError('');
-                    setSendMode('invoice');
+                    setDetectedType(null);
+                    setDetectedNostrPubkey(null);
+                    setDetectedNostrProfile(null);
                   }
                 }}
                 disabled={sending || fetchingInvoice}
@@ -2041,12 +2588,14 @@ const WalletPage: React.FC = () => {
                 disabled={
                   sending ||
                   fetchingInvoice ||
-                  (sendMode === 'invoice' && (!sendInvoice.trim() || !!invoiceError || !parsedInvoice)) ||
-                  (sendMode === 'lightning-address' && (!lightningAddress.trim() || !lnAddressAmount.trim()))
+                  !detectedType ||
+                  (detectedType === 'invoice' && (!!invoiceError || !parsedInvoice)) ||
+                  ((detectedType === 'lightning-address' || detectedType === 'nostr-user') && !sendAmount.trim())
                 }
               >
                 {sending ? 'Sending...' : 'Send Payment'}
               </button>
+            </div>
             </div>
           </div>
         </div>
