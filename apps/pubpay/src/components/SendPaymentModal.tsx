@@ -1385,36 +1385,42 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
         {/* Fixed Bottom Section - Description and Buttons */}
         <div style={{ flexShrink: 0, marginTop: 'auto' }}>
-          {/* Description Field */}
-          <div style={{ marginBottom: '16px' }}>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '14px',
-                marginBottom: '8px',
-                color: 'var(--text-primary)'
-              }}
-            >
-              Description (optional)
-            </label>
-            <input
-              type="text"
-              value={sendDescription}
-              onChange={e => setSendDescription(e.target.value)}
-              placeholder="Payment description"
-              disabled={sending || fetchingInvoice}
-              style={{
-                backgroundColor: 'var(--input-bg)',
-                color: 'var(--text-primary)',
-                border: '2px solid var(--border-color)',
-                borderRadius: '6px',
-                padding: '12px 16px',
-                width: '100%',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
+          {/* Description Field - Only show when Send to is filled and valid */}
+          {sendInput.trim() && detectedType && (
+            (detectedType === 'invoice' && parsedInvoice && !invoiceError) ||
+            (detectedType === 'lightning-address' && !lnurlError) ||
+            (detectedType === 'nostr-user' && detectedNostrProfile)
+          ) ? (
+            <div style={{ marginBottom: '16px' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  marginBottom: '8px',
+                  color: 'var(--text-primary)'
+                }}
+              >
+                Description (optional)
+              </label>
+              <input
+                type="text"
+                value={sendDescription}
+                onChange={e => setSendDescription(e.target.value)}
+                placeholder="Payment description"
+                disabled={sending || fetchingInvoice}
+                style={{
+                  backgroundColor: 'var(--input-bg)',
+                  color: 'var(--text-primary)',
+                  border: '2px solid var(--border-color)',
+                  borderRadius: '6px',
+                  padding: '12px 16px',
+                  width: '100%',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+          ) : null}
 
           <div
             style={{
