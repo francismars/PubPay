@@ -263,7 +263,7 @@ export const Layout: React.FC = () => {
       }
 
       const result = await checkAuthStatus(passwordPromptPassword);
-
+      
       // Check the result - if requiresPassword is false, the password was correct
       if (!result.requiresPassword) {
         // Success - password was correct and private key is now decrypted
@@ -301,12 +301,12 @@ export const Layout: React.FC = () => {
     } catch (error) {
       console.error('Password prompt failed:', error);
       // Extract user-friendly error message
-      const errorMessage = error instanceof Error
-        ? (error.message.includes('incorrect') || error.message.includes('password')
-            ? error.message
+      const errorMessage = error instanceof Error 
+        ? (error.message.includes('incorrect') || error.message.includes('password') 
+            ? error.message 
             : 'Incorrect password. Please check your password and try again.')
         : 'Incorrect password. Please check your password and try again.';
-
+      
       try {
         useUIStore.getState().openToast(errorMessage, 'error', false);
         setTimeout(() => {
@@ -969,7 +969,7 @@ export const Layout: React.FC = () => {
             BOLT11 invoice, or Lightning Address
           </p>
           <div id="reader" style={{ position: 'relative' }}></div>
-
+          
           {/* Camera Controls Container - iPhone Style */}
           <div className="camera-controls-container">
             {/* Zoom Slider - Top of controls */}
@@ -1667,7 +1667,7 @@ export const Layout: React.FC = () => {
                         useUIStore.getState().openToast('Sending invoice to wallet…', 'loading', true);
                         const { NwcClient } = await import('@pubpay/shared-services');
                         const client = new NwcClient(nwcUri);
-
+                        
                         useUIStore.getState().updateToast('Waiting for wallet…', 'loading', true);
 
                         const timeoutMs = 45000;
@@ -1728,7 +1728,7 @@ export const Layout: React.FC = () => {
                       try {
                         // Check if WebLN is enabled
                         const isEnabled = await window.webln!.isEnabled();
-
+                        
                         if (!isEnabled) {
                           useUIStore.getState().openToast('Requesting permission…', 'loading', true);
                           await window.webln!.enable();
