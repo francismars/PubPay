@@ -21,8 +21,8 @@ import {
 import { TIMEOUT, TOAST_DURATION, LIGHTNING, Z_INDEX, TIME, API_PATHS, PROTOCOLS, SEPARATORS, COLORS, FONT_SIZES, DIMENSIONS, QUERY_LIMITS, LIMITS } from '../constants';
 import { GenericQR } from '@pubpay/shared-ui';
 import { nip19, finalizeEvent, verifyEvent } from 'nostr-tools';
-import { PayNoteComponent } from '../components/PayNoteComponent';
-import { Nip05PurchaseOverlay } from '../components/Nip05PurchaseOverlay';
+import { PayNoteComponent } from '../components/PayNoteComponent/PayNoteComponent';
+import { Nip05PurchaseOverlay } from '../components/Nip05PurchaseOverlay/Nip05PurchaseOverlay';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { parseZapDescription, safeJson } from '@pubpay/shared-utils';
 import bolt11 from 'bolt11';

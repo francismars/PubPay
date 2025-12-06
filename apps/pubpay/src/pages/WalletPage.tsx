@@ -3,8 +3,8 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useUIStore, NwcClient } from '@pubpay/shared-services';
 import { nip19 } from 'nostr-tools';
 import { InvoiceQR } from '@pubpay/shared-ui';
-import { NWCOptionsModal } from '../components/NWCOptionsModal';
-import { SendPaymentModal } from '../components/SendPaymentModal';
+import { NWCOptionsModal } from '../components/NWCOptionsModal/NWCOptionsModal';
+import { SendPaymentModal } from '../components/SendPaymentModal/SendPaymentModal';
 import { getActiveNWCUri, getActiveNWCConnection, getActiveNWCConnectionId, migrateOldNWCConnection } from '../utils/nwcStorage';
 import { TOAST_DURATION, INTERVAL, LIGHTNING, TIME, COLORS, STORAGE_KEYS, QUERY_LIMITS, DIMENSIONS } from '../constants';
 
