@@ -168,6 +168,55 @@ export class NwcClient {
     }>(request);
   }
 
+  async listTransactions(params?: {
+    from?: number;
+    until?: number;
+    limit?: number;
+    offset?: number;
+    unpaid?: boolean;
+    type?: 'incoming' | 'outgoing';
+  }): Promise<
+    RpcResponse<{
+      transactions: Array<{
+        type: 'incoming' | 'outgoing';
+        state?: 'pending' | 'settled' | 'expired' | 'failed';
+        invoice?: string;
+        description?: string;
+        description_hash?: string;
+        preimage?: string;
+        payment_hash: string;
+        amount: number;
+        fees_paid?: number;
+        created_at: number;
+        expires_at?: number;
+        settled_at?: number;
+        metadata?: Record<string, unknown>;
+      }>;
+    }>
+  > {
+    const request: RpcRequest = {
+      method: 'list_transactions',
+      params: params || {}
+    };
+    return await this.sendRequest<{
+      transactions: Array<{
+        type: 'incoming' | 'outgoing';
+        state?: 'pending' | 'settled' | 'expired' | 'failed';
+        invoice?: string;
+        description?: string;
+        description_hash?: string;
+        preimage?: string;
+        payment_hash: string;
+        amount: number;
+        fees_paid?: number;
+        created_at: number;
+        expires_at?: number;
+        settled_at?: number;
+        metadata?: Record<string, unknown>;
+      }>;
+    }>(request);
+  }
+
   async lookupInvoice(
     paymentHash: string
   ): Promise<
