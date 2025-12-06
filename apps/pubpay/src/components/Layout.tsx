@@ -8,6 +8,7 @@ import { genericUserIcon } from '../assets/images';
 import { nip19 } from 'nostr-tools';
 import { NewPayNoteOverlay } from './NewPayNoteOverlay';
 import { getActiveNWCUri, migrateOldNWCConnection } from '../utils/nwcStorage';
+import { TOAST_DURATION, TIMEOUT, COLORS, FONT_SIZES, STORAGE_KEYS } from '../constants';
 
 export const Layout: React.FC = () => {
   const navigate = useNavigate();
@@ -130,14 +131,14 @@ export const Layout: React.FC = () => {
       if (decodedText.match(/^(lnbc|lntb|lnbcrt)/i)) {
         setShowQRScanner(false);
         // Store in sessionStorage so WalletPage can pick it up after navigation
-        sessionStorage.setItem('scannedInvoice', decodedText);
+        sessionStorage.setItem(STORAGE_KEYS.SCANNED_INVOICE, decodedText);
         navigate('/wallet');
         // Dispatch event after a short delay to ensure WalletPage is mounted
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('walletScannedInvoice', { detail: { invoice: decodedText } }));
-        }, 100);
+        }, TIMEOUT.SHORT_DELAY);
         useUIStore.getState().openToast('Invoice scanned!', 'success', false);
-        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
         return;
       }
 
@@ -146,14 +147,14 @@ export const Layout: React.FC = () => {
       if (lightningAddressMatch) {
         setShowQRScanner(false);
         // Store in sessionStorage so WalletPage can pick it up after navigation
-        sessionStorage.setItem('scannedLightningAddress', decodedText);
+        sessionStorage.setItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS, decodedText);
         navigate('/wallet');
         // Dispatch event after a short delay to ensure WalletPage is mounted
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('walletScannedLightningAddress', { detail: { address: decodedText } }));
-        }, 100);
+        }, TIMEOUT.SHORT_DELAY);
         useUIStore.getState().openToast('Lightning Address scanned!', 'success', false);
-        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
         return;
       }
 
@@ -182,7 +183,7 @@ export const Layout: React.FC = () => {
                 } catch (toastError) {
                   console.warn('Failed to close toast:', toastError);
                 }
-              }, 3000);
+              }, TOAST_DURATION.MEDIUM);
             } catch (toastError) {
               console.warn('Failed to show toast:', toastError);
             }
@@ -255,7 +256,7 @@ export const Layout: React.FC = () => {
             } catch {
               // Ignore toast errors
             }
-          }, 2000);
+          }, TOAST_DURATION.SHORT);
         } catch (toastError) {
           console.warn('Failed to show toast:', toastError);
         }
@@ -278,7 +279,7 @@ export const Layout: React.FC = () => {
             } catch {
               // Ignore toast errors
             }
-          }, 2000);
+          }, TOAST_DURATION.SHORT);
         } catch (toastError) {
           console.warn('Failed to show toast:', toastError);
         }
@@ -315,7 +316,7 @@ export const Layout: React.FC = () => {
           } catch (toastError) {
             console.warn('Failed to close toast:', toastError);
           }
-        }, 4000);
+        }, TOAST_DURATION.LONG);
       } catch (toastError) {
         console.warn('Failed to show toast:', toastError);
       }
@@ -502,7 +503,7 @@ export const Layout: React.FC = () => {
 
   // Initialize dark mode on mount
   useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    const savedDarkMode = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
     if (savedDarkMode) {
       document.body.classList.add('dark-mode');
     }
@@ -531,7 +532,7 @@ export const Layout: React.FC = () => {
               const cams = await (window as any).Html5Qrcode.getCameras();
               setCameraList(cams || []);
               // Prefer environment/back camera
-              const saved = localStorage.getItem('qrCameraId');
+              const saved = localStorage.getItem(STORAGE_KEYS.QR_CAMERA_ID);
               const preferred =
                 (cams || []).find((c: any) => c.id === saved) ||
                 (cams || []).find((c: any) =>
@@ -632,7 +633,7 @@ export const Layout: React.FC = () => {
       if (!html5QrCode) return;
       await html5QrCode.stop().catch(() => {});
       currentCameraIdRef.current = deviceId;
-      localStorage.setItem('qrCameraId', deviceId);
+      localStorage.setItem(STORAGE_KEYS.QR_CAMERA_ID, deviceId);
       await html5QrCode.start(
         { deviceId: { exact: deviceId } },
         { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
@@ -1285,7 +1286,7 @@ export const Layout: React.FC = () => {
                   href="#"
                   className="label"
                   style={{
-                    color: '#6b7280',
+                    color: COLORS.TEXT_SECONDARY,
                     fontSize: '13px',
                     textDecoration: 'none',
                     cursor: 'pointer'
@@ -1376,7 +1377,7 @@ export const Layout: React.FC = () => {
                   href="#"
                   className="label"
                   style={{
-                    color: '#6b7280',
+                    color: COLORS.TEXT_SECONDARY,
                     fontSize: '13px',
                     textDecoration: 'none',
                     cursor: 'pointer'
@@ -1396,11 +1397,11 @@ export const Layout: React.FC = () => {
           <div
             style={{ textAlign: 'center', marginTop: '32px', fontSize: '13px' }}
           >
-            <span className="label" style={{ color: '#6b7280' }}>
+            <span className="label" style={{ color: COLORS.TEXT_SECONDARY }}>
               Don't have an account?{' '}
               <Link
                 to="/register"
-                style={{ color: '#4a75ff', textDecoration: 'underline' }}
+                style={{ color: COLORS.PRIMARY, textDecoration: 'underline' }}
                 onClick={() => {
                   closeLogin();
                 }}
@@ -1575,7 +1576,7 @@ export const Layout: React.FC = () => {
                 fontSize: '12px',
                 fontFamily: 'monospace',
                 backgroundColor: '#f9fafb',
-                color: '#374151',
+                color: COLORS.TEXT_TERTIARY,
                 boxSizing: 'border-box',
                 cursor: 'text'
               }}
@@ -1592,7 +1593,7 @@ export const Layout: React.FC = () => {
                     useUIStore.getState().openToast('Invoice copied to clipboard', 'success', false);
                     setTimeout(() => {
                       useUIStore.getState().closeToast();
-                    }, 2000);
+                    }, TOAST_DURATION.SHORT);
                   } catch (err) {
                     console.error('Failed to copy invoice:', err);
                     // Fallback: select the text
@@ -1605,7 +1606,7 @@ export const Layout: React.FC = () => {
                     useUIStore.getState().openToast('Invoice copied to clipboard', 'success', false);
                     setTimeout(() => {
                       useUIStore.getState().closeToast();
-                    }, 2000);
+                    }, TOAST_DURATION.SHORT);
                   }
                 }
               }}
@@ -1620,14 +1621,14 @@ export const Layout: React.FC = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#6b7280',
+                color: COLORS.TEXT_SECONDARY,
                 transition: 'color 0.2s'
               }}
               onMouseEnter={e => {
-                e.currentTarget.style.color = '#4a75ff';
+                e.currentTarget.style.color = COLORS.PRIMARY;
               }}
               onMouseLeave={e => {
-                e.currentTarget.style.color = '#6b7280';
+                e.currentTarget.style.color = COLORS.TEXT_SECONDARY;
               }}
               title="Copy invoice"
             >
@@ -1670,7 +1671,7 @@ export const Layout: React.FC = () => {
                         
                         useUIStore.getState().updateToast('Waiting for wallet…', 'loading', true);
 
-                        const timeoutMs = 45000;
+                        const timeoutMs = TIMEOUT.PAYMENT_RESPONSE;
                         const timeoutPromise = new Promise<any>(resolve => {
                           setTimeout(() => {
                             resolve({
@@ -1691,7 +1692,7 @@ export const Layout: React.FC = () => {
                           setTimeout(() => {
                             useUIStore.getState().closeToast();
                             useUIStore.getState().closeInvoice();
-                          }, 2000);
+                          }, TOAST_DURATION.SHORT);
                         } else {
                           const msg =
                             resp && resp.error && resp.error.message
@@ -1743,7 +1744,7 @@ export const Layout: React.FC = () => {
                           setTimeout(() => {
                             useUIStore.getState().closeToast();
                             useUIStore.getState().closeInvoice();
-                          }, 2000);
+                          }, TOAST_DURATION.SHORT);
                         } else {
                           useUIStore.getState().updateToast('WebLN payment failed', 'error', true);
                         }
@@ -1914,7 +1915,7 @@ export const Layout: React.FC = () => {
           </div>
           <p
             className="label"
-            style={{ fontSize: '18px', fontWeight: 'bold', color: '#4a75ff' }}
+            style={{ fontSize: FONT_SIZES.LG, fontWeight: 'bold', color: COLORS.PRIMARY }}
           >
             {processingMessage || 'Processing payment...'}
           </p>

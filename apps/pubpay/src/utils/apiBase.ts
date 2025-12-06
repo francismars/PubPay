@@ -1,5 +1,7 @@
 // Shared utility for determining API base URL
 // Use lazy initialization to cache the result after first evaluation
+import { API, PROTOCOLS } from '../constants';
+
 let cachedApiBase: string | null = null;
 
 /**
@@ -46,11 +48,11 @@ export const getApiBase = (): string => {
       result = window.location.origin;
     } else {
       // Development fallback
-      result = 'http://localhost:3002';
+      result = `${PROTOCOLS.HTTP}localhost:${API.BACKEND_PORT}`;
     }
   } else {
     // Fallback when window is not available
-    result = 'http://localhost:3002';
+    result = `${PROTOCOLS.HTTP}localhost:${API.BACKEND_PORT}`;
   }
 
   // Normalize to remove trailing slash

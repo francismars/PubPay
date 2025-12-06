@@ -11,6 +11,7 @@ import {
 } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 import { nip19 } from 'nostr-tools';
+import { COLORS, FONT_SIZES } from '../constants';
 
 interface RegisterPageProps {
   authState?: any;
@@ -834,13 +835,13 @@ const RegisterPage: React.FC = () => {
                 <strong>⚠️ Publishing Failed</strong>
                 <p>{publishError}</p>
                 <p
-                  style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}
+                  style={{ fontSize: FONT_SIZES.SM, color: COLORS.TEXT_LIGHT, marginTop: '10px' }}
                 >
                   <strong>What this means:</strong> Your Nostr keys were
                   generated successfully, but some relays are blocking new
                   accounts. This is normal for new Nostr users.
                 </p>
-                <p style={{ fontSize: '14px', color: '#666' }}>
+                <p style={{ fontSize: FONT_SIZES.SM, color: COLORS.TEXT_LIGHT }}>
                   <strong>What you can do:</strong> Try again later, or use a
                   different Nostr client to publish your profile manually.
                 </p>
@@ -946,7 +947,7 @@ const RegisterPage: React.FC = () => {
             style={{ textAlign: 'center', maxWidth: '400px' }}
             onClick={e => e.stopPropagation()}
           >
-            <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: COLORS.TEXT_PRIMARY }}>
               Private Key QR Code
             </h3>
 
@@ -962,7 +963,7 @@ const RegisterPage: React.FC = () => {
             <p
               style={{
                 margin: '16px 0',
-                color: '#dc2626',
+                color: COLORS.ERROR_DARK,
                 fontSize: '14px',
                 fontWeight: 600
               }}
@@ -971,7 +972,7 @@ const RegisterPage: React.FC = () => {
             </p>
 
             <p
-              style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}
+              style={{ margin: '0 0 16px 0', color: COLORS.TEXT_LIGHT, fontSize: FONT_SIZES.SM }}
             >
               <code
                 style={{

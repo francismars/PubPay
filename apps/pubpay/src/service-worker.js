@@ -1,9 +1,12 @@
 // Service Worker for PUBPAY.me PWA
-// IMPORTANT: Update CACHE_NAME when deploying a new version to force cache refresh
+// IMPORTANT: Update CACHE_VERSION when deploying a new version to force cache refresh
 // IMPORTANT: Also update the VERSION comment below to ensure browser detects the change
 // VERSION: 2025-12-06-v0.0312
-const CACHE_NAME = 'pubpay-v0.0312';
-const RUNTIME_CACHE = 'pubpay-runtime-v0.0312';
+const CACHE_VERSION = 'v0.0312';
+const CACHE_NAME_PREFIX = 'pubpay';
+const RUNTIME_CACHE_PREFIX = 'pubpay-runtime';
+const CACHE_NAME = `${CACHE_NAME_PREFIX}-${CACHE_VERSION}`;
+const RUNTIME_CACHE = `${RUNTIME_CACHE_PREFIX}-${CACHE_VERSION}`;
 
 // Assets to cache on install (static assets without contenthash)
 const STATIC_ASSETS = [
@@ -99,7 +102,8 @@ self.addEventListener('fetch', (event) => {
         return fetch(event.request)
           .then((response) => {
             // Don't cache if not a valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
+            const HTTP_OK = 200;
+            if (!response || response.status !== HTTP_OK || response.type !== 'basic') {
               return response;
             }
 

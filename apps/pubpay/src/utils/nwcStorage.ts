@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from '../constants';
+
 export interface NWCConnection {
   id: string;
   label: string;
@@ -128,7 +130,7 @@ export function getActiveNWCUri(): string | null {
  */
 export function migrateOldNWCConnection(): void {
   try {
-    const oldUri = localStorage.getItem('nwcConnectionString');
+    const oldUri = localStorage.getItem(STORAGE_KEYS.NWC_CONNECTION_STRING);
     if (!oldUri) return;
     
     // Check if we already have connections
@@ -136,7 +138,7 @@ export function migrateOldNWCConnection(): void {
     if (existing.length > 0) return; // Already migrated
     
     // Create a connection from the old format
-    const oldCaps = localStorage.getItem('nwcCapabilities');
+    const oldCaps = localStorage.getItem(STORAGE_KEYS.NWC_CAPABILITIES);
     let capabilities: NWCConnection['capabilities'] | undefined;
     if (oldCaps) {
       try {

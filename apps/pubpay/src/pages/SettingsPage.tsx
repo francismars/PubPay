@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { DEFAULT_READ_RELAYS, DEFAULT_WRITE_RELAYS, AuthService } from '@pubpay/shared-services';
 import { useUIStore } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
+import { TOAST_DURATION, STORAGE_KEYS, PROTOCOLS, CONTENT_TYPES, COLORS } from '../constants';
 
 interface RelayConfig {
   url: string;
@@ -52,7 +53,7 @@ const SettingsPage: React.FC = () => {
 
   useEffect(() => {
     // Load dark mode preference from localStorage
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    const savedDarkMode = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
     setDarkMode(savedDarkMode);
 
     // Apply dark mode class on mount
@@ -61,7 +62,7 @@ const SettingsPage: React.FC = () => {
     }
 
     // Load relays from localStorage
-    const savedRelays = localStorage.getItem('customRelays');
+    const savedRelays = localStorage.getItem(STORAGE_KEYS.CUSTOM_RELAYS);
     if (savedRelays) {
       try {
         const parsed = JSON.parse(savedRelays);
@@ -71,7 +72,7 @@ const SettingsPage: React.FC = () => {
             // Old format: migrate to new format
             const migrated = parsed.map((url: string) => ({ url, read: true, write: true }));
             setRelays(migrated);
-            localStorage.setItem('customRelays', JSON.stringify(migrated));
+            localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(migrated));
             // Dispatch event to update NostrClient
             try {
               window.dispatchEvent(
@@ -94,7 +95,7 @@ const SettingsPage: React.FC = () => {
               console.warn('Invalid relay configuration detected - resetting to defaults');
               const fixed = relayConfigs.map(r => ({ url: r.url, read: true, write: true }));
               setRelays(fixed);
-              localStorage.setItem('customRelays', JSON.stringify(fixed));
+              localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(fixed));
               useUIStore.getState().openToast('Relay configuration was invalid and has been reset. Please reconfigure your relays.', 'error');
               // Dispatch event to update NostrClient
               try {
@@ -117,7 +118,7 @@ const SettingsPage: React.FC = () => {
       }
     } else {
       // No saved relays - check if useHomeFunctionality already initialized it
-      const savedRelaysCheck = localStorage.getItem('customRelays');
+      const savedRelaysCheck = localStorage.getItem(STORAGE_KEYS.CUSTOM_RELAYS);
       if (savedRelaysCheck) {
         // useHomeFunctionality already initialized, just load it
         try {
@@ -137,7 +138,7 @@ const SettingsPage: React.FC = () => {
           write: DEFAULT_WRITE_RELAYS.includes(url)
         }));
         setRelays(initialRelays);
-        localStorage.setItem('customRelays', JSON.stringify(initialRelays));
+        localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(initialRelays));
         // Dispatch event to update NostrClient with initial config
         try {
           window.dispatchEvent(
@@ -182,7 +183,7 @@ const SettingsPage: React.FC = () => {
           }
         } else {
           // Legacy plaintext format (for backward compatibility)
-          const legacyKey = localStorage.getItem('privateKey') || sessionStorage.getItem('privateKey');
+          const legacyKey = localStorage.getItem(STORAGE_KEYS.PRIVATE_KEY) || sessionStorage.getItem(STORAGE_KEYS.PRIVATE_KEY);
           if (legacyKey && !legacyKey.startsWith('{') && !legacyKey.startsWith('[')) {
             setNsec(legacyKey);
           }
@@ -206,10 +207,10 @@ const SettingsPage: React.FC = () => {
 
       try {
         const httpUrl = url
-          .replace('ws://', 'http://')
-          .replace('wss://', 'https://');
+          .replace(PROTOCOLS.WS, PROTOCOLS.HTTP)
+          .replace(PROTOCOLS.WSS, PROTOCOLS.HTTPS);
         const resp = await fetch(httpUrl, {
-          headers: { Accept: 'application/nostr+json' }
+          headers: { Accept: CONTENT_TYPES.NOSTR_JSON }
         });
 
         if (!resp.ok) throw new Error(String(resp.status));
@@ -256,7 +257,7 @@ const SettingsPage: React.FC = () => {
   const handleDarkModeToggle = () => {
     const newDarkMode = !darkMode;
     setDarkMode(newDarkMode);
-    localStorage.setItem('darkMode', String(newDarkMode));
+    localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(newDarkMode));
 
     // Apply or remove dark mode class
     if (newDarkMode) {
@@ -269,12 +270,12 @@ const SettingsPage: React.FC = () => {
   const handleAddRelay = () => {
     if (
       newRelay &&
-      newRelay.startsWith('wss://') &&
+      newRelay.startsWith(PROTOCOLS.WSS) &&
       !relays.some(r => r.url === newRelay)
     ) {
       const updatedRelays = [...relays, { url: newRelay, read: true, write: true }];
       setRelays(updatedRelays);
-      localStorage.setItem('customRelays', JSON.stringify(updatedRelays));
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(updatedRelays));
       try {
         window.dispatchEvent(
           new CustomEvent('relaysUpdated', {
@@ -289,7 +290,7 @@ const SettingsPage: React.FC = () => {
   const handleRemoveRelay = (relayToRemove: string) => {
     const updatedRelays = relays.filter(relay => relay.url !== relayToRemove);
     setRelays(updatedRelays);
-    localStorage.setItem('customRelays', JSON.stringify(updatedRelays));
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(updatedRelays));
     try {
       window.dispatchEvent(
         new CustomEvent('relaysUpdated', { 
@@ -321,7 +322,7 @@ const SettingsPage: React.FC = () => {
     }
     
     setRelays(updatedRelays);
-    localStorage.setItem('customRelays', JSON.stringify(updatedRelays));
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(updatedRelays));
     try {
       window.dispatchEvent(
         new CustomEvent('relaysUpdated', { 
@@ -339,7 +340,7 @@ const SettingsPage: React.FC = () => {
 
     navigator.clipboard.writeText(nsec);
     setCopiedNsec(true);
-    setTimeout(() => setCopiedNsec(false), 2000);
+    setTimeout(() => setCopiedNsec(false), TOAST_DURATION.SHORT);
 
     try {
       useUIStore
@@ -440,10 +441,10 @@ const SettingsPage: React.FC = () => {
                 {relays.map((relay, index) => {
                   const info = relayInfo[relay.url];
                   const statusColor = info?.loading
-                    ? '#f59e0b'
+                    ? COLORS.WARNING
                     : info?.ok
-                      ? '#10b981'
-                      : '#ef4444';
+                      ? COLORS.SUCCESS
+                      : COLORS.ERROR;
                   const isExpanded = expandedRelay === relay.url;
                   return (
                     <div key={index} className="relayItemCard">
@@ -619,7 +620,7 @@ const SettingsPage: React.FC = () => {
               <div className="featureBlockLast">
               <h5>Add New Relay</h5>
               <p className="featureDescription descriptionSmall">
-                Add a custom Nostr relay (must start with wss://)
+                {`Add a custom Nostr relay (must start with ${PROTOCOLS.WSS})`}
               </p>
 
               <div className="addRelayContainer">
@@ -627,7 +628,7 @@ const SettingsPage: React.FC = () => {
                   type="text"
                   value={newRelay}
                   onChange={e => setNewRelay(e.target.value)}
-                  placeholder="wss://relay.example.com"
+                  placeholder={`${PROTOCOLS.WSS}relay.example.com`}
                   className="relayInput"
                   onKeyPress={e => {
                     if (e.key === 'Enter') {
@@ -653,13 +654,13 @@ const SettingsPage: React.FC = () => {
                 <div style={{ marginBottom: '16px' }}>
                   <div
                     style={{
-                      background: '#fef3c7',
-                      border: '1px solid #f59e0b',
+                      background: COLORS.WARNING_BG,
+                      border: `1px solid ${COLORS.WARNING}`,
                       borderRadius: '8px',
                       padding: '12px',
                       marginBottom: '12px',
                       fontSize: '13px',
-                      color: '#92400e'
+                      color: COLORS.WARNING_TEXT
                     }}
                   >
                     <strong>⚠️ Security Warning:</strong> Never share your nsec with
@@ -791,7 +792,7 @@ const SettingsPage: React.FC = () => {
 
           {passwordError && (
             <div style={{
-              color: '#dc2626',
+              color: COLORS.ERROR_DARK,
               fontSize: '13px',
               marginBottom: '12px',
               textAlign: 'left'
@@ -858,7 +859,7 @@ const SettingsPage: React.FC = () => {
 
             <div
               style={{
-                background: '#fff',
+                background: COLORS.BG_WHITE,
                 borderRadius: '8px',
                 padding: '20px',
                 marginBottom: '20px',
@@ -870,12 +871,12 @@ const SettingsPage: React.FC = () => {
 
             <div
               style={{
-                background: '#fef3c7',
-                border: '1px solid #f59e0b',
+                background: COLORS.WARNING_BG,
+                border: `1px solid ${COLORS.WARNING}`,
                 borderRadius: '8px',
                 padding: '12px',
                 fontSize: '12px',
-                color: '#92400e',
+                color: COLORS.WARNING_TEXT,
                 marginBottom: '16px',
                 textAlign: 'left'
               }}

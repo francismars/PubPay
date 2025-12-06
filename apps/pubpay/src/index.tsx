@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { SW_UPDATE_NOTIFICATION_DURATION, TIMEOUT, COLORS, STORAGE_KEYS } from './constants';
 
 // Lazy load pages to reduce initial bundle size
 const FeedsPage = lazy(() => import('./pages/FeedsPage').then(m => ({ default: m.FeedsPage })));
@@ -52,7 +53,7 @@ import './assets/images/icon/ms-icon-310x310.png';
 const LoadingFallback: React.FC = () => {
   // Initialize dark mode on mount
   useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode') === 'true';
+    const savedDarkMode = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
     if (savedDarkMode) {
       document.body.classList.add('dark-mode');
     }
@@ -133,7 +134,7 @@ if ('serviceWorker' in navigator) {
         position: fixed;
         bottom: 20px;
         right: 20px;
-        background: #4CAF50;
+        background: ${COLORS.SUCCESS_ALT};
         color: white;
         padding: 16px 24px;
         border-radius: 8px;
@@ -154,7 +155,7 @@ if ('serviceWorker' in navigator) {
       button.textContent = 'Reload';
       button.style.cssText = `
         background: white;
-        color: #4CAF50;
+        color: ${COLORS.SUCCESS_ALT};
         border: none;
         padding: 8px 16px;
         border-radius: 4px;
@@ -170,14 +171,14 @@ if ('serviceWorker' in navigator) {
       notification.appendChild(button);
       document.body.appendChild(notification);
 
-      // Auto-hide after 10 seconds
+      // Auto-hide after configured duration
       setTimeout(() => {
         if (notification.parentNode) {
           notification.style.opacity = '0';
-          notification.style.transition = 'opacity 0.3s';
-          setTimeout(() => notification.remove(), 300);
+          notification.style.transition = `opacity ${TIMEOUT.ANIMATION_SHORT}ms`;
+          setTimeout(() => notification.remove(), TIMEOUT.ANIMATION_SHORT);
         }
-      }, 10000);
+      }, SW_UPDATE_NOTIFICATION_DURATION);
     };
 
     window.addEventListener('load', () => {

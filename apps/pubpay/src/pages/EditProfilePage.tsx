@@ -6,6 +6,7 @@ import {
   BlossomService
 } from '@pubpay/shared-services';
 import { nip19, finalizeEvent, getEventHash, verifyEvent } from 'nostr-tools';
+import { TOAST_DURATION, TIMEOUT, STORAGE_KEYS, DIMENSIONS, FONT_SIZES, COLORS, SPACING } from '../constants';
 
 const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -68,14 +69,14 @@ const EditProfilePage: React.FC = () => {
   useEffect(() => {
     const handleUploadComplete = (event: CustomEvent) => {
       const { imageUrl } = event.detail;
-      const uploadType = sessionStorage.getItem('BlossomUploadType');
-      sessionStorage.removeItem('BlossomUploadType');
+      const uploadType = sessionStorage.getItem(STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE);
+      sessionStorage.removeItem(STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE);
 
       if (uploadType === 'picture') {
         setProfileData(prev => ({ ...prev, picture: imageUrl }));
         setUploadingPicture(false);
         updateToast('Picture uploaded successfully!', 'success', false);
-        setTimeout(() => closeToast(), 2000);
+        setTimeout(() => closeToast(), TOAST_DURATION.SHORT);
         if (pictureInputRef.current) {
           pictureInputRef.current.value = '';
         }
@@ -83,7 +84,7 @@ const EditProfilePage: React.FC = () => {
         setProfileData(prev => ({ ...prev, banner: imageUrl }));
         setUploadingBanner(false);
         updateToast('Banner uploaded successfully!', 'success', false);
-        setTimeout(() => closeToast(), 2000);
+        setTimeout(() => closeToast(), TOAST_DURATION.SHORT);
         if (bannerInputRef.current) {
           bannerInputRef.current.value = '';
         }
@@ -93,8 +94,8 @@ const EditProfilePage: React.FC = () => {
 
     const handleUploadError = (event: CustomEvent) => {
       const { error } = event.detail;
-      const uploadType = sessionStorage.getItem('BlossomUploadType');
-      sessionStorage.removeItem('BlossomUploadType');
+      const uploadType = sessionStorage.getItem(STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE);
+      sessionStorage.removeItem(STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE);
 
       if (uploadType === 'picture') {
         setUploadingPicture(false);
@@ -165,7 +166,7 @@ const EditProfilePage: React.FC = () => {
 
       uploadTypeRef.current = target;
       if (authState?.signInMethod === 'externalSigner') {
-        sessionStorage.setItem('BlossomUploadType', target);
+        sessionStorage.setItem(STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE, target);
       }
 
       updateToast(`Uploading ${target}...`, 'loading', false);
@@ -194,7 +195,7 @@ const EditProfilePage: React.FC = () => {
       }
 
       updateToast(`${target === 'picture' ? 'Picture' : 'Banner'} uploaded successfully!`, 'success', false);
-      setTimeout(() => closeToast(), 2000);
+      setTimeout(() => closeToast(), TOAST_DURATION.SHORT);
       uploadTypeRef.current = null;
     } catch (error) {
       console.error(`Failed to upload ${target}:`, error);
@@ -234,7 +235,7 @@ const EditProfilePage: React.FC = () => {
     uploadTypeRef.current = 'picture';
     // Store upload type for external signer return
     if (authState?.signInMethod === 'externalSigner') {
-      sessionStorage.setItem('BlossomUploadType', 'picture');
+      sessionStorage.setItem(STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE, 'picture');
     }
     updateToast('Uploading picture...', 'loading', false);
     try {
@@ -255,7 +256,7 @@ const EditProfilePage: React.FC = () => {
       const imageUrl = blossomService.getFileUrl(hash, extension || undefined);
       setProfileData(prev => ({ ...prev, picture: imageUrl }));
       updateToast('Picture uploaded successfully!', 'success', false);
-      setTimeout(() => closeToast(), 2000);
+      setTimeout(() => closeToast(), TOAST_DURATION.SHORT);
       uploadTypeRef.current = null;
     } catch (error) {
       console.error('Failed to upload picture:', error);
@@ -295,7 +296,7 @@ const EditProfilePage: React.FC = () => {
     uploadTypeRef.current = 'banner';
     // Store upload type for external signer return
     if (authState?.signInMethod === 'externalSigner') {
-      sessionStorage.setItem('BlossomUploadType', 'banner');
+      sessionStorage.setItem(STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE, 'banner');
     }
     updateToast('Uploading banner...', 'loading', false);
     try {
@@ -316,7 +317,7 @@ const EditProfilePage: React.FC = () => {
       const imageUrl = blossomService.getFileUrl(hash, extension || undefined);
       setProfileData(prev => ({ ...prev, banner: imageUrl }));
       updateToast('Banner uploaded successfully!', 'success', false);
-      setTimeout(() => closeToast(), 2000);
+      setTimeout(() => closeToast(), TOAST_DURATION.SHORT);
       uploadTypeRef.current = null;
     } catch (error) {
       console.error('Failed to upload banner:', error);
@@ -431,7 +432,7 @@ const EditProfilePage: React.FC = () => {
         // For external signer, compute event ID first, then store event and redirect
         eventTemplate.id = getEventHash(eventTemplate);
         const eventString = JSON.stringify(eventTemplate);
-        sessionStorage.setItem('SignProfileUpdate', eventString);
+        sessionStorage.setItem(STORAGE_KEYS.SIGN_PROFILE_UPDATE, eventString);
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
         updateToast(
           'Please sign the profile update in your external signer app',
@@ -470,7 +471,7 @@ const EditProfilePage: React.FC = () => {
       // Reload profile to reflect changes before navigating
       if (authState.publicKey && loadUserProfile) {
         // Wait for event to propagate to relays, then reload profile
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, TOAST_DURATION.SHORT));
         await loadUserProfile(authState.publicKey);
         // Auto-close toast after a short delay
         setTimeout(() => {
@@ -527,7 +528,7 @@ const EditProfilePage: React.FC = () => {
 
   return (
     <div className="profilePage">
-      <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+      <div style={{ maxWidth: DIMENSIONS.MAX_CONTENT_WIDTH, margin: '0 auto' }}>
         <div
           style={{
             display: 'flex',
@@ -652,9 +653,9 @@ const EditProfilePage: React.FC = () => {
                   src={profileData.picture}
                   alt="Profile preview"
                   style={{
-                    width: '80px',
-                    height: '80px',
-                    borderRadius: '50%',
+                    width: DIMENSIONS.AVATAR_SIZE,
+                    height: DIMENSIONS.AVATAR_SIZE,
+                    borderRadius: DIMENSIONS.RADIUS_CIRCLE,
                     objectFit: 'cover'
                   }}
                   onError={e => {
@@ -664,7 +665,7 @@ const EditProfilePage: React.FC = () => {
                       const errorDiv = document.createElement('div');
                       errorDiv.textContent = 'Failed to load image';
                       errorDiv.style.cssText =
-                        'color: #dc3545; font-size: 12px; margin-top: 5px;';
+                        `color: ${COLORS.ERROR_ALT}; font-size: ${FONT_SIZES.XS}; margin-top: ${SPACING.XS};`;
                       parent.appendChild(errorDiv);
                     }
                   }}
@@ -707,8 +708,8 @@ const EditProfilePage: React.FC = () => {
                   src={profileData.banner}
                   alt="Banner preview"
                   style={{
-                    width: '200px',
-                    height: '80px',
+                    width: DIMENSIONS.BANNER_WIDTH,
+                    height: DIMENSIONS.BANNER_HEIGHT,
                     borderRadius: '4px',
                     objectFit: 'cover'
                   }}
@@ -719,7 +720,7 @@ const EditProfilePage: React.FC = () => {
                       const errorDiv = document.createElement('div');
                       errorDiv.textContent = 'Failed to load image';
                       errorDiv.style.cssText =
-                        'color: #dc3545; font-size: 12px; margin-top: 5px;';
+                        `color: ${COLORS.ERROR_ALT}; font-size: ${FONT_SIZES.XS}; margin-top: ${SPACING.XS};`;
                       parent.appendChild(errorDiv);
                     }
                   }}

@@ -37,6 +37,7 @@ import {
 } from '@pubpay/shared-types';
 import { LightningConfig } from '@pubpay/shared-types';
 import { genericUserIcon } from '../assets/images';
+import { TIMEOUT, LIGHTNING, STORAGE_KEYS, QUERY_LIMITS } from '../constants';
 
 // Import npm packages
 import { nip19, finalizeEvent, getEventHash, verifyEvent } from 'nostr-tools';
@@ -163,7 +164,7 @@ export const useHomeFunctionality = () => {
         // Initialize Nostr client with user custom relays if present
         let initialRelays: string[] | Array<{ url: string; read: boolean; write: boolean }> | undefined = undefined;
         try {
-          const savedRelays = localStorage.getItem('customRelays');
+          const savedRelays = localStorage.getItem(STORAGE_KEYS.CUSTOM_RELAYS);
           if (savedRelays) {
             const parsed = JSON.parse(savedRelays);
             if (Array.isArray(parsed)) {
@@ -186,7 +187,7 @@ export const useHomeFunctionality = () => {
               write: DEFAULT_WRITE_RELAYS.includes(url)
             }));
             // Save to localStorage so SettingsPage can load it
-            localStorage.setItem('customRelays', JSON.stringify(initialRelays));
+            localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(initialRelays));
           }
         } catch {}
         nostrClientRef.current = new NostrClient(initialRelays as any);
@@ -278,7 +279,7 @@ export const useHomeFunctionality = () => {
     };
 
     // Initial check
-    const timer = setTimeout(checkAndLoadPosts, 100);
+    const timer = setTimeout(checkAndLoadPosts, TIMEOUT.SHORT_DELAY);
 
     // Listen for popstate (back/forward buttons and programmatic navigation)
     window.addEventListener('popstate', checkAndLoadPosts);
@@ -325,7 +326,7 @@ export const useHomeFunctionality = () => {
         try {
           // Ensure page has focus to allow clipboard reads
           while (!document.hasFocus()) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise(resolve => setTimeout(resolve, TIMEOUT.SHORT_DELAY));
           }
 
           // Helper to read signature from clipboard with retries and prompt fallback
@@ -337,7 +338,7 @@ export const useHomeFunctionality = () => {
                 const val = (text || '').trim();
                 if (val) return val;
               } catch {}
-              await new Promise(resolve => setTimeout(resolve, 100));
+              await new Promise(resolve => setTimeout(resolve, TIMEOUT.SHORT_DELAY));
             }
             // Last resort: prompt user to paste manually (non-blocking UX is preferred, but this ensures progress)
             try {
@@ -349,10 +350,10 @@ export const useHomeFunctionality = () => {
 
           // Handle SignKind1: finalize and publish a note
           try {
-            const kind1Raw = sessionStorage.getItem('SignKind1');
+            const kind1Raw = sessionStorage.getItem(STORAGE_KEYS.SIGN_KIND1);
             if (kind1Raw) {
               const payload = JSON.parse(kind1Raw) as { event?: any };
-              sessionStorage.removeItem('SignKind1');
+              sessionStorage.removeItem(STORAGE_KEYS.SIGN_KIND1);
 
               if (payload && payload.event) {
                 const sig = await readClipboard();
@@ -382,7 +383,7 @@ export const useHomeFunctionality = () => {
 
           // Handle SignZapEvent: finalize and proceed to get invoice/pay
           try {
-            const zapRaw = sessionStorage.getItem('SignZapEvent');
+            const zapRaw = sessionStorage.getItem(STORAGE_KEYS.SIGN_ZAP_EVENT);
             if (zapRaw) {
               const payload = JSON.parse(zapRaw) as {
                 callback: string;
@@ -391,7 +392,7 @@ export const useHomeFunctionality = () => {
                 event: any;
                 id: string;
               };
-              sessionStorage.removeItem('SignZapEvent');
+              sessionStorage.removeItem(STORAGE_KEYS.SIGN_ZAP_EVENT);
 
               const sig = await readClipboard();
               if (!sig || !/^([0-9a-f]{128})$/i.test(sig)) {
@@ -422,13 +423,13 @@ export const useHomeFunctionality = () => {
 
           // Handle SignProfileUpdate: finalize and publish profile update
           try {
-            const profileRaw = sessionStorage.getItem('SignProfileUpdate');
+            const profileRaw = sessionStorage.getItem(STORAGE_KEYS.SIGN_PROFILE_UPDATE);
             if (profileRaw) {
               console.log(
                 'Found SignProfileUpdate data, processing profile update...'
               );
               const eventTemplate = JSON.parse(profileRaw);
-              sessionStorage.removeItem('SignProfileUpdate');
+              sessionStorage.removeItem(STORAGE_KEYS.SIGN_PROFILE_UPDATE);
 
               console.log(
                 'Reading signature from clipboard for profile update...'
@@ -521,7 +522,7 @@ export const useHomeFunctionality = () => {
                 }
 
                 // Wait a bit for profile to reload, then navigate
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, TIMEOUT.PROFILE_LOAD_DELAY));
                 // Navigate using pushState to avoid page reload
                 window.history.pushState({}, '', '/profile');
                 // Trigger popstate to reload the page component
@@ -544,7 +545,7 @@ export const useHomeFunctionality = () => {
 
           // Handle BlossomAuth: complete file upload
           try {
-            const blossomData = sessionStorage.getItem('BlossomAuth');
+            const blossomData = sessionStorage.getItem(STORAGE_KEYS.BLOSSOM_AUTH);
             if (blossomData) {
               console.log('Found BlossomAuth data, processing upload...');
 
@@ -691,7 +692,7 @@ export const useHomeFunctionality = () => {
         }
       } else {
         // Legacy format or no private key
-        const legacyKey = localStorage.getItem('privateKey') || sessionStorage.getItem('privateKey');
+        const legacyKey = localStorage.getItem(STORAGE_KEYS.PRIVATE_KEY) || sessionStorage.getItem(STORAGE_KEYS.PRIVATE_KEY);
         if (legacyKey && !legacyKey.startsWith('{')) {
           // Legacy plaintext - migrate automatically
           console.log('Migrating legacy plaintext private key to encrypted format...');
@@ -797,7 +798,7 @@ export const useHomeFunctionality = () => {
 
       // Build posts params
       const params: { until?: number; limit?: number; authors?: string[] } = {
-        limit: 21
+        limit: QUERY_LIMITS.DEFAULT_POSTS
       };
 
       // Add following filter if needed
@@ -837,13 +838,13 @@ export const useHomeFunctionality = () => {
         console.log(
           `Batching ${params.authors.length} authors into queries of 100`
         );
-        const batchSize = 100;
+        const batchSize = QUERY_LIMITS.BATCH_SIZE;
         const numBatches = Math.ceil(params.authors.length / batchSize);
         // Calculate limit per batch to ensure total doesn't exceed desired limit
         // Add 50% buffer to account for deduplication across batches
         const batchLimit = loadMore 
           ? params.limit // For loadMore, use full limit per batch
-          : Math.ceil((params.limit || 21) * 1.5 / numBatches); // For initial load, distribute limit across batches
+          : Math.ceil((params.limit || QUERY_LIMITS.DEFAULT_POSTS) * QUERY_LIMITS.BATCH_MULTIPLIER / numBatches); // For initial load, distribute limit across batches
         const batches: Kind1Event[] = [];
 
         for (let i = 0; i < params.authors.length; i += batchSize) {
@@ -899,7 +900,7 @@ export const useHomeFunctionality = () => {
 
       // Apply limit only on initial load (not on loadMore to get all unique posts)
       if (!loadMore) {
-        const targetLimit = params.limit || 21;
+        const targetLimit = params.limit || QUERY_LIMITS.DEFAULT_POSTS;
         deduplicatedEvents = deduplicatedEvents.slice(0, targetLimit);
         
         // Safety check: ensure we never exceed the limit on initial load
@@ -1052,7 +1053,7 @@ export const useHomeFunctionality = () => {
               validateLightningAddresses(postsRef.current, feed);
               validateNip05s(postsRef.current, feed);
             }
-          }, 100);
+          }, TIMEOUT.SHORT_DELAY);
         } catch (err) {
           console.error('Error loading profiles/zaps in background:', err);
           // Don't fail the whole load if background updates fail
@@ -1130,16 +1131,16 @@ export const useHomeFunctionality = () => {
       const zapLNURLTag = event.tags.find(tag => tag[0] === 'zap-lnurl');
 
       if (zapMinTag && zapMinTag[1]) {
-        post.zapMin = parseInt(zapMinTag[1]) / 1000 || 0;
+        post.zapMin = parseInt(zapMinTag[1]) / LIGHTNING.MILLISATS_PER_SAT || 0;
       }
       if (zapMaxTag && zapMaxTag[1]) {
-        post.zapMax = parseInt(zapMaxTag[1]) / 1000 || 0;
+        post.zapMax = parseInt(zapMaxTag[1]) / LIGHTNING.MILLISATS_PER_SAT || 0;
       }
       if (zapUsesTag && zapUsesTag[1]) {
         post.zapUses = parseInt(zapUsesTag[1]) || 0;
       }
       if (zapGoalTag && zapGoalTag[1]) {
-        post.zapGoal = parseInt(zapGoalTag[1]) / 1000 || undefined; // Convert from millisats to sats
+        post.zapGoal = parseInt(zapGoalTag[1]) / LIGHTNING.MILLISATS_PER_SAT || undefined; // Convert from millisats to sats
       }
       if (zapPayerTag && zapPayerTag[1]) {
         post.zapPayer = zapPayerTag[1];
@@ -1972,10 +1973,10 @@ export const useHomeFunctionality = () => {
     AuthService.clearAuthData();
 
     // Check if user wants to clear NWC on logout
-    const clearNwcOnLogout = localStorage.getItem('clearNwcOnLogout');
+    const clearNwcOnLogout = localStorage.getItem(STORAGE_KEYS.CLEAR_NWC_ON_LOGOUT);
     if (clearNwcOnLogout === 'true') {
-      localStorage.removeItem('nwcConnectionString');
-      localStorage.removeItem('nwcCapabilities');
+      localStorage.removeItem(STORAGE_KEYS.NWC_CONNECTION_STRING);
+      localStorage.removeItem(STORAGE_KEYS.NWC_CAPABILITIES);
     }
 
     setAuthState({
@@ -2321,8 +2322,8 @@ export const useHomeFunctionality = () => {
       if (paymentType === 'fixed' && zapFixed && zapFixed.trim() !== '') {
         const amount = parseInt(zapFixed);
         if (!isNaN(amount) && amount > 0) {
-          const zapMinAmount = amount * 1000; // Convert to millisatoshis
-          const zapMaxAmount = amount * 1000;
+          const zapMinAmount = amount * LIGHTNING.MILLISATS_PER_SAT; // Convert to millisatoshis
+          const zapMaxAmount = amount * LIGHTNING.MILLISATS_PER_SAT;
           tags.push(['zap-min', zapMinAmount.toString()]);
           tags.push(['zap-max', zapMaxAmount.toString()]);
         }
@@ -2334,8 +2335,8 @@ export const useHomeFunctionality = () => {
           console.error('Maximum amount must be greater than minimum amount');
           return;
         }
-          const zapMinAmount = minAmount * 1000;
-          const zapMaxAmount = maxAmount * 1000;
+          const zapMinAmount = minAmount * LIGHTNING.MILLISATS_PER_SAT;
+          const zapMaxAmount = maxAmount * LIGHTNING.MILLISATS_PER_SAT;
       tags.push(['zap-min', zapMinAmount.toString()]);
       tags.push(['zap-max', zapMaxAmount.toString()]);
         }
@@ -2344,7 +2345,7 @@ export const useHomeFunctionality = () => {
 
       // Add zap-goal tag if provided (convert to millisats for consistency)
       if (zapGoal && parseInt(zapGoal) > 0) {
-        const zapGoalAmount = parseInt(zapGoal) * 1000; // Convert to millisatoshis
+        const zapGoalAmount = parseInt(zapGoal) * LIGHTNING.MILLISATS_PER_SAT; // Convert to millisatoshis
         tags.push(['zap-goal', zapGoalAmount.toString()]);
       }
 
@@ -2418,7 +2419,7 @@ export const useHomeFunctionality = () => {
         event.pubkey = authState.publicKey!;
         event.id = getEventHash(event);
         const eventString = JSON.stringify(event);
-        sessionStorage.setItem('SignKind1', JSON.stringify({ event }));
+        sessionStorage.setItem(STORAGE_KEYS.SIGN_KIND1, JSON.stringify({ event }));
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
         return;
       } else {
@@ -3810,7 +3811,7 @@ export const useHomeFunctionality = () => {
           validateLightningAddresses([newPostInArray], activeFeed);
           validateNip05s([newPostInArray], activeFeed);
       }
-      }, 100);
+      }, TIMEOUT.SHORT_DELAY);
     } catch (error) {
       console.error('Error processing new note:', error);
     }
