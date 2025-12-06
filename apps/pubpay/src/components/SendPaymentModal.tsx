@@ -67,7 +67,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
   // Nostr follow list state (for autocomplete)
   const [followList, setFollowList] = useState<any[]>([]);
-  const [, setLoadingFollowList] = useState(false);
+  const [loadingFollowList, setLoadingFollowList] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
   const [activeMentionIndex, setActiveMentionIndex] = useState(0);
@@ -357,9 +357,13 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   }, [isVisible]);
 
   // Filter follows based on mention query (only search in display name)
+  // When query is empty, show all follows (for the icon button)
   const filteredMentionFollows = useMemo(() => {
     const q = mentionQuery.trim().toLowerCase();
-    if (!q || q.length < 1) return [];
+    if (!q || q.length < 1) {
+      // Show all follows when query is empty (icon button clicked or just "@")
+      return followList;
+    }
     return followList
       .filter(item => {
         return item.displayName?.toLowerCase().includes(q);
@@ -933,19 +937,94 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                           setPreviewSuffix(null);
                         }, 200);
                       }}
-                      placeholder="Enter invoice, Lightning Address, npub, or type @..."
+                      placeholder={previewSuffix ? '' : 'Enter invoice, Lightning Address, npub, or type @...'}
                       disabled={sending || fetchingInvoice}
                       style={{
                         backgroundColor: 'var(--input-bg)',
                         color: previewSuffix ? 'transparent' : 'var(--text-primary)',
                         border: (invoiceError || lnurlError) ? '2px solid #ef4444' : (detectedType && sendInput.trim()) ? '2px solid #22c55e' : '2px solid var(--border-color)',
                         borderRadius: '6px',
-                        padding: '12px 16px',
+                        padding: '12px 48px 12px 16px',
                         width: '100%',
                         fontSize: '14px',
                         boxSizing: 'border-box'
                       }}
                     />
+                    {/* Follows dropdown button */}
+                    {authState?.isLoggedIn && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const input = sendInputRef.current;
+                          if (!input) return;
+
+                          // Insert "@" at cursor position or at the end
+                          const currentValue = input.value;
+                          const caret = input.selectionStart || currentValue.length;
+                          const before = currentValue.slice(0, caret);
+                          const after = currentValue.slice(caret);
+
+                          // Only add "@" if there isn't already one at the cursor position
+                          const needsAt = !before.endsWith('@') && (caret === 0 || /\s/.test(before.slice(-1)));
+                          if (needsAt) {
+                            const newValue = `${before}@${after}`;
+                            setSendInput(newValue);
+                            // Focus and position cursor after "@"
+                            setTimeout(() => {
+                              input.focus();
+                              const newPos = `${before}@`.length;
+                              input.setSelectionRange(newPos, newPos);
+                              // Trigger mention detection
+                              detectMention();
+                            }, 0);
+                          } else {
+                            // If "@" already exists, just focus and trigger detection
+                            input.focus();
+                            detectMention();
+                          }
+                        }}
+                        onMouseDown={(e) => {
+                          e.preventDefault(); // Prevent input from losing focus
+                        }}
+                        disabled={sending || fetchingInvoice}
+                        tabIndex={-1}
+                        style={{
+                          position: 'absolute',
+                          right: '8px',
+                          top: '-20px',
+                          bottom: '0',
+                          margin: 'auto 0',
+                          background: 'transparent',
+                          border: 'none',
+                          cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--text-secondary)',
+                          opacity: (sending || fetchingInvoice) ? 0.5 : 1,
+                          transition: 'color 0.2s ease',
+                          outline: 'none'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!sending && !fetchingInvoice) {
+                            e.currentTarget.style.color = '#4a75ff';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!sending && !fetchingInvoice) {
+                            e.currentTarget.style.color = 'var(--text-secondary)';
+                          }
+                        }}
+                        title="Select from follows"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                          people
+                        </span>
+                      </button>
+                    )}
                     {previewSuffix && sendInputRef.current && (
                       <div
                         style={{
@@ -982,8 +1061,11 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                         borderRadius: '6px',
                         boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
                         zIndex: 1000,
-                        maxHeight: '150px',
-                        overflowY: 'auto'
+                        maxHeight: '240px',
+                        overflowY: 'auto',
+                        overflowX: 'hidden',
+                        width: '100%',
+                        boxSizing: 'border-box'
                       }}
                     >
                       {filteredLnProviders.map((provider: string, idx: number) => {
@@ -1046,17 +1128,19 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                               display: 'flex',
                               alignItems: 'center',
                               gap: '12px',
-                              transition: 'background 0.15s ease'
+                              transition: 'background 0.15s ease',
+                              minWidth: 0,
+                              overflow: 'hidden'
                             }}
                           >
                             <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>
                               alternate_email
                             </span>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
+                            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                              <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {fullAddress}
                               </div>
-                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {provider}
                               </div>
                             </div>
@@ -1067,7 +1151,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   )}
 
                   {/* Nostr User Mention Suggestions */}
-                  {showMentionSuggestions && filteredMentionFollows.length > 0 && (
+                  {showMentionSuggestions && (
                     <div
                       className="suggestionDropdown"
                       style={{
@@ -1081,11 +1165,38 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                         borderRadius: '6px',
                         boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
                         zIndex: 1000,
-                        maxHeight: '150px',
-                        overflowY: 'auto'
+                        maxHeight: '240px',
+                        overflowY: 'auto',
+                        overflowX: 'hidden',
+                        width: '100%',
+                        boxSizing: 'border-box'
                       }}
                     >
-                      {filteredMentionFollows.map((f: any, idx: number) => (
+                      {loadingFollowList ? (
+                        <div
+                          style={{
+                            padding: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '12px',
+                            color: 'var(--text-secondary)'
+                          }}
+                        >
+                          <span
+                            className="material-symbols-outlined"
+                            style={{
+                              fontSize: '20px',
+                              animation: 'spin 1s linear infinite',
+                              display: 'inline-block'
+                            }}
+                          >
+                            progress_activity
+                          </span>
+                          <span style={{ fontSize: '14px' }}>Loading follows...</span>
+                        </div>
+                      ) : filteredMentionFollows.length > 0 ? (
+                        filteredMentionFollows.map((f: any, idx: number) => (
                         <div
                           key={f.pubkey + idx}
                           onMouseDown={e => {
@@ -1139,7 +1250,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                             display: 'flex',
                             alignItems: 'center',
                             gap: '12px',
-                            transition: 'background 0.15s ease'
+                            transition: 'background 0.15s ease',
+                            minWidth: 0,
+                            overflow: 'hidden'
                           }}
                         >
                           {f.picture ? (
@@ -1172,16 +1285,30 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                               {f.displayName.charAt(0).toUpperCase()}
                             </div>
                           )}
-                          <div className="suggestionInfo" style={{ flex: 1 }}>
-                            <div className="suggestionName" style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)' }}>
+                          <div className="suggestionInfo" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                            <div className="suggestionName" style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {f.displayName}
                             </div>
-                            <div className="suggestionNpub" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                            <div className="suggestionNpub" style={{ fontSize: '12px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {f.npub.substring(0, 20)}…
                             </div>
                           </div>
                         </div>
-                      ))}
+                        ))
+                      ) : (
+                        <div
+                          style={{
+                            padding: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--text-secondary)',
+                            fontSize: '14px'
+                          }}
+                        >
+                          No follows found
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
