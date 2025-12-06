@@ -865,14 +865,14 @@ export const Layout: React.FC = () => {
               >
                 Wallet
               </Link>
-              <Link
-                to="/live"
+              <a
+                href="/live"
                 className="sideNavLink "
                 title="PubPay Live"
                 onClick={closeMobileMenu}
               >
                 Live
-              </Link>
+              </a>
               <Link
                 to="/about"
                 className="sideNavLink"
