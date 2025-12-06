@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useLocation } from 'react-router-dom';
 // import { useUIStore } from '@pubpay/shared-services';
-import { PayNoteComponent } from '../components/PayNoteComponent';
+import { PayNoteComponent } from '../components/PayNoteComponent/PayNoteComponent';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { nip19 } from 'nostr-tools';
 import { COLORS } from '../constants';

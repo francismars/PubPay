@@ -9,7 +9,7 @@ import {
   LightningAddressService,
   detectPaymentType
 } from '@pubpay/shared-services';
-import { TOAST_DURATION, TIMEOUT, UI, COLORS, Z_INDEX, STORAGE_KEYS } from '../constants';
+import { TOAST_DURATION, TIMEOUT, UI, COLORS, Z_INDEX, STORAGE_KEYS } from '../../constants';
 
 interface SendPaymentModalProps {
   isVisible: boolean;

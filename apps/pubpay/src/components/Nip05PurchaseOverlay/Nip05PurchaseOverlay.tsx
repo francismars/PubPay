@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GenericQR } from '@pubpay/shared-ui';
-import { getApiBase } from '../utils/apiBase';
-import { COLORS } from '../constants';
+import { getApiBase } from '../../utils/apiBase';
+import { COLORS } from '../../constants';
 
 interface Nip05PurchaseOverlayProps {
   pubkey: string;

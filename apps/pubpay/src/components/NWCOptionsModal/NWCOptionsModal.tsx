@@ -9,8 +9,8 @@ import {
   generateNWCConnectionId,
   migrateOldNWCConnection,
   type NWCConnection
-} from '../utils/nwcStorage';
-import { TOAST_DURATION, COLORS, Z_INDEX, PROTOCOLS, STORAGE_KEYS, DIMENSIONS } from '../constants';
+} from '../../utils/nwcStorage';
+import { TOAST_DURATION, COLORS, Z_INDEX, PROTOCOLS, STORAGE_KEYS, DIMENSIONS } from '../../constants';
 
 interface NWCOptionsModalProps {
   isVisible: boolean;

@@ -1,12 +1,12 @@
 // PayNoteComponent - Renders individual PubPay posts
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { PubPayPost } from '../hooks/useHomeFunctionality';
-import { genericUserIcon } from '../assets/images';
+import { PubPayPost } from '../../hooks/useHomeFunctionality';
+import { genericUserIcon } from '../../assets/images';
 import { nip19 } from 'nostr-tools';
-import { formatContent } from '../utils/contentFormatter';
+import { formatContent } from '../../utils/contentFormatter';
 import { useUIStore } from '@pubpay/shared-services';
-import { INTERVAL, TIMEOUT, API_PATHS, PROTOCOLS, SEPARATORS, COLORS, STORAGE_KEYS } from '../constants';
+import { INTERVAL, TIMEOUT, API_PATHS, PROTOCOLS, SEPARATORS, COLORS, STORAGE_KEYS } from '../../constants';
 
 // Define ProcessedZap interface locally since it's not exported
 interface ProcessedZap {

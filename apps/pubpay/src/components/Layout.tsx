@@ -4,7 +4,7 @@ import { useUIStore, NostrRegistrationService, AuthService } from '@pubpay/share
 import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { nip19 } from 'nostr-tools';
-import { NewPayNoteOverlay } from './NewPayNoteOverlay';
+import { NewPayNoteOverlay } from './NewPayNoteOverlay/NewPayNoteOverlay';
 import { StatusToast } from './StatusToast/StatusToast';
 import { ProcessingOverlay } from './ProcessingOverlay/ProcessingOverlay';
 import { LoggedInFormOverlay } from './LoggedInFormOverlay/LoggedInFormOverlay';

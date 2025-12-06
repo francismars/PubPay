@@ -2,7 +2,7 @@ import React, { useState, useRef, useMemo } from 'react';
 import { useUIStore } from '@pubpay/shared-services';
 import { BlossomService } from '@pubpay/shared-services';
 import { GOAL_MAX } from '@pubpay/shared-services';
-import { formatContent } from '../utils/contentFormatter';
+import { formatContent } from '../../utils/contentFormatter';
 
 interface NewPayNoteOverlayProps {
   isVisible: boolean;
