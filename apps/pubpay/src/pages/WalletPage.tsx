@@ -64,7 +64,7 @@ const WalletPage: React.FC = () => {
   useEffect(() => {
     // Migrate old format if needed
     migrateOldNWCConnection();
-
+    
     const initializeClient = () => {
       const nwcUri = getActiveNWCUri();
       if (nwcUri) {
@@ -104,7 +104,7 @@ const WalletPage: React.FC = () => {
       const currentActiveId = getActiveNWCConnectionId();
       if (currentActiveId !== activeConnectionIdRef.current) {
         activeConnectionIdRef.current = currentActiveId;
-
+        
         // Reload client
         const nwcUri = getActiveNWCUri();
         if (nwcUri) {
@@ -174,12 +174,12 @@ const WalletPage: React.FC = () => {
           balance: rawBalance,
           balanceType: typeof rawBalance
         });
-
+        
         // According to NIP-47 spec, get_balance MUST return balance in millisats
         // Always convert from millisats to sats by dividing by 1000
         const balanceInSats = Math.floor(rawBalance / 1000);
-        console.log(`Converted ${rawBalance} millisats to ${balanceInSats} sats`);
-
+          console.log(`Converted ${rawBalance} millisats to ${balanceInSats} sats`);
+        
         setBalance(balanceInSats);
         setLastBalanceUpdate(new Date());
       }
@@ -228,7 +228,7 @@ const WalletPage: React.FC = () => {
       console.log('Loading transactions...');
       const response = await nwcClient.listTransactions({ limit: 20 });
       console.log('listTransactions response:', response);
-
+      
       if (response.error) {
         console.error('listTransactions error:', response.error);
         setTransactionsError(response.error.message || 'Failed to load transactions');
@@ -763,7 +763,7 @@ const WalletPage: React.FC = () => {
           <section style={{ marginBottom: '24px' }}>
             <div>
               <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>
-                Recent Transactions
+                Latest Payments
               </h3>
               {transactionsLoading ? (
                 <div
@@ -1026,19 +1026,19 @@ const WalletPage: React.FC = () => {
                             }
 
                             return (
-                              <div
-                                style={{
-                                  fontSize: '12px',
-                                  color: 'var(--text-tertiary)',
-                                  textAlign: 'right'
-                                }}
-                              >
+                        <div
+                          style={{
+                            fontSize: '12px',
+                            color: 'var(--text-tertiary)',
+                            textAlign: 'right'
+                          }}
+                        >
                                 {isExpired ? (
-                                  <span style={{ color: '#ef4444' }}>Expired</span>
+                            <span style={{ color: '#ef4444' }}>Expired</span>
                                 ) : isFailed ? (
                                   <span style={{ color: '#ef4444' }}>Failed</span>
                                 ) : isPending ? (
-                                  <span style={{ color: '#fbbf24' }}>Pending</span>
+                            <span style={{ color: '#fbbf24' }}>Pending</span>
                                 ) : null}
                               </div>
                             );
@@ -1167,17 +1167,17 @@ const WalletPage: React.FC = () => {
             </p>
             {!receiveInvoice ? (
               <>
-            <div style={{ marginBottom: '16px' }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  marginBottom: '8px',
-                  color: 'var(--text-primary)'
-                }}
-              >
+                <div style={{ marginBottom: '16px' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      marginBottom: '8px',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
                     Amount (sats) <span style={{ color: '#ef4444' }}>*</span>
-              </label>
+                  </label>
                   <input
                     type="number"
                     value={receiveAmount}
