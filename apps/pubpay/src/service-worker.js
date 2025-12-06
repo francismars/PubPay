@@ -1,9 +1,9 @@
 // Service Worker for PUBPAY.me PWA
 // IMPORTANT: Update CACHE_NAME when deploying a new version to force cache refresh
 // IMPORTANT: Also update the VERSION comment below to ensure browser detects the change
-// VERSION: 2025-12-06-v0.031
-const CACHE_NAME = 'pubpay-v0.031';
-const RUNTIME_CACHE = 'pubpay-runtime-v0.031';
+// VERSION: 2025-12-06-v0.0311
+const CACHE_NAME = 'pubpay-v0.0311';
+const RUNTIME_CACHE = 'pubpay-runtime-v0.0311';
 
 // Assets to cache on install (static assets without contenthash)
 const STATIC_ASSETS = [
