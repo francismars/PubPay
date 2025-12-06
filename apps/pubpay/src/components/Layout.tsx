@@ -171,19 +171,7 @@ export const Layout: React.FC = () => {
       }
     } else {
       // Password was incorrect (still requires password means it failed)
-      try {
-        useUIStore.getState().openToast('Incorrect password. Please check your password and try again.', 'error', false);
-        setTimeout(() => {
-          try {
-            useUIStore.getState().closeToast();
-          } catch {
-            // Ignore toast errors
-          }
-        }, 3000);
-      } catch (toastError) {
-        console.warn('Failed to show toast:', toastError);
-      }
-      // Throw error so component can handle it
+      // Throw error so component can handle error display
       throw new Error('Incorrect password');
     }
   };
