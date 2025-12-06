@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useUIStore, NwcClient } from '@pubpay/shared-services';
+import { nip19 } from 'nostr-tools';
 import { InvoiceQR } from '@pubpay/shared-ui';
 import { NWCOptionsModal } from '../components/NWCOptionsModal';
 import { SendPaymentModal } from '../components/SendPaymentModal';
@@ -15,9 +16,22 @@ interface Invoice {
   description?: string;
   created_at?: number;
   expiry?: number;
+  state?: 'pending' | 'settled' | 'expired' | 'failed';
+  type?: 'incoming' | 'outgoing';
+  fees_paid?: number;
+  metadata?: {
+    zap_request?: {
+      content?: string;
+      pubkey?: string;
+      tags?: Array<Array<string>>;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
 }
 
 const WalletPage: React.FC = () => {
+  const navigate = useNavigate();
   // Get auth state and nostr client from outlet context
   const {
     authState,
@@ -44,6 +58,7 @@ const WalletPage: React.FC = () => {
   const [lastBalanceUpdate, setLastBalanceUpdate] = useState<Date | null>(
     null
   );
+  const [visibleTransactionsCount, setVisibleTransactionsCount] = useState(5);
 
   // Initialize NWC client and reload when active connection changes
   useEffect(() => {
@@ -186,23 +201,23 @@ const WalletPage: React.FC = () => {
       return;
     }
 
-    // Check if wallet supports list_invoices
-    let supportsListInvoices = true;
+    // Check if wallet supports list_transactions
+    let supportsListTransactions = true;
     try {
       const connection = getActiveNWCConnection();
       if (connection?.capabilities?.methods) {
-        if (!connection.capabilities.methods.includes('list_invoices')) {
-          supportsListInvoices = false;
-          console.log('Wallet does not support list_invoices method');
+        if (!connection.capabilities.methods.includes('list_transactions')) {
+          supportsListTransactions = false;
+          console.log('Wallet does not support list_transactions method');
         }
       }
     } catch (err) {
       console.warn('Failed to check NWC capabilities:', err);
     }
 
-    if (!supportsListInvoices) {
+    if (!supportsListTransactions) {
       setTransactions([]);
-      setTransactionsError('Wallet does not support listing invoices');
+      setTransactionsError('Wallet does not support listing transactions');
       setTransactionsLoading(false);
       return;
     }
@@ -211,22 +226,63 @@ const WalletPage: React.FC = () => {
     setTransactionsError('');
     try {
       console.log('Loading transactions...');
-      const response = await nwcClient.listInvoices({ limit: 20 });
-      console.log('listInvoices response:', response);
+      const response = await nwcClient.listTransactions({ limit: 20 });
+      console.log('listTransactions response:', response);
 
       if (response.error) {
-        console.error('listInvoices error:', response.error);
+        console.error('listTransactions error:', response.error);
         setTransactionsError(response.error.message || 'Failed to load transactions');
         setTransactions([]);
       } else if (response.result) {
-        const invoices = response.result.invoices || [];
-        console.log(`Loaded ${invoices.length} transactions:`, invoices);
-        setTransactions(invoices);
-        if (invoices.length === 0) {
+        const transactions = response.result.transactions || [];
+        console.log(`Loaded ${transactions.length} transactions:`, transactions);
+        console.log('First transaction structure:', transactions[0] ? JSON.stringify(transactions[0], null, 2) : 'No transactions');
+        // Map transactions to the Invoice interface format for compatibility
+        const mappedTransactions = transactions.map((tx: {
+          type: 'incoming' | 'outgoing';
+          state?: 'pending' | 'settled' | 'expired' | 'failed';
+          invoice?: string;
+          description?: string;
+          description_hash?: string;
+          preimage?: string;
+          payment_hash: string;
+          amount: number;
+          fees_paid?: number;
+          created_at: number;
+          expires_at?: number;
+          settled_at?: number;
+          metadata?: Record<string, unknown>;
+        }) => {
+          const mapped = {
+            invoice: tx.invoice || '',
+            payment_hash: tx.payment_hash,
+            preimage: tx.preimage,
+            amount: tx.amount,
+            description: tx.description,
+            created_at: tx.created_at,
+            expiry: tx.expires_at ? Math.floor((tx.expires_at - tx.created_at) / 1000) : undefined,
+            state: tx.state,
+            type: tx.type,
+            paid_at: tx.settled_at,
+            fees_paid: tx.fees_paid,
+            metadata: tx.metadata as Invoice['metadata']
+          };
+          console.log('Mapping transaction:', {
+            original: tx,
+            mapped,
+            state: tx.state,
+            type: tx.type
+          });
+          return mapped;
+        });
+        console.log('Mapped transactions:', mappedTransactions);
+        console.log('Mapped transactions:', mappedTransactions);
+        setTransactions(mappedTransactions);
+        if (transactions.length === 0) {
           setTransactionsError(''); // Clear error if we got an empty list (that's valid)
         }
       } else {
-        console.warn('listInvoices returned no result');
+        console.warn('listTransactions returned no result');
         setTransactionsError('No transaction data received');
         setTransactions([]);
       }
@@ -401,6 +457,9 @@ const WalletPage: React.FC = () => {
 
   // Check if invoice is expired
   const isInvoiceExpired = (invoice: Invoice): boolean => {
+    // Use state field from list_transactions if available
+    if (invoice.state === 'expired') return true;
+    // Fallback to old logic for backwards compatibility
     if (!invoice.expiry || !invoice.created_at) return false;
     const expiryTime = invoice.created_at + invoice.expiry;
     return Date.now() / 1000 > expiryTime;
@@ -408,6 +467,11 @@ const WalletPage: React.FC = () => {
 
   // Check if invoice is paid
   const isInvoicePaid = (invoice: Invoice): boolean => {
+    // Use state field from list_transactions if available
+    if (invoice.state === 'settled') return true;
+    // For outgoing payments, if paid_at exists, it's settled
+    if (invoice.type === 'outgoing' && invoice.paid_at) return true;
+    // Fallback to old logic for backwards compatibility
     return !!invoice.paid_at && !!invoice.preimage;
   };
 
@@ -797,7 +861,7 @@ const WalletPage: React.FC = () => {
                   </p>
               ) : (
                 <div style={{ marginTop: '16px' }}>
-                  {transactions.map((tx, idx) => (
+                  {transactions.slice(0, visibleTransactionsCount).map((tx, idx) => (
                     <div
                       key={idx}
                       style={{
@@ -828,6 +892,18 @@ const WalletPage: React.FC = () => {
                               ? `${(tx.amount / 1000).toLocaleString()} sats`
                               : 'Amount not specified'}
                           </div>
+                          {tx.metadata?.zap_request?.content && (
+                            <div
+                              style={{
+                                fontSize: '12px',
+                                color: 'var(--text-primary)',
+                                marginTop: '4px',
+                                fontStyle: 'italic'
+                              }}
+                            >
+                              "{tx.metadata.zap_request.content}"
+                            </div>
+                          )}
                           {tx.description && (
                             <div
                               style={{
@@ -839,21 +915,134 @@ const WalletPage: React.FC = () => {
                               {tx.description}
                             </div>
                           )}
+                          {tx.fees_paid !== undefined && tx.fees_paid > 0 && (
+                            <div
+                              style={{
+                                fontSize: '11px',
+                                color: 'var(--text-tertiary)',
+                                marginTop: '4px'
+                              }}
+                            >
+                              Fees: {(tx.fees_paid / 1000).toLocaleString()} sats
+                            </div>
+                          )}
                         </div>
                         <div
                           style={{
-                            fontSize: '12px',
-                            color: 'var(--text-tertiary)',
-                            textAlign: 'right'
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-end',
+                            gap: '4px'
                           }}
                         >
-                          {isInvoicePaid(tx) ? (
-                            <span style={{ color: '#22c55e' }}>Paid</span>
-                          ) : isInvoiceExpired(tx) ? (
-                            <span style={{ color: '#ef4444' }}>Expired</span>
-                          ) : (
-                            <span style={{ color: '#fbbf24' }}>Pending</span>
-                          )}
+                          <div
+                            style={{
+                              display: 'flex',
+                              gap: '4px',
+                              flexWrap: 'wrap',
+                              justifyContent: 'flex-end'
+                            }}
+                          >
+                            {tx.metadata?.zap_request && (() => {
+                              const eTag = tx.metadata.zap_request.tags?.find((t: string[]) => t[0] === 'e');
+                              const noteId = eTag?.[1];
+                              return (
+                                <span
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (noteId) {
+                                      try {
+                                        const nevent = nip19.noteEncode(noteId);
+                                        navigate(`/note/${nevent}`);
+                                      } catch (err) {
+                                        console.error('Failed to encode note ID:', err);
+                                      }
+                                    }
+                                  }}
+                                  style={{
+                                    fontSize: '10px',
+                                    padding: '2px 6px',
+                                    background: '#4a75ff',
+                                    color: '#fff',
+                                    borderRadius: '4px',
+                                    fontWeight: '500',
+                                    cursor: noteId ? 'pointer' : 'default',
+                                    transition: 'opacity 0.2s ease'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (noteId) {
+                                      e.currentTarget.style.opacity = '0.8';
+                                    }
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (noteId) {
+                                      e.currentTarget.style.opacity = '1';
+                                    }
+                                  }}
+                                >
+                                  Public
+                                </span>
+                              );
+                            })()}
+                            {tx.type === 'outgoing' && (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  padding: '2px 6px',
+                                  background: 'var(--bg-primary)',
+                                  color: 'var(--text-secondary)',
+                                  borderRadius: '4px',
+                                  fontWeight: '500'
+                                }}
+                              >
+                                Outgoing
+                              </span>
+                            )}
+                            {tx.type === 'incoming' && (
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  padding: '2px 6px',
+                                  background: 'var(--bg-primary)',
+                                  color: 'var(--text-secondary)',
+                                  borderRadius: '4px',
+                                  fontWeight: '500'
+                                }}
+                              >
+                                Incoming
+                              </span>
+                            )}
+                          </div>
+                          {(() => {
+                            // Only show status if transaction is not settled
+                            // A transaction is settled if it has settled_at (paid_at) or state is 'settled'
+                            const isSettled = tx.paid_at !== undefined || tx.state === 'settled' || isInvoicePaid(tx);
+                            const isExpired = tx.state === 'expired' || isInvoiceExpired(tx);
+                            const isFailed = tx.state === 'failed';
+                            const isPending = !isSettled && !isExpired && !isFailed;
+
+                            if (isSettled) {
+                              return null; // Don't show status for settled transactions
+                            }
+
+                            return (
+                              <div
+                                style={{
+                                  fontSize: '12px',
+                                  color: 'var(--text-tertiary)',
+                                  textAlign: 'right'
+                                }}
+                              >
+                                {isExpired ? (
+                                  <span style={{ color: '#ef4444' }}>Expired</span>
+                                ) : isFailed ? (
+                                  <span style={{ color: '#ef4444' }}>Failed</span>
+                                ) : isPending ? (
+                                  <span style={{ color: '#fbbf24' }}>Pending</span>
+                                ) : null}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                       <div
@@ -871,6 +1060,34 @@ const WalletPage: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                  {transactions.length > visibleTransactionsCount && (
+                    <button
+                      onClick={() => setVisibleTransactionsCount(prev => prev + 10)}
+                      style={{
+                        width: '100%',
+                        marginTop: '12px',
+                        padding: '12px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '8px',
+                        color: 'var(--text-primary)',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = 'var(--bg-primary)';
+                        e.currentTarget.style.borderColor = 'var(--text-secondary)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = 'var(--bg-secondary)';
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                      }}
+                    >
+                      Show More ({transactions.length - visibleTransactionsCount} remaining)
+                    </button>
+                  )}
                 </div>
               )}
             </div>
