@@ -160,22 +160,10 @@ const WalletPage: React.FC = () => {
           balanceType: typeof rawBalance
         });
 
-        // According to NIP-47, get_balance should return balance in millisats
-        // However, some wallet implementations may return sats directly
-        // We'll check the value to auto-detect the unit
-        // Typical wallet balances: 0-10M sats (0-10B millisats)
-        // If value is > 1M, it's likely in millisats (1M millisats = 1k sats)
-        let balanceInSats: number;
-
-        if (rawBalance > 1000000) {
-          // Large value - likely in millisats (1M+ millisats = 1k+ sats)
-          balanceInSats = Math.floor(rawBalance / 1000);
-          console.log(`Converted ${rawBalance} millisats to ${balanceInSats} sats`);
-        } else {
-          // Smaller value - likely already in sats
-          balanceInSats = rawBalance;
-          console.log(`Using balance as-is: ${balanceInSats} sats`);
-        }
+        // According to NIP-47 spec, get_balance MUST return balance in millisats
+        // Always convert from millisats to sats by dividing by 1000
+        const balanceInSats = Math.floor(rawBalance / 1000);
+        console.log(`Converted ${rawBalance} millisats to ${balanceInSats} sats`);
 
         setBalance(balanceInSats);
         setLastBalanceUpdate(new Date());
@@ -225,7 +213,7 @@ const WalletPage: React.FC = () => {
       console.log('Loading transactions...');
       const response = await nwcClient.listInvoices({ limit: 20 });
       console.log('listInvoices response:', response);
-      
+
       if (response.error) {
         console.error('listInvoices error:', response.error);
         setTransactionsError(response.error.message || 'Failed to load transactions');
