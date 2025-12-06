@@ -6,6 +6,7 @@ import { genericUserIcon } from '../assets/images';
 import { nip19 } from 'nostr-tools';
 import { formatContent } from '../utils/contentFormatter';
 import { useUIStore } from '@pubpay/shared-services';
+import { INTERVAL, TIMEOUT, API_PATHS, PROTOCOLS, SEPARATORS, COLORS, STORAGE_KEYS } from '../constants';
 
 // Define ProcessedZap interface locally since it's not exported
 interface ProcessedZap {
@@ -215,7 +216,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     useEffect(() => {
       const interval = setInterval(() => {
         setTimeTick(Date.now());
-      }, 60000); // Update every minute
+      }, INTERVAL.TIME_UPDATE); // Update every minute
 
       return () => clearInterval(interval);
     }, []);
@@ -366,9 +367,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           setIsPaying(true);
           const hasNwc =
             (typeof localStorage !== 'undefined' &&
-              localStorage.getItem('nwcConnectionString')) ||
+              localStorage.getItem(STORAGE_KEYS.NWC_CONNECTION_STRING)) ||
             (typeof sessionStorage !== 'undefined' &&
-              sessionStorage.getItem('nwcConnectionString'));
+              sessionStorage.getItem(STORAGE_KEYS.NWC_CONNECTION_STRING));
           if (hasNwc) {
             useUIStore
               .getState()
@@ -439,7 +440,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         } else {
           setShowZapModal(true);
         }
-      }, 500); // 500ms long press
+      }, TIMEOUT.LONG_PRESS); // Long press threshold
     };
 
     // Handle long press end
@@ -596,12 +597,12 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       );
       if (newZaps.length > 0) {
         const timer = setTimeout(() => {
-          // Clear the isNewZap flag after animation duration (600ms)
+          // Clear the isNewZap flag after animation duration
           setHeroZaps(prev => prev.map(zap => ({ ...zap, isNewZap: false })));
           setOverflowZaps(prev =>
             prev.map(zap => ({ ...zap, isNewZap: false }))
           );
-        }, 600);
+        }, TIMEOUT.ANIMATION_MEDIUM);
 
         return () => clearTimeout(timer);
       }
@@ -719,7 +720,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   post.nip05Valid === false ? (
                     // Invalid NIP-05 - still clickable
                     <a
-                      href={`https://${nip05.split('@')[1]}/.well-known/nostr.json?name=${nip05.split('@')[0]}`}
+                      href={`${PROTOCOLS.HTTPS}${nip05.split(SEPARATORS.LIGHTNING_ADDRESS)[1]}${API_PATHS.NIP05_WELL_KNOWN}?name=${nip05.split(SEPARATORS.LIGHTNING_ADDRESS)[0]}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="unverified label"
@@ -731,7 +732,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   ) : post.nip05Validating ? (
                     // Validating - still clickable
                     <a
-                      href={`https://${nip05.split('@')[1]}/.well-known/nostr.json?name=${nip05.split('@')[0]}`}
+                      href={`${PROTOCOLS.HTTPS}${nip05.split(SEPARATORS.LIGHTNING_ADDRESS)[1]}${API_PATHS.NIP05_WELL_KNOWN}?name=${nip05.split(SEPARATORS.LIGHTNING_ADDRESS)[0]}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="label"
@@ -745,7 +746,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   ) : (
                     // Valid NIP-05
                     <a
-                      href={`https://${nip05.split('@')[1]}/.well-known/nostr.json?name=${nip05.split('@')[0]}`}
+                      href={`${PROTOCOLS.HTTPS}${nip05.split(SEPARATORS.LIGHTNING_ADDRESS)[1]}${API_PATHS.NIP05_WELL_KNOWN}?name=${nip05.split(SEPARATORS.LIGHTNING_ADDRESS)[0]}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       title="Verified NIP-05 identifier"
@@ -770,7 +771,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   post.lightningValid === false ? (
                     // Invalid lightning address - still clickable
                     <a
-                      href={`https://${lud16.split('@')[1]}/.well-known/lnurlp/${lud16.split('@')[0]}`}
+                      href={`${PROTOCOLS.HTTPS}${lud16.split(SEPARATORS.LIGHTNING_ADDRESS)[1]}${API_PATHS.LNURLP_WELL_KNOWN}${lud16.split(SEPARATORS.LIGHTNING_ADDRESS)[0]}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="unverified label"
@@ -782,7 +783,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   ) : post.lightningValidating ? (
                     // Validating - still clickable
                     <a
-                      href={`https://${lud16.split('@')[1]}/.well-known/lnurlp/${lud16.split('@')[0]}`}
+                      href={`${PROTOCOLS.HTTPS}${lud16.split(SEPARATORS.LIGHTNING_ADDRESS)[1]}${API_PATHS.LNURLP_WELL_KNOWN}${lud16.split(SEPARATORS.LIGHTNING_ADDRESS)[0]}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="label"
@@ -794,7 +795,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   ) : (
                     // Valid lightning address
                     <a
-                      href={`https://${lud16.split('@')[1]}/.well-known/lnurlp/${lud16.split('@')[0]}`}
+                      href={`${PROTOCOLS.HTTPS}${lud16.split(SEPARATORS.LIGHTNING_ADDRESS)[1]}${API_PATHS.LNURLP_WELL_KNOWN}${lud16.split(SEPARATORS.LIGHTNING_ADDRESS)[0]}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -1501,7 +1502,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     style={{
                       fontSize: '24px',
                       fontWeight: '700',
-                      color: '#4a75ff'
+                      color: COLORS.PRIMARY
                     }}
                   >
                     ⚡ {zapAmount} sats

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GenericQR } from '@pubpay/shared-ui';
 import { getApiBase } from '../utils/apiBase';
+import { COLORS } from '../constants';
 
 interface Nip05PurchaseOverlayProps {
   pubkey: string;
@@ -439,7 +440,7 @@ export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
               </div>
             )}
             {paymentStatus === 'error' && (
-              <div style={{ textAlign: 'center', marginTop: '20px', color: '#dc3545' }}>
+              <div style={{ textAlign: 'center', marginTop: '20px', color: COLORS.ERROR_ALT }}>
                 {nameError || 'Payment verification failed. Please try again.'}
               </div>
             )}

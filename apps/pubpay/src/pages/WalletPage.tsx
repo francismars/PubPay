@@ -6,6 +6,7 @@ import { InvoiceQR } from '@pubpay/shared-ui';
 import { NWCOptionsModal } from '../components/NWCOptionsModal';
 import { SendPaymentModal } from '../components/SendPaymentModal';
 import { getActiveNWCUri, getActiveNWCConnection, getActiveNWCConnectionId, migrateOldNWCConnection } from '../utils/nwcStorage';
+import { TOAST_DURATION, INTERVAL, LIGHTNING, TIME, COLORS, STORAGE_KEYS, QUERY_LIMITS, DIMENSIONS } from '../constants';
 
 interface Invoice {
   invoice: string;
@@ -132,7 +133,7 @@ const WalletPage: React.FC = () => {
     window.addEventListener('nwcActiveConnectionChanged', handleActiveConnectionChanged);
 
     // Also poll for changes (fallback for cases where event doesn't fire)
-    const interval = setInterval(reloadClient, 1000);
+    const interval = setInterval(reloadClient, INTERVAL.CLIENT_RELOAD);
 
     return () => {
       window.removeEventListener('nwcActiveConnectionChanged', handleActiveConnectionChanged);
@@ -176,8 +177,8 @@ const WalletPage: React.FC = () => {
         });
         
         // According to NIP-47 spec, get_balance MUST return balance in millisats
-        // Always convert from millisats to sats by dividing by 1000
-        const balanceInSats = Math.floor(rawBalance / 1000);
+        // Always convert from millisats to sats by dividing by MILLISATS_PER_SAT
+        const balanceInSats = Math.floor(rawBalance / LIGHTNING.MILLISATS_PER_SAT);
           console.log(`Converted ${rawBalance} millisats to ${balanceInSats} sats`);
         
         setBalance(balanceInSats);
@@ -226,7 +227,7 @@ const WalletPage: React.FC = () => {
     setTransactionsError('');
     try {
       console.log('Loading transactions...');
-      const response = await nwcClient.listTransactions({ limit: 20 });
+      const response = await nwcClient.listTransactions({ limit: QUERY_LIMITS.TRANSACTION_LIST_LIMIT });
       console.log('listTransactions response:', response);
       
       if (response.error) {
@@ -260,7 +261,7 @@ const WalletPage: React.FC = () => {
             amount: tx.amount,
             description: tx.description,
             created_at: tx.created_at,
-            expiry: tx.expires_at ? Math.floor((tx.expires_at - tx.created_at) / 1000) : undefined,
+            expiry: tx.expires_at ? Math.floor((tx.expires_at - tx.created_at) / TIME.MILLISECONDS_PER_SECOND) : undefined,
             state: tx.state,
             type: tx.type,
             paid_at: tx.settled_at,
@@ -317,7 +318,7 @@ const WalletPage: React.FC = () => {
 
     const interval = setInterval(() => {
       loadBalance();
-    }, 30000);
+    }, INTERVAL.BALANCE_REFRESH);
 
     return () => clearInterval(interval);
   }, [nwcClient, loadBalance]);
@@ -331,16 +332,16 @@ const WalletPage: React.FC = () => {
   // Listen for scanned invoices and Lightning Addresses to open modal
   useEffect(() => {
     // Check sessionStorage first (in case we navigated here and event was missed)
-    const scannedInvoice = sessionStorage.getItem('scannedInvoice');
+    const scannedInvoice = sessionStorage.getItem(STORAGE_KEYS.SCANNED_INVOICE);
     if (scannedInvoice) {
-      sessionStorage.removeItem('scannedInvoice');
+      sessionStorage.removeItem(STORAGE_KEYS.SCANNED_INVOICE);
       setShowSendModal(true);
       return;
     }
 
-    const scannedAddress = sessionStorage.getItem('scannedLightningAddress');
+    const scannedAddress = sessionStorage.getItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS);
     if (scannedAddress) {
-      sessionStorage.removeItem('scannedLightningAddress');
+      sessionStorage.removeItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS);
       setShowSendModal(true);
       return;
     }
@@ -348,7 +349,7 @@ const WalletPage: React.FC = () => {
     const handleScannedInvoice = (e: CustomEvent) => {
       const invoice = e.detail?.invoice;
       if (invoice) {
-        sessionStorage.removeItem('scannedInvoice');
+        sessionStorage.removeItem(STORAGE_KEYS.SCANNED_INVOICE);
         setShowSendModal(true);
       }
     };
@@ -356,7 +357,7 @@ const WalletPage: React.FC = () => {
     const handleScannedLightningAddress = (e: CustomEvent) => {
       const address = e.detail?.address;
       if (address) {
-        sessionStorage.removeItem('scannedLightningAddress');
+        sessionStorage.removeItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS);
         setShowSendModal(true);
       }
     };
@@ -384,7 +385,7 @@ const WalletPage: React.FC = () => {
   const handleGenerateInvoice = async () => {
     if (!nwcClient) {
       useUIStore.getState().openToast('NWC not connected', 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), 2000);
+      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
       return;
     }
 
@@ -395,7 +396,7 @@ const WalletPage: React.FC = () => {
         'error',
         false
       );
-      setTimeout(() => useUIStore.getState().closeToast(), 2000);
+      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
       return;
     }
 
@@ -408,14 +409,14 @@ const WalletPage: React.FC = () => {
           'error',
           false
         );
-        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
         setGeneratingInvoice(false);
         return;
       }
 
       useUIStore.getState().openToast('Generating invoice...', 'loading', true);
       const response = await nwcClient.makeInvoice({
-        amount: amount * 1000, // Convert to millisats (amount is now required)
+        amount: amount * LIGHTNING.MILLISATS_PER_SAT, // Convert to millisats (amount is now required)
         description: receiveDescription.trim() || undefined
       });
 
@@ -428,7 +429,7 @@ const WalletPage: React.FC = () => {
       } else if (response.result) {
         setReceiveInvoice(response.result.invoice);
         useUIStore.getState().updateToast('Invoice generated!', 'success', false);
-        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
       }
     } catch (error) {
       console.error('Generate invoice error:', error);
@@ -451,7 +452,7 @@ const WalletPage: React.FC = () => {
   // Format timestamp
   const formatTimestamp = (timestamp?: number): string => {
     if (!timestamp) return '—';
-    const date = new Date(timestamp * 1000);
+    const date = new Date(timestamp * TIME.MILLISECONDS_PER_SECOND);
     return date.toLocaleString();
   };
 
@@ -462,7 +463,7 @@ const WalletPage: React.FC = () => {
     // Fallback to old logic for backwards compatibility
     if (!invoice.expiry || !invoice.created_at) return false;
     const expiryTime = invoice.created_at + invoice.expiry;
-    return Date.now() / 1000 > expiryTime;
+    return Date.now() / TIME.MILLISECONDS_PER_SECOND > expiryTime;
   };
 
   // Check if invoice is paid
@@ -479,7 +480,7 @@ const WalletPage: React.FC = () => {
     return (
       <div className="profilePage">
         <h1 className="profilePageTitle">Wallet</h1>
-        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '24px' }}>
+        <div style={{ maxWidth: DIMENSIONS.MAX_CONTENT_WIDTH, margin: '0 auto', padding: '24px' }}>
           <div style={{ width: '100%' }}>
             <section style={{ marginBottom: '24px' }}>
               <div
@@ -608,8 +609,8 @@ const WalletPage: React.FC = () => {
                   onMouseEnter={e => {
                     if (!balanceLoading) {
                       e.currentTarget.style.background = 'var(--bg-primary)';
-                      e.currentTarget.style.borderColor = '#4a75ff';
-                      e.currentTarget.style.color = '#4a75ff';
+                      e.currentTarget.style.borderColor = COLORS.PRIMARY;
+                      e.currentTarget.style.color = COLORS.PRIMARY;
                     }
                   }}
                   onMouseLeave={e => {
@@ -656,7 +657,7 @@ const WalletPage: React.FC = () => {
                 ) : balanceError ? (
                   <div
                     style={{
-                      color: '#ef4444',
+                      color: COLORS.ERROR,
                       fontSize: '14px',
                       marginTop: '8px',
                       padding: '12px',
@@ -701,7 +702,7 @@ const WalletPage: React.FC = () => {
                         <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
                           schedule
                         </span>
-                        Updated {Math.floor((Date.now() - lastBalanceUpdate.getTime()) / 1000)}s
+                        Updated {Math.floor((Date.now() - lastBalanceUpdate.getTime()) / TIME.MILLISECONDS_PER_SECOND)}s
                         ago
                       </p>
                     )}
@@ -769,7 +770,7 @@ const WalletPage: React.FC = () => {
                 <div
                   className="skeleton"
                   style={{
-                    height: '200px',
+                    height: DIMENSIONS.BANNER_HEIGHT,
                     borderRadius: '8px',
                     marginTop: '16px'
                   }}
@@ -789,7 +790,7 @@ const WalletPage: React.FC = () => {
                     className="material-symbols-outlined"
                     style={{
                       fontSize: '48px',
-                      color: '#ef4444',
+                      color: COLORS.ERROR,
                       marginBottom: '12px',
                       display: 'block'
                     }}
@@ -798,7 +799,7 @@ const WalletPage: React.FC = () => {
                   </span>
                   <p
                     style={{
-                      color: '#ef4444',
+                      color: COLORS.ERROR,
                       marginBottom: '16px',
                       fontSize: '14px'
                     }}
@@ -815,8 +816,8 @@ const WalletPage: React.FC = () => {
                       padding: '10px 20px',
                       fontSize: '14px',
                       fontWeight: '500',
-                      color: '#fff',
-                      background: '#4a75ff',
+                      color: COLORS.TEXT_WHITE,
+                      background: COLORS.PRIMARY,
                       border: 'none',
                       borderRadius: '8px',
                       cursor: transactionsLoading ? 'wait' : 'pointer',
@@ -825,13 +826,13 @@ const WalletPage: React.FC = () => {
                     }}
                     onMouseEnter={e => {
                       if (!transactionsLoading) {
-                        e.currentTarget.style.background = '#3d62e0';
+                        e.currentTarget.style.background = COLORS.PRIMARY_HOVER;
                         e.currentTarget.style.transform = 'translateY(-1px)';
                       }
                     }}
                     onMouseLeave={e => {
                       if (!transactionsLoading) {
-                        e.currentTarget.style.background = '#4a75ff';
+                        e.currentTarget.style.background = COLORS.PRIMARY;
                         e.currentTarget.style.transform = 'translateY(0)';
                       }
                     }}
@@ -889,7 +890,7 @@ const WalletPage: React.FC = () => {
                             }}
                           >
                             {tx.amount
-                              ? `${(tx.amount / 1000).toLocaleString()} sats`
+                              ? `${(tx.amount / LIGHTNING.MILLISATS_PER_SAT).toLocaleString()} sats`
                               : 'Amount not specified'}
                           </div>
                           {tx.metadata?.zap_request?.content && (
@@ -923,7 +924,7 @@ const WalletPage: React.FC = () => {
                                 marginTop: '4px'
                               }}
                             >
-                              Fees: {(tx.fees_paid / 1000).toLocaleString()} sats
+                              Fees: {(tx.fees_paid / LIGHTNING.MILLISATS_PER_SAT).toLocaleString()} sats
                             </div>
                           )}
                         </div>
@@ -962,8 +963,8 @@ const WalletPage: React.FC = () => {
                                   style={{
                                     fontSize: '10px',
                                     padding: '2px 6px',
-                                    background: '#4a75ff',
-                                    color: '#fff',
+                                    background: COLORS.PRIMARY,
+                                    color: COLORS.TEXT_WHITE,
                                     borderRadius: '4px',
                                     fontWeight: '500',
                                     cursor: noteId ? 'pointer' : 'default',
@@ -1034,11 +1035,11 @@ const WalletPage: React.FC = () => {
                           }}
                         >
                                 {isExpired ? (
-                            <span style={{ color: '#ef4444' }}>Expired</span>
+                            <span style={{ color: COLORS.ERROR }}>Expired</span>
                                 ) : isFailed ? (
-                                  <span style={{ color: '#ef4444' }}>Failed</span>
+                                  <span style={{ color: COLORS.ERROR }}>Failed</span>
                                 ) : isPending ? (
-                            <span style={{ color: '#fbbf24' }}>Pending</span>
+                            <span style={{ color: COLORS.PENDING }}>Pending</span>
                                 ) : null}
                               </div>
                             );
@@ -1176,7 +1177,7 @@ const WalletPage: React.FC = () => {
                       color: 'var(--text-primary)'
                     }}
                   >
-                    Amount (sats) <span style={{ color: '#ef4444' }}>*</span>
+                    Amount (sats) <span style={{ color: COLORS.ERROR }}>*</span>
                   </label>
                   <input
                     type="number"
@@ -1304,7 +1305,7 @@ const WalletPage: React.FC = () => {
                           'success',
                           false
                         );
-                        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+                        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
                       } catch (err) {
                         console.error('Failed to copy invoice:', err);
                       }
@@ -1320,7 +1321,7 @@ const WalletPage: React.FC = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#6b7280'
+                      color: COLORS.TEXT_SECONDARY
                     }}
                     title="Copy invoice"
                   >

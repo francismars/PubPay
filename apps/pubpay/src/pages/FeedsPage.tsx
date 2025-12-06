@@ -5,6 +5,7 @@ import { useOutletContext, useLocation } from 'react-router-dom';
 import { PayNoteComponent } from '../components/PayNoteComponent';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { nip19 } from 'nostr-tools';
+import { COLORS } from '../constants';
 
 // FeedsPageProps intentionally omitted; consuming via Outlet context
 
@@ -401,7 +402,7 @@ export const FeedsPage: React.FC = () => {
             style={{
               textAlign: 'center',
               padding: '40px',
-              color: '#666'
+              color: COLORS.TEXT_LIGHT
             }}
           >
             Loading note...
@@ -411,7 +412,7 @@ export const FeedsPage: React.FC = () => {
             style={{
               textAlign: 'center',
               padding: '40px',
-              color: '#666'
+              color: COLORS.TEXT_LIGHT
             }}
           >
             No posts found
@@ -439,7 +440,7 @@ export const FeedsPage: React.FC = () => {
             style={{
               textAlign: 'center',
               padding: '20px',
-              color: '#666'
+              color: COLORS.TEXT_LIGHT
             }}
           >
             Loading more posts...
@@ -563,7 +564,7 @@ export const FeedsPage: React.FC = () => {
             style={{
               textAlign: 'center',
               padding: '40px',
-              color: '#666'
+              color: COLORS.TEXT_LIGHT
             }}
           >
             No following posts found

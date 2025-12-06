@@ -18,6 +18,7 @@ import {
   extractZapPayerPubkeys,
   loadPostData
 } from '@pubpay/shared-services';
+import { TIMEOUT, TOAST_DURATION, LIGHTNING, Z_INDEX, TIME, API_PATHS, PROTOCOLS, SEPARATORS, COLORS, FONT_SIZES, DIMENSIONS, QUERY_LIMITS, LIMITS } from '../constants';
 import { GenericQR } from '@pubpay/shared-ui';
 import { nip19, finalizeEvent, verifyEvent } from 'nostr-tools';
 import { PayNoteComponent } from '../components/PayNoteComponent';
@@ -315,7 +316,7 @@ const ProfilePage: React.FC = () => {
       // Force refetch own profile from relays and update local state
       (async () => {
         try {
-          await new Promise(resolve => setTimeout(resolve, 500)); // Small delay to ensure relays have the event
+          await new Promise(resolve => setTimeout(resolve, TIMEOUT.MEDIUM_DELAY)); // Small delay to ensure relays have the event
           const profileMap = await ensureProfiles(
             getQueryClient(),
             nostrClient,
@@ -530,7 +531,7 @@ const ProfilePage: React.FC = () => {
         ): Promise<Set<string>> => {
           const allEventIds = new Set<string>();
           let until: number | undefined = undefined;
-          const limit = 500;
+          const limit = QUERY_LIMITS.PROFILE_QUERY_LIMIT;
           let hasMore = true;
           let batchCount = 0;
 
@@ -656,7 +657,7 @@ const ProfilePage: React.FC = () => {
           try {
             // Get zaps where p tag matches targetPubkey
             const receipts = (await nostrClient.getEvents([
-              { kinds: [9735], '#p': [targetPubkey], limit: 5000 }
+              { kinds: [9735], '#p': [targetPubkey], limit: LIMITS.ZAP_QUERY_LIMIT }
             ])) as any[];
 
             // Filter to only zaps that reference events in our set
@@ -780,11 +781,11 @@ const ProfilePage: React.FC = () => {
           let zapGoal: number | undefined;
           event.tags.forEach((tag: any[]) => {
             if (tag[0] === 'zap-min')
-              zapMin = Math.floor((parseInt(tag[1]) || 0) / 1000);
+              zapMin = Math.floor((parseInt(tag[1]) || 0) / LIGHTNING.MILLISATS_PER_SAT);
             if (tag[0] === 'zap-max')
-              zapMax = Math.floor((parseInt(tag[1]) || 0) / 1000);
+              zapMax = Math.floor((parseInt(tag[1]) || 0) / LIGHTNING.MILLISATS_PER_SAT);
             if (tag[0] === 'zap-uses') zapMaxUses = parseInt(tag[1]) || 0;
-            if (tag[0] === 'zap-goal') zapGoal = Math.floor((parseInt(tag[1]) || 0) / 1000);
+            if (tag[0] === 'zap-goal') zapGoal = Math.floor((parseInt(tag[1]) || 0) / LIGHTNING.MILLISATS_PER_SAT);
             if (tag[0] === 'zap-lnurl') lud16ToZap = tag[1] || '';
             if (tag[0] === 'zap-payer') zapPayerPubkey = tag[1] || '';
           });
@@ -1755,7 +1756,7 @@ const ProfilePage: React.FC = () => {
                 }}
               >
                 <h2 style={{ margin: 0 }}>
-                  <div className="skeleton skeleton-text" style={{ width: '200px', height: '24px' }}></div>
+                  <div className="skeleton skeleton-text" style={{ width: DIMENSIONS.BANNER_WIDTH, height: '24px' }}></div>
                 </h2>
                 {isOwnProfile || isLoggedIn ? (
                   <div className="skeleton" style={{ width: '60px', height: '32px', borderRadius: '6px' }}></div>
@@ -1789,7 +1790,7 @@ const ProfilePage: React.FC = () => {
                   <div className="profileDetailItem">
                     <label>User ID (npub)</label>
                     <div className="profileDetailValue">
-                      <div className="skeleton skeleton-text" style={{ width: '200px', height: '20px' }}></div>
+                      <div className="skeleton skeleton-text" style={{ width: DIMENSIONS.BANNER_WIDTH, height: '20px' }}></div>
                     </div>
                   </div>
                 )}
@@ -1828,10 +1829,10 @@ const ProfilePage: React.FC = () => {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#4a75ff',
+                  color: COLORS.PRIMARY,
                   textDecoration: 'underline',
                   cursor: 'pointer',
-                  fontSize: '14px'
+                  fontSize: FONT_SIZES.SM
                 }}
               >
                 Recover Existing Account
@@ -1918,7 +1919,7 @@ const ProfilePage: React.FC = () => {
                         (loadStartTime !== null && Date.now() - loadStartTime < 300);
                       return shouldShowSkeleton;
                     })() ? (
-                      <div className="skeleton skeleton-text" style={{ width: '200px', height: '28px' }}></div>
+                      <div className="skeleton skeleton-text" style={{ width: DIMENSIONS.BANNER_WIDTH, height: '28px' }}></div>
                     ) : (
                       profileData.displayName || displayName || 'Anonymous User'
                     )}
@@ -2046,7 +2047,7 @@ const ProfilePage: React.FC = () => {
                         ) : profileData.nip05 ? (
                           <>
                             <a
-                              href={`https://${profileData.nip05.split('@')[1]}/.well-known/nostr.json?name=${profileData.nip05.split('@')[0]}`}
+                              href={`${PROTOCOLS.HTTPS}${profileData.nip05.split(SEPARATORS.LIGHTNING_ADDRESS)[1]}${API_PATHS.NIP05_WELL_KNOWN}?name=${profileData.nip05.split(SEPARATORS.LIGHTNING_ADDRESS)[0]}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className={
@@ -2189,13 +2190,13 @@ const ProfilePage: React.FC = () => {
             <h2 className="profileStatsTitle">Paynotes</h2>
             {isLoadingPaynotes && userPaynotes.length === 0 ? (
               <div
-                style={{ textAlign: 'center', padding: '40px', color: '#666' }}
+                style={{ textAlign: 'center', padding: '40px', color: COLORS.TEXT_LIGHT }}
               >
                 Loading paynotes...
               </div>
             ) : userPaynotes.length === 0 ? (
               <div
-                style={{ textAlign: 'center', padding: '40px', color: '#666' }}
+                style={{ textAlign: 'center', padding: '40px', color: COLORS.TEXT_LIGHT }}
               >
                 No paynotes found
               </div>
@@ -2224,8 +2225,8 @@ const ProfilePage: React.FC = () => {
                       style={{
                         padding: '10px 20px',
                         fontSize: '16px',
-                        backgroundColor: isLoadingPaynotes ? '#ccc' : '#4a75ff',
-                        color: '#fff',
+                        backgroundColor: isLoadingPaynotes ? COLORS.GRAY_LIGHT : COLORS.PRIMARY,
+                        color: COLORS.TEXT_WHITE,
                         border: 'none',
                         borderRadius: '8px',
                         cursor: isLoadingPaynotes ? 'not-allowed' : 'pointer'
@@ -2251,7 +2252,7 @@ const ProfilePage: React.FC = () => {
             top: tooltip.y,
             transform: 'translateX(-50%)',
             zIndex: 1000,
-            background: '#333',
+            background: COLORS.TEXT_PRIMARY,
             color: 'white',
             padding: '8px 12px',
             borderRadius: '4px',
@@ -2273,7 +2274,7 @@ const ProfilePage: React.FC = () => {
             style={{ textAlign: 'center', maxWidth: '400px' }}
             onClick={e => e.stopPropagation()}
           >
-            <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: COLORS.TEXT_PRIMARY }}>
               {qrCodeType === 'npub'
                 ? 'User ID QR Code'
                 : 'Lightning Address QR Code'}
@@ -2290,8 +2291,8 @@ const ProfilePage: React.FC = () => {
               ) : (
                 <div
                   style={{
-                    fontSize: '14px',
-                    color: '#666',
+                    fontSize: FONT_SIZES.SM,
+                    color: COLORS.TEXT_LIGHT,
                     textAlign: 'center'
                   }}
                 >
@@ -2301,11 +2302,11 @@ const ProfilePage: React.FC = () => {
             </div>
 
             <p
-              style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}
+              style={{ margin: '0 0 16px 0', color: COLORS.TEXT_LIGHT, fontSize: FONT_SIZES.SM }}
             >
               <code
                 style={{
-                  fontSize: '12px',
+                  fontSize: FONT_SIZES.XS,
                   wordBreak: 'break-all',
                   backgroundColor: '#f0f0f0',
                   padding: '4px 8px',
@@ -2318,7 +2319,7 @@ const ProfilePage: React.FC = () => {
             </p>
 
             <p
-              style={{ margin: '0 0 16px 0', color: '#666', fontSize: '14px' }}
+              style={{ margin: '0 0 16px 0', color: COLORS.TEXT_LIGHT, fontSize: FONT_SIZES.SM }}
             >
               {qrCodeType === 'npub'
                 ? 'Scan this QR code with a Nostr client to add this user'
@@ -2336,7 +2337,7 @@ const ProfilePage: React.FC = () => {
                     e
                   );
                 }}
-                style={{ margin: 0, background: '#4a75ff', color: '#fff' }}
+                style={{ margin: 0, background: COLORS.PRIMARY, color: COLORS.TEXT_WHITE }}
               >
                 Copy {qrCodeType === 'npub' ? 'npub' : 'address'}
               </button>
@@ -2362,11 +2363,11 @@ const ProfilePage: React.FC = () => {
             style={{ textAlign: 'center' }}
             onClick={e => e.stopPropagation()}
           >
-            <h3 style={{ margin: '0 0 16px 0', color: '#333' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: COLORS.TEXT_PRIMARY }}>
               Recover Existing Account
             </h3>
             <p
-              style={{ margin: '0 0 20px 0', color: '#666', fontSize: '14px' }}
+              style={{ margin: '0 0 20px 0', color: COLORS.TEXT_LIGHT, fontSize: FONT_SIZES.SM }}
             >
               If you have a 12-word recovery phrase from a previous account, you
               can recover your keys here.
@@ -2490,7 +2491,7 @@ const ProfilePage: React.FC = () => {
                 const eventTemplate = {
                   kind: 0,
                   pubkey: publicKey,
-                  created_at: Math.floor(Date.now() / 1000),
+                  created_at: Math.floor(Date.now() / TIME.MILLISECONDS_PER_SECOND),
                   tags: [],
                   content: JSON.stringify(profileDataForNostr)
                 };

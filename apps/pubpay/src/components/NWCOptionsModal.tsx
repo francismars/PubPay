@@ -10,6 +10,7 @@ import {
   migrateOldNWCConnection,
   type NWCConnection
 } from '../utils/nwcStorage';
+import { TOAST_DURATION, COLORS, Z_INDEX, PROTOCOLS, STORAGE_KEYS, DIMENSIONS } from '../constants';
 
 interface NWCOptionsModalProps {
   isVisible: boolean;
@@ -50,7 +51,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
       setClearNwcOnLogout(true);
     }
 
-    const autoPay = localStorage.getItem('nwcAutoPay');
+    const autoPay = localStorage.getItem(STORAGE_KEYS.NWC_AUTO_PAY);
     if (autoPay === 'false') {
       setNwcAutoPay(false);
     } else {
@@ -79,7 +80,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
       // Basic format check
       if (
         !newUri.startsWith('nostr+walletconnect://') &&
-        !newUri.startsWith('nostrnwc://')
+        !newUri.startsWith(PROTOCOLS.NWC)
       ) {
         throw new Error('Invalid NWC URI scheme');
       }
@@ -124,13 +125,13 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
       setNewUri('');
       setShowAddForm(false);
       useUIStore.getState().openToast('Connection added!', 'success', false);
-      setTimeout(() => useUIStore.getState().closeToast(), 2000);
+      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
     } catch (e) {
       console.error('NWC validation failed:', e);
       const message = e instanceof Error ? e.message : 'Invalid NWC URI';
       setError(message);
       useUIStore.getState().openToast(message, 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), 3000);
+      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
     } finally {
       setValidating(false);
     }
@@ -158,7 +159,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
       // Basic format check
       if (
         !newUri.startsWith('nostr+walletconnect://') &&
-        !newUri.startsWith('nostrnwc://')
+        !newUri.startsWith(PROTOCOLS.NWC)
       ) {
         throw new Error('Invalid NWC URI scheme');
       }
@@ -198,13 +199,13 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
       setNewUri('');
       setShowAddForm(false);
       useUIStore.getState().openToast('Connection updated!', 'success', false);
-      setTimeout(() => useUIStore.getState().closeToast(), 2000);
+      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
     } catch (e) {
       console.error('NWC validation failed:', e);
       const message = e instanceof Error ? e.message : 'Invalid NWC URI';
       setError(message);
       useUIStore.getState().openToast(message, 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), 3000);
+      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
     } finally {
       setValidating(false);
     }
@@ -227,7 +228,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
     
     setDeleteConfirmId(null);
     useUIStore.getState().openToast('Connection deleted', 'success', false);
-    setTimeout(() => useUIStore.getState().closeToast(), 2000);
+    setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
   };
 
   const cancelDelete = () => {
@@ -238,7 +239,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
     setActiveNWCConnection(id);
     setActiveId(id);
     useUIStore.getState().openToast('Active connection changed', 'success', false);
-    setTimeout(() => useUIStore.getState().closeToast(), 2000);
+    setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
     
     // Dispatch custom event to notify other components
     window.dispatchEvent(new CustomEvent('nwcActiveConnectionChanged', { detail: { connectionId: id } }));
@@ -267,7 +268,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
 
   const handleNwcAutoPayChange = (checked: boolean) => {
     setNwcAutoPay(checked);
-    localStorage.setItem('nwcAutoPay', checked.toString());
+    localStorage.setItem(STORAGE_KEYS.NWC_AUTO_PAY, checked.toString());
   };
 
   if (!isVisible) return null;
@@ -346,8 +347,8 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                   alignItems: 'center',
                   gap: '6px',
                   padding: '8px 16px',
-                  background: '#4a75ff',
-                  color: '#fff',
+                  background: COLORS.PRIMARY,
+                  color: COLORS.TEXT_WHITE,
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer',
@@ -356,11 +357,11 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = '#3d62e0';
+                  e.currentTarget.style.background = COLORS.PRIMARY_HOVER;
                   e.currentTarget.style.transform = 'translateY(-1px)';
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = '#4a75ff';
+                  e.currentTarget.style.background = COLORS.PRIMARY;
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
@@ -402,8 +403,8 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                   alignItems: 'center',
                   gap: '8px',
                   padding: '12px 24px',
-                  background: '#4a75ff',
-                  color: '#fff',
+                  background: COLORS.PRIMARY,
+                  color: COLORS.TEXT_WHITE,
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -412,11 +413,11 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = '#3d62e0';
+                  e.currentTarget.style.background = COLORS.PRIMARY_HOVER;
                   e.currentTarget.style.transform = 'translateY(-1px)';
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = '#4a75ff';
+                  e.currentTarget.style.background = COLORS.PRIMARY;
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
@@ -514,7 +515,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       transition: 'border-color 0.2s ease'
                     }}
                     onFocus={e => {
-                      e.currentTarget.style.borderColor = '#4a75ff';
+                      e.currentTarget.style.borderColor = COLORS.PRIMARY;
                     }}
                     onBlur={e => {
                       e.currentTarget.style.borderColor = 'var(--border-color)';
@@ -553,12 +554,12 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       fontSize: '12px',
                       boxSizing: 'border-box',
                       fontFamily: 'monospace',
-                      minHeight: '80px',
+                      minHeight: DIMENSIONS.AVATAR_SIZE,
                       resize: 'vertical',
                       transition: 'border-color 0.2s ease'
                     }}
                     onFocus={e => {
-                      e.currentTarget.style.borderColor = '#4a75ff';
+                      e.currentTarget.style.borderColor = COLORS.PRIMARY;
                     }}
                     onBlur={e => {
                       e.currentTarget.style.borderColor = 'var(--border-color)';
@@ -581,7 +582,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       alignItems: 'center',
                       gap: '8px',
                       fontSize: '13px',
-                      color: '#ef4444'
+                      color: COLORS.ERROR
                     }}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
@@ -602,8 +603,8 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       justifyContent: 'center',
                       gap: '8px',
                       padding: '12px 20px',
-                      background: validating || !newLabel.trim() || !newUri.trim() ? '#9ca3af' : '#4a75ff',
-                      color: '#fff',
+                      background: validating || !newLabel.trim() || !newUri.trim() ? COLORS.BG_DISABLED : COLORS.PRIMARY,
+                      color: COLORS.TEXT_WHITE,
                       border: 'none',
                       borderRadius: '8px',
                       cursor: validating || !newLabel.trim() || !newUri.trim() ? 'not-allowed' : 'pointer',
@@ -613,13 +614,13 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                     }}
                     onMouseEnter={e => {
                       if (!validating && newLabel.trim() && newUri.trim()) {
-                        e.currentTarget.style.background = '#3d62e0';
+                        e.currentTarget.style.background = COLORS.PRIMARY_HOVER;
                         e.currentTarget.style.transform = 'translateY(-1px)';
                       }
                     }}
                     onMouseLeave={e => {
                       if (!validating && newLabel.trim() && newUri.trim()) {
-                        e.currentTarget.style.background = '#4a75ff';
+                        e.currentTarget.style.background = COLORS.PRIMARY;
                         e.currentTarget.style.transform = 'translateY(0)';
                       }
                     }}
@@ -654,7 +655,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                     borderRadius: '8px',
                     marginBottom: '12px',
                     background: activeId === conn.id ? 'var(--bg-secondary)' : 'transparent',
-                    borderColor: activeId === conn.id ? '#4a75ff' : 'var(--border-color)'
+                    borderColor: activeId === conn.id ? COLORS.PRIMARY : 'var(--border-color)'
                   }}
                 >
                   <div
@@ -680,7 +681,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                             style={{
                               marginLeft: '8px',
                               fontSize: '12px',
-                              color: '#4a75ff',
+                              color: COLORS.PRIMARY,
                               fontWeight: 'normal'
                             }}
                           >
@@ -743,7 +744,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                           background: 'transparent',
                           border: '1px solid var(--border-color)',
                           cursor: 'pointer',
-                          color: '#ef4444'
+                          color: COLORS.ERROR
                         }}
                       >
                         Delete
@@ -857,7 +858,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                     transition: 'border-color 0.2s ease'
                   }}
                   onFocus={e => {
-                    e.currentTarget.style.borderColor = '#4a75ff';
+                    e.currentTarget.style.borderColor = COLORS.PRIMARY;
                   }}
                   onBlur={e => {
                     e.currentTarget.style.borderColor = 'var(--border-color)';
@@ -901,7 +902,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                     transition: 'border-color 0.2s ease'
                   }}
                   onFocus={e => {
-                    e.currentTarget.style.borderColor = '#4a75ff';
+                    e.currentTarget.style.borderColor = COLORS.PRIMARY;
                   }}
                   onBlur={e => {
                     e.currentTarget.style.borderColor = 'var(--border-color)';
@@ -924,7 +925,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                     alignItems: 'center',
                     gap: '8px',
                     fontSize: '13px',
-                    color: '#ef4444'
+                    color: COLORS.ERROR
                   }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
@@ -947,8 +948,8 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                         justifyContent: 'center',
                         gap: '8px',
                         padding: '12px 20px',
-                        background: validating || !newLabel.trim() || !newUri.trim() ? '#9ca3af' : '#4a75ff',
-                        color: '#fff',
+                        background: validating || !newLabel.trim() || !newUri.trim() ? COLORS.BG_DISABLED : COLORS.PRIMARY,
+                        color: COLORS.TEXT_WHITE,
                         border: 'none',
                         borderRadius: '8px',
                         cursor: validating || !newLabel.trim() || !newUri.trim() ? 'not-allowed' : 'pointer',
@@ -958,12 +959,12 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       }}
                       onMouseEnter={e => {
                         if (!validating && newLabel.trim() && newUri.trim()) {
-                          e.currentTarget.style.background = '#3d62e0';
+                          e.currentTarget.style.background = COLORS.PRIMARY_HOVER;
                         }
                       }}
                       onMouseLeave={e => {
                         if (!validating && newLabel.trim() && newUri.trim()) {
-                          e.currentTarget.style.background = '#4a75ff';
+                          e.currentTarget.style.background = COLORS.PRIMARY;
                         }
                       }}
                     >
@@ -1021,8 +1022,8 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       justifyContent: 'center',
                       gap: '8px',
                       padding: '12px 20px',
-                      background: validating || !newLabel.trim() || !newUri.trim() ? '#9ca3af' : '#4a75ff',
-                      color: '#fff',
+                      background: validating || !newLabel.trim() || !newUri.trim() ? COLORS.BG_DISABLED : COLORS.PRIMARY,
+                      color: COLORS.TEXT_WHITE,
                       border: 'none',
                       borderRadius: '8px',
                       cursor: validating || !newLabel.trim() || !newUri.trim() ? 'not-allowed' : 'pointer',
@@ -1032,13 +1033,13 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                     }}
                     onMouseEnter={e => {
                       if (!validating && newLabel.trim() && newUri.trim()) {
-                        e.currentTarget.style.background = '#3d62e0';
+                        e.currentTarget.style.background = COLORS.PRIMARY_HOVER;
                         e.currentTarget.style.transform = 'translateY(-1px)';
                       }
                     }}
                     onMouseLeave={e => {
                       if (!validating && newLabel.trim() && newUri.trim()) {
-                        e.currentTarget.style.background = '#4a75ff';
+                        e.currentTarget.style.background = COLORS.PRIMARY;
                         e.currentTarget.style.transform = 'translateY(0)';
                       }
                     }}
@@ -1080,7 +1081,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                 className="featureDescription"
                 style={{
                   fontSize: '11px',
-                  color: '#9ca3af',
+                  color: COLORS.BG_DISABLED,
                   marginTop: '4px',
                   marginBottom: 0
                 }}
@@ -1148,7 +1149,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
             scrollbarGutter: 'stable',
             width: '100vw',
             boxSizing: 'border-box',
-            zIndex: 100001,
+            zIndex: Z_INDEX.MODAL_OVERLAY,
             position: 'fixed',
             top: 0,
             left: 0
@@ -1182,7 +1183,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                 className="material-symbols-outlined"
                 style={{
                   fontSize: '48px',
-                  color: '#ef4444',
+                  color: COLORS.ERROR,
                   marginBottom: '16px',
                   display: 'block'
                 }}
@@ -1226,11 +1227,11 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                 style={{
                   flex: 1,
                   padding: '12px 20px',
-                  background: '#ef4444',
+                  background: COLORS.ERROR,
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  color: '#fff',
+                  color: COLORS.TEXT_WHITE,
                   fontSize: '14px',
                   fontWeight: '500',
                   transition: 'all 0.2s ease',
@@ -1240,10 +1241,10 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                   gap: '8px'
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.background = '#dc2626';
+                  e.currentTarget.style.background = COLORS.ERROR_DARK;
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.background = '#ef4444';
+                  e.currentTarget.style.background = COLORS.ERROR;
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>

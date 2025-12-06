@@ -9,6 +9,7 @@ import {
   LightningAddressService,
   detectPaymentType
 } from '@pubpay/shared-services';
+import { TOAST_DURATION, TIMEOUT, UI, COLORS, Z_INDEX, STORAGE_KEYS } from '../constants';
 
 interface SendPaymentModalProps {
   isVisible: boolean;
@@ -141,13 +142,13 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   const handleSendPayment = async () => {
     if (!nwcClient) {
       useUIStore.getState().openToast('Wallet not connected', 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), 2000);
+      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
       return;
     }
 
     if (!detectedType) {
       useUIStore.getState().openToast('Please enter an invoice, Lightning Address, or Nostr user', 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), 2000);
+      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
       return;
     }
 
@@ -161,7 +162,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           'error',
           false
         );
-        setTimeout(() => useUIStore.getState().closeToast(), 3000);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
         return;
       }
 
@@ -170,14 +171,14 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       // Validate amount
       if (!sendAmount.trim()) {
         useUIStore.getState().openToast('Please enter an amount', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
         return;
       }
 
       const amount = parseInt(sendAmount.trim(), 10);
       if (isNaN(amount) || amount <= 0) {
         useUIStore.getState().openToast('Please enter a valid amount', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
         return;
       }
 
@@ -191,7 +192,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           'error',
           true
         );
-        setTimeout(() => useUIStore.getState().closeToast(), 3000);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
         return;
       }
 
@@ -200,14 +201,14 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       // Validate amount
       if (!sendAmount.trim()) {
         useUIStore.getState().openToast('Please enter an amount', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
         return;
       }
 
       const amount = parseInt(sendAmount.trim(), 10);
       if (isNaN(amount) || amount <= 0) {
         useUIStore.getState().openToast('Please enter a valid amount', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
         return;
       }
 
@@ -220,12 +221,12 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           setDetectedNostrProfile(profile || null);
           if (!profile) {
             useUIStore.getState().updateToast('User profile not found', 'error', true);
-            setTimeout(() => useUIStore.getState().closeToast(), 3000);
+            setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
             return;
           }
         } catch {
           useUIStore.getState().updateToast('Failed to load user profile', 'error', true);
-          setTimeout(() => useUIStore.getState().closeToast(), 3000);
+          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
           return;
         }
       }
@@ -244,7 +245,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
       if (!lud16) {
         useUIStore.getState().updateToast('User does not have a Lightning Address', 'error', true);
-        setTimeout(() => useUIStore.getState().closeToast(), 3000);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
         return;
       }
 
@@ -258,7 +259,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           'error',
           true
         );
-        setTimeout(() => useUIStore.getState().closeToast(), 3000);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
         return;
       }
 
@@ -267,7 +268,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
     if (!invoiceToPay) {
       useUIStore.getState().openToast('No invoice to pay', 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), 2000);
+      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
       return;
     }
 
@@ -493,16 +494,16 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
     if (!isVisible) return;
 
     // Check sessionStorage first (in case we navigated here and event was missed)
-    const scannedInvoice = sessionStorage.getItem('scannedInvoice');
+    const scannedInvoice = sessionStorage.getItem(STORAGE_KEYS.SCANNED_INVOICE);
     if (scannedInvoice) {
-      sessionStorage.removeItem('scannedInvoice');
+      sessionStorage.removeItem(STORAGE_KEYS.SCANNED_INVOICE);
       setSendInput(scannedInvoice);
       return;
     }
 
-    const scannedAddress = sessionStorage.getItem('scannedLightningAddress');
+    const scannedAddress = sessionStorage.getItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS);
     if (scannedAddress) {
-      sessionStorage.removeItem('scannedLightningAddress');
+      sessionStorage.removeItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS);
       setSendInput(scannedAddress);
       return;
     }
@@ -510,7 +511,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
     const handleScannedInvoice = (e: CustomEvent) => {
       const invoice = e.detail?.invoice;
       if (invoice) {
-        sessionStorage.removeItem('scannedInvoice');
+        sessionStorage.removeItem(STORAGE_KEYS.SCANNED_INVOICE);
         setSendInput(invoice);
       }
     };
@@ -518,7 +519,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
     const handleScannedLightningAddress = (e: CustomEvent) => {
       const address = e.detail?.address;
       if (address) {
-        sessionStorage.removeItem('scannedLightningAddress');
+        sessionStorage.removeItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS);
         setSendInput(address);
       }
     };
@@ -595,9 +596,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
               gap: '8px',
               padding: '10px 16px',
               background: 'var(--bg-secondary)',
-              border: '2px solid #4a75ff',
+              border: `2px solid ${COLORS.PRIMARY}`,
               borderRadius: '8px',
-              color: '#4a75ff',
+              color: COLORS.PRIMARY,
               cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
               fontSize: '14px',
               fontWeight: '600',
@@ -606,14 +607,14 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
             }}
             onMouseEnter={e => {
               if (!sending && !fetchingInvoice) {
-                e.currentTarget.style.background = '#4a75ff';
-                e.currentTarget.style.color = '#fff';
+                e.currentTarget.style.background = COLORS.PRIMARY;
+                e.currentTarget.style.color = COLORS.TEXT_WHITE;
               }
             }}
             onMouseLeave={e => {
               if (!sending && !fetchingInvoice) {
                 e.currentTarget.style.background = 'var(--bg-secondary)';
-                e.currentTarget.style.color = '#4a75ff';
+                e.currentTarget.style.color = COLORS.PRIMARY;
               }
             }}
             title="Scan QR code"
@@ -637,7 +638,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   color: 'var(--text-primary)'
                 }}
               >
-                Send to <span style={{ color: '#ef4444' }}>*</span>
+                Send to <span style={{ color: COLORS.ERROR }}>*</span>
                 {detectedType && (
                   <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                     ({detectedType === 'invoice' ? 'Invoice' : detectedType === 'lightning-address' ? 'Lightning Address' : 'Nostr User'})
@@ -652,12 +653,12 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                       if (text && text.trim()) {
                         setSendInput(text.trim());
                         useUIStore.getState().openToast('Pasted from clipboard', 'success', false);
-                        setTimeout(() => useUIStore.getState().closeToast(), 2000);
+                        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
                       }
                     } catch (error) {
                       console.error('Failed to read clipboard:', error);
                       useUIStore.getState().openToast('Failed to read from clipboard', 'error', false);
-                      setTimeout(() => useUIStore.getState().closeToast(), 2000);
+                      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
                     }
                   }}
                   disabled={sending || fetchingInvoice}
@@ -734,7 +735,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                     width: '100%',
                     minHeight: '100px',
                     padding: '12px',
-                    border: invoiceError ? '2px solid #ef4444' : parsedInvoice ? '2px solid #22c55e' : '2px solid var(--border-color)',
+                    border: invoiceError ? `2px solid ${COLORS.ERROR}` : parsedInvoice ? `2px solid ${COLORS.SUCCESS}` : '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '12px',
                     fontFamily: 'monospace',
@@ -935,14 +936,14 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                           setShowMentionSuggestions(false);
                           setShowLnAddressSuggestions(false);
                           setPreviewSuffix(null);
-                        }, 200);
+                        }, TIMEOUT.DEBOUNCE);
                       }}
                       placeholder={previewSuffix ? '' : 'Enter invoice, Lightning Address, npub, or type @...'}
                       disabled={sending || fetchingInvoice}
                       style={{
                         backgroundColor: 'var(--input-bg)',
                         color: previewSuffix ? 'transparent' : 'var(--text-primary)',
-                        border: (invoiceError || lnurlError) ? '2px solid #ef4444' : (detectedType && sendInput.trim()) ? '2px solid #22c55e' : '2px solid var(--border-color)',
+                        border: (invoiceError || lnurlError) ? `2px solid ${COLORS.ERROR}` : (detectedType && sendInput.trim()) ? `2px solid ${COLORS.SUCCESS}` : '2px solid var(--border-color)',
                         borderRadius: '6px',
                         padding: '12px 48px 12px 16px',
                         width: '100%',
@@ -1010,7 +1011,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                         }}
                         onMouseEnter={(e) => {
                           if (!sending && !fetchingInvoice) {
-                            e.currentTarget.style.color = '#4a75ff';
+                            e.currentTarget.style.color = COLORS.PRIMARY;
                           }
                         }}
                         onMouseLeave={(e) => {
@@ -1060,7 +1061,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                         border: '1px solid var(--border-color)',
                         borderRadius: '6px',
                         boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-                        zIndex: 1000,
+                        zIndex: Z_INDEX.DROPDOWN,
                         maxHeight: '240px',
                         overflowY: 'auto',
                         overflowX: 'hidden',
@@ -1164,7 +1165,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                         border: '1px solid var(--border-color)',
                         borderRadius: '6px',
                         boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-                        zIndex: 1000,
+                        zIndex: Z_INDEX.DROPDOWN,
                         maxHeight: '240px',
                         overflowY: 'auto',
                         overflowX: 'hidden',
@@ -1329,14 +1330,14 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   gap: '8px'
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444', flexShrink: 0 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: COLORS.ERROR, flexShrink: 0 }}>
                   error_outline
                 </span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#ef4444', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: COLORS.ERROR, marginBottom: '4px' }}>
                     Invalid Invoice
                   </div>
-                  <div style={{ fontSize: '12px', color: '#ef4444', lineHeight: '1.5' }}>
+                  <div style={{ fontSize: '12px', color: COLORS.ERROR, lineHeight: '1.5' }}>
                     {invoiceError}
                   </div>
                 </div>
@@ -1356,14 +1357,14 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   gap: '8px'
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#ef4444', flexShrink: 0 }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: COLORS.ERROR, flexShrink: 0 }}>
                   error_outline
                 </span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#ef4444', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: COLORS.ERROR, marginBottom: '4px' }}>
                     Error
                   </div>
-                  <div style={{ fontSize: '12px', color: '#ef4444', lineHeight: '1.5' }}>
+                  <div style={{ fontSize: '12px', color: COLORS.ERROR, lineHeight: '1.5' }}>
                     {lnurlError}
                   </div>
                 </div>
@@ -1413,7 +1414,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#22c55e' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: COLORS.SUCCESS }}>
                     check_circle
                   </span>
                   <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
@@ -1515,7 +1516,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   color: 'var(--text-primary)'
                 }}
               >
-                Amount (sats) <span style={{ color: '#ef4444' }}>*</span>
+                Amount (sats) <span style={{ color: COLORS.ERROR }}>*</span>
               </label>
               <input
                 type="number"
@@ -1531,7 +1532,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 style={{
                   backgroundColor: 'var(--input-bg)',
                   color: 'var(--text-primary)',
-                  border: lnurlError && !sendInput.trim() ? '2px solid #ef4444' : '2px solid var(--border-color)',
+                  border: lnurlError && !sendInput.trim() ? `2px solid ${COLORS.ERROR}` : '2px solid var(--border-color)',
                   borderRadius: '6px',
                   padding: '12px 16px',
                   width: '100%',
