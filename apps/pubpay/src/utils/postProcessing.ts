@@ -262,3 +262,59 @@ export function calculateReplyLevels(
   return repliesWithLevels;
 }
 
+/**
+ * Update a post with profile data and recalculate payment-related fields
+ * Extracted to utility to remove duplication across hooks
+ */
+export function updatePostWithProfileData(
+  post: PubPayPost,
+  event: Kind1Event,
+  author: Kind0Event | null | undefined
+): PubPayPost {
+  if (!author || author.content === '{}') {
+    // Still loading, keep loading state
+    return post;
+  }
+
+  // Profile loaded, clear loading state
+  const updatedPost = { ...post, author, profileLoading: false };
+
+  // Recalculate isPayable and related fields based on author profile
+  try {
+    const authorData = safeJson<Record<string, any>>(
+      author.content || '{}',
+      {}
+    );
+    const hasLud16 = !!(authorData as any).lud16;
+    const hasNip05 = !!(authorData as any).nip05;
+
+    // Extract zap tags from event
+    const zapMinTag = event.tags.find(tag => tag[0] === 'zap-min');
+    const zapMaxTag = event.tags.find(tag => tag[0] === 'zap-max');
+    // zapLNURLTag found but not used (zapLNURL is set elsewhere)
+    const hasZapTags = !!(
+      zapMinTag ||
+      zapMaxTag ||
+      event.tags.find(tag => tag[0] === 'zap-uses') ||
+      event.tags.find(tag => tag[0] === 'zap-goal')
+    );
+    const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
+
+    updatedPost.hasZapTags = hasZapTags;
+    updatedPost.isPayable =
+      (hasLud16 || !!(updatedPost as any).zapLNURL) && hasPaymentAmount;
+
+    // Mark as validating if we have a lightning address or NIP-05
+    if (hasLud16) {
+      updatedPost.lightningValidating = true;
+    }
+    if (hasNip05) {
+      updatedPost.nip05Validating = true;
+    }
+  } catch {
+    // Keep existing values on error
+  }
+
+  return updatedPost;
+}
+

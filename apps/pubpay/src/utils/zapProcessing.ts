@@ -51,3 +51,75 @@ export function isZapWithinLimits(
   }
 }
 
+/**
+ * Create a zap batch processor callback function
+ * Extracted to utility to remove duplication across hooks
+ * 
+ * @param zapBatchRef - Ref to the zap batch array
+ * @param zapBatchTimeoutRef - Ref to the timeout for delayed processing
+ * @param processZapBatchRef - Ref to the processZapBatch function
+ * @returns A callback function that processes zap events in batches
+ */
+export function createZapBatchProcessor(
+  zapBatchRef: React.MutableRefObject<Kind9735Event[]>,
+  zapBatchTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>,
+  processZapBatchRef: React.MutableRefObject<((zapEvents: Kind9735Event[]) => Promise<void>) | null>
+): (zapEvent: Kind9735Event) => Promise<void> {
+  return async (zapEvent: Kind9735Event) => {
+    // Add to batch for processing
+    zapBatchRef.current.push(zapEvent);
+    console.log(
+      'Zap added to batch, batch size:',
+      zapBatchRef.current.length,
+      'processZapBatchRef available:',
+      !!processZapBatchRef.current
+    );
+
+    // Clear existing timeout
+    if (zapBatchTimeoutRef.current) {
+      clearTimeout(zapBatchTimeoutRef.current);
+    }
+
+    // Process batch after 500ms delay (or immediately if batch is large)
+    if (zapBatchRef.current.length >= 10) {
+      // Process immediately if batch is large
+      const batchToProcess = [...zapBatchRef.current];
+      zapBatchRef.current = [];
+      console.log(
+        'Processing zap batch immediately, batch size:',
+        batchToProcess.length,
+        'processZapBatchRef.current:',
+        !!processZapBatchRef.current
+      );
+      if (processZapBatchRef.current) {
+        await processZapBatchRef.current(batchToProcess);
+      } else {
+        console.error('processZapBatchRef.current is null!');
+      }
+    } else {
+      // Process after delay
+      console.log(
+        'Scheduling zap batch processing, current batch size:',
+        zapBatchRef.current.length,
+        'processZapBatchRef.current:',
+        !!processZapBatchRef.current
+      );
+      zapBatchTimeoutRef.current = setTimeout(async () => {
+        const batchToProcess = [...zapBatchRef.current];
+        zapBatchRef.current = [];
+        console.log(
+          'Processing zap batch after delay, batch size:',
+          batchToProcess.length,
+          'processZapBatchRef.current:',
+          !!processZapBatchRef.current
+        );
+        if (processZapBatchRef.current) {
+          await processZapBatchRef.current(batchToProcess);
+        } else {
+          console.error('processZapBatchRef.current is null in timeout!');
+        }
+      }, 500);
+    }
+  };
+}
+
