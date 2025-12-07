@@ -283,7 +283,7 @@ const ProfilePage: React.FC = () => {
     clearUserPaynotes,
     setCurrentProfile
   } = useProfileManagementActions();
-  
+
   // Get remaining actions
   const {
     setNip05Valid,
