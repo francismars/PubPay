@@ -4,7 +4,7 @@ import { useOutletContext, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@pubpay/shared-services';
 import { PayNoteComponent } from '../components/PayNoteComponent/PayNoteComponent';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
-import { usePostStore } from '../stores/usePostStore';
+import { usePostStoreData, usePostActions } from '../stores/usePostStore';
 import { nip19 } from 'nostr-tools';
 import { COLORS } from '../constants';
 
@@ -13,16 +13,21 @@ import { COLORS } from '../constants';
 export const FeedsPage: React.FC = () => {
   const location = useLocation();
   
-  // Use stores directly for state
-  const posts = usePostStore(state => state.posts);
-  const followingPosts = usePostStore(state => state.followingPosts);
-  const replies = usePostStore(state => state.replies);
-  const activeFeed = usePostStore(state => state.activeFeed);
-  const isLoading = usePostStore(state => state.isLoading);
-  const isLoadingMore = usePostStore(state => state.isLoadingMore);
-  const nostrReady = usePostStore(state => state.nostrReady);
-  const paymentErrors = usePostStore(state => state.paymentErrors);
-  const clearPosts = usePostStore(state => state.clearAllPosts);
+  // Use optimized selector hook to get all post state in a single subscription
+  // This prevents unnecessary re-renders by using shallow equality
+  const {
+    posts,
+    followingPosts,
+    replies,
+    activeFeed,
+    isLoading,
+    isLoadingMore,
+    nostrReady,
+    paymentErrors
+  } = usePostStoreData();
+  
+  // Get actions separately (actions don't change, so no need for shallow)
+  const { clearAllPosts: clearPosts } = usePostActions();
   
   // Get handlers and authState from Layout context (authState includes privateKey from local state)
   const {
