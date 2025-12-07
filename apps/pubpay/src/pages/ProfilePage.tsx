@@ -1813,10 +1813,10 @@ const ProfilePage: React.FC = () => {
                 ) : null}
               </div>
               <div className="skeleton skeleton-text short" style={{ height: '16px', width: '150px', marginBottom: '8px' }}></div>
-              <p style={{ margin: 0 }}>
+              <div style={{ margin: 0 }}>
                 <div className="skeleton skeleton-text" style={{ height: '14px', width: '100%', marginBottom: '4px' }}></div>
                 <div className="skeleton skeleton-text medium" style={{ height: '14px' }}></div>
-              </p>
+              </div>
 
               {/* Profile Details */}
               <div className="profileDetails">
