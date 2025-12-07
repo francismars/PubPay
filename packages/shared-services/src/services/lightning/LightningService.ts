@@ -313,6 +313,7 @@ export class LightningService {
 
   /**
    * Validate Lightning configuration
+   * Note: Frontend service doesn't require API keys since it only calls backend API
    */
   validateConfig(): {
     valid: boolean;
@@ -320,15 +321,17 @@ export class LightningService {
   } {
     const errors: string[] = [];
 
-    if (!this.config.lnbitsUrl) {
+    // Only validate if config is provided (backend use case)
+    // Frontend service doesn't need these since it calls backend API
+    if (this.config.lnbitsUrl !== undefined && !this.config.lnbitsUrl) {
       errors.push('LNBits URL is required');
     }
 
-    if (!this.config.apiKey) {
+    if (this.config.apiKey !== undefined && !this.config.apiKey) {
       errors.push('LNBits API key is required');
     }
 
-    if (!this.config.webhookUrl) {
+    if (this.config.webhookUrl !== undefined && !this.config.webhookUrl) {
       errors.push('Webhook URL is required');
     }
 
