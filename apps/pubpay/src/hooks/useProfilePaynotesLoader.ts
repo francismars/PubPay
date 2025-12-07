@@ -18,6 +18,8 @@ import {
   useProfileActions,
   useUserPaynotesWithPagination
 } from '../stores/useProfileStore';
+import { useAbortController } from './useAbortController';
+import { safeAsync, safeTimeout, isAbortError } from '../utils/asyncHelpers';
 
 interface UseProfilePaynotesLoaderOptions {
   targetPubkey: string;
@@ -42,6 +44,7 @@ export const useProfilePaynotesLoader = (
 
   const { paynotesUntil, hasMorePaynotes, isLoadingPaynotes, userPaynotes } =
     useUserPaynotesWithPagination();
+  const { signal, isAborted } = useAbortController();
 
   // Track lightning addresses being validated to avoid duplicate calls
   const validatingLightningAddressesRef = useRef<Set<string>>(new Set());
@@ -51,10 +54,13 @@ export const useProfilePaynotesLoader = (
   // Validate lightning addresses for posts asynchronously
   const validateLightningAddresses = useCallback(
     async (posts: PubPayPost[]) => {
+      if (isAborted) return;
+      
       // Extract unique lightning addresses from posts
       const lightningAddresses = new Map<string, PubPayPost[]>();
 
       for (const post of posts) {
+        if (isAborted) break;
         if (post.author) {
           try {
             const authorData = JSON.parse(post.author.content || '{}');
@@ -73,6 +79,8 @@ export const useProfilePaynotesLoader = (
 
       // Validate each unique lightning address (only once per address)
       for (const [lud16, postsWithAddress] of lightningAddresses.entries()) {
+        if (isAborted) break;
+        
         // Skip if already validating or validated
         if (validatingLightningAddressesRef.current.has(lud16)) {
           continue;
@@ -82,8 +90,14 @@ export const useProfilePaynotesLoader = (
         validatingLightningAddressesRef.current.add(lud16);
 
         // Validate asynchronously (fire and forget)
-        ZapService.validateLightningAddress(lud16)
-          .then(isValid => {
+        safeAsync(async () => {
+          if (isAborted) return;
+          
+          try {
+            const isValid = await ZapService.validateLightningAddress(lud16);
+            
+            if (isAborted) return;
+            
             // Update all posts with this lightning address using functional updates
             setUserPaynotes(prev =>
               prev.map(post => {
@@ -103,10 +117,13 @@ export const useProfilePaynotesLoader = (
                 return post;
               })
             );
-          })
-          .catch(error => {
+          } catch (error) {
+            if (isAbortError(error)) {
+              return;
+            }
             console.warn(`Failed to validate lightning address ${lud16}:`, error);
             // Mark as invalid on error
+            if (isAborted) return;
             setUserPaynotes(prev =>
               prev.map(post => {
                 if (postsWithAddress.some(p => p.id === post.id)) {
@@ -120,19 +137,23 @@ export const useProfilePaynotesLoader = (
                 return post;
               })
             );
-          })
-          .finally(() => {
-            // Remove from validating set
-            validatingLightningAddressesRef.current.delete(lud16);
-          });
+          } finally {
+            // Remove from validating set (only if not aborted)
+            if (!isAborted) {
+              validatingLightningAddressesRef.current.delete(lud16);
+            }
+          }
+        }, signal);
       }
     },
-    [setUserPaynotes]
+    [setUserPaynotes, signal, isAborted]
   );
 
   // Validate NIP-05 identifiers for posts asynchronously
   const validateNip05s = useCallback(
     async (posts: PubPayPost[]) => {
+      if (isAborted) return;
+      
       // Extract unique NIP-05 identifiers from posts with their pubkeys
       const nip05s = new Map<
         string,
@@ -140,6 +161,7 @@ export const useProfilePaynotesLoader = (
       >();
 
       for (const post of posts) {
+        if (isAborted) break;
         if (post.author) {
           try {
             const authorData = JSON.parse(post.author.content || '{}');
@@ -163,6 +185,8 @@ export const useProfilePaynotesLoader = (
 
       // Validate each unique NIP-05 identifier (only once per identifier:pubkey combo)
       for (const [key, { nip05, pubkey, posts: postsWithNip05 }] of nip05s.entries()) {
+        if (isAborted) break;
+        
         // Skip if already validating
         if (validatingNip05sRef.current.has(key)) {
           continue;
@@ -172,6 +196,7 @@ export const useProfilePaynotesLoader = (
         validatingNip05sRef.current.add(key);
 
         // Set validating state for all posts with this NIP-05
+        if (isAborted) return;
         setUserPaynotes(prev =>
           prev.map(post => {
             if (postsWithNip05.some(p => p.id === post.id)) {
@@ -182,8 +207,14 @@ export const useProfilePaynotesLoader = (
         );
 
         // Validate asynchronously (fire and forget)
-        Nip05ValidationService.validateNip05(nip05, pubkey)
-          .then(isValid => {
+        safeAsync(async () => {
+          if (isAborted) return;
+          
+          try {
+            const isValid = await Nip05ValidationService.validateNip05(nip05, pubkey);
+            
+            if (isAborted) return;
+            
             // Update all posts with this NIP-05 using functional updates
             setUserPaynotes(prev =>
               prev.map(post => {
@@ -197,10 +228,13 @@ export const useProfilePaynotesLoader = (
                 return post;
               })
             );
-          })
-          .catch(error => {
+          } catch (error) {
+            if (isAbortError(error)) {
+              return;
+            }
             console.warn(`Failed to validate NIP-05 ${nip05}:`, error);
             // Mark as invalid on error
+            if (isAborted) return;
             setUserPaynotes(prev =>
               prev.map(post => {
                 if (postsWithNip05.some(p => p.id === post.id)) {
@@ -213,14 +247,16 @@ export const useProfilePaynotesLoader = (
                 return post;
               })
             );
-          })
-          .finally(() => {
-            // Remove from validating set
-            validatingNip05sRef.current.delete(key);
-          });
+          } finally {
+            // Remove from validating set (only if not aborted)
+            if (!isAborted) {
+              validatingNip05sRef.current.delete(key);
+            }
+          }
+        }, signal);
       }
     },
-    [setUserPaynotes]
+    [setUserPaynotes, signal, isAborted]
   );
 
   // Load display paynotes (limited, with progressive rendering)
@@ -250,7 +286,10 @@ export const useProfilePaynotesLoader = (
 
         const paynoteEvents = (await nostrClient.getEvents([filter])) as any[];
 
+        if (isAborted) return;
+
         if (paynoteEvents.length === 0) {
+          if (isAborted) return;
           setHasMorePaynotes(false);
           if (!loadMore) {
             setIsLoadingPaynotes(false);
@@ -337,6 +376,9 @@ export const useProfilePaynotesLoader = (
           }
         );
 
+        // Check if aborted before state updates
+        if (isAborted) return;
+
         // Show paynotes immediately (progressive rendering)
         if (loadMore) {
           setUserPaynotes(prev => {
@@ -353,7 +395,9 @@ export const useProfilePaynotesLoader = (
         }
 
         // Load profiles, zaps, and zap payer profiles in background (non-blocking)
-        (async () => {
+        safeAsync(async () => {
+          if (isAborted) return;
+          
           try {
             // Use unified loadPostData utility to load all related data
             const postData = await loadPostData(
@@ -422,6 +466,8 @@ export const useProfilePaynotesLoader = (
               return updatedPost;
             };
 
+            if (isAborted) return;
+            
             setUserPaynotes(prev => {
               return prev.map(post => {
                 const event = deduplicatedEvents.find(
@@ -435,6 +481,8 @@ export const useProfilePaynotesLoader = (
             });
 
             // Process and update zaps
+            if (isAborted) return;
+            
             setUserPaynotes(prev => {
               return prev.map(paynote => {
                 const event = deduplicatedEvents.find(
@@ -576,24 +624,33 @@ export const useProfilePaynotesLoader = (
             });
 
             // Validate lightning addresses asynchronously
-            setTimeout(() => {
+            safeTimeout(() => {
+              if (isAborted) return;
               setUserPaynotes(prev => {
                 validateLightningAddresses(prev);
                 validateNip05s(prev);
                 return prev;
               });
-            }, 100);
+            }, 100, signal);
           } catch (err) {
+            if (isAbortError(err)) {
+              return;
+            }
             console.error('Error loading profiles/zaps in background:', err);
           }
-        })();
+        }, signal);
       } catch (error) {
+        if (isAbortError(error)) {
+          console.log('Paynotes load aborted (component unmounted)');
+          return;
+        }
         console.error('Error loading display paynotes:', error);
+        if (isAborted) return;
         setIsLoadingPaynotes(false);
       }
     };
 
-    loadDisplayPaynotes(false);
+    safeAsync(() => loadDisplayPaynotes(false), signal);
   }, [
     targetPubkey,
     nostrClient,
@@ -604,7 +661,9 @@ export const useProfilePaynotesLoader = (
     setHasMorePaynotes,
     setUserPaynotes,
     validateLightningAddresses,
-    validateNip05s
+    validateNip05s,
+    signal,
+    isAborted
   ]);
 
   // Load more paynotes handler
@@ -710,7 +769,9 @@ export const useProfilePaynotesLoader = (
       setIsLoadingPaynotes(false);
 
       // Load profiles and zaps in background (same as initial load)
-      (async () => {
+      safeAsync(async () => {
+        if (isAborted) return;
+        
         try {
           const authorPubkeys = Array.from(
             new Set(deduplicatedEvents.map((e: any) => e.pubkey))
@@ -724,6 +785,8 @@ export const useProfilePaynotesLoader = (
               deduplicatedEvents.map((e: any) => e.id)
             )
           ]);
+
+          if (isAborted) return;
 
           // Extract zap payer pubkeys using utility function
           const zapPayerPubkeys = extractZapPayerPubkeys(
@@ -739,6 +802,8 @@ export const useProfilePaynotesLoader = (
                   Array.from(zapPayerPubkeys)
                 )
               : new Map();
+
+          if (isAborted) return;
 
           // Update posts with profiles
           setUserPaynotes(prev => {
@@ -796,6 +861,8 @@ export const useProfilePaynotesLoader = (
           });
 
           // Process and update zaps
+          if (isAborted) return;
+          
           setUserPaynotes(prev => {
             return prev.map(paynote => {
               const event = deduplicatedEvents.find(
@@ -933,17 +1000,21 @@ export const useProfilePaynotesLoader = (
             });
           });
 
-          setTimeout(() => {
+          safeTimeout(() => {
+            if (isAborted) return;
             setUserPaynotes(prev => {
               validateLightningAddresses(prev);
               validateNip05s(prev);
               return prev;
             });
-          }, 100);
+          }, 100, signal);
         } catch (err) {
+          if (isAbortError(err)) {
+            return;
+          }
           console.error('Error loading profiles/zaps in background:', err);
         }
-      })();
+      }, signal);
     } catch (error) {
       console.error('Error loading more paynotes:', error);
       setIsLoadingPaynotes(false);
