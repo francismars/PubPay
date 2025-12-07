@@ -2,11 +2,12 @@ import { useEffect, useRef } from 'react';
 import { NostrClient, LightningService, ZapService, DEFAULT_READ_RELAYS, DEFAULT_WRITE_RELAYS } from '@pubpay/shared-services';
 import { LightningConfig } from '@pubpay/shared-types';
 import { STORAGE_KEYS } from '../constants';
-import { usePostStore } from '../stores/usePostStore';
+import { usePostStore, useNostrReady } from '../stores/usePostStore';
 
 export const useServices = () => {
   // Use store for nostrReady state
-  const nostrReady = usePostStore(state => state.nostrReady);
+  // Use reusable selector hooks
+  const nostrReady = useNostrReady();
   const setNostrReady = usePostStore(state => state.setNostrReady);
   const nostrClientRef = useRef<NostrClient | null>(null);
   const lightningServiceRef = useRef<LightningService | null>(null);
