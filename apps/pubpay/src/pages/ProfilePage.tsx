@@ -47,7 +47,7 @@ import {
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { pubkey } = useParams<{ pubkey?: string }>();
-
+  
   // Use reusable selector hooks
   const nostrReady = useNostrReady();
   const paymentErrors = usePaymentErrors();
@@ -195,7 +195,7 @@ const ProfilePage: React.FC = () => {
     userPaynotes,
     hasMorePaynotes
   } = useUserPaynotesWithPagination();
-
+  
   const {
     isFollowing,
     followBusy,

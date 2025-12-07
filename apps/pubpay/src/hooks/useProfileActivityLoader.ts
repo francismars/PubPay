@@ -52,6 +52,16 @@ export const useProfileActivityLoader = (
             }
             
             batchCount++;
+            
+            // Add delay between batches to prevent overwhelming relays (except for first batch)
+            if (batchCount > 1) {
+              await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay between batches
+              if (isAborted) {
+                hasMore = false;
+                break;
+              }
+            }
+            
             try {
               const batchFilter = {
                 ...filter,
@@ -61,7 +71,7 @@ export const useProfileActivityLoader = (
 
               const batch = (await nostrClient.getEvents([
                 batchFilter
-              ])) as any[];
+              ], signal)) as any[]; // Pass signal to getEvents
 
               // Check if aborted after async operation
               if (isAborted) {
@@ -175,7 +185,7 @@ export const useProfileActivityLoader = (
             // Get zaps where p tag matches targetPubkey
             const receipts = (await nostrClient.getEvents([
               { kinds: [9735], '#p': [targetPubkey], limit: LIMITS.ZAP_QUERY_LIMIT }
-            ])) as any[];
+            ], signal)) as any[]; // Pass signal to getEvents
 
             // Check if aborted after async operation
             if (isAborted) return 0;

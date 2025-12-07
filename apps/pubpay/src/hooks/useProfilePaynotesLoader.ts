@@ -16,7 +16,8 @@ import { genericUserIcon } from '../assets/images';
 import { PubPayPost } from './useHomeFunctionality';
 import {
   useProfileActions,
-  useUserPaynotesWithPagination
+  useUserPaynotesWithPagination,
+  useProfileStore
 } from '../stores/useProfileStore';
 import { useAbortController } from './useAbortController';
 import { safeAsync, safeTimeout, isAbortError } from '../utils/asyncHelpers';
@@ -280,8 +281,11 @@ export const useProfilePaynotesLoader = (
           limit: displayLimit
         };
 
-        if (paynotesUntil) {
-          filter.until = paynotesUntil;
+        // Only use paynotesUntil for pagination (loadMore), not for initial load
+        // Get it fresh from store to avoid stale closure
+        const currentUntil = useProfileStore.getState().paynotesUntil;
+        if (loadMore && currentUntil) {
+          filter.until = currentUntil;
         }
 
         const paynoteEvents = (await nostrClient.getEvents([filter])) as any[];
@@ -654,7 +658,8 @@ export const useProfilePaynotesLoader = (
   }, [
     targetPubkey,
     nostrClient,
-    paynotesUntil,
+    // NOTE: paynotesUntil is intentionally NOT in dependencies to prevent infinite loop
+    // It's only used for pagination (loadMore), not for initial load
     setIsLoadingPaynotes,
     clearUserPaynotes,
     setPaynotesUntil,
