@@ -7,29 +7,7 @@ import { NWCOptionsModal } from '../components/NWCOptionsModal/NWCOptionsModal';
 import { SendPaymentModal } from '../components/SendPaymentModal/SendPaymentModal';
 import { getActiveNWCUri, getActiveNWCConnection, getActiveNWCConnectionId, migrateOldNWCConnection } from '../utils/nwcStorage';
 import { TOAST_DURATION, INTERVAL, LIGHTNING, TIME, COLORS, STORAGE_KEYS, QUERY_LIMITS, DIMENSIONS } from '../constants';
-
-interface Invoice {
-  invoice: string;
-  payment_hash: string;
-  preimage?: string;
-  amount?: number;
-  paid_at?: number;
-  description?: string;
-  created_at?: number;
-  expiry?: number;
-  state?: 'pending' | 'settled' | 'expired' | 'failed';
-  type?: 'incoming' | 'outgoing';
-  fees_paid?: number;
-  metadata?: {
-    zap_request?: {
-      content?: string;
-      pubkey?: string;
-      tags?: Array<Array<string>>;
-      [key: string]: unknown;
-    };
-    [key: string]: unknown;
-  };
-}
+import { useWalletState, useWalletActions, type Invoice } from '../stores/useWalletStore';
 
 const WalletPage: React.FC = () => {
   const navigate = useNavigate();
@@ -42,23 +20,40 @@ const WalletPage: React.FC = () => {
     nostrClient: any;
   }>();
 
-  const [nwcClient, setNwcClient] = useState<NwcClient | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [balanceLoading, setBalanceLoading] = useState(false);
-  const [balanceError, setBalanceError] = useState<string>('');
-  const [transactions, setTransactions] = useState<Invoice[]>([]);
-  const [transactionsLoading, setTransactionsLoading] = useState(false);
-  const [transactionsError, setTransactionsError] = useState<string>('');
+  // Use wallet store for wallet-related state
+  const {
+    nwcClient,
+    balance,
+    balanceLoading,
+    balanceError,
+    transactions,
+    transactionsLoading,
+    transactionsError,
+    receiveInvoice,
+    generatingInvoice,
+    lastBalanceUpdate
+  } = useWalletState();
+  const {
+    setNwcClient,
+    setBalance,
+    setBalanceLoading,
+    setBalanceError,
+    setLastBalanceUpdate,
+    setTransactions,
+    setTransactionsLoading,
+    setTransactionsError,
+    setReceiveInvoice,
+    setGeneratingInvoice,
+    clearBalance,
+    clearTransactions
+  } = useWalletActions();
+
+  // Local UI state (not in store)
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [receiveAmount, setReceiveAmount] = useState('');
   const [receiveDescription, setReceiveDescription] = useState('');
-  const [receiveInvoice, setReceiveInvoice] = useState<string | null>(null);
-  const [generatingInvoice, setGeneratingInvoice] = useState(false);
-  const [lastBalanceUpdate, setLastBalanceUpdate] = useState<Date | null>(
-    null
-  );
   const [visibleTransactionsCount, setVisibleTransactionsCount] = useState(5);
 
   // Initialize NWC client and reload when active connection changes
@@ -193,7 +188,7 @@ const WalletPage: React.FC = () => {
     } finally {
       setBalanceLoading(false);
     }
-  }, [nwcClient]);
+  }, [nwcClient, setBalance, setBalanceLoading, setBalanceError, setLastBalanceUpdate]);
 
   // Load transactions
   const loadTransactions = useCallback(async () => {
@@ -296,7 +291,7 @@ const WalletPage: React.FC = () => {
     } finally {
       setTransactionsLoading(false);
     }
-  }, [nwcClient]);
+  }, [nwcClient, setTransactions, setTransactionsLoading, setTransactionsError]);
 
   // Initial load and reload when client changes
   useEffect(() => {
@@ -305,12 +300,10 @@ const WalletPage: React.FC = () => {
       loadTransactions();
     } else {
       // Clear data when no client
-      setBalance(null);
-      setTransactions([]);
-      setBalanceError('');
-      setTransactionsError('');
+      clearBalance();
+      clearTransactions();
     }
-  }, [nwcClient, loadBalance, loadTransactions]);
+  }, [nwcClient, loadBalance, loadTransactions, clearBalance, clearTransactions]);
 
   // Auto-refresh balance every 30 seconds
   useEffect(() => {

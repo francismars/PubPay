@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import type { PubPayPost } from '../types/postTypes';
 
@@ -94,7 +95,9 @@ const initialActivityStats: ActivityStats = {
   zapsReceived: 0
 };
 
-export const useProfileStore = create<ProfileStore>((set, get) => ({
+export const useProfileStore = create<ProfileStore>()(
+  devtools(
+    (set, get) => ({
   // Current profile
   currentProfilePubkey: null,
 
@@ -218,7 +221,10 @@ export const useProfileStore = create<ProfileStore>((set, get) => ({
       isFollowing: false,
       followBusy: false
     })
-}));
+    }),
+    { name: 'ProfileStore' }
+  )
+);
 
 // Optimized selector hooks
 export const useProfileState = () =>
