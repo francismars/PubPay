@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 
 interface ModalStore {
@@ -56,7 +57,9 @@ interface ModalStore {
   resetAllModals: () => void;
 }
 
-export const useModalStore = create<ModalStore>(set => ({
+export const useModalStore = create<ModalStore>()(
+  devtools(
+    set => ({
   // QR Scanner
   showQRScanner: false,
   openQRScanner: () => set({ showQRScanner: true }),
@@ -124,7 +127,10 @@ export const useModalStore = create<ModalStore>(set => ({
       recoveryPassword: '',
       showPasswordPrompt: false
     })
-}));
+    }),
+    { name: 'ModalStore' }
+  )
+);
 
 // Optimized selector hooks
 export const useModalState = () =>

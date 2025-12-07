@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import type { PubPayPost } from '../types/postTypes';
 
@@ -59,7 +60,9 @@ interface PostStore {
   getReplyById: (replyId: string) => PubPayPost | undefined;
 }
 
-export const usePostStore = create<PostStore>((set, get) => ({
+export const usePostStore = create<PostStore>()(
+  devtools(
+    (set, get) => ({
   // Initial state
   posts: [],
   followingPosts: [],
@@ -195,7 +198,10 @@ export const usePostStore = create<PostStore>((set, get) => ({
     const state = get();
     return state.replies.find(r => r.id === replyId);
   }
-}));
+    }),
+    { name: 'PostStore' }
+  )
+);
 
 // Optimized selector hooks with shallow equality to prevent unnecessary re-renders
 
