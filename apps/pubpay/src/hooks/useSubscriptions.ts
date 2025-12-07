@@ -23,9 +23,11 @@ interface UseSubscriptionsOptions {
   subscribedEventIdsRef: React.MutableRefObject<Set<string>>;
 
   // Store actions (direct store actions, not React setters)
-  setPosts: (posts: PubPayPost[]) => void;
-  setFollowingPosts: (posts: PubPayPost[]) => void;
-  setReplies: (replies: PubPayPost[]) => void;
+  updatePost: (postId: string, updates: Partial<PubPayPost>) => void;
+  updateFollowingPost: (postId: string, updates: Partial<PubPayPost>) => void;
+  updateReply: (replyId: string, updates: Partial<PubPayPost>) => void;
+  addPost: (post: PubPayPost) => void;
+  addFollowingPost: (post: PubPayPost) => void;
 
   // Functions from other hooks
   loadProfilesBatched: (pubkeys: string[]) => Promise<Map<string, Kind0Event>>;
@@ -42,27 +44,48 @@ export const useSubscriptions = ({
   zapBatchRef,
   zapBatchTimeoutRef,
   subscribedEventIdsRef,
-  setPosts,
-  setFollowingPosts,
-  setReplies,
+  updatePost,
+  updateFollowingPost,
+  updateReply,
+  addPost,
+  addFollowingPost,
   loadProfilesBatched,
   validateLightningAddresses,
   validateNip05s
 }: UseSubscriptionsOptions) => {
   // Process zaps in batches to reduce relay load
+  // Use ref to keep function stable across renders
+  const processZapBatchRef = useRef<((zapEvents: Kind9735Event[]) => Promise<void>) | null>(null);
+  
   const processZapBatch = async (zapEvents: Kind9735Event[]) => {
     if (zapEvents.length === 0) return;
 
-    console.log('Processing zap batch:', zapEvents.length, 'zap events');
+    // Early duplicate detection: filter out zaps that already exist in any post/reply
+    const storeState = usePostStore.getState();
+    const allPosts = [...storeState.posts, ...storeState.followingPosts, ...storeState.replies];
+    const existingZapIds = new Set<string>();
+    allPosts.forEach(post => {
+      post.zaps.forEach(zap => existingZapIds.add(zap.id));
+    });
+
+    // Filter out duplicates before processing
+    const newZapEvents = zapEvents.filter(zapEvent => !existingZapIds.has(zapEvent.id));
+    
+    if (newZapEvents.length === 0) {
+      // All zaps are duplicates, skip processing
+      return;
+    }
+
+    console.log('Processing zap batch:', newZapEvents.length, 'new zaps (filtered from', zapEvents.length, 'total)');
 
     // Extract zap payer pubkeys using utility function
-    const zapPayerPubkeys = extractZapPayerPubkeys([], zapEvents);
+    const zapPayerPubkeys = extractZapPayerPubkeys([], newZapEvents);
 
     // Load all profiles in one batch
     const profiles = await loadProfilesBatched(Array.from(zapPayerPubkeys));
 
     // Process each zap with cached profile data and update posts
-    for (const zapEvent of zapEvents) {
+    for (const zapEvent of newZapEvents) {
       const processedZap = processNewZapWithProfiles(zapEvent, profiles);
       if (!processedZap) continue;
 
@@ -92,86 +115,66 @@ export const useSubscriptions = ({
       } catch {}
 
       // Update posts with the new zap
-      const storeState = usePostStore.getState();
-      const currentPosts = storeState.posts;
-      const postIndex = currentPosts.findIndex(post => post.id === postId);
-      if (postIndex !== -1) {
-        const post = currentPosts[postIndex];
-        if (post) {
-          const existingZapInState = post.zaps.find(zap => zap.id === zapEvent.id);
-          if (!existingZapInState) {
-            const isWithinLimits = isZapWithinLimits(
-              processedZap.zapAmount,
-              post.zapMin,
-              post.zapMax
-            );
-            const updatedPost: PubPayPost = {
-              ...post,
-              zaps: [...post.zaps, processedZap],
-              zapAmount: post.zapAmount + processedZap.zapAmount,
-              zapUsesCurrent: post.zapUsesCurrent + (isWithinLimits ? 1 : 0)
-            };
-            const newPosts = [...storeState.posts];
-            newPosts[postIndex] = updatedPost;
-            setPosts(newPosts);
-          }
+      // Note: We already filtered duplicates above, but double-check here as a safety measure
+      const currentStoreState = usePostStore.getState();
+      const post = currentStoreState.posts.find(p => p.id === postId);
+      if (post) {
+        const existingZapInState = post.zaps.find(zap => zap.id === zapEvent.id);
+        if (!existingZapInState) {
+          const isWithinLimits = isZapWithinLimits(
+            processedZap.zapAmount,
+            post.zapMin,
+            post.zapMax
+          );
+          updatePost(postId, {
+            zaps: [...post.zaps, processedZap],
+            zapAmount: post.zapAmount + processedZap.zapAmount,
+            zapUsesCurrent: post.zapUsesCurrent + (isWithinLimits ? 1 : 0)
+          });
         }
+        // Skip silently if duplicate (already filtered above, but safety check)
       }
 
       // Also update following posts if this post exists there
-      const currentFollowingPosts = storeState.followingPosts;
-      const followingPostIndex = currentFollowingPosts.findIndex(post => post.id === postId);
-      if (followingPostIndex !== -1) {
-        const post = currentFollowingPosts[followingPostIndex];
-        if (post) {
-          const existingZapInState = post.zaps.find(zap => zap.id === zapEvent.id);
-          if (!existingZapInState) {
-            const isWithinLimits = isZapWithinLimits(
-              processedZap.zapAmount,
-              post.zapMin,
-              post.zapMax
-            );
-            const updatedPost: PubPayPost = {
-              ...post,
-              zaps: [...post.zaps, processedZap],
-              zapAmount: post.zapAmount + processedZap.zapAmount,
-              zapUsesCurrent: post.zapUsesCurrent + (isWithinLimits ? 1 : 0)
-            };
-            const newFollowingPosts = [...storeState.followingPosts];
-            newFollowingPosts[followingPostIndex] = updatedPost;
-            setFollowingPosts(newFollowingPosts);
-          }
+      const followingPost = currentStoreState.followingPosts.find(p => p.id === postId);
+      if (followingPost) {
+        const existingZapInState = followingPost.zaps.find(zap => zap.id === zapEvent.id);
+        if (!existingZapInState) {
+          const isWithinLimits = isZapWithinLimits(
+            processedZap.zapAmount,
+            followingPost.zapMin,
+            followingPost.zapMax
+          );
+          updateFollowingPost(postId, {
+            zaps: [...followingPost.zaps, processedZap],
+            zapAmount: followingPost.zapAmount + processedZap.zapAmount,
+            zapUsesCurrent: followingPost.zapUsesCurrent + (isWithinLimits ? 1 : 0)
+          });
         }
       }
 
       // Also update replies if this post exists there
-      const currentReplies = storeState.replies;
-      const replyIndex = currentReplies.findIndex(reply => reply.id === postId);
-      if (replyIndex !== -1) {
-        console.log('Zap processed: updating reply at index', replyIndex, 'for postId:', postId);
-        const reply = currentReplies[replyIndex];
-        if (reply) {
-          const existingZapInState = reply.zaps.find(zap => zap.id === zapEvent.id);
-          if (!existingZapInState) {
-            const isWithinLimits = isZapWithinLimits(
-              processedZap.zapAmount,
-              reply.zapMin,
-              reply.zapMax
-            );
-            const updatedReply: PubPayPost = {
-              ...reply,
-              zaps: [...reply.zaps, processedZap],
-              zapAmount: reply.zapAmount + processedZap.zapAmount,
-              zapUsesCurrent: reply.zapUsesCurrent + (isWithinLimits ? 1 : 0)
-            };
-            const newReplies = [...storeState.replies];
-            newReplies[replyIndex] = updatedReply;
-            setReplies(newReplies);
-          }
+      const reply = currentStoreState.replies.find(r => r.id === postId);
+      if (reply) {
+        const existingZapInState = reply.zaps.find(zap => zap.id === zapEvent.id);
+        if (!existingZapInState) {
+          const isWithinLimits = isZapWithinLimits(
+            processedZap.zapAmount,
+            reply.zapMin,
+            reply.zapMax
+          );
+          updateReply(postId, {
+            zaps: [...reply.zaps, processedZap],
+            zapAmount: reply.zapAmount + processedZap.zapAmount,
+            zapUsesCurrent: reply.zapUsesCurrent + (isWithinLimits ? 1 : 0)
+          });
         }
       }
     }
   };
+
+  // Store the function in ref so it's stable across renders
+  processZapBatchRef.current = processZapBatch;
 
   // Process a new note event and add it to the feed
   const processNewNote = async (noteEvent: Kind1Event) => {
@@ -263,7 +266,7 @@ export const useSubscriptions = ({
         console.log('Post already exists in state, skipping:', noteEvent.id);
       } else {
         console.log('Adding new post to feed:', noteEvent.id);
-        setPosts([newPost, ...currentPosts]);
+        addPost(newPost);
       }
 
       // Also add to following posts if we're in following mode
@@ -272,7 +275,7 @@ export const useSubscriptions = ({
         const current = currentStoreState.followingPosts;
         const exists = current.find(post => post.id === noteEvent.id);
         if (!exists) {
-          setFollowingPosts([newPost, ...current]);
+          addFollowingPost(newPost);
         }
       }
 
@@ -368,28 +371,40 @@ export const useSubscriptions = ({
         // Type guard to ensure this is a zap event
         if (zapEvent.kind !== 9735) return;
 
-        // Add to batch for processing
-        zapBatchRef.current.push(zapEvent as Kind9735Event);
+            // Add to batch for processing
+            zapBatchRef.current.push(zapEvent as Kind9735Event);
+            console.log('Zap added to batch, batch size:', zapBatchRef.current.length, 'processZapBatchRef available:', !!processZapBatchRef.current);
 
-        // Clear existing timeout
-        if (zapBatchTimeoutRef.current) {
-          clearTimeout(zapBatchTimeoutRef.current);
-        }
+            // Clear existing timeout
+            if (zapBatchTimeoutRef.current) {
+              clearTimeout(zapBatchTimeoutRef.current);
+            }
 
-        // Process batch after 500ms delay (or immediately if batch is large)
-        if (zapBatchRef.current.length >= 10) {
-          // Process immediately if batch is large
-          const batchToProcess = [...zapBatchRef.current];
-          zapBatchRef.current = [];
-          await processZapBatch(batchToProcess);
-        } else {
-          // Process after delay
-          zapBatchTimeoutRef.current = setTimeout(async () => {
-            const batchToProcess = [...zapBatchRef.current];
-            zapBatchRef.current = [];
-            await processZapBatch(batchToProcess);
-          }, 500);
-        }
+            // Process batch after 500ms delay (or immediately if batch is large)
+            if (zapBatchRef.current.length >= 10) {
+              // Process immediately if batch is large
+              const batchToProcess = [...zapBatchRef.current];
+              zapBatchRef.current = [];
+              console.log('Processing zap batch immediately, batch size:', batchToProcess.length, 'processZapBatchRef.current:', !!processZapBatchRef.current);
+              if (processZapBatchRef.current) {
+                await processZapBatchRef.current(batchToProcess);
+              } else {
+                console.error('processZapBatchRef.current is null!');
+              }
+            } else {
+              // Process after delay
+              console.log('Scheduling zap batch processing, current batch size:', zapBatchRef.current.length, 'processZapBatchRef.current:', !!processZapBatchRef.current);
+              zapBatchTimeoutRef.current = setTimeout(async () => {
+                const batchToProcess = [...zapBatchRef.current];
+                zapBatchRef.current = [];
+                console.log('Processing zap batch after delay, batch size:', batchToProcess.length, 'processZapBatchRef.current:', !!processZapBatchRef.current);
+                if (processZapBatchRef.current) {
+                  await processZapBatchRef.current(batchToProcess);
+                } else {
+                  console.error('processZapBatchRef.current is null in timeout!');
+                }
+              }, 500);
+            }
       },
       {
         oneose: () => {
@@ -403,144 +418,309 @@ export const useSubscriptions = ({
   };
 
   // Subscribe to new posts in real-time (only posts created after we started loading)
+  // Use Zustand's subscribe API to watch for changes without causing re-renders
   useEffect(() => {
-    const storeState = usePostStore.getState();
-    if (!nostrClientRef.current || storeState.isLoading) {
-      return () => {}; // Return empty cleanup function
-    }
+    let lastPostIds = '';
+    let lastActiveFeed = '';
+    let lastNostrReady = false;
+    let lastIsLoading = false;
+    let lastNewestTimestamp = 0;
+    let lastSubscriptionSince = 0; // Track the 'since' value we used for the last subscription
 
-    // Detect single-post mode via URL (?note=...)
-    let singlePostMode = false;
-    let singlePostEventId: string | null = null;
-    try {
-      if (typeof window !== 'undefined') {
-        const params = new URLSearchParams(window.location.search);
-        const qNote = params.get('note');
-        const path = window.location.pathname || '';
-        let noteRef: string | null = null;
-        if (qNote) noteRef = qNote;
-        else if (path.startsWith('/note/'))
-          noteRef = path.split('/note/')[1] || null;
-
-        if (noteRef) {
+    const checkAndUpdateSubscription = () => {
+      const storeState = usePostStore.getState();
+      if (!nostrClientRef.current || storeState.isLoading || !storeState.nostrReady) {
+        // Clean up subscription if not ready
+        if (subscriptionRef.current) {
           try {
-            const decoded = nip19.decode(noteRef);
-            if (decoded.type === 'note' || decoded.type === 'nevent') {
-              // note: decoded.data is id; nevent: decoded.data.id
-              singlePostEventId =
-                (decoded as any).data?.id || (decoded as any).data || null;
-              singlePostMode = !!singlePostEventId;
-            }
-          } catch {}
-        }
-      }
-    } catch {}
-
-    // Determine which posts to subscribe to based on active feed
-    const currentStoreState = usePostStore.getState();
-    const activeFeed = currentStoreState.activeFeed;
-    const currentPosts = activeFeed === 'following' ? currentStoreState.followingPosts : currentStoreState.posts;
-
-    // If in following mode and user follows nobody, don't set up subscription
-    if (
-      activeFeed === 'following' &&
-      followingPubkeysRef.current.length === 0
-    ) {
-      console.log('Following feed with 0 follows - no subscription needed');
-      return () => {}; // Return empty cleanup function
-    }
-
-    // Skip subscription if following too many people (relay will reject)
-    if (
-      activeFeed === 'following' &&
-      followingPubkeysRef.current.length > 100
-    ) {
-      console.log(
-        `Following ${followingPubkeysRef.current.length} authors - skipping real-time subscription to avoid relay errors`
-      );
-      return () => {}; // Return empty cleanup function
-    }
-
-    if (currentPosts.length === 0) {
-      return () => {}; // Return empty cleanup function
-    }
-
-    // Determine the cutoff time: only listen to posts NEWER than our newest post
-    const cutoffTime =
-      newestPostTimestampRef.current || Math.floor(Date.now() / 1000);
-
-    console.log(
-      'Setting up new post subscription since:',
-      cutoffTime,
-      'for feed:',
-      activeFeed
-    );
-
-    // Build filter based on active feed
-    const filter: any = {
-      kinds: [1],
-      '#t': ['pubpay'],
-      since: cutoffTime + 1 // Only posts created AFTER our newest post
-    };
-
-    // If in following mode, only subscribe to posts from followed authors
-    if (activeFeed === 'following' && followingPubkeysRef.current.length > 0) {
-      filter.authors = [...followingPubkeysRef.current];
-      console.log(
-        'Filtering by followed authors:',
-        followingPubkeysRef.current.length
-      );
-    }
-
-    // In single-post mode we do NOT subscribe to new posts
-    let notesSub: any = null;
-    if (!singlePostMode) {
-      // Subscribe to new kind 1 events with 'pubpay' tag created after our newest post
-      notesSub = nostrClientRef.current.subscribeToEvents(
-        [filter],
-        async (noteEvent: NostrEvent) => {
-          // Type guard to ensure this is a note event
-          if (noteEvent.kind !== 1) return;
-
-          console.log('Received new post in real-time:', noteEvent.id);
-          // Process and add to feed (duplicate check is inside processNewNote)
-          await processNewNote(noteEvent as Kind1Event);
-        },
-        {
-          oneose: () => {
-            console.log('New post subscription EOS');
-          },
-          onclosed: () => {
-            console.log('New post subscription closed');
+            subscriptionRef.current.unsubscribe();
+            subscriptionRef.current = null;
+          } catch (e) {
+            console.warn('Error unsubscribing from notes subscription:', e);
           }
         }
+        return;
+      }
+
+      // Detect single-post mode via URL (?note=...)
+      let singlePostMode = false;
+      let singlePostEventId: string | null = null;
+      try {
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const qNote = params.get('note');
+          const path = window.location.pathname || '';
+          let noteRef: string | null = null;
+          if (qNote) noteRef = qNote;
+          else if (path.startsWith('/note/'))
+            noteRef = path.split('/note/')[1] || null;
+
+          if (noteRef) {
+            try {
+              const decoded = nip19.decode(noteRef);
+              if (decoded.type === 'note' || decoded.type === 'nevent') {
+                singlePostEventId =
+                  (decoded as any).data?.id || (decoded as any).data || null;
+                singlePostMode = !!singlePostEventId;
+              }
+            } catch {}
+          }
+        }
+      } catch {}
+
+      const activeFeed = storeState.activeFeed;
+      const currentPosts = activeFeed === 'following' ? storeState.followingPosts : storeState.posts;
+      const eventIds = currentPosts.map(post => post.id);
+      const postIds = eventIds.join(',');
+
+      // Calculate newest timestamp from actual posts, not the ref (which might be stale)
+      let newestTimestamp = 0;
+      if (currentPosts.length > 0) {
+        // Get the newest post's timestamp from the actual posts array
+        newestTimestamp = Math.max(...currentPosts.map(post => post.createdAt));
+      } else {
+        // If no posts, use the ref or current time
+        newestTimestamp = newestPostTimestampRef.current || Math.floor(Date.now() / 1000);
+      }
+
+      // Calculate the 'since' value we would use for the subscription
+      const newSubscriptionSince = newestTimestamp + 1;
+
+      // Only update if something actually changed AND the subscription 'since' value would change significantly
+      // Don't recreate subscription if only the timestamp changed by a few seconds (likely just time passing)
+      const subscriptionSinceChanged = Math.abs(newSubscriptionSince - lastSubscriptionSince) > 5; // Only if changed by more than 5 seconds
+
+      if (postIds === lastPostIds && activeFeed === lastActiveFeed &&
+          storeState.nostrReady === lastNostrReady && storeState.isLoading === lastIsLoading &&
+          !subscriptionSinceChanged && singlePostMode === (!!singlePostEventId)) {
+        return;
+      }
+
+      lastPostIds = postIds;
+      lastActiveFeed = activeFeed;
+      lastNostrReady = storeState.nostrReady;
+      lastIsLoading = storeState.isLoading;
+      lastNewestTimestamp = newestTimestamp;
+
+      // If in following mode and user follows nobody, don't set up subscription
+      if (
+        activeFeed === 'following' &&
+        followingPubkeysRef.current.length === 0
+      ) {
+        console.log('Following feed with 0 follows - no subscription needed');
+        if (subscriptionRef.current) {
+          try {
+            subscriptionRef.current.unsubscribe();
+            subscriptionRef.current = null;
+          } catch (e) {
+            console.warn('Error unsubscribing from notes subscription:', e);
+          }
+        }
+        return;
+      }
+
+      // Skip subscription if following too many people (relay will reject)
+      if (
+        activeFeed === 'following' &&
+        followingPubkeysRef.current.length > 100
+      ) {
+        console.log(
+          `Following ${followingPubkeysRef.current.length} authors - skipping real-time subscription to avoid relay errors`
+        );
+        if (subscriptionRef.current) {
+          try {
+            subscriptionRef.current.unsubscribe();
+            subscriptionRef.current = null;
+          } catch (e) {
+            console.warn('Error unsubscribing from notes subscription:', e);
+          }
+        }
+        return;
+      }
+
+      if (currentPosts.length === 0) {
+        console.log('No posts available yet, skipping new post subscription setup');
+        if (subscriptionRef.current) {
+          try {
+            subscriptionRef.current.unsubscribe();
+            subscriptionRef.current = null;
+          } catch (e) {
+            console.warn('Error unsubscribing from notes subscription:', e);
+          }
+        }
+        return;
+      }
+
+      // Use the subscription 'since' value we calculated earlier
+      const subscriptionSince = newSubscriptionSince;
+
+      console.log(
+        'Setting up new post subscription since:',
+        subscriptionSince,
+        'for feed:',
+        activeFeed,
+        'posts count:',
+        currentPosts.length,
+        'newest post timestamp:',
+        newestTimestamp
       );
-      subscriptionRef.current = notesSub;
-    }
 
-    // Subscribe to new zaps for all current posts
-    // Only recreate subscription if event IDs have actually changed
-    let eventIds: string[] = [];
-    if (singlePostMode && singlePostEventId) {
-      // In single post mode, include both the main post and all reply IDs
-      const currentStoreState = usePostStore.getState();
-      const replyIds = currentStoreState.replies.map(reply => reply.id);
-      eventIds = [singlePostEventId, ...replyIds];
-    } else if (currentPosts.length > 0) {
-      eventIds = currentPosts.map(post => post.id);
-    }
+      // Build filter based on active feed
+      const filter: any = {
+        kinds: [1],
+        '#t': ['pubpay'],
+        since: subscriptionSince
+      };
 
-    // Check if event IDs have changed
-    const currentEventIdsSet = new Set(eventIds);
-    const eventIdsChanged =
-      eventIds.length !== subscribedEventIdsRef.current.size ||
-      eventIds.some(id => !subscribedEventIdsRef.current.has(id)) ||
-      Array.from(subscribedEventIdsRef.current).some(id => !currentEventIdsSet.has(id));
+      // Update the last subscription 'since' value
+      lastSubscriptionSince = subscriptionSince;
 
-    // Only create/update subscription if event IDs changed or subscription doesn't exist
-    if ((singlePostMode && singlePostEventId) || currentPosts.length > 0) {
-      if (!zapSubscriptionRef.current || eventIdsChanged) {
-        // Clean up old subscription if it exists
+      // If in following mode, only subscribe to posts from followed authors
+      if (activeFeed === 'following' && followingPubkeysRef.current.length > 0) {
+        filter.authors = [...followingPubkeysRef.current];
+        console.log(
+          'Filtering by followed authors:',
+          followingPubkeysRef.current.length
+        );
+      }
+
+      // In single-post mode we do NOT subscribe to new posts
+      if (!singlePostMode) {
+        // Only recreate subscription if it doesn't exist or if the 'since' value changed significantly
+        const needsNewSubscription = !subscriptionRef.current || subscriptionSinceChanged;
+        
+        if (needsNewSubscription) {
+          // Clean up old subscription if it exists
+          if (subscriptionRef.current) {
+            try {
+              subscriptionRef.current.unsubscribe();
+            } catch (e) {
+              console.warn('Error unsubscribing from old notes subscription:', e);
+            }
+          }
+
+          // Subscribe to new kind 1 events with 'pubpay' tag created after our newest post
+          const notesSub = nostrClientRef.current.subscribeToEvents(
+            [filter],
+            async (noteEvent: NostrEvent) => {
+              // Type guard to ensure this is a note event
+              if (noteEvent.kind !== 1) return;
+
+              console.log('Received new post in real-time:', noteEvent.id, 'from author:', noteEvent.pubkey);
+              // Process and add to feed (duplicate check is inside processNewNote)
+              await processNewNote(noteEvent as Kind1Event);
+            },
+            {
+              oneose: () => {
+                console.log('New post subscription EOS');
+                // EOS is normal - it just means the relay finished sending initial results
+                // The subscription stays active for new events
+              },
+              onclosed: () => {
+                console.log('New post subscription closed');
+              }
+            }
+          );
+          subscriptionRef.current = notesSub;
+        } else {
+          console.log('Skipping subscription recreation - no significant changes');
+        }
+      } else {
+        // In single post mode, clean up subscription
+        if (subscriptionRef.current) {
+          try {
+            subscriptionRef.current.unsubscribe();
+            subscriptionRef.current = null;
+          } catch (e) {
+            console.warn('Error unsubscribing from notes subscription:', e);
+          }
+        }
+      }
+    };
+
+    // Initial check
+    checkAndUpdateSubscription();
+
+    // Subscribe to store changes (this doesn't cause re-renders)
+    const unsubscribe = usePostStore.subscribe(checkAndUpdateSubscription);
+
+    // Also watch for newestPostTimestampRef changes (we need to poll this since refs don't trigger subscriptions)
+    // But only check every 5 seconds to avoid too frequent updates
+    const timestampCheckInterval = setInterval(() => {
+      const storeState = usePostStore.getState();
+      const activeFeed = storeState.activeFeed;
+      const currentPosts = activeFeed === 'following' ? storeState.followingPosts : storeState.posts;
+      
+      // Calculate newest timestamp from actual posts
+      let currentTimestamp = 0;
+      if (currentPosts.length > 0) {
+        currentTimestamp = Math.max(...currentPosts.map(post => post.createdAt));
+      } else {
+        currentTimestamp = newestPostTimestampRef.current || 0;
+      }
+      
+      // Only trigger update if timestamp changed significantly (more than 5 seconds)
+      if (currentTimestamp > 0 && Math.abs(currentTimestamp - lastNewestTimestamp) > 5) {
+        lastNewestTimestamp = currentTimestamp;
+        checkAndUpdateSubscription();
+      }
+    }, 5000); // Check every 5 seconds instead of every second
+
+    return () => {
+      unsubscribe();
+      clearInterval(timestampCheckInterval);
+      if (subscriptionRef.current) {
+        try {
+          subscriptionRef.current.unsubscribe();
+          subscriptionRef.current = null;
+        } catch (e) {
+          console.warn('Error unsubscribing from notes subscription:', e);
+        }
+      }
+    };
+  }, []);
+
+  // Watch for posts changes and update zap subscription when posts are first loaded
+  // Use Zustand's subscribe API to avoid causing re-renders
+  useEffect(() => {
+    let lastPostIds = '';
+    let lastActiveFeed = '';
+    let lastNostrReady = false;
+    let lastIsLoading = false;
+
+    const checkAndUpdateSubscription = () => {
+      const storeState = usePostStore.getState();
+      if (!nostrClientRef.current || storeState.isLoading || !storeState.nostrReady) {
+        return;
+      }
+
+      const activeFeed = storeState.activeFeed;
+      const currentPosts = activeFeed === 'following' ? storeState.followingPosts : storeState.posts;
+      const eventIds = currentPosts.map(post => post.id);
+      const postIds = eventIds.join(',');
+      
+      // Only update if something actually changed
+      if (postIds === lastPostIds && activeFeed === lastActiveFeed && 
+          storeState.nostrReady === lastNostrReady && storeState.isLoading === lastIsLoading) {
+        return;
+      }
+
+      lastPostIds = postIds;
+      lastActiveFeed = activeFeed;
+      lastNostrReady = storeState.nostrReady;
+      lastIsLoading = storeState.isLoading;
+
+      const currentEventIdsSet = new Set(eventIds);
+      const eventIdsChanged =
+        eventIds.length !== subscribedEventIdsRef.current.size ||
+        eventIds.some(id => !subscribedEventIdsRef.current.has(id)) ||
+        Array.from(subscribedEventIdsRef.current).some(id => !currentEventIdsSet.has(id));
+
+      // Only create/update subscription if we have posts and event IDs changed
+      if (currentPosts.length > 0 && eventIdsChanged) {
+        console.log('Posts changed, updating zap subscription - event IDs:', eventIds.length);
+        
+        // Clean up old subscription
         if (zapSubscriptionRef.current) {
           try {
             zapSubscriptionRef.current.unsubscribe();
@@ -552,12 +732,7 @@ export const useSubscriptions = ({
         // Update tracked event IDs
         subscribedEventIdsRef.current = currentEventIdsSet;
 
-        const currentStoreState = usePostStore.getState();
-        console.log('Creating/updating zap subscription with event IDs:', eventIds.length, 'in single post mode:', singlePostMode);
-        if (singlePostMode && singlePostEventId) {
-          console.log('Single post mode - main post:', singlePostEventId, 'replies:', currentStoreState.replies.length);
-        }
-
+        // Create new subscription
         zapSubscriptionRef.current = nostrClientRef.current.subscribeToEvents(
           [
             {
@@ -566,24 +741,13 @@ export const useSubscriptions = ({
             }
           ],
           async (zapEvent: NostrEvent) => {
+            console.log('Zap event received:', zapEvent.id, 'kind:', zapEvent.kind);
             // Type guard to ensure this is a zap event
-            if (zapEvent.kind !== 9735) return;
-            // Extra guard in single post mode: ensure zap references our event id or reply IDs
-            if (singlePostMode && singlePostEventId) {
-              const eTag = zapEvent.tags.find(t => t[0] === 'e');
-              if (!eTag || !eTag[1]) {
-                console.log('Zap event rejected: no e tag or event ID');
-                return;
-              }
-              // Check if it's for the main post or any reply
-              const currentStoreState = usePostStore.getState();
-              const replyIds = currentStoreState.replies.map(reply => reply.id);
-              if (eTag[1] !== singlePostEventId && !replyIds.includes(eTag[1])) {
-                console.log('Zap event rejected: event ID not in main post or replies', eTag[1], 'main:', singlePostEventId, 'replies:', replyIds);
-                return;
-              }
-              console.log('Zap event accepted for single post mode:', eTag[1], 'is main post:', eTag[1] === singlePostEventId, 'is reply:', replyIds.includes(eTag[1]));
+            if (zapEvent.kind !== 9735) {
+              console.log('Zap event rejected: wrong kind', zapEvent.kind);
+              return;
             }
+
             // Add to batch for processing
             zapBatchRef.current.push(zapEvent as Kind9735Event);
 
@@ -597,13 +761,24 @@ export const useSubscriptions = ({
               // Process immediately if batch is large
               const batchToProcess = [...zapBatchRef.current];
               zapBatchRef.current = [];
-              await processZapBatch(batchToProcess);
+              console.log('Processing zap batch immediately, batch size:', batchToProcess.length, 'processZapBatchRef.current:', !!processZapBatchRef.current);
+              if (processZapBatchRef.current) {
+                await processZapBatchRef.current(batchToProcess);
+              } else {
+                console.error('processZapBatchRef.current is null!');
+              }
             } else {
               // Process after delay
+              console.log('Scheduling zap batch processing, current batch size:', zapBatchRef.current.length, 'processZapBatchRef.current:', !!processZapBatchRef.current);
               zapBatchTimeoutRef.current = setTimeout(async () => {
                 const batchToProcess = [...zapBatchRef.current];
                 zapBatchRef.current = [];
-                await processZapBatch(batchToProcess);
+                console.log('Processing zap batch after delay, batch size:', batchToProcess.length, 'processZapBatchRef.current:', !!processZapBatchRef.current);
+                if (processZapBatchRef.current) {
+                  await processZapBatchRef.current(batchToProcess);
+                } else {
+                  console.error('processZapBatchRef.current is null in timeout!');
+                }
               }, 500);
             }
           },
@@ -617,35 +792,18 @@ export const useSubscriptions = ({
           }
         );
       }
-    }
+    };
+
+    // Initial check
+    checkAndUpdateSubscription();
+
+    // Subscribe to store changes (this doesn't cause re-renders)
+    const unsubscribe = usePostStore.subscribe(checkAndUpdateSubscription);
 
     return () => {
-      // Clean up existing subscriptions before creating new ones
-      if (subscriptionRef.current) {
-        try {
-          subscriptionRef.current.unsubscribe();
-        } catch (e) {
-          console.warn('Error unsubscribing from notes subscription:', e);
-        }
-        subscriptionRef.current = null;
-      }
-      if (notesSub) {
-        try {
-          notesSub.unsubscribe();
-        } catch (e) {
-          console.warn('Error unsubscribing from new notes subscription:', e);
-        }
-      }
-      if (zapSubscriptionRef.current) {
-        try {
-          zapSubscriptionRef.current.unsubscribe();
-        } catch (e) {
-          console.warn('Error unsubscribing from zaps subscription:', e);
-        }
-        zapSubscriptionRef.current = null;
-      }
+      unsubscribe();
     };
-  }, []); // Empty deps - use store.getState() inside for current values
+  }, []);
 
   // Update zap subscription when replies change in single post mode
   useEffect(() => {
@@ -745,12 +903,16 @@ export const useSubscriptions = ({
           if (zapBatchRef.current.length >= 10) {
             const batchToProcess = [...zapBatchRef.current];
             zapBatchRef.current = [];
-            await processZapBatch(batchToProcess);
+            if (processZapBatchRef.current) {
+              await processZapBatchRef.current(batchToProcess);
+            }
           } else {
             zapBatchTimeoutRef.current = setTimeout(async () => {
               const batchToProcess = [...zapBatchRef.current];
               zapBatchRef.current = [];
-              await processZapBatch(batchToProcess);
+              if (processZapBatchRef.current) {
+                await processZapBatchRef.current(batchToProcess);
+              }
             }, 500);
           }
         },

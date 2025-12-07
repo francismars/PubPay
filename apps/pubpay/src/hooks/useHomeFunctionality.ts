@@ -292,7 +292,7 @@ export const useHomeFunctionality = () => {
 
   // Get store actions to pass to useSubscriptions
   // Actions are stable references, so we can use them directly from the actions hook
-  const { setPosts: setPostsActionForSubs, setFollowingPosts: setFollowingPostsActionForSubs, setReplies: setRepliesActionForSubs } = usePostActions();
+  const { updatePost, updateFollowingPost, updateReply, addPost, addFollowingPost } = usePostActions();
 
   // Use subscriptions hook - now uses store actions directly
   useSubscriptions({
@@ -304,9 +304,11 @@ export const useHomeFunctionality = () => {
     zapBatchRef,
     zapBatchTimeoutRef,
     subscribedEventIdsRef,
-    setPosts: setPostsActionForSubs,
-    setFollowingPosts: setFollowingPostsActionForSubs,
-    setReplies: setRepliesActionForSubs,
+    updatePost,
+    updateFollowingPost,
+    updateReply,
+    addPost,
+    addFollowingPost,
     loadProfilesBatched,
     validateLightningAddresses,
     validateNip05s
