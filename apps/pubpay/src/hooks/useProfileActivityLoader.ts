@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { QUERY_LIMITS, LIMITS } from '../constants';
 import { useProfileActions } from '../stores/useProfileStore';
+import { useAbortController } from './useAbortController';
+import { safeAsync, isAbortError } from '../utils/asyncHelpers';
 
 interface UseProfileActivityLoaderOptions {
   targetPubkey: string;
@@ -16,11 +18,13 @@ export const useProfileActivityLoader = (
   const { targetPubkey, nostrClient } = options;
 
   const { setActivityLoading, setActivityStats } = useProfileActions();
+  const { signal, isAborted } = useAbortController();
 
   // Load activity stats (lightweight - IDs only for counting)
   useEffect(() => {
     const loadActivityStats = async () => {
       if (!targetPubkey || !nostrClient) return;
+      if (isAborted) return;
 
       setActivityLoading(true);
       try {
@@ -41,6 +45,12 @@ export const useProfileActivityLoader = (
           );
 
           while (hasMore) {
+            // Check if aborted before each batch
+            if (isAborted) {
+              hasMore = false;
+              break;
+            }
+            
             batchCount++;
             try {
               const batchFilter = {
@@ -52,6 +62,12 @@ export const useProfileActivityLoader = (
               const batch = (await nostrClient.getEvents([
                 batchFilter
               ])) as any[];
+
+              // Check if aborted after async operation
+              if (isAborted) {
+                hasMore = false;
+                break;
+              }
 
               console.log(
                 `[${description}] Batch ${batchCount} - Received ${batch.length} events`
@@ -150,6 +166,7 @@ export const useProfileActivityLoader = (
           description: string
         ): Promise<number> => {
           if (eventIdsSet.size === 0) return 0;
+          if (isAborted) return 0;
 
           const seen = new Set<string>();
 
@@ -160,8 +177,12 @@ export const useProfileActivityLoader = (
               { kinds: [9735], '#p': [targetPubkey], limit: LIMITS.ZAP_QUERY_LIMIT }
             ])) as any[];
 
+            // Check if aborted after async operation
+            if (isAborted) return 0;
+
             // Filter to only zaps that reference events in our set
             for (const receipt of receipts) {
+              if (isAborted) break;
               if (!receipt || !receipt.id || !receipt.tags) continue;
 
               // Check if this zap references one of our events
@@ -182,10 +203,16 @@ export const useProfileActivityLoader = (
           return seen.size;
         };
 
+        // Check if aborted before final processing
+        if (isAborted) return;
+
         const [pubpaysReceived, zapsReceived] = await Promise.all([
           countZapsForEventIds(paynoteIds, 'pubpays received'),
           countZapsForEventIds(allNoteIds, 'zaps received')
         ]);
+
+        // Check if aborted before state update
+        if (isAborted) return;
 
         setActivityStats({
           paynotesCreated: paynoteIds.size,
@@ -193,19 +220,26 @@ export const useProfileActivityLoader = (
           zapsReceived
         });
       } catch (error) {
+        if (isAbortError(error)) {
+          console.log('Activity stats load aborted (component unmounted)');
+          return;
+        }
         console.error('Error loading activity stats:', error);
         // Set to zero on error
+        if (isAborted) return;
         setActivityStats({
           paynotesCreated: 0,
           pubpaysReceived: 0,
           zapsReceived: 0
         });
       } finally {
-        setActivityLoading(false);
+        if (!isAborted) {
+          setActivityLoading(false);
+        }
       }
     };
 
-    loadActivityStats();
-  }, [targetPubkey, nostrClient, setActivityLoading, setActivityStats]);
+    safeAsync(loadActivityStats, signal);
+  }, [targetPubkey, nostrClient, setActivityLoading, setActivityStats, signal, isAborted]);
 };
 

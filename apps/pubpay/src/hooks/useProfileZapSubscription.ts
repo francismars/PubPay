@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   ensureProfiles,
   getQueryClient
@@ -9,6 +9,8 @@ import bolt11 from 'bolt11';
 import { genericUserIcon } from '../assets/images';
 import { PubPayPost } from './useHomeFunctionality';
 import { useProfileActions, useUserPaynotes } from '../stores/useProfileStore';
+import { useAbortController } from './useAbortController';
+import { safeAsync, isAbortError } from '../utils/asyncHelpers';
 
 interface UseProfileZapSubscriptionOptions {
   nostrClient: any;
@@ -25,6 +27,7 @@ export const useProfileZapSubscription = (
 
   const { setUserPaynotes } = useProfileActions();
   const userPaynotes = useUserPaynotes();
+  const { signal, isAborted } = useAbortController();
 
   // Subscribe to new zaps for profile page posts
   const paynoteEventIds = useMemo(
@@ -32,16 +35,47 @@ export const useProfileZapSubscription = (
     [userPaynotes]
   );
 
+  // Track previous event IDs to only re-subscribe when the set of posts actually changes
+  const previousEventIdsRef = useRef<Set<string>>(new Set());
+  const subscriptionRef = useRef<any>(null);
+
   useEffect(() => {
     if (!nostrClient || !nostrReady || paynoteEventIds.length === 0) {
       return;
     }
 
-    const eventIds = paynoteEventIds;
+    // Create a Set from current event IDs for comparison
+    const currentEventIdsSet = new Set(paynoteEventIds);
+    
+    // Check if the set of IDs actually changed (not just the array reference)
+    const previousSet = previousEventIdsRef.current;
+    const idsChanged = 
+      currentEventIdsSet.size !== previousSet.size ||
+      !Array.from(currentEventIdsSet).every(id => previousSet.has(id));
+
+    // Only re-subscribe if the actual set of post IDs changed
+    if (!idsChanged && subscriptionRef.current) {
+      // IDs haven't changed, keep existing subscription
+      return;
+    }
+
+    // Unsubscribe from previous subscription if it exists
+    if (subscriptionRef.current) {
+      try {
+        subscriptionRef.current.unsubscribe();
+      } catch (e) {
+        console.warn('Error unsubscribing from previous zap subscription:', e);
+      }
+    }
+
+    // Update the ref with current IDs
+    previousEventIdsRef.current = currentEventIdsSet;
+
+    const eventIds = Array.from(currentEventIdsSet);
 
     console.log('Profile page: subscribing to zaps for', eventIds.length, 'posts');
 
-    const zapSubscription = nostrClient.subscribeToEvents(
+    subscriptionRef.current = nostrClient.subscribeToEvents(
       [
         {
           kinds: [9735],
@@ -50,6 +84,7 @@ export const useProfileZapSubscription = (
       ],
       async (zapEvent: any) => {
         if (zapEvent.kind !== 9735) return;
+        if (isAborted) return;
 
         const eTag = zapEvent.tags.find((t: any[]) => t[0] === 'e');
         if (!eTag || !eTag[1]) return;
@@ -98,13 +133,21 @@ export const useProfileZapSubscription = (
         // Load zap payer profile
         let zapPayerProfile = null;
         try {
+          if (isAborted) return;
+          
           const profileMap = await ensureProfiles(
             getQueryClient(),
             nostrClient,
             [zapPayerPubkey]
           );
+          
+          if (isAborted) return;
+          
           zapPayerProfile = profileMap.get(zapPayerPubkey);
         } catch (error) {
+          if (isAbortError(error)) {
+            return;
+          }
           console.error('Error loading zap payer profile:', error);
         }
 
@@ -119,6 +162,8 @@ export const useProfileZapSubscription = (
 
         const zapPayerNpub = nip19.npubEncode(zapPayerPubkey);
 
+        if (isAborted) return;
+
         const processedZap = {
           ...zapEvent,
           zapAmount,
@@ -130,6 +175,7 @@ export const useProfileZapSubscription = (
 
         // Update the post in userPaynotes
         setUserPaynotes(prevPaynotes => {
+          if (isAborted) return prevPaynotes;
           const newPaynotes = [...prevPaynotes];
           const postIndex = newPaynotes.findIndex(post => post.id === postId);
           if (postIndex === -1) return newPaynotes;
@@ -186,14 +232,15 @@ export const useProfileZapSubscription = (
     );
 
     return () => {
-      if (zapSubscription) {
+      if (subscriptionRef.current) {
         try {
-          zapSubscription.unsubscribe();
+          subscriptionRef.current.unsubscribe();
+          subscriptionRef.current = null;
         } catch (e) {
           console.warn('Error unsubscribing from profile zap subscription:', e);
         }
       }
     };
-  }, [nostrClient, nostrReady, paynoteEventIds.join(','), setUserPaynotes]);
+  }, [nostrClient, nostrReady, paynoteEventIds.join(','), setUserPaynotes, signal, isAborted]);
 };
 

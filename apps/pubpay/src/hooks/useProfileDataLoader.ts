@@ -11,6 +11,8 @@ import {
   useProfileActions,
   useProfileDataWithValidation
 } from '../stores/useProfileStore';
+import { useAbortController } from './useAbortController';
+import { safeAsync, safeTimeout, isAbortError } from '../utils/asyncHelpers';
 
 interface UseProfileDataLoaderOptions {
   targetPubkey: string;
@@ -51,6 +53,7 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
   } = useProfileActions();
 
   const { profileData } = useProfileDataWithValidation();
+  const { signal, isAborted } = useAbortController();
 
   // Handle profile updates from edit page - force refetch and update
   useEffect(() => {
@@ -64,20 +67,35 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
       const queryClient = getQueryClient();
       queryClient.removeQueries({ queryKey: ['profile', publicKey] });
       // Force refetch own profile from relays and update local state
-      (async () => {
+      safeAsync(async () => {
+        if (isAborted) return;
+        
         try {
-          await new Promise(resolve => setTimeout(resolve, TIMEOUT.MEDIUM_DELAY)); // Small delay to ensure relays have the event
+          // Small delay to ensure relays have the event
+          await new Promise<void>(resolve => {
+            const timeoutId = safeTimeout(() => resolve(), TIMEOUT.MEDIUM_DELAY, signal);
+            if (!timeoutId) resolve();
+          });
+          
+          if (isAborted) return;
+          
           const profileMap = await ensureProfiles(
             getQueryClient(),
             nostrClient,
             [publicKey]
           );
+          
+          if (isAborted) return;
+          
           const profileEvent = profileMap.get(publicKey);
           if (profileEvent?.content) {
             const content =
               typeof profileEvent.content === 'string'
                 ? JSON.parse(profileEvent.content)
                 : profileEvent.content;
+            
+            if (isAborted) return;
+            
             setProfileData({
               displayName:
                 content.display_name ||
@@ -93,9 +111,13 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
             });
           }
         } catch (error) {
+          if (isAbortError(error)) {
+            console.log('Profile refresh aborted (component unmounted)');
+            return;
+          }
           console.error('Failed to refresh profile after update:', error);
         }
-      })();
+      }, signal);
       // Clear location state
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -106,7 +128,9 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
     location.pathname,
     nostrClient,
     isOwnProfile,
-    setProfileData
+    setProfileData,
+    signal,
+    isAborted
   ]);
 
   // Load profile data - either from own profile or fetch external profile
@@ -114,6 +138,8 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
     let waitForProfileTimeout: NodeJS.Timeout | null = null;
 
     const loadProfileData = async () => {
+      if (isAborted) return;
+      
       const startTime = Date.now();
       setLoadStartTime(startTime);
       setProfileDataLoaded(false);
@@ -125,11 +151,12 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
         // Ensure minimum display time for skeletons (300ms)
         const elapsed = Date.now() - startTime;
         const remainingTime = Math.max(0, 300 - elapsed);
-        setTimeout(() => {
+        safeTimeout(() => {
+          if (isAborted) return;
           setIsInitialLoad(false);
           setIsLoadingProfile(false);
           setProfileDataLoaded(true);
-        }, remainingTime);
+        }, remainingTime, signal);
       };
 
       if (isOwnProfile) {
@@ -138,21 +165,26 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
         if (isLoggedIn && userProfile === null) {
           // User is logged in but userProfile is null - might still be loading
           // Wait a bit to see if it loads, then mark as loaded
-          waitForProfileTimeout = setTimeout(() => {
+          waitForProfileTimeout = safeTimeout(() => {
+            if (isAborted) return;
             // After 500ms, if userProfile is still null, it's confirmed not available
             markAsLoaded();
-          }, 500);
+          }, 500, signal);
           return; // Exit early, will re-run when userProfile changes
         }
 
         // Load own profile from userProfile
         if (userProfile?.content) {
           try {
+            if (isAborted) return;
+            
             const content =
               typeof userProfile.content === 'string'
                 ? JSON.parse(userProfile.content)
                 : userProfile.content;
 
+            if (isAborted) return;
+            
             setProfileData({
               displayName:
                 content.display_name ||
@@ -169,6 +201,9 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
 
             markAsLoaded();
           } catch (error) {
+            if (isAbortError(error)) {
+              return;
+            }
             console.error('Failed to parse profile content:', error);
             markAsLoaded();
           }
@@ -180,6 +215,7 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
       } else if (targetPubkey && nostrClient) {
         // Validate pubkey format (use original pubkey parameter for validation)
         if (!isValidPublicKey(pubkey || publicKey || '')) {
+          if (isAborted) return;
           setProfileError('Invalid public key format');
           return;
         }
@@ -187,12 +223,17 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
         // Load external profile using ensureProfiles
         setIsLoadingProfile(true);
         try {
+          if (isAborted) return;
+          
           console.log('Loading profile for pubkey:', targetPubkey);
           const profileMap = await ensureProfiles(
             getQueryClient(),
             nostrClient,
             [targetPubkey]
           );
+          
+          if (isAborted) return;
+          
           const profileEvent = profileMap.get(targetPubkey);
           console.log('Profile event received:', profileEvent);
 
@@ -202,6 +243,8 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
                 ? JSON.parse(profileEvent.content)
                 : profileEvent.content;
 
+            if (isAborted) return;
+            
             setProfileData({
               displayName:
                 content.display_name ||
@@ -217,6 +260,8 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
             });
           } else {
             // Profile not found, show minimal profile
+            if (isAborted) return;
+            
             setProfileData({
               displayName: '',
               bio: '',
@@ -230,14 +275,19 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
 
           markAsLoaded();
         } catch (error) {
+          if (isAbortError(error)) {
+            console.log('Profile load aborted (component unmounted)');
+            return;
+          }
           console.error('Failed to load external profile:', error);
+          if (isAborted) return;
           setProfileError('Failed to load profile');
           markAsLoaded();
         }
       }
     };
 
-    loadProfileData();
+    safeAsync(loadProfileData, signal);
 
     // Cleanup: clear timeout if component unmounts or dependencies change
     return () => {
@@ -258,28 +308,47 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
     setProfileError,
     setIsInitialLoad,
     setLoadStartTime,
-    setProfileDataLoaded
+    setProfileDataLoaded,
+    signal,
+    isAborted
   ]);
 
   // Validate NIP-05 when it changes
   useEffect(() => {
     if (!profileData.nip05 || !targetPubkey) {
+      if (isAborted) return;
       setNip05Valid(null);
       setNip05Validating(false);
       return;
     }
 
+    if (isAborted) return;
+    
     setNip05Validating(true);
-    Nip05ValidationService.validateNip05(profileData.nip05, targetPubkey)
-      .then(isValid => {
+    
+    safeAsync(async () => {
+      if (isAborted) return;
+      
+      try {
+        const isValid = await Nip05ValidationService.validateNip05(
+          profileData.nip05,
+          targetPubkey
+        );
+        
+        if (isAborted) return;
+        
         setNip05Valid(isValid);
         setNip05Validating(false);
-      })
-      .catch(error => {
+      } catch (error) {
+        if (isAbortError(error)) {
+          return;
+        }
         console.warn('Failed to validate NIP-05:', error);
+        if (isAborted) return;
         setNip05Valid(false);
         setNip05Validating(false);
-      });
-  }, [profileData.nip05, targetPubkey, setNip05Valid, setNip05Validating]);
+      }
+    }, signal);
+  }, [profileData.nip05, targetPubkey, setNip05Valid, setNip05Validating, signal, isAborted]);
 };
 
