@@ -1,10 +1,11 @@
-import { useCallback } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { NostrClient } from '@pubpay/shared-services';
 import { safeJson } from '@pubpay/shared-utils';
 import { Kind1Event, Kind0Event } from '@pubpay/shared-types';
 import { TIMEOUT } from '../constants';
 import type { PubPayPost, FeedType } from '../types/postTypes';
 import { usePostStore } from '../stores/usePostStore';
+import { useAbortController } from './useAbortController';
 
 interface UseNoteProcessorOptions {
   nostrClientRef: React.MutableRefObject<NostrClient | null>;
@@ -28,6 +29,12 @@ export const useNoteProcessor = (options: UseNoteProcessorOptions) => {
     validateNip05s,
     updateZapSubscriptionForNewPost
   } = options;
+
+  // Add AbortController to prevent memory leaks
+  const { signal, isAborted } = useAbortController();
+
+  // Track timeout IDs for cleanup
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const processNewNote = useCallback(
     async (noteEvent: Kind1Event) => {
@@ -145,7 +152,19 @@ export const useNoteProcessor = (options: UseNoteProcessorOptions) => {
 
         // Trigger validation for lightning addresses and NIP-05 on the new post
         // Use a small delay to ensure the post is in state before validating
-        setTimeout(() => {
+        // FIX: Track timeout for cleanup to prevent memory leaks
+        // Clear any existing timeout
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+
+        timeoutRef.current = setTimeout(() => {
+          // Check if aborted before executing
+          if (isAborted) {
+            timeoutRef.current = null;
+            return;
+          }
+
           const storeState = usePostStore.getState();
           const activeFeed = storeState.activeFeed;
           const postsArray =
@@ -157,6 +176,7 @@ export const useNoteProcessor = (options: UseNoteProcessorOptions) => {
             validateLightningAddresses([newPostInArray], activeFeed);
             validateNip05s([newPostInArray], activeFeed);
           }
+          timeoutRef.current = null;
         }, TIMEOUT.SHORT_DELAY);
       } catch (error) {
         console.error('Error processing new note:', error);
@@ -168,9 +188,21 @@ export const useNoteProcessor = (options: UseNoteProcessorOptions) => {
       addFollowingPost,
       validateLightningAddresses,
       validateNip05s,
-      updateZapSubscriptionForNewPost
+      updateZapSubscriptionForNewPost,
+      signal,
+      isAborted
     ]
   );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
 
   return {
     processNewNote
