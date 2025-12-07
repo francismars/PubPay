@@ -19,29 +19,34 @@ import { useFeedLoader } from './useFeedLoader';
 import { useSubscriptions } from './useSubscriptions';
 import { useServices } from './useServices';
 import { useExternalSigner } from './useExternalSigner';
-import { usePostStore } from '../stores/usePostStore';
+import { usePostStore, usePostStoreData, usePostActions } from '../stores/usePostStore';
 
 export const useHomeFunctionality = () => {
-  // Use Zustand store for posts and feed state
-  const posts = usePostStore(state => state.posts);
-  const followingPosts = usePostStore(state => state.followingPosts);
-  const replies = usePostStore(state => state.replies);
-  const activeFeed = usePostStore(state => state.activeFeed);
-  const isLoading = usePostStore(state => state.isLoading);
-  const isLoadingMore = usePostStore(state => state.isLoadingMore);
-  const nostrReady = usePostStore(state => state.nostrReady);
-  const paymentErrors = usePostStore(state => state.paymentErrors);
+  // Use optimized selector hook to get all post state in a single subscription
+  // This prevents unnecessary re-renders by using shallow equality
+  const {
+    posts,
+    followingPosts,
+    replies,
+    activeFeed,
+    isLoading,
+    isLoadingMore,
+    nostrReady,
+    paymentErrors
+  } = usePostStoreData();
 
-  // Store actions - wrapped to match React setState signature for backward compatibility
-  const setPostsStore = usePostStore(state => state.setPosts);
-  const setFollowingPostsStore = usePostStore(state => state.setFollowingPosts);
-  const setRepliesStore = usePostStore(state => state.setReplies);
-  const setActiveFeed = usePostStore(state => state.setActiveFeed);
-  const setIsLoadingStore = usePostStore(state => state.setIsLoading);
-  const setIsLoadingMoreStore = usePostStore(state => state.setIsLoadingMore);
-  const setNostrReadyStore = usePostStore(state => state.setNostrReady);
-  const setPaymentErrorStore = usePostStore(state => state.setPaymentError);
-  const clearPosts = usePostStore(state => state.clearAllPosts);
+  // Get store actions - wrapped to match React setState signature for backward compatibility
+  const {
+    setPosts: setPostsStore,
+    setFollowingPosts: setFollowingPostsStore,
+    setReplies: setRepliesStore,
+    setActiveFeed,
+    setIsLoading: setIsLoadingStore,
+    setIsLoadingMore: setIsLoadingMoreStore,
+    setNostrReady: setNostrReadyStore,
+    setPaymentError: setPaymentErrorStore,
+    clearAllPosts: clearPosts
+  } = usePostActions();
 
   // Wrapper functions to match React.Dispatch<SetStateAction<T>> signature
   // Memoized to prevent infinite re-renders
@@ -104,11 +109,11 @@ export const useHomeFunctionality = () => {
       const currentPaymentErrors = usePostStore.getState().paymentErrors;
       const newErrors = value(currentPaymentErrors);
       // Update store for each error
-      newErrors.forEach((error, postId) => {
+      newErrors.forEach((error: string, postId: string) => {
         setPaymentErrorStore(postId, error);
       });
       // Remove errors that are no longer in the map
-      currentPaymentErrors.forEach((_, postId) => {
+      currentPaymentErrors.forEach((_: string, postId: string) => {
         if (!newErrors.has(postId)) {
           setPaymentErrorStore(postId, null);
         }
@@ -116,10 +121,10 @@ export const useHomeFunctionality = () => {
     } else {
       // Clear all and set new ones
       const currentPaymentErrors = usePostStore.getState().paymentErrors;
-      currentPaymentErrors.forEach((_, postId) => {
+      currentPaymentErrors.forEach((_: string, postId: string) => {
         setPaymentErrorStore(postId, null);
       });
-      value.forEach((error, postId) => {
+      value.forEach((error: string, postId: string) => {
         setPaymentErrorStore(postId, error);
       });
     }
@@ -286,9 +291,8 @@ export const useHomeFunctionality = () => {
   });
 
   // Get store actions to pass to useSubscriptions
-  const setPostsActionForSubs = usePostStore(state => state.setPosts);
-  const setFollowingPostsActionForSubs = usePostStore(state => state.setFollowingPosts);
-  const setRepliesActionForSubs = usePostStore(state => state.setReplies);
+  // Actions are stable references, so we can use them directly from the actions hook
+  const { setPosts: setPostsActionForSubs, setFollowingPosts: setFollowingPostsActionForSubs, setReplies: setRepliesActionForSubs } = usePostActions();
 
   // Use subscriptions hook - now uses store actions directly
   useSubscriptions({

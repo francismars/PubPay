@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import type { PubPayPost } from '../types/postTypes';
 
 type FeedType = 'global' | 'following';
@@ -182,4 +183,133 @@ export const usePostStore = create<PostStore>((set, get) => ({
     return state.replies.find(r => r.id === replyId);
   }
 }));
+
+// Optimized selector hooks with shallow equality to prevent unnecessary re-renders
+
+type PostStoreData = {
+  posts: PubPayPost[];
+  followingPosts: PubPayPost[];
+  replies: PubPayPost[];
+  activeFeed: FeedType;
+  isLoading: boolean;
+  isLoadingMore: boolean;
+  nostrReady: boolean;
+  paymentErrors: Map<string, string>;
+};
+
+/**
+ * Hook to get all post-related state in a single subscription
+ * Uses shallow equality to prevent re-renders when object reference changes but values are the same
+ */
+export const usePostStoreData = (): PostStoreData =>
+  usePostStore(
+    useShallow(state => ({
+      posts: state.posts,
+      followingPosts: state.followingPosts,
+      replies: state.replies,
+      activeFeed: state.activeFeed,
+      isLoading: state.isLoading,
+      isLoadingMore: state.isLoadingMore,
+      nostrReady: state.nostrReady,
+      paymentErrors: state.paymentErrors
+    }))
+  );
+
+/**
+ * Hook to get only post arrays (posts, followingPosts, replies)
+ */
+export const usePosts = () =>
+  usePostStore(
+    useShallow(state => ({
+      posts: state.posts,
+      followingPosts: state.followingPosts,
+      replies: state.replies
+    }))
+  );
+
+/**
+ * Hook to get feed-related state (activeFeed, loading states)
+ */
+export const useFeedState = () =>
+  usePostStore(
+    useShallow(state => ({
+      activeFeed: state.activeFeed,
+      isLoading: state.isLoading,
+      isLoadingMore: state.isLoadingMore,
+      nostrReady: state.nostrReady
+    }))
+  );
+
+type PostStoreActions = Pick<
+  PostStore,
+  | 'setPosts'
+  | 'setFollowingPosts'
+  | 'setReplies'
+  | 'addPost'
+  | 'addFollowingPost'
+  | 'addReply'
+  | 'updatePost'
+  | 'updateFollowingPost'
+  | 'updateReply'
+  | 'removePost'
+  | 'removeFollowingPost'
+  | 'removeReply'
+  | 'clearPosts'
+  | 'clearFollowingPosts'
+  | 'clearReplies'
+  | 'clearAllPosts'
+  | 'setActiveFeed'
+  | 'setIsLoading'
+  | 'setIsLoadingMore'
+  | 'setNostrReady'
+  | 'setPaymentError'
+  | 'clearPaymentError'
+  | 'clearPaymentErrors'
+>;
+
+/**
+ * Hook to get all post store actions
+ * Actions are stable references, so shallow comparison is still beneficial
+ */
+export const usePostActions = (): PostStoreActions =>
+  usePostStore(
+    useShallow(state => ({
+      setPosts: state.setPosts,
+      setFollowingPosts: state.setFollowingPosts,
+      setReplies: state.setReplies,
+      addPost: state.addPost,
+      addFollowingPost: state.addFollowingPost,
+      addReply: state.addReply,
+      updatePost: state.updatePost,
+      updateFollowingPost: state.updateFollowingPost,
+      updateReply: state.updateReply,
+      removePost: state.removePost,
+      removeFollowingPost: state.removeFollowingPost,
+      removeReply: state.removeReply,
+      clearPosts: state.clearPosts,
+      clearFollowingPosts: state.clearFollowingPosts,
+      clearReplies: state.clearReplies,
+      clearAllPosts: state.clearAllPosts,
+      setActiveFeed: state.setActiveFeed,
+      setIsLoading: state.setIsLoading,
+      setIsLoadingMore: state.setIsLoadingMore,
+      setNostrReady: state.setNostrReady,
+      setPaymentError: state.setPaymentError,
+      clearPaymentError: state.clearPaymentError,
+      clearPaymentErrors: state.clearPaymentErrors
+    }))
+  );
+
+/**
+ * Individual selector hooks for single values (when you only need one field)
+ * These are still optimized as they only subscribe to one field
+ */
+export const usePostsList = () => usePostStore(state => state.posts);
+export const useFollowingPostsList = () => usePostStore(state => state.followingPosts);
+export const useRepliesList = () => usePostStore(state => state.replies);
+export const useActiveFeed = () => usePostStore(state => state.activeFeed);
+export const useIsLoading = () => usePostStore(state => state.isLoading);
+export const useIsLoadingMore = () => usePostStore(state => state.isLoadingMore);
+export const useNostrReady = () => usePostStore(state => state.nostrReady);
+export const usePaymentErrors = () => usePostStore(state => state.paymentErrors);
 
