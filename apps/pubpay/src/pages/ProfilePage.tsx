@@ -25,7 +25,16 @@ import { nip19, finalizeEvent, verifyEvent } from 'nostr-tools';
 import { PayNoteComponent } from '../components/PayNoteComponent/PayNoteComponent';
 import { Nip05PurchaseOverlay } from '../components/Nip05PurchaseOverlay/Nip05PurchaseOverlay';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
-import { usePostStore } from '../stores/usePostStore';
+import { useNostrReady, usePaymentErrors } from '../stores/usePostStore';
+import {
+  useProfileState,
+  useProfileActions,
+  useProfileLoadingStates,
+  useProfileDataWithValidation,
+  useUserPaynotesWithPagination,
+  useFollowState,
+  useProfileManagementActions
+} from '../stores/useProfileStore';
 import { parseZapDescription, safeJson } from '@pubpay/shared-utils';
 import bolt11 from 'bolt11';
 import { genericUserIcon } from '../assets/images';
@@ -67,9 +76,9 @@ const ProfilePage: React.FC = () => {
   const location = useLocation();
   const { pubkey } = useParams<{ pubkey?: string }>();
   
-  // Use stores directly for state
-  const nostrReady = usePostStore(state => state.nostrReady);
-  const paymentErrors = usePostStore(state => state.paymentErrors);
+  // Use reusable selector hooks
+  const nostrReady = useNostrReady();
+  const paymentErrors = usePaymentErrors();
   const openLogin = useUIStore(s => s.openLogin);
   
   // Get authState and handlers from Layout context (authState includes privateKey from local state)
@@ -233,46 +242,75 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // Profile data state
-  const [profileData, setProfileData] = useState({
-    displayName: '',
-    bio: '',
-    website: '',
-    banner: '',
-    picture: '',
-    lightningAddress: '',
-    nip05: ''
-  });
-  const [nip05Valid, setNip05Valid] = useState<boolean | null>(null);
-  const [nip05Validating, setNip05Validating] = useState(false);
+  // Use composite hooks for optimized state access
+  const {
+    isLoadingProfile,
+    isLoadingPaynotes,
+    activityLoading,
+    profileError,
+    isInitialLoad,
+    profileDataLoaded
+  } = useProfileLoadingStates();
+  
+  const {
+    profileData,
+    nip05Valid,
+    nip05Validating
+  } = useProfileDataWithValidation();
+  
+  const {
+    userPaynotes,
+    hasMorePaynotes,
+    paynotesUntil
+  } = useUserPaynotesWithPagination();
+  
+  const {
+    isFollowing,
+    followBusy,
+    setIsFollowing,
+    setFollowBusy
+  } = useFollowState();
+  
+  // Get remaining state that's not in composite hooks
+  const { activityStats, loadStartTime, currentProfilePubkey } = useProfileState();
 
-  // Loading state for external profiles
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [loadStartTime, setLoadStartTime] = useState<number | null>(null);
-  const [profileDataLoaded, setProfileDataLoaded] = useState(false);
+  // Use composite hooks for actions
+  const {
+    setProfileData,
+    setUserPaynotes,
+    addUserPaynotes,
+    updateUserPaynote,
+    clearUserPaynotes,
+    setCurrentProfile
+  } = useProfileManagementActions();
+  
+  // Get remaining actions
+  const {
+    setNip05Valid,
+    setNip05Validating,
+    setIsLoadingProfile,
+    setProfileError,
+    setIsInitialLoad,
+    setLoadStartTime,
+    setProfileDataLoaded,
+    setActivityLoading,
+    setActivityStats,
+    setIsLoadingPaynotes,
+    setHasMorePaynotes,
+    setPaynotesUntil
+  } = useProfileActions();
 
-  // Activity stats (counts only for now)
-  const [activityLoading, setActivityLoading] = useState(false);
-  const [activityStats, setActivityStats] = useState({
-    paynotesCreated: 0,
-    pubpaysReceived: 0,
-    zapsReceived: 0
-  });
+  // Set current profile in store when target pubkey changes
+  useEffect(() => {
+    if (targetPubkey && targetPubkey !== currentProfilePubkey) {
+      setCurrentProfile(targetPubkey);
+    }
+  }, [targetPubkey, currentProfilePubkey, setCurrentProfile]);
 
-  // Paynotes data
-  const [userPaynotes, setUserPaynotes] = useState<PubPayPost[]>([]);
-  const [isLoadingPaynotes, setIsLoadingPaynotes] = useState(false);
-  const [hasMorePaynotes, setHasMorePaynotes] = useState(false);
-  const [paynotesUntil, setPaynotesUntil] = useState<number | undefined>(undefined);
   // Track lightning addresses being validated to avoid duplicate calls
   const validatingLightningAddressesRef = React.useRef<Set<string>>(new Set());
   // Track NIP-05 identifiers being validated to avoid duplicate calls
   const validatingNip05sRef = React.useRef<Set<string>>(new Set());
-
-  const [isFollowing, setIsFollowing] = useState<boolean>(false);
-  const [followBusy, setFollowBusy] = useState<boolean>(false);
 
   // Check follow status (auth user's contacts)
   useEffect(() => {
@@ -727,7 +765,7 @@ const ProfilePage: React.FC = () => {
 
       if (!loadMore) {
         setIsLoadingPaynotes(true);
-        setUserPaynotes([]);
+        clearUserPaynotes();
         setPaynotesUntil(undefined);
       }
 

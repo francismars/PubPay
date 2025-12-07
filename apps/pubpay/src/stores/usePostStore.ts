@@ -313,3 +313,61 @@ export const useIsLoadingMore = () => usePostStore(state => state.isLoadingMore)
 export const useNostrReady = () => usePostStore(state => state.nostrReady);
 export const usePaymentErrors = () => usePostStore(state => state.paymentErrors);
 
+/**
+ * Common composite hooks for frequently used patterns
+ */
+
+// Loading states together
+export const useLoadingStates = () =>
+  usePostStore(
+    useShallow(state => ({
+      isLoading: state.isLoading,
+      isLoadingMore: state.isLoadingMore,
+      nostrReady: state.nostrReady
+    }))
+  );
+
+// Post management actions (most commonly used)
+export const usePostManagementActions = () =>
+  usePostStore(
+    useShallow(state => ({
+      addPost: state.addPost,
+      updatePost: state.updatePost,
+      removePost: state.removePost,
+      clearPosts: state.clearPosts
+    }))
+  );
+
+// Feed management actions
+export const useFeedManagementActions = () =>
+  usePostStore(
+    useShallow(state => ({
+      setActiveFeed: state.setActiveFeed,
+      setPosts: state.setPosts,
+      setFollowingPosts: state.setFollowingPosts,
+      clearAllPosts: state.clearAllPosts
+    }))
+  );
+
+// Payment error management
+export const usePaymentErrorActions = () =>
+  usePostStore(
+    useShallow(state => ({
+      setPaymentError: state.setPaymentError,
+      clearPaymentError: state.clearPaymentError,
+      clearPaymentErrors: state.clearPaymentErrors
+    }))
+  );
+
+// Get a single post by ID (useful utility)
+export const usePostById = (postId: string) =>
+  usePostStore(state => {
+    const post = state.posts.find(p => p.id === postId);
+    if (post) return post;
+    return state.followingPosts.find(p => p.id === postId);
+  });
+
+// Get payment error for a specific post
+export const usePaymentErrorForPost = (postId: string) =>
+  usePostStore(state => state.paymentErrors.get(postId));
+

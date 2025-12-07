@@ -3,6 +3,7 @@ import { DEFAULT_READ_RELAYS, DEFAULT_WRITE_RELAYS, AuthService } from '@pubpay/
 import { useUIStore } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
 import { TOAST_DURATION, STORAGE_KEYS, PROTOCOLS, CONTENT_TYPES, COLORS } from '../constants';
+import { useShowPasswordPrompt, useModalActions } from '../stores/useModalStore';
 
 interface RelayConfig {
   url: string;
@@ -47,7 +48,8 @@ const SettingsPage: React.FC = () => {
   const [nsec, setNsec] = useState<string | null>(null);
   const [copiedNsec, setCopiedNsec] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const showPasswordPrompt = useShowPasswordPrompt();
+  const { openPasswordPrompt, closePasswordPrompt } = useModalActions();
   const [passwordPromptPassword, setPasswordPromptPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
@@ -362,7 +364,7 @@ const SettingsPage: React.FC = () => {
 
     // Check if password is required
     if (AuthService.requiresPassword() && !nsec) {
-      setShowPasswordPrompt(true);
+      openPasswordPrompt();
       setPasswordPromptPassword('');
       setPasswordError('');
       return;
@@ -381,7 +383,7 @@ const SettingsPage: React.FC = () => {
       const decryptedNsec = await AuthService.decryptStoredPrivateKey(passwordPromptPassword.trim());
       if (decryptedNsec) {
         setNsec(decryptedNsec);
-        setShowPasswordPrompt(false);
+        closePasswordPrompt();
         setShowNsec(true);
         setPasswordPromptPassword('');
         setPasswordError('');
@@ -743,7 +745,7 @@ const SettingsPage: React.FC = () => {
           justifyContent: 'center'
         }}
         onClick={() => {
-          setShowPasswordPrompt(false);
+          closePasswordPrompt();
           setPasswordPromptPassword('');
           setPasswordError('');
         }}
@@ -805,7 +807,7 @@ const SettingsPage: React.FC = () => {
             <button
               className="addButton"
               onClick={() => {
-                setShowPasswordPrompt(false);
+                closePasswordPrompt();
                 setPasswordPromptPassword('');
                 setPasswordError('');
               }}

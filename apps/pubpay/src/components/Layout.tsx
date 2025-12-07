@@ -1,9 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useUIStore, NostrRegistrationService, AuthService } from '@pubpay/shared-services';
 import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { usePostStoreData } from '../stores/usePostStore';
+import {
+  useModalState,
+  useModalActions,
+  useExtensionAvailability,
+  useLoginFormState,
+  useLoginFormActions,
+  useNewPayNoteForm,
+  useShowQRScanner,
+  useShowPasswordPrompt
+} from '../stores/useModalStore';
 import { nip19 } from 'nostr-tools';
 import { NewPayNoteOverlay } from './NewPayNoteOverlay/NewPayNoteOverlay';
 import { StatusToast } from './StatusToast/StatusToast';
@@ -18,26 +28,69 @@ import { QRScannerOverlay } from './QRScannerOverlay/QRScannerOverlay';
 import { TOAST_DURATION, STORAGE_KEYS } from '../constants';
 
 export const Layout: React.FC = () => {
-  const [showQRScanner, setShowQRScanner] = useState(false);
+  // Use composite hooks for optimized state access
+  const showQRScanner = useShowQRScanner();
+  const showPasswordPrompt = useShowPasswordPrompt();
+
+  // Get remaining modal state that's not in composite hooks
+  const { showLoggedInForm } = useModalState();
+
+  // Use composite hooks for grouped state
+  const {
+    extensionAvailable,
+    externalSignerAvailable,
+    externalSignerLoading
+  } = useExtensionAvailability();
+
+  const {
+    showNsecGroup,
+    nsecInput,
+    nsecPassword,
+    showRecoveryGroup,
+    recoveryMnemonic,
+    recoveryPassword
+  } = useLoginFormState();
+
+  const {
+    show: showNewPayNoteForm,
+    isPublishing,
+    open: openNewPayNoteForm,
+    close: closeNewPayNoteForm,
+    setIsPublishing
+  } = useNewPayNoteForm();
+
+  // Get actions - use composite hooks where available
+  const {
+    openQRScanner,
+    closeQRScanner,
+    openLoggedInForm,
+    closeLoggedInForm,
+    openPasswordPrompt,
+    closePasswordPrompt,
+    setExtensionAvailable,
+    setExternalSignerAvailable,
+    setExternalSignerLoading
+  } = useModalActions();
+
+  const {
+    openNsecGroup,
+    closeNsecGroup,
+    setNsecInput,
+    setNsecPassword,
+    resetNsecForm,
+    openRecoveryGroup,
+    closeRecoveryGroup,
+    setRecoveryMnemonic,
+    setRecoveryPassword,
+    resetRecoveryForm
+  } = useLoginFormActions();
+
+  // Shared UI store for login form and invoice overlay
   const showLoginForm = useUIStore(s => s.loginForm.show);
-  const [showLoggedInForm, setShowLoggedInForm] = useState(false);
   const showInvoiceOverlay = useUIStore(s => s.invoiceOverlay.show);
-  const [showNewPayNoteForm, setShowNewPayNoteForm] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
-  // const openInvoice = useUIStore(s => s.openInvoice);
   const closeInvoice = useUIStore(s => s.closeInvoice);
   const openLogin = useUIStore(s => s.openLogin);
   const closeLogin = useUIStore(s => s.closeLogin);
-  const [showNsecGroup, setShowNsecGroup] = useState(false);
-  const [nsecInput, setNsecInput] = useState('');
-  const [nsecPassword, setNsecPassword] = useState('');
-  const [showRecoveryGroup, setShowRecoveryGroup] = useState(false);
-  const [recoveryMnemonic, setRecoveryMnemonic] = useState('');
-  const [recoveryPassword, setRecoveryPassword] = useState('');
-  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
-  const [extensionAvailable, setExtensionAvailable] = useState(true);
-  const [externalSignerAvailable, setExternalSignerAvailable] = useState(true);
-  const [externalSignerLoading, setExternalSignerLoading] = useState(false);
 
   // Use optimized selector hook to get all post state in a single subscription
   // This prevents unnecessary re-renders by using shallow equality
@@ -76,30 +129,26 @@ export const Layout: React.FC = () => {
 
   // Reset login form to main state
   const resetLoginForm = () => {
-    setShowNsecGroup(false);
-    setNsecInput('');
-    setNsecPassword('');
-    setShowRecoveryGroup(false);
-    setRecoveryMnemonic('');
-    setRecoveryPassword('');
-    setShowPasswordPrompt(false);
+    resetNsecForm();
+    resetRecoveryForm();
+    closePasswordPrompt();
   };
 
   const handleQRScannerOpen = () => {
-    setShowQRScanner(true);
+    openQRScanner();
   };
 
   // Listen for QR scanner open requests from wallet page
   useEffect(() => {
     const handleOpenQRScanner = () => {
-      setShowQRScanner(true);
+      openQRScanner();
     };
 
     window.addEventListener('openQRScanner', handleOpenQRScanner);
     return () => {
       window.removeEventListener('openQRScanner', handleOpenQRScanner);
     };
-  }, []);
+  }, [openQRScanner]);
 
   // Handle navigation to home feed - clear posts if coming from single note mode
   const handleNavigateToHome = () => {
@@ -113,11 +162,11 @@ export const Layout: React.FC = () => {
 
   const handleNsecScanned = (nsec: string) => {
     // Close QR scanner
-    setShowQRScanner(false);
+    closeQRScanner();
     // Open login form and show nsec input group
     resetLoginForm();
     openLogin();
-    setShowNsecGroup(true);
+    openNsecGroup();
     // Pre-fill the nsec input with scanned value
     setNsecInput(nsec);
     // Clear password field to allow user to optionally set one
@@ -139,7 +188,7 @@ export const Layout: React.FC = () => {
 
   const handleLoginOpen = () => {
     if (authState.isLoggedIn) {
-      setShowLoggedInForm(true);
+      openLoggedInForm();
     } else {
       resetLoginForm();
       openLogin();
@@ -161,7 +210,7 @@ export const Layout: React.FC = () => {
     // Check the result - if requiresPassword is false, the password was correct
     if (!result.requiresPassword) {
       // Success - password was correct and private key is now decrypted
-      setShowPasswordPrompt(false);
+      closePasswordPrompt();
       // Show success feedback
       try {
         useUIStore.getState().openToast('Password accepted. Welcome back!', 'success', false);
@@ -191,14 +240,14 @@ export const Layout: React.FC = () => {
         // 1. User is logged in with nsec method
         // 2. Private key is not yet decrypted (null)
         if (authState.isLoggedIn && authState.signInMethod === 'nsec' && !authState.privateKey) {
-          setShowPasswordPrompt(true);
+          openPasswordPrompt();
         } else if (authState.privateKey) {
           // Private key is now available, hide the prompt
-          setShowPasswordPrompt(false);
+          closePasswordPrompt();
         }
       } else if (authState.privateKey) {
         // Not password-protected or key is available, hide prompt
-        setShowPasswordPrompt(false);
+        closePasswordPrompt();
       }
     };
 
@@ -214,9 +263,7 @@ export const Layout: React.FC = () => {
       if (result.success && result.keyPair && result.keyPair.privateKey) {
         // Sign in with the recovered private key and optional password
         await handleContinueWithNsec(result.keyPair.privateKey, password);
-        setRecoveryMnemonic('');
-        setRecoveryPassword('');
-        setShowRecoveryGroup(false);
+        resetRecoveryForm();
         closeLogin();
       } else {
         alert(`Failed to recover keys: ${result.error || 'Invalid mnemonic'}`);
@@ -313,13 +360,13 @@ export const Layout: React.FC = () => {
   // Handler for opening new pay note form
   const handleOpenNewPayNoteForm = () => {
     if (authState.isLoggedIn) {
-      setShowNewPayNoteForm(true);
+      openNewPayNoteForm();
     }
   };
 
   // Handler for closing new pay note form
   const handleCloseNewPayNoteForm = () => {
-    setShowNewPayNoteForm(false);
+    closeNewPayNoteForm();
   };
 
   // Handler for posting a new note
@@ -327,7 +374,7 @@ export const Layout: React.FC = () => {
     setIsPublishing(true);
     try {
       await handlePostNote(formData);
-      setShowNewPayNoteForm(false);
+      closeNewPayNoteForm();
     } catch (error) {
       console.error('Failed to post note:', error);
     } finally {
@@ -358,7 +405,7 @@ export const Layout: React.FC = () => {
   useEffect(() => {
     setExtensionAvailable(true);
     setExternalSignerAvailable(true);
-  }, []);
+  }, [setExtensionAvailable, setExternalSignerAvailable]);
 
   // Initialize dark mode on mount
   useEffect(() => {
@@ -427,7 +474,7 @@ export const Layout: React.FC = () => {
       {/* QR Scanner Overlay */}
       <QRScannerOverlay
         isVisible={showQRScanner}
-        onClose={() => setShowQRScanner(false)}
+        onClose={closeQRScanner}
         onNsecScanned={handleNsecScanned}
       />
 
@@ -445,15 +492,15 @@ export const Layout: React.FC = () => {
         externalSignerLoading={externalSignerLoading}
         onSignInExtension={handleSignInExtensionWrapper}
         onSignInExternalSigner={handleSignInExternalSignerWrapper}
-        onShowNsecGroup={() => setShowNsecGroup(true)}
+        onShowNsecGroup={openNsecGroup}
         onShowRecoveryGroup={() => {
-          setShowNsecGroup(false);
-          setShowRecoveryGroup(true);
+          closeNsecGroup();
+          openRecoveryGroup();
         }}
-        onHideNsecGroup={() => setShowNsecGroup(false)}
+        onHideNsecGroup={closeNsecGroup}
         onHideRecoveryGroup={() => {
-          setShowRecoveryGroup(false);
-          setShowNsecGroup(true);
+          closeRecoveryGroup();
+          openNsecGroup();
         }}
         onContinueWithNsec={handleNsecContinue}
         onRecoverFromMnemonic={handleRecoveryFromMnemonic}
@@ -470,7 +517,7 @@ export const Layout: React.FC = () => {
       {/* Logged In Form Overlay */}
       <LoggedInFormOverlay
         isVisible={showLoggedInForm}
-        onClose={() => setShowLoggedInForm(false)}
+        onClose={closeLoggedInForm}
         authState={authState}
         onLogout={handleLogout}
       />
@@ -488,7 +535,7 @@ export const Layout: React.FC = () => {
         onSubmit={handlePasswordPromptSubmit}
         onLogout={() => {
           handleLogout();
-          setShowPasswordPrompt(false);
+          closePasswordPrompt();
         }}
       />
 
