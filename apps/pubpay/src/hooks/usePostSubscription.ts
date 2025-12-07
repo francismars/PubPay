@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { NostrClient } from '@pubpay/shared-services';
 import { NostrEvent, Kind1Event } from '@pubpay/shared-types';
 import { usePostStore } from '../stores/usePostStore';
@@ -25,14 +25,16 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
     processNewNote
   } = options;
 
-  useEffect(() => {
-    let lastPostIds = '';
-    let lastActiveFeed = '';
-    let lastNostrReady = false;
-    let lastIsLoading = false;
-    let lastNewestTimestamp = 0;
-    let lastSubscriptionSince = 0; // Track the 'since' value we used for the last subscription
+  // Use refs to track subscription state across renders
+  const lastPostIdsRef = useRef<string>('');
+  const lastActiveFeedRef = useRef<string>('');
+  const lastNostrReadyRef = useRef<boolean>(false);
+  const lastIsLoadingRef = useRef<boolean>(false);
+  const lastNewestTimestampRef = useRef<number>(0);
+  const lastSubscriptionSinceRef = useRef<number>(0);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  useEffect(() => {
     const checkAndUpdateSubscription = () => {
       const storeState = usePostStore.getState();
       if (
@@ -82,24 +84,24 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
       // Only update if something actually changed AND the subscription 'since' value would change significantly
       // Don't recreate subscription if only the timestamp changed by a few seconds (likely just time passing)
       const subscriptionSinceChanged =
-        Math.abs(newSubscriptionSince - lastSubscriptionSince) > 5; // Only if changed by more than 5 seconds
+        Math.abs(newSubscriptionSince - lastSubscriptionSinceRef.current) > 5; // Only if changed by more than 5 seconds
 
       if (
-        postIds === lastPostIds &&
-        activeFeed === lastActiveFeed &&
-        storeState.nostrReady === lastNostrReady &&
-        storeState.isLoading === lastIsLoading &&
+        postIds === lastPostIdsRef.current &&
+        activeFeed === lastActiveFeedRef.current &&
+        storeState.nostrReady === lastNostrReadyRef.current &&
+        storeState.isLoading === lastIsLoadingRef.current &&
         !subscriptionSinceChanged &&
         singlePostMode === !!singlePostEventId
       ) {
         return;
       }
 
-      lastPostIds = postIds;
-      lastActiveFeed = activeFeed;
-      lastNostrReady = storeState.nostrReady;
-      lastIsLoading = storeState.isLoading;
-      lastNewestTimestamp = newestTimestamp;
+      lastPostIdsRef.current = postIds;
+      lastActiveFeedRef.current = activeFeed;
+      lastNostrReadyRef.current = storeState.nostrReady;
+      lastIsLoadingRef.current = storeState.isLoading;
+      lastNewestTimestampRef.current = newestTimestamp;
 
       // If in following mode and user follows nobody, don't set up subscription
       if (
@@ -174,7 +176,7 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
       };
 
       // Update the last subscription 'since' value
-      lastSubscriptionSince = subscriptionSince;
+      lastSubscriptionSinceRef.current = subscriptionSince;
 
       // If in following mode, only subscribe to posts from followed authors
       if (
@@ -253,11 +255,65 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
       }
     };
 
-    // Initial check
+    // Debounced subscription check to prevent rapid recreations
+    const debouncedCheck = () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      debounceTimeoutRef.current = setTimeout(() => {
+        checkAndUpdateSubscription();
+      }, 300); // 300ms debounce
+    };
+
+    // Manual selector to only trigger on relevant state changes
+    // This prevents unnecessary calls when only post data (zaps, validation) changes
+    let lastRelevantState: {
+      postIds: string;
+      activeFeed: string;
+      nostrReady: boolean;
+      isLoading: boolean;
+      postsLength: number;
+    } | null = null;
+
+    const selectiveSubscriptionCallback = () => {
+      const storeState = usePostStore.getState();
+      const currentPosts =
+        storeState.activeFeed === 'following'
+          ? storeState.followingPosts
+          : storeState.posts;
+      const postIds = currentPosts.map(post => post.id).join(',');
+      
+      const currentRelevantState = {
+        postIds,
+        activeFeed: storeState.activeFeed,
+        nostrReady: storeState.nostrReady,
+        isLoading: storeState.isLoading,
+        postsLength: currentPosts.length
+      };
+
+      // Only trigger if relevant state actually changed
+      if (
+        lastRelevantState &&
+        lastRelevantState.postIds === currentRelevantState.postIds &&
+        lastRelevantState.activeFeed === currentRelevantState.activeFeed &&
+        lastRelevantState.nostrReady === currentRelevantState.nostrReady &&
+        lastRelevantState.isLoading === currentRelevantState.isLoading &&
+        lastRelevantState.postsLength === currentRelevantState.postsLength
+      ) {
+        // Relevant state hasn't changed, skip
+        return;
+      }
+
+      lastRelevantState = currentRelevantState;
+      debouncedCheck();
+    };
+
+    // Initial check (immediate, no debounce)
     checkAndUpdateSubscription();
 
-    // Subscribe to store changes (this doesn't cause re-renders)
-    const unsubscribe = usePostStore.subscribe(checkAndUpdateSubscription);
+    // Subscribe to store changes with selective callback
+    // This prevents unnecessary calls when only post data (zaps, validation) changes
+    const unsubscribe = usePostStore.subscribe(selectiveSubscriptionCallback);
 
     // Also watch for newestPostTimestampRef changes (we need to poll this since refs don't trigger subscriptions)
     // But only check every 5 seconds to avoid too frequent updates
@@ -282,16 +338,20 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
       // Only trigger update if timestamp changed significantly (more than 5 seconds)
       if (
         currentTimestamp > 0 &&
-        Math.abs(currentTimestamp - lastNewestTimestamp) > 5
+        Math.abs(currentTimestamp - lastNewestTimestampRef.current) > 5
       ) {
-        lastNewestTimestamp = currentTimestamp;
-        checkAndUpdateSubscription();
+        lastNewestTimestampRef.current = currentTimestamp;
+        debouncedCheck();
       }
     }, 5000); // Check every 5 seconds instead of every second
 
     return () => {
       unsubscribe();
       clearInterval(timestampCheckInterval);
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+      }
       if (subscriptionRef.current) {
         try {
           subscriptionRef.current.unsubscribe();

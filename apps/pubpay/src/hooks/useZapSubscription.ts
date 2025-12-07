@@ -142,13 +142,15 @@ export const useZapSubscription = (options: UseZapSubscriptionOptions) => {
   processZapBatchRef.current = processZapBatch;
 
   // Watch for posts changes and update zap subscription when posts are first loaded
+  // Use refs to track subscription state across renders
+  const lastPostIdsRef = useRef<string>('');
+  const lastActiveFeedRef = useRef<string>('');
+  const lastNostrReadyRef = useRef<boolean>(false);
+  const lastIsLoadingRef = useRef<boolean>(false);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Use Zustand's subscribe API to avoid causing re-renders
   useEffect(() => {
-    let lastPostIds = '';
-    let lastActiveFeed = '';
-    let lastNostrReady = false;
-    let lastIsLoading = false;
-
     const checkAndUpdateSubscription = () => {
       const storeState = usePostStore.getState();
       if (
@@ -169,18 +171,18 @@ export const useZapSubscription = (options: UseZapSubscriptionOptions) => {
 
       // Only update if something actually changed
       if (
-        postIds === lastPostIds &&
-        activeFeed === lastActiveFeed &&
-        storeState.nostrReady === lastNostrReady &&
-        storeState.isLoading === lastIsLoading
+        postIds === lastPostIdsRef.current &&
+        activeFeed === lastActiveFeedRef.current &&
+        storeState.nostrReady === lastNostrReadyRef.current &&
+        storeState.isLoading === lastIsLoadingRef.current
       ) {
         return;
       }
 
-      lastPostIds = postIds;
-      lastActiveFeed = activeFeed;
-      lastNostrReady = storeState.nostrReady;
-      lastIsLoading = storeState.isLoading;
+      lastPostIdsRef.current = postIds;
+      lastActiveFeedRef.current = activeFeed;
+      lastNostrReadyRef.current = storeState.nostrReady;
+      lastIsLoadingRef.current = storeState.isLoading;
 
       const currentEventIdsSet = new Set(eventIds);
       const eventIdsChanged =
@@ -256,14 +258,72 @@ export const useZapSubscription = (options: UseZapSubscriptionOptions) => {
       }
     };
 
-    // Initial check
+    // Debounced subscription check to prevent rapid recreations
+    const debouncedCheck = () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      debounceTimeoutRef.current = setTimeout(() => {
+        checkAndUpdateSubscription();
+      }, 300); // 300ms debounce
+    };
+
+    // Manual selector to only trigger on relevant state changes
+    // This prevents unnecessary calls when only post data (zaps, validation) changes
+    let lastRelevantState: {
+      postIds: string;
+      activeFeed: string;
+      nostrReady: boolean;
+      isLoading: boolean;
+      postsLength: number;
+    } | null = null;
+
+    const selectiveSubscriptionCallback = () => {
+      const storeState = usePostStore.getState();
+      const currentPosts =
+        storeState.activeFeed === 'following'
+          ? storeState.followingPosts
+          : storeState.posts;
+      const postIds = currentPosts.map(post => post.id).join(',');
+      
+      const currentRelevantState = {
+        postIds,
+        activeFeed: storeState.activeFeed,
+        nostrReady: storeState.nostrReady,
+        isLoading: storeState.isLoading,
+        postsLength: currentPosts.length
+      };
+
+      // Only trigger if relevant state actually changed
+      if (
+        lastRelevantState &&
+        lastRelevantState.postIds === currentRelevantState.postIds &&
+        lastRelevantState.activeFeed === currentRelevantState.activeFeed &&
+        lastRelevantState.nostrReady === currentRelevantState.nostrReady &&
+        lastRelevantState.isLoading === currentRelevantState.isLoading &&
+        lastRelevantState.postsLength === currentRelevantState.postsLength
+      ) {
+        // Relevant state hasn't changed, skip
+        return;
+      }
+
+      lastRelevantState = currentRelevantState;
+      debouncedCheck();
+    };
+
+    // Initial check (immediate, no debounce)
     checkAndUpdateSubscription();
 
-    // Subscribe to store changes (this doesn't cause re-renders)
-    const unsubscribe = usePostStore.subscribe(checkAndUpdateSubscription);
+    // Subscribe to store changes with selective callback
+    // This prevents unnecessary calls when only post data (zaps, validation) changes
+    const unsubscribe = usePostStore.subscribe(selectiveSubscriptionCallback);
 
     return () => {
       unsubscribe();
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+      }
     };
   }, [
     nostrClientRef,
