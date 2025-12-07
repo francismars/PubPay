@@ -14,6 +14,8 @@ interface PostStore {
   isLoadingMore: boolean;
   nostrReady: boolean;
   paymentErrors: Map<string, string>;
+  singleNoteMode: boolean;
+  singleNoteId: string;
 
   // Actions - Posts
   setPosts: (posts: PubPayPost[]) => void;
@@ -46,6 +48,10 @@ interface PostStore {
   clearPaymentError: (postId: string) => void;
   clearPaymentErrors: () => void;
 
+  // Actions - Single Note Mode
+  setSingleNoteMode: (mode: boolean, noteId?: string) => void;
+  clearSingleNoteMode: () => void;
+
   // Computed/derived state helpers (getters)
   getAllPosts: () => PubPayPost[];
   getCurrentFeedPosts: () => PubPayPost[];
@@ -63,6 +69,8 @@ export const usePostStore = create<PostStore>((set, get) => ({
   isLoadingMore: false,
   nostrReady: false,
   paymentErrors: new Map(),
+  singleNoteMode: false,
+  singleNoteId: '',
 
   // Actions - Posts
   setPosts: posts => set({ posts }),
@@ -159,6 +167,11 @@ export const usePostStore = create<PostStore>((set, get) => ({
 
   clearPaymentErrors: () => set({ paymentErrors: new Map() }),
 
+  // Actions - Single Note Mode
+  setSingleNoteMode: (mode: boolean, noteId = '') =>
+    set({ singleNoteMode: mode, singleNoteId: noteId }),
+  clearSingleNoteMode: () => set({ singleNoteMode: false, singleNoteId: '' }),
+
   // Computed/derived state helpers
   getAllPosts: () => {
     const state = get();
@@ -195,6 +208,8 @@ type PostStoreData = {
   isLoadingMore: boolean;
   nostrReady: boolean;
   paymentErrors: Map<string, string>;
+  singleNoteMode: boolean;
+  singleNoteId: string;
 };
 
 /**
@@ -211,7 +226,9 @@ export const usePostStoreData = (): PostStoreData =>
       isLoading: state.isLoading,
       isLoadingMore: state.isLoadingMore,
       nostrReady: state.nostrReady,
-      paymentErrors: state.paymentErrors
+      paymentErrors: state.paymentErrors,
+      singleNoteMode: state.singleNoteMode,
+      singleNoteId: state.singleNoteId
     }))
   );
 
@@ -265,6 +282,8 @@ type PostStoreActions = Pick<
   | 'setPaymentError'
   | 'clearPaymentError'
   | 'clearPaymentErrors'
+  | 'setSingleNoteMode'
+  | 'clearSingleNoteMode'
 >;
 
 /**
@@ -296,7 +315,9 @@ export const usePostActions = (): PostStoreActions =>
       setNostrReady: state.setNostrReady,
       setPaymentError: state.setPaymentError,
       clearPaymentError: state.clearPaymentError,
-      clearPaymentErrors: state.clearPaymentErrors
+      clearPaymentErrors: state.clearPaymentErrors,
+      setSingleNoteMode: state.setSingleNoteMode,
+      clearSingleNoteMode: state.clearSingleNoteMode
     }))
   );
 
@@ -312,6 +333,8 @@ export const useIsLoading = () => usePostStore(state => state.isLoading);
 export const useIsLoadingMore = () => usePostStore(state => state.isLoadingMore);
 export const useNostrReady = () => usePostStore(state => state.nostrReady);
 export const usePaymentErrors = () => usePostStore(state => state.paymentErrors);
+export const useSingleNoteMode = () => usePostStore(state => state.singleNoteMode);
+export const useSingleNoteId = () => usePostStore(state => state.singleNoteId);
 
 /**
  * Common composite hooks for frequently used patterns
@@ -370,4 +393,13 @@ export const usePostById = (postId: string) =>
 // Get payment error for a specific post
 export const usePaymentErrorForPost = (postId: string) =>
   usePostStore(state => state.paymentErrors.get(postId));
+
+// Single note mode state and actions
+export const useSingleNoteState = () =>
+  usePostStore(
+    useShallow(state => ({
+      singleNoteMode: state.singleNoteMode,
+      singleNoteId: state.singleNoteId
+    }))
+  );
 
