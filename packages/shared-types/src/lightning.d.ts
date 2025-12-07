@@ -50,9 +50,10 @@ export interface WebhookData {
 }
 export interface LightningConfig {
   enabled: boolean;
-  lnbitsUrl: string;
-  apiKey: string;
-  webhookUrl: string;
+  // Backend-only fields (optional for frontend since it only calls backend API)
+  lnbitsUrl?: string;
+  apiKey?: string;
+  webhookUrl?: string;
   frontendSessionId?: string;
   eventId?: string;
 }
