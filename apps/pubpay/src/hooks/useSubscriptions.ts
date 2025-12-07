@@ -9,13 +9,11 @@ import { safeJson } from '@pubpay/shared-utils';
 import { TIMEOUT } from '../constants';
 import type { PubPayPost, FeedType } from '../types/postTypes';
 import { processNewZapWithProfiles, isZapWithinLimits } from '../utils/zapProcessing';
+import { usePostStore } from '../stores/usePostStore';
 
 interface UseSubscriptionsOptions {
-  // Refs
+  // Refs (only for subscription tracking, not state)
   nostrClientRef: React.MutableRefObject<NostrClient | null>;
-  postsRef: React.MutableRefObject<PubPayPost[]>;
-  followingPostsRef: React.MutableRefObject<PubPayPost[]>;
-  repliesRef: React.MutableRefObject<PubPayPost[]>;
   followingPubkeysRef: React.MutableRefObject<string[]>;
   newestPostTimestampRef: React.MutableRefObject<number>;
   subscriptionRef: React.MutableRefObject<any>;
@@ -24,16 +22,10 @@ interface UseSubscriptionsOptions {
   zapBatchTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   subscribedEventIdsRef: React.MutableRefObject<Set<string>>;
 
-  // State
-  activeFeed: FeedType;
-  isLoading: boolean;
-  nostrReady: boolean;
-  replies: PubPayPost[];
-
-  // State setters
-  setPosts: React.Dispatch<React.SetStateAction<PubPayPost[]>>;
-  setFollowingPosts: React.Dispatch<React.SetStateAction<PubPayPost[]>>;
-  setReplies: React.Dispatch<React.SetStateAction<PubPayPost[]>>;
+  // Store actions (direct store actions, not React setters)
+  setPosts: (posts: PubPayPost[]) => void;
+  setFollowingPosts: (posts: PubPayPost[]) => void;
+  setReplies: (replies: PubPayPost[]) => void;
 
   // Functions from other hooks
   loadProfilesBatched: (pubkeys: string[]) => Promise<Map<string, Kind0Event>>;
@@ -43,9 +35,6 @@ interface UseSubscriptionsOptions {
 
 export const useSubscriptions = ({
   nostrClientRef,
-  postsRef,
-  followingPostsRef,
-  repliesRef,
   followingPubkeysRef,
   newestPostTimestampRef,
   subscriptionRef,
@@ -53,10 +42,6 @@ export const useSubscriptions = ({
   zapBatchRef,
   zapBatchTimeoutRef,
   subscribedEventIdsRef,
-  activeFeed,
-  isLoading,
-  nostrReady,
-  replies,
   setPosts,
   setFollowingPosts,
   setReplies,
@@ -107,115 +92,84 @@ export const useSubscriptions = ({
       } catch {}
 
       // Update posts with the new zap
-      setPosts(prevPosts => {
-        const newPosts = [...prevPosts];
-        const postIndex = newPosts.findIndex(post => post.id === postId);
-        if (postIndex === -1) return newPosts;
-
-        const post = newPosts[postIndex];
-        if (!post) return newPosts;
-
-        // Check for duplicates
-        const existingZapInState = post.zaps.find(
-          zap => zap.id === zapEvent.id
-        );
-        if (existingZapInState) {
-          return newPosts;
+      const storeState = usePostStore.getState();
+      const currentPosts = storeState.posts;
+      const postIndex = currentPosts.findIndex(post => post.id === postId);
+      if (postIndex !== -1) {
+        const post = currentPosts[postIndex];
+        if (post) {
+          const existingZapInState = post.zaps.find(zap => zap.id === zapEvent.id);
+          if (!existingZapInState) {
+            const isWithinLimits = isZapWithinLimits(
+              processedZap.zapAmount,
+              post.zapMin,
+              post.zapMax
+            );
+            const updatedPost: PubPayPost = {
+              ...post,
+              zaps: [...post.zaps, processedZap],
+              zapAmount: post.zapAmount + processedZap.zapAmount,
+              zapUsesCurrent: post.zapUsesCurrent + (isWithinLimits ? 1 : 0)
+            };
+            const newPosts = [...storeState.posts];
+            newPosts[postIndex] = updatedPost;
+            setPosts(newPosts);
+          }
         }
-
-        // Check if the new zap is within amount limits for usage counting
-        const isWithinLimits = isZapWithinLimits(
-          processedZap.zapAmount,
-          post.zapMin,
-          post.zapMax
-        );
-
-        // Add the new zap to the post
-        const updatedPost: PubPayPost = {
-          ...post,
-          zaps: [...post.zaps, processedZap],
-          zapAmount: post.zapAmount + processedZap.zapAmount,
-          zapUsesCurrent: post.zapUsesCurrent + (isWithinLimits ? 1 : 0)
-        };
-
-        newPosts[postIndex] = updatedPost;
-        return newPosts;
-      });
+      }
 
       // Also update following posts if this post exists there
-      setFollowingPosts(prevPosts => {
-        const newPosts = [...prevPosts];
-        const postIndex = newPosts.findIndex(post => post.id === postId);
-        if (postIndex === -1) return newPosts;
-
-        const post = newPosts[postIndex];
-        if (!post) return newPosts;
-
-        // Check for duplicates
-        const existingZapInState = post.zaps.find(
-          zap => zap.id === zapEvent.id
-        );
-        if (existingZapInState) {
-          return newPosts;
+      const currentFollowingPosts = storeState.followingPosts;
+      const followingPostIndex = currentFollowingPosts.findIndex(post => post.id === postId);
+      if (followingPostIndex !== -1) {
+        const post = currentFollowingPosts[followingPostIndex];
+        if (post) {
+          const existingZapInState = post.zaps.find(zap => zap.id === zapEvent.id);
+          if (!existingZapInState) {
+            const isWithinLimits = isZapWithinLimits(
+              processedZap.zapAmount,
+              post.zapMin,
+              post.zapMax
+            );
+            const updatedPost: PubPayPost = {
+              ...post,
+              zaps: [...post.zaps, processedZap],
+              zapAmount: post.zapAmount + processedZap.zapAmount,
+              zapUsesCurrent: post.zapUsesCurrent + (isWithinLimits ? 1 : 0)
+            };
+            const newFollowingPosts = [...storeState.followingPosts];
+            newFollowingPosts[followingPostIndex] = updatedPost;
+            setFollowingPosts(newFollowingPosts);
+          }
         }
-
-        // Check if the new zap is within amount limits for usage counting
-        const isWithinLimits = isZapWithinLimits(
-          processedZap.zapAmount,
-          post.zapMin,
-          post.zapMax
-        );
-
-        // Add the new zap to the post
-        const updatedPost: PubPayPost = {
-          ...post,
-          zaps: [...post.zaps, processedZap],
-          zapAmount: post.zapAmount + processedZap.zapAmount,
-          zapUsesCurrent: post.zapUsesCurrent + (isWithinLimits ? 1 : 0)
-        };
-
-        newPosts[postIndex] = updatedPost;
-        return newPosts;
-      });
+      }
 
       // Also update replies if this post exists there
-      setReplies(prevReplies => {
-        const newReplies = [...prevReplies];
-        const replyIndex = newReplies.findIndex(reply => reply.id === postId);
-        if (replyIndex === -1) {
-          return newReplies;
-        }
+      const currentReplies = storeState.replies;
+      const replyIndex = currentReplies.findIndex(reply => reply.id === postId);
+      if (replyIndex !== -1) {
         console.log('Zap processed: updating reply at index', replyIndex, 'for postId:', postId);
-
-        const reply = newReplies[replyIndex];
-        if (!reply) return newReplies;
-
-        // Check for duplicates
-        const existingZapInState = reply.zaps.find(
-          zap => zap.id === zapEvent.id
-        );
-        if (existingZapInState) {
-          return newReplies;
+        const reply = currentReplies[replyIndex];
+        if (reply) {
+          const existingZapInState = reply.zaps.find(zap => zap.id === zapEvent.id);
+          if (!existingZapInState) {
+            const isWithinLimits = isZapWithinLimits(
+              processedZap.zapAmount,
+              reply.zapMin,
+              reply.zapMax
+            );
+            const updatedReply: PubPayPost = {
+              ...reply,
+              zaps: [...reply.zaps, processedZap],
+              zapAmount: reply.zapAmount + processedZap.zapAmount,
+              zapUsesCurrent: reply.zapUsesCurrent + (isWithinLimits ? 1 : 0)
+            };
+            const newReplies = [...storeState.replies];
+            newReplies[replyIndex] = updatedReply;
+            setReplies(newReplies);
+          }
         }
-
-        // Check if the new zap is within amount limits for usage counting
-        const isWithinLimits = isZapWithinLimits(
-          processedZap.zapAmount,
-          reply.zapMin,
-          reply.zapMax
-        );
-
-        // Add the new zap to the reply
-        const updatedReply: PubPayPost = {
-          ...reply,
-          zaps: [...reply.zaps, processedZap],
-          zapAmount: reply.zapAmount + processedZap.zapAmount,
-          zapUsesCurrent: reply.zapUsesCurrent + (isWithinLimits ? 1 : 0)
-        };
-
-        newReplies[replyIndex] = updatedReply;
-        return newReplies;
-      });
+      }
     }
   };
 
@@ -303,33 +257,23 @@ export const useSubscriptions = ({
       }
 
       // Add the new post to the beginning of the posts array (most recent first)
-      setPosts(prevPosts => {
-        // Check if post already exists to prevent duplicates
-        const exists = prevPosts.find(post => post.id === noteEvent.id);
-        if (exists) {
-          console.log('Post already exists in state, skipping:', noteEvent.id);
-          return prevPosts;
-        }
-
+      const currentPosts = usePostStore.getState().posts;
+      const exists = currentPosts.find(post => post.id === noteEvent.id);
+      if (exists) {
+        console.log('Post already exists in state, skipping:', noteEvent.id);
+      } else {
         console.log('Adding new post to feed:', noteEvent.id);
-        const updatedPosts = [newPost, ...prevPosts];
-        // Update ref immediately so updateZapSubscriptionForNewPost can use it
-        postsRef.current = updatedPosts;
-        return updatedPosts;
-      });
+        setPosts([newPost, ...currentPosts]);
+      }
 
       // Also add to following posts if we're in following mode
-      if (activeFeed === 'following') {
-        setFollowingPosts(prevPosts => {
-          const exists = prevPosts.find(post => post.id === noteEvent.id);
-          if (exists) {
-            return prevPosts;
-          }
-          const updatedPosts = [newPost, ...prevPosts];
-          // Update ref immediately so updateZapSubscriptionForNewPost can use it
-          followingPostsRef.current = updatedPosts;
-          return updatedPosts;
-        });
+      const currentStoreState = usePostStore.getState();
+      if (currentStoreState.activeFeed === 'following') {
+        const current = currentStoreState.followingPosts;
+        const exists = current.find(post => post.id === noteEvent.id);
+        if (!exists) {
+          setFollowingPosts([newPost, ...current]);
+        }
       }
 
       // Update zap subscription to include this new post
@@ -338,7 +282,9 @@ export const useSubscriptions = ({
       // Trigger validation for lightning addresses and NIP-05 on the new post
       // Use a small delay to ensure the post is in state before validating
       setTimeout(() => {
-        const postsArray = activeFeed === 'following' ? followingPostsRef.current : postsRef.current;
+        const storeState = usePostStore.getState();
+        const activeFeed = storeState.activeFeed;
+        const postsArray = activeFeed === 'following' ? storeState.followingPosts : storeState.posts;
         const newPostInArray = postsArray.find(p => p.id === noteEvent.id);
         if (newPostInArray) {
           validateLightningAddresses([newPostInArray], activeFeed);
@@ -352,7 +298,8 @@ export const useSubscriptions = ({
 
   // Helper function to update zap subscription with a new event ID
   const updateZapSubscriptionForNewPost = (newEventId: string) => {
-    if (!nostrClientRef.current || isLoading || !nostrReady) {
+    const storeState = usePostStore.getState();
+    if (!nostrClientRef.current || storeState.isLoading || !storeState.nostrReady) {
       return;
     }
 
@@ -382,8 +329,10 @@ export const useSubscriptions = ({
       return;
     }
 
-    // Get current posts from refs (they should be updated by now)
-    const currentPosts = activeFeed === 'following' ? followingPostsRef.current : postsRef.current;
+    // Get current posts from store (avoid duplicate storeState declaration)
+    const currentStoreState = usePostStore.getState();
+    const activeFeed = currentStoreState.activeFeed;
+    const currentPosts = activeFeed === 'following' ? currentStoreState.followingPosts : currentStoreState.posts;
 
     // Build new event IDs list including the new post
     const eventIds = currentPosts.map(post => post.id);
@@ -455,7 +404,8 @@ export const useSubscriptions = ({
 
   // Subscribe to new posts in real-time (only posts created after we started loading)
   useEffect(() => {
-    if (!nostrClientRef.current || isLoading) {
+    const storeState = usePostStore.getState();
+    if (!nostrClientRef.current || storeState.isLoading) {
       return () => {}; // Return empty cleanup function
     }
 
@@ -487,7 +437,9 @@ export const useSubscriptions = ({
     } catch {}
 
     // Determine which posts to subscribe to based on active feed
-    const currentPosts = activeFeed === 'following' ? followingPostsRef.current : postsRef.current;
+    const currentStoreState = usePostStore.getState();
+    const activeFeed = currentStoreState.activeFeed;
+    const currentPosts = activeFeed === 'following' ? currentStoreState.followingPosts : currentStoreState.posts;
 
     // If in following mode and user follows nobody, don't set up subscription
     if (
@@ -571,7 +523,8 @@ export const useSubscriptions = ({
     let eventIds: string[] = [];
     if (singlePostMode && singlePostEventId) {
       // In single post mode, include both the main post and all reply IDs
-      const replyIds = repliesRef.current.map(reply => reply.id);
+      const currentStoreState = usePostStore.getState();
+      const replyIds = currentStoreState.replies.map(reply => reply.id);
       eventIds = [singlePostEventId, ...replyIds];
     } else if (currentPosts.length > 0) {
       eventIds = currentPosts.map(post => post.id);
@@ -599,9 +552,10 @@ export const useSubscriptions = ({
         // Update tracked event IDs
         subscribedEventIdsRef.current = currentEventIdsSet;
 
+        const currentStoreState = usePostStore.getState();
         console.log('Creating/updating zap subscription with event IDs:', eventIds.length, 'in single post mode:', singlePostMode);
         if (singlePostMode && singlePostEventId) {
-          console.log('Single post mode - main post:', singlePostEventId, 'replies:', repliesRef.current.length);
+          console.log('Single post mode - main post:', singlePostEventId, 'replies:', currentStoreState.replies.length);
         }
 
         zapSubscriptionRef.current = nostrClientRef.current.subscribeToEvents(
@@ -622,7 +576,8 @@ export const useSubscriptions = ({
                 return;
               }
               // Check if it's for the main post or any reply
-              const replyIds = repliesRef.current.map(reply => reply.id);
+              const currentStoreState = usePostStore.getState();
+              const replyIds = currentStoreState.replies.map(reply => reply.id);
               if (eTag[1] !== singlePostEventId && !replyIds.includes(eTag[1])) {
                 console.log('Zap event rejected: event ID not in main post or replies', eTag[1], 'main:', singlePostEventId, 'replies:', replyIds);
                 return;
@@ -690,11 +645,12 @@ export const useSubscriptions = ({
         zapSubscriptionRef.current = null;
       }
     };
-  }, [activeFeed, isLoading, nostrReady]); // Re-subscribe when feed changes, loading state changes, or nostr client becomes ready
+  }, []); // Empty deps - use store.getState() inside for current values
 
   // Update zap subscription when replies change in single post mode
   useEffect(() => {
-    if (!nostrClientRef.current || isLoading || !nostrReady) {
+    const storeState = usePostStore.getState();
+    if (!nostrClientRef.current || storeState.isLoading || !storeState.nostrReady) {
       return;
     }
 
@@ -730,7 +686,8 @@ export const useSubscriptions = ({
     }
 
     // Get current reply IDs
-    const replyIds = repliesRef.current.map(reply => reply.id);
+    const currentStoreState = usePostStore.getState();
+    const replyIds = currentStoreState.replies.map(reply => reply.id);
     const eventIds = [singlePostEventId, ...replyIds];
     const currentEventIdsSet = new Set(eventIds);
 
@@ -754,7 +711,7 @@ export const useSubscriptions = ({
       // Update tracked event IDs
       subscribedEventIdsRef.current = currentEventIdsSet;
 
-      console.log('Updating zap subscription for replies - event IDs:', eventIds.length, 'main post:', singlePostEventId, 'replies:', repliesRef.current.length);
+      console.log('Updating zap subscription for replies - event IDs:', eventIds.length, 'main post:', singlePostEventId, 'replies:', currentStoreState.replies.length);
 
       // Create new subscription
       zapSubscriptionRef.current = nostrClientRef.current.subscribeToEvents(
@@ -771,8 +728,9 @@ export const useSubscriptions = ({
             console.log('Zap event rejected (separate useEffect): no e tag or event ID');
             return;
           }
-          // Get current reply IDs from ref (always use latest)
-          const currentReplyIds = repliesRef.current.map(reply => reply.id);
+          // Get current reply IDs from store (always use latest)
+          const latestStoreState = usePostStore.getState();
+          const currentReplyIds = latestStoreState.replies.map(reply => reply.id);
           if (eTag[1] !== singlePostEventId && !currentReplyIds.includes(eTag[1])) {
             console.log('Zap event rejected (separate useEffect): event ID not in main post or replies', eTag[1], 'main:', singlePostEventId, 'replies:', currentReplyIds);
             return;
@@ -806,7 +764,7 @@ export const useSubscriptions = ({
         }
       );
     }
-  }, [replies, isLoading, nostrReady]); // Only update when replies change
+  }, []); // Empty deps - use store.getState() inside for current values
 
   return {
     processZapBatch,

@@ -1,5 +1,5 @@
 // React hook for home functionality integration
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { NostrUtil } from '@pubpay/shared-services';
 import { AuthService } from '@pubpay/shared-services';
 import { Kind0Event, Kind9735Event } from '@pubpay/shared-types';
@@ -19,25 +19,114 @@ import { useFeedLoader } from './useFeedLoader';
 import { useSubscriptions } from './useSubscriptions';
 import { useServices } from './useServices';
 import { useExternalSigner } from './useExternalSigner';
+import { usePostStore } from '../stores/usePostStore';
 
 export const useHomeFunctionality = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeFeed, setActiveFeed] = useState<'global' | 'following'>(
-    'global'
-  );
-  const [posts, setPosts] = useState<PubPayPost[]>([]);
-  const [followingPosts, setFollowingPosts] = useState<PubPayPost[]>([]);
-  const [replies, setReplies] = useState<PubPayPost[]>([]);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  // Track payment errors per post ID
-  const [paymentErrors, setPaymentErrors] = useState<Map<string, string>>(
-    new Map()
-  );
+  // Use Zustand store for posts and feed state
+  const posts = usePostStore(state => state.posts);
+  const followingPosts = usePostStore(state => state.followingPosts);
+  const replies = usePostStore(state => state.replies);
+  const activeFeed = usePostStore(state => state.activeFeed);
+  const isLoading = usePostStore(state => state.isLoading);
+  const isLoadingMore = usePostStore(state => state.isLoadingMore);
+  const nostrReady = usePostStore(state => state.nostrReady);
+  const paymentErrors = usePostStore(state => state.paymentErrors);
 
-  // Use services hook
+  // Store actions - wrapped to match React setState signature for backward compatibility
+  const setPostsStore = usePostStore(state => state.setPosts);
+  const setFollowingPostsStore = usePostStore(state => state.setFollowingPosts);
+  const setRepliesStore = usePostStore(state => state.setReplies);
+  const setActiveFeed = usePostStore(state => state.setActiveFeed);
+  const setIsLoadingStore = usePostStore(state => state.setIsLoading);
+  const setIsLoadingMoreStore = usePostStore(state => state.setIsLoadingMore);
+  const setNostrReadyStore = usePostStore(state => state.setNostrReady);
+  const setPaymentErrorStore = usePostStore(state => state.setPaymentError);
+  const clearPosts = usePostStore(state => state.clearAllPosts);
+
+  // Wrapper functions to match React.Dispatch<SetStateAction<T>> signature
+  // Memoized to prevent infinite re-renders
+  const setPosts = useCallback((value: React.SetStateAction<PubPayPost[]>) => {
+    if (typeof value === 'function') {
+      const currentPosts = usePostStore.getState().posts;
+      setPostsStore(value(currentPosts));
+    } else {
+      setPostsStore(value);
+    }
+  }, [setPostsStore]);
+
+  const setFollowingPosts = useCallback((value: React.SetStateAction<PubPayPost[]>) => {
+    if (typeof value === 'function') {
+      const currentFollowingPosts = usePostStore.getState().followingPosts;
+      setFollowingPostsStore(value(currentFollowingPosts));
+    } else {
+      setFollowingPostsStore(value);
+    }
+  }, [setFollowingPostsStore]);
+
+  const setReplies = useCallback((value: React.SetStateAction<PubPayPost[]>) => {
+    if (typeof value === 'function') {
+      const currentReplies = usePostStore.getState().replies;
+      setRepliesStore(value(currentReplies));
+    } else {
+      setRepliesStore(value);
+    }
+  }, [setRepliesStore]);
+
+  const setIsLoading = useCallback((value: React.SetStateAction<boolean>) => {
+    if (typeof value === 'function') {
+      const currentIsLoading = usePostStore.getState().isLoading;
+      setIsLoadingStore(value(currentIsLoading));
+    } else {
+      setIsLoadingStore(value);
+    }
+  }, [setIsLoadingStore]);
+
+  const setIsLoadingMore = useCallback((value: React.SetStateAction<boolean>) => {
+    if (typeof value === 'function') {
+      const currentIsLoadingMore = usePostStore.getState().isLoadingMore;
+      setIsLoadingMoreStore(value(currentIsLoadingMore));
+    } else {
+      setIsLoadingMoreStore(value);
+    }
+  }, [setIsLoadingMoreStore]);
+
+  const setNostrReady = useCallback((value: React.SetStateAction<boolean>) => {
+    if (typeof value === 'function') {
+      const currentNostrReady = usePostStore.getState().nostrReady;
+      setNostrReadyStore(value(currentNostrReady));
+    } else {
+      setNostrReadyStore(value);
+    }
+  }, [setNostrReadyStore]);
+
+  const setPaymentErrors = useCallback((value: React.SetStateAction<Map<string, string>>) => {
+    if (typeof value === 'function') {
+      const currentPaymentErrors = usePostStore.getState().paymentErrors;
+      const newErrors = value(currentPaymentErrors);
+      // Update store for each error
+      newErrors.forEach((error, postId) => {
+        setPaymentErrorStore(postId, error);
+      });
+      // Remove errors that are no longer in the map
+      currentPaymentErrors.forEach((_, postId) => {
+        if (!newErrors.has(postId)) {
+          setPaymentErrorStore(postId, null);
+        }
+      });
+    } else {
+      // Clear all and set new ones
+      const currentPaymentErrors = usePostStore.getState().paymentErrors;
+      currentPaymentErrors.forEach((_, postId) => {
+        setPaymentErrorStore(postId, null);
+      });
+      value.forEach((error, postId) => {
+        setPaymentErrorStore(postId, error);
+      });
+    }
+  }, [setPaymentErrorStore]);
+
+  // Use services hook (nostrReady is now managed by store)
   const {
-    nostrReady,
-    setNostrReady,
     nostrClientRef,
     zapServiceRef
   } = useServices();
@@ -45,7 +134,6 @@ export const useHomeFunctionality = () => {
   // Use authentication hook
   const {
     authState,
-    setAuthState,
     checkAuthStatus,
     loadUserProfile,
     handleSignInExtension,
@@ -76,23 +164,7 @@ export const useHomeFunctionality = () => {
   const zapSubscriptionRef = useRef<any>(null);
   const subscribedEventIdsRef = useRef<Set<string>>(new Set());
 
-  // Use refs to track posts/replies without causing re-renders
-  const postsRef = useRef<PubPayPost[]>([]);
-  const followingPostsRef = useRef<PubPayPost[]>([]);
-  const repliesRef = useRef<PubPayPost[]>([]);
-
-  // Keep refs in sync with state
-  useEffect(() => {
-    postsRef.current = posts;
-  }, [posts]);
-
-  useEffect(() => {
-    followingPostsRef.current = followingPosts;
-  }, [followingPosts]);
-
-  useEffect(() => {
-    repliesRef.current = replies;
-  }, [replies]);
+  // Refs for subscription tracking only (not for state - subscriptions use usePostStore.getState() directly)
 
   // Track pathname changes to reload posts when exiting single note mode
   useEffect(() => {
@@ -132,9 +204,8 @@ export const useHomeFunctionality = () => {
   useExternalSigner({
     nostrClientRef,
     zapServiceRef,
-    authState,
-    setAuthState,
-    loadUserProfile
+    loadUserProfile,
+    authState // Pass authState which includes privateKey from local state
   });
 
   const handleFeedChange = (feed: 'global' | 'following') => {
@@ -145,7 +216,7 @@ export const useHomeFunctionality = () => {
       return;
     }
 
-    // Switch active feed
+    // Switch active feed (updates store)
     setActiveFeed(feed);
 
     // Load the appropriate feed if needed
@@ -186,6 +257,8 @@ export const useHomeFunctionality = () => {
   });
 
   // Use feed loader hook
+  // Note: posts, followingPosts, activeFeed, isLoadingMore are passed for backward compatibility
+  // but useFeedLoader now uses store directly for async-safe access
   const {
     loadPosts,
     loadFollowingPosts,
@@ -202,16 +275,9 @@ export const useHomeFunctionality = () => {
     setIsLoading,
     setIsLoadingMore,
     setNostrReady,
-    posts,
-    followingPosts,
-    activeFeed,
-    isLoadingMore,
     nostrClientRef,
     followingPubkeysRef,
     newestPostTimestampRef,
-    postsRef,
-    followingPostsRef,
-    repliesRef,
     profileCacheRef,
     pendingProfileRequestsRef,
     validatingLightningAddressesRef,
@@ -219,12 +285,14 @@ export const useHomeFunctionality = () => {
     authState
   });
 
-  // Use subscriptions hook
+  // Get store actions to pass to useSubscriptions
+  const setPostsActionForSubs = usePostStore(state => state.setPosts);
+  const setFollowingPostsActionForSubs = usePostStore(state => state.setFollowingPosts);
+  const setRepliesActionForSubs = usePostStore(state => state.setReplies);
+
+  // Use subscriptions hook - now uses store actions directly
   useSubscriptions({
     nostrClientRef,
-    postsRef,
-    followingPostsRef,
-    repliesRef,
     followingPubkeysRef,
     newestPostTimestampRef,
     subscriptionRef,
@@ -232,13 +300,9 @@ export const useHomeFunctionality = () => {
     zapBatchRef,
     zapBatchTimeoutRef,
     subscribedEventIdsRef,
-    activeFeed,
-    isLoading,
-    nostrReady,
-    replies,
-    setPosts,
-    setFollowingPosts,
-    setReplies,
+    setPosts: setPostsActionForSubs,
+    setFollowingPosts: setFollowingPostsActionForSubs,
+    setReplies: setRepliesActionForSubs,
     loadProfilesBatched,
     validateLightningAddresses,
     validateNip05s
@@ -393,8 +457,13 @@ export const useHomeFunctionality = () => {
           console.error('Private key not available');
           return;
         }
-        const { data } = nip19.decode(authState.privateKey);
-        signedEvent = finalizeEvent(event, data as Uint8Array);
+        // Decode nsec - nip19.decode returns a union type, cast through unknown for type safety
+        const decoded = nip19.decode(authState.privateKey) as unknown as { type: 'nsec'; data: Uint8Array };
+        if (decoded.type !== 'nsec') {
+          console.error('Invalid nsec format');
+          return;
+        }
+        signedEvent = finalizeEvent(event, decoded.data);
       } else if (authState.signInMethod === 'externalSigner') {
         // For external signer, we need to redirect
         event.pubkey = authState.publicKey!;
@@ -432,12 +501,7 @@ export const useHomeFunctionality = () => {
 
   // Calculate reply levels for proper indentation (matches legacy behavior)
   // Uses extracted utility function
-
-  const clearPosts = () => {
-    setPosts([]);
-    setFollowingPosts([]);
-    setReplies([]);
-  };
+  // clearPosts is now from usePostStore
 
   return {
     isLoading,

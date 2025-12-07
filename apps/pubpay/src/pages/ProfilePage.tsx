@@ -16,7 +16,8 @@ import {
   ZapService,
   Nip05ValidationService,
   extractZapPayerPubkeys,
-  loadPostData
+  loadPostData,
+  useAuthStore
 } from '@pubpay/shared-services';
 import { TIMEOUT, TOAST_DURATION, LIGHTNING, Z_INDEX, TIME, API_PATHS, PROTOCOLS, SEPARATORS, COLORS, FONT_SIZES, DIMENSIONS, QUERY_LIMITS, LIMITS } from '../constants';
 import { GenericQR } from '@pubpay/shared-ui';
@@ -24,6 +25,7 @@ import { nip19, finalizeEvent, verifyEvent } from 'nostr-tools';
 import { PayNoteComponent } from '../components/PayNoteComponent/PayNoteComponent';
 import { Nip05PurchaseOverlay } from '../components/Nip05PurchaseOverlay/Nip05PurchaseOverlay';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
+import { usePostStore } from '../stores/usePostStore';
 import { parseZapDescription, safeJson } from '@pubpay/shared-utils';
 import bolt11 from 'bolt11';
 import { genericUserIcon } from '../assets/images';
@@ -64,16 +66,28 @@ const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { pubkey } = useParams<{ pubkey?: string }>();
+  
+  // Use stores directly for state
+  const nostrReady = usePostStore(state => state.nostrReady);
+  const paymentErrors = usePostStore(state => state.paymentErrors);
+  const openLogin = useUIStore(s => s.openLogin);
+  
+  // Get authState and handlers from Layout context (authState includes privateKey from local state)
   const {
     authState,
     nostrClient,
     handlePayWithExtension,
     handlePayAnonymously,
-    handleSharePost,
-    nostrReady,
-    paymentErrors
+    handleSharePost
   } = useOutletContext<{
-    authState: any;
+    authState: {
+      isLoggedIn: boolean;
+      publicKey: string | null;
+      privateKey: string | null;
+      signInMethod: 'extension' | 'externalSigner' | 'nsec' | null;
+      userProfile: any;
+      displayName: string | null;
+    };
     nostrClient: any;
     handlePayWithExtension: (
       post: PubPayPost,
@@ -86,14 +100,12 @@ const ProfilePage: React.FC = () => {
       comment?: string
     ) => void;
     handleSharePost: (post: PubPayPost) => void;
-    nostrReady: boolean;
-    paymentErrors: Map<string, string>;
   }>();
-  const isLoggedIn = authState?.isLoggedIn;
-  const userProfile = authState?.userProfile;
-  const displayName = authState?.displayName;
-  const publicKey = authState?.publicKey;
-  const openLogin = useUIStore(s => s.openLogin);
+
+  const isLoggedIn = authState.isLoggedIn;
+  const userProfile = authState.userProfile;
+  const displayName = authState.displayName;
+  const publicKey = authState.publicKey;
 
   // Recovery state
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
@@ -209,7 +221,7 @@ const ProfilePage: React.FC = () => {
     return pubkeyOrNpub;
   };
 
-  const targetPubkey = getHexPubkey(pubkey || publicKey);
+  const targetPubkey = getHexPubkey(pubkey || publicKey || '');
 
   // Get npub for NIP-05 purchase
   const getNpubForPurchase = (): string => {
@@ -428,7 +440,7 @@ const ProfilePage: React.FC = () => {
         }
       } else if (targetPubkey && nostrClient) {
         // Validate pubkey format (use original pubkey parameter for validation)
-        if (!isValidPublicKey(pubkey || publicKey)) {
+        if (!isValidPublicKey(pubkey || publicKey || '')) {
           setProfileError('Invalid public key format');
           return;
         }

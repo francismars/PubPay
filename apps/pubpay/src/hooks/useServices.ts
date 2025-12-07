@@ -1,10 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { NostrClient, LightningService, ZapService, DEFAULT_READ_RELAYS, DEFAULT_WRITE_RELAYS } from '@pubpay/shared-services';
 import { LightningConfig } from '@pubpay/shared-types';
 import { STORAGE_KEYS } from '../constants';
+import { usePostStore } from '../stores/usePostStore';
 
 export const useServices = () => {
-  const [nostrReady, setNostrReady] = useState(false);
+  // Use store for nostrReady state
+  const nostrReady = usePostStore(state => state.nostrReady);
+  const setNostrReady = usePostStore(state => state.setNostrReady);
   const nostrClientRef = useRef<NostrClient | null>(null);
   const lightningServiceRef = useRef<LightningService | null>(null);
   const zapServiceRef = useRef<ZapService | null>(null);

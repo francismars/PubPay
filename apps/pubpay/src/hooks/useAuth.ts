@@ -1,13 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { AuthService } from '@pubpay/shared-services';
-import { FollowService, useUIStore } from '@pubpay/shared-services';
+import { FollowService, useUIStore, useAuthStore, type AuthState } from '@pubpay/shared-services';
 import { ensureProfiles } from '@pubpay/shared-services';
 import { getQueryClient } from '@pubpay/shared-services';
 import { Kind0Event } from '@pubpay/shared-types';
 import { NostrClient } from '@pubpay/shared-services';
 import { safeJson } from '@pubpay/shared-utils';
 import { STORAGE_KEYS, TIMEOUT } from '../constants';
-import type { AuthState } from '../types/postTypes';
 
 interface UseAuthOptions {
   nostrClientRef: React.MutableRefObject<NostrClient | null>;
@@ -15,14 +14,53 @@ interface UseAuthOptions {
 }
 
 export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => {
-  const [authState, setAuthState] = useState<AuthState>({
-    isLoggedIn: false,
-    publicKey: null,
-    privateKey: null,
-    signInMethod: null,
-    userProfile: null,
-    displayName: null
-  });
+  // Keep privateKey in local state for security (not in global store)
+  const [privateKey, setPrivateKeyLocal] = useState<string | null>(null);
+
+  // Use Zustand store for auth state (excluding privateKey)
+  const storeAuthState = useAuthStore(state => ({
+    isLoggedIn: state.isLoggedIn,
+    publicKey: state.publicKey,
+    signInMethod: state.signInMethod,
+    userProfile: state.userProfile,
+    displayName: state.displayName
+  }));
+
+  // Combine store state with local privateKey for backward compatibility
+  const authState: AuthState = {
+    ...storeAuthState,
+    privateKey
+  };
+
+  // Store actions
+  const setAuth = useAuthStore(state => state.setAuth);
+  const clearAuth = useAuthStore(state => state.clearAuth);
+  const setProfile = useAuthStore(state => state.setProfile);
+  const setDisplayName = useAuthStore(state => state.setDisplayName);
+
+  // Wrapper for setAuthState to maintain backward compatibility
+  const setAuthState = useCallback((state: AuthState | ((prev: AuthState) => AuthState)) => {
+    if (typeof state === 'function') {
+      const currentStoreState = useAuthStore.getState();
+      const newState = state({
+        isLoggedIn: currentStoreState.isLoggedIn,
+        publicKey: currentStoreState.publicKey,
+        privateKey, // Use local state
+        signInMethod: currentStoreState.signInMethod,
+        userProfile: currentStoreState.userProfile,
+        displayName: currentStoreState.displayName
+      });
+      // setAuth doesn't allow privateKey, so set it separately
+      const { privateKey: newPrivateKey, ...rest } = newState;
+      setAuth(rest);
+      setPrivateKeyLocal(newPrivateKey);
+    } else {
+      // setAuth doesn't allow privateKey, so set it separately
+      const { privateKey: newPrivateKey, ...rest } = state;
+      setAuth(rest);
+      setPrivateKeyLocal(newPrivateKey);
+    }
+  }, [setAuth, privateKey]);
 
   const checkAuthStatus = async (password?: string): Promise<{ requiresPassword: boolean }> => {
     if (AuthService.isAuthenticated()) {
@@ -80,14 +118,15 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
       // Set auth state - user should appear logged in even if private key isn't decrypted yet
       // This allows users with password-protected keys to browse while being prompted for password
       if (publicKey && method) {
-        setAuthState({
+        setAuth({
           isLoggedIn: true,
           publicKey,
-          privateKey, // May be null if password-protected and password not provided
           signInMethod: method as 'extension' | 'nsec' | 'externalSigner',
           userProfile: null,
           displayName: null
         });
+        // Set privateKey in local state (not in store for security)
+        setPrivateKeyLocal(privateKey); // May be null if password-protected and password not provided
 
         // Load user profile and follow suggestions (can be done without private key)
         if (nostrClientRef.current && publicKey) {
@@ -135,11 +174,8 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
           (profileData as any).name ||
           null;
 
-        setAuthState(prev => ({
-          ...prev,
-          userProfile: profile || null,
-          displayName
-        }));
+        setProfile(profile || null);
+        setDisplayName(displayName);
 
         // Call optional callback
         if (onProfileLoaded) {
@@ -162,14 +198,14 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
           'extension'
         );
 
-        setAuthState({
+        setAuth({
           isLoggedIn: true,
           publicKey: result.publicKey,
-          privateKey: result.privateKey || null,
           signInMethod: 'extension',
           userProfile: null,
           displayName: null
         });
+        setPrivateKeyLocal(result.privateKey || null);
 
         await loadUserProfile(result.publicKey);
 
@@ -224,14 +260,14 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
           password
         );
 
-        setAuthState({
+        setAuth({
           isLoggedIn: true,
           publicKey: result.publicKey,
-          privateKey: result.privateKey || null,
           signInMethod: 'nsec',
           userProfile: null,
           displayName: null
         });
+        setPrivateKeyLocal(result.privateKey || null);
 
         await loadUserProfile(result.publicKey);
 
@@ -256,14 +292,8 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
       localStorage.removeItem(STORAGE_KEYS.NWC_CAPABILITIES);
     }
 
-    setAuthState({
-      isLoggedIn: false,
-      publicKey: null,
-      privateKey: null,
-      signInMethod: null,
-      userProfile: null,
-      displayName: null
-    });
+    clearAuth();
+    setPrivateKeyLocal(null); // Clear privateKey from local state
   };
 
   // Check authentication status on mount
