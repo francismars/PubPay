@@ -13,6 +13,10 @@ export interface LNURLResult {
 export class LightningService {
   private config: LightningConfig;
   private logger: Logger;
+  // Backend requires these fields, so we assert they exist after validation
+  private lnbitsUrl: string;
+  private apiKey: string;
+  private webhookUrl: string;
 
   constructor() {
     this.config = {
@@ -26,6 +30,11 @@ export class LightningService {
 
     // Validate configuration
     this.validateConfig();
+
+    // After validation, assert that required fields exist (backend always needs these)
+    this.lnbitsUrl = this.config.lnbitsUrl!;
+    this.apiKey = this.config.apiKey!;
+    this.webhookUrl = this.config.webhookUrl || '';
   }
 
   private validateConfig(): void {
@@ -52,6 +61,12 @@ export class LightningService {
       hasApiKey: !!this.config.apiKey,
       webhookUrl: this.config.webhookUrl
     });
+
+    // After validation, assert that required fields exist (backend always needs these)
+    // Use non-null assertion since we validate above
+    this.lnbitsUrl = this.config.lnbitsUrl!;
+    this.apiKey = this.config.apiKey!;
+    this.webhookUrl = this.config.webhookUrl || '';
   }
 
   /**
@@ -79,12 +94,12 @@ export class LightningService {
       this.logger.info('Creating LNBits LNURL:', {
         eventId,
         frontendSessionId,
-        baseUrl: this.config.lnbitsUrl,
-        hasApiKey: !!this.config.apiKey,
-        webhookUrl: this.config.webhookUrl
+        baseUrl: this.lnbitsUrl,
+        hasApiKey: !!this.apiKey,
+        webhookUrl: this.webhookUrl
       });
 
-      const result = await this.createLNBitsLNURL(eventId, frontendSessionId);
+      const result = await this.createLNBitsLNURL(eventId);
 
       return {
         success: true,
@@ -105,15 +120,14 @@ export class LightningService {
    * Create LNURL-pay link using LNBits API
    */
   private async createLNBitsLNURL(
-    eventId: string,
-    _frontendSessionId: string
+    eventId: string
   ): Promise<{ lnurl: string; id: string }> {
     // Construct webhook URL: base URL + /lightning/webhook
-    const baseUrl = this.config.webhookUrl?.trim().replace(/\/+$/, '') || '';
+    const baseUrl = this.webhookUrl.trim().replace(/\/+$/, '');
     const webhookUrl = baseUrl ? `${baseUrl}/lightning/webhook` : undefined;
 
     const requestBody = {
-      description: `PubPay Live - Real-time Tip Tracker`,
+      description: 'PubPay Live - Real-time Tip Tracker',
       min: 1000, // 1 sat minimum
       max: 100000000, // 1M sats maximum
       comment_chars: 200,
@@ -125,12 +139,12 @@ export class LightningService {
     this.logger.info('LNBits request body:', requestBody);
 
     const response = await fetch(
-      `${this.config.lnbitsUrl}/lnurlp/api/v1/links`,
+      `${this.lnbitsUrl}/lnurlp/api/v1/links`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Api-Key': this.config.apiKey
+          'X-Api-Key': this.apiKey
         },
         body: JSON.stringify(requestBody)
       }
@@ -182,9 +196,9 @@ export class LightningService {
   } {
     return {
       enabled: this.config.enabled,
-      lnbitsUrl: this.config.lnbitsUrl,
-      hasApiKey: !!this.config.apiKey,
-      webhookUrl: this.config.webhookUrl
+      lnbitsUrl: this.lnbitsUrl,
+      hasApiKey: !!this.apiKey,
+      webhookUrl: this.webhookUrl
     };
   }
 
@@ -206,10 +220,10 @@ export class LightningService {
     try {
       const startTime = Date.now();
 
-      const response = await fetch(`${this.config.lnbitsUrl}/api/v1/wallet`, {
+      const response = await fetch(`${this.lnbitsUrl}/api/v1/wallet`, {
         method: 'GET',
         headers: {
-          'X-Api-Key': this.config.apiKey
+          'X-Api-Key': this.apiKey
         }
       });
 

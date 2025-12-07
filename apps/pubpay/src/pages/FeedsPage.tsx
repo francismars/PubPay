@@ -1,9 +1,10 @@
 // FeedsPage component - handles all feed-related functionality
 import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useLocation } from 'react-router-dom';
-// import { useUIStore } from '@pubpay/shared-services';
+import { useAuthStore } from '@pubpay/shared-services';
 import { PayNoteComponent } from '../components/PayNoteComponent/PayNoteComponent';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
+import { usePostStore } from '../stores/usePostStore';
 import { nip19 } from 'nostr-tools';
 import { COLORS } from '../constants';
 
@@ -11,6 +12,19 @@ import { COLORS } from '../constants';
 
 export const FeedsPage: React.FC = () => {
   const location = useLocation();
+  
+  // Use stores directly for state
+  const posts = usePostStore(state => state.posts);
+  const followingPosts = usePostStore(state => state.followingPosts);
+  const replies = usePostStore(state => state.replies);
+  const activeFeed = usePostStore(state => state.activeFeed);
+  const isLoading = usePostStore(state => state.isLoading);
+  const isLoadingMore = usePostStore(state => state.isLoadingMore);
+  const nostrReady = usePostStore(state => state.nostrReady);
+  const paymentErrors = usePostStore(state => state.paymentErrors);
+  const clearPosts = usePostStore(state => state.clearAllPosts);
+  
+  // Get handlers and authState from Layout context (authState includes privateKey from local state)
   const {
     authState,
     nostrClient,
@@ -22,20 +36,10 @@ export const FeedsPage: React.FC = () => {
     showNewPayNoteForm,
     handleCloseNewPayNoteForm,
     isPublishing,
-    // Hook state via Layout context
-    isLoading,
-    activeFeed,
-    posts,
-    followingPosts,
-    replies,
-    isLoadingMore,
-    nostrReady,
-    paymentErrors,
     handleFeedChange,
     loadMorePosts,
     loadSingleNote,
-    loadReplies,
-    clearPosts
+    loadReplies
   } = useOutletContext<{
     authState: {
       isLoggedIn: boolean;
@@ -54,19 +58,10 @@ export const FeedsPage: React.FC = () => {
     showNewPayNoteForm: boolean;
     handleCloseNewPayNoteForm: () => void;
     isPublishing: boolean;
-    isLoading: boolean;
-    activeFeed: 'global' | 'following';
-    posts: PubPayPost[];
-    followingPosts: PubPayPost[];
-    replies: PubPayPost[];
-    isLoadingMore: boolean;
-    nostrReady: boolean;
-    paymentErrors: Map<string, string>;
     handleFeedChange: (feed: 'global' | 'following') => void;
     loadMorePosts: () => Promise<void | unknown>;
     loadSingleNote: (eventId: string) => Promise<void>;
     loadReplies: (eventId: string) => Promise<void>;
-    clearPosts: () => void;
   }>();
   const [showJSON, setShowJSON] = useState(false);
   const [jsonContent, setJsonContent] = useState('');

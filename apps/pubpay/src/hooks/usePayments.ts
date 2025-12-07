@@ -1,5 +1,5 @@
 import { ZapService } from '@pubpay/shared-services';
-import type { AuthState } from '../types/postTypes';
+import type { AuthState } from '@pubpay/shared-services';
 import type { PubPayPost } from '../types/postTypes';
 
 interface UsePaymentsOptions {

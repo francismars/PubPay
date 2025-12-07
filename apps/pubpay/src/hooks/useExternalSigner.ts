@@ -1,25 +1,24 @@
 import { useEffect, useRef } from 'react';
-import { AuthService, BlossomService, FollowService, useUIStore, getQueryClient } from '@pubpay/shared-services';
+import { AuthService, BlossomService, FollowService, useUIStore, getQueryClient, useAuthStore, type AuthState } from '@pubpay/shared-services';
 import { verifyEvent } from 'nostr-tools';
 import { STORAGE_KEYS, TIMEOUT } from '../constants';
 import type { NostrClient, ZapService } from '@pubpay/shared-services';
-import type { AuthState } from '../types/postTypes';
 
 interface UseExternalSignerParams {
   nostrClientRef: React.MutableRefObject<NostrClient | null>;
   zapServiceRef: React.MutableRefObject<ZapService | null>;
-  authState: AuthState;
-  setAuthState: React.Dispatch<React.SetStateAction<AuthState>>;
   loadUserProfile: (publicKey: string) => Promise<void>;
+  authState: AuthState; // Receive authState from useAuth (includes privateKey from local state)
 }
 
 export const useExternalSigner = ({
   nostrClientRef,
   zapServiceRef,
-  authState,
-  setAuthState,
-  loadUserProfile
+  loadUserProfile,
+  authState
 }: UseExternalSignerParams) => {
+  // Get store actions (privateKey is in authState prop, not in store)
+  const setAuth = useAuthStore(state => state.setAuth);
   useEffect(() => {
     // Handle external signer return
     const handleVisibilityChange = async () => {
@@ -29,14 +28,14 @@ export const useExternalSigner = ({
         if (result.success && result.publicKey) {
           await AuthService.storeAuthData(result.publicKey, null, 'externalSigner');
 
-          setAuthState({
+          setAuth({
             isLoggedIn: true,
             publicKey: result.publicKey,
-            privateKey: null,
             signInMethod: 'externalSigner',
             userProfile: null,
             displayName: null
           });
+          // Note: privateKey is managed in useAuth local state, not here
 
           await loadUserProfile(result.publicKey);
           // Load follow suggestions after login via external signer
@@ -250,8 +249,9 @@ export const useExternalSigner = ({
                 }
 
                 // Invalidate cache and reload profile to reflect changes
-                if (authState.publicKey) {
-                  const pubkey = authState.publicKey;
+                const currentAuthState = useAuthStore.getState();
+                if (currentAuthState.publicKey) {
+                  const pubkey = currentAuthState.publicKey;
                   const queryClient = getQueryClient();
                   queryClient.removeQueries({ queryKey: ['profile', pubkey] });
                   queryClient.invalidateQueries({
@@ -402,6 +402,6 @@ export const useExternalSigner = ({
         handleRequestFollowSuggestions
       );
     };
-  }, [nostrClientRef, zapServiceRef, authState, setAuthState, loadUserProfile]);
+  }, [nostrClientRef, zapServiceRef, loadUserProfile]);
 };
 

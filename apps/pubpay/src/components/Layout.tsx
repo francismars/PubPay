@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { useUIStore, NostrRegistrationService, AuthService } from '@pubpay/shared-services';
 import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
+import { usePostStore } from '../stores/usePostStore';
 import { nip19 } from 'nostr-tools';
 import { NewPayNoteOverlay } from './NewPayNoteOverlay/NewPayNoteOverlay';
 import { StatusToast } from './StatusToast/StatusToast';
@@ -38,18 +39,20 @@ export const Layout: React.FC = () => {
   const [externalSignerAvailable, setExternalSignerAvailable] = useState(true);
   const [externalSignerLoading, setExternalSignerLoading] = useState(false);
 
+  // Use stores directly for state
+  const posts = usePostStore(state => state.posts);
+  const followingPosts = usePostStore(state => state.followingPosts);
+  const replies = usePostStore(state => state.replies);
+  const activeFeed = usePostStore(state => state.activeFeed);
+  const isLoading = usePostStore(state => state.isLoading);
+  const isLoadingMore = usePostStore(state => state.isLoadingMore);
+  const nostrReady = usePostStore(state => state.nostrReady);
+  const paymentErrors = usePostStore(state => state.paymentErrors);
+
+  // Get handlers and authState from useHomeFunctionality (authState includes privateKey from local state)
   const {
     authState,
     nostrClient,
-    // Hook state
-    isLoading,
-    activeFeed,
-    posts,
-    followingPosts,
-    replies,
-    isLoadingMore,
-    nostrReady,
-    paymentErrors,
     handleFeedChange,
     loadMorePosts,
     loadSingleNote,

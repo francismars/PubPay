@@ -13,31 +13,25 @@ import { nip19 } from 'nostr-tools';
 import * as bolt11 from 'bolt11';
 import { genericUserIcon } from '../assets/images';
 import { TIMEOUT, QUERY_LIMITS } from '../constants';
-import type { PubPayPost, FeedType, AuthState } from '../types/postTypes';
+import type { PubPayPost, FeedType } from '../types/postTypes';
+import type { AuthState } from '@pubpay/shared-services';
 import { processPostsBasic, processPostsBasicSync, calculateReplyLevels } from '../utils/postProcessing';
 import { isZapWithinLimits } from '../utils/zapProcessing';
 import { extractLightningAddresses, extractNip05s, validateLightningAddress, validateNip05 } from '../utils/validation';
+import { usePostStore } from '../stores/usePostStore';
 
 interface UseFeedLoaderOptions {
-  // State setters
-  setPosts: React.Dispatch<React.SetStateAction<PubPayPost[]>>;
-  setFollowingPosts: React.Dispatch<React.SetStateAction<PubPayPost[]>>;
-  setReplies: React.Dispatch<React.SetStateAction<PubPayPost[]>>;
-  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  setIsLoadingMore: React.Dispatch<React.SetStateAction<boolean>>;
-  setNostrReady: React.Dispatch<React.SetStateAction<boolean>>;
-  // State values
-  posts: PubPayPost[];
-  followingPosts: PubPayPost[];
-  activeFeed: 'global' | 'following';
-  isLoadingMore: boolean;
-  // Refs
+  // Store actions (direct store actions, not React setters)
+  setPosts: (posts: PubPayPost[]) => void;
+  setFollowingPosts: (posts: PubPayPost[]) => void;
+  setReplies: (replies: PubPayPost[]) => void;
+  setIsLoading: (isLoading: boolean) => void;
+  setIsLoadingMore: (isLoadingMore: boolean) => void;
+  setNostrReady: (ready: boolean) => void;
+  // Refs (only for non-state tracking)
   nostrClientRef: React.MutableRefObject<NostrClient | null>;
   followingPubkeysRef: React.MutableRefObject<string[]>;
   newestPostTimestampRef: React.MutableRefObject<number>;
-  postsRef: React.MutableRefObject<PubPayPost[]>;
-  followingPostsRef: React.MutableRefObject<PubPayPost[]>;
-  repliesRef: React.MutableRefObject<PubPayPost[]>;
   profileCacheRef: React.MutableRefObject<Map<string, Kind0Event>>;
   pendingProfileRequestsRef: React.MutableRefObject<Set<string>>;
   validatingLightningAddressesRef: React.MutableRefObject<Set<string>>;
@@ -54,16 +48,9 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
     setIsLoading,
     setIsLoadingMore,
     setNostrReady,
-    posts,
-    followingPosts,
-    activeFeed,
-    isLoadingMore,
     nostrClientRef,
     followingPubkeysRef,
     newestPostTimestampRef,
-    postsRef,
-    followingPostsRef,
-    repliesRef,
     profileCacheRef,
     pendingProfileRequestsRef,
     validatingLightningAddressesRef,
@@ -162,18 +149,19 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
       // Validate asynchronously (fire and forget) using utility
       validateLightningAddress(lud16, postsWithAddress)
         .then(({ updatedPosts }) => {
-          // Update all posts with this lightning address using functional updates
+          // Update all posts with this lightning address
           const updatePost = (post: PubPayPost) => {
             const updated = updatedPosts.find(p => p.id === post.id);
             return updated || post;
           };
 
+          const currentState = usePostStore.getState();
           if (feed === 'following') {
-            setFollowingPosts(prev => prev.map(updatePost));
+            setFollowingPosts(currentState.followingPosts.map(updatePost));
           } else if (feed === 'replies') {
-            setReplies(prev => prev.map(updatePost));
+            setReplies(currentState.replies.map(updatePost));
           } else {
-            setPosts(prev => prev.map(updatePost));
+            setPosts(currentState.posts.map(updatePost));
           }
         })
         .finally(() => {
@@ -208,29 +196,31 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
         return post;
       };
 
+      const storeState = usePostStore.getState();
       if (feed === 'following') {
-        setFollowingPosts(prev => prev.map(setValidating));
+        setFollowingPosts(storeState.followingPosts.map(setValidating));
       } else if (feed === 'replies') {
-        setReplies(prev => prev.map(setValidating));
+        setReplies(storeState.replies.map(setValidating));
       } else {
-        setPosts(prev => prev.map(setValidating));
+        setPosts(storeState.posts.map(setValidating));
       }
 
       // Validate asynchronously (fire and forget) using utility
       validateNip05(nip05, pubkey, postsWithNip05)
         .then(({ updatedPosts }) => {
-          // Update all posts with this NIP-05 using functional updates
+          // Update all posts with this NIP-05
           const updatePost = (post: PubPayPost) => {
             const updated = updatedPosts.find(p => p.id === post.id);
             return updated || post;
           };
 
+          const currentState = usePostStore.getState();
           if (feed === 'following') {
-            setFollowingPosts(prev => prev.map(updatePost));
+            setFollowingPosts(currentState.followingPosts.map(updatePost));
           } else if (feed === 'replies') {
-            setReplies(prev => prev.map(updatePost));
+            setReplies(currentState.replies.map(updatePost));
           } else {
-            setPosts(prev => prev.map(updatePost));
+            setPosts(currentState.posts.map(updatePost));
           }
         })
         .finally(() => {
@@ -411,12 +401,14 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
       });
     };
 
-    // Update the appropriate posts array
-    if (feed === 'following') {
-      setFollowingPosts(prev => updatePostsWithZaps(prev));
-    } else {
-      setPosts(prev => updatePostsWithZaps(prev));
-    }
+      // Update the appropriate posts array
+      if (feed === 'following') {
+        const current = usePostStore.getState().followingPosts;
+        setFollowingPosts(updatePostsWithZaps(current));
+      } else {
+        const current = usePostStore.getState().posts;
+        setPosts(updatePostsWithZaps(current));
+      }
   };
 
   const processPosts = async (
@@ -535,7 +527,11 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
 
       // Add until filter for loading more posts (older posts)
       if (loadMore) {
-        const currentPosts = feed === 'following' ? followingPosts : posts;
+        // Get current state from store (for async safety)
+        const storeState = usePostStore.getState();
+        const currentPosts = feed === 'following'
+          ? storeState.followingPosts
+          : storeState.posts;
         if (currentPosts.length > 0) {
           // Get the oldest post (last in the array since they're sorted newest first)
           const oldestPost = currentPosts[currentPosts.length - 1];
@@ -650,26 +646,25 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
 
       // Show posts immediately to user (progressive rendering)
       if (loadMore) {
+        const storeState = usePostStore.getState();
         if (feed === 'following') {
-          setFollowingPosts(prev => {
-            // Filter out duplicates based on post ID
-            const existingIds = new Set(prev.map(p => p.id));
-            const newPosts = basicPosts.filter(p => !existingIds.has(p.id));
-            console.log(
-              `Adding ${newPosts.length} new posts (${basicPosts.length - newPosts.length} duplicates filtered)`
-            );
-            return [...prev, ...newPosts];
-          });
+          const current = storeState.followingPosts;
+          // Filter out duplicates based on post ID
+          const existingIds = new Set(current.map(p => p.id));
+          const newPosts = basicPosts.filter(p => !existingIds.has(p.id));
+          console.log(
+            `Adding ${newPosts.length} new posts (${basicPosts.length - newPosts.length} duplicates filtered)`
+          );
+          setFollowingPosts([...current, ...newPosts]);
         } else {
-          setPosts(prev => {
-            // Filter out duplicates based on post ID
-            const existingIds = new Set(prev.map(p => p.id));
-            const newPosts = basicPosts.filter(p => !existingIds.has(p.id));
-            console.log(
-              `Adding ${newPosts.length} new posts (${basicPosts.length - newPosts.length} duplicates filtered)`
-            );
-            return [...prev, ...newPosts];
-          });
+          const current = storeState.posts;
+          // Filter out duplicates based on post ID
+          const existingIds = new Set(current.map(p => p.id));
+          const newPosts = basicPosts.filter(p => !existingIds.has(p.id));
+          console.log(
+            `Adding ${newPosts.length} new posts (${basicPosts.length - newPosts.length} duplicates filtered)`
+          );
+          setPosts([...current, ...newPosts]);
         }
         setIsLoadingMore(false);
       } else {
@@ -715,7 +710,7 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
               // Extract zap tags from event
               const zapMinTag = event.tags.find(tag => tag[0] === 'zap-min');
               const zapMaxTag = event.tags.find(tag => tag[0] === 'zap-max');
-              const zapLNURLTag = event.tags.find(tag => tag[0] === 'zap-lnurl');
+              // zapLNURLTag found but not used (zapLNURL is set elsewhere)
               const hasZapTags = !!(zapMinTag || zapMaxTag || event.tags.find(tag => tag[0] === 'zap-uses') || event.tags.find(tag => tag[0] === 'zap-goal'));
               const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
 
@@ -736,26 +731,29 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
             return updatedPost;
           };
 
+          const storeState = usePostStore.getState();
           if (feed === 'following') {
-            setFollowingPosts(prev => {
-              return prev.map(post => {
+            const current = storeState.followingPosts;
+            setFollowingPosts(
+              current.map(post => {
                 const event = kind1Events.find(e => e.id === post.id);
                 if (!event) return post;
 
                 const author = allProfiles.get(event.pubkey) || null;
                 return updatePostWithProfile(post, event, author);
-              });
-            });
+              })
+            );
           } else {
-            setPosts(prev => {
-              return prev.map(post => {
+            const current = storeState.posts;
+            setPosts(
+              current.map(post => {
                 const event = kind1Events.find(e => e.id === post.id);
                 if (!event) return post;
 
                 const author = allProfiles.get(event.pubkey) || null;
                 return updatePostWithProfile(post, event, author);
-              });
-            });
+              })
+            );
           }
 
           // Load zaps and update posts (progressive enhancement)
@@ -769,12 +767,13 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
           // Validate lightning addresses asynchronously (don't block UI)
           // Use a small delay to ensure state has updated
           setTimeout(() => {
+            const storeState = usePostStore.getState();
             if (feed === 'following') {
-              validateLightningAddresses(followingPostsRef.current, feed);
-              validateNip05s(followingPostsRef.current, feed);
+              validateLightningAddresses(storeState.followingPosts, feed);
+              validateNip05s(storeState.followingPosts, feed);
             } else {
-              validateLightningAddresses(postsRef.current, feed);
-              validateNip05s(postsRef.current, feed);
+              validateLightningAddresses(storeState.posts, feed);
+              validateNip05s(storeState.posts, feed);
             }
           }, TIMEOUT.SHORT_DELAY);
         } catch (err) {
@@ -833,20 +832,27 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
   };
 
   const loadMorePosts = async () => {
-    if (isLoadingMore) {
+    // Get current state from store (for async safety)
+    const storeState = usePostStore.getState();
+    const currentIsLoadingMore = storeState.isLoadingMore;
+    const currentActiveFeed = storeState.activeFeed;
+    const currentPosts = currentActiveFeed === 'following'
+      ? storeState.followingPosts
+      : storeState.posts;
+
+    if (currentIsLoadingMore) {
       console.log('Already loading more posts, skipping...');
       return;
     }
 
     // Check if we have enough posts to load more (like the original)
-    const currentPosts = activeFeed === 'following' ? followingPosts : posts;
     if (currentPosts.length < 21) {
       console.log('Not enough posts to load more, skipping...');
       return;
     }
 
     console.log('Loading more posts...');
-    return loadPosts(activeFeed, true);
+    return loadPosts(currentActiveFeed, true);
   };
 
   // Load single note and its replies
@@ -940,7 +946,7 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
 
               const zapMinTag = event.tags.find((tag: any[]) => tag[0] === 'zap-min');
               const zapMaxTag = event.tags.find((tag: any[]) => tag[0] === 'zap-max');
-              const zapLNURLTag = event.tags.find((tag: any[]) => tag[0] === 'zap-lnurl');
+              // zapLNURLTag found but not used (zapLNURL is set elsewhere)
               const hasZapTags = !!(zapMinTag || zapMaxTag || event.tags.find((tag: any[]) => tag[0] === 'zap-uses') || event.tags.find((tag: any[]) => tag[0] === 'zap-goal'));
               const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
 
@@ -960,15 +966,16 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
             return updatedPost;
           };
 
-          setPosts(prev => {
-            return prev.map(post => {
+          const currentPosts = usePostStore.getState().posts;
+          setPosts(
+            currentPosts.map(post => {
               const event = deduplicatedEvents.find(e => e.id === post.id);
               if (!event) return post;
 
               const author = profileMap.get(event.pubkey);
               return updatePostWithProfile(post, event, author);
-            });
-          });
+            })
+          );
 
           // Process and update zaps
           if (zapEvents.length > 0) {
@@ -983,15 +990,14 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
             }
           } else {
             // No zaps, just mark as not loading
-            setPosts(prev => prev.map(post => ({ ...post, zapLoading: false })));
+            const current = usePostStore.getState().posts;
+            setPosts(current.map(post => ({ ...post, zapLoading: false })));
           }
 
           // Validate lightning addresses and NIP-05 asynchronously
-          setPosts(prev => {
-            validateLightningAddresses(prev, 'global');
-            validateNip05s(prev, 'global');
-            return prev;
-          });
+          const postsForValidation = usePostStore.getState().posts;
+          validateLightningAddresses(postsForValidation, 'global');
+          validateNip05s(postsForValidation, 'global');
 
           // Load replies in background (non-blocking)
           loadReplies(eventId).catch(err => {
@@ -1079,7 +1085,7 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
 
               const zapMinTag = event.tags.find((tag: any[]) => tag[0] === 'zap-min');
               const zapMaxTag = event.tags.find((tag: any[]) => tag[0] === 'zap-max');
-              const zapLNURLTag = event.tags.find((tag: any[]) => tag[0] === 'zap-lnurl');
+              // zapLNURLTag found but not used (zapLNURL is set elsewhere)
               const hasZapTags = !!(zapMinTag || zapMaxTag || event.tags.find((tag: any[]) => tag[0] === 'zap-uses') || event.tags.find((tag: any[]) => tag[0] === 'zap-goal'));
               const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
 
@@ -1099,15 +1105,16 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
             return updatedReply;
           };
 
-          setReplies(prev => {
-            return prev.map(reply => {
+          const currentReplies = usePostStore.getState().replies;
+          setReplies(
+            currentReplies.map(reply => {
               const event = deduplicatedReplies.find(e => e.id === reply.id);
               if (!event) return reply;
 
               const author = profileMap.get(event.pubkey);
               return updateReplyWithProfile(reply, event, author);
-            });
-          });
+            })
+          );
 
           // Process and update zaps for replies
           if (zapEvents.length > 0) {
@@ -1122,21 +1129,19 @@ export const useFeedLoader = (options: UseFeedLoaderOptions) => {
             }
           } else {
             // No zaps, just mark as not loading
-            setReplies(prev => prev.map(reply => ({ ...reply, zapLoading: false })));
+            const current = usePostStore.getState().replies;
+            setReplies(current.map(reply => ({ ...reply, zapLoading: false })));
           }
 
           // Validate lightning addresses and NIP-05 asynchronously
-          setReplies(prev => {
-            validateLightningAddresses(prev, 'replies');
-            validateNip05s(prev, 'replies');
-            return prev;
-          });
+          const repliesForValidation = usePostStore.getState().replies;
+          validateLightningAddresses(repliesForValidation, 'replies');
+          validateNip05s(repliesForValidation, 'replies');
 
           // Calculate reply levels for proper indentation
-          setReplies(prev => {
-            const sortedReplies = [...prev].sort((a, b) => a.createdAt - b.createdAt);
-            return calculateReplyLevels(sortedReplies) as PubPayPost[];
-          });
+          const repliesForLevels = usePostStore.getState().replies;
+          const sortedReplies = [...repliesForLevels].sort((a, b) => a.createdAt - b.createdAt);
+          setReplies(calculateReplyLevels(sortedReplies) as PubPayPost[]);
         } catch (err) {
           console.error('Error loading reply profiles/zaps in background:', err);
         }
