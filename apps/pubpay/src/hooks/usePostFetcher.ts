@@ -8,6 +8,8 @@ import { TIMEOUT, QUERY_LIMITS } from '../constants';
 import { genericUserIcon } from '../assets/images';
 import { calculateReplyLevels, updatePostWithProfileData } from '../utils/postProcessing';
 import { usePostStore } from '../stores/usePostStore';
+import { useAbortController } from './useAbortController';
+import { safeAsync, isAbortError } from '../utils/asyncHelpers';
 
 interface UsePostFetcherOptions {
   nostrClientRef: React.MutableRefObject<NostrClient | null>;
@@ -53,8 +55,14 @@ export const usePostFetcher = (options: UsePostFetcherOptions) => {
     authState
   } = options;
 
+  // Add AbortController to prevent memory leaks
+  const { signal, isAborted } = useAbortController();
+
   const loadPosts = useCallback(
     async (feed: 'global' | 'following', loadMore = false) => {
+      // Check if aborted before starting
+      if (isAborted) return;
+
       if (!nostrClientRef.current) {
         console.warn('NostrClient not available yet');
         return;
@@ -247,76 +255,91 @@ export const usePostFetcher = (options: UsePostFetcherOptions) => {
 
         // Load profiles, zaps, and zap payer profiles in background (non-blocking)
         // These will update the posts progressively when ready
-        (async () => {
-          try {
-            // Use unified loadPostData utility to load all related data
-            const postData = await loadPostData(
-              getQueryClient(),
-              nostrClientRef.current!,
-              kind1Events,
-              { genericUserIcon }
+        // FIX: Use safeAsync to prevent memory leaks if component unmounts
+        safeAsync(async () => {
+          // Use unified loadPostData utility to load all related data
+          const postData = await loadPostData(
+            getQueryClient(),
+            nostrClientRef.current!,
+            kind1Events,
+            { genericUserIcon }
+          );
+
+          // Check if aborted before continuing
+          if (isAborted) return;
+
+          const zapEvents = postData.zaps;
+          const allProfiles = postData.profiles; // Map of all profiles (authors + zap payers)
+
+          // Update posts with profiles (progressive enhancement)
+          const storeState = usePostStore.getState();
+          if (feed === 'following') {
+            const current = storeState.followingPosts;
+            setFollowingPosts(
+              current.map(post => {
+                const event = kind1Events.find(e => e.id === post.id);
+                if (!event) return post;
+
+                const author = allProfiles.get(event.pubkey) || null;
+                return updatePostWithProfileData(post, event, author);
+              })
             );
+          } else {
+            const current = storeState.posts;
+            setPosts(
+              current.map(post => {
+                const event = kind1Events.find(e => e.id === post.id);
+                if (!event) return post;
 
-            const zapEvents = postData.zaps;
-            const allProfiles = postData.profiles; // Map of all profiles (authors + zap payers)
+                const author = allProfiles.get(event.pubkey) || null;
+                return updatePostWithProfileData(post, event, author);
+              })
+            );
+          }
 
-            // Update posts with profiles (progressive enhancement)
+          // Check if aborted before continuing
+          if (isAborted) return;
+
+          // Load zaps and update posts (progressive enhancement)
+          // Make sure zap payer profiles are loaded before processing zaps
+          if (zapEvents.length > 0) {
+            // loadPostData already loaded all zap payer profiles, so we can use them directly
+            // Now load zaps with all profiles available
+            await loadZapsForPosts(
+              kind1Events,
+              zapEvents,
+              feed,
+              Array.from(allProfiles.values())
+            );
+          }
+
+          // Check if aborted before setting timeout
+          if (isAborted) return;
+
+          // Validate lightning addresses asynchronously (don't block UI)
+          // Use a small delay to ensure state has updated
+          // Note: Timeout is inside safeAsync, so it will be cancelled if component unmounts
+          setTimeout(() => {
+            if (isAborted) return;
             const storeState = usePostStore.getState();
             if (feed === 'following') {
-              const current = storeState.followingPosts;
-              setFollowingPosts(
-                current.map(post => {
-                  const event = kind1Events.find(e => e.id === post.id);
-                  if (!event) return post;
-
-                  const author = allProfiles.get(event.pubkey) || null;
-                  return updatePostWithProfileData(post, event, author);
-                })
-              );
+              validateLightningAddresses(storeState.followingPosts, feed);
+              validateNip05s(storeState.followingPosts, feed);
             } else {
-              const current = storeState.posts;
-              setPosts(
-                current.map(post => {
-                  const event = kind1Events.find(e => e.id === post.id);
-                  if (!event) return post;
-
-                  const author = allProfiles.get(event.pubkey) || null;
-                  return updatePostWithProfileData(post, event, author);
-                })
-              );
+              validateLightningAddresses(storeState.posts, feed);
+              validateNip05s(storeState.posts, feed);
             }
+          }, TIMEOUT.SHORT_DELAY);
 
-            // Load zaps and update posts (progressive enhancement)
-            // Make sure zap payer profiles are loaded before processing zaps
-            if (zapEvents.length > 0) {
-              // loadPostData already loaded all zap payer profiles, so we can use them directly
-              // Now load zaps with all profiles available
-              await loadZapsForPosts(
-                kind1Events,
-                zapEvents,
-                feed,
-                Array.from(allProfiles.values())
-              );
-            }
-
-            // Validate lightning addresses asynchronously (don't block UI)
-            // Use a small delay to ensure state has updated
-            setTimeout(() => {
-              const storeState = usePostStore.getState();
-              if (feed === 'following') {
-                validateLightningAddresses(storeState.followingPosts, feed);
-                validateNip05s(storeState.followingPosts, feed);
-              } else {
-                validateLightningAddresses(storeState.posts, feed);
-                validateNip05s(storeState.posts, feed);
-              }
-            }, TIMEOUT.SHORT_DELAY);
-          } catch (err) {
-            console.error('Error loading profiles/zaps in background:', err);
-            // Don't fail the whole load if background updates fail
-          }
-        })();
+          // Note: We can't easily clean up this timeout if component unmounts,
+          // but the validation functions will check isAborted internally
+        }, signal);
       } catch (err) {
+        // Ignore abort errors (component unmounted)
+        if (isAbortError(err)) {
+          console.log('loadPosts aborted (component unmounted)');
+          return;
+        }
         console.error('Failed to load posts:', err);
         console.error(
           'Failed to load posts:',
@@ -336,7 +359,9 @@ export const usePostFetcher = (options: UsePostFetcherOptions) => {
       processPostsBasic,
       loadZapsForPosts,
       validateLightningAddresses,
-      validateNip05s
+      validateNip05s,
+      signal,
+      isAborted
     ]
   );
 
@@ -411,9 +436,147 @@ export const usePostFetcher = (options: UsePostFetcherOptions) => {
     return loadPosts(currentActiveFeed, true);
   }, [loadPosts]);
 
+  // Load replies to a specific note (defined before loadSingleNote since it's used there)
+  const loadReplies = useCallback(
+    async (parentEventId: string) => {
+      // Check if aborted before starting
+      if (isAborted) return;
+
+      if (!nostrClientRef.current) return;
+
+      try {
+        const replyFilter: NostrFilter = {
+          kinds: [1],
+          '#e': [parentEventId]
+        };
+
+        const cleanFilter = JSON.parse(JSON.stringify(replyFilter));
+        const replyEvents = (await nostrClientRef.current.getEvents([
+          cleanFilter
+        ])) as Kind1Event[];
+
+        if (!replyEvents || replyEvents.length === 0) {
+          setReplies([]);
+          return;
+        }
+
+        // Deduplicate replies by ID
+        const uniqueRepliesMap = new Map<string, Kind1Event>();
+        replyEvents.forEach(event => {
+          if (!uniqueRepliesMap.has(event.id)) {
+            uniqueRepliesMap.set(event.id, event);
+          }
+        });
+        const deduplicatedReplies = Array.from(uniqueRepliesMap.values());
+
+        // Sort by created_at (newest first)
+        deduplicatedReplies.sort((a, b) => b.created_at - a.created_at);
+
+        console.log('Found replies:', deduplicatedReplies.length);
+
+        // PROGRESSIVE RENDERING: Show replies immediately with minimal data
+        const initialReplies = processPostsBasicSync(deduplicatedReplies);
+        setReplies(initialReplies);
+
+        // Load profiles, zaps, and zap payer profiles in parallel (non-blocking)
+        // FIX: Use safeAsync to prevent memory leaks if component unmounts
+        safeAsync(async () => {
+          // Use unified loadPostData utility to load all related data
+          const postData = await loadPostData(
+            getQueryClient(),
+            nostrClientRef.current!,
+            deduplicatedReplies,
+            { genericUserIcon }
+          );
+
+          // Check if aborted before continuing
+          if (isAborted) return;
+
+          const profileMap = postData.profiles;
+          const zapEvents = postData.zaps;
+          const allProfiles = profileMap; // Already combined in postData.profiles
+
+          // Update replies with profile data (progressive enhancement)
+          const currentReplies = usePostStore.getState().replies;
+          setReplies(
+            currentReplies.map(reply => {
+              const event = deduplicatedReplies.find(e => e.id === reply.id);
+              if (!event) return reply;
+
+              const author = profileMap.get(event.pubkey);
+              return updatePostWithProfileData(reply, event, author);
+            })
+          );
+
+          // Check if aborted before continuing
+          if (isAborted) return;
+
+          // Process and update zaps for replies
+          if (zapEvents.length > 0) {
+            const processedReplies = await processPosts(
+              deduplicatedReplies,
+              Array.from(allProfiles.values()),
+              zapEvents
+            );
+
+            if (processedReplies.length > 0 && !isAborted) {
+              setReplies(processedReplies);
+            }
+          } else {
+            // No zaps, just mark as not loading
+            if (!isAborted) {
+              const current = usePostStore.getState().replies;
+              setReplies(
+                current.map(reply => ({ ...reply, zapLoading: false }))
+              );
+            }
+          }
+
+          // Check if aborted before continuing
+          if (isAborted) return;
+
+          // Validate lightning addresses and NIP-05 asynchronously
+          const repliesForValidation = usePostStore.getState().replies;
+          validateLightningAddresses(repliesForValidation, 'replies');
+          validateNip05s(repliesForValidation, 'replies');
+
+          // Check if aborted before continuing
+          if (isAborted) return;
+
+          // Calculate reply levels for proper indentation
+          const repliesForLevels = usePostStore.getState().replies;
+          const sortedReplies = [...repliesForLevels].sort(
+            (a, b) => a.createdAt - b.createdAt
+          );
+          setReplies(calculateReplyLevels(sortedReplies) as PubPayPost[]);
+        }, signal);
+      } catch (err) {
+        // Ignore abort errors (component unmounted)
+        if (isAbortError(err)) {
+          console.log('loadReplies aborted (component unmounted)');
+          return;
+        }
+        console.error('Failed to load replies:', err);
+      }
+    },
+    [
+      nostrClientRef,
+      setReplies,
+      processPostsBasicSync,
+      processPosts,
+      validateLightningAddresses,
+      validateNip05s,
+      signal,
+      isAborted
+    ]
+  );
+
   // Load single note and its replies
   const loadSingleNote = useCallback(
     async (eventId: string) => {
+      // Check if aborted before starting
+      if (isAborted) return;
+
       if (!nostrClientRef.current) {
         console.warn('NostrClient not available yet');
         return;
@@ -473,66 +636,83 @@ export const usePostFetcher = (options: UsePostFetcherOptions) => {
         setIsLoading(false);
 
         // Load profiles, zaps, and zap payer profiles in parallel (non-blocking)
-        (async () => {
-          try {
-            // Use unified loadPostData utility to load all related data
-            const postData = await loadPostData(
-              getQueryClient(),
-              nostrClientRef.current!,
+        // FIX: Use safeAsync to prevent memory leaks if component unmounts
+        safeAsync(async () => {
+          // Use unified loadPostData utility to load all related data
+          const postData = await loadPostData(
+            getQueryClient(),
+            nostrClientRef.current!,
+            deduplicatedEvents,
+            { genericUserIcon }
+          );
+
+          // Check if aborted before continuing
+          if (isAborted) return;
+
+          const profileMap = postData.profiles;
+          const zapEvents = postData.zaps;
+          const allProfiles = profileMap; // Already combined in postData.profiles
+
+          // Update post with profile data (progressive enhancement)
+          const currentPosts = usePostStore.getState().posts;
+          setPosts(
+            currentPosts.map(post => {
+              const event = deduplicatedEvents.find(e => e.id === post.id);
+              if (!event) return post;
+
+              const author = profileMap.get(event.pubkey);
+              return updatePostWithProfileData(post, event, author);
+            })
+          );
+
+          // Check if aborted before continuing
+          if (isAborted) return;
+
+          // Process and update zaps
+          if (zapEvents.length > 0) {
+            const processedPosts = await processPosts(
               deduplicatedEvents,
-              { genericUserIcon }
+              Array.from(allProfiles.values()),
+              zapEvents
             );
 
-            const profileMap = postData.profiles;
-            const zapEvents = postData.zaps;
-            const allProfiles = profileMap; // Already combined in postData.profiles
-
-            // Update post with profile data (progressive enhancement)
-            const currentPosts = usePostStore.getState().posts;
-            setPosts(
-              currentPosts.map(post => {
-                const event = deduplicatedEvents.find(e => e.id === post.id);
-                if (!event) return post;
-
-                const author = profileMap.get(event.pubkey);
-                return updatePostWithProfileData(post, event, author);
-              })
-            );
-
-            // Process and update zaps
-            if (zapEvents.length > 0) {
-              const processedPosts = await processPosts(
-                deduplicatedEvents,
-                Array.from(allProfiles.values()),
-                zapEvents
-              );
-
-              if (processedPosts.length > 0) {
-                setPosts(processedPosts);
-              }
-            } else {
-              // No zaps, just mark as not loading
+            if (processedPosts.length > 0 && !isAborted) {
+              setPosts(processedPosts);
+            }
+          } else {
+            // No zaps, just mark as not loading
+            if (!isAborted) {
               const current = usePostStore.getState().posts;
               setPosts(current.map(post => ({ ...post, zapLoading: false })));
             }
-
-            // Validate lightning addresses and NIP-05 asynchronously
-            const postsForValidation = usePostStore.getState().posts;
-            validateLightningAddresses(postsForValidation, 'global');
-            validateNip05s(postsForValidation, 'global');
-
-            // Load replies in background (non-blocking)
-            loadReplies(eventId).catch(err => {
-              console.error('Failed to load replies:', err);
-            });
-          } catch (err) {
-            console.error('Error loading profiles/zaps in background:', err);
           }
-        })();
+
+          // Check if aborted before continuing
+          if (isAborted) return;
+
+          // Validate lightning addresses and NIP-05 asynchronously
+          const postsForValidation = usePostStore.getState().posts;
+          validateLightningAddresses(postsForValidation, 'global');
+          validateNip05s(postsForValidation, 'global');
+
+          // Load replies in background (non-blocking)
+          if (!isAborted) {
+            loadReplies(eventId).catch(err => {
+              if (!isAbortError(err)) {
+                console.error('Failed to load replies:', err);
+              }
+            });
+          }
+        }, signal);
 
         // Signal ready after essentials are loaded
         setNostrReady(true);
       } catch (err) {
+        // Ignore abort errors (component unmounted)
+        if (isAbortError(err)) {
+          console.log('loadSingleNote aborted (component unmounted)');
+          return;
+        }
         console.error('Failed to load single note:', err);
         setIsLoading(false);
       }
@@ -546,124 +726,10 @@ export const usePostFetcher = (options: UsePostFetcherOptions) => {
       processPostsBasicSync,
       processPosts,
       validateLightningAddresses,
-      validateNip05s
-    ]
-  );
-
-  // Load replies to a specific note
-  const loadReplies = useCallback(
-    async (parentEventId: string) => {
-      if (!nostrClientRef.current) return;
-
-      try {
-        const replyFilter: NostrFilter = {
-          kinds: [1],
-          '#e': [parentEventId]
-        };
-
-        const cleanFilter = JSON.parse(JSON.stringify(replyFilter));
-        const replyEvents = (await nostrClientRef.current.getEvents([
-          cleanFilter
-        ])) as Kind1Event[];
-
-        if (!replyEvents || replyEvents.length === 0) {
-          setReplies([]);
-          return;
-        }
-
-        // Deduplicate replies by ID
-        const uniqueRepliesMap = new Map<string, Kind1Event>();
-        replyEvents.forEach(event => {
-          if (!uniqueRepliesMap.has(event.id)) {
-            uniqueRepliesMap.set(event.id, event);
-          }
-        });
-        const deduplicatedReplies = Array.from(uniqueRepliesMap.values());
-
-        // Sort by created_at (newest first)
-        deduplicatedReplies.sort((a, b) => b.created_at - a.created_at);
-
-        console.log('Found replies:', deduplicatedReplies.length);
-
-        // PROGRESSIVE RENDERING: Show replies immediately with minimal data
-        const initialReplies = processPostsBasicSync(deduplicatedReplies);
-        setReplies(initialReplies);
-
-        // Load profiles, zaps, and zap payer profiles in parallel (non-blocking)
-        (async () => {
-          try {
-            // Use unified loadPostData utility to load all related data
-            const postData = await loadPostData(
-              getQueryClient(),
-              nostrClientRef.current!,
-              deduplicatedReplies,
-              { genericUserIcon }
-            );
-
-            const profileMap = postData.profiles;
-            const zapEvents = postData.zaps;
-            const allProfiles = profileMap; // Already combined in postData.profiles
-
-            // Update replies with profile data (progressive enhancement)
-            const currentReplies = usePostStore.getState().replies;
-            setReplies(
-              currentReplies.map(reply => {
-                const event = deduplicatedReplies.find(e => e.id === reply.id);
-                if (!event) return reply;
-
-                const author = profileMap.get(event.pubkey);
-                return updatePostWithProfileData(reply, event, author);
-              })
-            );
-
-            // Process and update zaps for replies
-            if (zapEvents.length > 0) {
-              const processedReplies = await processPosts(
-                deduplicatedReplies,
-                Array.from(allProfiles.values()),
-                zapEvents
-              );
-
-              if (processedReplies.length > 0) {
-                setReplies(processedReplies);
-              }
-            } else {
-              // No zaps, just mark as not loading
-              const current = usePostStore.getState().replies;
-              setReplies(
-                current.map(reply => ({ ...reply, zapLoading: false }))
-              );
-            }
-
-            // Validate lightning addresses and NIP-05 asynchronously
-            const repliesForValidation = usePostStore.getState().replies;
-            validateLightningAddresses(repliesForValidation, 'replies');
-            validateNip05s(repliesForValidation, 'replies');
-
-            // Calculate reply levels for proper indentation
-            const repliesForLevels = usePostStore.getState().replies;
-            const sortedReplies = [...repliesForLevels].sort(
-              (a, b) => a.createdAt - b.createdAt
-            );
-            setReplies(calculateReplyLevels(sortedReplies) as PubPayPost[]);
-          } catch (err) {
-            console.error(
-              'Error loading reply profiles/zaps in background:',
-              err
-            );
-          }
-        })();
-      } catch (err) {
-        console.error('Failed to load replies:', err);
-      }
-    },
-    [
-      nostrClientRef,
-      setReplies,
-      processPostsBasicSync,
-      processPosts,
-      validateLightningAddresses,
-      validateNip05s
+      validateNip05s,
+      loadReplies,
+      signal,
+      isAborted
     ]
   );
 
