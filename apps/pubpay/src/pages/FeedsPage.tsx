@@ -4,7 +4,11 @@ import { useOutletContext, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@pubpay/shared-services';
 import { PayNoteComponent } from '../components/PayNoteComponent/PayNoteComponent';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
-import { usePostStoreData, usePostActions } from '../stores/usePostStore';
+import {
+  usePostStoreData,
+  usePostActions,
+  useSingleNoteState
+} from '../stores/usePostStore';
 import { nip19 } from 'nostr-tools';
 import { COLORS } from '../constants';
 
@@ -27,7 +31,7 @@ export const FeedsPage: React.FC = () => {
   } = usePostStoreData();
   
   // Get actions separately (actions don't change, so no need for shallow)
-  const { clearAllPosts: clearPosts } = usePostActions();
+  const { clearAllPosts: clearPosts, setSingleNoteMode, clearSingleNoteMode } = usePostActions();
   
   // Get handlers and authState from Layout context (authState includes privateKey from local state)
   const {
@@ -70,8 +74,9 @@ export const FeedsPage: React.FC = () => {
   }>();
   const [showJSON, setShowJSON] = useState(false);
   const [jsonContent, setJsonContent] = useState('');
-  const [singleNoteMode, setSingleNoteMode] = useState(false);
-  const [singleNoteId, setSingleNoteId] = useState<string>('');
+
+  // Use store for single note mode state
+  const { singleNoteMode, singleNoteId } = useSingleNoteState();
 
   // Track previous path to detect when exiting single note mode
   const prevPathRef = useRef(location.pathname);
@@ -189,8 +194,7 @@ export const FeedsPage: React.FC = () => {
 
               // Set single note mode immediately to prevent other loading
               console.log('Setting single note mode with ID:', eventId);
-              setSingleNoteMode(true);
-              setSingleNoteId(eventId);
+              setSingleNoteMode(true, eventId);
 
               // Load the single note
               loadSingleNote(eventId);
@@ -203,14 +207,12 @@ export const FeedsPage: React.FC = () => {
         } else {
           console.log('Not a note identifier:', identifier);
           // Reset single note mode if we're not viewing a note
-          setSingleNoteMode(false);
-          setSingleNoteId('');
+          clearSingleNoteMode();
         }
       } else {
         console.log('Not on /note/ path, resetting single note mode');
         // Reset single note mode if we're not on a note page
-        setSingleNoteMode(false);
-        setSingleNoteId('');
+        clearSingleNoteMode();
       }
     };
 
