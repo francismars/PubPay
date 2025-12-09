@@ -793,7 +793,7 @@ export const LivePage: React.FC = () => {
               {/* Note Content Section */}
               <div className="note-section">
                 <div id="noteContent" className="note-content">
-                  {noteContent || ''}
+                  {noteContent ? <div dangerouslySetInnerHTML={{ __html: noteContent }} /> : ''}
                 </div>
               </div>
 

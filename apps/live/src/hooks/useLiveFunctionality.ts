@@ -4046,9 +4046,10 @@ export const useLiveFunctionality = (eventId?: string) => {
     const noteContent = document.getElementById('noteContent');
     // Debug log removed
 
+    // Process content for both images and nostr mentions
+    const processedContent = await processNoteContent(kind1.content);
+    
     if (noteContent) {
-      // Process content for both images and nostr mentions
-      const processedContent = await processNoteContent(kind1.content);
       // Debug log removed
       noteContent.innerHTML = processedContent;
 
@@ -4058,8 +4059,8 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (loadingText) loadingText.remove();
     }
 
-    // Update React state
-    setNoteContent(kind1.content);
+    // Update React state with processed content (not raw)
+    setNoteContent(processedContent);
 
     // Update Lightning state now that we have an event ID
     if ((window as any).lightningEnabled) {
