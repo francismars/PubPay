@@ -465,9 +465,10 @@ export class ZapService {
       }
 
       const eventFinal = JSON.stringify(zapFinalized);
-      const lnurl = lud16;
-      const separator = callback.includes('?') ? '&' : '?' // if callback has query params
-      const callString = `${callback}${separator}amount=${amount}&nostr=${eventFinal}&lnurl=${lnurl}`;
+      const lnurl = encodeURIComponent(lud16);
+      const separator = callback.includes('?') ? '&' : '?'; // if callback has query params
+      const encodedNostr = encodeURIComponent(eventFinal);
+      const callString = `${callback}${separator}amount=${amount}&nostr=${encodedNostr}&lnurl=${lnurl}`;
       console.log('Sending zap request to:', callString);
       const responseFinal = await fetch(callString);
 

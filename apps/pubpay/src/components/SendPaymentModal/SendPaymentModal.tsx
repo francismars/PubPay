@@ -10,6 +10,7 @@ import {
   LightningAddressService,
   detectPaymentType
 } from '@pubpay/shared-services';
+import { formatContent } from '../../utils/contentFormatter';
 import { TOAST_DURATION, TIMEOUT, COLORS, Z_INDEX, STORAGE_KEYS } from '../../constants';
 
 interface SendPaymentModalProps {
@@ -51,10 +52,13 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   const [sending, setSending] = useState(false);
 
   // Detected type: 'invoice' | 'lightning-address' | 'nostr-user' | null
-  const [detectedType, setDetectedType] = useState<'invoice' | 'lightning-address' | 'nostr-user' | null>(null);
+  const [detectedType, setDetectedType] = useState<'invoice' | 'lightning-address' | 'nostr-user' | 'nostr-post' | null>(null);
   const [detectedNostrPubkey, setDetectedNostrPubkey] = useState<string | null>(null);
   const [detectedNostrProfile, setDetectedNostrProfile] = useState<any>(null);
-
+  const [detectedPostEvent, setDetectedPostEvent] = useState<any>(null);
+  const [detectedPostAuthor, setDetectedPostAuthor] = useState<any>(null);
+  const [loadingPost, setLoadingPost] = useState(false);
+  const [formattedPostContent, setFormattedPostContent] = useState<string>('');
   // Invoice state
   const [parsedInvoice, setParsedInvoice] = useState<{
     amount?: number;
@@ -85,6 +89,40 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   const [paymentType, setPaymentType] = useState<'zap' | 'lightning'>('lightning');
   // Anonymous zap option (only relevant when paymentType === 'zap')
   const [anonymousZap, setAnonymousZap] = useState(false);
+
+  const renderAnonymousToggle = useCallback(
+    (disabled: boolean, marginTop: string = '6px') => (
+      <button
+        type="button"
+        onClick={() => setAnonymousZap(!anonymousZap)}
+        disabled={disabled}
+        style={{
+          width: '100%',
+          marginTop,
+          padding: '6px 10px',
+          borderRadius: '4px',
+          border: `1px solid ${anonymousZap ? COLORS.PRIMARY : 'var(--border-color)'}`,
+          background: anonymousZap ? `${COLORS.PRIMARY}15` : 'transparent',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          fontSize: '12px',
+          fontWeight: '500',
+          color: anonymousZap ? COLORS.PRIMARY : 'var(--text-secondary)',
+          transition: 'all 0.2s ease',
+          opacity: disabled ? 0.5 : 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px'
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+          {anonymousZap ? 'visibility_off' : 'visibility'}
+        </span>
+        {anonymousZap ? 'Anonymous' : 'Show identity'}
+      </button>
+    ),
+    [anonymousZap]
+  );
 
   const sendInputRef = useRef<HTMLInputElement>(null);
 
@@ -203,7 +241,110 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         return;
       }
 
-      useUIStore.getState().updateToast('Invoice fetched! Sending payment...', 'loading', true);
+        useUIStore.getState().updateToast('Invoice fetched! Sending payment...', 'loading', true);
+    } else if (detectedType === 'nostr-post') {
+      // Validate amount
+      if (!sendAmount.trim()) {
+        useUIStore.getState().openToast('Please enter an amount', 'error', false);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        return;
+      }
+
+      const amount = parseInt(sendAmount.trim(), 10);
+      if (isNaN(amount) || amount <= 0) {
+        useUIStore.getState().openToast('Please enter a valid amount', 'error', false);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        return;
+      }
+
+      // Validate post event is loaded
+      if (!detectedPostEvent) {
+        useUIStore.getState().openToast('Post not loaded', 'error', false);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+        return;
+      }
+
+      // Posts can only be zapped (public), not private payments
+      // Note: Anonymous zaps don't require login
+      if (!anonymousZap && (!authState?.isLoggedIn || !authState?.publicKey)) {
+        useUIStore.getState().openToast('Please log in to zap posts', 'error', false);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+        return;
+      }
+
+      try {
+        useUIStore.getState().updateToast(
+          anonymousZap ? 'Creating anonymous zap request...' : 'Creating zap request...',
+          'loading',
+          true
+        );
+
+        // Import ZapService
+        const { ZapService } = await import('@pubpay/shared-services');
+        const zapService = new ZapService();
+
+        // Get callback for the post author
+        const callback = await zapService.getInvoiceCallBack(detectedPostEvent, detectedPostAuthor);
+        if (!callback) {
+          throw new Error('Failed to get Lightning callback');
+        }
+
+        // Create zap event for the post
+        const zapEventData = await zapService.createZapEvent(
+          detectedPostEvent,
+          amount,
+          callback.lud16ToZap,
+          anonymousZap ? null : (authState?.publicKey || null),
+          sendDescription
+        );
+
+        if (!zapEventData) {
+          throw new Error('Failed to create zap request');
+        }
+
+        // Sign and send zap
+        const success = await zapService.signZapEvent(
+          zapEventData.zapEvent,
+          callback.callbackToZap,
+          zapEventData.amountPay,
+          callback.lud16ToZap,
+          detectedPostEvent.id,
+          anonymousZap,
+          anonymousZap ? null : (authState?.privateKey || null)
+        );
+
+        if (success) {
+          useUIStore.getState().updateToast(
+            anonymousZap ? 'Anonymous zap sent!' : 'Zap sent!',
+            'success',
+            false
+          );
+            setTimeout(async () => {
+              useUIStore.getState().closeToast();
+              handleClose();
+              onPaymentSent();
+              // Navigate to post page after zap
+              try {
+                const { nip19 } = await import('nostr-tools');
+                const nevent = nip19.noteEncode(detectedPostEvent.id);
+                navigate(`/note/${nevent}`);
+              } catch (error) {
+                console.error('Failed to navigate to post:', error);
+              }
+            }, 2000);
+        } else {
+          useUIStore.getState().updateToast('Failed to send zap', 'error', true);
+          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+        }
+      } catch (error) {
+        console.error('Zap payment error:', error);
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Failed to send zap';
+        useUIStore.getState().updateToast(errorMessage, 'error', true);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+      }
+      return; // Exit early for zap flow (doesn't use invoiceToPay)
     } else if (detectedType === 'nostr-user') {
       // Validate amount
       if (!sendAmount.trim()) {
@@ -540,27 +681,92 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
     if (detection.type === 'invoice') {
       parseInvoice(detection.data);
+      setDetectedPostEvent(null);
+      setDetectedPostAuthor(null);
     } else if (detection.type === 'lightning-address') {
       setDetectedNostrPubkey(null);
       setDetectedNostrProfile(null);
+      setDetectedPostEvent(null);
+      setDetectedPostAuthor(null);
     } else if (detection.type === 'nostr-user') {
       setDetectedNostrPubkey(detection.data.pubkey);
       setDetectedNostrProfile(null);
+      setDetectedPostEvent(null);
+      setDetectedPostAuthor(null);
       // Load profile
       ensureProfiles(getQueryClient(), nostrClient, [detection.data.pubkey])
         .then(profileMap => {
           const profile = profileMap.get(detection.data.pubkey);
           setDetectedNostrProfile(profile || null);
+        });
+    } else if (detection.type === 'nostr-post') {
+      setDetectedNostrPubkey(null);
+      setDetectedNostrProfile(null);
+      setDetectedPostEvent(null);
+      setDetectedPostAuthor(null);
+      setLoadingPost(true);
+
+      // Fetch post event
+      const postData = detection.data;
+      const eventId = postData.eventId;
+
+      nostrClient.getEvents([{ kinds: [1], ids: [eventId] }])
+        .then((events: any[]) => {
+          if (events && events.length > 0) {
+            const postEvent = events[0];
+            setDetectedPostEvent(postEvent);
+
+            // Fetch author profile
+            ensureProfiles(getQueryClient(), nostrClient, [postEvent.pubkey])
+              .then(profileMap => {
+                const author = profileMap.get(postEvent.pubkey);
+                setDetectedPostAuthor(author || null);
+                setLoadingPost(false);
+              })
+              .catch(() => {
+                setLoadingPost(false);
+              });
+          } else {
+            setLoadingPost(false);
+            useUIStore.getState().openToast('Post not found', 'error', false);
+            setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          }
         })
-        .catch(error => {
-          console.error('Failed to load profile:', error);
-          setDetectedNostrProfile(null);
+        .catch((error: any) => {
+          console.error('Failed to fetch post:', error);
+          setLoadingPost(false);
+          useUIStore.getState().openToast('Failed to load post', 'error', false);
+          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
         });
     } else {
       setDetectedNostrPubkey(null);
       setDetectedNostrProfile(null);
     }
   }, [sendInput, parseInvoice, nostrClient]);
+
+  // Format post content for preview (links, mentions, media)
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      if (!detectedPostEvent?.content) {
+        setFormattedPostContent('');
+        return;
+      }
+      try {
+        const rich = await formatContent(detectedPostEvent.content, nostrClient);
+        if (!cancelled) setFormattedPostContent(rich);
+      } catch (error) {
+        console.error('Failed to format post content:', error);
+        if (!cancelled) setFormattedPostContent(detectedPostEvent.content || '');
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [detectedPostEvent?.content, nostrClient]);
 
   // Listen for scanned invoices and Lightning Addresses
   useEffect(() => {
@@ -618,6 +824,8 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       setDetectedType(null);
       setDetectedNostrPubkey(null);
       setDetectedNostrProfile(null);
+      setDetectedPostEvent(null);
+      setDetectedPostAuthor(null);
       setPreviewSuffix(null);
       setPaymentType('lightning'); // Reset payment type
       setAnonymousZap(false); // Reset anonymous zap
@@ -719,7 +927,15 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 Send to <span style={{ color: COLORS.ERROR }}>*</span>
                 {detectedType && (
                   <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    ({detectedType === 'invoice' ? 'Invoice' : detectedType === 'lightning-address' ? 'Lightning Address' : 'Nostr User'})
+                    ({
+                      detectedType === 'invoice'
+                        ? 'Invoice'
+                        : detectedType === 'lightning-address'
+                          ? 'Lightning Address'
+                          : detectedType === 'nostr-post'
+                            ? 'Nostr Post'
+                            : 'Nostr User'
+                    })
                   </span>
                 )}
               </label>
@@ -1474,6 +1690,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                     • BOLT11 invoice (starts with lnbc, lntb, or lnbcrt)<br />
                     • Lightning Address (e.g., user@domain.com)<br />
                     • Nostr user (npub or nprofile)<br />
+                    • Nostr post (note1 or nevent1)<br />
                     • Type @ to mention a follow
                   </div>
                 </div>
@@ -1581,6 +1798,95 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Post Preview - Show when post is detected */}
+            {detectedType === 'nostr-post' && (
+              <div
+                style={{
+                  padding: '12px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  marginTop: '12px'
+                }}
+              >
+                {loadingPost ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-secondary)' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px', animation: 'spin 1s linear infinite' }}>
+                      refresh
+                    </span>
+                    <span style={{ fontSize: '14px' }}>Loading post...</span>
+                  </div>
+                ) : detectedPostEvent && detectedPostAuthor ? (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                      {(() => {
+                        const authorContent = typeof detectedPostAuthor?.content === 'string'
+                          ? JSON.parse(detectedPostAuthor.content)
+                          : detectedPostAuthor?.content || detectedPostAuthor;
+                        const picture = authorContent?.picture;
+                        const displayName = authorContent?.display_name || authorContent?.name || 'Unknown';
+                        return (
+                          <>
+                            {picture ? (
+                              <img
+                                src={picture}
+                                alt={displayName}
+                                style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '50%',
+                                  objectFit: 'cover'
+                                }}
+                              />
+                            ) : (
+                              <div
+                                style={{
+                                  width: '32px',
+                                  height: '32px',
+                                  borderRadius: '50%',
+                                  background: 'var(--bg-primary)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  color: 'var(--text-secondary)',
+                                  fontSize: '14px'
+                                }}
+                              >
+                                {displayName.charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                {displayName}
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '13px',
+                        color: 'var(--text-secondary)',
+                        lineHeight: '1.5',
+                        marginTop: '8px',
+                        maxHeight: '60px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                      dangerouslySetInnerHTML={{
+                        __html: formattedPostContent || 'No content'
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ color: COLORS.ERROR, fontSize: '13px' }}>
+                    Post not found
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Payment Type Toggle - Only show for Nostr User */}
@@ -1646,41 +1952,18 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 </button>
               </div>
               {/* Anonymous toggle - integrated design when zap is selected */}
-              {paymentType === 'zap' && (
-                <button
-                  type="button"
-                  onClick={() => setAnonymousZap(!anonymousZap)}
-                  disabled={sending || fetchingInvoice}
-                  style={{
-                    width: '100%',
-                    marginTop: '6px',
-                    padding: '6px 10px',
-                    borderRadius: '4px',
-                    border: `1px solid ${anonymousZap ? COLORS.PRIMARY : 'var(--border-color)'}`,
-                    background: anonymousZap ? `${COLORS.PRIMARY}15` : 'transparent',
-                    cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    color: anonymousZap ? COLORS.PRIMARY : 'var(--text-secondary)',
-                    transition: 'all 0.2s ease',
-                    opacity: (sending || fetchingInvoice) ? 0.5 : 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-                    {anonymousZap ? 'visibility_off' : 'visibility'}
-                  </span>
-                  {anonymousZap ? 'Anonymous' : 'Show identity'}
-                </button>
-              )}
+              {paymentType === 'zap' && renderAnonymousToggle(sending || fetchingInvoice)}
+            </div>
+          )}
+          {/* Anonymous toggle for posts - posts can only be zapped */}
+          {detectedType === 'nostr-post' && (
+            <div style={{ marginBottom: '12px' }}>
+              {renderAnonymousToggle(sending || fetchingInvoice || loadingPost, '0')}
             </div>
           )}
 
-          {/* Amount Field (for Lightning Address and Nostr User) */}
-          {(detectedType === 'lightning-address' || detectedType === 'nostr-user') && (
+          {/* Amount Field (for Lightning Address, Nostr User, and Nostr Post) */}
+          {(detectedType === 'lightning-address' || detectedType === 'nostr-user' || detectedType === 'nostr-post') && (
             <div>
               <label
                 style={{
@@ -1725,7 +2008,8 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           {sendInput.trim() && detectedType && (
             (detectedType === 'invoice' && parsedInvoice && !invoiceError) ||
             (detectedType === 'lightning-address' && !lnurlError) ||
-            (detectedType === 'nostr-user' && detectedNostrProfile)
+            (detectedType === 'nostr-user' && detectedNostrProfile) ||
+            (detectedType === 'nostr-post' && detectedPostEvent && !loadingPost)
           ) ? (
             <div style={{ marginBottom: '16px' }}>
               <label
@@ -1736,14 +2020,14 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   color: 'var(--text-primary)'
                 }}
               >
-                Description (optional)
+                Comment (optional)
               </label>
               <input
                 type="text"
                 value={sendDescription}
                 onChange={e => setSendDescription(e.target.value)}
-                placeholder="Payment description"
-                disabled={sending || fetchingInvoice}
+                placeholder="Add a comment"
+                disabled={sending || fetchingInvoice || (detectedType === 'nostr-post' && loadingPost)}
                 style={{
                   backgroundColor: 'var(--input-bg)',
                   color: 'var(--text-primary)',
@@ -1786,12 +2070,13 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 fetchingInvoice ||
                 !detectedType ||
                 (detectedType === 'invoice' && (!!invoiceError || !parsedInvoice)) ||
-                ((detectedType === 'lightning-address' || detectedType === 'nostr-user') && !sendAmount.trim())
+                ((detectedType === 'lightning-address' || detectedType === 'nostr-user' || detectedType === 'nostr-post') && !sendAmount.trim()) ||
+                (detectedType === 'nostr-post' && (!detectedPostEvent || loadingPost))
               }
             >
               {(() => {
                 if (sending) {
-                  if (detectedType === 'nostr-user' && paymentType === 'zap') {
+                  if ((detectedType === 'nostr-user' && paymentType === 'zap') || detectedType === 'nostr-post') {
                     return anonymousZap ? 'Paying anonymously...' : 'Paying...';
                   }
                   return 'Paying...';
@@ -1801,6 +2086,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 }
                 if (detectedType === 'invoice') {
                   return 'Pay Invoice';
+                }
+                if (detectedType === 'nostr-post') {
+                  return anonymousZap ? 'Pay Anonymously' : 'Pay Publicly';
                 }
                 if (detectedType === 'nostr-user' && paymentType === 'zap') {
                   return anonymousZap ? 'Pay Anonymously' : 'Pay Publicly';
