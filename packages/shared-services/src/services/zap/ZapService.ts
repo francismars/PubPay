@@ -114,18 +114,24 @@ export class ZapService {
 
   /**
    * Get Lightning callback URL from author's LUD16 address
+   * @param eventData - Optional event data (null for profile zaps)
+   * @param authorData - Author/profile data containing lud16
    */
   async getInvoiceCallBack(
-    eventData: unknown,
+    eventData: unknown | null, // Allow null for profile zaps
     authorData: unknown
   ): Promise<ZapCallback | null> {
     try {
       console.log('getInvoiceCallBack called with:', { eventData, authorData });
 
-      // Check for zap-lnurl tag first, then fall back to author's lud16
-      const zapLNURL = (eventData as any).tags.find(
-        (tag: any) => tag[0] === 'zap-lnurl'
-      );
+      // Check for zap-lnurl tag first (if eventData exists), then fall back to author's lud16
+      let zapLNURL = null;
+      if (eventData) {
+        zapLNURL = (eventData as any).tags?.find(
+          (tag: any) => tag[0] === 'zap-lnurl'
+        );
+      }
+      
       let eventCreatorProfileContent: any = {};
       try {
         eventCreatorProfileContent = JSON.parse(
@@ -138,7 +144,7 @@ export class ZapService {
       const lud16 =
         zapLNURL && zapLNURL.length > 0
           ? zapLNURL[1]
-          : eventCreatorProfileContent.lud16;
+          : eventCreatorProfileContent.lud16 || eventCreatorProfileContent.lud06;
 
       if (!lud16) {
         console.error('No LUD16 address found for author');
@@ -244,6 +250,66 @@ export class ZapService {
       };
     } catch (error) {
       console.error('Error creating zap event:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a zap request event for a profile (without an event)
+   * Following NIP-57: profile zaps don't include an 'e' tag
+   * @param recipientPubkey - Hex-encoded pubkey of the recipient
+   * @param amount - Amount in sats (will be converted to millisats)
+   * @param lud16 - Lightning address of the recipient
+   * @param pubKey - Optional sender pubkey (for non-anonymous zaps)
+   * @param comment - Optional comment/message
+   * @returns ZapEventData with the zap request event and amount in millisats
+   */
+  async createProfileZapEvent(
+    recipientPubkey: string,
+    amount: number, // in sats
+    lud16: string,
+    pubKey: string | null = null,
+    comment: string = ''
+  ): Promise<ZapEventData | null> {
+    try {
+      const amountPay = amount * 1000; // Convert to millisats
+
+      // Create zap request manually (following NIP-57 Appendix B)
+      // For profile zaps, we don't use nip57.makeZapRequest since it requires an event
+      const zapRequest = {
+        kind: 9734,
+        content: comment || '',
+        tags: [
+          ['relays', ...RELAYS],
+          ['amount', amountPay.toString()],
+          ['lnurl', lud16], // Optional but recommended per NIP-57
+          ['p', recipientPubkey]
+          // NO 'e' tag - this makes it a profile zap
+        ],
+        created_at: Math.floor(Date.now() / 1000),
+        pubkey: '',
+        id: '',
+        sig: ''
+      };
+
+      // Add additional tags
+      zapRequest.tags.push(['zap-lnurl', lud16]);
+      zapRequest.tags.push(['t', 'pubpay']);
+
+      if (pubKey !== null) {
+        zapRequest.pubkey = pubKey;
+        const eventID = getEventHash(zapRequest as any);
+        if (eventID !== null) zapRequest.id = eventID;
+      }
+
+      console.log('Created profile zap request:', zapRequest);
+
+      return {
+        zapEvent: zapRequest,
+        amountPay
+      };
+    } catch (error) {
+      console.error('Error creating profile zap event:', error);
       return null;
     }
   }
@@ -595,6 +661,68 @@ export class ZapService {
         });
     } catch (e) {
       console.error('Failed to open invoice overlay via store:', e);
+    }
+  }
+
+  /**
+   * Send a zap to a profile (convenience method)
+   * This method orchestrates the full flow: get callback, create zap request, sign and send
+   * @param recipientPubkey - Hex-encoded pubkey of the recipient
+   * @param recipientProfile - Profile data (kind 0 event) of the recipient
+   * @param amount - Amount in sats
+   * @param comment - Optional comment
+   * @param senderPubkey - Optional sender pubkey (for non-anonymous zaps)
+   * @param decryptedPrivateKey - Optional decrypted private key from auth state
+   * @param anonymousZap - Whether this is an anonymous zap (default: false)
+   * @returns Promise<boolean> - true if successful
+   */
+  async sendProfileZap(
+    recipientPubkey: string,
+    recipientProfile: unknown,
+    amount: number,
+    comment: string = '',
+    senderPubkey?: string | null,
+    decryptedPrivateKey?: string | null,
+    anonymousZap: boolean = false
+  ): Promise<boolean> {
+    try {
+      // Get invoice callback (pass null for eventData since this is a profile zap)
+      const callback = await this.getInvoiceCallBack(null, recipientProfile);
+      if (!callback) {
+        throw new Error('CAN\'T PAY: Failed to get Lightning callback');
+      }
+
+      // Create zap request
+      // For anonymous zaps, pass null for pubKey (will be set during signing with random key)
+      const zapEventData = await this.createProfileZapEvent(
+        recipientPubkey,
+        amount,
+        callback.lud16ToZap,
+        anonymousZap ? null : (senderPubkey || null),
+        comment
+      );
+
+      if (!zapEventData) {
+        throw new Error('CAN\'T PAY: Failed to create zap request');
+      }
+
+      // Sign and send
+      // For anonymous zaps, pass null for private key (will generate random key)
+      return await this.signZapEvent(
+        zapEventData.zapEvent,
+        callback.callbackToZap,
+        zapEventData.amountPay,
+        callback.lud16ToZap,
+        '', // No event ID for profile zaps
+        anonymousZap, // Pass anonymous flag
+        anonymousZap ? null : decryptedPrivateKey // No private key for anonymous zaps
+      );
+    } catch (error) {
+      console.error('Error sending profile zap:', error);
+      if (error instanceof Error && error.message.startsWith('CAN\'T PAY:')) {
+        throw error;
+      }
+      throw new Error('CAN\'T PAY: Failed to send profile zap');
     }
   }
 }
