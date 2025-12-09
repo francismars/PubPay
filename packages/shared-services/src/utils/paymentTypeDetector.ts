@@ -3,7 +3,7 @@
  */
 import { nip19 } from 'nostr-tools';
 
-export type PaymentType = 'invoice' | 'lightning-address' | 'nostr-user' | null;
+export type PaymentType = 'invoice' | 'lightning-address' | 'nostr-user' | 'nostr-post' | null;
 
 export interface PaymentTypeDetectionResult {
   type: PaymentType;
@@ -13,6 +13,13 @@ export interface PaymentTypeDetectionResult {
 export interface NostrUserData {
   pubkey: string;
   npub: string;
+}
+
+export interface NostrPostData {
+  eventId: string;
+  identifier: string; // note1 or nevent1
+  author?: string; // From nevent1
+  relays?: string[]; // From nevent1
 }
 
 /**
@@ -33,7 +40,7 @@ export function detectPaymentType(input: string): PaymentTypeDetectionResult {
     return { type: 'lightning-address', data: trimmed };
   }
 
-  // Check for Nostr npub/nprofile
+  // Check for Nostr npub/nprofile/note/nevent
   try {
     const decoded = nip19.decode(trimmed);
     if (decoded.type === 'npub') {
@@ -41,6 +48,20 @@ export function detectPaymentType(input: string): PaymentTypeDetectionResult {
     } else if (decoded.type === 'nprofile') {
       const profile = decoded.data as any;
       return { type: 'nostr-user', data: { pubkey: profile.pubkey, npub: nip19.npubEncode(profile.pubkey) } };
+    } else if (decoded.type === 'note') {
+      const eventId = decoded.data as string;
+      return { type: 'nostr-post', data: { eventId, identifier: trimmed } };
+    } else if (decoded.type === 'nevent') {
+      const neventData = decoded.data as any;
+      return { 
+        type: 'nostr-post', 
+        data: { 
+          eventId: neventData.id, 
+          identifier: trimmed,
+          author: neventData.author,
+          relays: neventData.relays
+        } 
+      };
     }
   } catch {
     // Not a valid nostr address
