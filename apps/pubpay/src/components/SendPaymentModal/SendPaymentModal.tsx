@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   useUIStore,
   NwcClient,
@@ -9,7 +10,7 @@ import {
   LightningAddressService,
   detectPaymentType
 } from '@pubpay/shared-services';
-import { TOAST_DURATION, TIMEOUT, UI, COLORS, Z_INDEX, STORAGE_KEYS } from '../../constants';
+import { TOAST_DURATION, TIMEOUT, COLORS, Z_INDEX, STORAGE_KEYS } from '../../constants';
 
 interface SendPaymentModalProps {
   isVisible: boolean;
@@ -42,6 +43,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   authState,
   onPaymentSent
 }) => {
+  const navigate = useNavigate();
   // Unified send input
   const [sendInput, setSendInput] = useState('');
   const [sendDescription, setSendDescription] = useState('');
@@ -78,6 +80,11 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   const [showLnAddressSuggestions, setShowLnAddressSuggestions] = useState(false);
   const [activeLnAddressIndex, setActiveLnAddressIndex] = useState(0);
   const [previewSuffix, setPreviewSuffix] = useState<string | null>(null);
+
+  // Payment type for Nostr user payments: 'zap' (public) or 'lightning' (private)
+  const [paymentType, setPaymentType] = useState<'zap' | 'lightning'>('lightning');
+  // Anonymous zap option (only relevant when paymentType === 'zap')
+  const [anonymousZap, setAnonymousZap] = useState(false);
 
   const sendInputRef = useRef<HTMLInputElement>(null);
 
@@ -249,21 +256,87 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         return;
       }
 
-      // Fetch invoice using lightning address
-      useUIStore.getState().updateToast('Fetching invoice...', 'loading', true);
-      invoiceToPay = await fetchInvoiceFromLNAddress(lud16, amount, sendDescription);
+      // Handle zap vs lightning payment
+      if (paymentType === 'zap') {
+        // Send as public zap
+        // Note: Anonymous zaps don't require login (same as posts)
+        if (!anonymousZap && (!authState?.isLoggedIn || !authState?.publicKey)) {
+          useUIStore.getState().openToast('Please log in to send zaps', 'error', false);
+          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          return;
+        }
 
-      if (!invoiceToPay) {
-        useUIStore.getState().updateToast(
-          lnurlError || 'Failed to fetch invoice',
-          'error',
-          true
-        );
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
-        return;
+        try {
+          useUIStore.getState().updateToast(
+            anonymousZap ? 'Creating anonymous zap request...' : 'Creating zap request...',
+            'loading',
+            true
+          );
+
+          // Import ZapService
+          const { ZapService } = await import('@pubpay/shared-services');
+          const zapService = new ZapService();
+
+          // Send profile zap - pass null for pubkey/private key if anonymous
+          const success = await zapService.sendProfileZap(
+            detectedNostrPubkey!,
+            detectedNostrProfile,
+            amount,
+            sendDescription,
+            anonymousZap ? null : (authState?.publicKey || null),
+            anonymousZap ? null : (authState?.privateKey || null),
+            anonymousZap // Pass anonymous flag
+          );
+
+          if (success) {
+            useUIStore.getState().updateToast(
+              anonymousZap ? 'Anonymous zap sent!' : 'Zap sent!',
+              'success',
+              false
+            );
+            setTimeout(() => {
+              useUIStore.getState().closeToast();
+              handleClose();
+              onPaymentSent();
+              // Navigate to recipient's profile page after public payment
+              if (detectedNostrPubkey) {
+                try {
+                  navigate(`/profile/${detectedNostrPubkey}`);
+                } catch (error) {
+                  console.error('Failed to navigate to profile:', error);
+                }
+              }
+            }, 2000);
+          } else {
+            useUIStore.getState().updateToast('Failed to send zap', 'error', true);
+            setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          }
+        } catch (error) {
+          console.error('Zap payment error:', error);
+          const errorMessage = error instanceof Error
+            ? error.message
+            : 'Failed to send zap';
+          useUIStore.getState().updateToast(errorMessage, 'error', true);
+          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+        }
+        return; // Exit early for zap flow (doesn't use invoiceToPay)
+      } else {
+        // Send as private lightning payment (existing behavior)
+        useUIStore.getState().updateToast('Fetching invoice...', 'loading', true);
+        invoiceToPay = await fetchInvoiceFromLNAddress(lud16, amount, sendDescription);
+
+        if (!invoiceToPay) {
+          useUIStore.getState().updateToast(
+            lnurlError || 'Failed to fetch invoice',
+            'error',
+            true
+          );
+          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          return;
+        }
+
+        useUIStore.getState().updateToast('Invoice fetched! Sending payment...', 'loading', true);
       }
-
-      useUIStore.getState().updateToast('Invoice fetched! Sending payment...', 'loading', true);
     }
 
     if (!invoiceToPay) {
@@ -546,6 +619,8 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       setDetectedNostrPubkey(null);
       setDetectedNostrProfile(null);
       setPreviewSuffix(null);
+      setPaymentType('lightning'); // Reset payment type
+      setAnonymousZap(false); // Reset anonymous zap
       onClose();
     }
   };
@@ -560,10 +635,13 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         visibility: 'visible',
         opacity: 1,
         pointerEvents: 'auto',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'center',
+        paddingTop: '5vh',
+        paddingBottom: '5vh',
         animation: 'none',
-        transition: 'none'
+        transition: 'none',
+        overflowY: 'auto'
       }}
       onClick={handleClose}
     >
@@ -1505,6 +1583,102 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
             )}
           </div>
 
+          {/* Payment Type Toggle - Only show for Nostr User */}
+          {detectedType === 'nostr-user' && (
+            <div style={{ marginBottom: '12px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '8px',
+                  padding: '3px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)'
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setPaymentType('lightning')}
+                  disabled={sending || fetchingInvoice}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    background: paymentType === 'lightning' ? COLORS.PRIMARY : 'transparent',
+                    color: paymentType === 'lightning' ? COLORS.TEXT_WHITE : 'var(--text-primary)',
+                    cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s ease',
+                    opacity: (sending || fetchingInvoice) ? 0.5 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  Private
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentType('zap')}
+                  disabled={sending || fetchingInvoice}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    borderRadius: '4px',
+                    border: 'none',
+                    background: paymentType === 'zap' ? COLORS.PRIMARY : 'transparent',
+                    color: paymentType === 'zap' ? COLORS.TEXT_WHITE : 'var(--text-primary)',
+                    cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    transition: 'all 0.2s ease',
+                    opacity: (sending || fetchingInvoice) ? 0.5 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  Public
+                </button>
+              </div>
+              {/* Anonymous toggle - integrated design when zap is selected */}
+              {paymentType === 'zap' && (
+                <button
+                  type="button"
+                  onClick={() => setAnonymousZap(!anonymousZap)}
+                  disabled={sending || fetchingInvoice}
+                  style={{
+                    width: '100%',
+                    marginTop: '6px',
+                    padding: '6px 10px',
+                    borderRadius: '4px',
+                    border: `1px solid ${anonymousZap ? COLORS.PRIMARY : 'var(--border-color)'}`,
+                    background: anonymousZap ? `${COLORS.PRIMARY}15` : 'transparent',
+                    cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: anonymousZap ? COLORS.PRIMARY : 'var(--text-secondary)',
+                    transition: 'all 0.2s ease',
+                    opacity: (sending || fetchingInvoice) ? 0.5 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                    {anonymousZap ? 'visibility_off' : 'visibility'}
+                  </span>
+                  {anonymousZap ? 'Anonymous' : 'Show identity'}
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Amount Field (for Lightning Address and Nostr User) */}
           {(detectedType === 'lightning-address' || detectedType === 'nostr-user') && (
             <div>
@@ -1615,7 +1789,30 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 ((detectedType === 'lightning-address' || detectedType === 'nostr-user') && !sendAmount.trim())
               }
             >
-              {sending ? 'Sending...' : fetchingInvoice ? 'Fetching invoice...' : 'Send Payment'}
+              {(() => {
+                if (sending) {
+                  if (detectedType === 'nostr-user' && paymentType === 'zap') {
+                    return anonymousZap ? 'Paying anonymously...' : 'Paying...';
+                  }
+                  return 'Paying...';
+                }
+                if (fetchingInvoice) {
+                  return 'Fetching invoice...';
+                }
+                if (detectedType === 'invoice') {
+                  return 'Pay Invoice';
+                }
+                if (detectedType === 'nostr-user' && paymentType === 'zap') {
+                  return anonymousZap ? 'Pay Anonymously' : 'Pay Publicly';
+                }
+                if (detectedType === 'nostr-user' && paymentType === 'lightning') {
+                  return 'Pay';
+                }
+                if (detectedType === 'lightning-address') {
+                  return 'Pay';
+                }
+                return 'Pay';
+              })()}
             </button>
           </div>
         </div>
