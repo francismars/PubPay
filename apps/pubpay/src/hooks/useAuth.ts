@@ -96,23 +96,19 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
           }
         }
       } else {
-        // Legacy format or no private key
-        const legacyKey = localStorage.getItem(STORAGE_KEYS.PRIVATE_KEY) || sessionStorage.getItem(STORAGE_KEYS.PRIVATE_KEY);
-        if (legacyKey && !legacyKey.startsWith('{')) {
-          // Legacy plaintext - migrate automatically
-          console.log('Migrating legacy plaintext private key to encrypted format...');
-          try {
-            // Encrypt the legacy key (device key mode, no password)
-            await AuthService.storeAuthData(publicKey || '', legacyKey, method || 'nsec');
-            console.log('Legacy key migrated successfully');
-            // Now decrypt and use
-            privateKey = await AuthService.decryptStoredPrivateKey();
-          } catch (migrationError) {
-            console.error('Failed to migrate legacy key:', migrationError);
-            // Fallback: use plaintext temporarily
-            privateKey = legacyKey;
-          }
+        // No encrypted private key - check if we need to clean up legacy keys
+        const hadLegacyKeys = AuthService.cleanupLegacyKeys();
+        if (hadLegacyKeys) {
+          // Legacy keys were found and cleared - user needs to log in again
+          console.warn('Legacy plaintext keys detected and cleared. User must log in again.');
+          // Clear auth state to force re-login
+          clearAuth();
+          setPrivateKeyLocal(null);
+          // Show message to user (will be handled by UI)
+          return { requiresPassword: false };
         }
+        // No private key available
+        privateKey = null;
       }
 
       // Set auth state - user should appear logged in even if private key isn't decrypted yet
@@ -298,6 +294,13 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
 
   // Check authentication status on mount
   useEffect(() => {
+    // Clean up any legacy plaintext keys first
+    const hadLegacyKeys = AuthService.cleanupLegacyKeys();
+    if (hadLegacyKeys) {
+      // Clear auth state if legacy keys were found
+      clearAuth();
+      setPrivateKeyLocal(null);
+    }
     checkAuthStatus().catch(console.error);
   }, []);
 

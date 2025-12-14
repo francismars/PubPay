@@ -551,7 +551,7 @@ export class AuthService {
         encryptedData = await this.encryptWithDeviceKey(privateKey);
       }
 
-      // Store encrypted private key (this will overwrite any legacy plaintext)
+      // Store encrypted private key
       localStorage.setItem(
         'privateKey',
         JSON.stringify(encryptedData)
@@ -559,10 +559,34 @@ export class AuthService {
       // Also clear from sessionStorage if it exists there
       sessionStorage.removeItem('privateKey');
     } else {
-      // If no private key provided, ensure any legacy plaintext is cleared
+      // If no private key provided, clear from storage
       localStorage.removeItem('privateKey');
       sessionStorage.removeItem('privateKey');
     }
+  }
+
+  /**
+   * Clean up legacy plaintext keys from storage
+   * Returns true if cleanup was performed, false otherwise
+   */
+  static cleanupLegacyKeys(): boolean {
+    let cleaned = false;
+    
+    // Check localStorage
+    const localKey = localStorage.getItem('privateKey');
+    if (localKey && !localKey.startsWith('{') && !localKey.startsWith('[')) {
+      localStorage.removeItem('privateKey');
+      cleaned = true;
+    }
+    
+    // Check sessionStorage
+    const sessionKey = sessionStorage.getItem('privateKey');
+    if (sessionKey && !sessionKey.startsWith('{') && !sessionKey.startsWith('[')) {
+      sessionStorage.removeItem('privateKey');
+      cleaned = true;
+    }
+    
+    return cleaned;
   }
 
   /**
@@ -587,9 +611,12 @@ export class AuthService {
       try {
         // Try to parse as encrypted format
         encryptedPrivateKey = JSON.parse(privateKeyStr) as EncryptedPrivateKey;
+        // Validate it has the expected structure
+        if (!encryptedPrivateKey.encrypted || !encryptedPrivateKey.iv || !encryptedPrivateKey.salt) {
+          encryptedPrivateKey = null;
+        }
       } catch {
-        // Legacy format: plaintext (for backward compatibility)
-        // This will be migrated to encrypted format on next login
+        // Invalid format - not encrypted, return null
         encryptedPrivateKey = null;
       }
     }
@@ -603,40 +630,16 @@ export class AuthService {
 
   /**
    * Decrypt stored private key (requires password if password mode)
-   * Automatically migrates legacy plaintext to encrypted format
    * Uses in-memory cache for password-protected keys (cleared on page reload)
    */
   static async decryptStoredPrivateKey(
     password?: string
   ): Promise<string | null> {
-    const { encryptedPrivateKey, publicKey, method } = this.getStoredAuthData();
+    const { encryptedPrivateKey } = this.getStoredAuthData();
 
     if (!encryptedPrivateKey) {
-      // Check for legacy plaintext format
-      const legacyKey =
-        localStorage.getItem('privateKey') ||
-        sessionStorage.getItem('privateKey');
-      if (legacyKey && !legacyKey.startsWith('{') && !legacyKey.startsWith('[')) {
-        // Legacy plaintext format - migrate automatically
-        console.log('Migrating legacy plaintext private key to encrypted format...');
-        try {
-          // Encrypt the legacy key (device key mode, no password)
-          await this.storeAuthData(publicKey || '', legacyKey, method || 'nsec');
-          console.log('Legacy key migrated successfully');
-          // Now decrypt and return
-          const { encryptedPrivateKey: newEncrypted } = this.getStoredAuthData();
-          if (newEncrypted) {
-            return await this.decryptWithDeviceKey(newEncrypted);
-          }
-          // Fallback: return the plaintext (shouldn't happen)
-          return legacyKey;
-        } catch (migrationError) {
-          console.error('Failed to migrate legacy key:', migrationError);
-          // Return plaintext as fallback
-          return legacyKey;
-        }
-      }
-      return null;
+      // No encrypted key found - user needs to log in again
+      throw new Error('Unable to decrypt your private key. Please log in again. Your key will be encrypted automatically.');
     }
 
     try {
@@ -682,7 +685,11 @@ export class AuthService {
             (error instanceof Error && error.message.includes('decrypt'))) {
           throw new Error('Unable to decrypt your private key. Your browser\'s local storage may have been cleared. Please log in again.');
         }
-        throw new Error('Failed to decrypt your private key. Please log in again.');
+        // Re-throw if it's already our custom error message
+        if (error instanceof Error && error.message.includes('Please log in again')) {
+          throw error;
+        }
+        throw new Error('Unable to decrypt your private key. Please log in again.');
       }
     }
   }

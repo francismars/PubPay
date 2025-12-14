@@ -361,12 +361,11 @@ export class ZapService {
           }
           throw error;
         }
-      } else if (!privateKey) {
-        // Check for legacy plaintext format (for backward compatibility)
-        const legacyKey = localStorage.getItem('privateKey') || sessionStorage.getItem('privateKey');
-        if (legacyKey && !legacyKey.startsWith('{') && !legacyKey.startsWith('[')) {
-          privateKey = legacyKey;
-        }
+      }
+
+      if (!privateKey) {
+        // No private key available - user needs to log in again
+        throw new Error('Unable to decrypt your private key. Please log in again to sign zaps.');
       }
 
       console.log('Has private key:', !!privateKey);
