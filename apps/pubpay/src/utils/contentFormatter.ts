@@ -18,7 +18,7 @@ function sanitizeHTML(html: string): string {
       'href', 'target', 'rel', 'class', 'src', 'style',
       'controls', 'frameborder', 'allowfullscreen'
     ],
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
     // Allow style attribute but sanitize it
     ALLOW_DATA_ATTR: false,
     // Keep relative URLs for profile links
