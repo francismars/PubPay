@@ -184,11 +184,8 @@ const SettingsPage: React.FC = () => {
             setNsec(null);
           }
         } else {
-          // Legacy plaintext format (for backward compatibility)
-          const legacyKey = localStorage.getItem(STORAGE_KEYS.PRIVATE_KEY) || sessionStorage.getItem(STORAGE_KEYS.PRIVATE_KEY);
-          if (legacyKey && !legacyKey.startsWith('{') && !legacyKey.startsWith('[')) {
-            setNsec(legacyKey);
-          }
+          // No encrypted key found - user needs to log in again
+          setNsec(null);
         }
       } catch (error) {
         console.error('Failed to load nsec:', error);
