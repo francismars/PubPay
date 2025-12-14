@@ -1551,10 +1551,12 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                             overflow: 'hidden'
                           }}
                         >
-                          {f.picture && sanitizeImageUrl(f.picture) ? (
-                            <img
-                              src={sanitizeImageUrl(f.picture)!}
-                              alt={f.displayName}
+                          {(() => {
+                            const sanitized = sanitizeImageUrl(f.picture);
+                            return sanitized ? (
+                              <img
+                                src={sanitized}
+                                alt={f.displayName}
                               className="suggestionAvatar"
                               style={{
                                 width: '32px',
@@ -1580,7 +1582,8 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                             >
                               {f.displayName.charAt(0).toUpperCase()}
                             </div>
-                          )}
+                          );
+                        })()}
                           <div className="suggestionInfo" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                             <div className="suggestionName" style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {f.displayName}
@@ -1748,18 +1751,20 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                     const displayName = profileContent?.display_name || profileContent?.name || 'Unknown';
                     return (
                       <>
-                        {picture && sanitizeImageUrl(picture) ? (
-                          <img
-                            src={sanitizeImageUrl(picture)!}
-                            alt={displayName}
-                            style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '50%',
-                              objectFit: 'cover'
-                            }}
-                          />
-                        ) : (
+                        {(() => {
+                          const sanitized = sanitizeImageUrl(picture);
+                          return sanitized ? (
+                            <img
+                              src={sanitized}
+                              alt={displayName}
+                              style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ) : (
                           <div
                             style={{
                               width: '40px',
@@ -1775,7 +1780,8 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                           >
                             {displayName.charAt(0).toUpperCase()}
                           </div>
-                        )}
+                        );
+                      })()}
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
                             {displayName}
@@ -1829,18 +1835,20 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                         const displayName = authorContent?.display_name || authorContent?.name || 'Unknown';
                         return (
                           <>
-                            {picture && sanitizeImageUrl(picture) ? (
-                              <img
-                                src={sanitizeImageUrl(picture)!}
-                                alt={displayName}
-                                style={{
-                                  width: '32px',
-                                  height: '32px',
-                                  borderRadius: '50%',
-                                  objectFit: 'cover'
-                                }}
-                              />
-                            ) : (
+                            {(() => {
+                              const sanitized = sanitizeImageUrl(picture);
+                              return sanitized ? (
+                                <img
+                                  src={sanitized}
+                                  alt={displayName}
+                                  style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover'
+                                  }}
+                                />
+                              ) : (
                               <div
                                 style={{
                                   width: '32px',
@@ -1856,15 +1864,16 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                               >
                                 {displayName.charAt(0).toUpperCase()}
                               </div>
-                            )}
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                                {displayName}
-                              </div>
+                            );
+                          })()}
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                              {displayName}
                             </div>
-                          </>
-                        );
-                      })()}
+                          </div>
+                        </>
+                      );
+                    })()}
                     </div>
                     <div
                       style={{
