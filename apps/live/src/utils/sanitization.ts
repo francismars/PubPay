@@ -20,7 +20,7 @@ export function sanitizeHTML(html: string): string {
       'controls', 'frameborder', 'allowfullscreen', 'alt',
       'data-pubkey', 'data-timestamp', 'data-amount', 'data-zap-id', 'data-chat-id'
     ],
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|data):|[^a-z]|[a-z+.-]+(?:[^-a-z+.:]|$))/i,
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^-a-z+.:]|$))/i,
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false
   });
