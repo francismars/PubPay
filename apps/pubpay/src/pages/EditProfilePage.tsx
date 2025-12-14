@@ -7,6 +7,7 @@ import {
 } from '@pubpay/shared-services';
 import { nip19, finalizeEvent, getEventHash, verifyEvent } from 'nostr-tools';
 import { TOAST_DURATION, TIMEOUT, STORAGE_KEYS, DIMENSIONS, FONT_SIZES, COLORS, SPACING } from '../constants';
+import { sanitizeUrl, sanitizeImageUrl } from '../utils/profileUtils';
 
 const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -550,9 +551,9 @@ const EditProfilePage: React.FC = () => {
         <div className="profileSection" id="profilePreview" style={{ marginBottom: '30px' }}>
           {/* Banner Image */}
           <div className="profileBanner">
-            {profileData.banner ? (
+            {profileData.banner && sanitizeImageUrl(profileData.banner) ? (
               <img
-                src={profileData.banner}
+                src={sanitizeImageUrl(profileData.banner)!}
                 alt="Profile banner"
                 className="profileBannerImage"
                 onError={e => {
@@ -566,9 +567,9 @@ const EditProfilePage: React.FC = () => {
 
           <div className="profileUserInfo">
             <div className="profileAvatar">
-              {profileData.picture ? (
+              {profileData.picture && sanitizeImageUrl(profileData.picture) ? (
                 <img
-                  src={profileData.picture}
+                  src={sanitizeImageUrl(profileData.picture)!}
                   alt="Profile"
                   className="profileAvatarImage"
                   onError={e => {
@@ -593,9 +594,9 @@ const EditProfilePage: React.FC = () => {
             <div className="profileUserDetails">
               <h2>{profileData.displayName || 'Anonymous User'}</h2>
               <p>{profileData.bio || 'No bio provided'}</p>
-                {profileData.website && (
+                {profileData.website && sanitizeUrl(profileData.website) && (
                     <a
-                      href={profileData.website}
+                      href={sanitizeUrl(profileData.website)!}
                       target="_blank"
                       rel="noopener noreferrer"
                   className="profileWebsite"
@@ -647,10 +648,10 @@ const EditProfilePage: React.FC = () => {
           </div>
 
           <div className="profileFormField">
-            {profileData.picture && (
+            {profileData.picture && sanitizeImageUrl(profileData.picture) && (
               <div style={{ marginBottom: '10px' }}>
                 <img
-                  src={profileData.picture}
+                  src={sanitizeImageUrl(profileData.picture)!}
                   alt="Profile preview"
                   style={{
                     width: DIMENSIONS.AVATAR_SIZE,
@@ -702,10 +703,10 @@ const EditProfilePage: React.FC = () => {
           </div>
 
           <div className="profileFormField">
-            {profileData.banner && (
+            {profileData.banner && sanitizeImageUrl(profileData.banner) && (
               <div style={{ marginBottom: '10px' }}>
                 <img
-                  src={profileData.banner}
+                  src={sanitizeImageUrl(profileData.banner)!}
                   alt="Banner preview"
                   style={{
                     width: DIMENSIONS.BANNER_WIDTH,

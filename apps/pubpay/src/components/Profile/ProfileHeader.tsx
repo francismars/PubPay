@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DIMENSIONS } from '../../constants';
-import { trimWebsiteUrl } from '../../utils/profileUtils';
+import { trimWebsiteUrl, sanitizeUrl, sanitizeImageUrl } from '../../utils/profileUtils';
 
 interface ProfileData {
   displayName: string;
@@ -52,9 +52,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     <div className="profileSection" id="profilePreview">
       {/* Banner Image */}
       <div className="profileBanner">
-        {profileData.banner && (
+        {profileData.banner && sanitizeImageUrl(profileData.banner) && (
           <img
-            src={profileData.banner}
+            src={sanitizeImageUrl(profileData.banner)!}
             alt="Profile banner"
             className="profileBannerImage"
             onError={e => {
@@ -68,9 +68,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div className="profileAvatar">
           {shouldShowSkeleton ? (
             <div className="skeleton skeleton-avatar" style={{ width: '120px', height: '120px' }}></div>
-          ) : profileData.picture ? (
+          ) : profileData.picture && sanitizeImageUrl(profileData.picture) ? (
             <img
-              src={profileData.picture}
+              src={sanitizeImageUrl(profileData.picture)!}
               alt="Profile"
               className="profileAvatarImage"
               onError={e => {
@@ -141,9 +141,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             </>
           ) : (
             <>
-              {profileData.website && (
+              {profileData.website && sanitizeUrl(profileData.website) && (
                 <a
-                  href={profileData.website}
+                  href={sanitizeUrl(profileData.website)!}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="profileWebsite"

@@ -2,6 +2,7 @@ import React from 'react';
 import { useUIStore } from '@pubpay/shared-services';
 import { InvoiceQR } from '@pubpay/shared-ui';
 import { getActiveNWCUri, migrateOldNWCConnection } from '../../utils/nwcStorage';
+import { sanitizeImageUrl } from '../../utils/profileUtils';
 import { TOAST_DURATION, TIMEOUT, COLORS } from '../../constants';
 import { genericUserIcon } from '../../assets/images';
 
@@ -40,7 +41,7 @@ export const InvoiceOverlay: React.FC<InvoiceOverlayProps> = ({
       try {
         const authorData = JSON.parse(post.author.content || '{}');
         recipientName = authorData?.display_name || authorData?.name || 'Anonymous';
-        recipientPicture = authorData?.picture || genericUserIcon;
+        recipientPicture = sanitizeImageUrl(authorData?.picture) || genericUserIcon;
       } catch {
         // Use defaults
       }

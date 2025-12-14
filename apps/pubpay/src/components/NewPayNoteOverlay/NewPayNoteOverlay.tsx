@@ -3,6 +3,7 @@ import { useUIStore } from '@pubpay/shared-services';
 import { BlossomService } from '@pubpay/shared-services';
 import { GOAL_MAX } from '@pubpay/shared-services';
 import { formatContent } from '../../utils/contentFormatter';
+import { sanitizeImageUrl } from '../../utils/profileUtils';
 
 interface NewPayNoteOverlayProps {
   isVisible: boolean;
@@ -367,7 +368,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                       className={`suggestionItem ${idx === activeIdx ? 'active' : ''}`}
                     >
                       <img
-                        src={f.picture || ''}
+                        src={sanitizeImageUrl(f.picture) || ''}
                         alt=""
                         className="suggestionAvatar"
                       />
@@ -622,7 +623,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                         className={`suggestionItem ${idx === zpActiveIdx ? 'active' : ''}`}
                       >
                         <img
-                          src={f.picture || ''}
+                          src={sanitizeImageUrl(f.picture) || ''}
                           alt=""
                           className="suggestionAvatar"
                         />
