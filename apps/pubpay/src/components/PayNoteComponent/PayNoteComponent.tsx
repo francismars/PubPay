@@ -6,6 +6,7 @@ import { genericUserIcon } from '../../assets/images';
 import { nip19 } from 'nostr-tools';
 import { formatContent } from '../../utils/contentFormatter';
 import { useUIStore } from '@pubpay/shared-services';
+import { sanitizeImageUrl, sanitizeUrl } from '../../utils/profileUtils';
 import { INTERVAL, TIMEOUT, API_PATHS, PROTOCOLS, SEPARATORS, COLORS, STORAGE_KEYS } from '../../constants';
 
 // Define ProcessedZap interface locally since it's not exported
@@ -236,7 +237,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       : (authorData?.display_name || authorData?.name || 'Anonymous');
     const profilePicture = isProfileLoading
       ? genericUserIcon // Will show skeleton
-      : (authorData?.picture || genericUserIcon);
+      : (sanitizeImageUrl(authorData?.picture) || genericUserIcon);
     const nip05 = isProfileLoading ? undefined : authorData?.nip05;
     const lud16 = isProfileLoading ? undefined : authorData?.lud16;
     const hasValidLightning = !!lud16 && /.+@.+\..+/.test(lud16);
@@ -860,7 +861,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               <div className="zapPayerInner">
                 <img
                   className="userImg"
-                  src={post.zapPayerPicture || genericUserIcon}
+                  src={sanitizeImageUrl(post.zapPayerPicture) || genericUserIcon}
                 />
                 <div className="userName">
                   {post.zapPayerName && post.zapPayerName.trim() !== ''
@@ -889,13 +890,17 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 Redirect to
               </div>
               <div className="zapPayerInner">
-                <a
-                  href={post.zapLNURL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {post.zapLNURL}
-                </a>
+                {post.zapLNURL && sanitizeUrl(post.zapLNURL) ? (
+                  <a
+                    href={sanitizeUrl(post.zapLNURL)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {post.zapLNURL}
+                  </a>
+                ) : (
+                  <span>{post.zapLNURL || 'Invalid URL'}</span>
+                )}
               </div>
             </div>
           )}
@@ -911,7 +916,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   <Link to={`/profile/${zap.zapPayerPubkey}`}>
                     <img
                       className="userImg"
-                      src={zap.zapPayerPicture || genericUserIcon}
+                      src={sanitizeImageUrl(zap.zapPayerPicture) || genericUserIcon}
                     />
                   </Link>
                   <Link
@@ -1226,7 +1231,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     <Link to={`/profile/${zap.zapPayerPubkey}`}>
                       <img
                         className="userImg"
-                        src={zap.zapPayerPicture || genericUserIcon}
+                        src={sanitizeImageUrl(zap.zapPayerPicture) || genericUserIcon}
                       />
                     </Link>
                     <Link
@@ -1476,7 +1481,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 }}
               >
                 <img
-                  src={profilePicture}
+                  src={sanitizeImageUrl(profilePicture) || genericUserIcon}
                   alt="Profile"
                   style={{
                     width: '48px',

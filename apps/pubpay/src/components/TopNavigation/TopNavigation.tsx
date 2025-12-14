@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import { genericUserIcon } from '../../assets/images';
 import { COLORS } from '../../constants';
+import { sanitizeImageUrl } from '../../utils/profileUtils';
 
 interface TopNavigationProps {
   authState: {
@@ -84,13 +85,14 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
                   src={
                     (() => {
                       try {
-                        return JSON.parse(
+                        const picture = JSON.parse(
                           authState.userProfile.content || '{}'
                         ).picture;
+                        return sanitizeImageUrl(picture) || genericUserIcon;
                       } catch {
-                        return undefined;
+                        return genericUserIcon;
                       }
-                    })() || genericUserIcon
+                    })()
                   }
                   alt="Profile"
                 />

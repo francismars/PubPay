@@ -2,6 +2,29 @@
 import { nip19 } from 'nostr-tools';
 import { getQueryClient } from '@pubpay/shared-services';
 import { ensureProfiles } from '@pubpay/shared-services';
+import DOMPurify from 'isomorphic-dompurify';
+
+/**
+ * Sanitize HTML content to prevent XSS attacks
+ * Allows safe HTML tags and attributes needed for formatting
+ */
+function sanitizeHTML(html: string): string {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'a', 'br', 'img', 'video', 'div', 'iframe',
+      'p', 'span', 'strong', 'em', 'u', 'b', 'i'
+    ],
+    ALLOWED_ATTR: [
+      'href', 'target', 'rel', 'class', 'src', 'style',
+      'controls', 'frameborder', 'allowfullscreen'
+    ],
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    // Allow style attribute but sanitize it
+    ALLOW_DATA_ATTR: false,
+    // Keep relative URLs for profile links
+    ALLOW_UNKNOWN_PROTOCOLS: false,
+  });
+}
 
 /**
  * Get user display name for npub or hex pubkey mention
@@ -219,5 +242,6 @@ export async function formatContent(
   // Convert newlines to breaks
   content = content.replace(/\n/g, '<br />');
 
-  return content;
+  // Sanitize the final HTML before returning
+  return sanitizeHTML(content);
 }

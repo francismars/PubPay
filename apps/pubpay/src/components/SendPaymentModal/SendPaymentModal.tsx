@@ -11,6 +11,7 @@ import {
   detectPaymentType
 } from '@pubpay/shared-services';
 import { formatContent } from '../../utils/contentFormatter';
+import { sanitizeImageUrl } from '../../utils/profileUtils';
 import { TOAST_DURATION, TIMEOUT, COLORS, Z_INDEX, STORAGE_KEYS } from '../../constants';
 
 interface SendPaymentModalProps {
@@ -1550,9 +1551,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                             overflow: 'hidden'
                           }}
                         >
-                          {f.picture ? (
+                          {f.picture && sanitizeImageUrl(f.picture) ? (
                             <img
-                              src={f.picture}
+                              src={sanitizeImageUrl(f.picture)!}
                               alt={f.displayName}
                               className="suggestionAvatar"
                               style={{
@@ -1747,9 +1748,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                     const displayName = profileContent?.display_name || profileContent?.name || 'Unknown';
                     return (
                       <>
-                        {picture ? (
+                        {picture && sanitizeImageUrl(picture) ? (
                           <img
-                            src={picture}
+                            src={sanitizeImageUrl(picture)!}
                             alt={displayName}
                             style={{
                               width: '40px',
@@ -1828,9 +1829,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                         const displayName = authorContent?.display_name || authorContent?.name || 'Unknown';
                         return (
                           <>
-                            {picture ? (
+                            {picture && sanitizeImageUrl(picture) ? (
                               <img
-                                src={picture}
+                                src={sanitizeImageUrl(picture)!}
                                 alt={displayName}
                                 style={{
                                   width: '32px',
