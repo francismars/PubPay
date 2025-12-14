@@ -143,55 +143,58 @@ export const getNpubFromPublicKey = (
 };
 
 /**
- * Sanitize URL to prevent XSS attacks via javascript: and other dangerous protocols
- * Only allows http, https, and lightning protocols
- * @param url - The URL to sanitize
- * @returns The sanitized URL, or null if the URL is invalid or uses a dangerous protocol
+ * Internal helper to validate and sanitize URLs with configurable allowed protocols
  */
-export const sanitizeUrl = (url: string | null | undefined): string | null => {
+function sanitizeUrlInternal(
+  url: string | null | undefined,
+  allowedProtocols: string[]
+): string | null {
   if (!url || typeof url !== 'string') return null;
-  
+
   const trimmed = url.trim();
   if (!trimmed) return null;
 
-  try {
-    // Handle relative URLs (starting with /)
-    if (trimmed.startsWith('/')) {
-      return trimmed;
-    }
+  // Handle relative URLs (starting with /)
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
 
+  try {
     // Parse the URL
     const parsed = new URL(trimmed);
-    
+
     // Only allow safe protocols
-    const allowedProtocols = ['http:', 'https:', 'lightning:'];
     if (!allowedProtocols.includes(parsed.protocol)) {
       return null;
     }
 
     return trimmed;
   } catch {
-    // If URL parsing fails, it might be a relative URL or invalid
-    // For safety, only allow relative URLs (starting with /) or return null
-    if (trimmed.startsWith('/')) {
-      return trimmed;
-    }
-    
-    // Try to add https:// if it looks like a domain
+    // If URL parsing fails, try to add https:// if it looks like a domain
     if (/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed)) {
       try {
         const withProtocol = `https://${trimmed}`;
         const parsed = new URL(withProtocol);
-        if (parsed.protocol === 'https:') {
+        if (parsed.protocol === 'https:' && allowedProtocols.includes('https:')) {
           return withProtocol;
         }
       } catch {
         // Invalid even with https://
       }
     }
-    
+
     return null;
   }
+}
+
+/**
+ * Sanitize URL to prevent XSS attacks via javascript: and other dangerous protocols
+ * Only allows http, https, and lightning protocols
+ * @param url - The URL to sanitize
+ * @returns The sanitized URL, or null if the URL is invalid or uses a dangerous protocol
+ */
+export const sanitizeUrl = (url: string | null | undefined): string | null => {
+  return sanitizeUrlInternal(url, ['http:', 'https:', 'lightning:']);
 };
 
 /**
@@ -201,47 +204,6 @@ export const sanitizeUrl = (url: string | null | undefined): string | null => {
  * @returns The sanitized URL, or null if the URL is invalid or uses a dangerous protocol
  */
 export const sanitizeImageUrl = (url: string | null | undefined): string | null => {
-  if (!url || typeof url !== 'string') return null;
-  
-  const trimmed = url.trim();
-  if (!trimmed) return null;
-
-  try {
-    // Handle relative URLs (starting with /)
-    if (trimmed.startsWith('/')) {
-      return trimmed;
-    }
-
-    // Parse the URL
-    const parsed = new URL(trimmed);
-    
-    // Only allow http and https for images (no data:, javascript:, etc.)
-    const allowedProtocols = ['http:', 'https:'];
-    if (!allowedProtocols.includes(parsed.protocol)) {
-      return null;
-    }
-
-    return trimmed;
-  } catch {
-    // If URL parsing fails, it might be a relative URL
-    if (trimmed.startsWith('/')) {
-      return trimmed;
-    }
-    
-    // Try to add https:// if it looks like a domain
-    if (/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed)) {
-      try {
-        const withProtocol = `https://${trimmed}`;
-        const parsed = new URL(withProtocol);
-        if (parsed.protocol === 'https:') {
-          return withProtocol;
-        }
-      } catch {
-        // Invalid even with https://
-      }
-    }
-    
-    return null;
-  }
+  return sanitizeUrlInternal(url, ['http:', 'https:']);
 };
 
