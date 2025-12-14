@@ -363,8 +363,10 @@ export class ZapService {
         }
       }
 
-      if (!privateKey) {
-        // No private key available - user needs to log in again
+      // Only require private key for nsec sign-in method
+      // Extension and externalSigner methods don't need a stored private key
+      if (signInMethod === 'nsec' && !privateKey) {
+        // No private key available for nsec method - user needs to log in again
         throw new Error('Unable to decrypt your private key. Please log in again to sign zaps.');
       }
 
