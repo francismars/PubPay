@@ -7,6 +7,7 @@ const bolt11 = require('bolt11') as any;
 import { UseLightning } from './useLightning';
 import { ZapNotification } from '@live/types';
 import { DEFAULT_READ_RELAYS } from '@pubpay/shared-services';
+import { sanitizeHTML, sanitizeImageUrl, sanitizeUrl, escapeHtml } from '../utils/sanitization';
 
 // Flag to prevent multiple simultaneous calls to setupNoteLoaderListeners
 let setupNoteLoaderListenersInProgress = false;
@@ -397,7 +398,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         disabled: '🔒'
       };
 
-      statusDiv.innerHTML = `<div class="status-${type}">${iconMap[type]} ${message}</div>`;
+      const sanitizedMessage = escapeHtml(message);
+      statusDiv.innerHTML = `<div class="status-${type}">${iconMap[type]} ${sanitizedMessage}</div>`;
     }
   };
 
@@ -803,9 +805,12 @@ export const useLiveFunctionality = (eventId?: string) => {
                         </video>
                         <div class="video-error" id="video-error" style="display: none;">
                             <p>Unable to load video stream</p>
-                            <a href="${streaming}" target="_blank" class="streaming-link">
+                            ${(() => {
+                              const sanitized = sanitizeUrl(streaming);
+                              return sanitized ? `<a href="${sanitized}" target="_blank" class="streaming-link" rel="noopener noreferrer">
                                 📺 Watch in External Player
-                            </a>
+                            </a>` : '<span>Streaming URL unavailable</span>';
+                            })()}
                         </div>
                     </div>
                 </div>
@@ -868,9 +873,12 @@ export const useLiveFunctionality = (eventId?: string) => {
                   recording
                     ? `
                     <div class="live-event-actions">
-                        <a href="${recording}" target="_blank" class="recording-link">
+                        ${(() => {
+                          const sanitized = sanitizeUrl(recording);
+                          return sanitized ? `<a href="${sanitized}" target="_blank" class="recording-link" rel="noopener noreferrer">
                             🎥 Watch Recording
-                        </a>
+                        </a>` : '<span>Recording URL unavailable</span>';
+                        })()}
                     </div>
                 `
                     : ''
@@ -983,6 +991,9 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     const timeStr = new Date(chatMessage.created_at * 1000).toLocaleString();
 
+    // Sanitize chat message content to prevent XSS
+    const sanitizedContent = escapeHtml(chatMessage.content).replace(/\n/g, '<br>');
+    
     chatDiv.innerHTML = `
         <div class="chat-message-header">
             <img class="chat-author-img" src="/live/images/gradient_color.gif" data-pubkey="${chatMessage.pubkey}" />
@@ -994,7 +1005,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             </div>
         </div>
         <div class="chat-message-content">
-            ${chatMessage.content}
+            ${sanitizedContent}
         </div>
     `;
 
@@ -1160,7 +1171,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           zapData.content
             ? `
             <div class="zap-content">
-                ${zapData.content}
+                ${escapeHtml(zapData.content).replace(/\n/g, '<br>')}
             </div>
         `
             : ''
@@ -1216,7 +1227,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                     <div class="zapperName" data-pubkey="${zapData.pubkey}">
                         ${zapData.pubkey.slice(0, 8)}...
                     </div>
-                    <div class="zapperMessage">${zapData.content || ''}</div>
+                    <div class="zapperMessage">${zapData.content ? escapeHtml(zapData.content).replace(/\n/g, '<br>') : ''}</div>
                 </div>
             </div>
             <div class="zapperAmount">
@@ -1365,7 +1376,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (profile) {
         existing.profile = profile;
         existing.name = getDisplayName(profile);
-        existing.picture = profile.picture || '/live/images/gradient_color.gif';
+        existing.picture = sanitizeImageUrl(profile.picture) || '/live/images/gradient_color.gif';
       }
     } else {
       zapperTotals.set(pubkey, {
@@ -1373,7 +1384,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         profile,
         name: profile ? getDisplayName(profile) : 'Anonymous',
         picture: profile
-          ? profile.picture || '/live/images/gradient_color.gif'
+          ? sanitizeImageUrl(profile.picture) || '/live/images/gradient_color.gif'
           : '/live/images/gradient_color.gif',
         pubkey
       });
@@ -1441,7 +1452,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         const name = zapperElement.querySelector('.zapper-name');
         const total = zapperElement.querySelector('.zapper-total');
 
-        if (avatar) avatar.src = zapper.picture;
+        if (avatar) avatar.src = sanitizeImageUrl(zapper.picture) || '/live/images/gradient_color.gif';
         if (avatar) avatar.alt = zapper.name;
         if (name) name.textContent = zapper.name;
         if (total)
@@ -1474,7 +1485,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       profileData.displayName ||
       profileData.name ||
       `${profile.pubkey.slice(0, 8)}...`;
-    const picture = profileData.picture || '/live/images/gradient_color.gif';
+    const picture = sanitizeImageUrl(profileData.picture) || '/live/images/gradient_color.gif';
 
     // Update zapper totals with profile info if this user has zapped
     if (
@@ -1621,7 +1632,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       console.warn('Failed to parse live event host profile:', error);
       profileData = {};
     }
-    const picture = profileData.picture || '/live/images/gradient_color.gif';
+    const picture = sanitizeImageUrl(profileData.picture) || '/live/images/gradient_color.gif';
     const nip05 = profileData.nip05 || '';
     const lud16 = profileData.lud16 || '';
 
@@ -3607,17 +3618,18 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
 
       if (!zap.picture) zap.picture = '';
-      const profileImage =
-        zap.picture == '' ? '/live/images/gradient_color.gif' : zap.picture;
+      const profileImage = sanitizeImageUrl(zap.picture) || '/live/images/gradient_color.gif';
+      const sanitizedZapContent = zap.kind9735content ? escapeHtml(zap.kind9735content).replace(/\n/g, '<br>') : '';
+      const sanitizedZapName = zap.kind1Name ? escapeHtml(zap.kind1Name) : 'Anonymous';
 
       zapDiv.innerHTML = `
         <div class="zapperProfile">
           <img class="zapperProfileImg" src="${profileImage}" />
           <div class="zapperInfo">
             <div class="zapperName">
-              ${zap.kind1Name || 'Anonymous'}
+              ${sanitizedZapName}
             </div>
-            <div class="zapperMessage">${zap.kind9735content || ''}</div>
+            <div class="zapperMessage">${sanitizedZapContent}</div>
           </div>
         </div>
         <div class="zapperAmount">
@@ -3720,7 +3732,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             ? getDisplayName(profile)
             : zap.kind1Name || 'Anonymous',
           picture:
-            profile?.picture || zap.picture || '/live/images/gradient_color.gif'
+            sanitizeImageUrl(profile?.picture || zap.picture) || '/live/images/gradient_color.gif'
         };
         zapperTotals.set(pubkey, zapperData);
         // Debug log removed
@@ -4154,7 +4166,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     try {
       const profile = JSON.parse(kind0.content);
       setAuthorName(profile.name || profile.display_name || 'Anonymous');
-      setAuthorImage(profile.picture || '/live/images/gradient_color.gif');
+      setAuthorImage(sanitizeImageUrl(profile.picture) || '/live/images/gradient_color.gif');
       setAuthorNip05(profile.nip05 || '');
       setAuthorLud16(profile.lud16 || '');
     } catch (e) {}
@@ -4251,19 +4263,27 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Handle video URLs (mp4, webm, ogg, mov)
     processed = processed.replace(
       /(https?:\/\/[^\s<>]+)\.(mp4|webm|ogg|mov)/gi,
-      (match) => `<div class="video-container" style="position: relative; width: 100%; max-width: 600px; margin: 12px 0;">
-        <video src="${match}" controls style="width: 100%; border-radius: 8px; background: #000;">
-          Your browser does not support the video tag.
-        </video>
-      </div>`
+      (match) => {
+        const sanitizedUrl = sanitizeUrl(match);
+        if (!sanitizedUrl) return escapeHtml(match); // Escape if URL is invalid
+        return `<div class="video-container" style="position: relative; width: 100%; max-width: 600px; margin: 12px 0;">
+          <video src="${sanitizedUrl}" controls style="width: 100%; border-radius: 8px; background: #000;">
+            Your browser does not support the video tag.
+          </video>
+        </div>`;
+      }
     );
     
     // Handle image URLs (jpg, jpeg, png, gif, webp)
     processed = processed.replace(
       /(https?:\/\/[^\s<>]+)\.(jpg|jpeg|png|gif|webp)/gi,
-      (match) => `<div class="image-container" style="margin: 12px 0;">
-        <img src="${match}" style="max-width: 100%; border-radius: 8px;" alt="Image" />
-      </div>`
+      (match) => {
+        const sanitizedUrl = sanitizeImageUrl(match);
+        if (!sanitizedUrl) return escapeHtml(match); // Escape if URL is invalid
+        return `<div class="image-container" style="margin: 12px 0;">
+          <img src="${sanitizedUrl}" style="max-width: 100%; border-radius: 8px;" alt="Image" />
+        </div>`;
+      }
     );
     
     // Process mentions in order: bare npub/note first (before adding any HTML), then prefixed versions
@@ -4424,15 +4444,18 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (processed.includes(`src="${url}"`)) {
           return match;
         }
+        const sanitizedUrl = sanitizeUrl(url);
+        if (!sanitizedUrl) return match; // Skip if URL is invalid
         const leadingSpace = match.startsWith(' ') ? ' ' : '';
-        return `${leadingSpace}<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        return `${leadingSpace}<a href="${sanitizedUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`;
       }
     );
     
-    // Convert line breaks to <br />
-    processed = processed.replace(/\n/g, '<br />');
+    // Convert line breaks to <br>
+    processed = processed.replace(/\n/g, '<br>');
     
-    return processed;
+    // Sanitize the final HTML before returning
+    return sanitizeHTML(processed);
   };
 
   const loadLiveEvent = async (naddr: string) => {
