@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ZapNotification } from '@live/types';
+import { sanitizeImageUrl } from '../utils/sanitization';
 
 // Constants
 const NOTIFICATION_DURATION = 7000; // 7 seconds
@@ -264,8 +265,8 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
         style={{ color: textColor, transform: `scale(${scaleFactor})` }}
       >
         <img
-          src={currentNotification.zapperImage}
-          alt={currentNotification.zapperName}
+          src={sanitizeImageUrl(currentNotification.zapperImage) || FALLBACK_IMAGE}
+          alt={currentNotification.zapperName || 'Zapper'}
           className="zap-notification-avatar"
           style={{ borderColor: textColor }}
           onError={e => {

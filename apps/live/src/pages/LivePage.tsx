@@ -5,6 +5,7 @@ import { useLiveFunctionality } from '@live/hooks/useLiveFunctionality';
 import { ZapNotificationOverlay } from '@live/components/ZapNotificationOverlay';
 import '../styles/live.css';
 import { nip19 } from 'nostr-tools';
+import { sanitizeImageUrl } from '../utils/sanitization';
 
 export const LivePage: React.FC = () => {
   const { eventId } = useParams<{ eventId?: string }>();
@@ -739,7 +740,7 @@ export const LivePage: React.FC = () => {
                 <img
                   id="authorNameProfileImg"
                   className="author-image"
-                  src={authorImage || '/live/images/gradient_color.gif'}
+                  src={sanitizeImageUrl(authorImage) || '/live/images/gradient_color.gif'}
                 />
                 <div className="author-info">
                   <div id="authorName" className="author-name">

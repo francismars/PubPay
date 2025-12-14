@@ -4,6 +4,7 @@ import { ErrorService } from '@pubpay/shared-services';
 import { LiveEvent, User } from '@pubpay/shared-types';
 import { QRCodeComponent, QRCodeOptions } from '@pubpay/shared-ui';
 import { ChatMessageComponent, ChatMessage } from './ChatMessageComponent';
+import { sanitizeImageUrl, escapeHtml } from '../utils/sanitization';
 
 export interface LiveEventDisplayOptions {
   showQR?: boolean;
@@ -501,9 +502,11 @@ export class LiveEventDisplayComponent extends BaseComponent {
     this.participants.forEach(participant => {
       const participantElement = document.createElement('div');
       participantElement.className = 'participant';
+      const sanitizedPicture = sanitizeImageUrl(participant.picture) || '/live/images/gradient_color.gif';
+      const sanitizedName = escapeHtml(participant.displayName || participant.name || participant.publicKey.slice(0, 8) + '...');
       participantElement.innerHTML = `
-        <img src="${participant.picture || '/live/images/gradient_color.gif'}" alt="${participant.displayName || participant.name}" class="participant-avatar">
-        <span class="participant-name">${participant.displayName || participant.name || participant.publicKey.slice(0, 8)}...</span>
+        <img src="${sanitizedPicture}" alt="${sanitizedName}" class="participant-avatar">
+        <span class="participant-name">${sanitizedName}</span>
       `;
       participantsList.appendChild(participantElement);
     });
@@ -569,7 +572,9 @@ export class LiveEventDisplayComponent extends BaseComponent {
   private formatEventContent(): string {
     if (!this.event) return '';
 
-    return this.event.content
+    // Escape HTML first, then add formatting
+    const escaped = escapeHtml(this.event.content);
+    return escaped
       .replace(/\n/g, '<br>')
       .replace(/#(\w+)/g, '<span class="hashtag">#$1</span>');
   }

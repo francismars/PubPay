@@ -5,6 +5,7 @@ import { NostrClient, ensureZaps, ensureProfiles, getQueryClient, DEFAULT_READ_R
 import { Kind1Event, Kind9735Event, Kind0Event } from '@pubpay/shared-types';
 import { parseZapDescription } from '@pubpay/shared-utils';
 import { getApiBase } from '../utils/apiBase';
+import { sanitizeImageUrl } from '../utils/sanitization';
 const bolt11 = require('bolt11') as any;
 
 interface LiveRef {
@@ -671,12 +672,12 @@ export const MultiStatsPage: React.FC = () => {
     }
   };
 
-  // Get profile picture
+  // Get profile picture (sanitized)
   const getProfilePicture = (profile: Kind0Event | null): string | null => {
     if (!profile) return null;
     try {
       const data = JSON.parse(profile.content || '{}');
-      return data.picture || null;
+      return sanitizeImageUrl(data.picture) || null;
     } catch {
       return null;
     }
@@ -876,7 +877,7 @@ export const MultiStatsPage: React.FC = () => {
                     const authorPicture = noteData.authorProfile ? (() => {
                       try {
                         const profileData = JSON.parse(noteData.authorProfile.content || '{}');
-                        return profileData.picture || null;
+                        return sanitizeImageUrl(profileData.picture) || null;
                       } catch {
                         return null;
                       }
@@ -1236,7 +1237,8 @@ export const MultiStatsPage: React.FC = () => {
                                 try {
                                   const profileData = JSON.parse(noteData.authorProfile.content || '{}');
                                   if (profileData.picture) {
-                                    return <img src={profileData.picture} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                                    const sanitized = sanitizeImageUrl(profileData.picture);
+                                    return sanitized ? <img src={sanitized} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null;
                                   }
                                 } catch {}
                                 return '#';
@@ -1446,7 +1448,8 @@ export const MultiStatsPage: React.FC = () => {
                         try {
                           const profileData = JSON.parse(selectedLive.authorProfile.content || '{}');
                           if (profileData.picture) {
-                            return <img src={profileData.picture} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+                            const sanitized = sanitizeImageUrl(profileData.picture);
+                            return sanitized ? <img src={sanitized} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null;
                           }
                         } catch {}
                         return '#';

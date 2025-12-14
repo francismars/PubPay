@@ -2,6 +2,7 @@
 import { BaseComponent } from '@pubpay/shared-ui';
 import { ErrorService } from '@pubpay/shared-services';
 import { User } from '@pubpay/shared-types';
+import { sanitizeImageUrl, escapeHtml } from '../utils/sanitization';
 
 export interface ChatMessage {
   id: string;
@@ -116,7 +117,7 @@ export class ChatMessageComponent extends BaseComponent {
 
     // Set avatar source
     if (this.message.author?.picture) {
-      avatarImg.src = this.message.author.picture;
+      avatarImg.src = sanitizeImageUrl(this.message.author.picture) || '/live/images/gradient_color.gif';
     } else {
       avatarImg.src = '/live/images/gradient_color.gif'; // Default avatar
     }
@@ -173,7 +174,7 @@ export class ChatMessageComponent extends BaseComponent {
     }
 
     // Escape HTML and preserve line breaks
-    displayContent = this.escapeHtml(displayContent).replace(/\n/g, '<br>');
+    displayContent = escapeHtml(displayContent).replace(/\n/g, '<br>');
 
     content.innerHTML = displayContent;
     return content;
@@ -226,14 +227,6 @@ export class ChatMessageComponent extends BaseComponent {
     }
   }
 
-  /**
-   * Escape HTML characters
-   */
-  private escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
 
   /**
    * Update author information
