@@ -8,6 +8,7 @@ import { SendPaymentModal } from '../components/SendPaymentModal/SendPaymentModa
 import { getActiveNWCUri, getActiveNWCConnection, getActiveNWCConnectionId, migrateOldNWCConnection } from '../utils/nwcStorage';
 import { TOAST_DURATION, INTERVAL, LIGHTNING, TIME, COLORS, STORAGE_KEYS, QUERY_LIMITS, DIMENSIONS } from '../constants';
 import { useWalletState, useWalletActions, type Invoice } from '../stores/useWalletStore';
+import { validatePaymentAmount } from '../utils/validation';
 
 const WalletPage: React.FC = () => {
   const navigate = useNavigate();
@@ -393,19 +394,21 @@ const WalletPage: React.FC = () => {
       return;
     }
 
+    // Validate amount format and limits
+    const amountValidation = validatePaymentAmount(receiveAmount);
+    if (!amountValidation.valid) {
+      useUIStore.getState().openToast(
+        amountValidation.error || 'Invalid amount',
+        'error',
+        false
+      );
+      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      return;
+    }
+
     setGeneratingInvoice(true);
     try {
       const amount = parseInt(receiveAmount.trim(), 10);
-      if (isNaN(amount) || amount <= 0) {
-        useUIStore.getState().openToast(
-          'Invalid amount. Please enter a positive number.',
-          'error',
-          false
-        );
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
-        setGeneratingInvoice(false);
-        return;
-      }
 
       useUIStore.getState().openToast('Generating invoice...', 'loading', true);
       const response = await nwcClient.makeInvoice({
@@ -1180,6 +1183,7 @@ const WalletPage: React.FC = () => {
                     className="inputField"
                     required
                     min="1"
+                    max="21000000"
                     disabled={generatingInvoice}
                     style={{
                       backgroundColor: 'var(--input-bg)',

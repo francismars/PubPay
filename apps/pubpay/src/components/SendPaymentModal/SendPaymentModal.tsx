@@ -13,6 +13,7 @@ import {
 import { formatContent } from '../../utils/contentFormatter';
 import { sanitizeImageUrl } from '../../utils/profileUtils';
 import { TOAST_DURATION, TIMEOUT, COLORS, Z_INDEX, STORAGE_KEYS } from '../../constants';
+import { validatePaymentAmount, validateInvoice, validateLightningAddressFormat } from '../../utils/validation';
 
 interface SendPaymentModalProps {
   isVisible: boolean;
@@ -148,6 +149,14 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       return false;
     }
 
+    // Validate invoice format and length first
+    const invoiceValidation = validateInvoice(invoice);
+    if (!invoiceValidation.valid) {
+      setInvoiceError(invoiceValidation.error || 'Invalid invoice');
+      setParsedInvoice(null);
+      return false;
+    }
+
     const result = InvoiceService.parseBolt11(invoice);
 
     if (!result.success) {
@@ -171,6 +180,14 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
     setLnurlError('');
 
     try {
+      // Validate lightning address format first
+      const addressValidation = validateLightningAddressFormat(address);
+      if (!addressValidation.valid) {
+        setLnurlError(addressValidation.error || 'Invalid lightning address format');
+        setFetchingInvoice(false);
+        return null;
+      }
+
       const invoice = await LightningAddressService.fetchInvoice(address, amount, { description });
       parseInvoice(invoice);
       return invoice;
@@ -221,12 +238,14 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         return;
       }
 
-      const amount = parseInt(sendAmount.trim(), 10);
-      if (isNaN(amount) || amount <= 0) {
-        useUIStore.getState().openToast('Please enter a valid amount', 'error', false);
+      const amountValidation = validatePaymentAmount(sendAmount);
+      if (!amountValidation.valid) {
+        useUIStore.getState().openToast(amountValidation.error || 'Invalid amount', 'error', false);
         setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
         return;
       }
+
+      const amount = parseInt(sendAmount.trim(), 10);
 
       // Fetch invoice automatically
       useUIStore.getState().openToast('Fetching invoice...', 'loading', true);
@@ -251,12 +270,14 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         return;
       }
 
-      const amount = parseInt(sendAmount.trim(), 10);
-      if (isNaN(amount) || amount <= 0) {
-        useUIStore.getState().openToast('Please enter a valid amount', 'error', false);
+      const amountValidation = validatePaymentAmount(sendAmount);
+      if (!amountValidation.valid) {
+        useUIStore.getState().openToast(amountValidation.error || 'Invalid amount', 'error', false);
         setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
         return;
       }
+
+      const amount = parseInt(sendAmount.trim(), 10);
 
       // Validate post event is loaded
       if (!detectedPostEvent) {
@@ -354,12 +375,14 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         return;
       }
 
-      const amount = parseInt(sendAmount.trim(), 10);
-      if (isNaN(amount) || amount <= 0) {
-        useUIStore.getState().openToast('Please enter a valid amount', 'error', false);
+      const amountValidation = validatePaymentAmount(sendAmount);
+      if (!amountValidation.valid) {
+        useUIStore.getState().openToast(amountValidation.error || 'Invalid amount', 'error', false);
         setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
         return;
       }
+
+      const amount = parseInt(sendAmount.trim(), 10);
 
       // Get lightning address from profile
       if (!detectedNostrProfile) {

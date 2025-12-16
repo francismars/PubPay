@@ -8,6 +8,7 @@ import {
 import { nip19, finalizeEvent, getEventHash, verifyEvent } from 'nostr-tools';
 import { TOAST_DURATION, TIMEOUT, STORAGE_KEYS, DIMENSIONS, FONT_SIZES, COLORS, SPACING } from '../constants';
 import { sanitizeUrl, sanitizeImageUrl } from '../utils/profileUtils';
+import { validateProfileData } from '../utils/validation';
 
 const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -403,6 +404,17 @@ const EditProfilePage: React.FC = () => {
           delete profileDataForNostr[key];
         }
       });
+
+      // Validate profile data before saving
+      const profileValidation = validateProfileData(profileDataForNostr);
+      if (!profileValidation.valid) {
+        const errorMessage = profileValidation.errors.length > 0
+          ? profileValidation.errors.join('. ')
+          : 'Invalid profile data';
+        updateToast(errorMessage, 'error', false);
+        setIsSaving(false);
+        return;
+      }
 
       // Create event template
       const eventTemplate: any = {

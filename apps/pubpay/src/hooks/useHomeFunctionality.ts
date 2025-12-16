@@ -3,7 +3,8 @@ import { useEffect, useRef } from 'react';
 import { NostrUtil } from '@pubpay/shared-services';
 import { AuthService } from '@pubpay/shared-services';
 import { Kind0Event, Kind9735Event } from '@pubpay/shared-types';
-import { TIMEOUT, LIGHTNING, STORAGE_KEYS } from '../constants';
+import { TIMEOUT, LIGHTNING, STORAGE_KEYS, TOAST_DURATION } from '../constants';
+import { validateNoteContent, validatePaymentAmount, validatePaymentAmountRange } from '../utils/validation';
 
 // Import npm packages
 import { nip19, finalizeEvent, getEventHash, verifyEvent } from 'nostr-tools';
@@ -280,43 +281,74 @@ export const useHomeFunctionality = () => {
         overrideLNURL
       } = formData;
 
+      // Validate note content
       if (!payNoteContent || payNoteContent.trim() === '') {
-        console.error('Please enter a payment request description');
+        const { useUIStore } = await import('@pubpay/shared-services');
+        useUIStore.getState().openToast('Please enter a payment request description', 'error', false);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
         return;
       }
+
+      const noteContentValidation = validateNoteContent(payNoteContent);
+      if (!noteContentValidation.valid) {
+        // Import useUIStore dynamically
+        const { useUIStore } = await import('@pubpay/shared-services');
+        useUIStore.getState().openToast(noteContentValidation.error || 'Invalid note content', 'error', false);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+        return;
+      }
+
+      // At this point, payNoteContent is guaranteed to be defined and valid
+      const validatedContent = payNoteContent;
 
       // Build tags array
       const tags: string[][] = [['t', 'pubpay']];
 
       // Add zap amount tags only if payment type is selected and values are provided
       if (paymentType === 'fixed' && zapFixed && zapFixed.trim() !== '') {
-        const amount = parseInt(zapFixed);
-        if (!isNaN(amount) && amount > 0) {
-          const zapMinAmount = amount * LIGHTNING.MILLISATS_PER_SAT; // Convert to millisatoshis
-          const zapMaxAmount = amount * LIGHTNING.MILLISATS_PER_SAT;
-          tags.push(['zap-min', zapMinAmount.toString()]);
-          tags.push(['zap-max', zapMaxAmount.toString()]);
-        }
-      } else if (paymentType === 'range' && zapMin && zapMin.trim() !== '' && zapMax && zapMax.trim() !== '') {
-        const minAmount = parseInt(zapMin);
-        const maxAmount = parseInt(zapMax);
-        if (!isNaN(minAmount) && !isNaN(maxAmount) && minAmount > 0 && maxAmount > 0) {
-          if (maxAmount < minAmount) {
-          console.error('Maximum amount must be greater than minimum amount');
+        const amountValidation = validatePaymentAmount(zapFixed);
+        if (!amountValidation.valid) {
+          const { useUIStore } = await import('@pubpay/shared-services');
+          useUIStore.getState().openToast(amountValidation.error || 'Invalid amount', 'error', false);
+          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
           return;
         }
-          const zapMinAmount = minAmount * LIGHTNING.MILLISATS_PER_SAT;
-          const zapMaxAmount = maxAmount * LIGHTNING.MILLISATS_PER_SAT;
-      tags.push(['zap-min', zapMinAmount.toString()]);
-      tags.push(['zap-max', zapMaxAmount.toString()]);
+        const amount = parseInt(zapFixed.trim(), 10);
+        const zapMinAmount = amount * LIGHTNING.MILLISATS_PER_SAT; // Convert to millisatoshis
+        const zapMaxAmount = amount * LIGHTNING.MILLISATS_PER_SAT;
+        tags.push(['zap-min', zapMinAmount.toString()]);
+        tags.push(['zap-max', zapMaxAmount.toString()]);
+      } else if (paymentType === 'range' && zapMin && zapMin.trim() !== '' && zapMax && zapMax.trim() !== '') {
+        const rangeValidation = validatePaymentAmountRange(zapMin, zapMax);
+        if (!rangeValidation.valid) {
+          const { useUIStore } = await import('@pubpay/shared-services');
+          useUIStore.getState().openToast(rangeValidation.error || 'Invalid amount range', 'error', false);
+          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          return;
         }
+        const minAmount = parseInt(zapMin.trim(), 10);
+        const maxAmount = parseInt(zapMax.trim(), 10);
+        const zapMinAmount = minAmount * LIGHTNING.MILLISATS_PER_SAT;
+        const zapMaxAmount = maxAmount * LIGHTNING.MILLISATS_PER_SAT;
+        tags.push(['zap-min', zapMinAmount.toString()]);
+        tags.push(['zap-max', zapMaxAmount.toString()]);
       }
       // If no payment type or no values provided, don't add zap tags (payment is optional)
 
       // Add zap-goal tag if provided (convert to millisats for consistency)
-      if (zapGoal && parseInt(zapGoal) > 0) {
-        const zapGoalAmount = parseInt(zapGoal) * LIGHTNING.MILLISATS_PER_SAT; // Convert to millisatoshis
-        tags.push(['zap-goal', zapGoalAmount.toString()]);
+      if (zapGoal && zapGoal.trim() !== '') {
+        const goalValidation = validatePaymentAmount(zapGoal);
+        if (!goalValidation.valid) {
+          const { useUIStore } = await import('@pubpay/shared-services');
+          useUIStore.getState().openToast(goalValidation.error || 'Invalid goal amount', 'error', false);
+          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          return;
+        }
+        const goalAmount = parseInt(zapGoal.trim(), 10);
+        if (goalAmount > 0) {
+          const zapGoalAmount = goalAmount * LIGHTNING.MILLISATS_PER_SAT; // Convert to millisatoshis
+          tags.push(['zap-goal', zapGoalAmount.toString()]);
+        }
       }
 
       // Add optional tags
@@ -341,7 +373,7 @@ export const useHomeFunctionality = () => {
       tags.push(['client', 'PubPay.me']);
 
       // Add mention tags only for nostr:npub references (ignore plain @npub)
-      const npubMentions = payNoteContent.match(
+      const npubMentions = validatedContent.match(
         /nostr:((npub)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
       );
       if (npubMentions) {
@@ -363,7 +395,7 @@ export const useHomeFunctionality = () => {
         kind: 1,
         created_at: Math.floor(Date.now() / 1000),
         tags,
-        content: payNoteContent.trim(),
+        content: validatedContent.trim(),
         pubkey: '',
         id: '',
         sig: ''
