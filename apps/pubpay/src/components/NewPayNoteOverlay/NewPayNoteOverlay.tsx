@@ -291,8 +291,10 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
               rows={4}
               placeholder="Description"
               required
+              maxLength={10000}
               onPaste={handlePaste}
               onChange={handleTextareaChange}
+              // Note: Validation happens on submit, maxLength attribute prevents exceeding limit
               onKeyDown={e => {
                 if (!showMention || filteredFollows.length === 0) return;
                 if (e.key === 'ArrowDown') {
@@ -463,6 +465,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                   <input
                     type="number"
                     min={1}
+                    max={21000000}
                     id="zapFixed"
                     placeholder="1"
                     name="zapFixed"
@@ -481,6 +484,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                     <input
                       type="number"
                       min={1}
+                      max={21000000}
                       id="zapMin"
                       placeholder="1"
                       name="zapMin"
@@ -494,6 +498,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                     <input
                       type="number"
                       min={1}
+                      max={21000000}
                       id="zapMax"
                       placeholder="1000000000"
                       name="zapMax"
