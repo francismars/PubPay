@@ -162,11 +162,16 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         baseline = baseline.substring(0, range.start) + range.replacement + baseline.substring(range.end);
       }
       
-      // Handle URLs
+      // Handle URLs - validate before creating links (defense-in-depth)
       baseline = baseline
         .replace(
           /(https?:\/\/[^\s<]+)/g,
-          '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+          (match) => {
+            // Validate URL before creating link
+            const validatedUrl = sanitizeUrl(match);
+            if (!validatedUrl) return match; // Return original if invalid
+            return `<a href="${validatedUrl}" target="_blank" rel="noopener noreferrer">${match}</a>`;
+          }
         )
         .replace(/\n/g, '<br />');
       
