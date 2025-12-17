@@ -66,18 +66,6 @@ export class BackendServer {
     // Body parsing
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-    // Static files (for serving built frontend)
-    // Only serve if dist directory exists
-    const distPath = path.resolve(__dirname, '../dist');
-    try {
-      const fs = require('fs');
-      if (fs.existsSync(distPath)) {
-    this.app.use(express.static('dist'));
-      }
-    } catch {
-      // dist directory doesn't exist, skip static file serving
-    }
   }
 
   private initializeRoutes(): void {
@@ -99,7 +87,7 @@ export class BackendServer {
     const nip05Router = new Nip05Router();
     const nip05Service = nip05Router.getService();
 
-    // Serve .well-known/nostr.json for NIP-05 (MUST be before catch-all route)
+    // Serve .well-known/nostr.json for NIP-05
     // Use the same service instance as the router to ensure data consistency
     // Supports optional ?name=<name> query parameter for filtering
     this.app.get('/.well-known/nostr.json', (req: Request, res: Response) => {
@@ -121,28 +109,6 @@ export class BackendServer {
     });
 
     this.app.use('/nip05', nip05Router.getRouter());
-
-    // Serve React app for all other routes (SPA fallback)
-    // Only if dist/index.html exists
-    this.app.get('*', (req: Request, res: Response, next: NextFunction) => {
-      const fs = require('fs');
-      const indexPath = path.resolve(__dirname, '../dist/index.html');
-      if (fs.existsSync(indexPath)) {
-      res.sendFile('index.html', { root: 'dist' });
-      } else {
-        // If no index.html, return 404 for non-API routes
-        if (!req.path.startsWith('/api') && !req.path.startsWith('/lightning') &&
-            !req.path.startsWith('/multi') && !req.path.startsWith('/nip05')) {
-          res.status(404).json({
-            success: false,
-            error: 'Route not found',
-            path: req.path
-          });
-        } else {
-          next();
-        }
-      }
-    });
   }
 
   private initializeErrorHandling(): void {
