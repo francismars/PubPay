@@ -3,6 +3,7 @@ import { nip19 } from 'nostr-tools';
 import { getQueryClient } from '@pubpay/shared-services';
 import { ensureProfiles } from '@pubpay/shared-services';
 import DOMPurify from 'isomorphic-dompurify';
+import { sanitizeImageUrl, sanitizeUrl } from './profileUtils';
 
 /**
  * Sanitize HTML content to prevent XSS attacks
@@ -16,7 +17,9 @@ function sanitizeHTML(html: string): string {
     ],
     ALLOWED_ATTR: [
       'href', 'target', 'rel', 'class', 'src', 'style',
-      'controls', 'frameborder', 'allowfullscreen'
+      'controls', 'frameborder', 'allowfullscreen',
+      'alt', 'loading', 'referrerpolicy', 'sandbox',
+      'allow', 'title', 'preload'
     ],
     ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
     // Allow style attribute but sanitize it
@@ -190,34 +193,40 @@ export async function formatContent(
     });
   }
 
-  // Handle image URLs with extensions
+  // Handle image URLs with extensions - VALIDATE BEFORE INSERTING
   content = content.replace(
     /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(gif|png|jpg|jpeg|webp)/gi,
-    match =>
-      `<img src="${match}" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;">`
+    match => {
+      const validatedUrl = sanitizeImageUrl(match);
+      if (!validatedUrl) return match; // Return original if invalid
+      
+      return `<img src="${validatedUrl}" alt="" loading="lazy" referrerpolicy="no-referrer" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;">`;
+    }
   );
 
-  // Handle video URLs
+  // Handle video URLs - VALIDATE BEFORE INSERTING
   content = content.replace(
     /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(mp4|webm|ogg|mov)/gi,
-    match => `<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 8px 0;">
-        <video src="${match}" controls style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;">
-          Your browser does not support the video tag.
-        </video>
-      </div>`
+    match => {
+      const validatedUrl = sanitizeImageUrl(match); // Use same function, validates http/https
+      if (!validatedUrl) return match;
+      
+      return `<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 8px 0;"><video src="${validatedUrl}" controls preload="metadata" referrerpolicy="no-referrer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;">Your browser does not support the video tag.</video></div>`;
+    }
   );
 
-  // Handle YouTube URLs
+  // Handle YouTube URLs - ADD SECURITY ATTRIBUTES
   content = content.replace(
     /(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([\w\-]+)|https?:\/\/youtu\.be\/([\w\-]+))/gi,
     (match, p1, p2) => {
       const videoId = p2 || p1;
-      return `<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 8px 0;">
-          <iframe src="https://www.youtube.com/embed/${videoId}" 
-                  style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;"
-                  frameborder="0" allowfullscreen>
-          </iframe>
-        </div>`;
+      
+      // Validate video ID (alphanumeric, hyphens, underscores only)
+      if (!/^[\w\-]+$/.test(videoId)) {
+        return match; // Return original if invalid
+      }
+      
+      return `<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 8px 0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation" referrerpolicy="strict-origin-when-cross-origin" loading="lazy" title="YouTube video player"></iframe></div>`;
     }
   );
 
@@ -235,7 +244,12 @@ export async function formatContent(
         return match;
       }
       const url = match.startsWith('http') ? match : `http://${match}`;
-      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="nostrMention">${match}</a>`;
+      
+      // Validate URL before creating link (defense-in-depth)
+      const validatedUrl = sanitizeUrl(url);
+      if (!validatedUrl) return match; // Return original if invalid
+      
+      return `<a href="${validatedUrl}" target="_blank" rel="noopener noreferrer" class="nostrMention">${match}</a>`;
     }
   );
 
