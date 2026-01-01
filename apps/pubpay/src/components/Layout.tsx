@@ -138,7 +138,7 @@ export const Layout: React.FC = () => {
     openQRScanner();
   };
 
-  // Listen for QR scanner open requests from wallet page
+  // Listen for QR scanner open requests from payments page
   useEffect(() => {
     const handleOpenQRScanner = () => {
       openQRScanner();

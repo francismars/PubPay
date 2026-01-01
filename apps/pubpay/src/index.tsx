@@ -12,7 +12,6 @@ const EditProfilePage = lazy(() => import('./pages/EditProfilePage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const PaymentsPage = lazy(() => import('./pages/PaymentsPage'));
-const WalletPage = lazy(() => import('./pages/WalletPage')); // Keep for backward compatibility
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
 
 // Import CSS
