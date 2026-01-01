@@ -12,7 +12,7 @@ import {
 } from '@pubpay/shared-services';
 import { formatContent } from '../../utils/contentFormatter';
 import { sanitizeImageUrl } from '../../utils/profileUtils';
-import { TOAST_DURATION, TIMEOUT, COLORS, Z_INDEX, STORAGE_KEYS } from '../../constants';
+import { TOAST_DURATION, TIMEOUT, COLORS, Z_INDEX, STORAGE_KEYS, LIGHTNING } from '../../constants';
 import { validatePaymentAmount, validateInvoice, validateLightningAddressFormat } from '../../utils/validation';
 
 interface SendPaymentModalProps {
@@ -203,12 +203,6 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
   // Handle send payment
   const handleSendPayment = async () => {
-    if (!nwcClient) {
-      useUIStore.getState().openToast('Wallet not connected', 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
-      return;
-    }
-
     if (!detectedType) {
       useUIStore.getState().openToast('Please enter an invoice, Lightning Address, or Nostr user', 'error', false);
       setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
@@ -507,6 +501,31 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
     if (!invoiceToPay) {
       useUIStore.getState().openToast('No invoice to pay', 'error', false);
       setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      return;
+    }
+
+    // If no NWC client, show invoice overlay instead
+    if (!nwcClient) {
+      useUIStore.getState().closeToast();
+      handleClose();
+      // Extract amount from invoice if possible
+      let amount = 0;
+      try {
+        const { InvoiceService } = await import('@pubpay/shared-services');
+        const parsed = InvoiceService.parseBolt11(invoiceToPay);
+        if (parsed.success && parsed.data?.amount) {
+          amount = parsed.data.amount;
+        }
+      } catch {
+        // Ignore parsing errors
+      }
+      // Show invoice overlay
+      useUIStore.getState().openInvoice({
+        bolt11: invoiceToPay,
+        amount: amount * LIGHTNING.MILLISATS_PER_SAT, // Convert to millisats
+        eventId: '',
+        zapRequestId: undefined
+      });
       return;
     }
 

@@ -113,12 +113,12 @@ export const SideNavigation: React.FC<SideNavigationProps> = ({
           Settings
         </Link>
         <Link
-          to="/wallet"
+          to="/payments"
           className="sideNavLink"
-          title="Wallet"
+          title="Payments"
           onClick={onClose}
         >
-          Wallet
+          Payments
         </Link>
         <a
           href="/live"
