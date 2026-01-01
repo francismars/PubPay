@@ -1,8 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { nip19 } from 'nostr-tools';
 import { genericUserIcon } from '../../assets/images';
-import { COLORS } from '../../constants';
 import { sanitizeImageUrl } from '../../utils/profileUtils';
 
 interface TopNavigationProps {
@@ -77,32 +75,22 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
             onClick={onLoginOpen}
           >
             {authState.isLoggedIn && authState.userProfile ? (
-              <div
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                <img
-                  className="userImg currentUserImg"
-                  src={
-                    (() => {
-                      try {
-                        const picture = JSON.parse(
-                          authState.userProfile.content || '{}'
-                        ).picture;
-                        return sanitizeImageUrl(picture) || genericUserIcon;
-                      } catch {
-                        return genericUserIcon;
-                      }
-                    })()
-                  }
-                  alt="Profile"
-                />
-                <span className="profileUserNameNav">
-                  {authState.displayName ||
-                    (authState.publicKey
-                      ? `${nip19.npubEncode(authState.publicKey).substring(0, 12)}...`
-                      : '...')}
-                </span>
-              </div>
+              <img
+                className="userImg currentUserImg"
+                src={
+                  (() => {
+                    try {
+                      const picture = JSON.parse(
+                        authState.userProfile.content || '{}'
+                      ).picture;
+                      return sanitizeImageUrl(picture) || genericUserIcon;
+                    } catch {
+                      return genericUserIcon;
+                    }
+                  })()
+                }
+                alt="Profile"
+              />
             ) : (
               <span className="material-symbols-outlined">
                 account_circle
