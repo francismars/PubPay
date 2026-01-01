@@ -14,6 +14,7 @@ export * from './services/lightning/InvoiceService';
 export * from './services/lightning/LightningService';
 export * from './services/lightning/WebhookService';
 export * from './services/lightning/LightningAddressService';
+export * from './services/lightning/LnurlService';
 
 // Export Nostr services
 export * from './services/nostr/EventManager';

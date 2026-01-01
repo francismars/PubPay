@@ -1,6 +1,6 @@
 import { nip19 } from 'nostr-tools';
 import { STORAGE_KEYS, TIMEOUT, TOAST_DURATION } from '../constants';
-import { useUIStore } from '@pubpay/shared-services';
+import { useUIStore, LnurlService } from '@pubpay/shared-services';
 
 export interface QRCodeHandlerResult {
   handled: boolean;
@@ -18,18 +18,41 @@ export const handleQRCodeContent = async (
   navigate: (path: string) => void
 ): Promise<QRCodeHandlerResult> => {
   try {
+    // Remove "lightning:" protocol prefix if present
+    const cleanText = decodedText.toLowerCase().startsWith('lightning:') 
+      ? decodedText.substring(10) 
+      : decodedText;
+
     // Check if it's a BOLT11 invoice
-    if (decodedText.match(/^(lnbc|lntb|lnbcrt)/i)) {
+    if (cleanText.match(/^(lnbc|lntb|lnbcrt)/i)) {
       // Store in sessionStorage so PaymentsPage can pick it up after navigation
-      sessionStorage.setItem(STORAGE_KEYS.SCANNED_INVOICE, decodedText);
+      sessionStorage.setItem(STORAGE_KEYS.SCANNED_INVOICE, cleanText);
       navigate('/payments');
       // Dispatch event after a short delay to ensure PaymentsPage is mounted
       setTimeout(() => {
         window.dispatchEvent(
-          new CustomEvent('walletScannedInvoice', { detail: { invoice: decodedText } })
+          new CustomEvent('walletScannedInvoice', { detail: { invoice: cleanText } })
         );
       }, TIMEOUT.SHORT_DELAY);
       useUIStore.getState().openToast('Invoice scanned!', 'success', false);
+      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      return { handled: true, shouldCloseScanner: true };
+    }
+
+    // Check if it's an LNURL (lnurl1... or lightning:lnurl1...)
+    if (LnurlService.isLnurl(decodedText)) {
+      // Store in sessionStorage so PaymentsPage can pick it up after navigation
+      sessionStorage.setItem(STORAGE_KEYS.SCANNED_LNURL, decodedText);
+      navigate('/payments');
+      // Dispatch event after a short delay to ensure PaymentsPage is mounted
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent('walletScannedLnurl', {
+            detail: { lnurl: decodedText }
+          })
+        );
+      }, TIMEOUT.SHORT_DELAY);
+      useUIStore.getState().openToast('LNURL scanned!', 'success', false);
       setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
       return { handled: true, shouldCloseScanner: true };
     }

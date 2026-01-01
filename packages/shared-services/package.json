@@ -4,7 +4,9 @@
   "description": "Shared services for PubPay",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "sideEffects": ["**/*.css"],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -13,6 +15,7 @@
   "dependencies": {
     "@pubpay/shared-types": "workspace:*",
     "@tanstack/react-query": "^5.90.5",
+    "bech32": "^2.0.0",
     "bolt11": "^1.4.1",
     "nostr-tools": "^2.17.0",
     "zod": "^4.1.12",

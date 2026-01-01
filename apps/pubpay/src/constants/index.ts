@@ -205,7 +205,8 @@ export const STORAGE_KEYS = {
 
   // Scanned data (temporary session storage)
   SCANNED_INVOICE: 'scannedInvoice',
-  SCANNED_LIGHTNING_ADDRESS: 'scannedLightningAddress'
+  SCANNED_LIGHTNING_ADDRESS: 'scannedLightningAddress',
+  SCANNED_LNURL: 'scannedLnurl'
 } as const;
 
 // ============================================================================
