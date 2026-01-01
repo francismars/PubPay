@@ -38,6 +38,14 @@ export const SideNavigation: React.FC<SideNavigationProps> = ({
         >
           Profile
         </Link>
+        <Link
+          to="/payments"
+          className="sideNavLink"
+          title="Payments"
+          onClick={onClose}
+        >
+          Payments
+        </Link>
         <a
           href="javascript:void(0)"
           className="sideNavLink disabled"
@@ -111,14 +119,6 @@ export const SideNavigation: React.FC<SideNavigationProps> = ({
           onClick={onClose}
         >
           Settings
-        </Link>
-        <Link
-          to="/payments"
-          className="sideNavLink"
-          title="Payments"
-          onClick={onClose}
-        >
-          Payments
         </Link>
         <a
           href="/live"
