@@ -571,6 +571,7 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                     style={{
                       flex: 1,
                       padding: '8px',
+                      marginBottom: 0,
                       fontSize: '12px',
                       background: 'transparent',
                       border: 'none',
