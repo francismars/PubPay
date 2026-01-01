@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useUIStore, NwcClient, ensureProfiles, getQueryClient } from '@pubpay/shared-services';
 import { Kind9735Event, Kind0Event } from '@pubpay/shared-types';
 import { nip19 } from 'nostr-tools';
-import { InvoiceQR } from '@pubpay/shared-ui';
 import { NWCOptionsModal } from '../components/NWCOptionsModal/NWCOptionsModal';
 import { SendPaymentModal } from '../components/SendPaymentModal/SendPaymentModal';
+import { ReceivePaymentModal } from '../components/ReceivePaymentModal/ReceivePaymentModal';
 import { getActiveNWCUri, getActiveNWCConnection, getActiveNWCConnectionId, migrateOldNWCConnection } from '../utils/nwcStorage';
 import { TOAST_DURATION, INTERVAL, LIGHTNING, TIME, COLORS, STORAGE_KEYS, QUERY_LIMITS, DIMENSIONS } from '../constants';
 import { useWalletState, useWalletActions, type Invoice } from '../stores/useWalletStore';
@@ -41,6 +41,10 @@ const PaymentsPage: React.FC = () => {
     authState: any;
     nostrClient: any;
   }>();
+
+  // Extract specific fields from authState to prevent unnecessary re-renders
+  const isLoggedIn = authState?.isLoggedIn ?? false;
+  const publicKey = authState?.publicKey ?? null;
 
   // View toggle
   const [paymentView, setPaymentView] = useState<PaymentView>('public');
@@ -83,15 +87,27 @@ const PaymentsPage: React.FC = () => {
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [receiveOption, setReceiveOption] = useState<'public-address' | 'create-note' | 'create-invoice'>('create-note');
   const [receiveAmount, setReceiveAmount] = useState('');
   const [receiveDescription, setReceiveDescription] = useState('');
   const [visibleTransactionsCount, setVisibleTransactionsCount] = useState(5);
+
+  // Get user's lightning address from profile
+  const userLightningAddress = useMemo(() => {
+    if (!authState?.userProfile?.content) return null;
+    try {
+      const profileData = JSON.parse(authState.userProfile.content);
+      return profileData.lud16 || profileData.lud06 || null;
+    } catch {
+      return null;
+    }
+  }, [authState?.userProfile]);
 
   // Initialize NWC client and reload when active connection changes
   useEffect(() => {
     // Migrate old format if needed
     migrateOldNWCConnection();
-    
+
     const initializeClient = () => {
       const nwcUri = getActiveNWCUri();
       if (nwcUri) {
@@ -131,7 +147,7 @@ const PaymentsPage: React.FC = () => {
       const currentActiveId = getActiveNWCConnectionId();
       if (currentActiveId !== activeConnectionIdRef.current) {
         activeConnectionIdRef.current = currentActiveId;
-        
+
         // Reload client
         const nwcUri = getActiveNWCUri();
         if (nwcUri) {
@@ -201,12 +217,12 @@ const PaymentsPage: React.FC = () => {
           balance: rawBalance,
           balanceType: typeof rawBalance
         });
-        
+
         // According to NIP-47 spec, get_balance MUST return balance in millisats
         // Always convert from millisats to sats by dividing by MILLISATS_PER_SAT
         const balanceInSats = Math.floor(rawBalance / LIGHTNING.MILLISATS_PER_SAT);
           console.log(`Converted ${rawBalance} millisats to ${balanceInSats} sats`);
-        
+
         setBalance(balanceInSats);
         setLastBalanceUpdate(new Date());
       }
@@ -255,7 +271,7 @@ const PaymentsPage: React.FC = () => {
       console.log('Loading transactions...');
       const response = await nwcClient.listTransactions({ limit: QUERY_LIMITS.TRANSACTION_LIST_LIMIT });
       console.log('listTransactions response:', response);
-      
+
       if (response.error) {
         console.error('listTransactions error:', response.error);
         setTransactionsError(response.error.message || 'Failed to load transactions');
@@ -317,7 +333,7 @@ const PaymentsPage: React.FC = () => {
 
   // Load public zaps
   const loadPublicZaps = useCallback(async () => {
-    if (!authState?.isLoggedIn || !authState?.publicKey || !nostrClient) {
+    if (!isLoggedIn || !publicKey || !nostrClient) {
       setPublicZapsError('Please log in to view public payments');
       setPublicZaps([]);
       return;
@@ -327,7 +343,7 @@ const PaymentsPage: React.FC = () => {
     setPublicZapsError('');
 
     try {
-      const userPubkey = authState.publicKey;
+      const userPubkey = publicKey;
 
       // Load outgoing zaps (where user is the payer)
       const outgoingZapsFilter = {
@@ -449,7 +465,7 @@ const PaymentsPage: React.FC = () => {
     } finally {
       setPublicZapsLoading(false);
     }
-  }, [authState, nostrClient]);
+  }, [isLoggedIn, publicKey, nostrClient]);
 
   // Initial load and reload when client changes
   useEffect(() => {
@@ -623,8 +639,8 @@ const PaymentsPage: React.FC = () => {
     return !!invoice.paid_at && !!invoice.preimage;
   };
 
-  // Get profile data from Kind0Event
-  const getProfileData = (profile: Kind0Event | null) => {
+  // Get profile data from Kind0Event - memoized to prevent recreation
+  const getProfileData = useCallback((profile: Kind0Event | null) => {
     if (!profile || !profile.content) {
       return { name: 'Anonymous', picture: genericUserIcon };
     }
@@ -638,7 +654,7 @@ const PaymentsPage: React.FC = () => {
     } catch {
       return { name: 'Anonymous', picture: genericUserIcon };
     }
-  };
+  }, []);
 
   const activeConnection = getActiveNWCConnection();
 
@@ -872,46 +888,23 @@ const PaymentsPage: React.FC = () => {
                   </span>
                   Send
                 </button>
-                {nwcClient && (
-                  <button
-                    className="cta"
-                    onClick={() => setShowReceiveModal(true)}
-                    style={{
-                      padding: '20px',
-                      fontSize: '16px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>
-                      call_received
-                    </span>
-                    Receive
-                  </button>
-                )}
-                {!nwcClient && (
-                  <div
-                    style={{
-                      padding: '20px',
-                      fontSize: '16px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '8px',
-                      background: 'var(--bg-secondary)',
-                      borderRadius: '12px',
-                      border: '1px solid var(--border-color)',
-                      color: 'var(--text-secondary)'
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>
-                      call_received
-                    </span>
-                    Receive (NWC required)
-                  </div>
-                )}
+                <button
+                  className="cta"
+                  onClick={() => setShowReceiveModal(true)}
+                  style={{
+                    padding: '20px',
+                    fontSize: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>
+                    call_received
+                  </span>
+                  Receive
+                </button>
               </div>
             </div>
           </section>
@@ -1446,232 +1439,13 @@ const PaymentsPage: React.FC = () => {
                     No public payments found
                   </p>
                 ) : (
-                  <div style={{ marginTop: '16px' }}>
-                    {publicZaps.slice(0, visiblePublicZapsCount).map((zap) => {
-                      const payerData = getProfileData(zap.payerProfile);
-                      const recipientData = getProfileData(zap.recipientProfile);
-                      const isSettled = !!zap.preimage;
-
-                      return (
-                        <div
-                          key={zap.id}
-                          style={{
-                            padding: '16px',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '8px',
-                            marginBottom: '12px',
-                            background: 'var(--bg-secondary)'
-                          }}
-                        >
-                          <div
-                            style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'flex-start',
-                              marginBottom: '8px'
-                            }}
-                          >
-                            <div style={{ flex: 1 }}>
-                              <div
-                                style={{
-                                  fontSize: '14px',
-                                  fontWeight: '600',
-                                  color: 'var(--text-primary)',
-                                  marginBottom: '4px'
-                                }}
-                              >
-                                {zap.amount.toLocaleString()} sats
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: '12px',
-                                  color: 'var(--text-secondary)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '8px',
-                                  marginTop: '4px'
-                                }}
-                              >
-                                {zap.type === 'outgoing' ? (
-                                  <>
-                                    <span>To:</span>
-                                    <img
-                                      src={recipientData.picture}
-                                      alt={recipientData.name}
-                                      style={{
-                                        width: '20px',
-                                        height: '20px',
-                                        borderRadius: '50%',
-                                        objectFit: 'cover'
-                                      }}
-                                    />
-                                    <span>{recipientData.name}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <span>From:</span>
-                                    <img
-                                      src={payerData.picture}
-                                      alt={payerData.name}
-                                      style={{
-                                        width: '20px',
-                                        height: '20px',
-                                        borderRadius: '50%',
-                                        objectFit: 'cover'
-                                      }}
-                                    />
-                                    <span>{payerData.name}</span>
-                                  </>
-                                )}
-                              </div>
-                              {zap.content && (
-                                <div
-                                  style={{
-                                    fontSize: '12px',
-                                    color: 'var(--text-primary)',
-                                    marginTop: '6px',
-                                    fontStyle: 'italic',
-                                    padding: '8px',
-                                    background: 'var(--bg-primary)',
-                                    borderRadius: '6px'
-                                  }}
-                                >
-                                  "{zap.content}"
-                                </div>
-                              )}
-                            </div>
-                            <div
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'flex-end',
-                                gap: '4px'
-                              }}
-                            >
-                            <div
-                              style={{
-                                display: 'flex',
-                                gap: '4px',
-                                flexWrap: 'wrap',
-                                justifyContent: 'flex-end'
-                              }}
-                            >
-                              {zap.eventId && (
-                                <span
-                                  onClick={() => {
-                                    try {
-                                      const nevent = nip19.noteEncode(zap.eventId!);
-                                      navigate(`/note/${nevent}`);
-                                    } catch (err) {
-                                      console.error('Failed to encode note ID:', err);
-                                    }
-                                  }}
-                                  style={{
-                                    fontSize: '10px',
-                                    padding: '2px 6px',
-                                    background: COLORS.PRIMARY,
-                                    color: COLORS.TEXT_WHITE,
-                                    borderRadius: '4px',
-                                    fontWeight: '500',
-                                    cursor: 'pointer',
-                                    transition: 'opacity 0.2s ease'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.opacity = '0.8';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.opacity = '1';
-                                  }}
-                                >
-                                  View
-                                </span>
-                              )}
-                              {zap.type === 'outgoing' && (
-                                <span
-                                  style={{
-                                    fontSize: '10px',
-                                    padding: '2px 6px',
-                                    background: 'var(--bg-primary)',
-                                    color: 'var(--text-secondary)',
-                                    borderRadius: '4px',
-                                    fontWeight: '500'
-                                  }}
-                                >
-                                  Outgoing
-                                </span>
-                              )}
-                              {zap.type === 'incoming' && (
-                                <span
-                                  style={{
-                                    fontSize: '10px',
-                                    padding: '2px 6px',
-                                    background: 'var(--bg-primary)',
-                                    color: 'var(--text-secondary)',
-                                    borderRadius: '4px',
-                                    fontWeight: '500'
-                                  }}
-                                >
-                                  Incoming
-                                </span>
-                              )}
-                              {isSettled && (
-                                <span
-                                  style={{
-                                    fontSize: '10px',
-                                    padding: '2px 6px',
-                                    background: COLORS.SUCCESS_ALT,
-                                    color: COLORS.TEXT_WHITE,
-                                    borderRadius: '4px',
-                                    fontWeight: '500'
-                                  }}
-                                >
-                                  Paid
-                                </span>
-                              )}
-                            </div>
-                            </div>
-                          </div>
-                          <div
-                            style={{
-                              fontSize: '11px',
-                              color: 'var(--text-tertiary)',
-                              marginTop: '8px'
-                            }}
-                          >
-                            {formatTimestamp(zap.created_at)}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {publicZaps.length > visiblePublicZapsCount && (
-                      <button
-                        onClick={() => setVisiblePublicZapsCount(prev => prev + 20)}
-                        style={{
-                          width: '100%',
-                          marginTop: '12px',
-                          padding: '12px',
-                          background: 'var(--bg-secondary)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '8px',
-                          color: 'var(--text-primary)',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.background = 'var(--bg-primary)';
-                          e.currentTarget.style.borderColor = 'var(--text-secondary)';
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.background = 'var(--bg-secondary)';
-                          e.currentTarget.style.borderColor = 'var(--border-color)';
-                        }}
-                      >
-                        Show More ({publicZaps.length - visiblePublicZapsCount} remaining)
-                      </button>
-                    )}
-                  </div>
+                  <PublicZapList
+                    zaps={publicZaps}
+                    visibleCount={visiblePublicZapsCount}
+                    getProfileData={getProfileData}
+                    navigate={navigate}
+                    onLoadMore={() => setVisiblePublicZapsCount(prev => prev + 20)}
+                  />
                 )}
               </div>
             </section>
@@ -1710,255 +1484,305 @@ const PaymentsPage: React.FC = () => {
         onPaymentSent={handlePaymentSent}
       />
 
-      {/* Receive Invoice Modal */}
-      {showReceiveModal && (
-        <div
-          className="overlayContainer"
-          style={{
-            display: 'flex',
-            visibility: 'visible',
-            opacity: 1,
-            pointerEvents: 'auto',
-            alignItems: 'center',
-            justifyContent: 'center',
-            animation: 'none',
-            transition: 'none'
-          }}
-          onClick={() => {
-            if (!generatingInvoice) {
-              setShowReceiveModal(false);
-              setReceiveAmount('');
-              setReceiveDescription('');
-              setReceiveInvoice(null);
-            }
-          }}
-        >
-          <div
-            className="overlayInner"
-            onClick={e => e.stopPropagation()}
-            style={{
-              transform: 'none',
-              animation: 'none',
-              transition: 'none'
-            }}
-          >
-            <div className="brand">
-              PUB<span className="logoPay">PAY</span>
-              <span className="logoMe">.me</span>
-            </div>
-            <p className="label" style={{ marginBottom: '24px' }}>
-              Receive Payment
-            </p>
-            {!receiveInvoice ? (
-              <>
-                <div style={{ marginBottom: '16px' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      marginBottom: '8px',
-                      color: 'var(--text-primary)'
-                    }}
-                  >
-                    Amount (sats) <span style={{ color: COLORS.ERROR }}>*</span>
-                  </label>
-                  <input
-                    type="number"
-                    value={receiveAmount}
-                    onChange={e => setReceiveAmount(e.target.value)}
-                    placeholder="Enter amount in satoshis"
-                    className="inputField"
-                    required
-                    min="1"
-                    max="21000000"
-                    disabled={generatingInvoice}
-                    style={{
-                      backgroundColor: 'var(--input-bg)',
-                      color: 'var(--text-primary)',
-                      border: '2px solid var(--border-color)',
-                      borderRadius: '6px',
-                      padding: '12px 16px',
-                      width: '100%',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-                <div style={{ marginBottom: '24px' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      marginBottom: '8px',
-                      color: 'var(--text-primary)'
-                    }}
-                  >
-                    Description (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={receiveDescription}
-                    onChange={e => setReceiveDescription(e.target.value)}
-                    placeholder="Invoice description"
-                    className="inputField"
-                    disabled={generatingInvoice}
-                    style={{
-                      backgroundColor: 'var(--input-bg)',
-                      color: 'var(--text-primary)',
-                      border: '2px solid var(--border-color)',
-                      borderRadius: '6px',
-                      padding: '12px 16px',
-                      width: '100%',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '12px',
-                    justifyContent: 'flex-end'
-                  }}
-                >
-                  <button
-                    className="label"
-                    onClick={() => {
-                      if (!generatingInvoice) {
-                        setShowReceiveModal(false);
-                        setReceiveAmount('');
-                        setReceiveDescription('');
-                      }
-                    }}
-                    disabled={generatingInvoice}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: generatingInvoice ? 'not-allowed' : 'pointer',
-                      padding: '8px 16px'
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="cta"
-                    onClick={handleGenerateInvoice}
-                    disabled={generatingInvoice || !receiveAmount.trim()}
-                  >
-                    {generatingInvoice ? 'Generating...' : 'Generate Invoice'}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                  <InvoiceQR bolt11={receiveInvoice} />
-                </div>
-                <div
-                  style={{
-                    marginBottom: '16px',
-                    position: 'relative'
-                  }}
-                >
-                  <input
-                    type="text"
-                    readOnly
-                    value={receiveInvoice}
-                    style={{
-                      width: '100%',
-                      padding: '12px 48px 12px 12px',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontFamily: 'monospace',
-                      backgroundColor: 'var(--input-bg)',
-                      color: 'var(--text-primary)',
-                      boxSizing: 'border-box',
-                      cursor: 'text'
-                    }}
-                    onClick={e => {
-                      (e.target as HTMLInputElement).select();
-                    }}
-                  />
-                  <button
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(receiveInvoice);
-                        useUIStore.getState().openToast(
-                          'Invoice copied to clipboard',
-                          'success',
-                          false
-                        );
-                        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
-                      } catch (err) {
-                        console.error('Failed to copy invoice:', err);
-                      }
-                    }}
-                    style={{
-                      position: 'absolute',
-                      right: '3px',
-                      top: '7px',
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: COLORS.TEXT_SECONDARY
-                    }}
-                    title="Copy invoice"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                      content_copy
-                    </span>
-                  </button>
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '12px',
-                    justifyContent: 'flex-end'
-                  }}
-                >
-                  <button
-                    className="label"
-                    onClick={() => {
-                      setReceiveInvoice(null);
-                      setReceiveAmount('');
-                      setReceiveDescription('');
-                    }}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '8px 16px'
-                    }}
-                  >
-                    New Invoice
-                  </button>
-                  <button
-                    className="cta"
-                    onClick={() => {
-                      setShowReceiveModal(false);
-                      setReceiveInvoice(null);
-                      setReceiveAmount('');
-                      setReceiveDescription('');
-                      loadBalance();
-                      loadTransactions();
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Receive Payment Modal */}
+      <ReceivePaymentModal
+        isVisible={showReceiveModal}
+        onClose={() => {
+          if (!generatingInvoice) {
+            setShowReceiveModal(false);
+            setReceiveAmount('');
+            setReceiveDescription('');
+            setReceiveInvoice(null);
+            setReceiveOption('create-note');
+          }
+        }}
+        receiveOption={receiveOption}
+        setReceiveOption={setReceiveOption}
+        userLightningAddress={userLightningAddress}
+        isLoggedIn={isLoggedIn}
+        nwcClient={nwcClient}
+        receiveAmount={receiveAmount}
+        setReceiveAmount={setReceiveAmount}
+        receiveDescription={receiveDescription}
+        setReceiveDescription={setReceiveDescription}
+        receiveInvoice={receiveInvoice}
+        setReceiveInvoice={setReceiveInvoice}
+        generatingInvoice={generatingInvoice}
+        handleGenerateInvoice={handleGenerateInvoice}
+        onInvoiceGenerated={() => {
+          loadBalance();
+          loadTransactions();
+        }}
+        onOpenNWCOptions={() => setShowOptionsModal(true)}
+      />
     </div>
   );
 };
+
+// Memoized component for public zap list items to prevent unnecessary re-renders
+const PublicZapList = React.memo<{
+  zaps: PublicZap[];
+  visibleCount: number;
+  getProfileData: (profile: Kind0Event | null) => { name: string; picture: string };
+  navigate: (path: string) => void;
+  onLoadMore: () => void;
+}>(({ zaps, visibleCount, getProfileData, navigate, onLoadMore }) => {
+  const formatTimestamp = (timestamp?: number): string => {
+    if (!timestamp) return '—';
+    const date = new Date(timestamp * TIME.MILLISECONDS_PER_SECOND);
+    return date.toLocaleString();
+  };
+
+  const visibleZaps = useMemo(() => zaps.slice(0, visibleCount), [zaps, visibleCount]);
+
+  return (
+    <div style={{ marginTop: '16px' }}>
+      {visibleZaps.map((zap) => {
+        const payerData = getProfileData(zap.payerProfile);
+        const recipientData = getProfileData(zap.recipientProfile);
+        const isSettled = !!zap.preimage;
+
+        return (
+          <div
+            key={zap.id}
+            style={{
+              padding: '16px',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              marginBottom: '12px',
+              background: 'var(--bg-secondary)'
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                marginBottom: '8px'
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: 'var(--text-primary)',
+                    marginBottom: '4px'
+                  }}
+                >
+                  {zap.amount.toLocaleString()} sats
+                </div>
+                <div
+                  style={{
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '4px'
+                  }}
+                >
+                  {zap.type === 'outgoing' ? (
+                    <>
+                      <span>To:</span>
+                      <img
+                        src={recipientData.picture}
+                        alt={recipientData.name}
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                      <span>{recipientData.name}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>From:</span>
+                      <img
+                        src={payerData.picture}
+                        alt={payerData.name}
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          objectFit: 'cover'
+                        }}
+                      />
+                      <span>{payerData.name}</span>
+                    </>
+                  )}
+                </div>
+                {zap.content && (
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--text-primary)',
+                      marginTop: '6px',
+                      fontStyle: 'italic',
+                      padding: '8px',
+                      background: 'var(--bg-primary)',
+                      borderRadius: '6px'
+                    }}
+                  >
+                    "{zap.content}"
+                  </div>
+                )}
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-end',
+                  gap: '4px'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '4px',
+                    flexWrap: 'wrap',
+                    justifyContent: 'flex-end'
+                  }}
+                >
+                  {zap.eventId && (
+                    <span
+                      onClick={() => {
+                        try {
+                          const nevent = nip19.noteEncode(zap.eventId!);
+                          navigate(`/note/${nevent}`);
+                        } catch (err) {
+                          console.error('Failed to encode note ID:', err);
+                        }
+                      }}
+                      style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        background: COLORS.PRIMARY,
+                        color: COLORS.TEXT_WHITE,
+                        borderRadius: '4px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'opacity 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.opacity = '0.8';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.opacity = '1';
+                      }}
+                    >
+                      View
+                    </span>
+                  )}
+                  {zap.type === 'outgoing' && (
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        background: 'var(--bg-primary)',
+                        color: 'var(--text-secondary)',
+                        borderRadius: '4px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Outgoing
+                    </span>
+                  )}
+                  {zap.type === 'incoming' && (
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        background: 'var(--bg-primary)',
+                        color: 'var(--text-secondary)',
+                        borderRadius: '4px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Incoming
+                    </span>
+                  )}
+                  {isSettled && (
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        padding: '2px 6px',
+                        background: COLORS.SUCCESS_ALT,
+                        color: COLORS.TEXT_WHITE,
+                        borderRadius: '4px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Paid
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div
+              style={{
+                fontSize: '11px',
+                color: 'var(--text-tertiary)',
+                marginTop: '8px'
+              }}
+            >
+              {formatTimestamp(zap.created_at)}
+            </div>
+          </div>
+        );
+      })}
+      {zaps.length > visibleCount && (
+        <button
+          onClick={onLoadMore}
+          style={{
+            width: '100%',
+            marginTop: '12px',
+            padding: '12px',
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            color: 'var(--text-primary)',
+            fontSize: '14px',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'var(--bg-primary)';
+            e.currentTarget.style.borderColor = 'var(--text-secondary)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'var(--bg-secondary)';
+            e.currentTarget.style.borderColor = 'var(--border-color)';
+          }}
+        >
+          Show More ({zaps.length - visibleCount} remaining)
+        </button>
+      )}
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison function for React.memo
+  return (
+    prevProps.zaps.length === nextProps.zaps.length &&
+    prevProps.visibleCount === nextProps.visibleCount &&
+    prevProps.zaps.every((zap, index) => {
+      const nextZap = nextProps.zaps[index];
+      return (
+        zap.id === nextZap.id &&
+        zap.amount === nextZap.amount &&
+        zap.type === nextZap.type &&
+        zap.content === nextZap.content &&
+        zap.created_at === nextZap.created_at &&
+        zap.preimage === nextZap.preimage
+      );
+    })
+  );
+});
+
+PublicZapList.displayName = 'PublicZapList';
 
 export default PaymentsPage;
 

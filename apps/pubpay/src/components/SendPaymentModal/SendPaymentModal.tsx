@@ -106,38 +106,54 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   // Anonymous zap option (only relevant when paymentType === 'zap')
   const [anonymousZap, setAnonymousZap] = useState(false);
 
+  // Force anonymous mode when user is not logged in and payment type is zap or for posts
+  useEffect(() => {
+    const isNotLoggedIn = !authState?.isLoggedIn || !authState?.publicKey;
+    if (isNotLoggedIn && (paymentType === 'zap' || detectedType === 'nostr-post')) {
+      setAnonymousZap(true);
+    }
+  }, [paymentType, detectedType, authState?.isLoggedIn, authState?.publicKey]);
+
   const renderAnonymousToggle = useCallback(
-    (disabled: boolean, marginTop: string = '6px') => (
-      <button
-        type="button"
-        onClick={() => setAnonymousZap(!anonymousZap)}
-        disabled={disabled}
-        style={{
-          width: '100%',
-          marginTop,
-          padding: '6px 10px',
-          borderRadius: '4px',
-          border: `1px solid ${anonymousZap ? COLORS.PRIMARY : 'var(--border-color)'}`,
-          background: anonymousZap ? `${COLORS.PRIMARY}15` : 'transparent',
-          cursor: disabled ? 'not-allowed' : 'pointer',
-          fontSize: '12px',
-          fontWeight: '500',
-          color: anonymousZap ? COLORS.PRIMARY : 'var(--text-secondary)',
-          transition: 'all 0.2s ease',
-          opacity: disabled ? 0.5 : 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '6px'
-        }}
-      >
-        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-          {anonymousZap ? 'visibility_off' : 'visibility'}
-        </span>
-        {anonymousZap ? 'Anonymous' : 'Show identity'}
-      </button>
-    ),
-    [anonymousZap]
+    (disabled: boolean, marginTop: string = '6px') => {
+      // Hide toggle if user is not logged in and payment type is zap or for posts (must be anonymous)
+      const isNotLoggedIn = !authState?.isLoggedIn || !authState?.publicKey;
+      if (isNotLoggedIn && (paymentType === 'zap' || detectedType === 'nostr-post')) {
+        return null;
+      }
+
+      return (
+        <button
+          type="button"
+          onClick={() => setAnonymousZap(!anonymousZap)}
+          disabled={disabled}
+          style={{
+            width: '100%',
+            marginTop,
+            padding: '6px 10px',
+            borderRadius: '4px',
+            border: `1px solid ${anonymousZap ? COLORS.PRIMARY : 'var(--border-color)'}`,
+            background: anonymousZap ? `${COLORS.PRIMARY}15` : 'transparent',
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            fontSize: '12px',
+            fontWeight: '500',
+            color: anonymousZap ? COLORS.PRIMARY : 'var(--text-secondary)',
+            transition: 'all 0.2s ease',
+            opacity: disabled ? 0.5 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px'
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+            {anonymousZap ? 'visibility_off' : 'visibility'}
+          </span>
+          {anonymousZap ? 'Anonymous' : 'Show identity'}
+        </button>
+      );
+    },
+    [anonymousZap, paymentType, detectedType, authState?.isLoggedIn, authState?.publicKey]
   );
 
   const sendInputRef = useRef<HTMLInputElement>(null);
@@ -380,10 +396,11 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
       // Posts can only be zapped (public), not private payments
       // Note: Anonymous zaps don't require login
+      // If user is not logged in, anonymousZap should already be forced to true by useEffect
       if (!anonymousZap && (!authState?.isLoggedIn || !authState?.publicKey)) {
-        useUIStore.getState().openToast('Please log in to zap posts', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
-        return;
+        // This should not happen due to useEffect, but as a safety check:
+        setAnonymousZap(true);
+        // Continue with anonymous zap instead of blocking
       }
 
       try {
@@ -517,10 +534,11 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       if (paymentType === 'zap') {
         // Send as public zap
         // Note: Anonymous zaps don't require login (same as posts)
+        // If user is not logged in, anonymousZap should already be forced to true by useEffect
         if (!anonymousZap && (!authState?.isLoggedIn || !authState?.publicKey)) {
-          useUIStore.getState().openToast('Please log in to send zaps', 'error', false);
-          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
-          return;
+          // This should not happen due to useEffect, but as a safety check:
+          setAnonymousZap(true);
+          // Continue with anonymous zap instead of blocking
         }
 
         try {
@@ -2363,10 +2381,10 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   return 'Pay Invoice';
                 }
                 if (detectedType === 'nostr-post') {
-                  return anonymousZap ? 'Pay Anonymously' : 'Pay Publicly';
+                  return anonymousZap ? 'Public Pay Anonymously' : 'Public Pay';
                 }
                 if (detectedType === 'nostr-user' && paymentType === 'zap') {
-                  return anonymousZap ? 'Pay Anonymously' : 'Pay Publicly';
+                  return anonymousZap ? 'Public Pay Anonymously' : 'Public Pay';
                 }
                 if (detectedType === 'nostr-user' && paymentType === 'lightning') {
                   return 'Pay';
