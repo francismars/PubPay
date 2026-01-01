@@ -8,6 +8,7 @@ import {
   getQueryClient,
   InvoiceService,
   LightningAddressService,
+  LnurlService,
   detectPaymentType
 } from '@pubpay/shared-services';
 import { formatContent } from '../../utils/contentFormatter';
@@ -53,8 +54,8 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   const [sendAmount, setSendAmount] = useState('');
   const [sending, setSending] = useState(false);
 
-  // Detected type: 'invoice' | 'lightning-address' | 'nostr-user' | null
-  const [detectedType, setDetectedType] = useState<'invoice' | 'lightning-address' | 'nostr-user' | 'nostr-post' | null>(null);
+  // Detected type: 'invoice' | 'lightning-address' | 'lnurl' | 'nostr-user' | 'nostr-post' | null
+  const [detectedType, setDetectedType] = useState<'invoice' | 'lightning-address' | 'lnurl' | 'nostr-user' | 'nostr-post' | null>(null);
   const [detectedNostrPubkey, setDetectedNostrPubkey] = useState<string | null>(null);
   const [detectedNostrProfile, setDetectedNostrProfile] = useState<any>(null);
   const [detectedPostEvent, setDetectedPostEvent] = useState<any>(null);
@@ -73,6 +74,17 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   // Lightning Address state
   const [fetchingInvoice, setFetchingInvoice] = useState(false);
   const [lnurlError, setLnurlError] = useState<string>('');
+
+  // LNURL state
+  const [lnurlInfo, setLnurlInfo] = useState<{
+    callback: string;
+    minSendable?: number;
+    maxSendable?: number;
+    metadata?: string;
+    allowsNostr?: boolean;
+    commentAllowed?: number;
+  } | null>(null);
+  const [loadingLnurlInfo, setLoadingLnurlInfo] = useState(false);
 
   // Nostr follow list state (for autocomplete)
   const [followList, setFollowList] = useState<any[]>([]);
@@ -201,10 +213,61 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
     }
   };
 
+  // Discover and decode LNURL info
+  const discoverLNURL = useCallback(async (lnurl: string) => {
+    setLoadingLnurlInfo(true);
+    setLnurlError('');
+    setLnurlInfo(null);
+
+    try {
+      // Decode LNURL to URL
+      const url = LnurlService.decodeLnurl(lnurl);
+      if (!url) {
+        throw new Error('Invalid LNURL format');
+      }
+
+      // Discover LNURL-pay endpoint
+      const info = await LnurlService.discoverLNURLPay(url);
+      setLnurlInfo(info);
+
+      // Pre-fill amount with minimum (convert from millisats to sats)
+      if (info.minSendable) {
+        const minSats = Math.ceil(info.minSendable / 1000);
+        setSendAmount(minSats.toString());
+      }
+    } catch (error) {
+      console.error('Failed to discover LNURL:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to discover LNURL';
+      setLnurlError(errorMessage);
+      setLnurlInfo(null);
+    } finally {
+      setLoadingLnurlInfo(false);
+    }
+  }, []);
+
+  // Fetch invoice from LNURL (with parameters)
+  const fetchInvoiceFromLNURL = async (lnurl: string, amount: number, description?: string): Promise<string | null> => {
+    setFetchingInvoice(true);
+    setLnurlError('');
+
+    try {
+      const invoice = await LnurlService.fetchInvoice(lnurl, amount, { description });
+      parseInvoice(invoice);
+      return invoice;
+    } catch (error) {
+      console.error('Failed to fetch invoice from LNURL:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch invoice';
+      setLnurlError(errorMessage);
+      return null;
+    } finally {
+      setFetchingInvoice(false);
+    }
+  };
+
   // Handle send payment
   const handleSendPayment = async () => {
     if (!detectedType) {
-      useUIStore.getState().openToast('Please enter an invoice, Lightning Address, or Nostr user', 'error', false);
+      useUIStore.getState().openToast('Please enter an invoice, Lightning Address, LNURL, or Nostr user', 'error', false);
       setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
       return;
     }
@@ -256,6 +319,39 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       }
 
         useUIStore.getState().updateToast('Invoice fetched! Sending payment...', 'loading', true);
+    } else if (detectedType === 'lnurl') {
+      // Validate amount
+      if (!sendAmount.trim()) {
+        useUIStore.getState().openToast('Please enter an amount', 'error', false);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        return;
+      }
+
+      const amountValidation = validatePaymentAmount(sendAmount);
+      if (!amountValidation.valid) {
+        useUIStore.getState().openToast(amountValidation.error || 'Invalid amount', 'error', false);
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        return;
+      }
+
+      const amount = parseInt(sendAmount.trim(), 10);
+
+      // Fetch invoice automatically
+      useUIStore.getState().openToast('Fetching invoice...', 'loading', true);
+      invoiceToPay = await fetchInvoiceFromLNURL(sendInput.trim(), amount, sendDescription);
+
+      if (!invoiceToPay) {
+        useUIStore.getState().updateToast(
+          lnurlError || 'Failed to fetch invoice',
+          'error',
+          true
+        );
+        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+        return;
+      }
+
+      useUIStore.getState().updateToast('Invoice fetched! Sending payment...', 'loading', true);
+      console.log('LNURL invoice fetched:', invoiceToPay ? `${invoiceToPay.substring(0, 50)}...` : 'null');
     } else if (detectedType === 'nostr-post') {
       // Validate amount
       if (!sendAmount.trim()) {
@@ -504,8 +600,12 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       return;
     }
 
-    // If no NWC client, show invoice overlay instead
-    if (!nwcClient) {
+    // Check if auto-pay with NWC is enabled
+    const nwcAutoPay = localStorage.getItem(STORAGE_KEYS.NWC_AUTO_PAY);
+    const shouldAutoPay = nwcAutoPay === null || nwcAutoPay === 'true'; // Default to true for backward compatibility
+
+    // If no NWC client OR auto-pay is disabled, show invoice overlay instead
+    if (!nwcClient || !shouldAutoPay) {
       useUIStore.getState().closeToast();
       handleClose();
       // Extract amount from invoice if possible
@@ -531,11 +631,23 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
     setSending(true);
     try {
+      // Validate invoice before sending
+      if (!invoiceToPay || !invoiceToPay.trim()) {
+        throw new Error('Invalid invoice: invoice is empty');
+      }
+      if (!invoiceToPay.match(/^(lnbc|lntb|lnbcrt)/i)) {
+        throw new Error('Invalid invoice format');
+      }
+
+      console.log('Sending payment with invoice:', `${invoiceToPay.substring(0, 50)}...`);
       useUIStore.getState().openToast('Sending payment...', 'loading', true);
       const response = await nwcClient.payInvoice(invoiceToPay);
+      console.log('NWC payment response:', response);
       if (response.error) {
+        console.error('NWC payment error:', response.error);
+        const errorMessage = response.error.message || response.error.code || 'Payment failed';
         useUIStore.getState().updateToast(
-          response.error.message || 'Payment failed',
+          errorMessage,
           'error',
           true
         );
@@ -546,11 +658,20 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           handleClose();
           onPaymentSent();
         }, 2000);
+      } else {
+        // No error and no result - unexpected response
+        console.error('Unexpected NWC response:', response);
+        useUIStore.getState().updateToast(
+          'Unexpected response from wallet',
+          'error',
+          true
+        );
       }
     } catch (error) {
       console.error('Send payment error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Payment failed';
       useUIStore.getState().updateToast(
-        'Payment failed',
+        errorMessage,
         'error',
         true
       );
@@ -731,6 +852,13 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       setDetectedNostrProfile(null);
       setDetectedPostEvent(null);
       setDetectedPostAuthor(null);
+    } else if (detection.type === 'lnurl') {
+      setDetectedNostrPubkey(null);
+      setDetectedNostrProfile(null);
+      setDetectedPostEvent(null);
+      setDetectedPostAuthor(null);
+      // Discover LNURL info
+      discoverLNURL(detection.data);
     } else if (detection.type === 'nostr-user') {
       setDetectedNostrPubkey(detection.data.pubkey);
       setDetectedNostrProfile(null);
@@ -785,7 +913,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       setDetectedNostrPubkey(null);
       setDetectedNostrProfile(null);
     }
-  }, [sendInput, parseInvoice, nostrClient]);
+  }, [sendInput, parseInvoice, nostrClient, discoverLNURL]);
 
   // Format post content for preview (links, mentions, media)
   useEffect(() => {
@@ -830,6 +958,13 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       return;
     }
 
+    const scannedLnurl = sessionStorage.getItem(STORAGE_KEYS.SCANNED_LNURL);
+    if (scannedLnurl) {
+      sessionStorage.removeItem(STORAGE_KEYS.SCANNED_LNURL);
+      setSendInput(scannedLnurl);
+      return;
+    }
+
     const handleScannedInvoice = (e: CustomEvent) => {
       const invoice = e.detail?.invoice;
       if (invoice) {
@@ -846,12 +981,22 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       }
     };
 
+    const handleScannedLnurl = (e: CustomEvent) => {
+      const lnurl = e.detail?.lnurl;
+      if (lnurl) {
+        sessionStorage.removeItem(STORAGE_KEYS.SCANNED_LNURL);
+        setSendInput(lnurl);
+      }
+    };
+
     window.addEventListener('walletScannedInvoice', handleScannedInvoice as EventListener);
     window.addEventListener('walletScannedLightningAddress', handleScannedLightningAddress as EventListener);
+    window.addEventListener('walletScannedLnurl', handleScannedLnurl as EventListener);
 
     return () => {
       window.removeEventListener('walletScannedInvoice', handleScannedInvoice as EventListener);
       window.removeEventListener('walletScannedLightningAddress', handleScannedLightningAddress as EventListener);
+      window.removeEventListener('walletScannedLnurl', handleScannedLnurl as EventListener);
     };
   }, [isVisible]);
 
@@ -864,6 +1009,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       setParsedInvoice(null);
       setInvoiceError('');
       setLnurlError('');
+      setLnurlInfo(null);
       setDetectedType(null);
       setDetectedNostrPubkey(null);
       setDetectedNostrProfile(null);
@@ -975,9 +1121,11 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                         ? 'Invoice'
                         : detectedType === 'lightning-address'
                           ? 'Lightning Address'
-                          : detectedType === 'nostr-post'
-                            ? 'Nostr Post'
-                            : 'Nostr User'
+                          : detectedType === 'lnurl'
+                            ? 'LNURL'
+                            : detectedType === 'nostr-post'
+                              ? 'Nostr Post'
+                              : 'Nostr User'
                     })
                   </span>
                 )}
@@ -1275,7 +1423,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                           setPreviewSuffix(null);
                         }, TIMEOUT.DEBOUNCE);
                       }}
-                      placeholder={previewSuffix ? '' : 'Enter invoice, Lightning Address, npub, or type @...'}
+                      placeholder={previewSuffix ? '' : 'Enter invoice, Lightning Address, LNURL, npub, or type @...'}
                       disabled={sending || fetchingInvoice}
                       style={{
                         backgroundColor: 'var(--input-bg)',
@@ -1684,7 +1832,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
               </div>
             )}
 
-            {lnurlError && detectedType === 'lightning-address' && (
+            {lnurlError && (detectedType === 'lightning-address' || detectedType === 'lnurl') && (
               <div
                 style={{
                   marginTop: '12px',
@@ -1733,8 +1881,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                     Accepted Formats
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                    • BOLT11 invoice (starts with lnbc, lntb, or lnbcrt)<br />
+                    • BOLT11 invoice (lnbc, lntb, or lnbcrt)<br />
                     • Lightning Address (e.g., user@domain.com)<br />
+                    • LNURL (lnurl1)<br />
                     • Nostr user (npub or nprofile)<br />
                     • Nostr post (note1 or nevent1)<br />
                     • Type @ to mention a follow
@@ -1754,24 +1903,89 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   border: '1px solid var(--border-color)'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: COLORS.SUCCESS }}>
-                    check_circle
-                  </span>
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                    Invoice Valid
-                  </span>
-                </div>
                 {parsedInvoice.amount && (
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                     Amount: <strong style={{ color: 'var(--text-primary)' }}>{parsedInvoice.amount.toLocaleString()} sats</strong>
                   </div>
                 )}
                 {parsedInvoice.description && (
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: parsedInvoice.amount ? '4px' : '0' }}>
                     Description: {parsedInvoice.description}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* LNURL Info Display */}
+            {detectedType === 'lnurl' && loadingLnurlInfo && (
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '12px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>
+                  hourglass_empty
+                </span>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  Loading LNURL info...
+                </span>
+              </div>
+            )}
+
+            {detectedType === 'lnurl' && lnurlInfo && !lnurlError && (
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '12px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)'
+                }}
+              >
+                {lnurlInfo.minSendable && (
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    Min: <strong style={{ color: 'var(--text-primary)' }}>{Math.ceil(lnurlInfo.minSendable / 1000).toLocaleString()} sats</strong>
+                  </div>
+                )}
+                {lnurlInfo.maxSendable && (
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: lnurlInfo.minSendable ? '4px' : '0' }}>
+                    Max: <strong style={{ color: 'var(--text-primary)' }}>{Math.floor(lnurlInfo.maxSendable / 1000).toLocaleString()} sats</strong>
+                  </div>
+                )}
+                {(() => {
+                  if (!lnurlInfo.metadata) return null;
+
+                  try {
+                    // LNURL metadata is a JSON string: [["text/plain", "description"], ...]
+                    const metadata = JSON.parse(lnurlInfo.metadata);
+
+                    if (!Array.isArray(metadata)) return null;
+
+                    // Find the first text/plain entry
+                    const textEntry = metadata.find(
+                      (item: any) => Array.isArray(item) && item[0] === 'text/plain' && item[1]
+                    );
+
+                    if (textEntry && textEntry[1]) {
+                      return (
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: (lnurlInfo.minSendable || lnurlInfo.maxSendable) ? '4px' : '0' }}>
+                          Description: {textEntry[1]}
+                        </div>
+                      );
+                    }
+                  } catch (error) {
+                    console.error('Failed to parse LNURL metadata:', error, lnurlInfo.metadata);
+                  }
+
+                  return null;
+                })()}
               </div>
             )}
 
@@ -2014,8 +2228,8 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
             </div>
           )}
 
-          {/* Amount Field (for Lightning Address, Nostr User, and Nostr Post) */}
-          {(detectedType === 'lightning-address' || detectedType === 'nostr-user' || detectedType === 'nostr-post') && (
+          {/* Amount Field (for Lightning Address, LNURL, Nostr User, and Nostr Post) */}
+          {(detectedType === 'lightning-address' || detectedType === 'lnurl' || detectedType === 'nostr-user' || detectedType === 'nostr-post') && (
             <div>
               <label
                 style={{
@@ -2060,6 +2274,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           {sendInput.trim() && detectedType && (
             (detectedType === 'invoice' && parsedInvoice && !invoiceError) ||
             (detectedType === 'lightning-address' && !lnurlError) ||
+            (detectedType === 'lnurl' && lnurlInfo && !lnurlError) ||
             (detectedType === 'nostr-user' && detectedNostrProfile) ||
             (detectedType === 'nostr-post' && detectedPostEvent && !loadingPost)
           ) ? (
@@ -2077,9 +2292,19 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
               <input
                 type="text"
                 value={sendDescription}
-                onChange={e => setSendDescription(e.target.value)}
+                onChange={e => {
+                  // Limit length for LNURL if commentAllowed is set
+                  if (detectedType === 'lnurl' && lnurlInfo?.commentAllowed) {
+                    if (e.target.value.length <= lnurlInfo.commentAllowed) {
+                      setSendDescription(e.target.value);
+                    }
+                  } else {
+                    setSendDescription(e.target.value);
+                  }
+                }}
                 placeholder="Add a comment"
                 disabled={sending || fetchingInvoice || (detectedType === 'nostr-post' && loadingPost)}
+                maxLength={detectedType === 'lnurl' && lnurlInfo?.commentAllowed ? lnurlInfo.commentAllowed : undefined}
                 style={{
                   backgroundColor: 'var(--input-bg)',
                   color: 'var(--text-primary)',
@@ -2122,7 +2347,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 fetchingInvoice ||
                 !detectedType ||
                 (detectedType === 'invoice' && (!!invoiceError || !parsedInvoice)) ||
-                ((detectedType === 'lightning-address' || detectedType === 'nostr-user' || detectedType === 'nostr-post') && !sendAmount.trim()) ||
+                ((detectedType === 'lightning-address' || detectedType === 'lnurl' || detectedType === 'nostr-user' || detectedType === 'nostr-post') && !sendAmount.trim()) ||
                 (detectedType === 'nostr-post' && (!detectedPostEvent || loadingPost))
               }
             >
@@ -2148,7 +2373,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 if (detectedType === 'nostr-user' && paymentType === 'lightning') {
                   return 'Pay';
                 }
-                if (detectedType === 'lightning-address') {
+                if (detectedType === 'lightning-address' || detectedType === 'lnurl') {
                   return 'Pay';
                 }
                 return 'Pay';
