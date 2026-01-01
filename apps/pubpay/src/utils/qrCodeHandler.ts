@@ -20,10 +20,10 @@ export const handleQRCodeContent = async (
   try {
     // Check if it's a BOLT11 invoice
     if (decodedText.match(/^(lnbc|lntb|lnbcrt)/i)) {
-      // Store in sessionStorage so WalletPage can pick it up after navigation
+      // Store in sessionStorage so PaymentsPage can pick it up after navigation
       sessionStorage.setItem(STORAGE_KEYS.SCANNED_INVOICE, decodedText);
-      navigate('/wallet');
-      // Dispatch event after a short delay to ensure WalletPage is mounted
+      navigate('/payments');
+      // Dispatch event after a short delay to ensure PaymentsPage is mounted
       setTimeout(() => {
         window.dispatchEvent(
           new CustomEvent('walletScannedInvoice', { detail: { invoice: decodedText } })
@@ -39,10 +39,10 @@ export const handleQRCodeContent = async (
       /^([a-z0-9_-]+)@([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,})$/i
     );
     if (lightningAddressMatch) {
-      // Store in sessionStorage so WalletPage can pick it up after navigation
+      // Store in sessionStorage so PaymentsPage can pick it up after navigation
       sessionStorage.setItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS, decodedText);
-      navigate('/wallet');
-      // Dispatch event after a short delay to ensure WalletPage is mounted
+      navigate('/payments');
+      // Dispatch event after a short delay to ensure PaymentsPage is mounted
       setTimeout(() => {
         window.dispatchEvent(
           new CustomEvent('walletScannedLightningAddress', {
