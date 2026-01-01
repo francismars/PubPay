@@ -15,6 +15,7 @@ import { formatContent } from '../../utils/contentFormatter';
 import { sanitizeImageUrl } from '../../utils/profileUtils';
 import { TOAST_DURATION, TIMEOUT, COLORS, Z_INDEX, STORAGE_KEYS, LIGHTNING } from '../../constants';
 import { validatePaymentAmount, validateInvoice, validateLightningAddressFormat } from '../../utils/validation';
+import { useWalletState } from '../../stores/useWalletStore';
 
 interface SendPaymentModalProps {
   isVisible: boolean;
@@ -48,6 +49,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   onPaymentSent
 }) => {
   const navigate = useNavigate();
+  const { balance, balanceLoading } = useWalletState();
   // Unified send input
   const [sendInput, setSendInput] = useState('');
   const [sendDescription, setSendDescription] = useState('');
@@ -680,10 +682,6 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
     }
   };
 
-  // Function to open QR scanner
-  const openQRScanner = () => {
-    window.dispatchEvent(new CustomEvent('openQRScanner'));
-  };
 
   // Load follow list
   const loadFollowList = useCallback(async () => {
@@ -1062,43 +1060,43 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           <p className="label" style={{ margin: 0 }}>
             Send Payment
           </p>
-          <button
-            onClick={openQRScanner}
-            disabled={sending || fetchingInvoice}
-            style={{
+          {nwcClient && (
+            <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
               padding: '10px 16px',
               background: 'var(--bg-secondary)',
-              border: `2px solid ${COLORS.PRIMARY}`,
+              border: '2px solid var(--border-color)',
               borderRadius: '8px',
-              color: COLORS.PRIMARY,
-              cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
               fontSize: '14px',
               fontWeight: '600',
-              transition: 'all 0.2s ease',
-              opacity: (sending || fetchingInvoice) ? 0.5 : 1
-            }}
-            onMouseEnter={e => {
-              if (!sending && !fetchingInvoice) {
-                e.currentTarget.style.background = COLORS.PRIMARY;
-                e.currentTarget.style.color = COLORS.TEXT_WHITE;
-              }
-            }}
-            onMouseLeave={e => {
-              if (!sending && !fetchingInvoice) {
-                e.currentTarget.style.background = 'var(--bg-secondary)';
-                e.currentTarget.style.color = COLORS.PRIMARY;
-              }
-            }}
-            title="Scan QR code"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-              photo_camera
-            </span>
-            Scan QR Code
-          </button>
+              color: 'var(--text-primary)'
+            }}>
+              {balanceLoading ? (
+                <>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', animation: 'spin 1s linear infinite' }}>
+                    hourglass_empty
+                  </span>
+                  <span>Loading...</span>
+                </>
+              ) : balance !== null && balance !== undefined ? (
+                <>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                    account_balance_wallet
+                  </span>
+                  <span>{balance.toLocaleString()} sats</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                    account_balance_wallet
+                  </span>
+                  <span>Balance unavailable</span>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Main Content Area - grows to fill space */}
