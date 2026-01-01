@@ -1,8 +1,8 @@
 // Service Worker for PUBPAY.me PWA
 // IMPORTANT: Update CACHE_VERSION when deploying a new version to force cache refresh
 // IMPORTANT: Also update the VERSION comment below to ensure browser detects the change
-// VERSION: 2025-12-14-v0.0314
-const CACHE_VERSION = 'v0.0314';
+// VERSION: 2026-01-01-v0.03141
+const CACHE_VERSION = 'v0.03141';
 const CACHE_NAME_PREFIX = 'pubpay';
 const RUNTIME_CACHE_PREFIX = 'pubpay-runtime';
 const CACHE_NAME = `${CACHE_NAME_PREFIX}-${CACHE_VERSION}`;
