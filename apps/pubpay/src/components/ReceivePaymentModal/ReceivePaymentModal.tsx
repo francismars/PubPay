@@ -210,7 +210,7 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
               opacity: generatingInvoice ? 0.5 : 1
             }}
           >
-            Public Address
+            Lightning Address
           </button>
           <button
             type="button"
@@ -234,7 +234,7 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
           </button>
         </div>
 
-        {/* Public Address Option */}
+        {/* Lightning Address Option */}
         {receiveOption === 'public-address' && (
           <div>
             {!isLoggedIn ? (
@@ -343,7 +343,7 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                     margin: 0
                   }}
                 >
-                  Share this address to receive public payments (zaps)
+                  Share this address to receive payments
                 </p>
               </>
             )}
@@ -396,7 +396,7 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                 }}
               >
                 <p style={{ fontSize: '14px', color: 'var(--text-primary)', marginBottom: '16px' }}>
-                  Create a payment request that others can pay
+                  Create a public payment request that others can pay
                 </p>
                 <button
                   onClick={handleCreatePayNote}
