@@ -2936,6 +2936,16 @@ textarea:focus::placeholder {
   margin-bottom: -5px;
 }
 
+#login .material-symbols-outlined {
+  font-size: 30px;
+  font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+}
+
+#scanQrCode .material-symbols-outlined {
+  font-size: 30px;
+  font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+}
+
 .disabled {
   filter: saturate(0);
   opacity: 0.3;
