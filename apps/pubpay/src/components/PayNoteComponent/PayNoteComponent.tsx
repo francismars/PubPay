@@ -1,5 +1,5 @@
 // PayNoteComponent - Renders individual PubPay posts
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { PubPayPost } from '../../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../../assets/images';
@@ -8,6 +8,8 @@ import { formatContent } from '../../utils/contentFormatter';
 import { useUIStore } from '@pubpay/shared-services';
 import { sanitizeImageUrl, sanitizeUrl } from '../../utils/profileUtils';
 import { INTERVAL, TIMEOUT, API_PATHS, PROTOCOLS, SEPARATORS, COLORS, STORAGE_KEYS } from '../../constants';
+import { SendPaymentModal } from '../SendPaymentModal/SendPaymentModal';
+import { useWalletState } from '../../stores/useWalletStore';
 
 // Define ProcessedZap interface locally since it's not exported
 interface ProcessedZap {
@@ -36,6 +38,7 @@ interface PayNoteComponentProps {
   nostrClient: any; // NostrClient type
   nostrReady?: boolean;
   paymentError?: string;
+  authState?: any; // Auth state for SendPaymentModal
 }
 
 export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
@@ -50,9 +53,11 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     isReply = false,
     nostrClient,
     nostrReady,
-    paymentError
+    paymentError,
+    authState
   }) => {
     const navigate = useNavigate();
+    const { nwcClient } = useWalletState();
     
     // Debug: log payment error changes
     useEffect(() => {
@@ -72,6 +77,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const [isPaying, setIsPaying] = useState(false);
     const [isAnonPaying, setIsAnonPaying] = useState(false);
     const [isAnonymousModal, setIsAnonymousModal] = useState(false);
+    const [showSendPaymentModal, setShowSendPaymentModal] = useState(false);
     const [heroZaps, setHeroZaps] = useState<ProcessedZap[]>([]);
     const [overflowZaps, setOverflowZaps] = useState<ProcessedZap[]>([]);
     const [formattedContent, setFormattedContent] = useState<string>('');
@@ -83,6 +89,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isLongPressRef = useRef(false);
+    const zapAmountInputRef = useRef<HTMLInputElement>(null);
+    const zapAmountSuffixRef = useRef<HTMLSpanElement>(null);
 
     // Format content: baseline first, then upgrade when nostr is ready
     useEffect(() => {
@@ -218,6 +226,70 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       };
     }, [showZapMenu]);
 
+    // Track previous magnitude to only update when it changes
+    // Calculate and update "sats" suffix position dynamically
+    const updateSatsPosition = useCallback(() => {
+      const input = zapAmountInputRef.current;
+      const suffix = zapAmountSuffixRef.current;
+      if (!input || !suffix) return;
+
+      const container = input.parentElement;
+      if (!container) return;
+
+      // Measure text width with exact same styling as input
+      const tempSpan = document.createElement('span');
+      tempSpan.style.position = 'absolute';
+      tempSpan.style.visibility = 'hidden';
+      tempSpan.style.whiteSpace = 'nowrap';
+      const inputStyle = getComputedStyle(input);
+      tempSpan.style.font = `${inputStyle.fontWeight} ${inputStyle.fontSize} ${inputStyle.fontFamily}`;
+      tempSpan.textContent = zapAmount.toLocaleString();
+      document.body.appendChild(tempSpan);
+      const textWidth = tempSpan.offsetWidth;
+      document.body.removeChild(tempSpan);
+
+      // Calculate position: text is centered in available width (container - padding-right)
+      const containerWidth = container.getBoundingClientRect().width;
+      const paddingRight = parseFloat(inputStyle.paddingRight) || 0;
+      const availableWidth = containerWidth - paddingRight;
+      const textCenter = availableWidth / 2;
+      const suffixLeft = textCenter + (textWidth / 2) + 10; // 10px gap after number
+
+      suffix.style.left = `${suffixLeft}px`;
+    }, [zapAmount]);
+
+    // Callback ref - calculates position when input is mounted
+    const inputRefCallback = useCallback((element: HTMLInputElement | null) => {
+      zapAmountInputRef.current = element;
+      if (element) {
+        // Wait for suffix to be available, then calculate position
+        requestAnimationFrame(() => {
+          if (zapAmountSuffixRef.current) {
+            updateSatsPosition();
+          }
+        });
+      }
+    }, [updateSatsPosition]);
+
+    // Callback ref for suffix - calculates position when suffix is mounted
+    const suffixRefCallback = useCallback((element: HTMLSpanElement | null) => {
+      zapAmountSuffixRef.current = element;
+      if (element && zapAmountInputRef.current) {
+        // Both elements are now available, calculate position
+        requestAnimationFrame(updateSatsPosition);
+      }
+    }, [updateSatsPosition]);
+
+    // Update position when zapAmount changes or window resizes
+    useEffect(() => {
+      if (zapAmountInputRef.current && zapAmountSuffixRef.current) {
+        requestAnimationFrame(updateSatsPosition);
+      }
+
+      window.addEventListener('resize', updateSatsPosition);
+      return () => window.removeEventListener('resize', updateSatsPosition);
+    }, [updateSatsPosition]);
+
     // Update time display every minute
     useEffect(() => {
       const interval = setInterval(() => {
@@ -253,6 +325,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
 
     // Check if note has payment amount defined (zap-min or zap-max)
     const hasPaymentAmount = post.zapMin > 0 || post.zapMax > 0;
+    
+    // Check if this is a pubpay post (has #pubpay tag)
+    const isPubpayPost = post.hasZapTags || post.event?.tags?.some(tag => tag[0] === 't' && tag[1] === 'pubpay');
     
     // Calculate total amount from zaps within limits (for goal checking)
     // Must respect: amount limits (zap-min/zap-max) and zap-payer restriction (if present)
@@ -434,18 +509,13 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       }
     };
 
-    // Handle long press start
+    // Handle long press start - always opens payment modal
     const handleLongPressStart = () => {
-      if (!isPayable) return;
-
       isLongPressRef.current = false;
       longPressTimerRef.current = setTimeout(() => {
         isLongPressRef.current = true;
-        if (!isLoggedIn) {
-          useUIStore.getState().openLogin();
-        } else {
-          setShowZapModal(true);
-        }
+        // Always open SendPaymentModal on long press (even if not logged in or paid)
+        setShowSendPaymentModal(true);
       }, TIMEOUT.LONG_PRESS); // Long press threshold
     };
 
@@ -1062,10 +1132,11 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           })()}
 
           {/* Zap Values - only show for notes with zap tags, right above slider */}
+          {/* Hide min/max display when there's a range (they're overlaid on input) */}
           {post.hasZapTags && (
             <div className="noteValues">
-              {/* Only show Min/Max if zap-min or zap-max tags exist (zapMin > 0) */}
-              {post.zapMin > 0 && (
+              {/* Only show Min/Max if zap-min or zap-max tags exist (zapMin > 0) and it's a fixed amount (not a range) */}
+              {post.zapMin > 0 && post.zapMin === post.zapMax && (
                 <div className="zapMinContainer">
                   <div className="zapMin">
                     <span className="zapMinVal">
@@ -1073,21 +1144,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     </span><br/>
                     <span className="label">sats</span>
                   </div>
-                  <div className="zapMinLabel">
-                    {post.zapMin !== post.zapMax ? 'Min' : 'Fixed Amount'}
-                  </div>
-                </div>
-              )}
-
-              {post.zapMin > 0 && post.zapMin !== post.zapMax && (
-                <div className="zapMaxContainer">
-                  <div className="zapMax">
-                    <span className="label">sats</span>
-                    <span className="zapMaxVal">
-                      {post.zapMax.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="zapMaxLabel">Max</div>
+                  <div className="zapMinLabel">Fixed Amount</div>
                 </div>
               )}
 
@@ -1113,7 +1170,21 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses) && (
               <div className="zapSliderContainer">
                 <div className="zapAmountInput">
+                  {/* Min/Max overlays */}
+                  {post.zapMin > 0 && post.zapMin !== post.zapMax && (
+                    <>
+                      <div className="zapAmountMinOverlay">
+                        <span className="zapAmountOverlayLabel">Min</span>
+                        <span className="zapAmountOverlayValue">{post.zapMin.toLocaleString()}</span>
+                      </div>
+                      <div className="zapAmountMaxOverlay">
+                        <span className="zapAmountOverlayLabel">Max</span>
+                        <span className="zapAmountOverlayValue">{post.zapMax.toLocaleString()}</span>
+                      </div>
+                    </>
+                  )}
                   <input
+                    ref={inputRefCallback}
                     type="text"
                     inputMode="numeric"
                     className="zapAmountField"
@@ -1126,8 +1197,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       if (zapAmount > post.zapMax) setZapAmount(post.zapMax);
                     }}
                   />
-                  <span className="zapAmountSuffix">
-                    {zapAmount === 1 ? 'sat' : 'sats'}
+                  <span ref={suffixRefCallback} className="zapAmountSuffix">
+                    {zapAmount === 1 ? ' sat' : ' sats'}
                   </span>
                 </div>
                 <input
@@ -1143,12 +1214,12 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               </div>
             )}
 
-          {/* Main CTA - show for notes with zap tags AND (payment amount defined OR restrictions met)
-              Button will be disabled if zap-payer restriction exists and current user is not the zap-payer */}
-          {post.hasZapTags && (hasPaymentAmount || restrictionsMet) && (
+          {/* Main CTA - show for all notes with #pubpay tag
+              If no amount, opens payment overlay. If paid, can still long press to open overlay */}
+          {isPubpayPost && (
             <div className="noteCTA">
               <button
-                className={`noteMainCTA cta ${restrictionsMet || !isPayable || paymentError ? 'disabled' : ''} ${paymentError ? 'red' : ''} ${restrictionsMet ? 'paid' : ''}`}
+                className={`noteMainCTA cta ${paymentError ? 'disabled red' : restrictionsMet ? 'paid' : ''}`}
                 onMouseDown={handleLongPressStart}
                 onMouseUp={handleLongPressEnd}
                 onMouseLeave={handleLongPressEnd}
@@ -1161,7 +1232,20 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     return;
                   }
 
-                  if (restrictionsMet || !isPayable || paymentError) {
+                  // If no payment amount or restrictions met, open payment modal
+                  if (!hasPaymentAmount || restrictionsMet) {
+                    if (!isLoggedIn) {
+                      // Not logged in - open modal for anonymous payment
+                      setShowSendPaymentModal(true);
+                    } else {
+                      // Logged in - open modal to choose amount
+                      setShowSendPaymentModal(true);
+                    }
+                    return;
+                  }
+
+                  // If has amount and not paid, do quick zap (if payable)
+                  if (!isPayable || paymentError) {
                     return;
                   }
                   if (!isLoggedIn) {
@@ -1194,19 +1278,21 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     setIsPaying(false);
                   }
                 }}
-                disabled={restrictionsMet || !isPayable || isPaying || !!paymentError}
+                disabled={isPaying || !!paymentError}
                 title={
                   paymentError
                     ? paymentError
                     : restrictionsMet
-                      ? 'This post has been fully paid'
+                      ? 'This post has been fully paid - Long press to open payment overlay'
+                      : !hasPaymentAmount
+                        ? 'Click to choose amount or long press to open payment overlay'
                       : hasZapPayerRestriction && !isCurrentUserZapPayer
                         ? 'Only the specified payer can pay this post'
                       : !isPayable
                         ? 'This post is not payable'
                         : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
                           ? 'This post has been fully paid'
-                          : ''
+                          : 'Click to pay or long press to open payment overlay'
                 }
               >
                 {paymentError
@@ -1215,6 +1301,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   ? 'Paying…'
                   : restrictionsMet
                     ? 'Paid'
+                    : !hasPaymentAmount
+                      ? 'Pay'
                     : hasZapPayerRestriction && !isCurrentUserZapPayer
                       ? 'Authorized Payer Only'
                     : !isPayable
@@ -1258,7 +1346,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             </div>
 
             <div className="noteActions">
-              {/* Zap Menu */}
+              {/* Zap Menu - hide for pubpay posts (use main pay button instead) */}
+              {!isPubpayPost && (
               <a
                 ref={zapActionRef}
                 className={`noteAction zapMenuAction ${!hasValidLightning ? 'disabled' : ''}`}
@@ -1374,6 +1463,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   </div>
                 </div>
               </a>
+              )}
 
               {/* Share */}
               <a className="noteAction" onClick={() => onShare(post)}>
@@ -1577,6 +1667,21 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               </div>
             </div>
           </div>
+
+        {/* Send Payment Modal (for long press and when no amount) */}
+        <SendPaymentModal
+          isVisible={showSendPaymentModal}
+          onClose={() => setShowSendPaymentModal(false)}
+          nwcClient={nwcClient}
+          nostrClient={nostrClient}
+          authState={authState || { isLoggedIn: false, publicKey: null, privateKey: null, signInMethod: null, userProfile: null, displayName: null }}
+          onPaymentSent={() => {
+            setShowSendPaymentModal(false);
+            // Optionally refresh or update UI
+          }}
+          initialPostId={post.id}
+          initialAmount={hasPaymentAmount ? zapAmount : undefined}
+        />
       </div>
     );
   }

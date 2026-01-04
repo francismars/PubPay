@@ -24,6 +24,7 @@ export const FeedsPage: React.FC = () => {
     followingPosts,
     replies,
     activeFeed,
+    feedMode,
     isLoading,
     isLoadingMore,
     nostrReady,
@@ -31,7 +32,7 @@ export const FeedsPage: React.FC = () => {
   } = usePostStoreData();
   
   // Get actions separately (actions don't change, so no need for shallow)
-  const { clearAllPosts: clearPosts, setSingleNoteMode, clearSingleNoteMode } = usePostActions();
+  const { clearAllPosts: clearPosts, setSingleNoteMode, clearSingleNoteMode, setFeedMode } = usePostActions();
   
   // Get handlers and authState from Layout context (authState includes privateKey from local state)
   const {
@@ -80,6 +81,7 @@ export const FeedsPage: React.FC = () => {
 
   // Track previous path to detect when exiting single note mode
   const prevPathRef = useRef(location.pathname);
+  const prevFeedModeRef = useRef(feedMode);
 
   // Detect when exiting single note mode and clear posts to reload feed
   useEffect(() => {
@@ -94,9 +96,24 @@ export const FeedsPage: React.FC = () => {
     }
   }, [location.pathname, clearPosts]);
 
+  // Reload posts when feedMode changes
+  useEffect(() => {
+    if (prevFeedModeRef.current !== feedMode && !singleNoteMode) {
+      console.log('Feed mode changed, reloading posts');
+      clearPosts();
+      handleFeedChange(activeFeed);
+      prevFeedModeRef.current = feedMode;
+    }
+  }, [feedMode, singleNoteMode, activeFeed, clearPosts, handleFeedChange]);
+
   const handleViewRaw = (post: PubPayPost) => {
     setJsonContent(JSON.stringify(post.event, null, 2));
     setShowJSON(true);
+  };
+
+  const handleFeedModeChange = (mode: 'pubpay' | 'nostr') => {
+    setFeedMode(mode);
+    // The useEffect will handle clearing and reloading
   };
 
   // Handler for new pay note from side navigation
@@ -242,9 +259,18 @@ export const FeedsPage: React.FC = () => {
         >
           Following
         </a>
-        <a href="#" className="feedSelectorLink disabled" title="coming soon">
-          High Rollers
-        </a>
+        <button
+          id="feedModeToggle"
+          className={`feedModeToggle ${feedMode === 'pubpay' ? 'active' : ''}`}
+          onClick={(e) => {
+            e.preventDefault();
+            handleFeedModeChange(feedMode === 'pubpay' ? 'nostr' : 'pubpay');
+          }}
+          title={feedMode === 'pubpay' ? 'Filtering for #pubpay - Click to show all Nostr posts' : 'Showing all Nostr posts - Click to filter for #pubpay'}
+        >
+          <span className="material-symbols-outlined feedModeToggleIcon">filter_list</span>
+          <span className="feedModeToggleText">{feedMode === 'pubpay' ? '#pubpay' : 'nostr'}</span>
+        </button>
       </div>
 
       <div
@@ -433,6 +459,7 @@ export const FeedsPage: React.FC = () => {
               nostrClient={nostrClient}
               nostrReady={nostrReady}
               paymentError={paymentErrors.get(post.id)}
+              authState={authState}
             />
           ))
         )}
@@ -585,6 +612,7 @@ export const FeedsPage: React.FC = () => {
               nostrClient={nostrClient}
               nostrReady={nostrReady}
               paymentError={paymentErrors.get(post.id)}
+              authState={authState}
             />
           ))
         )}

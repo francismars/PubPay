@@ -24,6 +24,8 @@ interface SendPaymentModalProps {
   nostrClient: any;
   authState: any;
   onPaymentSent: () => void;
+  initialPostId?: string; // Post event ID (hex) to pre-fill
+  initialAmount?: number; // Amount in sats to pre-fill
 }
 
 // Common Lightning Address providers
@@ -46,7 +48,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   nwcClient,
   nostrClient,
   authState,
-  onPaymentSent
+  onPaymentSent,
+  initialPostId,
+  initialAmount
 }) => {
   const navigate = useNavigate();
   const { balance, balanceLoading } = useWalletState();
@@ -106,6 +110,13 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   // Anonymous zap option (only relevant when paymentType === 'zap')
   const [anonymousZap, setAnonymousZap] = useState(false);
 
+  // Automatically set payment type to 'zap' for nostr posts
+  useEffect(() => {
+    if (detectedType === 'nostr-post') {
+      setPaymentType('zap');
+    }
+  }, [detectedType]);
+
   // Force anonymous mode when user is not logged in and payment type is zap or for posts
   useEffect(() => {
     const isNotLoggedIn = !authState?.isLoggedIn || !authState?.publicKey;
@@ -113,6 +124,25 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       setAnonymousZap(true);
     }
   }, [paymentType, detectedType, authState?.isLoggedIn, authState?.publicKey]);
+
+  // Handle initial values when modal opens
+  useEffect(() => {
+    if (isVisible && initialPostId) {
+      // Convert hex event ID to note1 format
+      import('nostr-tools').then(({ nip19 }) => {
+        try {
+          const note1 = nip19.noteEncode(initialPostId);
+          setSendInput(note1);
+          // Detection will happen automatically via the sendInput change handler
+        } catch (error) {
+          console.error('Failed to encode post ID:', error);
+        }
+      });
+    }
+    if (isVisible && initialAmount) {
+      setSendAmount(initialAmount.toString());
+    }
+  }, [isVisible, initialPostId, initialAmount]);
 
   const renderAnonymousToggle = useCallback(
     (disabled: boolean, marginTop: string = '6px') => {

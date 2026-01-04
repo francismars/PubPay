@@ -168,12 +168,19 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
         newestTimestamp
       );
 
+      // Get feedMode from store (storeState is already declared above)
+      const feedMode = storeState.feedMode;
+
       // Build filter based on active feed
       const filter: any = {
         kinds: [1],
-        '#t': ['pubpay'],
         since: subscriptionSince
       };
+
+      // Only include pubpay tag filter if feedMode is 'pubpay'
+      if (feedMode === 'pubpay') {
+        filter['#t'] = ['pubpay'];
+      }
 
       // Update the last subscription 'since' value
       lastSubscriptionSinceRef.current = subscriptionSince;

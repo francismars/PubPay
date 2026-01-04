@@ -81,9 +81,14 @@ export const usePostFetcher = (options: UsePostFetcherOptions) => {
           setIsLoading(true);
         }
 
+        // Get feedMode from store
+        const storeState = usePostStore.getState();
+        const feedMode = storeState.feedMode;
+
         // Build posts params
-        const params: { until?: number; limit?: number; authors?: string[] } = {
-          limit: QUERY_LIMITS.DEFAULT_POSTS
+        const params: { until?: number; limit?: number; authors?: string[]; feedMode?: 'pubpay' | 'nostr' } = {
+          limit: QUERY_LIMITS.DEFAULT_POSTS,
+          feedMode
         };
 
         // Add following filter if needed
@@ -154,7 +159,8 @@ export const usePostFetcher = (options: UsePostFetcherOptions) => {
                 {
                   until: params.until,
                   limit: batchLimit,
-                  authors: authorBatch
+                  authors: authorBatch,
+                  feedMode: params.feedMode
                 }
               );
               batches.push(...events);
@@ -175,7 +181,8 @@ export const usePostFetcher = (options: UsePostFetcherOptions) => {
             {
               until: params.until,
               limit: params.limit,
-              authors: params.authors
+              authors: params.authors,
+              feedMode: params.feedMode
             }
           );
         }

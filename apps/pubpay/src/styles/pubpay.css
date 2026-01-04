@@ -822,14 +822,16 @@ body.dark-mode .brand .logoMe {
 #feedSelector {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   max-width: 560px;
   margin: auto;
+  gap: 8px;
 }
 
 a.feedSelectorLink:visited,
 a.feedSelectorLink {
   border-bottom: 1px solid var(--border-light);
-  width: 33.333%;
+  flex: 1;
   text-align: center;
   padding: 14px;
   text-transform: uppercase;
@@ -842,6 +844,69 @@ a.feedSelectorLink.active {
   border-bottom: 2px solid #4b90ff;
   color: #4b90ff;
   font-weight: 600;
+}
+
+#feedModeToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  color: #888;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+  text-transform: lowercase;
+  letter-spacing: 0.02rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  position: relative;
+}
+
+#feedModeToggle:hover {
+  color: #ccc;
+  border-color: #4b90ff;
+  background: rgba(75, 144, 255, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(75, 144, 255, 0.2);
+}
+
+#feedModeToggle:active {
+  transform: translateY(0);
+}
+
+#feedModeToggle.active {
+  background: #4b90ff;
+  color: #fff;
+  border-color: #4b90ff;
+}
+
+#feedModeToggle.active:hover {
+  background: #3a7fef;
+  box-shadow: 0 2px 6px rgba(75, 144, 255, 0.4);
+}
+
+.feedModeToggleIcon {
+  font-size: 14px;
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+#feedModeToggle:hover .feedModeToggleIcon {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+#feedModeToggle.active .feedModeToggleIcon {
+  opacity: 1;
+}
+
+.feedModeToggleText {
+  user-select: none;
 }
 
 .paynote {
@@ -2801,21 +2866,30 @@ textarea:focus::placeholder {
   position: relative;
 }
 
+.zapSliderContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
 .zapAmountInput {
   position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
   margin-bottom: 0px;
   width: 100%;
+  flex-wrap: nowrap;
 }
 
 .zapAmountField {
-  margin-bottom: 18px;
+  margin-bottom: 4px;
   width: 100%;
   font-size: 30px;
   font-weight: 300;
   text-align: center;
   padding: 8px 12px 8px 12px;
+  padding-right: 80px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background-color: var(--input-bg);
@@ -2842,14 +2916,61 @@ textarea:focus::placeholder {
 
 .zapAmountSuffix {
   position: absolute;
-  right: 16px;
-  bottom: 32px;
-  font-size: 20px;
-  font-weight: 200;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  font-weight: 300;
   color: var(--text-primary);
-  opacity: 0.5;
+  opacity: 0.6;
   pointer-events: none;
+  white-space: nowrap;
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
 }
+
+.zapAmountMinOverlay {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-60%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.zapAmountMaxOverlay {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-60%);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.zapAmountOverlayLabel {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  opacity: 0.5;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.zapAmountOverlayValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  opacity: 0.8;
+}
+
 
 .zapSlider {
   width: 100%;
@@ -2860,6 +2981,7 @@ textarea:focus::placeholder {
   -webkit-appearance: none;
   appearance: none;
   margin-bottom: 10px;
+  margin-top: 0;
 }
 
 .zapSlider::-webkit-slider-thumb {
