@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type { PubPayPost } from '../types/postTypes';
 
 type FeedType = 'global' | 'following';
+type FeedMode = 'pubpay' | 'nostr';
 
 interface PostStore {
   // UI-reactive state
@@ -11,6 +12,7 @@ interface PostStore {
   followingPosts: PubPayPost[];
   replies: PubPayPost[];
   activeFeed: FeedType;
+  feedMode: FeedMode;
   isLoading: boolean;
   isLoadingMore: boolean;
   nostrReady: boolean;
@@ -38,6 +40,7 @@ interface PostStore {
 
   // Actions - Feed
   setActiveFeed: (feed: FeedType) => void;
+  setFeedMode: (mode: FeedMode) => void;
 
   // Actions - Loading
   setIsLoading: (loading: boolean) => void;
@@ -68,6 +71,7 @@ export const usePostStore = create<PostStore>()(
   followingPosts: [],
   replies: [],
   activeFeed: 'global',
+  feedMode: 'pubpay',
   isLoading: false,
   isLoadingMore: false,
   nostrReady: false,
@@ -143,6 +147,7 @@ export const usePostStore = create<PostStore>()(
 
   // Actions - Feed
   setActiveFeed: feed => set({ activeFeed: feed }),
+  setFeedMode: mode => set({ feedMode: mode }),
 
   // Actions - Loading
   setIsLoading: loading => set({ isLoading: loading }),
@@ -210,6 +215,7 @@ type PostStoreData = {
   followingPosts: PubPayPost[];
   replies: PubPayPost[];
   activeFeed: FeedType;
+  feedMode: FeedMode;
   isLoading: boolean;
   isLoadingMore: boolean;
   nostrReady: boolean;
@@ -229,6 +235,7 @@ export const usePostStoreData = (): PostStoreData =>
       followingPosts: state.followingPosts,
       replies: state.replies,
       activeFeed: state.activeFeed,
+      feedMode: state.feedMode,
       isLoading: state.isLoading,
       isLoadingMore: state.isLoadingMore,
       nostrReady: state.nostrReady,
@@ -282,6 +289,7 @@ type PostStoreActions = Pick<
   | 'clearReplies'
   | 'clearAllPosts'
   | 'setActiveFeed'
+  | 'setFeedMode'
   | 'setIsLoading'
   | 'setIsLoadingMore'
   | 'setNostrReady'
@@ -316,6 +324,7 @@ export const usePostActions = (): PostStoreActions =>
       clearReplies: state.clearReplies,
       clearAllPosts: state.clearAllPosts,
       setActiveFeed: state.setActiveFeed,
+      setFeedMode: state.setFeedMode,
       setIsLoading: state.setIsLoading,
       setIsLoadingMore: state.setIsLoadingMore,
       setNostrReady: state.setNostrReady,
