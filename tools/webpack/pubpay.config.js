@@ -151,6 +151,28 @@ module.exports = {
     //for ngrok
     allowedHosts: 'all',
     hot: true,
+    client: {
+      overlay: {
+        errors: true,
+        warnings: false,
+        // Filter out websocket connection errors from webpack-dev-server overlay
+        runtimeErrors: (error) => {
+          // Filter out websocket connection errors - these are dev server issues, not app errors
+          const errorMessage = error?.message || error?.toString() || '';
+          if (
+            errorMessage.includes('websocket error') ||
+            errorMessage.includes('connection timed out') ||
+            errorMessage.includes('WebSocket') ||
+            errorMessage.includes('webpack-dev-server')
+          ) {
+            return false; // Don't show in overlay
+          }
+          return true; // Show other runtime errors
+        }
+      },
+      reconnect: 5, // Auto-reconnect websocket up to 5 times
+      webSocketTransport: 'ws'
+    },
     historyApiFallback: {
       index: '/index.html'
     },

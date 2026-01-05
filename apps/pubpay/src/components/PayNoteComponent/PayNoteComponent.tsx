@@ -502,13 +502,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     };
 
     // Handle anonymous pay from dropdown (opens modal for anonymous payment)
-    const handlePayAnonymously = () => {
-      if (isPayable) {
-        setIsAnonymousModal(true);
-        setShowZapModal(true);
-      }
-    };
-
     // Handle long press start - always opens payment modal
     const handleLongPressStart = () => {
       isLongPressRef.current = false;
@@ -1226,14 +1219,23 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                 onTouchStart={handleLongPressStart}
                 onTouchEnd={handleLongPressEnd}
                 onClick={async () => {
-                  // Don't trigger quick zap if it was a long press
+                  // Small delay to allow long press to complete first
+                  await new Promise(resolve => setTimeout(resolve, 50));
+
+                  // Don't trigger anything if it was a long press
                   if (isLongPressRef.current) {
                     isLongPressRef.current = false;
                     return;
                   }
 
-                  // If no payment amount or restrictions met, open payment modal
-                  if (!hasPaymentAmount || restrictionsMet) {
+                  // If already paid, show toast and do nothing (only on quick click, not long press)
+                  if (restrictionsMet) {
+                    useUIStore.getState().openToast('This post has been fully paid', 'info', false);
+                    return;
+                  }
+
+                  // If no payment amount, open payment modal
+                  if (!hasPaymentAmount) {
                     if (!isLoggedIn) {
                       // Not logged in - open modal for anonymous payment
                       setShowSendPaymentModal(true);
@@ -1291,7 +1293,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       : !isPayable
                         ? 'This post is not payable'
                         : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
-                          ? 'This post has been fully paid'
+                          ? 'This post has been fully paid - Long press to open payment overlay'
                           : 'Click to pay or long press to open payment overlay'
                 }
               >
@@ -1485,24 +1487,6 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   className={`dropdown-content dropdown-element ${showDropdown ? 'show' : ''}`}
                   ref={dropdownRef}
                 >
-                  <a className="cta dropdown-element disabled">
-                    New Pay Forward
-                  </a>
-
-                  {isPayable && (
-                    <a
-                      className={`cta dropdown-element ${!isPayable ? 'disabled' : ''}`}
-                      onClick={e => {
-                        e.preventDefault();
-                        if (isPayable) {
-                          handlePayAnonymously();
-                        }
-                      }}
-                    >
-                      Pay Anonymously
-                    </a>
-                  )}
-
                   <a
                     className="toolTipLink dropdown-element"
                     href="#"
