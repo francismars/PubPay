@@ -94,71 +94,40 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
 
   return (
     <div
+      className="overlayContainer"
       style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'rgba(0, 0, 0, 0.5)',
         display: 'flex',
-        alignItems: 'center',
+        visibility: isVisible ? 'visible' : 'hidden',
+        opacity: isVisible ? 1 : 0,
+        pointerEvents: isVisible ? 'auto' : 'none',
+        alignItems: 'flex-start',
         justifyContent: 'center',
-        zIndex: 10000
+        paddingTop: '5vh',
+        paddingBottom: '5vh',
+        animation: 'none',
+        transition: 'none',
+        overflowY: 'auto'
       }}
       onClick={onClose}
     >
       <div
-        style={{
-          background: 'var(--bg-primary)',
-          borderRadius: '12px',
-          padding: '24px',
-          maxWidth: '500px',
-          width: '90%',
-          maxHeight: '90vh',
-          overflow: 'auto',
-          border: '1px solid var(--border-color)'
-        }}
+        className="overlayInner"
         onClick={(e) => e.stopPropagation()}
+        style={{
+          transform: 'none',
+          animation: 'none',
+          transition: 'none',
+          maxWidth: '500px',
+          width: '100%'
+        }}
       >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '20px'
-          }}
-        >
-          <h2
-            style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: 'var(--text-primary)',
-              margin: 0
-            }}
-          >
-            Receive Payment
-          </h2>
-          <button
-            onClick={onClose}
-            disabled={generatingInvoice}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-secondary)',
-              cursor: generatingInvoice ? 'wait' : 'pointer',
-              fontSize: '24px',
-              padding: '0',
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            ×
-          </button>
+        <div className="brand">
+          PUB<span className="logoPay">PAY</span>
+          <span className="logoMe">.me</span>
         </div>
+        <p className="label" style={{ marginBottom: '24px' }}>
+          Receive Payment
+        </p>
 
         {/* Option Tabs */}
         <div
@@ -432,7 +401,7 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                 }}
               >
                 <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px', marginTop: 0 }}>
-                  To generate BOLT11 invoices, you need to connect a Nostr Wallet Connect (NWC) compatible wallet.
+                  To generate BOLT11 invoices, you need to connect a compatible wallet.
                 </p>
                 <button
                   onClick={() => {
@@ -450,7 +419,7 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                     fontWeight: '500'
                   }}
                 >
-                  Connect NWC
+                  Connect
                 </button>
               </div>
             ) : !receiveInvoice ? (
@@ -644,6 +613,31 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
               </>
             )}
           </div>
+        )}
+
+        {/* Close button - only show when not displaying generated invoice */}
+        {!(receiveOption === 'create-invoice' && receiveInvoice) && (
+          <a
+            href="#"
+            className="label"
+            onClick={e => {
+              e.preventDefault();
+              if (!generatingInvoice) {
+                onClose();
+              }
+            }}
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              marginTop: '24px',
+              pointerEvents: generatingInvoice ? 'none' : 'auto',
+              opacity: generatingInvoice ? 0.5 : 1,
+              textDecoration: 'none',
+              color: 'var(--text-secondary)'
+            }}
+          >
+            close
+          </a>
         )}
       </div>
     </div>

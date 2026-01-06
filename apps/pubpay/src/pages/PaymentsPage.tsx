@@ -680,7 +680,7 @@ const PaymentsPage: React.FC = () => {
                 margin: '4px 0 0 0'
               }}
             >
-              Active: {activeConnection.label}
+              Wallet: {activeConnection.label}
             </p>
           )}
         </div>
@@ -690,7 +690,7 @@ const PaymentsPage: React.FC = () => {
             onClick={() => setShowOptionsModal(true)}
             style={{ fontSize: '14px', padding: '8px 16px' }}
           >
-            Settings
+            Wallet Settings
           </button>
         </div>
       </div>
@@ -790,7 +790,7 @@ const PaymentsPage: React.FC = () => {
                         margin: 0
                       }}
                     >
-                      Connect NWC in Settings to view wallet balance (optional)
+                      Connect wallet in Settings to view balance (optional)
                     </p>
                   </div>
                 ) : balanceLoading ? (
@@ -978,7 +978,7 @@ const PaymentsPage: React.FC = () => {
                     }}
                   >
                     <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                      Connect NWC to view wallet payments
+                      Connect wallet to view payments
                     </p>
                   </div>
                 ) : transactionsLoading ? (
