@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useOutletContext, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@pubpay/shared-services';
 import { PayNoteComponent } from '../components/PayNoteComponent/PayNoteComponent';
+import { NoteSkeleton } from '../components/NoteSkeleton/NoteSkeleton';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import {
   usePostStoreData,
@@ -285,144 +286,12 @@ export const FeedsPage: React.FC = () => {
           // Show dummy posts while loading
           <>
             {/* First dummy post - always show */}
-            <div className="paynote skeleton-loader">
-              <div className="noteProfileImg">
-                <div className="skeleton skeleton-avatar"></div>
-              </div>
-              <div className="noteData">
-                <div className="noteHeader">
-                  <div className="noteAuthor">
-                    <div className="noteDisplayName">
-                      <div className="skeleton skeleton-text short" style={{ display: 'inline-block', width: '120px', height: '16px' }}></div>
-                    </div>
-                    <div className="noteNIP05 label">
-                      <div className="skeleton skeleton-text tiny"  style={{ display: 'inline-block', width: '100px', height: '8px', marginTop: '0' }}></div>
-                    </div>
-                    <div className="noteLNAddress label">
-                      <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '120px', height: '8px', marginTop: '0' }}></div>
-                    </div>
-                  </div>
-                  <div className="noteDate label">
-                    <div className="skeleton skeleton-text tiny"></div>
-                  </div>
-                </div>
-                <div className="noteContent">
-                  <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
-                  <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
-                  <div className="skeleton skeleton-text medium"></div>
-                </div>
-                <div className="noteValues">
-                  <div className="zapMinContainer">
-                    <div className="zapMin">
-                      <div className="skeleton skeleton-value"></div>
-                    </div>
-                    <div className="zapMinLabel">
-                      <div className="skeleton skeleton-text tiny"></div>
-                    </div>
-                  </div>
-                  <div className="zapMaxContainer">
-                    <div className="zapMax">
-                      <div className="skeleton skeleton-value"></div>
-                    </div>
-                    <div className="zapMaxLabel">
-                      <div className="skeleton skeleton-text tiny"></div>
-                    </div>
-                  </div>
-                  <div className="zapUsesContainer">
-                    <div className="zapUses">
-                      <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
-                      <div className="skeleton skeleton-value" style={{ display: 'inline-block', marginLeft: '4px' }}></div>
-                    </div>
-                    <div className="zapUsesLabel">
-                      <div className="skeleton skeleton-text tiny"></div>
-                    </div>
-                  </div>
-                </div>
-                <div className="noteCTA">
-                  <div className="skeleton skeleton-button"></div>
-                </div>
-                <div className="noteActionsReactions">
-                  <div className="noteZaps noteZapReactions"></div>
-                  <div className="noteActions">
-                    <div className="skeleton skeleton-icon"></div>
-                    <div className="skeleton skeleton-icon"></div>
-                    <div className="skeleton skeleton-icon"></div>
-                    <div className="skeleton skeleton-icon"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <NoteSkeleton />
             {/* Close conditional rendering for normal mode dummy posts */}
             {!singleNoteMode && (
               <>
                 {[...Array(5)].map((_, index) => (
-                  <div key={index} className="paynote skeleton-loader">
-                  <div className="noteProfileImg">
-                      <div className="skeleton skeleton-avatar"></div>
-                  </div>
-                  <div className="noteData">
-                    <div className="noteHeader">
-                      <div className="noteAuthor">
-                        <div className="noteDisplayName">
-                        <div className="skeleton skeleton-text short" style={{ display: 'inline-block', width: '120px', height: '16px' }}></div>
-                        </div>
-                        <div className="noteNIP05 label">
-                          <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '100px', height: '8px', marginTop: '0' }}></div>
-                        </div>
-                        <div className="noteLNAddress label">
-                          <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '120px', height: '8px', marginTop: '0' }}></div>
-                    </div>
-                        </div>
-                        <div className="noteDate label">
-                          <div className="skeleton skeleton-text tiny"></div>
-                        </div>
-                      </div>
-                      <div className="noteContent">
-                        <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
-                        <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
-                        <div className="skeleton skeleton-text medium"></div>
-                      </div>
-                    <div className="noteValues">
-                      <div className="zapMinContainer">
-                        <div className="zapMin">
-                            <div className="skeleton skeleton-value"></div>
-                        </div>
-                          <div className="zapMinLabel">
-                            <div className="skeleton skeleton-text tiny"></div>
-                          </div>
-                      </div>
-                      <div className="zapMaxContainer">
-                        <div className="zapMax">
-                            <div className="skeleton skeleton-value"></div>
-                        </div>
-                          <div className="zapMaxLabel">
-                            <div className="skeleton skeleton-text tiny"></div>
-                          </div>
-                      </div>
-                      <div className="zapUsesContainer">
-                        <div className="zapUses">
-                            <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
-                            <div className="skeleton skeleton-value" style={{ display: 'inline-block', marginLeft: '4px' }}></div>
-                        </div>
-                          <div className="zapUsesLabel">
-                            <div className="skeleton skeleton-text tiny"></div>
-                          </div>
-                      </div>
-                    </div>
-                    <div className="noteCTA">
-                        <div className="skeleton skeleton-button"></div>
-                    </div>
-                    <div className="noteActionsReactions">
-                      <div className="noteZaps noteZapReactions"></div>
-                      <div className="noteActions">
-                          <div className="skeleton skeleton-icon"></div>
-                          <div className="skeleton skeleton-icon"></div>
-                          <div className="skeleton skeleton-icon"></div>
-                          <div className="skeleton skeleton-icon"></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <NoteSkeleton key={index} />
                 ))}
               </>
             )}
@@ -524,70 +393,7 @@ export const FeedsPage: React.FC = () => {
           // Show dummy posts while loading following
           <>
             {[...Array(5)].map((_, index) => (
-              <div key={index} className="paynote skeleton-loader">
-              <div className="noteProfileImg">
-                  <div className="skeleton skeleton-avatar"></div>
-              </div>
-              <div className="noteData">
-                <div className="noteHeader">
-                  <div className="noteAuthor">
-                    <div className="noteDisplayName">
-                        <div className="skeleton skeleton-text short"></div>
-                    </div>
-                    <div className="noteNIP05 label">
-                        <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
-                      </div>
-                      <div className="noteLNAddress label">
-                        <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
-                      </div>
-                    </div>
-                    <div className="noteDate label">
-                      <div className="skeleton skeleton-text tiny"></div>
-                    </div>
-                  </div>
-                  <div className="noteContent">
-                    <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
-                    <div className="skeleton skeleton-text long" style={{ marginBottom: '8px' }}></div>
-                    <div className="skeleton skeleton-text medium"></div>
-                </div>
-                <div className="noteValues">
-                  <div className="zapMinContainer">
-                    <div className="zapMin">
-                        <div className="skeleton skeleton-value"></div>
-                      <span className="label">sats</span>
-                    </div>
-                    <div className="zapMinLabel">Min</div>
-                  </div>
-                  <div className="zapMaxContainer">
-                    <div className="zapMax">
-                        <div className="skeleton skeleton-value"></div>
-                      <span className="label">sats</span>
-                    </div>
-                    <div className="zapMaxLabel">Max</div>
-                  </div>
-                  <div className="zapUsesContainer">
-                    <div className="zapUses">
-                        <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
-                      <span className="label">of</span>
-                        <div className="skeleton skeleton-value" style={{ display: 'inline-block' }}></div>
-                    </div>
-                    <div className="zapUsesLabel">Uses</div>
-                  </div>
-                </div>
-                <div className="noteCTA">
-                    <div className="skeleton skeleton-button"></div>
-                </div>
-                <div className="noteActionsReactions">
-                  <div className="noteZaps noteZapReactions"></div>
-                  <div className="noteActions">
-                      <div className="skeleton skeleton-icon"></div>
-                      <div className="skeleton skeleton-icon"></div>
-                      <div className="skeleton skeleton-icon"></div>
-                      <div className="skeleton skeleton-icon"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <NoteSkeleton key={index} />
             ))}
           </>
         ) : followingPosts.length === 0 ? (
