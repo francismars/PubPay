@@ -1701,20 +1701,6 @@ const PublicZapList = React.memo<{
                       Incoming
                     </span>
                   )}
-                  {isSettled && (
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        background: COLORS.SUCCESS_ALT,
-                        color: COLORS.TEXT_WHITE,
-                        borderRadius: '4px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      Paid
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
