@@ -291,13 +291,13 @@ export const FeedsPage: React.FC = () => {
                 <div className="noteHeader">
                   <div className="noteAuthor">
                     <div className="noteDisplayName">
-                      <div className="skeleton skeleton-text short"></div>
+                      <div className="skeleton skeleton-text short" style={{ display: 'inline-block', width: '120px', height: '16px' }}></div>
                     </div>
                     <div className="noteNIP05 label">
-                      <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
+                      <div className="skeleton skeleton-text tiny"  style={{ display: 'inline-block', width: '100px', height: '8px', marginTop: '0' }}></div>
                     </div>
                     <div className="noteLNAddress label">
-                      <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
+                      <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '120px', height: '8px', marginTop: '0' }}></div>
                     </div>
                   </div>
                   <div className="noteDate label">
@@ -362,13 +362,13 @@ export const FeedsPage: React.FC = () => {
                     <div className="noteHeader">
                       <div className="noteAuthor">
                         <div className="noteDisplayName">
-                            <div className="skeleton skeleton-text short"></div>
+                        <div className="skeleton skeleton-text short" style={{ display: 'inline-block', width: '120px', height: '16px' }}></div>
                         </div>
                         <div className="noteNIP05 label">
-                            <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
+                          <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '100px', height: '8px', marginTop: '0' }}></div>
                         </div>
                         <div className="noteLNAddress label">
-                            <div className="skeleton skeleton-text tiny" style={{ marginTop: '8px' }}></div>
+                          <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '120px', height: '8px', marginTop: '0' }}></div>
                     </div>
                         </div>
                         <div className="noteDate label">
