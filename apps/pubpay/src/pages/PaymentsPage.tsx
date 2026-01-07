@@ -701,9 +701,25 @@ const PaymentsPage: React.FC = () => {
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <button
-            className="addButton"
             onClick={() => setShowOptionsModal(true)}
-            style={{ fontSize: '14px', padding: '8px 16px' }}
+            style={{
+              fontSize: '14px',
+              padding: '8px 16px',
+              background: 'transparent',
+              border: '1px solid var(--border-color)',
+              borderRadius: '6px',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              fontWeight: '500',
+              fontFamily: 'Inter, sans-serif',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--bg-primary)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+            }}
           >
             Wallet Settings
           </button>
