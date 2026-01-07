@@ -875,15 +875,17 @@ const PaymentsPage: React.FC = () => {
                   className="cta"
                   onClick={() => setShowSendModal(true)}
                   style={{
-                    padding: '20px',
-                    fontSize: '16px',
+                    padding: '14px 20px',
+                    fontSize: '14px',
                     display: 'flex',
-                    flexDirection: 'column',
+                    flexDirection: 'row',
                     alignItems: 'center',
-                    gap: '8px'
+                    justifyContent: 'center',
+                    gap: '8px',
+                    fontWeight: '500'
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', fontWeight: '300' }}>
                     send
                   </span>
                   Send
@@ -892,15 +894,17 @@ const PaymentsPage: React.FC = () => {
                   className="cta"
                   onClick={() => setShowReceiveModal(true)}
                   style={{
-                    padding: '20px',
-                    fontSize: '16px',
+                    padding: '14px 20px',
+                    fontSize: '14px',
                     display: 'flex',
-                    flexDirection: 'column',
+                    flexDirection: 'row',
                     alignItems: 'center',
-                    gap: '8px'
+                    justifyContent: 'center',
+                    gap: '8px',
+                    fontWeight: '500'
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', fontWeight: '300' }}>
                     call_received
                   </span>
                   Receive
