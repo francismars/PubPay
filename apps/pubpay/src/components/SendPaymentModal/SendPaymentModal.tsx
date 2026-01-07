@@ -152,38 +152,96 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         return null;
       }
 
+      // Get user display name or fallback
+      const getUserName = () => {
+        if (authState?.displayName) {
+          return authState.displayName;
+        }
+        if (authState?.userProfile?.content) {
+          try {
+            const profileData = JSON.parse(authState.userProfile.content);
+            return profileData.display_name || profileData.displayName || profileData.name || 'You';
+          } catch {
+            return 'You';
+          }
+        }
+        return 'You';
+      };
+      const userName = getUserName();
+
       return (
-        <button
-          type="button"
-          onClick={() => setAnonymousZap(!anonymousZap)}
-          disabled={disabled}
+        <div
           style={{
             width: '100%',
             marginTop,
-            padding: '6px 10px',
-            borderRadius: '4px',
-            border: `1px solid ${anonymousZap ? COLORS.PRIMARY : 'var(--border-color)'}`,
-            background: anonymousZap ? `${COLORS.PRIMARY}15` : 'transparent',
-            cursor: disabled ? 'not-allowed' : 'pointer',
-            fontSize: '12px',
-            fontWeight: '500',
-            color: anonymousZap ? COLORS.PRIMARY : 'var(--text-secondary)',
-            transition: 'all 0.2s ease',
-            opacity: disabled ? 0.5 : 1,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px'
+            gap: '8px',
+            padding: '3px',
+            background: 'transparent',
+            borderRadius: '6px',
+            border: '1px solid var(--border-color)',
+            opacity: disabled ? 0.5 : 1,
+            boxSizing: 'border-box'
           }}
         >
-          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
-            {anonymousZap ? 'visibility_off' : 'visibility'}
-          </span>
-          {anonymousZap ? 'Anonymous' : 'Show identity'}
-        </button>
+          <button
+            type="button"
+            onClick={() => setAnonymousZap(false)}
+            disabled={disabled}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: '4px',
+              border: !anonymousZap ? `1.5px solid ${COLORS.PRIMARY}` : '1.5px solid var(--border-color)',
+              background: !anonymousZap ? 'var(--bg-secondary)' : 'transparent',
+              color: !anonymousZap ? COLORS.PRIMARY : 'var(--text-secondary)',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              fontSize: '13px',
+              fontWeight: !anonymousZap ? '500' : '400',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Pay as {userName}
+          </button>
+          <button
+            type="button"
+            onClick={() => setAnonymousZap(true)}
+            disabled={disabled}
+            style={{
+              flex: 1,
+              padding: '8px 12px',
+              borderRadius: '4px',
+              border: anonymousZap ? `1.5px solid ${COLORS.PRIMARY}` : '1.5px solid var(--border-color)',
+              background: anonymousZap ? 'var(--bg-secondary)' : 'transparent',
+              color: anonymousZap ? COLORS.PRIMARY : 'var(--text-secondary)',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+              fontSize: '13px',
+              fontWeight: anonymousZap ? '500' : '400',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              minWidth: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Pay Anonymously
+          </button>
+        </div>
       );
     },
-    [anonymousZap, paymentType, detectedType, authState?.isLoggedIn, authState?.publicKey]
+    [anonymousZap, paymentType, detectedType, authState?.isLoggedIn, authState?.publicKey, authState?.displayName, authState?.userProfile]
   );
 
   const sendInputRef = useRef<HTMLInputElement>(null);
@@ -1104,48 +1162,6 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           PUB<span className="logoPay">PAY</span>
           <span className="logoMe">.me</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexShrink: 0 }}>
-          <p className="label" style={{ margin: 0 }}>
-            Send Payment
-          </p>
-          {nwcClient && (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 16px',
-              background: 'var(--bg-secondary)',
-              border: '2px solid var(--border-color)',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: 'var(--text-primary)'
-            }}>
-              {balanceLoading ? (
-                <>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px', animation: 'spin 1s linear infinite' }}>
-                    hourglass_empty
-                  </span>
-                  <span>Loading...</span>
-                </>
-              ) : balance !== null && balance !== undefined ? (
-                <>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                    account_balance_wallet
-                  </span>
-                  <span>{balance.toLocaleString()} sats</span>
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                    account_balance_wallet
-                  </span>
-                  <span>Balance unavailable</span>
-                </>
-              )}
-            </div>
-          )}
-        </div>
 
         {/* Main Content Area - grows to fill space */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
@@ -1176,79 +1192,6 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   </span>
                 )}
               </label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={async () => {
-                    try {
-                      const text = await navigator.clipboard.readText();
-                      if (text && text.trim()) {
-                        setSendInput(text.trim());
-                        useUIStore.getState().openToast('Pasted from clipboard', 'success', false);
-                        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
-                      }
-                    } catch (error) {
-                      console.error('Failed to read clipboard:', error);
-                      useUIStore.getState().openToast('Failed to read from clipboard', 'error', false);
-                      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
-                    }
-                  }}
-                  disabled={sending || fetchingInvoice}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '6px 12px',
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    color: 'var(--text-primary)',
-                    cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
-                    fontSize: '12px',
-                    transition: 'all 0.2s ease',
-                    opacity: (sending || fetchingInvoice) ? 0.5 : 1
-                  }}
-                  title="Paste from clipboard"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                    content_paste
-                  </span>
-                  Paste
-                </button>
-                {sendInput && (
-                  <button
-                    onClick={() => {
-                      setSendInput('');
-                      setParsedInvoice(null);
-                      setInvoiceError('');
-                      setLnurlError('');
-                      setDetectedType(null);
-                      setDetectedNostrPubkey(null);
-                      setDetectedNostrProfile(null);
-                    }}
-                    disabled={sending || fetchingInvoice}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '6px 12px',
-                      background: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '6px',
-                      color: 'var(--text-primary)',
-                      cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
-                      fontSize: '12px',
-                      transition: 'all 0.2s ease',
-                      opacity: (sending || fetchingInvoice) ? 0.5 : 1
-                    }}
-                    title="Clear"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                      close
-                    </span>
-                    Clear
-                  </button>
-                )}
-              </div>
             </div>
 
             {/* Main Input Field */}
@@ -1476,87 +1419,196 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                         color: previewSuffix ? 'transparent' : 'var(--text-primary)',
                         border: (invoiceError || lnurlError) ? `2px solid ${COLORS.ERROR}` : (detectedType && sendInput.trim()) ? `2px solid ${COLORS.SUCCESS}` : '2px solid var(--border-color)',
                         borderRadius: '6px',
-                        padding: '12px 48px 12px 16px',
+                        padding: sendInput ? '12px 38px 12px 16px' : '12px 70px 12px 16px',
                         width: '100%',
                         fontSize: '14px',
                         boxSizing: 'border-box'
                       }}
                     />
-                    {/* Follows dropdown button */}
-                    {authState?.isLoggedIn && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          const input = sendInputRef.current;
-                          if (!input) return;
+                    {/* Paste, Clear, and User icon buttons */}
+                    <div style={{ 
+                      position: 'absolute', 
+                      right: '8px', 
+                      top: '8px',
+                      height: '30px',
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      gap: '4px'
+                    }}>
+                      {!sendInput && (
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            try {
+                              const text = await navigator.clipboard.readText();
+                              if (text && text.trim()) {
+                                setSendInput(text.trim());
+                                useUIStore.getState().openToast('Pasted from clipboard', 'success', false);
+                                setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+                              }
+                            } catch (error) {
+                              console.error('Failed to read clipboard:', error);
+                              useUIStore.getState().openToast('Failed to read from clipboard', 'error', false);
+                              setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+                            }
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // Prevent input from losing focus
+                          }}
+                          disabled={sending || fetchingInvoice}
+                          tabIndex={-1}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--text-secondary)',
+                            opacity: (sending || fetchingInvoice) ? 0.5 : 1,
+                            transition: 'color 0.2s ease',
+                            outline: 'none'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!sending && !fetchingInvoice) {
+                              e.currentTarget.style.color = COLORS.PRIMARY;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!sending && !fetchingInvoice) {
+                              e.currentTarget.style.color = 'var(--text-secondary)';
+                            }
+                          }}
+                          title="Paste from clipboard"
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '20px', display: 'flex', alignItems: 'center' }}>
+                            content_paste
+                          </span>
+                        </button>
+                      )}
+                      {sendInput && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSendInput('');
+                            setParsedInvoice(null);
+                            setInvoiceError('');
+                            setLnurlError('');
+                            setDetectedType(null);
+                            setDetectedNostrPubkey(null);
+                            setDetectedNostrProfile(null);
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // Prevent input from losing focus
+                          }}
+                          disabled={sending || fetchingInvoice}
+                          tabIndex={-1}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--text-secondary)',
+                            opacity: (sending || fetchingInvoice) ? 0.5 : 1,
+                            transition: 'color 0.2s ease',
+                            outline: 'none'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!sending && !fetchingInvoice) {
+                              e.currentTarget.style.color = COLORS.ERROR;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!sending && !fetchingInvoice) {
+                              e.currentTarget.style.color = 'var(--text-secondary)';
+                            }
+                          }}
+                          title="Clear"
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '20px', display: 'flex', alignItems: 'center' }}>
+                            close
+                          </span>
+                        </button>
+                      )}
+                      {authState?.isLoggedIn && !sendInput && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const input = sendInputRef.current;
+                            if (!input) return;
 
-                          // Insert "@" at cursor position or at the end
-                          const currentValue = input.value;
-                          const caret = input.selectionStart || currentValue.length;
-                          const before = currentValue.slice(0, caret);
-                          const after = currentValue.slice(caret);
+                            // Insert "@" at cursor position or at the end
+                            const currentValue = input.value;
+                            const caret = input.selectionStart || currentValue.length;
+                            const before = currentValue.slice(0, caret);
+                            const after = currentValue.slice(caret);
 
-                          // Only add "@" if there isn't already one at the cursor position
-                          const needsAt = !before.endsWith('@') && (caret === 0 || /\s/.test(before.slice(-1)));
-                          if (needsAt) {
-                            const newValue = `${before}@${after}`;
-                            setSendInput(newValue);
-                            // Focus and position cursor after "@"
-                            setTimeout(() => {
+                            // Only add "@" if there isn't already one at the cursor position
+                            const needsAt = !before.endsWith('@') && (caret === 0 || /\s/.test(before.slice(-1)));
+                            if (needsAt) {
+                              const newValue = `${before}@${after}`;
+                              setSendInput(newValue);
+                              // Focus and position cursor after "@"
+                              setTimeout(() => {
+                                input.focus();
+                                const newPos = `${before}@`.length;
+                                input.setSelectionRange(newPos, newPos);
+                                // Trigger mention detection
+                                detectMention();
+                              }, 0);
+                            } else {
+                              // If "@" already exists, just focus and trigger detection
                               input.focus();
-                              const newPos = `${before}@`.length;
-                              input.setSelectionRange(newPos, newPos);
-                              // Trigger mention detection
                               detectMention();
-                            }, 0);
-                          } else {
-                            // If "@" already exists, just focus and trigger detection
-                            input.focus();
-                            detectMention();
-                          }
-                        }}
-                        onMouseDown={(e) => {
-                          e.preventDefault(); // Prevent input from losing focus
-                        }}
-                        disabled={sending || fetchingInvoice}
-                        tabIndex={-1}
-                        style={{
-                          position: 'absolute',
-                          right: '8px',
-                          top: '-20px',
-                          bottom: '0',
-                          margin: 'auto 0',
-                          background: 'transparent',
-                          border: 'none',
-                          cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
-                          padding: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'var(--text-secondary)',
-                          opacity: (sending || fetchingInvoice) ? 0.5 : 1,
-                          transition: 'color 0.2s ease',
-                          outline: 'none'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!sending && !fetchingInvoice) {
-                            e.currentTarget.style.color = COLORS.PRIMARY;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!sending && !fetchingInvoice) {
-                            e.currentTarget.style.color = 'var(--text-secondary)';
-                          }
-                        }}
-                        title="Select from follows"
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                          people
-                        </span>
-                      </button>
-                    )}
+                            }
+                          }}
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // Prevent input from losing focus
+                          }}
+                          disabled={sending || fetchingInvoice}
+                          tabIndex={-1}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                            padding: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--text-secondary)',
+                            opacity: (sending || fetchingInvoice) ? 0.5 : 1,
+                            transition: 'color 0.2s ease',
+                            outline: 'none'
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!sending && !fetchingInvoice) {
+                              e.currentTarget.style.color = COLORS.PRIMARY;
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!sending && !fetchingInvoice) {
+                              e.currentTarget.style.color = 'var(--text-secondary)';
+                            }
+                          }}
+                          title="Select from follows"
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '20px', display: 'flex', alignItems: 'center' }}>
+                            people
+                          </span>
+                        </button>
+                      )}
+                    </div>
                     {previewSuffix && sendInputRef.current && (
                       <div
                         style={{
@@ -2277,16 +2329,50 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           {/* Amount Field (for Lightning Address, LNURL, Nostr User, and Nostr Post) */}
           {(detectedType === 'lightning-address' || detectedType === 'lnurl' || detectedType === 'nostr-user' || detectedType === 'nostr-post') && (
             <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  marginBottom: '8px',
-                  color: 'var(--text-primary)'
-                }}
-              >
-                Amount (sats) <span style={{ color: COLORS.ERROR }}>*</span>
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    margin: 0,
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  Amount (sats) <span style={{ color: COLORS.ERROR }}>*</span>
+                </label>
+                {nwcClient && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    {balanceLoading ? (
+                      <>
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px', animation: 'spin 1s linear infinite' }}>
+                          hourglass_empty
+                        </span>
+                        <span>Loading...</span>
+                      </>
+                    ) : balance !== null && balance !== undefined ? (
+                      <>
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                          account_balance_wallet
+                        </span>
+                        <span>{balance.toLocaleString()} sats</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                          account_balance_wallet
+                        </span>
+                        <span>Balance unavailable</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
               <input
                 type="number"
                 value={sendAmount}
@@ -2309,6 +2395,53 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   boxSizing: 'border-box'
                 }}
               />
+              {/* Comment Field */}
+              {sendInput.trim() && detectedType && (
+                (detectedType === 'lightning-address' && !lnurlError) ||
+                (detectedType === 'lnurl' && lnurlInfo && !lnurlError) ||
+                (detectedType === 'nostr-user' && detectedNostrProfile) ||
+                (detectedType === 'nostr-post' && detectedPostEvent && !loadingPost)
+              ) && (
+                <div style={{ marginTop: '16px' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      marginBottom: '8px',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
+                    Comment (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={sendDescription}
+                    onChange={e => {
+                      // Limit length for LNURL if commentAllowed is set
+                      if (detectedType === 'lnurl' && lnurlInfo?.commentAllowed) {
+                        if (e.target.value.length <= lnurlInfo.commentAllowed) {
+                          setSendDescription(e.target.value);
+                        }
+                      } else {
+                        setSendDescription(e.target.value);
+                      }
+                    }}
+                    placeholder="Add a comment"
+                    disabled={sending || fetchingInvoice || (detectedType === 'nostr-post' && loadingPost)}
+                    maxLength={detectedType === 'lnurl' && lnurlInfo?.commentAllowed ? lnurlInfo.commentAllowed : undefined}
+                    style={{
+                      backgroundColor: 'var(--input-bg)',
+                      color: 'var(--text-primary)',
+                      border: '2px solid var(--border-color)',
+                      borderRadius: '6px',
+                      padding: '12px 16px',
+                      width: '100%',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
 
@@ -2316,54 +2449,6 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
         {/* Fixed Bottom Section - Description and Buttons */}
         <div style={{ flexShrink: 0, marginTop: 'auto' }}>
-          {/* Description Field - Only show when Send to is filled and valid */}
-          {sendInput.trim() && detectedType && (
-            (detectedType === 'invoice' && parsedInvoice && !invoiceError) ||
-            (detectedType === 'lightning-address' && !lnurlError) ||
-            (detectedType === 'lnurl' && lnurlInfo && !lnurlError) ||
-            (detectedType === 'nostr-user' && detectedNostrProfile) ||
-            (detectedType === 'nostr-post' && detectedPostEvent && !loadingPost)
-          ) ? (
-            <div style={{ marginBottom: '16px' }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  marginBottom: '8px',
-                  color: 'var(--text-primary)'
-                }}
-              >
-                Comment (optional)
-              </label>
-              <input
-                type="text"
-                value={sendDescription}
-                onChange={e => {
-                  // Limit length for LNURL if commentAllowed is set
-                  if (detectedType === 'lnurl' && lnurlInfo?.commentAllowed) {
-                    if (e.target.value.length <= lnurlInfo.commentAllowed) {
-                      setSendDescription(e.target.value);
-                    }
-                  } else {
-                    setSendDescription(e.target.value);
-                  }
-                }}
-                placeholder="Add a comment"
-                disabled={sending || fetchingInvoice || (detectedType === 'nostr-post' && loadingPost)}
-                maxLength={detectedType === 'lnurl' && lnurlInfo?.commentAllowed ? lnurlInfo.commentAllowed : undefined}
-                style={{
-                  backgroundColor: 'var(--input-bg)',
-                  color: 'var(--text-primary)',
-                  border: '2px solid var(--border-color)',
-                  borderRadius: '6px',
-                  padding: '12px 16px',
-                  width: '100%',
-                  fontSize: '14px',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-          ) : null}
 
           <div
             style={{
