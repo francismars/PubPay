@@ -825,7 +825,12 @@ body.dark-mode .brand .logoMe {
   align-items: center;
   max-width: 560px;
   margin: auto;
-  gap: 8px;
+  gap: 18px;
+}
+
+#feedSelectorLinksContainer {
+  width: 100%;
+  display: inline-flex;
 }
 
 a.feedSelectorLink:visited,
@@ -856,20 +861,23 @@ a.feedSelectorLink.active {
   color: #888;
   font-size: 11px;
   font-weight: 600;
-  padding: 6px 10px;
+  padding: 10px 10px;
   cursor: pointer;
   text-transform: lowercase;
+  text-align: center;
   letter-spacing: 0.02rem;
   transition: all 0.2s ease;
   flex-shrink: 0;
   position: relative;
+  box-sizing: border-box;
+  width: 95px;
+  justify-content: center;
 }
 
 #feedModeToggle:hover {
-  color: #ccc;
-  border-color: #4b90ff;
-  background: rgba(75, 144, 255, 0.1);
-  transform: translateY(-1px);
+  color: #6d6d6d;
+  border-color: #7b7b7b;
+  background: rgba(158, 168, 185, 0.1);
   box-shadow: 0 2px 4px rgba(75, 144, 255, 0.2);
 }
 
@@ -878,7 +886,7 @@ a.feedSelectorLink.active {
 }
 
 #feedModeToggle.active {
-  background: #4b90ff;
+  background: #4a75ff;
   color: #fff;
   border-color: #4b90ff;
 }
@@ -907,6 +915,9 @@ a.feedSelectorLink.active {
 
 .feedModeToggleText {
   user-select: none;
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .paynote {

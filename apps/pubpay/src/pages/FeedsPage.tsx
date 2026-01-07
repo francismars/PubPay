@@ -243,22 +243,24 @@ export const FeedsPage: React.FC = () => {
         id="feedSelector"
         style={singleNoteMode ? { display: 'none' } : undefined}
       >
-        <a
-          href="#"
-          id="feedGlobal"
-          className={`feedSelectorLink ${activeFeed === 'global' ? 'active' : ''}`}
-          onClick={() => handleFeedChange('global')}
-        >
-          Global
-        </a>
-        <a
-          href="#"
-          id="feedFollowing"
-          className={`feedSelectorLink ${activeFeed === 'following' ? 'active' : ''}`}
-          onClick={() => handleFeedChange('following')}
-        >
-          Following
-        </a>
+        <div id="feedSelectorLinksContainer">
+          <a
+            href="#"
+            id="feedGlobal"
+            className={`feedSelectorLink ${activeFeed === 'global' ? 'active' : ''}`}
+            onClick={() => handleFeedChange('global')}
+          >
+            Global
+          </a>
+          <a
+            href="#"
+            id="feedFollowing"
+            className={`feedSelectorLink ${activeFeed === 'following' ? 'active' : ''}`}
+            onClick={() => handleFeedChange('following')}
+          >
+            Following
+          </a>
+        </div>
         <button
           id="feedModeToggle"
           className={`feedModeToggle ${feedMode === 'pubpay' ? 'active' : ''}`}
