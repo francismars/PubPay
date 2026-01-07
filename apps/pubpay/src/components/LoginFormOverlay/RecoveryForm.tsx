@@ -58,7 +58,7 @@ export const RecoveryForm: React.FC<RecoveryFormProps> = ({
               padding: '12px 16px',
               border: '2px solid var(--border-color)',
               borderRadius: '6px',
-              fontSize: '14px',
+              fontSize: '16px',
               backgroundColor: 'var(--input-bg)',
               color: 'var(--text-primary)',
               boxSizing: 'border-box',
@@ -81,7 +81,7 @@ export const RecoveryForm: React.FC<RecoveryFormProps> = ({
             borderRadius: '6px',
             padding: '12px 16px',
             width: '100%',
-            fontSize: '14px',
+            fontSize: '16px',
             boxSizing: 'border-box',
             marginBottom: '12px'
           }}

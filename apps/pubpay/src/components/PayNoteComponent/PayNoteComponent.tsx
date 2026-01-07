@@ -758,7 +758,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       >
         <div className="noteProfileImg">
           {isProfileLoading ? (
-            <div className="skeleton skeleton-avatar" style={{ width: '48px', height: '48px', borderRadius: '50%' }}></div>
+            <div className="skeleton skeleton-avatar"></div>
           ) : (
           <Link to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}>
             <img className="userImg" src={profilePicture} alt="Profile" />
@@ -784,7 +784,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               {/* NIP-05 Verification */}
               <div className="noteNIP05 label">
                 {isProfileLoading ? (
-                  <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '100px', height: '12px', marginTop: '8px' }}></div>
+                  <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '100px', height: '8px', marginTop: '4px' }}></div>
                 ) : nip05 ? (
                   post.nip05Valid === false ? (
                     // Invalid NIP-05 - still clickable
@@ -835,7 +835,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               {/* Lightning Address */}
               <div className="noteLNAddress label">
                 {isProfileLoading ? (
-                  <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '120px', height: '12px', marginTop: '8px' }}></div>
+                  <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '120px', height: '8px', marginTop: '4px' }}></div>
                 ) : lud16 ? (
                   post.lightningValid === false ? (
                     // Invalid lightning address - still clickable

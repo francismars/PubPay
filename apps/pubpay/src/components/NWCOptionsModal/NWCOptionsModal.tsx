@@ -245,6 +245,16 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
     window.dispatchEvent(new CustomEvent('nwcActiveConnectionChanged', { detail: { connectionId: id } }));
   };
 
+  const handleDeactivate = () => {
+    setActiveNWCConnection(null);
+    setActiveId(null);
+    useUIStore.getState().openToast('Connection deactivated', 'success', false);
+    setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+    
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new CustomEvent('nwcActiveConnectionChanged', { detail: { connectionId: null } }));
+  };
+
   const handleCancelEdit = () => {
     setEditingId(null);
     setNewLabel('');
@@ -654,7 +664,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                     border: '1px solid var(--border-color)',
                     borderRadius: '8px',
                     marginBottom: '12px',
-                    background: activeId === conn.id ? 'var(--bg-secondary)' : 'transparent',
+                    background: 'transparent',
                     borderColor: activeId === conn.id ? COLORS.PRIMARY : 'var(--border-color)'
                   }}
                 >
@@ -663,31 +673,156 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'flex-start',
-                      marginBottom: '8px'
+                      gap: '16px'
                     }}
                   >
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
-                          fontSize: '16px',
-                          fontWeight: '600',
-                          color: 'var(--text-primary)',
-                          marginBottom: '4px'
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '12px',
+                          paddingBottom: '8px',
+                          gap: '12px'
                         }}
                       >
-                        {conn.label}
-                        {activeId === conn.id && (
-                          <span
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
                             style={{
-                              marginLeft: '8px',
-                              fontSize: '12px',
-                              color: COLORS.PRIMARY,
-                              fontWeight: 'normal'
+                              fontSize: '16px',
+                              fontWeight: '600',
+                              color: 'var(--text-primary)'
                             }}
                           >
-                            (Active)
-                          </span>
-                        )}
+                            {conn.label}
+                            {activeId === conn.id && (
+                              <span
+                                style={{
+                                  marginLeft: '8px',
+                                  fontSize: '12px',
+                                  color: COLORS.PRIMARY,
+                                  fontWeight: '600'
+                                }}
+                              >
+                                (Active)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                          {activeId !== conn.id ? (
+                            <button
+                              onClick={() => handleSetActive(conn.id)}
+                              style={{
+                                fontSize: '12px',
+                                padding: '6px 12px',
+                                whiteSpace: 'nowrap',
+                                background: COLORS.PRIMARY,
+                                color: COLORS.TEXT_WHITE,
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontWeight: '500',
+                                fontFamily: 'Inter, sans-serif',
+                                transition: 'all 0.2s ease',
+                                height: '28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = COLORS.PRIMARY_HOVER;
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = COLORS.PRIMARY;
+                              }}
+                            >
+                              Set Active
+                            </button>
+                          ) : (
+                            <button
+                              onClick={handleDeactivate}
+                              style={{
+                                fontSize: '12px',
+                                padding: '6px 12px',
+                                whiteSpace: 'nowrap',
+                                background: 'transparent',
+                                color: 'var(--text-secondary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontWeight: '500',
+                                fontFamily: 'Inter, sans-serif',
+                                transition: 'all 0.2s ease',
+                                height: '28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = 'var(--bg-primary)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = 'transparent';
+                              }}
+                            >
+                              Deactivate
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleEditConnection(conn.id)}
+                            style={{
+                              fontSize: '12px',
+                              padding: '6px 12px',
+                              background: 'transparent',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              color: 'var(--text-primary)',
+                              height: '28px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = 'var(--bg-primary)';
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = 'transparent';
+                            }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteConnection(conn.id)}
+                            style={{
+                              fontSize: '12px',
+                              padding: '6px 12px',
+                              background: 'transparent',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              color: COLORS.ERROR,
+                              whiteSpace: 'nowrap',
+                              height: '28px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = 'var(--bg-primary)';
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = 'transparent';
+                            }}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                       <div
                         style={{
@@ -711,44 +846,6 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                           Methods: {conn.capabilities.methods.join(', ')}
                         </div>
                       )}
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
-                      {activeId !== conn.id && (
-                        <button
-                          className="addButton"
-                          onClick={() => handleSetActive(conn.id)}
-                          style={{ fontSize: '12px', padding: '6px 12px' }}
-                        >
-                          Set Active
-                        </button>
-                      )}
-                      <button
-                        className="label"
-                        onClick={() => handleEditConnection(conn.id)}
-                        style={{
-                          fontSize: '12px',
-                          padding: '6px 12px',
-                          background: 'transparent',
-                          border: '1px solid var(--border-color)',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="label"
-                        onClick={() => handleDeleteConnection(conn.id)}
-                        style={{
-                          fontSize: '12px',
-                          padding: '6px 12px',
-                          background: 'transparent',
-                          border: '1px solid var(--border-color)',
-                          cursor: 'pointer',
-                          color: COLORS.ERROR
-                        }}
-                      >
-                        Delete
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -1074,11 +1171,18 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
           </h3>
           <div className="settingsRow" style={{ marginTop: '16px' }}>
             <div className="settingsRowContent">
-              <p className="featureDescription">
-                Auto-pay with NWC (skip invoice overlay)
+              <p
+                style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--text-primary)',
+                  margin: 0,
+                  marginBottom: '4px'
+                }}
+              >
+                Auto-pay with NWC
               </p>
               <p
-                className="featureDescription"
                 style={{
                   fontSize: '11px',
                   color: COLORS.BG_DISABLED,
@@ -1086,9 +1190,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                   marginBottom: 0
                 }}
               >
-                When enabled, payments automatically use the active NWC connection. When disabled,
-                the invoice overlay will show with a "Pay with NWC" button
-                and other payment options.
+                Skip the invoice overlay and pay directly with the active NWC connection.
               </p>
             </div>
             <label className="toggleSwitch">
@@ -1102,7 +1204,14 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
           </div>
           <div className="settingsRow" style={{ marginTop: '16px' }}>
             <div className="settingsRowContent">
-              <p className="featureDescription">
+              <p
+                style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'var(--text-primary)',
+                  margin: 0
+                }}
+              >
                 Clear NWC connections on logout
               </p>
             </div>
