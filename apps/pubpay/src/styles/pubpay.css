@@ -5479,6 +5479,7 @@ body.dark-mode .relayItemBody {
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
+  font-family: 'Inter', sans-serif;
   transition: all 0.2s;
   height: 42px;
 }
