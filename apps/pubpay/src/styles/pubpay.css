@@ -5322,8 +5322,21 @@ body.dark-mode .relayItemCard:hover {
   font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
   font-size: 13px;
   color: var(--text-primary);
-  word-break: break-all;
   line-height: 1.4;
+}
+
+/* Ensure the status indicator doesn't shrink */
+.relayUrl .relayStatusIndicator {
+  flex-shrink: 0;
+}
+
+/* Truncate long URLs with ellipsis */
+.relayUrlText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
 }
 
 .relayControls {
@@ -5346,13 +5359,15 @@ body.dark-mode .relayItemBody {
 
 .relayToggleLabel {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 0px;
   cursor: pointer;
   user-select: none;
   padding: 4px 8px;
   border-radius: 6px;
   transition: background-color 0.2s ease;
+  text-align: center;
 }
 
 .relayToggleLabel .toggleSwitch {
@@ -5366,6 +5381,7 @@ body.dark-mode .relayItemBody {
   color: var(--text-secondary);
   white-space: nowrap;
   transition: color 0.2s ease;
+  margin-left: 4px;
 }
 
 .relayToggleLabel:hover .relayToggleText {
@@ -5380,7 +5396,7 @@ body.dark-mode .relayItemBody {
 }
 
 /* Mobile responsive styles for relay header */
-@media screen and (max-width: 630px) {
+@media screen and (max-width: 768px) {
   .relayItemHeader {
     flex-direction: column;
     align-items: stretch;
@@ -5405,7 +5421,10 @@ body.dark-mode .relayItemBody {
 
   .relayToggleLabel {
     flex: 1;
+    flex-direction: row;
     justify-content: center;
+    align-items: center;
+    gap: 8px;
     padding: 12px 16px;
     border-radius: 8px;
     box-shadow: none !important;
