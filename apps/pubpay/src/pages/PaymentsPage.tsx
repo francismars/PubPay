@@ -31,6 +31,27 @@ interface PublicZap {
   preimage: string | null;
 }
 
+// Format timestamp display - shared utility function
+const formatTimestamp = (timestamp?: number): string => {
+  if (!timestamp) return '—';
+  const date = new Date(timestamp * TIME.MILLISECONDS_PER_SECOND);
+  
+  // Format: "Jan 3, 2009 – 06:23pm"
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const month = months[date.getMonth()];
+  const day = date.getDate();
+  const year = date.getFullYear();
+  
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'pm' : 'am';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // the hour '0' should be '12'
+  const minutesStr = minutes < 10 ? `0${minutes}` : minutes;
+  
+  return `${month} ${day}, ${year} – ${hours}:${minutesStr}${ampm}`;
+};
+
 const PaymentsPage: React.FC = () => {
   const navigate = useNavigate();
   // Get auth state and nostr client from outlet context
@@ -612,13 +633,6 @@ const PaymentsPage: React.FC = () => {
     return sats.toLocaleString();
   };
 
-  // Format timestamp
-  const formatTimestamp = (timestamp?: number): string => {
-    if (!timestamp) return '—';
-    const date = new Date(timestamp * TIME.MILLISECONDS_PER_SECOND);
-    return date.toLocaleString();
-  };
-
   // Check if invoice is expired
   const isInvoiceExpired = (invoice: Invoice): boolean => {
     // Use state field from list_transactions if available
@@ -1108,10 +1122,9 @@ const PaymentsPage: React.FC = () => {
                             {tx.metadata?.zap_request?.content && (
                               <div
                                 style={{
-                                  fontSize: '12px',
+                                  fontSize: '18px',
                                   color: 'var(--text-primary)',
-                                  marginTop: '4px',
-                                  fontStyle: 'italic'
+                                  marginTop: '4px'
                                 }}
                               >
                                 "{tx.metadata.zap_request.content}"
@@ -1524,11 +1537,6 @@ const PublicZapList = React.memo<{
   navigate: (path: string) => void;
   onLoadMore: () => void;
 }>(({ zaps, visibleCount, getProfileData, navigate, onLoadMore }) => {
-  const formatTimestamp = (timestamp?: number): string => {
-    if (!timestamp) return '—';
-    const date = new Date(timestamp * TIME.MILLISECONDS_PER_SECOND);
-    return date.toLocaleString();
-  };
 
   const visibleZaps = useMemo(() => zaps.slice(0, visibleCount), [zaps, visibleCount]);
 
@@ -1614,12 +1622,9 @@ const PublicZapList = React.memo<{
                 {zap.content && (
                   <div
                     style={{
-                      fontSize: '12px',
+                      fontSize: '18px',
                       color: 'var(--text-primary)',
                       marginTop: '6px',
-                      fontStyle: 'italic',
-                      padding: '8px',
-                      background: 'var(--bg-primary)',
                       borderRadius: '6px'
                     }}
                   >
