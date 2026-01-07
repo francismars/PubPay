@@ -912,50 +912,43 @@ const PaymentsPage: React.FC = () => {
           {/* View Toggle */}
           <section style={{ marginBottom: '24px' }}>
             <div
+              id="paymentViewSelector"
               style={{
                 display: 'flex',
-                gap: '8px',
-                marginBottom: '16px',
-                background: 'var(--bg-secondary)',
-                padding: '4px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)'
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                maxWidth: '560px',
+                margin: '0 auto 16px auto',
+                gap: '18px'
               }}
             >
-              <button
-                onClick={() => setPaymentView('public')}
+              <div
                 style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: paymentView === 'public' ? COLORS.PRIMARY : 'transparent',
-                  color: paymentView === 'public' ? COLORS.TEXT_WHITE : 'var(--text-secondary)',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
+                  width: '100%',
+                  display: 'inline-flex'
                 }}
               >
-                Public Payments
-              </button>
-              <button
-                onClick={() => setPaymentView('wallet')}
-                style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: paymentView === 'wallet' ? COLORS.PRIMARY : 'transparent',
-                  color: paymentView === 'wallet' ? COLORS.TEXT_WHITE : 'var(--text-secondary)',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Wallet Payments
-              </button>
+                <a
+                  href="#"
+                  className={`feedSelectorLink ${paymentView === 'public' ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPaymentView('public');
+                  }}
+                >
+                  Public Payments
+                </a>
+                <a
+                  href="#"
+                  className={`feedSelectorLink ${paymentView === 'wallet' ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setPaymentView('wallet');
+                  }}
+                >
+                  Wallet Payments
+                </a>
+              </div>
             </div>
           </section>
 
