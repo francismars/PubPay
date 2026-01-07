@@ -112,14 +112,14 @@ body.dark-mode .skeleton {
   width: 100%;
 }
 
-.paynote.skeleton-loader .skeleton-text.tiny {
+.paynote .skeleton-text.tiny {
   width: 40%;
   height: 12px;
 }
 
-.paynote.skeleton-loader .skeleton-avatar {
-  width: 48px;
-  height: 48px;
+.paynote .skeleton-avatar {
+  width: 45px;
+  height: 45px;
   border-radius: 50%;
 }
 
