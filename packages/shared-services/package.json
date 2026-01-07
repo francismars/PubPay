@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@pubpay/shared-types": "workspace:*",
+    "@pubpay/shared-utils": "workspace:*",
     "@tanstack/react-query": "^5.90.5",
     "bech32": "^2.0.0",
     "bolt11": "^1.4.1",

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { DEFAULT_STYLES } from '../constants/styles';
 
 export interface StyleConfig {
   textColor?: string;
@@ -27,34 +28,6 @@ export interface StyleConfig {
   selectedCurrency?: string;
   partnerLogo?: string;
 }
-
-const DEFAULT_STYLES: Required<StyleConfig> = {
-  textColor: '#000000',
-  bgColor: '#ffffff',
-  bgImage: '',
-  opacity: 1.0,
-  textOpacity: 1.0,
-  qrInvert: false,
-  qrScreenBlend: false,
-  qrMultiplyBlend: false,
-  qrShowWebLink: false,
-  qrShowNevent: true,
-  qrShowNote: false,
-  layoutInvert: false,
-  hideZapperContent: false,
-  showTopZappers: false,
-  podium: false,
-  zapGrid: false,
-  sectionLabels: false,
-  qrOnly: false,
-  showFiat: false,
-  showHistoricalPrice: false,
-  showHistoricalChange: false,
-  fiatOnly: false,
-  lightning: false,
-  selectedCurrency: 'USD',
-  partnerLogo: ''
-};
 
 interface StyleEditorProps {
   initialStyles?: StyleConfig;
