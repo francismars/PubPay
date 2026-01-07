@@ -13,6 +13,7 @@ import { validatePaymentAmount } from '../utils/validation';
 import { extractZapAmount, extractZapPayerPubkey, extractZapContent } from '@pubpay/shared-services';
 import { sanitizeImageUrl } from '../utils/profileUtils';
 import { genericUserIcon } from '../assets/images';
+import { TransactionCard } from '../components/TransactionCard/TransactionCard';
 
 type PaymentView = 'wallet' | 'public';
 
@@ -32,7 +33,7 @@ interface PublicZap {
 }
 
 // Format timestamp display - shared utility function
-const formatTimestamp = (timestamp?: number): string => {
+export const formatTimestamp = (timestamp?: number): string => {
   if (!timestamp) return '—';
   const date = new Date(timestamp * TIME.MILLISECONDS_PER_SECOND);
   
@@ -1089,200 +1090,16 @@ const PaymentsPage: React.FC = () => {
                 ) : (
                   <div style={{ marginTop: '16px' }}>
                     {transactions.slice(0, visibleTransactionsCount).map((tx, idx) => (
-                      <div
+                      <TransactionCard
                         key={idx}
-                        style={{
-                          padding: '16px',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '8px',
-                          marginBottom: '12px',
-                          background: 'var(--bg-secondary)'
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            marginBottom: '8px'
-                          }}
-                        >
-                          <div>
-                            <div
-                              style={{
-                                fontSize: '14px',
-                                fontWeight: '600',
-                                color: 'var(--text-primary)'
-                              }}
-                            >
-                              {tx.amount
-                                ? `${(tx.amount / LIGHTNING.MILLISATS_PER_SAT).toLocaleString()} sats`
-                                : 'Amount not specified'}
-                            </div>
-                            {tx.metadata?.zap_request?.content && (
-                              <div
-                                style={{
-                                  fontSize: '18px',
-                                  color: 'var(--text-primary)',
-                                  marginTop: '4px'
-                                }}
-                              >
-                                "{tx.metadata.zap_request.content}"
-                              </div>
-                            )}
-                            {tx.description && (
-                              <div
-                                style={{
-                                  fontSize: '12px',
-                                  color: 'var(--text-secondary)',
-                                  marginTop: '4px'
-                                }}
-                              >
-                                {tx.description}
-                              </div>
-                            )}
-                            {tx.fees_paid !== undefined && tx.fees_paid > 0 && (
-                              <div
-                                style={{
-                                  fontSize: '11px',
-                                  color: 'var(--text-tertiary)',
-                                  marginTop: '4px'
-                                }}
-                              >
-                                Fees: {(tx.fees_paid / LIGHTNING.MILLISATS_PER_SAT).toLocaleString()} sats
-                              </div>
-                            )}
-                          </div>
-                          <div
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'flex-end',
-                              gap: '4px'
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: 'flex',
-                                gap: '4px',
-                                flexWrap: 'wrap',
-                                justifyContent: 'flex-end'
-                              }}
-                            >
-                              {tx.metadata?.zap_request && (() => {
-                                const eTag = tx.metadata.zap_request.tags?.find((t: string[]) => t[0] === 'e');
-                                const noteId = eTag?.[1];
-                                return (
-                                  <span
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (noteId) {
-                                        try {
-                                          const nevent = nip19.noteEncode(noteId);
-                                          navigate(`/note/${nevent}`);
-                                        } catch (err) {
-                                          console.error('Failed to encode note ID:', err);
-                                        }
-                                      }
-                                    }}
-                                    style={{
-                                      fontSize: '10px',
-                                      padding: '2px 6px',
-                                      background: COLORS.PRIMARY,
-                                      color: COLORS.TEXT_WHITE,
-                                      borderRadius: '4px',
-                                      fontWeight: '500',
-                                      cursor: noteId ? 'pointer' : 'default',
-                                      transition: 'opacity 0.2s ease'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      if (noteId) {
-                                        e.currentTarget.style.opacity = '0.8';
-                                      }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      if (noteId) {
-                                        e.currentTarget.style.opacity = '1';
-                                      }
-                                    }}
-                                  >
-                                    Public
-                                  </span>
-                                );
-                              })()}
-                              {tx.type === 'outgoing' && (
-                                <span
-                                  style={{
-                                    fontSize: '10px',
-                                    padding: '2px 6px',
-                                    background: 'var(--bg-primary)',
-                                    color: 'var(--text-secondary)',
-                                    borderRadius: '4px',
-                                    fontWeight: '500'
-                                  }}
-                                >
-                                  Outgoing
-                                </span>
-                              )}
-                              {tx.type === 'incoming' && (
-                                <span
-                                  style={{
-                                    fontSize: '10px',
-                                    padding: '2px 6px',
-                                    background: 'var(--bg-primary)',
-                                    color: 'var(--text-secondary)',
-                                    borderRadius: '4px',
-                                    fontWeight: '500'
-                                  }}
-                                >
-                                  Incoming
-                                </span>
-                              )}
-                            </div>
-                            {(() => {
-                              const isSettled = tx.paid_at !== undefined || tx.state === 'settled' || isInvoicePaid(tx);
-                              const isExpired = tx.state === 'expired' || isInvoiceExpired(tx);
-                              const isFailed = tx.state === 'failed';
-                              const isPending = !isSettled && !isExpired && !isFailed;
-
-                              if (isSettled) {
-                                return null;
-                              }
-
-                              return (
-                                <div
-                                  style={{
-                                    fontSize: '12px',
-                                    color: 'var(--text-tertiary)',
-                                    textAlign: 'right'
-                                  }}
-                                >
-                                  {isExpired ? (
-                                    <span style={{ color: COLORS.ERROR }}>Expired</span>
-                                  ) : isFailed ? (
-                                    <span style={{ color: COLORS.ERROR }}>Failed</span>
-                                  ) : isPending ? (
-                                    <span style={{ color: COLORS.PENDING }}>Pending</span>
-                                  ) : null}
-                                </div>
-                              );
-                            })()}
-                          </div>
-                        </div>
-                        <div
-                          style={{
-                            fontSize: '11px',
-                            color: 'var(--text-tertiary)',
-                            marginTop: '8px'
-                          }}
-                        >
-                          {tx.paid_at
-                            ? `Paid: ${formatTimestamp(tx.paid_at)}`
-                            : tx.created_at
-                              ? `Created: ${formatTimestamp(tx.created_at)}`
-                              : ''}
-                        </div>
-                      </div>
+                        amount={tx.amount || 0}
+                        type={tx.type || 'incoming'}
+                        created_at={tx.created_at}
+                        paid_at={tx.paid_at}
+                        transaction={tx}
+                        isInvoiceExpired={isInvoiceExpired}
+                        isInvoicePaid={isInvoicePaid}
+                      />
                     ))}
                     {transactions.length > visibleTransactionsCount && (
                       <button
@@ -1542,185 +1359,16 @@ const PublicZapList = React.memo<{
 
   return (
     <div style={{ marginTop: '16px' }}>
-      {visibleZaps.map((zap) => {
-        const payerData = getProfileData(zap.payerProfile);
-        const recipientData = getProfileData(zap.recipientProfile);
-        const isSettled = !!zap.preimage;
-
-        return (
-          <div
-            key={zap.id}
-            style={{
-              padding: '16px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              marginBottom: '12px',
-              background: 'var(--bg-secondary)'
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: '8px'
-              }}
-            >
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: 'var(--text-primary)',
-                    marginBottom: '4px'
-                  }}
-                >
-                  {zap.amount.toLocaleString()} sats
-                </div>
-                <div
-                  style={{
-                    fontSize: '12px',
-                    color: 'var(--text-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginTop: '4px'
-                  }}
-                >
-                  {zap.type === 'outgoing' ? (
-                    <>
-                      <span>To:</span>
-                      <img
-                        src={recipientData.picture}
-                        alt={recipientData.name}
-                        style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          objectFit: 'cover'
-                        }}
-                      />
-                      <span>{recipientData.name}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>From:</span>
-                      <img
-                        src={payerData.picture}
-                        alt={payerData.name}
-                        style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          objectFit: 'cover'
-                        }}
-                      />
-                      <span>{payerData.name}</span>
-                    </>
-                  )}
-                </div>
-                {zap.content && (
-                  <div
-                    style={{
-                      fontSize: '18px',
-                      color: 'var(--text-primary)',
-                      marginTop: '6px',
-                      borderRadius: '6px'
-                    }}
-                  >
-                    "{zap.content}"
-                  </div>
-                )}
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-end',
-                  gap: '4px'
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    gap: '4px',
-                    flexWrap: 'wrap',
-                    justifyContent: 'flex-end'
-                  }}
-                >
-                  {zap.eventId && (
-                    <span
-                      onClick={() => {
-                        try {
-                          const nevent = nip19.noteEncode(zap.eventId!);
-                          navigate(`/note/${nevent}`);
-                        } catch (err) {
-                          console.error('Failed to encode note ID:', err);
-                        }
-                      }}
-                      style={{
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        background: COLORS.PRIMARY,
-                        color: COLORS.TEXT_WHITE,
-                        borderRadius: '4px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        transition: 'opacity 0.2s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.opacity = '0.8';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.opacity = '1';
-                      }}
-                    >
-                      View
-                    </span>
-                  )}
-                  {zap.type === 'outgoing' && (
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        background: 'var(--bg-primary)',
-                        color: 'var(--text-secondary)',
-                        borderRadius: '4px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      Outgoing
-                    </span>
-                  )}
-                  {zap.type === 'incoming' && (
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        background: 'var(--bg-primary)',
-                        color: 'var(--text-secondary)',
-                        borderRadius: '4px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      Incoming
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div
-              style={{
-                fontSize: '11px',
-                color: 'var(--text-tertiary)',
-                marginTop: '8px'
-              }}
-            >
-              {formatTimestamp(zap.created_at)}
-            </div>
-          </div>
-        );
-      })}
+      {visibleZaps.map((zap) => (
+        <TransactionCard
+          key={zap.id}
+          amount={zap.amount}
+          type={zap.type}
+          created_at={zap.created_at}
+          zap={zap}
+          getProfileData={getProfileData}
+        />
+      ))}
       {zaps.length > visibleCount && (
         <button
           onClick={onLoadMore}
