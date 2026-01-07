@@ -410,7 +410,14 @@ const SettingsPage: React.FC = () => {
               <h3 className="featureTitle">Dark Mode</h3>
               <div className="settingsRow">
                 <div className="settingsRowContent">
-                  <p className="featureDescription">
+                  <p
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: 'var(--text-primary)',
+                      margin: 0
+                    }}
+                  >
                     Switch between light and dark theme
                   </p>
                 </div>
@@ -463,7 +470,7 @@ const SettingsPage: React.FC = () => {
                               backgroundColor: statusColor
                             }}
                           />
-                          {relay.url}
+                          <span className="relayUrlText">{relay.url}</span>
                         </span>
                         <div className="relayControls" onClick={e => e.stopPropagation()}>
                           <label className="relayToggleLabel">

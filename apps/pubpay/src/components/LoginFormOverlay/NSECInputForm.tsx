@@ -61,7 +61,7 @@ export const NSECInputForm: React.FC<NSECInputFormProps> = ({
             borderRadius: '6px',
             padding: '12px 16px',
             width: '100%',
-            fontSize: '14px',
+            fontSize: '16px',
             boxSizing: 'border-box',
             marginBottom: '12px',
             fontFamily: 'monospace'
@@ -82,7 +82,7 @@ export const NSECInputForm: React.FC<NSECInputFormProps> = ({
             borderRadius: '6px',
             padding: '12px 16px',
             width: '100%',
-            fontSize: '14px',
+            fontSize: '16px',
             boxSizing: 'border-box',
             marginBottom: '12px'
           }}
