@@ -130,7 +130,7 @@ export const PasswordPromptOverlay: React.FC<PasswordPromptOverlayProps> = ({
               borderRadius: '6px',
               padding: '12px 16px',
               width: '100%',
-              fontSize: '14px',
+              fontSize: '16px',
               boxSizing: 'border-box',
               marginBottom: '16px'
             }}
