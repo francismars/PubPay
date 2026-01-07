@@ -695,7 +695,7 @@ const PaymentsPage: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '24px' }}>
+      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0px' }}>
         <div style={{ width: '100%' }}>
           {/* Balance Card - Always show */}
           <section style={{ marginBottom: '24px' }}>
