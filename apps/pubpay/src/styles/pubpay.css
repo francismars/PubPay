@@ -5146,6 +5146,43 @@ body.dark-mode .useCaseCode {
   left: 26px;
 }
 
+/* iOS Safari specific fix for toggle circle alignment */
+@supports (-webkit-touch-callout: none) {
+  .toggleSwitch {
+    height: 24px;
+    min-height: 24px;
+    position: relative;
+  }
+  
+  .toggleSwitch input {
+    height: 24px;
+    min-height: 24px;
+    position: relative;
+    display: block;
+  }
+  
+  .toggleSwitch .toggleCircle {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    transform: none;
+    -webkit-transform: none;
+    transition: left 0.2s ease;
+    -webkit-transition: left 0.2s ease;
+  }
+  
+  .toggleSwitch input:checked + .toggleCircle {
+    left: 25px;
+    transform: none;
+    -webkit-transform: none;
+  }
+}
+
 .comingSoonText {
   margin-top: 16px;
   font-size: 13px;
