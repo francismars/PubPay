@@ -463,7 +463,7 @@ const SettingsPage: React.FC = () => {
                               backgroundColor: statusColor
                             }}
                           />
-                          {relay.url}
+                          <span className="relayUrlText">{relay.url}</span>
                         </span>
                         <div className="relayControls" onClick={e => e.stopPropagation()}>
                           <label className="relayToggleLabel">
