@@ -1,12 +1,10 @@
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
-import { NostrClient, ensureZaps, ensureProfiles, getQueryClient, DEFAULT_READ_RELAYS } from '@pubpay/shared-services';
+import { NostrClient, ensureZaps, ensureProfiles, getQueryClient, DEFAULT_READ_RELAYS, extractZapAmount, extractZapPayerPubkey, extractZapContent } from '@pubpay/shared-services';
 import { Kind1Event, Kind9735Event, Kind0Event } from '@pubpay/shared-types';
-import { parseZapDescription } from '@pubpay/shared-utils';
 import { getApiBase } from '../utils/apiBase';
 import { sanitizeImageUrl } from '../utils/sanitization';
-const bolt11 = require('bolt11') as any;
 
 interface LiveRef {
   ref: string;
@@ -169,46 +167,12 @@ export const MultiStatsPage: React.FC = () => {
     const zapDetails: ZapDetail[] = [];
 
     zapEvents.forEach(zap => {
-      const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
-      let zapPayerPubkey = zap.pubkey;
-      let zapMessage = '';
-
-      if (descriptionTag) {
-        try {
-          const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
-          if (zapData.pubkey) {
-            zapPayerPubkey = zapData.pubkey;
-          }
-          if (zapData.content && typeof zapData.content === 'string') {
-            zapMessage = zapData.content;
-          }
-        } catch {
-          // Use zap event pubkey as fallback
-        }
-      }
-
-      // Extract amount from zap invoice (bolt11)
-      const bolt11Tag = zap.tags.find(tag => tag[0] === 'bolt11');
-      let amount = 0; // in millisats
-      if (bolt11Tag && bolt11Tag[1]) {
-        try {
-          const decoded = bolt11.decode(bolt11Tag[1]);
-          // bolt11 decode returns satoshis, convert to millisats
-          amount = (decoded.satoshis || 0) * 1000;
-        } catch {
-          // If bolt11 decode fails, try amount tag as fallback
-          const amountTag = zap.tags.find(tag => tag[0] === 'amount');
-          if (amountTag && amountTag[1]) {
-            amount = parseInt(amountTag[1], 10) || 0;
-          }
-        }
-      } else {
-        // Fallback to amount tag if no bolt11
-        const amountTag = zap.tags.find(tag => tag[0] === 'amount');
-        if (amountTag && amountTag[1]) {
-          amount = parseInt(amountTag[1], 10) || 0;
-        }
-      }
+      // Use shared helpers to extract zap information
+      const amountSats = extractZapAmount(zap);
+      // Convert sats to millisats (extractZapAmount returns sats)
+      const amount = amountSats * 1000;
+      const zapPayerPubkey = extractZapPayerPubkey(zap);
+      const zapMessage = extractZapContent(zap);
 
       if (amount > 0) {
         totalZapAmount += amount;
@@ -357,24 +321,9 @@ export const MultiStatsPage: React.FC = () => {
     
     const zapPayerPubkeys = new Set<string>();
     allZapEvents.forEach(zap => {
-      const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
-      let hasPubkeyInDescription = false;
-
-      if (descriptionTag) {
-        try {
-          const zapData = parseZapDescription(descriptionTag[1] || undefined) || {};
-          if (zapData.pubkey) {
-            zapPayerPubkeys.add(zapData.pubkey);
-            hasPubkeyInDescription = true;
-          }
-        } catch {
-          // Ignore parse errors
-        }
-      }
-
-      if (!hasPubkeyInDescription) {
-        zapPayerPubkeys.add(zap.pubkey);
-      }
+      // Use shared helper to extract payer pubkey (handles both named and anonymous zaps)
+      const zapPayerPubkey = extractZapPayerPubkey(zap);
+      zapPayerPubkeys.add(zapPayerPubkey);
     });
 
     // Stage 5: Batch load all profiles

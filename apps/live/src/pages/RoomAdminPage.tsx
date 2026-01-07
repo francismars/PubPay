@@ -4,6 +4,7 @@ import { ScheduleTimeline, Slot } from '../components/ScheduleTimeline';
 import { StyleEditor, StyleConfig } from '../components/StyleEditor';
 
 import { getApiBase } from '../utils/apiBase';
+import { appSessionStorage } from '../utils/storage';
 
 export const RoomAdminPage: React.FC = () => {
   const { roomId } = useParams<{ roomId?: string }>();
@@ -312,7 +313,7 @@ export const RoomAdminPage: React.FC = () => {
     (async () => {
       try {
         // Check if we have a stored password for this room
-        const storedPassword = sessionStorage.getItem(
+        const storedPassword = appSessionStorage.getItem<string>(
           `room_${roomId}_password`
         );
         let res;
@@ -336,7 +337,7 @@ export const RoomAdminPage: React.FC = () => {
         }
         if (res.status === 401) {
           // Password invalid or expired - clear and redirect to login
-          sessionStorage.removeItem(`room_${roomId}_password`);
+          appSessionStorage.removeItem(`room_${roomId}_password`);
           navigate('/live/multi', { replace: true });
           return;
         }

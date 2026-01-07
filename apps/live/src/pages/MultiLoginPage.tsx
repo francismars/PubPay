@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { getApiBase } from '../utils/apiBase';
+import { appSessionStorage } from '../utils/storage';
 
 export const MultiLoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -63,7 +64,7 @@ export const MultiLoginPage: React.FC = () => {
 
       // Store password in sessionStorage temporarily for authenticated requests
       if (password && password.trim()) {
-        sessionStorage.setItem(`room_${roomId}_password`, password);
+        appSessionStorage.setItem(`room_${roomId}_password`, password);
       }
 
       // Navigate to admin page after successful login

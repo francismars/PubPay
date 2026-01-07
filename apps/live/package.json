@@ -19,8 +19,7 @@
     "qrious": "^4.0.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^6.28.0",
-    "zustand": "^5.0.2"
+    "react-router-dom": "^6.28.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

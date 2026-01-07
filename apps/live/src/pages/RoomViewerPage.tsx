@@ -8,6 +8,7 @@ import React, {
 import { useNavigate, useParams } from 'react-router-dom';
 import { getApiBase } from '../utils/apiBase';
 import { StyleConfig } from '../components/StyleEditor';
+import { appSessionStorage } from '../utils/storage';
 
 // Fullscreen vendor typings
 type VendorFullscreenElement = HTMLElement & {
@@ -245,7 +246,7 @@ export const RoomViewerPage: React.FC = () => {
   const fetchRoomDetails = useCallback(async () => {
     if (!roomId) return;
     try {
-      const storedPassword = sessionStorage.getItem(`room_${roomId}_password`);
+      const storedPassword = appSessionStorage.getItem<string>(`room_${roomId}_password`);
       let res;
       if (storedPassword) {
         res = await fetch(`${getApiBase()}/multi/${roomId}`, {

@@ -6,6 +6,7 @@ import {
   LightningStatus,
   LightningPayment
 } from '../services/LightningApiService';
+import { appLocalStorage } from '../utils/storage';
 
 export interface UseLightningOptions {
   autoEnable?: boolean;
@@ -91,7 +92,7 @@ export class UseLightning {
         this.lnurl = null;
         this.sessionId = null;
         // Clear session ID from localStorage when disabling
-        localStorage.removeItem('lightningSessionId');
+        appLocalStorage.removeItem('lightningSessionId');
         console.log('✅ Lightning payments disabled');
         return true;
       } else {
@@ -177,14 +178,14 @@ export class UseLightning {
   // Generate session ID - persist across page refreshes
   private generateSessionId(): string {
     // Try to get existing session ID from localStorage
-    const existingSessionId = localStorage.getItem('lightningSessionId');
+    const existingSessionId = appLocalStorage.getItem<string>('lightningSessionId');
     if (existingSessionId) {
       return existingSessionId;
     }
 
     // Generate new session ID and store it
     const newSessionId = `frontend_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('lightningSessionId', newSessionId);
+    appLocalStorage.setItem('lightningSessionId', newSessionId);
     return newSessionId;
   }
 

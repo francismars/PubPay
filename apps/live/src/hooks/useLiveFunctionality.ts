@@ -6,40 +6,13 @@ const QRious = require('qrious') as any;
 const bolt11 = require('bolt11') as any;
 import { UseLightning } from './useLightning';
 import { ZapNotification } from '@live/types';
-import { DEFAULT_READ_RELAYS } from '@pubpay/shared-services';
+import { DEFAULT_READ_RELAYS, extractZapAmount, extractZapPayerPubkey, extractZapContent } from '@pubpay/shared-services';
 import { sanitizeHTML, sanitizeImageUrl, sanitizeUrl, escapeHtml } from '../utils/sanitization';
+import { DEFAULT_STYLES } from '../constants/styles';
+import { appLocalStorage } from '../utils/storage';
 
 // Flag to prevent multiple simultaneous calls to setupNoteLoaderListeners
 let setupNoteLoaderListenersInProgress = false;
-
-// Default style values
-const DEFAULT_STYLES = {
-  textColor: '#000000',
-  bgColor: '#ffffff',
-  bgImage: '',
-  qrInvert: false,
-  qrScreenBlend: false,
-  qrMultiplyBlend: false,
-  qrShowWebLink: false,
-  qrShowNevent: true,
-  qrShowNote: false,
-  layoutInvert: false,
-  hideZapperContent: false,
-  showTopZappers: false, // Default to hidden
-  podium: false,
-  zapGrid: false,
-  sectionLabels: false, // Default to hiding section labels
-  qrOnly: false, // Default to showing full layout
-  showFiat: false, // Default to hiding fiat amounts
-  showHistoricalPrice: false, // Default to hiding historical prices
-  showHistoricalChange: false, // Default to hiding historical change percentage
-  fiatOnly: false, // Default to showing sats amounts
-  lightning: false,
-  opacity: 1.0,
-  textOpacity: 1.0,
-  partnerLogo: '',
-  selectedCurrency: 'USD'
-};
 
 export const useLiveFunctionality = (eventId?: string) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -1048,36 +1021,17 @@ export const useLiveFunctionality = (eventId?: string) => {
     );
 
     try {
-      // Extract zap information from the receipt
-      const description9735 = zapReceipt.tags.find(
-        (tag: any) => tag[0] === 'description'
-      )?.[1];
-      if (!description9735) {
-        return;
+      // Use shared helpers to extract zap information
+      const amount = extractZapAmount(zapReceipt);
+      if (amount === 0) {
+        return; // No amount, skip
       }
 
-      let zapRequest;
-      try {
-        zapRequest = JSON.parse(description9735);
-      } catch (parseError) {
-        return;
-      }
+      const zapperPubkey = extractZapPayerPubkey(zapReceipt);
+      const zapContent = extractZapContent(zapReceipt);
+
+      // Get bolt11 tag for display
       const bolt11Tag = zapReceipt.tags.find((tag: any) => tag[0] === 'bolt11');
-      if (!bolt11Tag) {
-        return;
-      }
-
-      let amount = 0;
-      try {
-        // Use the global lightningPayReq if available (browser environment), otherwise use imported bolt11
-        const bolt11Decoder = (window as any).lightningPayReq || bolt11;
-        const decoded = bolt11Decoder.decode(bolt11Tag[1] || '');
-        amount = decoded.satoshis || 0;
-      } catch (error) {
-        return;
-      }
-      const zapperPubkey = zapRequest.pubkey;
-      const zapContent = zapRequest.content || '';
 
       // Create zap display object similar to regular notes
       const zapData = {
@@ -1086,7 +1040,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         content: zapContent,
         pubkey: zapperPubkey,
         timestamp: zapReceipt.created_at,
-        bolt11: bolt11Tag[1],
+        bolt11: bolt11Tag?.[1] || '',
         zapEventID: nip19.noteEncode(zapReceipt.id)
       };
 
@@ -2310,7 +2264,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const resetToDefaults = () => {
     // Clear localStorage to remove saved customizations
-    localStorage.removeItem('pubpay-styles');
+    appLocalStorage.removeItem('styleOptions');
     // Debug log removed
 
     // Reset fiat options to defaults
@@ -2456,7 +2410,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     };
 
     // Store styles in localStorage instead of URL
-    localStorage.setItem('pubpay-styles', JSON.stringify(styles));
+    appLocalStorage.setStyleOptions(styles);
 
     // Keep URL clean - no style parameters
     const pathParts = window.location.pathname.split('/').filter(Boolean);
@@ -3016,7 +2970,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const copyStyleUrl = () => {
     // Get current styles from localStorage
-    const savedStyles = localStorage.getItem('pubpay-styles');
+    const savedStyles = appLocalStorage.getStyleOptions();
 
     let urlToCopy = window.location.origin + window.location.pathname;
 
@@ -6233,11 +6187,10 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     // Load saved styles from localStorage if no URL parameters
-    const savedStyles = localStorage.getItem('pubpay-styles');
+    const savedStyles = appLocalStorage.getStyleOptions();
 
     if (savedStyles) {
-      try {
-        const styles = JSON.parse(savedStyles);
+      const styles = savedStyles;
 
         // Console log all settings from localStorage
         console.log('Loading from localStorage:', {
@@ -6807,7 +6760,6 @@ export const useLiveFunctionality = (eventId?: string) => {
             }
           }
         });
-      } catch (error) {}
     } else {
       // Debug log removed
       // Apply default styles when no saved styles exist
@@ -7295,7 +7247,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         qrShowNote: toggleStates.qrShowNote
       });
 
-      localStorage.setItem('pubpay-styles', JSON.stringify(styles));
+      appLocalStorage.setStyleOptions(styles);
     }
   };
 
@@ -7965,7 +7917,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         opacity: presetData.opacity,
         partnerLogo: presetData.partnerLogo || ''
       };
-      localStorage.setItem('pubpay-styles', JSON.stringify(styles));
+      appLocalStorage.setStyleOptions(styles);
       // Debug log removed
     }
   };

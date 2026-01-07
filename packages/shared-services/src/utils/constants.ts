@@ -24,25 +24,8 @@ export const DEFAULT_WRITE_RELAYS = [
 // Legacy constant: union of all default relays (for backward compatibility)
 export const RELAYS = [...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])];
 
-export const DEFAULT_STYLES = {
-  textColor: '#000000',
-  bgColor: '#ffffff',
-  bgImage: '',
-  qrInvert: false,
-  qrScreenBlend: false,
-  qrMultiplyBlend: false,
-  qrShowWebLink: false,
-  qrShowNevent: true,
-  qrShowNote: false,
-  layoutInvert: false,
-  hideZapperContent: false,
-  showTopZappers: false,
-  podium: false,
-  zapGrid: false,
-  opacity: 1.0,
-  textOpacity: 1.0,
-  partnerLogo: ''
-};
+// Re-export DEFAULT_STYLES from shared-utils to avoid duplication
+export { DEFAULT_STYLES } from '@pubpay/shared-utils';
 
 export const ZAP_AMOUNTS = {
   MIN: 1,

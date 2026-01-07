@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { getApiBase } from '../utils/apiBase';
+import { appSessionStorage } from '../utils/storage';
 
 export const RoomCreatePage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ export const RoomCreatePage: React.FC = () => {
 
       // Store password in sessionStorage if provided, so admin page can load room data
       if (password && password.trim()) {
-        sessionStorage.setItem(`room_${json.data.id}_password`, password);
+        appSessionStorage.setItem(`room_${json.data.id}_password`, password);
       }
 
       navigate(`/live/multi/${json.data.id}/admin`);
