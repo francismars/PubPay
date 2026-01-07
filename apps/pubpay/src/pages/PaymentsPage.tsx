@@ -829,7 +829,7 @@ const PaymentsPage: React.FC = () => {
                     <h2
                       style={{
                         fontSize: '48px',
-                        fontWeight: 'bold',
+                        fontWeight: '500',
                         margin: '8px 0',
                         color: 'var(--text-primary)'
                       }}
