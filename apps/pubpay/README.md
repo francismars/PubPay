@@ -8,6 +8,20 @@ Think of PubPay as Venmo meets Twitter. PubPay lets you create payment requests 
 
 Built on Nostr and Lightning Network. Permissionless. Open source. Yours.
 
+## How PubPay Works
+
+### Nostr Protocol
+
+PubPay uses the Nostr protocol, a decentralized, censorship-resistant communication protocol. Events on Nostr are structured data objects that can include metadata, content, and tags. PubPay utilizes `kind: 1` events (text notes) to represent payment requests, making them part of the social fabric of Nostr.
+
+### Tags for Payment Metadata
+
+Tags in Nostr events are key-value pairs that add metadata to the event. PubPay uses specific tags to define payment parameters, such as the amount, payer, and payment conditions. These tags make the payment request machine-readable and interoperable with other Nostr-based applications. Any client that understands these tags can display and process payment requests correctly.
+
+### Public Accessibility
+
+Payment requests are published to Nostr relays, making them publicly accessible and verifiable. Anyone with access to the relays can view and interact with the payment request. This transparency ensures accountability and allows for public verification of payments through `kind: 9735` events (zap receipts) linked to the original payment request.
+
 ## Getting Started
 
 ### Sign In
@@ -41,9 +55,9 @@ PubPay supports multiple authentication methods:
 
 - **Payments Page** - Two views:
   - **Wallet View** - Your balance, NWC connections, transaction history, and invoice generation
-  - **Public View** - Browse all public zaps on the network
+  - **Public View** - Browse all public payments associated with your account
 - **Feeds** - Browse payment requests in global or following feeds
-- **Profiles** - View user profiles with statistics, payment history, and all their paynotes
+- **Profiles** - View user profiles with statistics, payment history, and their paynotes
 
 ## Use Cases
 
@@ -52,10 +66,10 @@ PubPay supports multiple authentication methods:
 - **Service Payments** - Request payments for services with payer restrictions
 - **Event Ticketing** - Sell tickets with usage limits
 - **Crowdfunding** - Allow contributors to choose their donation amount with goal tracking
-- **Transparent Payments** - All payment requests are publicly verifiable on Nostr
+- **Transparent Payments** - All payments are publicly verifiable
 
 ## Social
-- Browse payment feeds (global and following)
+- Browse payment feeds
 - View individual notes and replies
 - View and edit Nostr profiles
 - Follow users to see their posts in your feed
@@ -71,20 +85,6 @@ PubPay supports multiple authentication methods:
 - Anonymous payments without login
 - Dark mode support
 - Relay management with read/write permissions
-
-## How PubPay Works
-
-### Nostr Protocol
-
-PubPay uses the Nostr protocol, a decentralized, censorship-resistant communication protocol. Events on Nostr are structured data objects that can include metadata, content, and tags. PubPay utilizes `kind: 1` events (text notes) to represent payment requests, making them part of the social fabric of Nostr.
-
-### Tags for Payment Metadata
-
-Tags in Nostr events are key-value pairs that add metadata to the event. PubPay uses specific tags to define payment parameters, such as the amount, payer, and payment conditions. These tags make the payment request machine-readable and interoperable with other Nostr-based applications. Any client that understands these tags can display and process payment requests correctly.
-
-### Public Accessibility
-
-Payment requests are published to Nostr relays, making them publicly accessible and verifiable. Anyone with access to the relays can view and interact with the payment request. This transparency ensures accountability and allows for public verification of payments through `kind: 9735` events (zap receipts) linked to the original payment request.
 
 ## Technical Details
 
