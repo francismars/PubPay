@@ -2,14 +2,16 @@
 // React hook for live functionality integration
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SimplePool, nip19 } from 'nostr-tools';
-const QRious = require('qrious') as any;
+// QRious is now imported in useQRCode hook
 const bolt11 = require('bolt11') as any;
-import { UseLightning } from './useLightning';
+import { useQRCode } from './useQRCode';
+import { useLightningIntegration } from './useLightningIntegration';
 import { ZapNotification } from '@live/types';
 import { DEFAULT_READ_RELAYS, extractZapAmount, extractZapPayerPubkey, extractZapContent } from '@pubpay/shared-services';
 import { sanitizeHTML, sanitizeImageUrl, sanitizeUrl, escapeHtml } from '../utils/sanitization';
 import { DEFAULT_STYLES } from '../constants/styles';
 import { appLocalStorage } from '../utils/storage';
+import { validateNoteId, stripNostrPrefix, parseEventId } from '../utils/eventIdParser';
 
 // Flag to prevent multiple simultaneous calls to setupNoteLoaderListeners
 let setupNoteLoaderListenersInProgress = false;
@@ -34,11 +36,6 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Track if user wants to see top zappers (even before data is available)
   const [userWantsTopZappers, setUserWantsTopZappers] = useState(false);
 
-  // Lightning service
-  const lightningService = useRef<UseLightning | null>(null);
-  const [lightningEnabled, setLightningEnabled] = useState(false);
-  const [_lightningLNURL, setLightningLNURL] = useState<string>('');
-
   const _liveDisplayRef = useRef<any>(null);
 
   // Zap notification state
@@ -46,6 +43,32 @@ export const useLiveFunctionality = (eventId?: string) => {
     useState<ZapNotification | null>(null);
   const initialZapsLoadedRef = useRef(false);
   const pendingZapNotificationsRef = useRef<Map<string, any>>(new Map());
+
+  // QR code functionality
+  const {
+    generateQRCode,
+    generateLiveEventQRCodes,
+    initializeQRCodePlaceholders,
+    initializeQRSwiper
+  } = useQRCode();
+
+  // Lightning integration
+  // Note: updateBlendMode callback will be set up after it's defined
+  const updateBlendModeRef = useRef<(() => void) | null>(null);
+
+  const {
+    lightningEnabled,
+    initializeLightning,
+    handleLightningToggle
+  } = useLightningIntegration({
+    eventId,
+    onUpdateBlendMode: () => {
+      // Call updateBlendMode if it's available
+      if (updateBlendModeRef.current) {
+        updateBlendModeRef.current();
+      }
+    }
+  });
 
   // Update top zappers display when topZappers changes
   useEffect(() => {
@@ -91,17 +114,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         setIsLoading(true);
         setError(null);
 
-        // Initialize Lightning service with proper configuration
-        lightningService.current = new UseLightning({
-          eventId,
-          autoEnable: false
-        });
-
-        // Configure Lightning service with LNBits settings
-        if (lightningService.current) {
-          // Note: The LightningService will use the backend API endpoints
-          // The actual LNBits configuration is handled by the backend
-        }
+        // Initialize Lightning service
+        initializeLightning();
 
         // Initialize Nostr pool and relays
         (window as any).pool = new SimplePool();
@@ -356,177 +370,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   }, []);
 
-  // Update payment status display
-  const updatePaymentStatus = (
-    message: string,
-    type: 'info' | 'success' | 'error' | 'waiting' | 'disabled' = 'info'
-  ) => {
-    const statusDiv = document.getElementById('paymentStatus');
-    if (statusDiv) {
-      const iconMap = {
-        info: '📱',
-        success: '✅',
-        error: '❌',
-        waiting: '⚡',
-        disabled: '🔒'
-      };
+  // updatePaymentStatus and createLightningQRSlide are now imported from useLightningIntegration hook
 
-      const sanitizedMessage = escapeHtml(message);
-      statusDiv.innerHTML = `<div class="status-${type}">${iconMap[type]} ${sanitizedMessage}</div>`;
-    }
-  };
-
-  // Create Lightning QR slide
-  const createLightningQRSlide = (lnurl: string) => {
-    const lightningSlide = document.getElementById('lightningQRSlide');
-    if (!lightningSlide) {
-      console.error('❌ Lightning QR slide not found in HTML');
-      return;
-    }
-
-    if (!QRious) {
-      console.error('❌ QRious library not available');
-      return;
-    }
-
-    // Ensure slide structure exists
-    let qrElement = lightningSlide.querySelector('#lightningQRCode');
-    if (!qrElement) {
-      lightningSlide.innerHTML = `
-        <a href="" target="_blank" id="lightningQRLink">
-          <div id="lightningQRCode" class="qr-code"></div>
-        </a>
-        <div class="qr-slide-title">
-          <span class="qr-data-preview" id="qrDataPreview4"></span>
-        </div>
-        <div class="qr-slide-label">Scan with Lightning Wallet</div>
-      `;
-      qrElement = lightningSlide.querySelector('#lightningQRCode');
-    }
-
-    if (!qrElement) {
-      console.error('❌ Unable to create QR code element');
-      return;
-    }
-
-    try {
-      const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
-
-      // Generate QR code after DOM is ready
-      requestAnimationFrame(() => {
-        generateQRCode('lightningQRCode', lnurl, qrSize);
-      });
-
-      // Set Lightning QR link
-      const lightningQRLink = document.getElementById('lightningQRLink') as HTMLAnchorElement;
-      if (lightningQRLink) {
-        lightningQRLink.href = `lightning:${lnurl}`;
-      }
-
-      // Set QR data preview text (uppercase, max 60 chars)
-      const qrDataPreview4 = document.getElementById('qrDataPreview4');
-      if (qrDataPreview4) {
-        const previewText = lnurl.length > 60 ? `${lnurl.substring(0, 60)}...` : lnurl;
-        qrDataPreview4.textContent = previewText.toUpperCase();
-      }
-
-      // Ensure slide is visible and in swiper
-      const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper') as HTMLElement;
-      if (swiperWrapper && !swiperWrapper.contains(lightningSlide)) {
-        swiperWrapper.appendChild(lightningSlide);
-      }
-      lightningSlide.style.display = 'block';
-
-      const qrSwiper = document.querySelector('.qr-swiper') as HTMLElement;
-      if (qrSwiper) {
-        qrSwiper.style.display = 'block';
-      }
-
-      // Reinitialize swiper and navigate to lightning slide
-      setTimeout(() => {
-        if (typeof initializeQRSwiper === 'function') {
-          initializeQRSwiper();
-          const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper') as HTMLElement;
-          if (swiperWrapper && (window as any).qrSwiper) {
-            const slides = Array.from(swiperWrapper.children);
-            const lightningSlideIndex = slides.findIndex(slide => slide.id === 'lightningQRSlide');
-            if (lightningSlideIndex >= 0) {
-              (window as any).qrSwiper.slideTo(lightningSlideIndex, 0);
-            }
-          }
-        }
-      }, 100);
-
-      updateBlendMode();
-    } catch (error) {
-      console.error('❌ Error creating Lightning QR code:', error);
-    }
-  };
-
-  // Initialize QR code placeholders for when no eventId is provided
-  const initializeQRCodePlaceholders = async () => {
-    // Debug log removed
-
-    // Generate placeholder QR codes
-    const placeholderNoteId = 'placeholder-note-id';
-    const neventId =
-      nip19.neventEncode({ id: placeholderNoteId, relays: [] }) ||
-      'placeholder-nevent';
-    const note1Id = nip19.noteEncode(placeholderNoteId) || 'placeholder-note';
-    const njumpUrl = `https://njump.me/${note1Id}`;
-    const nostrNevent = `nostr:${neventId}`;
-    const nostrNote = `nostr:${note1Id}`;
-
-    const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
-
-    // Generate QR codes for all formats
-    const qrcodeContainers = [
-      {
-        element: document.getElementById('qrCode'),
-        value: njumpUrl,
-        link: document.getElementById('qrcodeLinkNostr'),
-        preview: document.getElementById('qrDataPreview1')
-      },
-      {
-        element: document.getElementById('qrCodeNevent'),
-        value: nostrNevent,
-        link: document.getElementById('qrcodeNeventLink'),
-        preview: document.getElementById('qrDataPreview2')
-      },
-      {
-        element: document.getElementById('qrCodeNote'),
-        value: nostrNote,
-        link: document.getElementById('qrcodeNoteLink'),
-        preview: document.getElementById('qrDataPreview3')
-      }
-    ];
-
-    // Truncate function for preview text
-    const truncate = (text: string, maxLength: number = 60) => {
-      return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
-    };
-
-    qrcodeContainers.forEach(({ element, value, link, preview }) => {
-      if (element && QRious) {
-        generateQRCode(element.id, value, qrSize);
-
-        if (link) {
-          (link as HTMLAnchorElement).href = value;
-        }
-
-        if (preview) {
-          preview.textContent = truncate(value.toUpperCase());
-        }
-      }
-    });
-
-    // QR swiper is initialized by initializeQRSwiper() function
-
-    // Apply blend mode after QR codes are generated
-    updateBlendMode();
-
-    // Debug log removed
-  };
+  // initializeQRCodePlaceholders is now imported from useQRCode hook
 
   // Live Event subscription functions
   const subscribeLiveEvent = async (
@@ -1854,128 +1700,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     initializeStream();
   };
 
-  const generateQRCode = (elementId: string, value: string, size: number) => {
-    const element = document.getElementById(elementId);
-    if (!element || !QRious) {
-      if (!element) console.error('❌ QR code element not found:', elementId);
-      if (!QRious) console.error('❌ QRious library not available');
-      return;
-    }
-
-    try {
-      const originalDisplay = element.style.display;
-      element.style.display = 'block';
-
-      const isImg = element.tagName === 'IMG';
-      let targetElement: HTMLElement;
-
-      if (isImg) {
-        (element as HTMLImageElement).src = '';
-        targetElement = element;
-      } else {
-        // For div or other elements, create canvas inside
-        element.innerHTML = '';
-        const canvas = document.createElement('canvas');
-        canvas.className = 'qr-code';
-        element.appendChild(canvas);
-        targetElement = canvas;
-      }
-
-      new QRious({
-        element: targetElement,
-        size: size * 0.9,
-        value
-      });
-
-      if (originalDisplay) {
-        element.style.display = originalDisplay;
-      }
-    } catch (error) {
-      console.error('❌ Error generating QR code:', error);
-    }
-  };
-
-  const updateQRLinks = (
-    njumpUrl: string,
-    nostrNaddr: string,
-    naddrId: string
-  ) => {
-    const qrcodeLinkNostr = document.getElementById(
-      'qrcodeLinkNostr'
-    ) as HTMLAnchorElement;
-    const qrcodeNeventLink = document.getElementById(
-      'qrcodeNeventLink'
-    ) as HTMLAnchorElement;
-    const qrcodeNoteLink = document.getElementById(
-      'qrcodeNoteLink'
-    ) as HTMLAnchorElement;
-
-    if (qrcodeLinkNostr) qrcodeLinkNostr.href = njumpUrl;
-    if (qrcodeNeventLink) qrcodeNeventLink.href = nostrNaddr;
-    if (qrcodeNoteLink) qrcodeNoteLink.href = naddrId;
-  };
-
-  const updateQRPreviews = (
-    njumpUrl: string,
-    nostrNaddr: string,
-    naddrId: string
-  ) => {
-    const qrDataPreview1 = document.getElementById('qrDataPreview1');
-    const qrDataPreview2 = document.getElementById('qrDataPreview2');
-    const qrDataPreview3 = document.getElementById('qrDataPreview3');
-
-    // Set preview text in uppercase (max 60 chars to prevent overflow)
-    const truncate = (text: string, maxLength: number = 60) => {
-      return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
-    };
-
-    if (qrDataPreview1) qrDataPreview1.textContent = truncate(njumpUrl.toUpperCase());
-    if (qrDataPreview2) qrDataPreview2.textContent = truncate(nostrNaddr.toUpperCase());
-    if (qrDataPreview3) qrDataPreview3.textContent = truncate(naddrId.toUpperCase());
-  };
-
-  const generateLiveEventQRCodes = (liveEvent: any) => {
-    // Debug log removed
-
-    const identifier = liveEvent.tags.find((tag: any) => tag[0] === 'd')?.[1];
-    const pubkey = liveEvent.pubkey;
-    const kind = 30311;
-
-    if (!identifier || !pubkey) return;
-
-    try {
-      // Generate naddr
-      const naddrId = nip19.naddrEncode({
-        identifier,
-        pubkey,
-        kind,
-        relays: []
-      });
-
-      const njumpUrl = `https://njump.me/${naddrId}`;
-      const nostrNaddr = `nostr:${naddrId}`;
-
-      // Calculate QR size
-      const qrSize = Math.min(
-        window.innerWidth * 0.6,
-        window.innerHeight * 0.7
-      );
-
-      // Generate QR codes
-      generateQRCode('qrCode', njumpUrl, qrSize);
-      generateQRCode('qrCodeNevent', nostrNaddr, qrSize);
-      generateQRCode('qrCodeNote', naddrId, qrSize);
-
-      // Update links
-      updateQRLinks(njumpUrl, nostrNaddr, naddrId);
-
-      // Update previews
-      updateQRPreviews(njumpUrl, nostrNaddr, naddrId);
-    } catch (error) {}
-
-    // Apply blend mode after QR codes are generated
-    // REMOVED: updateBlendMode() should be called after styles are loaded, not during QR generation
-  };
+  // generateQRCode, updateQRLinks, updateQRPreviews, and generateLiveEventQRCodes are now imported from useQRCode hook
 
   const loadNoteContent = async (noteId: string) => {
     try {
@@ -1989,9 +1714,10 @@ export const useLiveFunctionality = (eventId?: string) => {
       const originalNoteId = noteId;
       noteId = stripNostrPrefix(noteId);
 
-      // Validate the note ID after stripping prefix
+      // Validate and decode the note ID after stripping prefix
+      let decoded;
       try {
-        validateNoteId(noteId);
+        decoded = parseEventId(noteId);
         // Clear any previous error message
         hideNoteLoaderError();
       } catch (error) {
@@ -2002,7 +1728,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
 
       try {
-        const decoded = nip19.decode(noteId);
         let kind1ID;
 
         if (decoded.type === 'nevent') {
@@ -2138,94 +1863,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
-  const validateNoteId = (noteId: string): boolean => {
-    // Check if noteId is empty or just whitespace
-    if (!noteId || noteId.trim() === '') {
-      throw new Error('Please enter a note ID');
-    }
-
-    // Trim whitespace
-    noteId = noteId.trim();
-
-    // Check if it's a valid NIP-19 format (starts with note1, nevent1, naddr1, or nprofile1)
-    if (
-      !noteId.startsWith('note1') &&
-      !noteId.startsWith('nevent1') &&
-      !noteId.startsWith('naddr1') &&
-      !noteId.startsWith('nprofile1')
-    ) {
-      throw new Error(
-        'Invalid format. Please enter a valid nostr note ID (note1...), event ID (nevent1...), addressable event (naddr1...), or profile (nprofile1...)'
-      );
-    }
-
-    // Validate Bech32 format according to NIP-19
-    try {
-      const decoded = nip19.decode(noteId);
-
-      // Validate decoded structure
-      if (decoded.type === 'note') {
-        // For note1: should have a 32-byte hex string
-        if (
-          !decoded.data ||
-          typeof decoded.data !== 'string' ||
-          decoded.data.length !== 64
-        ) {
-          throw new Error('Invalid note ID format');
-        }
-      } else if (decoded.type === 'nevent') {
-        // For nevent1: should have an id field with 32-byte hex string
-        if (
-          !decoded.data ||
-          !decoded.data.id ||
-          typeof decoded.data.id !== 'string' ||
-          decoded.data.id.length !== 64
-        ) {
-          throw new Error('Invalid event ID format');
-        }
-      } else if (decoded.type === 'naddr') {
-        // For naddr1: should have identifier, pubkey, and kind fields
-        if (
-          !decoded.data ||
-          !decoded.data.identifier ||
-          !decoded.data.pubkey ||
-          typeof decoded.data.kind !== 'number'
-        ) {
-          throw new Error('Invalid addressable event format');
-        }
-        // Validate it's a live event kind
-        if (decoded.data.kind !== 30311) {
-          throw new Error('Only live events (kind 30311) are supported');
-        }
-      } else if (decoded.type === 'nprofile') {
-        // For nprofile1: should have pubkey field
-        if (!decoded.data || !decoded.data.pubkey) {
-          throw new Error('Invalid profile format');
-        }
-      } else {
-        throw new Error('Unsupported identifier type');
-      }
-
-      return true;
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        (error.message.includes('Invalid') ||
-          error.message.includes('Unsupported'))
-      ) {
-        throw new Error(
-          'Invalid nostr identifier format. Please check the note ID and try again.'
-        );
-      }
-      throw new Error(
-        'Invalid nostr identifier format. Please check the note ID and try again.'
-      );
-    }
-  };
-
-  const stripNostrPrefix = (noteId: string): string => {
-    return noteId.replace(/^nostr:/, '');
-  };
+  // validateNoteId and stripNostrPrefix are now imported from '../utils/eventIdParser'
 
   const showNoteLoaderError = (message: string) => {
     const errorElement = document.getElementById('noteLoaderError');
@@ -4523,9 +4161,10 @@ export const useLiveFunctionality = (eventId?: string) => {
     const originalNoteId = noteId;
     const cleanNoteId = stripNostrPrefix(noteId);
 
-    // Validate the note ID
+    // Validate and decode the note ID
+    let decoded;
     try {
-      validateNoteId(cleanNoteId);
+      decoded = parseEventId(cleanNoteId);
       hideNoteLoaderError();
     } catch (error) {
       showNoteLoaderError(
@@ -4535,8 +4174,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     try {
-      // Decode and route to appropriate handler
-      const decoded = nip19.decode(cleanNoteId);
+      // Route to appropriate handler
 
       // Update URL with the identifier under /live/ base path
       const newUrl = `/live/${cleanNoteId}`;
@@ -5424,79 +5062,11 @@ export const useLiveFunctionality = (eventId?: string) => {
         return;
       }
 
-      // Debug log removed
-      // Debug log removed
-      // Debug log removed
-
-      if (!lightningService.current) {
-        return;
-      }
-
-      try {
-        if (!checked) {
-          // Disable Lightning payments
-          const success =
-            await lightningService.current.disableLightning(eventId);
-
-          if (success) {
-            setLightningEnabled(false);
-            setLightningLNURL('');
-            updatePaymentStatus('Lightning disabled', 'disabled');
-          } else {
-            updatePaymentStatus(
-              'Failed to disable Lightning payments',
-              'error'
-            );
-          }
-        } else {
-          // Enable Lightning payments
-          updatePaymentStatus('Enabling Lightning payments...', 'waiting');
-
-          const success =
-            await lightningService.current.enableLightning(eventId);
-
-          console.log('Lightning service state after enable:', {
-            enabled: lightningService.current.enabled,
-            lnurl: lightningService.current.currentLnurl,
-            loading: lightningService.current.loading,
-            error: lightningService.current.lastError
-          });
-
-          if (success) {
-            setLightningEnabled(true);
-            const lnurl = lightningService.current.currentLnurl || '';
-            setLightningLNURL(lnurl);
-
-            // Create Lightning QR slide if it doesn't exist
-            if (lnurl) {
-              createLightningQRSlide(lnurl);
-              updatePaymentStatus(
-                'Lightning enabled - scan QR to pay',
-                'success'
-              );
-            } else {
-              updatePaymentStatus(
-                'Lightning enabled but no QR code available',
-                'error'
-              );
-            }
-          } else {
-            updatePaymentStatus(
-              `Failed to enable Lightning: ${lightningService.current.lastError || 'Unknown error'}`,
-              'error'
-            );
-          }
-        }
-
-        // Update QR slide visibility
-        if (typeof updateQRSlideVisibility === 'function') {
-          // Debug log removed
-          updateQRSlideVisibility();
-        } else {
-          // Debug log removed
-        }
-      } catch (error) {
-        console.error('❌ Error toggling Lightning payments:', error);
+      await handleLightningToggle(checked, eventId);
+      
+      // Update QR slide visibility
+      if (typeof updateQRSlideVisibility === 'function') {
+        updateQRSlideVisibility();
       }
     });
 
@@ -6714,41 +6284,8 @@ export const useLiveFunctionality = (eventId?: string) => {
                 ) as HTMLInputElement;
                 if (lightningToggle) {
                   lightningToggle.checked = checked;
-
-                  // If Lightning was previously enabled, restore by calling enable endpoint
-                  if (checked && lightningService.current) {
-                    // Always call enable endpoint to validate session and get current LNURL
-                    try {
-                      const success =
-                        await lightningService.current.enableLightning(eventId);
-                      if (success) {
-                        const lnurl =
-                          lightningService.current.currentLnurl || '';
-                        createLightningQRSlide(lnurl);
-                        updatePaymentStatus(
-                          'Lightning enabled - scan QR to pay',
-                          'success'
-                        );
-                      } else {
-                        updatePaymentStatus(
-                          'Lightning session expired - please re-enable',
-                          'error'
-                        );
-                      }
-                    } catch (error) {
-                      console.error(
-                        '❌ Error validating Lightning session:',
-                        error
-                      );
-                      updatePaymentStatus(
-                        'Lightning session validation failed',
-                        'error'
-                      );
-                    }
-                  } else {
-                  }
+                  await handleLightningToggle(checked, eventId);
                 }
-                // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
               }
             };
 
@@ -7499,7 +7036,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
-  const updateBlendMode = () => {
+  // Store updateBlendMode ref so Lightning hook can call it
+  const updateBlendMode = useCallback(() => {
     const qrScreenBlendToggle = document.getElementById(
       'qrScreenBlendToggle'
     ) as HTMLInputElement;
@@ -7536,7 +7074,12 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     updateStyleURL();
-  };
+  }, []);
+  
+  // Update ref when updateBlendMode is defined
+  useEffect(() => {
+    updateBlendModeRef.current = updateBlendMode;
+  }, [updateBlendMode]);
 
   const applyPreset = (preset: string) => {
     const presets: { [key: string]: any } = {
@@ -8127,10 +7670,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             ) {
               (window as any).qrSwiper.autoplay.stop();
             }
-            // Clear progress tracking for single slide
-            if (progressInterval) {
-              clearInterval(progressInterval);
-            }
+            // Progress tracking is now handled by useQRCode hook
           } else if (visibleSlides.length > 1) {
             (window as any).qrSwiper.allowTouchMove = true;
             // Update autoplay delay to 10 seconds
@@ -8162,381 +7702,7 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   // Initialize QR swiper with proper configuration
-  const initializeQRSwiper = () => {
-    console.log('🔄 Initializing QR Swiper...');
-
-    // Remove any existing error messages
-    const existingError = document.querySelector('.qr-swiper-error');
-    if (existingError) {
-      existingError.remove();
-    }
-
-    // Destroy existing swiper
-    if ((window as any).qrSwiper) {
-      (window as any).qrSwiper.destroy(true, true);
-      (window as any).qrSwiper = null;
-    }
-
-    const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
-    if (!swiperWrapper) {
-      console.warn('⚠️ QR Swiper wrapper not found in DOM');
-      return;
-    }
-
-    // Check if Swiper library is loaded
-    if (typeof (window as any).Swiper === 'undefined') {
-      console.error('❌ Swiper library not loaded');
-      const qrSection = document.querySelector('.qr-section');
-      if (qrSection) {
-        const errorMsg = document.createElement('div');
-        errorMsg.className = 'qr-swiper-error';
-        errorMsg.style.cssText = 'color: var(--text-color); padding: 20px; text-align: center;';
-        errorMsg.textContent = 'Slideshow library failed to load. Please refresh the page.';
-        qrSection.appendChild(errorMsg);
-      }
-      return;
-    }
-
-    // Count visible slides
-    const visibleSlides = Array.from(swiperWrapper.children).filter(slide =>
-      slide.classList.contains('swiper-slide')
-    );
-
-    if (visibleSlides.length === 0) {
-      console.log('👁️ No visible QR slides, hiding container');
-      const qrSwiperContainer = document.querySelector(
-        '.qr-swiper'
-      ) as HTMLElement;
-      if (qrSwiperContainer) {
-        qrSwiperContainer.style.display = 'none';
-      }
-      return;
-    }
-
-    // Initialize Swiper with proper configuration
-    try {
-      (window as any).qrSwiper = new (window as any).Swiper('.qr-swiper', {
-        loop: visibleSlides.length > 2, // Only enable loop for 3+ slides to avoid duplication issues with 2 slides
-        autoplay:
-          visibleSlides.length > 1
-            ? {
-                delay: 10000,
-                disableOnInteraction: false
-              }
-            : false,
-        allowTouchMove: visibleSlides.length > 1,
-        pagination: {
-          el: '.swiper-pagination',
-          clickable: true
-        },
-        slidesPerView: 1, // Ensure only 1 slide is visible at a time
-        centeredSlides: true, // Center the active slide
-        spaceBetween: 0, // No space between slides
-        on: {
-          init() {
-            const swiperEl = (this as any).el || (window as any).qrSwiper?.el;
-            if (!swiperEl) return;
-
-            // Reset all progress bars
-            swiperEl
-              .querySelectorAll('.swiper-pagination-bullet')
-              .forEach((bullet: HTMLElement) => {
-                bullet.classList.remove('progress-animating');
-                bullet.style.setProperty('--progress', '0%');
-              });
-
-            // Reset paused progress for initial slide
-            pausedProgress = 0;
-            progressPauseTime = null;
-            // Debug log removed
-
-            // Start animation for active slide immediately
-            const activeBullet = swiperEl.querySelector(
-              '.swiper-pagination-bullet-active'
-            );
-            if (activeBullet) {
-              activeBullet.classList.add('progress-animating');
-              startProgressTracking();
-            }
-          },
-          slideChange() {
-            const swiperEl = (this as any).el || (window as any).qrSwiper?.el;
-            if (!swiperEl) return;
-
-            // Reset all progress bars
-            swiperEl
-              .querySelectorAll('.swiper-pagination-bullet')
-              .forEach((bullet: HTMLElement) => {
-                bullet.style.setProperty('--progress', '0%');
-                bullet.classList.remove('progress-animating');
-              });
-
-            // Reset paused progress for new slide
-            pausedProgress = 0;
-            progressPauseTime = null;
-            // Debug log removed
-
-            // Start progress tracking for new slide immediately
-            const activeBullet = swiperEl.querySelector(
-              '.swiper-pagination-bullet-active'
-            );
-            if (activeBullet) {
-              activeBullet.classList.add('progress-animating');
-              startProgressTracking();
-            }
-          },
-          autoplayStart() {
-            const swiperEl = (this as any).el || (window as any).qrSwiper?.el;
-            if (!swiperEl) return;
-
-            // Remove paused class and resume progress animation
-            swiperEl.classList.remove('swiper-paused');
-            const activeBullet = swiperEl.querySelector(
-              '.swiper-pagination-bullet-active'
-            );
-            if (activeBullet) {
-              activeBullet.classList.add('progress-animating');
-              startProgressTracking();
-            }
-          },
-          autoplayStop() {
-            const swiperEl = (this as any).el || (window as any).qrSwiper?.el;
-            if (!swiperEl) return;
-
-            // Add paused class to pause progress animation
-            swiperEl.classList.add('swiper-paused');
-            if (progressInterval) {
-              clearInterval(progressInterval);
-              progressInterval = null;
-            }
-          }
-        }
-      });
-
-      // Setup progress bar events after swiper is initialized
-      setupProgressBarEvents();
-
-      // Progress tracking is now handled by swiper event handlers
-
-      console.log('✅ QR Swiper initialized successfully with', visibleSlides.length, 'slides');
-    } catch (error) {
-      console.error('❌ Failed to initialize QR Swiper:', error);
-      // Show error to user if swiper fails
-      const qrSection = document.querySelector('.qr-section');
-      if (qrSection) {
-        const errorMsg = document.createElement('div');
-        errorMsg.className = 'qr-swiper-error';
-        errorMsg.style.cssText = 'color: var(--text-color); padding: 20px; text-align: center;';
-        errorMsg.textContent = 'QR slideshow failed to load. Please refresh the page.';
-        qrSection.appendChild(errorMsg);
-      }
-    }
-  };
-
-  // Progress bar tracking system
-  let progressStartTime: number | null = null;
-  let progressPauseTime: number | null = null;
-  let progressInterval: NodeJS.Timeout | null = null;
-  let pausedProgress: number = 0;
-
-  const startProgressTracking = () => {
-    // Clear any existing interval
-    if (progressInterval) {
-      clearInterval(progressInterval);
-      progressInterval = null;
-    }
-
-    const qrSwiper = (window as any).qrSwiper;
-    if (!qrSwiper?.el) {
-      console.warn('⚠️ QR Swiper not available for progress tracking');
-      return;
-    }
-
-    // Skip progress tracking if only 1 slide (no autoplay)
-    const swiperWrapper = document.querySelector('.qr-swiper .swiper-wrapper');
-    if (swiperWrapper) {
-      const visibleSlides = Array.from(swiperWrapper.children).filter(slide =>
-        slide.classList.contains('swiper-slide')
-      );
-      if (visibleSlides.length <= 1) {
-        return; // No need to track progress for single slide
-      }
-    }
-
-    const activeBullet = qrSwiper.el.querySelector(
-      '.swiper-pagination-bullet-active'
-    );
-    if (!activeBullet) {
-      return;
-    }
-
-    // Only start if the bullet has the progress-animating class
-    if (!activeBullet.classList.contains('progress-animating')) {
-      return;
-    }
-
-    // Reset progress to 0
-    activeBullet.style.setProperty('--progress', '0%');
-
-    progressStartTime = Date.now();
-    pausedProgress = 0; // Reset paused progress for new slide
-    const autoplayDelay = qrSwiper.params?.autoplay?.delay || 10000;
-
-    progressInterval = setInterval(() => {
-      const elapsed = Date.now() - (progressStartTime || 0);
-      const progress = Math.min((elapsed / autoplayDelay) * 100, 100);
-
-      // Set CSS custom property for progress
-      activeBullet.style.setProperty('--progress', `${progress}%`);
-
-      if (progress >= 100) {
-        clearInterval(progressInterval!);
-        progressInterval = null;
-      }
-    }, 16); // ~60fps for smooth animation
-  };
-
-  const resumeProgressTracking = () => {
-    // Debug log removed
-
-    // Clear any existing interval
-    if (progressInterval) {
-      clearInterval(progressInterval);
-      progressInterval = null;
-    }
-
-    const qrSwiper = (window as any).qrSwiper;
-    if (!qrSwiper?.el) {
-      // Debug log removed
-      return;
-    }
-
-    const activeBullet = qrSwiper.el.querySelector(
-      '.swiper-pagination-bullet-active'
-    );
-    if (!activeBullet) {
-      // Debug log removed
-      return;
-    }
-
-    // Only start if the bullet has the progress-animating class
-    if (!activeBullet.classList.contains('progress-animating')) {
-      // Debug log removed
-      return;
-    }
-
-    const autoplayDelay = qrSwiper.params?.autoplay?.delay || 10000;
-
-    // Debug log removed
-
-    // Calculate remaining time based on paused progress
-    const remainingTime = ((100 - pausedProgress) / 100) * autoplayDelay;
-    const resumeTime = Date.now();
-
-    progressInterval = setInterval(() => {
-      const elapsed = Date.now() - resumeTime;
-      const progress =
-        pausedProgress + (elapsed / remainingTime) * (100 - pausedProgress);
-      const finalProgress = Math.min(progress, 100);
-
-      // Set CSS custom property for progress
-      activeBullet.style.setProperty('--progress', `${finalProgress}%`);
-
-      if (finalProgress >= 100) {
-        // Debug log removed
-        clearInterval(progressInterval!);
-        progressInterval = null;
-      }
-    }, 16); // ~60fps for smooth animation
-  };
-
-  const setupProgressBarEvents = () => {
-    if (!(window as any).qrSwiper?.el) return;
-
-    // Add custom mouse event handlers for progress bar pause/resume
-    (window as any).qrSwiper.el.addEventListener('mouseenter', () => {
-      // Debug log removed
-
-      // Pause swiper autoplay
-      if ((window as any).qrSwiper && (window as any).qrSwiper.autoplay) {
-        (window as any).qrSwiper.autoplay.pause();
-        // Debug log removed
-      }
-
-      // Pause progress animation on hover
-      if (progressInterval) {
-        clearInterval(progressInterval);
-        progressInterval = null;
-        progressPauseTime = Date.now();
-
-        // Store current progress percentage
-        const activeBullet = (window as any).qrSwiper?.el?.querySelector(
-          '.swiper-pagination-bullet-active'
-        );
-        if (activeBullet) {
-          const currentProgress =
-            activeBullet.style.getPropertyValue('--progress') || '0%';
-          pausedProgress = parseFloat(currentProgress.replace('%', ''));
-          // Debug log removed
-        }
-      }
-    });
-
-    (window as any).qrSwiper.el.addEventListener('mouseleave', () => {
-      // Debug log removed
-
-      // Debug log removed
-
-      // Resume progress animation on mouse leave
-      if (progressPauseTime && progressStartTime && pausedProgress < 100) {
-        // Debug log removed
-        resumeProgressTracking();
-
-        // Calculate remaining time and manually trigger slide change when progress completes
-        const autoplayDelay =
-          (window as any).qrSwiper?.params?.autoplay?.delay || 10000;
-        const remainingTime = ((100 - pausedProgress) / 100) * autoplayDelay;
-
-        // Debug log removed
-
-        // Set a timeout to trigger slide change when progress completes
-        setTimeout(() => {
-          if ((window as any).qrSwiper && (window as any).qrSwiper.slideNext) {
-            // Debug log removed
-            (window as any).qrSwiper.slideNext();
-          }
-        }, remainingTime);
-      } else {
-        // Debug log removed
-
-        // If we can't resume progress, just resume normal autoplay
-        if ((window as any).qrSwiper && (window as any).qrSwiper.autoplay) {
-          (window as any).qrSwiper.autoplay.resume();
-          // Debug log removed
-        }
-      }
-    });
-  };
-
-  const updateProgressBars = () => {
-    // Debug log removed
-
-    // Clear any existing progress tracking
-    if (progressInterval) {
-      clearInterval(progressInterval);
-      progressInterval = null;
-    }
-
-    // Reset progress start time
-    progressStartTime = null;
-    progressPauseTime = null;
-
-    // Start progress tracking for the current slide with a small delay
-    // to ensure the swiper has finished its transition
-    setTimeout(() => {
-      startProgressTracking();
-    }, 200);
-  };
+  // initializeQRSwiper and progress tracking functions are now imported from useQRCode hook
 
   // Top zappers management functions
 

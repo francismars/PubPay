@@ -34,6 +34,10 @@ export const isValidNprofile = (nprofile: string): boolean => {
   return nprofile.startsWith('nprofile1') && nprofile.length > 50;
 };
 
+export const isValidNote = (note: string): boolean => {
+  return note.startsWith('note1') && note.length > 50;
+};
+
 export const isValidZapAmount = (amount: number): boolean => {
   return amount >= ZAP_AMOUNTS.MIN && amount <= ZAP_AMOUNTS.MAX;
 };
