@@ -1,9 +1,21 @@
-/* eslint-disable no-unused-vars, no-empty */
-// React hook for live functionality integration
+/**
+ * useLiveFunctionality Hook
+ * 
+ * Main hook for managing live event functionality including:
+ * - Nostr event subscriptions (live events, chat, zaps, profiles)
+ * - Content rendering (notes, profiles, live events, chat messages)
+ * - Video player management
+ * - Zap handling and display
+ * - Fiat conversion
+ * - Style management
+ * - QR code generation
+ * - Lightning payment integration
+ * 
+ * @param eventId - Optional event ID to load on mount
+ * @returns Hook state and functions for managing live functionality
+ */
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { nip19 } from 'nostr-tools';
-// QRious is now imported in useQRCode hook
-const bolt11 = require('bolt11') as any;
 import { useQRCode } from './useQRCode';
 import { useLightningIntegration } from './useLightningIntegration';
 import { useZapHandling } from './useZapHandling';
@@ -697,7 +709,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 });
             // Debug log removed
           } else {
-            console.warn('Portrait swiper element not found');
+            logger.warn('Portrait swiper element not found', ErrorCategory.RENDERING);
           }
 }
 }, 200);
@@ -1157,7 +1169,12 @@ const kind1from9735 = kind9735.tags.find(
           kind0npub = nip19.npubEncode(kind0fromkind9735.pubkey) || '';
           profileData = content;
         } catch (error) {
-          console.warn('Failed to parse profile content for zapper:', error);
+          handleErrorSilently(
+            error,
+            'Failed to parse profile content for zapper',
+            ErrorCategory.PARSING,
+            { pubkey: kind0fromkind9735.pubkey }
+          );
           // Use defaults if profile parsing fails
           kind0npub = nip19.npubEncode(kind0fromkind9735.pubkey) || '';
         }
@@ -1315,13 +1332,7 @@ const kind1from9735 = kind9735.tags.find(
           return amountB - amountA;
         });
 
-        console.log(
-          'Applying podium classes in list layout. Top 3 zaps:',
-          sortedZaps.slice(0, 3).map(zap => ({
-            amount: zap.querySelector('.zapperAmountSats')?.textContent,
-            name: zap.querySelector('.zapperName')?.textContent
-          }))
-        );
+        // Apply podium classes to top 3 zaps
 
         for (let i = 0; i < Math.min(3, sortedZaps.length); i++) {
           const zap = sortedZaps[i];
@@ -1365,22 +1376,17 @@ const kind1from9735 = kind9735.tags.find(
     // Get all unique amounts
     const uniqueAmounts = [...new Set(allZapAmounts)];
 
-    console.log('🏆 getSingleZapRank:', {
-      zapAmount,
-      totalZaps: existingZaps.length,
-      allAmounts: allZapAmounts,
-      uniqueAmounts: uniqueAmounts.slice(0, 5) // Show top 5 for debugging
-    });
+    // Calculate rank for a single zap
 
     // Find where this zap amount ranks
     const rank = uniqueAmounts.indexOf(zapAmount);
 
     if (rank >= 0) {
-      console.log('🏆 Zap ranks at position:', rank + 1);
+      // Zap ranks at position
       return rank + 1; // Return 1, 2, 3, 4, etc.
     }
 
-    console.log('🏆 Could not determine rank');
+    // Could not determine rank
     return undefined;
   };
 
@@ -1572,13 +1578,7 @@ const kind1from9735 = kind9735.tags.find(
 
     // Apply podium classes to top 3 zaps (only when sorting by amount)
     if (sortByAmount && document.body.classList.contains('podium-enabled')) {
-      console.log(
-        'Applying podium classes in grid layout. Top 3 zaps:',
-        sortedZaps.slice(0, 3).map(zap => ({
-          amount: zap.querySelector('.zapperAmountSats')?.textContent,
-          name: zap.querySelector('.zapperName')?.textContent
-        }))
-      );
+      // Apply podium classes to top 3 zaps in grid layout
       for (let i = 0; i < Math.min(3, sortedZaps.length); i++) {
         const zap = sortedZaps[i] as HTMLElement;
         if (zap) {
@@ -1985,8 +1985,9 @@ setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
     // Total amounts are calculated by the hook automatically
     // No need to manually set totalAmount
 
-    console.log(
-      `💰 Total zaps recalculated: ${numberWithCommas(totalSats)} sats`
+    logger.info(
+      `Total zaps recalculated: ${numberWithCommas(totalSats)} sats`,
+      ErrorCategory.RENDERING
     );
   };
 
@@ -2242,7 +2243,7 @@ setTimeout(() => {
                 
                 if (allZaps.length !== zapsInRows.length) {
                   // Some zaps are not in rows, re-organize
-                  console.log('Re-organizing grid: found zaps outside rows', allZaps.length, 'total vs', zapsInRows.length, 'in rows');
+                  // Re-organizing grid: found zaps outside rows
                   organizeZapsHierarchically();
                 }
 }
@@ -2292,7 +2293,7 @@ setTimeout(() => {
                 
                 if (allZaps.length !== zapsInRows.length) {
                   // Some zaps are not in rows, re-organize
-                  console.log('Re-organizing grid: found zaps outside rows', allZaps.length, 'total vs', zapsInRows.length, 'in rows');
+                  // Re-organizing grid: found zaps outside rows
                   organizeZapsHierarchically();
                 }
 }
@@ -2737,7 +2738,13 @@ debouncedApplyAllStyles();
       // Mark as set up
       setupToggleTracker.add(toggleId);
     } else {
-      console.error(`Toggle element not found: ${toggleId}`);
+      handleError(
+        new Error(`Toggle element not found: ${toggleId}`),
+        `Toggle element not found: ${toggleId}`,
+        ErrorCategory.RENDERING,
+        ErrorSeverity.LOW,
+        { toggleId }
+      );
     }
   };
 
@@ -2745,14 +2752,14 @@ debouncedApplyAllStyles();
 
   // Load initial styles from localStorage or apply defaults
   const loadInitialStyles = () => {
-    console.log('🔍 loadInitialStyles called, stack trace:', new Error().stack);
+    // Load initial styles from localStorage or apply defaults
 
     // Prevent multiple calls during the same session
-    if ((window as any).loadInitialStylesCalled) {
-      console.log('❌ loadInitialStyles already called, skipping...');
+    if (window.loadInitialStylesCalled) {
+      // loadInitialStyles already called, skipping
       return;
     }
-    (window as any).loadInitialStylesCalled = true;
+    window.loadInitialStylesCalled = true;
 
     // Check if there are URL parameters first
     const params = new URLSearchParams(window.location.search);
@@ -2772,18 +2779,7 @@ debouncedApplyAllStyles();
 
     if (savedStyles) {
       const styles = savedStyles;
-
-        // Console log all settings from localStorage
-        console.log('Loading from localStorage:', {
-          textColor: styles.textColor,
-          bgColor: styles.bgColor,
-          qrInvert: styles.qrInvert,
-          qrScreenBlend: styles.qrScreenBlend,
-          qrMultiplyBlend: styles.qrMultiplyBlend,
-          qrShowWebLink: styles.qrShowWebLink,
-          qrShowNevent: styles.qrShowNevent,
-          qrShowNote: styles.qrShowNote
-        });
+      // Loading styles from localStorage
 
         // Debug background image loading
         if (styles.bgImage || styles.backgroundImage) {
@@ -2800,11 +2796,11 @@ debouncedApplyAllStyles();
           ) as HTMLInputElement;
           if (textColorPicker) {
             textColorPicker.value = styles.textColor;
-            console.log('Applied text color to picker:', styles.textColor);
+            // Applied text color to picker
           }
   if (textColorValue) {
             textColorValue.value = styles.textColor;
-            console.log('Applied text color to value input:', styles.textColor);
+            // Applied text color to value input
           }
 }
 
@@ -3540,17 +3536,7 @@ debouncedApplyAllStyles();
     const showNote = noteToggle?.checked ?? false;
     const showLightning = lightningToggle?.checked ?? false;
 
-    console.log('🔍 Toggle states:', {
-      webLinkToggle: !!webLinkToggle,
-      webLinkChecked: webLinkToggle?.checked,
-      neventToggle: !!neventToggle,
-      neventChecked: neventToggle?.checked,
-      noteToggle: !!noteToggle,
-      noteChecked: noteToggle?.checked,
-      lightningToggle: !!lightningToggle,
-      lightningChecked: lightningToggle?.checked,
-      showLightning
-    });
+    // Update QR slide visibility based on toggle states
 
     // Debug log removed
 
@@ -3584,16 +3570,7 @@ debouncedApplyAllStyles();
     }
 
     // Debug: Log slide detection
-    console.log('QR Slide Detection:', {
-      webLinkSlide: !!webLinkSlide,
-      neventSlide: !!neventSlide,
-      noteSlide: !!noteSlide,
-      lightningSlide: !!lightningSlide,
-      showWebLink,
-      showNevent,
-      showNote,
-      showLightning
-    });
+    // Detect visible QR slides and update visibility
 
     // Create or get hidden slides container
     let hiddenSlidesContainer = document.getElementById(
@@ -3653,12 +3630,12 @@ debouncedApplyAllStyles();
           }
 }
   slide.style.display = 'block';
-        console.log(`✅ ${name} slide visible`);
+        // Slide is visible
       } else {
         // Move to hidden container
         if (swiperWrapper.contains(slide)) {
           hiddenSlidesContainer.appendChild(slide);
-          console.log(`👁️ ${name} slide hidden`);
+          // Slide is hidden
         }
 }
     });
@@ -3674,7 +3651,7 @@ debouncedApplyAllStyles();
       qrSwiper.style.display = 'block';
     } else if (qrSwiper && visibleSlides.length === 0) {
       qrSwiper.style.display = 'none';
-      console.log('❌ QR swiper hidden (no visible slides)');
+      // QR swiper hidden (no visible slides)
     }
 
     // Debug log removed

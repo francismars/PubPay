@@ -163,6 +163,9 @@ declare global {
     
     // Grid organization
     gridPeriodicCheckInterval?: NodeJS.Timeout | null;
+    
+    // Style management
+    loadInitialStylesCalled?: boolean;
   }
 }
 
