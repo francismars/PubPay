@@ -9,6 +9,7 @@ import { useLightningIntegration } from './useLightningIntegration';
 import { useZapHandling } from './useZapHandling';
 import { useStyleManagement } from './useStyleManagement';
 import { useFiatConversion } from './useFiatConversion';
+import { useNostrSubscriptions } from './useNostrSubscriptions';
 // Zap handling imports removed - now using useZapHandling hook
 import { 
   DEFAULT_READ_RELAYS,
@@ -105,6 +106,16 @@ export const useLiveFunctionality = (eventId?: string) => {
     debounceMs: 500
   });
 
+  // Define callback functions that will be used by subscriptions
+  // These need to be defined before useNostrSubscriptions
+  const displayLiveEventRef = useRef<((liveEvent: Kind30311Event) => void) | null>(null);
+  const displayLiveChatMessageRef = useRef<((chatMessage: NostrEvent) => void) | null>(null);
+  const updateProfileRef = useRef<((profile: Kind0Event) => void) | null>(null);
+  const updateLiveEventHostProfileRef = useRef<((profile: Kind0Event) => void) | null>(null);
+  const drawKind1Ref = useRef<((kind1: Kind1Event) => Promise<void>) | null>(null);
+  const drawKind0Ref = useRef<((kind0: Kind0Event) => void) | null>(null);
+  const drawKinds9735Ref = useRef<((zaps: ProcessedZapData[]) => void) | null>(null);
+
   // Persistent zap list that accumulates over time (like legacy)
   let json9735List: ProcessedZapData[] = [];
   let processedZapIDs = new Set<string>(); // Track processed zap IDs to prevent duplicates
@@ -147,7 +158,8 @@ export const useLiveFunctionality = (eventId?: string) => {
     resetZapperTotals: resetZapperTotalsFromHook,
     markInitialZapsLoaded,
     setZapNotification,
-    setZaps
+    setZaps,
+    storePendingZapNotification
   } = useZapHandling({
     onSubscribeProfile: (pubkey: string) => {
       if (subscribeChatAuthorProfileRef.current) {
@@ -225,6 +237,143 @@ export const useLiveFunctionality = (eventId?: string) => {
   useEffect(() => {
     updateBlendModeRef.current = updateBlendModeFromHook;
   }, [updateBlendModeFromHook]);
+
+  // Initialize Nostr Subscriptions hook
+  const {
+    subscribeLiveEvent,
+    subscribeLiveChat,
+    subscribeLiveEventZaps,
+    subscribeLiveEventParticipants,
+    subscribeChatAuthorProfile,
+    subscribeLiveEventHostProfile,
+    subscribeKind1,
+    subscribeKind0fromKind1,
+    subscribeKind9735fromKind1,
+    subscribeKind0fromKinds9735
+  } = useNostrSubscriptions({
+    nostrClient,
+    liveEventService,
+    onLiveEvent: (liveEvent: Kind30311Event) => {
+      // Call the function via ref - it will be set when the function is first called
+      // For now, we'll call it directly if the ref is set, otherwise we'll queue it
+      const callback = displayLiveEventRef.current;
+      if (callback) {
+        callback(liveEvent);
+      } else {
+        // If ref not set yet, set it and call immediately
+        // This handles the case where the function hasn't been defined yet
+        console.warn('displayLiveEventRef not set yet, event will be lost');
+      }
+    },
+    onLiveChatMessage: (chatMessage: NostrEvent) => {
+      const callback = displayLiveChatMessageRef.current;
+      if (callback) {
+        callback(chatMessage);
+      } else {
+        console.warn('displayLiveChatMessageRef not set yet, message will be lost');
+      }
+    },
+    onLiveEventZap: (zap: Kind9735Event, pubkey: string, identifier: string) => {
+      processLiveEventZap(zap, pubkey, identifier);
+    },
+    onProfileUpdate: (profile: Kind0Event) => {
+      const callback = updateProfileRef.current;
+      if (callback) {
+        callback(profile);
+      }
+    },
+    onZapProfileUpdate: (profile: Kind0Event) => {
+      updateZapProfile(profile);
+      const callback = updateProfileRef.current;
+      if (callback) {
+        callback(profile);
+      }
+    },
+    onLiveEventHostProfileUpdate: (profile: Kind0Event) => {
+      const callback = updateLiveEventHostProfileRef.current;
+      if (callback) {
+        callback(profile);
+      }
+    },
+    onKind1Event: async (kind1: Kind1Event) => {
+      const callback = drawKind1Ref.current;
+      if (callback) {
+        await callback(kind1);
+      } else {
+        console.warn('drawKind1Ref not set yet - function may not be defined');
+        setTimeout(async () => {
+          if (drawKind1Ref.current) {
+            await drawKind1Ref.current(kind1);
+          }
+        }, 0);
+      }
+      await subscribeKind0fromKind1(kind1);
+      await subscribeKind9735fromKind1(kind1);
+    },
+    onKind0Event: (kind0: Kind0Event) => {
+      const callback = drawKind0Ref.current;
+      if (callback) {
+        callback(kind0);
+      } else {
+        // If ref not set yet, try calling the function directly after a delay
+        // The function will set its own ref on first call
+        setTimeout(() => {
+          const retryCallback = drawKind0Ref.current;
+          if (retryCallback) {
+            retryCallback(kind0);
+          } else {
+            console.error('drawKind0Ref still not set after timeout - function may not be defined');
+          }
+        }, 100); // Longer timeout to ensure function is defined
+      }
+    },
+    onZapsLoaded: (zaps: Kind9735Event[]) => {
+      // When zaps are loaded, process them with profiles
+      // Get profiles from window.profiles (set by subscribeKind0fromKinds9735)
+      const profiles = (window as any).profiles || {};
+      const kind0fromkind9735List: Kind0Event[] = Object.values(profiles) as Kind0Event[];
+      
+      // Process zaps with profiles using createkinds9735JSON
+      if (zaps.length > 0) {
+        createkinds9735JSON(zaps, kind0fromkind9735List);
+      } else {
+        // Show empty state if no zaps
+        const zapsContainer = document.getElementById('zaps');
+        if (zapsContainer) {
+          zapsContainer.classList.remove('loading');
+          const loadingText = zapsContainer.querySelector('.loading-text');
+          if (loadingText) loadingText.remove();
+          
+          const emptyStateDiv = document.createElement('div');
+          emptyStateDiv.className = 'empty-zaps-state';
+          emptyStateDiv.innerHTML = `
+            <div class="empty-zaps-message">
+              Be the first to support
+            </div>
+          `;
+          zapsContainer.appendChild(emptyStateDiv);
+        }
+      }
+    },
+    onNewZap: (zap: Kind9735Event) => {
+      // Process new zap for notification (only for zaps after initial load)
+      processNewZapForNotification(zap);
+    },
+    resetZapList,
+    markInitialZapsLoaded
+  });
+
+  // Store subscription functions in refs for backward compatibility
+  subscribeChatAuthorProfileRef.current = subscribeChatAuthorProfile;
+  
+  // Create a ref to store subscribeLiveEventParticipants for use in displayLiveEvent
+  const subscribeLiveEventParticipantsRef = useRef<((liveEvent: Kind30311Event) => Promise<unknown>) | null>(null);
+  subscribeLiveEventParticipantsRef.current = subscribeLiveEventParticipants;
+
+  // CRITICAL: Set callback refs immediately after functions are defined
+  // This ensures refs are available when subscriptions trigger, preventing lost events
+  // We'll add a useEffect at the end of the component (after all functions are defined)
+  // to set all refs immediately
 
   // Update top zappers display when topZappers changes
   useEffect(() => {
@@ -526,152 +675,19 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // initializeQRCodePlaceholders is now imported from useQRCode hook
 
-  // Live Event subscription functions
-  const subscribeLiveEvent = useCallback(async (
-    pubkey: string,
-    identifier: string,
-    kind: number
-  ) => {
-    const subscription = nostrClient.subscribeToLiveEvents(
-      pubkey,
-      identifier,
-      (liveEvent: NostrEvent) => {
-        displayLiveEvent(liveEvent as Kind30311Event);
-        // Also subscribe to participants' profiles
-        subscribeLiveEventParticipants(liveEvent as Kind30311Event);
-      },
-      {
-        timeout: SUBSCRIPTION_TIMEOUT,
-        onclosed: () => {
-          // Attempt to reconnect after a delay if we have current event info
-          if (
-            (window as any).currentLiveEventInfo &&
-            (window as any).reconnectionAttempts.event < MAX_RECONNECT_ATTEMPTS
-          ) {
-            (window as any).reconnectionAttempts.event++;
-            setTimeout(
-              () => {
-                subscribeLiveEvent(
-                  (window as any).currentLiveEventInfo.pubkey,
-                  (window as any).currentLiveEventInfo.identifier,
-                  (window as any).currentLiveEventInfo.kind
-                );
-              },
-              RECONNECT_BASE_DELAY * (window as any).reconnectionAttempts.event
-            );
-          }
-        }
-      }
-    );
-    return subscription;
-  }, [nostrClient, liveEventService]);
-
-  const subscribeLiveChat = useCallback(async (pubkey: string, identifier: string) => {
-    const aTag = liveEventService.generateATag(pubkey, identifier);
-    const filter: NostrFilter = {
-      kinds: [1311], // Live Chat Message kind (not in EVENT_KINDS, keeping as-is)
-      '#a': [aTag]
-    };
-
-    const subscription = nostrClient.subscribeToEvents(
-      [filter],
-      (chatMessage: NostrEvent) => {
-        displayLiveChatMessage(chatMessage);
-      },
-      {
-        timeout: SUBSCRIPTION_TIMEOUT,
-        onclosed: () => {
-          // Attempt to reconnect after a delay if we have current event info
-          if (
-            (window as any).currentLiveEventInfo &&
-            (window as any).reconnectionAttempts.chat < MAX_RECONNECT_ATTEMPTS
-          ) {
-            (window as any).reconnectionAttempts.chat++;
-            setTimeout(
-              () => {
-                subscribeLiveChat(
-                  (window as any).currentLiveEventInfo.pubkey,
-                  (window as any).currentLiveEventInfo.identifier
-                );
-              },
-              RECONNECT_BASE_DELAY * (window as any).reconnectionAttempts.chat
-            );
-          }
-        }
-      }
-    );
-    return subscription;
-  }, [nostrClient, liveEventService]);
-
-  const subscribeLiveEventZaps = useCallback(async (pubkey: string, identifier: string) => {
-    console.log('🔌 subscribeLiveEventZaps called for:', {
-      pubkey: pubkey.slice(0, 8),
-      identifier
-    });
-
-    // Reset zap list when starting a new live event (like legacy)
-    resetZapList();
-
-    const aTag = liveEventService.generateATag(pubkey, identifier);
-
-    const filter: NostrFilter = {
-      kinds: [EVENT_KINDS.ZAP_RECEIPT], // Zap receipt kind
-      '#a': [aTag]
-    };
-
-    console.log('🔌 Subscribing to zaps with filter:', filter);
-
-    const subscription = nostrClient.subscribeToEvents(
-      [filter],
-      (zapReceipt: NostrEvent) => {
-        processLiveEventZap(zapReceipt as Kind9735Event, pubkey, identifier);
-      },
-      {
-        timeout: SUBSCRIPTION_TIMEOUT,
-        oneose: () => {
-          // Keep subscription alive for new zaps
-          // Mark that initial zaps have been loaded
-          markInitialZapsLoaded();
-          console.log(
-            '✅ Initial zaps loaded (oneose), will show notifications for new zaps.'
-          );
-        },
-        onclosed: () => {
-          // Attempt to reconnect after a delay
-          setTimeout(() => {
-            subscribeLiveEventZaps(pubkey, identifier);
-          }, RECONNECT_BASE_DELAY);
-        }
-      }
-    );
-    return subscription;
-  }, [nostrClient, processLiveEventZap, resetZapList, markInitialZapsLoaded, liveEventService]);
-
-  const subscribeLiveEventParticipants = useCallback(async (liveEvent: Kind30311Event) => {
-    // Extract participant pubkeys using service
-    const participants = liveEventService.getParticipants(liveEvent);
-    const participantPubkeys = participants
-      .map((p) => p.pubkey)
-      .filter((pubkey: string): pubkey is string => !!pubkey);
-
-    if (participantPubkeys.length > 0) {
-      const subscription = nostrClient.subscribeToProfiles(
-        participantPubkeys,
-        (profile: NostrEvent) => {
-          // Store profile for later use
-          (window as any).profiles = (window as any).profiles || {};
-          (window as any).profiles[profile.pubkey] = profile as Kind0Event;
-        },
-        {
-          timeout: 30000
-        }
-      );
-      return subscription;
-    }
-  }, [nostrClient, liveEventService]);
+  // Subscription functions are now provided by useNostrSubscriptions hook
 
   const displayLiveEvent = (liveEvent: Kind30311Event) => {
+    // Set ref immediately when function is called (for first call)
+    if (!displayLiveEventRef.current) {
+      displayLiveEventRef.current = displayLiveEvent;
+    }
     console.log('📺 Displaying live event:', liveEvent);
+    
+    // Subscribe to participants' profiles
+    if (subscribeLiveEventParticipantsRef.current) {
+      subscribeLiveEventParticipantsRef.current(liveEvent);
+    }
 
     // Check if this live event is already displayed to avoid clearing content
     if (
@@ -910,6 +926,10 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const displayLiveChatMessage = (chatMessage: NostrEvent) => {
+    // Set ref immediately when function is called (for first call)
+    if (!displayLiveChatMessageRef.current) {
+      displayLiveChatMessageRef.current = displayLiveChatMessage;
+    }
     // Debug log removed
 
     // Check if this chat message is already displayed to prevent duplicates
@@ -990,30 +1010,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // processLiveEventZap and displayLiveEventZap are now provided by useZapHandling hook
 
-  const subscribeChatAuthorProfile = useCallback(async (pubkey: string) => {
-    subscribeChatAuthorProfileRef.current = subscribeChatAuthorProfile;
-
-    // Track newest event per pubkey
-    const newestProfile = new Map<string, { event: Kind0Event; timestamp: number }>();
-
-    const subscription = nostrClient.subscribeToProfiles(
-      [pubkey],
-      (profile: NostrEvent) => {
-        const kind0Profile = profile as Kind0Event;
-        const existing = newestProfile.get(kind0Profile.pubkey);
-        // Only process if this is the newest event we've seen
-        if (!existing || kind0Profile.created_at > existing.timestamp) {
-          newestProfile.set(kind0Profile.pubkey, { event: kind0Profile, timestamp: kind0Profile.created_at });
-          updateZapProfile(kind0Profile);
-          updateProfile(kind0Profile); // Also update chat profile
-        }
-      },
-      {
-        timeout: 30000
-      }
-    );
-    return subscription;
-  }, [nostrClient, updateZapProfile]);
+  // subscribeChatAuthorProfile is now provided by useNostrSubscriptions hook
 
   const updateLiveEventZapTotal = () => {
     // Debug log removed
@@ -1127,6 +1124,10 @@ export const useLiveFunctionality = (eventId?: string) => {
   };
 
   const updateProfile = (profile: Kind0Event) => {
+    // Set ref immediately when function is called (for first call)
+    if (!updateProfileRef.current) {
+      updateProfileRef.current = updateProfile;
+    }
     let profileData: Record<string, unknown> = {};
     try {
       profileData = JSON.parse(profile.content || '{}') as Record<string, unknown>;
@@ -1198,29 +1199,13 @@ export const useLiveFunctionality = (eventId?: string) => {
     zapsContainer.classList.add('live-event-two-column');
   };
 
-  const subscribeLiveEventHostProfile = useCallback(async (hostPubkey: string) => {
-    // Track newest event per pubkey
-    const newestProfile = new Map<string, { event: Kind0Event; timestamp: number }>();
-
-    const subscription = nostrClient.subscribeToProfiles(
-      [hostPubkey],
-      (profile: NostrEvent) => {
-        const kind0Profile = profile as Kind0Event;
-        const existing = newestProfile.get(kind0Profile.pubkey);
-        // Only process if this is the newest event we've seen
-        if (!existing || kind0Profile.created_at > existing.timestamp) {
-          newestProfile.set(kind0Profile.pubkey, { event: kind0Profile, timestamp: kind0Profile.created_at });
-          updateLiveEventHostProfile(kind0Profile);
-        }
-      },
-      {
-        timeout: 30000
-      }
-    );
-    return subscription;
-  }, [nostrClient, liveEventService]);
+  // subscribeLiveEventHostProfile is now provided by useNostrSubscriptions hook
 
   const updateLiveEventHostProfile = (profile: Kind0Event) => {
+    // Set ref immediately when function is called (for first call)
+    if (!updateLiveEventHostProfileRef.current) {
+      updateLiveEventHostProfileRef.current = updateLiveEventHostProfile;
+    }
     // Debug log removed
 
     let profileData: Record<string, unknown> = {};
@@ -1714,68 +1699,9 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
     // Debug log removed
   };
 
-  const subscribeKind1 = useCallback(async (kind1ID: string) => {
-    // Reset zap list when starting a new note/event (like legacy)
-    resetZapList();
+  // subscribeKind1 is now provided by useNostrSubscriptions hook
 
-    // Validate kind1ID format (should be 64-character hex string)
-    if (
-      !kind1ID ||
-      typeof kind1ID !== 'string' ||
-      kind1ID.length !== 64 ||
-      !/^[0-9a-fA-F]+$/.test(kind1ID)
-    ) {
-      return;
-    }
-
-    const filter: NostrFilter = { 
-      ids: [kind1ID],
-      kinds: [EVENT_KINDS.NOTE]
-    };
-
-    const subscription = nostrClient.subscribeToEvents(
-      [filter],
-      async (kind1: NostrEvent) => {
-        const kind1Event = kind1 as Kind1Event;
-        await drawKind1(kind1Event);
-        await subscribeKind0fromKind1(kind1Event);
-        await subscribeKind9735fromKind1(kind1Event);
-      },
-      {
-        timeout: KIND1_SUBSCRIPTION_TIMEOUT
-      }
-    );
-    return subscription;
-  }, [nostrClient, resetZapList]);
-
-  const subscribeKind0fromKind1 = useCallback(async (kind1: Kind1Event) => {
-    const kind0key = kind1.pubkey;
-
-    // Don't subscribe if no valid pubkey
-    if (!kind0key || typeof kind0key !== 'string' || kind0key.length !== 64) {
-      return;
-    }
-
-    // Track newest event per pubkey
-    const newestProfile = new Map<string, { event: Kind0Event; timestamp: number }>();
-
-    const subscription = nostrClient.subscribeToProfiles(
-      [kind0key],
-      (kind0: NostrEvent) => {
-        const kind0Event = kind0 as Kind0Event;
-        const existing = newestProfile.get(kind0Event.pubkey);
-        // Only process if this is the newest event we've seen
-        if (!existing || kind0Event.created_at > existing.timestamp) {
-          newestProfile.set(kind0Event.pubkey, { event: kind0Event, timestamp: kind0Event.created_at });
-          drawKind0(kind0Event);
-        }
-      },
-      {
-        timeout: 30000
-      }
-    );
-    return subscription;
-  }, [nostrClient, liveEventService]);
+  // subscribeKind0fromKind1 is now provided by useNostrSubscriptions hook
 
   const processNewZapForNotification = async (kind9735: Kind9735Event) => {
     try {
@@ -1789,165 +1715,25 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
       const zapperPubkey = extractZapPayerPubkey(kind9735);
       const zapContent = extractZapContent(kind9735);
 
-      // Store as pending - subscribeKind0fromKinds9735 will fetch profile
-      // When profile arrives, updateProfile will trigger the notification
-      // pendingZapNotificationsRef is now managed by useZapHandling hook
-      // This notification will be handled by the hook when profile arrives
-      // Note: This code path may need to be refactored to use the hook's notification system
-      console.warn('pendingZapNotificationsRef usage - should use hook notification system');
-      // The notification data is stored in the hook's pendingZapNotificationsRef
-      // It will be processed when the profile arrives via updateZapProfile
+      // Store zap data as pending notification - subscribeKind0fromKinds9735 will fetch profile
+      // When profile arrives, updateZapProfile will trigger the notification
+      storePendingZapNotification({
+        id: kind9735.id,
+        pubkey: zapperPubkey,
+        amount,
+        content: zapContent,
+        timestamp: kind9735.created_at
+      });
     } catch (error) {
       console.error('❌ Error processing new zap for notification:', error);
     }
   };
 
-  const subscribeKind9735fromKind1 = useCallback(async (kind1: Kind1Event) => {
-    const kinds9735IDs = new Set<string>();
-    const kinds9735: Kind9735Event[] = [];
-    const kind1id = kind1.id;
+  // subscribeKind9735fromKind1 is now provided by useNostrSubscriptions hook
+  // subscribeKind9735fromKind1 is now provided by useNostrSubscriptions hook
 
-    // Don't subscribe if no valid kind1id
-    if (!kind1id || typeof kind1id !== 'string' || kind1id.length !== 64) {
-      return;
-    }
-
-    // Reset initial zaps flag for new note
-    console.log('🔄 Resetting initial zaps loaded flag for new note');
-    // initialZapsLoadedRef is now managed by useZapHandling hook
-    // The hook will handle this automatically when processing new zaps
-
-    let isFirstStream = true;
-
-    const zapsContainer = document.getElementById('zaps');
-
-    // Add a timeout for zap subscription
-    const zapTimeoutId = setTimeout(() => {
-      // Zap subscription timeout - no zaps received after 15 seconds
-      if (kinds9735.length === 0) {
-        // No zaps found for this note
-        if (zapsContainer) {
-          zapsContainer.classList.remove('loading');
-          const loadingText = zapsContainer.querySelector('.loading-text');
-          if (loadingText) loadingText.remove();
-
-          const emptyStateDiv = document.createElement('div');
-          emptyStateDiv.className = 'empty-zaps-state';
-          emptyStateDiv.innerHTML = `
-            <div class="empty-zaps-message">
-              Be the first to support
-            </div>
-          `;
-          zapsContainer.appendChild(emptyStateDiv);
-        }
-      }
-    }, ZAP_SUBSCRIPTION_TIMEOUT);
-
-    const filter: NostrFilter = {
-      kinds: [EVENT_KINDS.ZAP_RECEIPT],
-      '#e': [kind1id]
-    };
-
-    const subscription = nostrClient.subscribeToZaps(
-      kind1id,
-      (kind9735: NostrEvent) => {
-        const kind9735Event = kind9735 as Kind9735Event;
-        clearTimeout(zapTimeoutId);
-        if (!kinds9735IDs.has(kind9735Event.id)) {
-          kinds9735IDs.add(kind9735Event.id);
-          kinds9735.push(kind9735Event);
-          if (!isFirstStream) {
-            subscribeKind0fromKinds9735([kind9735Event]);
-            // Also trigger notification for this new zap
-            processNewZapForNotification(kind9735Event);
-          }
-        }
-      },
-      {
-        timeout: SUBSCRIPTION_TIMEOUT,
-        onclosed: () => {
-          clearTimeout(zapTimeoutId);
-        }
-      }
-    );
-
-    // Handle oneose separately since subscribeToZaps doesn't have it in options
-    // We'll need to track this differently or use a wrapper
-    // For now, we'll use a setTimeout to simulate oneose after initial load
-    setTimeout(() => {
-      if (isFirstStream) {
-        isFirstStream = false;
-        // Mark that initial zaps have loaded
-        markInitialZapsLoaded();
-        // If no zaps found, show empty state immediately
-        if (kinds9735.length === 0) {
-          drawKinds9735([]);
-        } else {
-          subscribeKind0fromKinds9735(kinds9735);
-        }
-      }
-    }, ZAP_SUBSCRIPTION_TIMEOUT);
-
-    return subscription;
-  }, [nostrClient, markInitialZapsLoaded]);
-
-  const subscribeKind0fromKinds9735 = useCallback((kinds9735: Kind9735Event[]) => {
-    const kind9734PKs: string[] = [];
-    const kind0fromkind9735List: Kind0Event[] = [];
-    // Map to track newest event per pubkey (by created_at)
-    const kind0fromkind9735Map = new Map<string, Kind0Event>();
-
-    for (const kind9735 of kinds9735) {
-      if (kind9735.tags) {
-        const description9735 = kind9735.tags.find(
-          (tag: string[]) => tag[0] === 'description'
-        )?.[1];
-        if (description9735) {
-          try {
-            const kind9734 = JSON.parse(description9735) as { pubkey?: string };
-            if (kind9734.pubkey) {
-              kind9734PKs.push(kind9734.pubkey);
-            }
-          } catch (error) {
-            console.warn('Failed to parse zap description for pubkey extraction:', error);
-            // Skip this zap if we can't parse it
-          }
-        }
-      }
-    }
-
-    // Don't subscribe if no authors to query
-    if (kind9734PKs.length === 0) {
-      return;
-    }
-
-    const subscription = nostrClient.subscribeToProfiles(
-      kind9734PKs,
-      (kind0: NostrEvent) => {
-        const kind0Event = kind0 as Kind0Event;
-        const existing = kind0fromkind9735Map.get(kind0Event.pubkey);
-        // Keep the newest event (highest created_at)
-        if (!existing || kind0Event.created_at > existing.created_at) {
-          kind0fromkind9735Map.set(kind0Event.pubkey, kind0Event);
-          // Update profile to trigger notification if pending
-          updateZapProfile(kind0Event);
-          updateProfile(kind0Event); // Also update chat profile
-        }
-      },
-      {
-        timeout: SUBSCRIPTION_TIMEOUT
-      }
-    );
-
-    // Handle oneose separately - process after timeout
-    setTimeout(async () => {
-      // Convert map values to array (only newest events per pubkey)
-      kind0fromkind9735List.push(...Array.from(kind0fromkind9735Map.values()));
-      createkinds9735JSON(kinds9735, kind0fromkind9735List);
-    }, 1000);
-
-    return subscription;
-  }, [nostrClient, updateZapProfile]);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // subscribeKind0fromKinds9735 is now provided by useNostrSubscriptions hook
 
 
   const createkinds9735JSON = async (
@@ -2027,6 +1813,10 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
   };
 
   const drawKinds9735 = (json9735List: ProcessedZapData[]) => {
+    // Set ref immediately when function is called (for first call)
+    if (!drawKinds9735Ref.current) {
+      drawKinds9735Ref.current = drawKinds9735;
+    }
     // Debug log removed
 
     const zapsContainer = document.getElementById('zaps');
@@ -2492,6 +2282,10 @@ break;
   };
 
   const drawKind1 = async (kind1: Kind1Event) => {
+    // Set ref immediately when function is called (for first call)
+    if (!drawKind1Ref.current) {
+      drawKind1Ref.current = drawKind1;
+    }
     // Debug log removed
 
     // Store note ID globally for QR regeneration
@@ -2607,6 +2401,10 @@ break;
   };
 
   const drawKind0 = (kind0: Kind0Event) => {
+    // Set ref immediately when function is called (for first call)
+    if (!drawKind0Ref.current) {
+      drawKind0Ref.current = drawKind0;
+    }
     // Debug log removed
 
     try {
@@ -2909,74 +2707,6 @@ const sanitizedUrl = sanitizeUrl(url);
     return sanitizeHTML(processed);
   };
 
-  const loadLiveEvent = async (naddr: string) => {
-    try {
-      const decoded = nip19.decode(naddr);
-      if (decoded.type === 'naddr') {
-        const { identifier, pubkey, kind } = decoded.data;
-
-        // Load the live event content
-        setNoteContent(`Live Event: ${identifier}`);
-        setAuthorName('Live Event Author');
-
-        // Subscribe to live event updates
-        await subscribeLiveEvent(pubkey, identifier, kind);
-        await subscribeLiveChat(pubkey, identifier);
-        await subscribeLiveEventZaps(pubkey, identifier);
-      }
-    } catch (err) {
-      throw new Error('Failed to load live event');
-    }
-  };
-
-  const loadProfile = async (nprofile: string) => {
-    try {
-      const decoded = nip19.decode(nprofile);
-      if (decoded.type === 'nprofile') {
-        const { pubkey } = decoded.data;
-        await loadProfileContent(pubkey);
-      }
-    } catch (err) {
-      throw new Error('Failed to load profile');
-    }
-  };
-
-  const loadNote = async (noteId: string) => {
-    try {
-      const decoded = nip19.decode(noteId);
-      if (decoded.type === 'note') {
-        const noteId = decoded.data;
-        // Load note content
-        setNoteContent('Note content will be loaded here');
-        setAuthorName('Note Author');
-      }
-    } catch (err) {
-      throw new Error('Failed to load note');
-    }
-  };
-
-  const loadProfileContent = async (pubkey: string) => {
-    try {
-      // Load profile information
-      setAuthorName('Profile Author');
-      setNoteContent('Profile content will be loaded here');
-
-      // Subscribe to profile updates
-      await subscribeProfileInfo(pubkey);
-    } catch (err) {
-      throw new Error('Failed to load profile content');
-    }
-  };
-
-  const subscribeToLiveEvent = async (pubkey: string, identifier: string) => {
-    // This would integrate with the existing Nostr services
-    // Debug log removed
-  };
-
-  const subscribeProfileInfo = async (pubkey: string) => {
-    // This would integrate with the existing Nostr services
-    // Debug log removed
-  };
 
   // Helper function to show loading state
   const showLoadingState = (noteContentText: string, zapsText: string) => {
@@ -3070,8 +2800,10 @@ const sanitizedUrl = sanitizeUrl(url);
         // Show loading animations
         showLoadingState('Loading profile...', 'Loading profile activity...');
 
-        // Load profile
-        await loadProfileContent(pubkey);
+        // Subscribe to profile updates
+        if (subscribeChatAuthorProfile) {
+          subscribeChatAuthorProfile(pubkey);
+        }
       } else if (decoded.type === 'nevent') {
         // Handle note events
         const kind1ID = decoded.data.id;
@@ -5057,6 +4789,43 @@ debouncedApplyAllStyles();
   // initializeQRSwiper and progress tracking functions are now imported from useQRCode hook
 
   // Top zappers management functions
+
+  // CRITICAL FIX: Set callback refs immediately after all functions are defined
+  // This ensures refs are available when subscriptions trigger, preventing lost events
+  // We use useEffect to set refs after the component has rendered and all functions are defined
+  useEffect(() => {
+    // Set all callback refs - functions are now defined (const declarations are available after definition)
+    // This runs after the component has rendered, so all functions are defined
+    if (typeof displayLiveEvent !== 'undefined') {
+      displayLiveEventRef.current = displayLiveEvent;
+    }
+    if (typeof displayLiveChatMessage !== 'undefined') {
+      displayLiveChatMessageRef.current = displayLiveChatMessage;
+    }
+    if (typeof updateProfile !== 'undefined') {
+      updateProfileRef.current = updateProfile;
+    }
+    if (typeof updateLiveEventHostProfile !== 'undefined') {
+      updateLiveEventHostProfileRef.current = updateLiveEventHostProfile;
+    }
+    if (typeof drawKind1 !== 'undefined') {
+      drawKind1Ref.current = drawKind1;
+    }
+    if (typeof drawKind0 !== 'undefined') {
+      drawKind0Ref.current = drawKind0;
+    }
+    if (typeof drawKinds9735 !== 'undefined') {
+      drawKinds9735Ref.current = drawKinds9735;
+    }
+  }, [
+    displayLiveEvent,
+    displayLiveChatMessage,
+    updateProfile,
+    updateLiveEventHostProfile,
+    drawKind1,
+    drawKind0,
+    drawKinds9735
+  ]);
 
   // Cleanup function
   const cleanup = () => {
