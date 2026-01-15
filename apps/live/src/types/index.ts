@@ -22,4 +22,5 @@ export interface ZapNotification {
   amount: number;
   timestamp: number;
   zapperRank?: number; // 1, 2, or 3 for top zappers
+  pubkey?: string; // Optional: for pending notifications before profile is loaded
 }

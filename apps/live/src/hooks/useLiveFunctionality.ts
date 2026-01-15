@@ -10,6 +10,8 @@ import { useZapHandling } from './useZapHandling';
 import { useStyleManagement } from './useStyleManagement';
 import { useFiatConversion } from './useFiatConversion';
 import { useNostrSubscriptions } from './useNostrSubscriptions';
+import { useContentRendering } from './useContentRendering';
+import { useVideoPlayer } from './useVideoPlayer';
 // Zap handling imports removed - now using useZapHandling hook
 import { 
   DEFAULT_READ_RELAYS,
@@ -34,6 +36,31 @@ import { sanitizeHTML, sanitizeImageUrl, sanitizeUrl, escapeHtml } from '../util
 import { DEFAULT_STYLES } from '../constants/styles';
 import { appLocalStorage } from '../utils/storage';
 import { validateNoteId, stripNostrPrefix, parseEventId } from '../utils/eventIdParser';
+import {
+  getElementById,
+  querySelector,
+  querySelectorAll,
+  showElement,
+  hideElement,
+  showError as showErrorHelper,
+  hideError as hideErrorHelper,
+  showLoadingState as showElementLoadingState,
+  hideLoadingState,
+  createElement,
+  setTextContent,
+  appendChild,
+  addClass,
+  removeClass
+} from '../utils/domHelpers';
+import {
+  handleError,
+  handleErrorSilently,
+  parsingErrorHandler,
+  subscriptionErrorHandler,
+  logger,
+  ErrorCategory,
+  ErrorSeverity
+} from '../utils/errorHandling';
 
 // Flag to prevent multiple simultaneous calls to setupNoteLoaderListeners
 let setupNoteLoaderListenersInProgress = false;
@@ -47,21 +74,8 @@ const RECONNECT_BASE_DELAY = 5000; // 5 seconds
 const CONTENT_MONITOR_INTERVAL = 10000; // 10 seconds
 const MAX_RECONNECT_ATTEMPTS = 3;
 
-// Interface for processed zap data
-interface ProcessedZapData {
-  e?: string;
-  amount: number;
-  picture: string;
-  npubPayer: string;
-  pubKey: string;
-  zapEventID: string;
-  kind9735content: string;
-  kind1Name: string;
-  kind0Profile: Record<string, unknown> | null;
-  created_at: number;
-  timestamp: number;
-  id: string;
-}
+// ProcessedZapData is now imported from types/global.d.ts
+import type { ProcessedZapData } from '../types/global';
 
 export const useLiveFunctionality = (eventId?: string) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -77,7 +91,7 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Track if user wants to see top zappers (even before data is available)
   const [userWantsTopZappers, setUserWantsTopZappers] = useState(false);
 
-  const _liveDisplayRef = useRef<any>(null);
+  const _liveDisplayRef = useRef<HTMLElement | null>(null);
 
   // Initialize NostrClient - replaces window.pool
   const nostrClient = useMemo(() => new NostrClient(DEFAULT_READ_RELAYS), []);
@@ -262,7 +276,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       } else {
         // If ref not set yet, set it and call immediately
         // This handles the case where the function hasn't been defined yet
-        console.warn('displayLiveEventRef not set yet, event will be lost');
+        logger.warn('displayLiveEventRef not set yet, event will be lost', ErrorCategory.RENDERING);
       }
     },
     onLiveChatMessage: (chatMessage: NostrEvent) => {
@@ -270,7 +284,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (callback) {
         callback(chatMessage);
       } else {
-        console.warn('displayLiveChatMessageRef not set yet, message will be lost');
+        logger.warn('displayLiveChatMessageRef not set yet, message will be lost', ErrorCategory.RENDERING);
       }
     },
     onLiveEventZap: (zap: Kind9735Event, pubkey: string, identifier: string) => {
@@ -300,7 +314,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (callback) {
         await callback(kind1);
       } else {
-        console.warn('drawKind1Ref not set yet - function may not be defined');
+        logger.warn('drawKind1Ref not set yet - function may not be defined', ErrorCategory.RENDERING);
         setTimeout(async () => {
           if (drawKind1Ref.current) {
             await drawKind1Ref.current(kind1);
@@ -322,7 +336,12 @@ export const useLiveFunctionality = (eventId?: string) => {
           if (retryCallback) {
             retryCallback(kind0);
           } else {
-            console.error('drawKind0Ref still not set after timeout - function may not be defined');
+            handleError(
+              new Error('drawKind0Ref still not set after timeout'),
+              'drawKind0Ref still not set after timeout - function may not be defined',
+              ErrorCategory.RENDERING,
+              ErrorSeverity.MEDIUM
+            );
           }
         }, 100); // Longer timeout to ensure function is defined
       }
@@ -330,7 +349,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     onZapsLoaded: (zaps: Kind9735Event[]) => {
       // When zaps are loaded, process them with profiles
       // Get profiles from window.profiles (set by subscribeKind0fromKinds9735)
-      const profiles = (window as any).profiles || {};
+      const profiles = window.profiles || {};
       const kind0fromkind9735List: Kind0Event[] = Object.values(profiles) as Kind0Event[];
       
       // Process zaps with profiles using createkinds9735JSON
@@ -338,20 +357,19 @@ export const useLiveFunctionality = (eventId?: string) => {
         createkinds9735JSON(zaps, kind0fromkind9735List);
       } else {
         // Show empty state if no zaps
-        const zapsContainer = document.getElementById('zaps');
+        const zapsContainer = getElementById('zaps');
         if (zapsContainer) {
-          zapsContainer.classList.remove('loading');
-          const loadingText = zapsContainer.querySelector('.loading-text');
-          if (loadingText) loadingText.remove();
+          hideLoadingState(zapsContainer);
           
-          const emptyStateDiv = document.createElement('div');
-          emptyStateDiv.className = 'empty-zaps-state';
-          emptyStateDiv.innerHTML = `
+          const emptyStateDiv = createElement('div', {
+            className: 'empty-zaps-state',
+            innerHTML: `
             <div class="empty-zaps-message">
               Be the first to support
             </div>
-          `;
-          zapsContainer.appendChild(emptyStateDiv);
+          `
+          });
+          appendChild(zapsContainer, emptyStateDiv);
         }
       }
     },
@@ -361,6 +379,47 @@ export const useLiveFunctionality = (eventId?: string) => {
     },
     resetZapList,
     markInitialZapsLoaded
+  });
+
+  // Initialize Video Player hook
+  const {
+    initializeLiveVideoPlayer: initializeLiveVideoPlayerFromHook,
+    cleanupLiveVideoPlayer
+  } = useVideoPlayer({
+    videoElementId: 'live-video',
+    errorElementId: 'video-error'
+  });
+
+  // Initialize Content Rendering hook
+  const {
+    drawKind1: drawKind1FromHook,
+    drawKind0: drawKind0FromHook,
+    displayLiveEvent: displayLiveEventFromHook,
+    displayLiveChatMessage: displayLiveChatMessageFromHook,
+    processNoteContent: processNoteContentFromHook,
+    updateProfile: updateProfileFromHook,
+    updateLiveEventHostProfile: updateLiveEventHostProfileFromHook,
+    setupLiveEventTwoColumnLayout,
+    startContentMonitoring
+  } = useContentRendering({
+    nostrClient,
+    liveEventService,
+    setNoteContent,
+    setAuthorName,
+    setAuthorImage,
+    setAuthorNip05,
+    setAuthorLud16,
+    generateQRCode,
+    generateLiveEventQRCodes,
+    subscribeLiveEventParticipants,
+    subscribeChatAuthorProfile,
+    subscribeLiveEventHostProfile,
+    updateQRSlideVisibility: (skipUrlUpdate?: boolean) => {
+      if (updateQRSlideVisibilityRef.current) {
+        updateQRSlideVisibilityRef.current(skipUrlUpdate);
+      }
+    },
+    initializeLiveVideoPlayer: initializeLiveVideoPlayerFromHook
   });
 
   // Store subscription functions in refs for backward compatibility
@@ -425,8 +484,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         // NostrClient is already initialized via useMemo hook
 
         // Initialize portrait swiper
-        if (typeof window !== 'undefined' && (window as any).Swiper) {
-          new (window as any).Swiper('.portrait-swiper .swiper', {
+        if (typeof window !== 'undefined' && window.Swiper) {
+          new window.Swiper('.portrait-swiper .swiper', {
             // Basic settings
             loop: true,
             autoplay: {
@@ -545,7 +604,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Load initial styles and setup event listeners on page load
         setTimeout(() => {
           // Prevent original JavaScript from setting up duplicate event listeners
-          (window as any).setupStyleOptions = () => {
+          window.setupStyleOptions = () => {
             // Original setupStyleOptions disabled - using React hook instead
           };
 
@@ -677,335 +736,22 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Subscription functions are now provided by useNostrSubscriptions hook
 
+  // Wrapper function that uses the hook implementation
   const displayLiveEvent = (liveEvent: Kind30311Event) => {
     // Set ref immediately when function is called (for first call)
     if (!displayLiveEventRef.current) {
-      displayLiveEventRef.current = displayLiveEvent;
+      displayLiveEventRef.current = displayLiveEventFromHook;
     }
-    console.log('📺 Displaying live event:', liveEvent);
-    
-    // Subscribe to participants' profiles
-    if (subscribeLiveEventParticipantsRef.current) {
-      subscribeLiveEventParticipantsRef.current(liveEvent);
-    }
-
-    // Check if this live event is already displayed to avoid clearing content
-    if (
-      (window as any).currentLiveEvent &&
-      (window as any).currentLiveEvent.id === liveEvent.id
-    ) {
-      console.log('📺 Live event already displayed, skipping...');
-      return;
-    }
-
-    // Store event info globally at the beginning to prevent duplicate calls
-    (window as any).currentLiveEvent = liveEvent;
-    (window as any).currentEventType = 'live-event';
-
-    // Add livestream class to body for livestream events
-    document.body.classList.add('livestream');
-
-    // Hide note content loading animation
-    const noteContent = document.querySelector('.note-content');
-    if (noteContent) {
-      noteContent.classList.remove('loading');
-      const loadingText = noteContent.querySelector('.loading-text');
-      if (loadingText) loadingText.remove();
-    }
-
-    // Set up two-column layout for live events
-    setupLiveEventTwoColumnLayout();
-
-    // Extract event information using LiveEventService
-    const metadata = liveEventService.extractMetadata(liveEvent);
-    const {
-      title,
-      summary,
-      status,
-      streaming,
-      recording,
-      starts,
-      ends,
-      currentParticipants,
-      totalParticipants,
-      participants
-    } = metadata;
-
-    console.log('📺 Streaming URL found:', streaming);
-
-    // Format timestamps using service (inline for template strings)
-    const formatTime = liveEventService.formatTimestamp.bind(liveEventService);
-
-    // Check if live event content already exists to avoid rebuilding video
-    const existingLiveContent = noteContent?.querySelector(
-      '.live-event-content'
-    );
-    const existingVideo = noteContent?.querySelector('#live-video');
-
-    if (!existingLiveContent) {
-      // Only set innerHTML if content doesn't exist yet
-      if (noteContent) {
-        noteContent.innerHTML = `
-            ${
-              streaming
-                ? `
-                <div class="live-event-video">
-                    <div id="live-video-player" class="video-player-container">
-                        <video id="live-video" controls autoplay muted playsinline class="live-video">
-                            Your browser does not support the video tag.
-                        </video>
-                        <div class="video-error" id="video-error" style="display: none;">
-                            <p>Unable to load video stream</p>
-                            ${(() => {
-                              const sanitized = sanitizeUrl(streaming);
-                              return sanitized ? `<a href="${sanitized}" target="_blank" class="streaming-link" rel="noopener noreferrer">
-                                📺 Watch in External Player
-                            </a>` : '<span>Streaming URL unavailable</span>';
-                            })()}
-                  </div>
-                    </div>
-                </div>
-            `
-                : ''
-            }
-
-            <div class="live-event-content">
-                ${summary ? `<p class="live-event-summary">${summary}</p>` : ''}
-          
-                <div class="live-event-status">
-                    <span class="status-indicator status-${status}">
-                        ${status === 'live' ? '🔴 LIVE' : status === 'planned' ? '📅 PLANNED' : status === 'ended' ? '✅ ENDED' : status.toUpperCase()}
-              </span>
-                </div>
-                
-                ${
-                  starts
-                    ? `<div class="live-event-time">
-                    <strong>Starts:</strong> ${formatTime(starts)}
-          </div>`
-                    : ''
-                }
-
-                ${
-                  ends
-                    ? `<div class="live-event-time">
-                    <strong>Ends:</strong> ${formatTime(ends)}
-          </div>`
-                    : ''
-                }
-
-                <div class="live-event-participants">
-                    <div class="participants-count">
-                        <strong>Participants:</strong> ${currentParticipants}/${totalParticipants}
-              </div>
-                    ${
-                      participants.length > 0
-                        ? `
-                        <div class="participants-list">
-                            ${participants
-                              .slice(0, 10)
-                              .map(
-                                (p: { pubkey: string; role?: string }) => `
-                                <div class="participant" data-pubkey="${p.pubkey}">
-                                    <span class="participant-role">${p.role || 'Participant'}</span>: 
-                                    <span class="participant-pubkey">${p.pubkey.slice(0, 8)}...</span>
-                                </div>
-                            `
-                              )
-                              .join('')}
-                      ${participants.length > 10 ? `<div class="participants-more">... and ${participants.length - 10} more</div>` : ''}
-                  </div>
-                    `
-                        : ''
-                    }
-</div>
-                
-                ${
-                  recording
-                    ? `
-                    <div class="live-event-actions">
-                        ${(() => {
-                          const sanitized = sanitizeUrl(recording);
-                          return sanitized ? `<a href="${sanitized}" target="_blank" class="recording-link" rel="noopener noreferrer">
-                            🎥 Watch Recording
-                        </a>` : '<span>Recording URL unavailable</span>';
-                        })()}
-              </div>
-                `
-                    : ''
-                }
-</div>
-        `;
-      }
-    } else {
-      // Content exists, just update dynamic parts without touching video
-      const statusElement = noteContent?.querySelector(
-        '.live-event-status .status-indicator'
-      );
-      const participantsCountElement = noteContent?.querySelector(
-        '.participants-count'
-      );
-
-      if (statusElement) {
-        statusElement.className = `status-indicator status-${status}`;
-        statusElement.textContent =
-          status === 'live'
-            ? '🔴 LIVE'
-            : status === 'planned'
-              ? '📅 PLANNED'
-              : status === 'ended'
-                ? '✅ ENDED'
-                : status.toUpperCase();
-      }
-
-      if (participantsCountElement) {
-        participantsCountElement.innerHTML = `<strong>Participants:</strong> ${currentParticipants}/${totalParticipants}`;
-      }
-    }
-
-    // Update author info with event title and fetch host profile
-    const authorNameElement = document.getElementById('authorName');
-    if (authorNameElement) {
-      authorNameElement.innerText = title;
-    }
-
-    // Get host pubkey using service
-    const hostPubkey = liveEventService.getHostPubkey(liveEvent);
-
-    // Subscribe to host profile to get their image
-    subscribeLiveEventHostProfile(hostPubkey);
-
-    // Generate QR codes for the live event (with small delay to ensure DOM is ready)
-    setTimeout(() => {
-      // Ensure at least one QR toggle is enabled before generating QR codes
-      const qrShowNeventToggle = document.getElementById('qrShowNeventToggle') as HTMLInputElement;
-      if (qrShowNeventToggle && !qrShowNeventToggle.checked) {
-        // Check if any QR toggle is enabled
-        const qrShowWebLinkToggle = document.getElementById('qrShowWebLinkToggle') as HTMLInputElement;
-        const qrShowNoteToggle = document.getElementById('qrShowNoteToggle') as HTMLInputElement;
-        const hasAnyEnabled = (qrShowWebLinkToggle?.checked) || (qrShowNoteToggle?.checked);
-
-        // If none are enabled, enable nevent by default
-        if (!hasAnyEnabled) {
-          qrShowNeventToggle.checked = true;
-        }
-}
-
-      generateLiveEventQRCodes(liveEvent);
-      // Update QR slide visibility after generating QR codes
-      setTimeout(() => {
-        if (updateQRSlideVisibilityRef.current) {
-          updateQRSlideVisibilityRef.current(true);
-        }
-}, 300);
-    }, 100);
-
-    // Enable Lightning payments if previously enabled
-    if ((window as any).lightningEnabled) {
-      setTimeout(() => {
-        if ((window as any).enableLightningPayments) {
-          (window as any).enableLightningPayments();
-        }
-}, 150);
-    }
-
-    // Clean up any existing video player before initializing new one
-    if ((window as any).cleanupLiveVideoPlayer) {
-      (window as any).cleanupLiveVideoPlayer();
-    }
-
-    // Initialize video player if streaming URL is available
-    if (streaming) {
-      setTimeout(() => {
-        initializeLiveVideoPlayer(streaming);
-      }, 200);
-    }
-
-    // Start monitoring content to detect if it disappears
-    startContentMonitoring();
+    displayLiveEventFromHook(liveEvent);
   };
 
+  // Wrapper function that uses the hook implementation
   const displayLiveChatMessage = (chatMessage: NostrEvent) => {
     // Set ref immediately when function is called (for first call)
     if (!displayLiveChatMessageRef.current) {
-      displayLiveChatMessageRef.current = displayLiveChatMessage;
+      displayLiveChatMessageRef.current = displayLiveChatMessageFromHook;
     }
-    // Debug log removed
-
-    // Check if this chat message is already displayed to prevent duplicates
-    const existingMessage = document.querySelector(
-      `[data-chat-id="${chatMessage.id}"]`
-    );
-    if (existingMessage) {
-      // Debug log removed
-      return;
-    }
-
-    const zapsContainer = document.getElementById('zaps');
-
-    // Hide loading animation on first message
-    if (zapsContainer) {
-      zapsContainer.classList.remove('loading');
-      const loadingText = zapsContainer.querySelector('.loading-text');
-      if (loadingText) loadingText.remove();
-    }
-
-    // Use activity column for live events, main container for regular notes
-    const targetContainer =
-      document.getElementById('activity-list') || zapsContainer;
-
-    // Create chat message element
-    const chatDiv = document.createElement('div');
-    chatDiv.className = 'live-chat-message';
-    chatDiv.dataset.pubkey = chatMessage.pubkey;
-    chatDiv.dataset.timestamp = chatMessage.created_at.toString();
-    chatDiv.dataset.chatId = chatMessage.id;
-
-    const timeStr = new Date(chatMessage.created_at * 1000).toLocaleString();
-
-    // Sanitize chat message content to prevent XSS
-    const sanitizedContent = escapeHtml(chatMessage.content).replace(/\n/g, '<br>');
-
-    chatDiv.innerHTML = `
-        <div class="chat-message-header">
-            <img class="chat-author-img" src="/live/images/gradient_color.gif" data-pubkey="${chatMessage.pubkey}" />
-            <div class="chat-message-info">
-                <div class="chat-author-name" data-pubkey="${chatMessage.pubkey}">
-                    ${chatMessage.pubkey.slice(0, 8)}...
-                </div>
-                <div class="chat-message-time">${timeStr}</div>
-            </div>
-        </div>
-        <div class="chat-message-content">
-            ${sanitizedContent}
-  </div>
-    `;
-
-    // Subscribe to chat author's profile if we don't have it
-    subscribeChatAuthorProfile(chatMessage.pubkey);
-
-    // Insert message in reverse chronological order (newest first, at top)
-    if (targetContainer) {
-      const existingMessages = Array.from(
-        targetContainer.querySelectorAll('.live-chat-message, .live-event-zap')
-      );
-      const insertPosition = existingMessages.findIndex(
-        (msg: Element) => parseInt((msg as HTMLElement).dataset.timestamp || '0') < chatMessage.created_at
-      );
-
-      if (insertPosition === -1) {
-        // Add to end (oldest messages at bottom)
-        targetContainer.appendChild(chatDiv);
-      } else {
-        // Insert before the found position (newer messages towards top)
-        const targetItem = existingMessages[insertPosition];
-        if (targetItem) {
-          targetContainer.insertBefore(chatDiv, targetItem);
-        } else {
-          targetContainer.appendChild(chatDiv);
-        }
-}
-    }
+    displayLiveChatMessageFromHook(chatMessage);
   };
 
   // processLiveEventZap and displayLiveEventZap are now provided by useZapHandling hook
@@ -1016,29 +762,26 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Debug log removed
     updateLiveEventZapTotalRef.current = updateLiveEventZapTotal;
 
-    const zaps = Array.from(document.querySelectorAll('.live-event-zap'));
+    const zaps = querySelectorAll<HTMLElement>('.live-event-zap');
     const totalAmount = zaps.reduce((sum, zap) => {
       return sum + parseInt((zap as HTMLElement).dataset.amount || '0');
     }, 0);
     const totalCount = zaps.length;
 
-    const totalValueElement = document.getElementById('zappedTotalValue');
-    const totalCountElement = document.getElementById('zappedTotalCount');
+    const totalValueElement = getElementById('zappedTotalValue');
+    const totalCountElement = getElementById('zappedTotalCount');
 
     if (totalValueElement) {
-      totalValueElement.innerText = numberWithCommas(totalAmount);
+      setTextContent(totalValueElement, numberWithCommas(totalAmount));
       // Store the original sats amount for fiat conversion
-      (totalValueElement as HTMLElement).dataset.originalSats =
-        numberWithCommas(totalAmount);
+      totalValueElement.dataset.originalSats = numberWithCommas(totalAmount);
     }
     if (totalCountElement) {
-      totalCountElement.innerText = numberWithCommas(totalCount);
+      setTextContent(totalCountElement, numberWithCommas(totalCount));
     }
 
     // Apply fiat conversion to total if enabled
-    const showFiatToggle = document.getElementById(
-      'showFiatToggle'
-    ) as HTMLInputElement;
+    const showFiatToggle = getElementById<HTMLInputElement>('showFiatToggle');
     if (showFiatToggle && showFiatToggle.checked) {
       // Use setTimeout to ensure DOM is updated before applying fiat conversion
       setTimeout(() => {
@@ -1053,9 +796,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (!profile) return 'Anonymous';
     try {
       const profileData = JSON.parse(profile.content || '{}');
-      return (
+    return (
         profileData.display_name || profileData.displayName || profileData.name || 'Anonymous'
-      );
+    );
     } catch {
       return 'Anonymous';
     }
@@ -1066,7 +809,7 @@ export const useLiveFunctionality = (eventId?: string) => {
   const displayTopZappers = () => {
     // Debug log removed
 
-    const topZappersBar = document.getElementById('top-zappers-bar');
+    const topZappersBar = getElementById('top-zappers-bar');
 
     if (!topZappersBar) {
       // Debug log removed
@@ -1076,17 +819,17 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (topZappers.length === 0) {
       // Debug log removed
       // Remove the CSS class to hide the bar
-      document.body.classList.remove('show-top-zappers');
+      removeClass(document.body, 'show-top-zappers');
       return;
     }
 
     // Debug log removed
     // Add the CSS class to show the bar (CSS handles the display)
-    document.body.classList.add('show-top-zappers');
+    addClass(document.body, 'show-top-zappers');
 
     // Update each zapper slot (using the existing DOM structure)
     for (let i = 0; i < 5; i++) {
-      const zapperElement = document.getElementById(`top-zapper-${i + 1}`);
+      const zapperElement = getElementById(`top-zapper-${i + 1}`);
       if (!zapperElement) continue;
 
       if (i < topZappers.length) {
@@ -1094,8 +837,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         const avatar = zapperElement.querySelector(
           '.zapper-avatar'
         ) as HTMLImageElement;
-        const name = zapperElement.querySelector('.zapper-name');
-        const total = zapperElement.querySelector('.zapper-total');
+        const name = zapperElement.querySelector('.zapper-name') as HTMLElement | null;
+        const total = zapperElement.querySelector('.zapper-total') as HTMLElement | null;
 
         // topZappers is ProcessedZap[] from useZapHandling hook
         const zapperData = zapper as SharedProcessedZap;
@@ -1103,11 +846,12 @@ export const useLiveFunctionality = (eventId?: string) => {
         const zapperName = zapperData.content || 'Anonymous';
         const zapperAmount = zapperData.zapAmount || 0;
         
-        if (avatar) avatar.src = sanitizeImageUrl(zapperPicture) || '/live/images/gradient_color.gif';
-        if (avatar) avatar.alt = zapperName;
-        if (name) name.textContent = zapperName;
-        if (total)
-          total.textContent = `${numberWithCommas(zapperAmount)} sats`;
+        if (avatar) {
+          avatar.src = sanitizeImageUrl(zapperPicture) || '/live/images/gradient_color.gif';
+          avatar.alt = zapperName;
+        }
+        if (name) setTextContent(name as HTMLElement, zapperName);
+        if (total) setTextContent(total as HTMLElement, `${numberWithCommas(zapperAmount)} sats`);
 
         zapperElement.style.opacity = '1';
         zapperElement.style.display = 'flex';
@@ -1120,369 +864,34 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   const hideTopZappersBar = () => {
     // Remove the CSS class to hide the bar
-    document.body.classList.remove('show-top-zappers');
+    removeClass(document.body, 'show-top-zappers');
   };
 
+  // Wrapper function that uses the hook implementation
   const updateProfile = (profile: Kind0Event) => {
     // Set ref immediately when function is called (for first call)
     if (!updateProfileRef.current) {
-      updateProfileRef.current = updateProfile;
+      updateProfileRef.current = updateProfileFromHook;
     }
-    let profileData: Record<string, unknown> = {};
-    try {
-      profileData = JSON.parse(profile.content || '{}') as Record<string, unknown>;
-    } catch (error) {
-      console.warn('Failed to parse profile content:', error);
-      profileData = {};
-    }
-    const name =
-      (profileData.display_name as string) ||
-      (profileData.displayName as string) ||
-      (profileData.name as string) ||
-      `${profile.pubkey.slice(0, 8)}...`;
-    const picture = sanitizeImageUrl((profileData.picture as string) || '') || '/live/images/gradient_color.gif';
-
-    // Update chat messages from this author (zaps are handled by useZapHandling hook)
-    const authorElements = document.querySelectorAll(
-      `.chat-author-img[data-pubkey="${profile.pubkey}"], .chat-author-name[data-pubkey="${profile.pubkey}"]`
-    );
-    authorElements.forEach(element => {
-      if (element.classList.contains('chat-author-img')) {
-        (element as HTMLImageElement).src = picture;
-      } else if (element.classList.contains('chat-author-name')) {
-        element.textContent = name;
-      }
-    });
+    updateProfileFromHook(profile);
   };
 
-  const setupLiveEventTwoColumnLayout = () => {
-    // Debug log removed
-
-    const zapsContainer = document.getElementById('zaps');
-    if (!zapsContainer) return;
-
-    // Check if layout is already set up to avoid clearing existing content
-    if (
-      zapsContainer.classList.contains('live-event-two-column') &&
-      zapsContainer.querySelector('.live-event-columns')
-    ) {
-      return;
-    }
-
-    // Preserve the existing zaps header and add two-column structure below it
-    const existingZapsHeader = zapsContainer.querySelector('.zaps-header');
-    const existingZapsList = zapsContainer.querySelector('.zaps-list');
-
-    // Clear existing content but preserve the header
-    zapsContainer.innerHTML = '';
-
-    // Add back the zaps header if it exists
-    if (existingZapsHeader) {
-      zapsContainer.appendChild(existingZapsHeader);
-    }
-
-    // Add the two-column structure
-    const twoColumnDiv = document.createElement('div');
-    twoColumnDiv.className = 'live-event-columns';
-    twoColumnDiv.innerHTML = `
-        <div class="live-event-zaps-only">
-            <div id="zaps-only-list" class="zaps-only-list"></div>
-        </div>
-        <div class="live-event-activity">
-            <div id="activity-list" class="activity-list"></div>
-        </div>
-    `;
-
-    zapsContainer.appendChild(twoColumnDiv);
-
-    // Add the two-column class to the container
-    zapsContainer.classList.add('live-event-two-column');
-  };
+  // setupLiveEventTwoColumnLayout is now provided by useContentRendering hook
 
   // subscribeLiveEventHostProfile is now provided by useNostrSubscriptions hook
 
+  // Wrapper function that uses the hook implementation
   const updateLiveEventHostProfile = (profile: Kind0Event) => {
     // Set ref immediately when function is called (for first call)
     if (!updateLiveEventHostProfileRef.current) {
-      updateLiveEventHostProfileRef.current = updateLiveEventHostProfile;
+      updateLiveEventHostProfileRef.current = updateLiveEventHostProfileFromHook;
     }
-    // Debug log removed
-
-    let profileData: Record<string, unknown> = {};
-    try {
-      profileData = JSON.parse(profile.content || '{}') as Record<string, unknown>;
-    } catch (error) {
-      console.warn('Failed to parse live event host profile:', error);
-      profileData = {};
-    }
-    const picture = sanitizeImageUrl((profileData.picture as string) || '') || '/live/images/gradient_color.gif';
-    const nip05 = (profileData.nip05 as string) || '';
-    const lud16 = (profileData.lud16 as string) || '';
-
-    // Update the author profile image
-    const authorImg = document.getElementById(
-      'authorNameProfileImg'
-    ) as HTMLImageElement;
-    if (authorImg) {
-      authorImg.src = picture;
-    }
-
-    // Update state with profile metadata
-    setAuthorImage(picture);
-    setAuthorNip05(nip05);
-    setAuthorLud16(lud16);
+    updateLiveEventHostProfileFromHook(profile);
   };
 
-  const startContentMonitoring = () => {
-    // Debug log removed
+  // startContentMonitoring is now provided by useContentRendering hook
 
-    // Clear any existing monitoring
-    if ((window as any).contentMonitorInterval) {
-      clearInterval((window as any).contentMonitorInterval);
-    }
-
-    // Clear any existing price update interval
-    if ((window as any).bitcoinPriceUpdateInterval) {
-      clearInterval((window as any).bitcoinPriceUpdateInterval);
-    }
-
-    (window as any).contentMonitorInterval = setInterval(() => {
-      const noteContent = document.querySelector('.note-content');
-      const zapsContainer = document.getElementById('zaps');
-      const liveEventContent = noteContent?.querySelector(
-        '.live-event-content'
-      );
-      const twoColumnLayout = zapsContainer?.querySelector(
-        '.live-event-columns'
-      );
-
-      if ((window as any).currentEventType === 'live-event') {
-        if (!liveEventContent) {
-          // Try to restore if we have the current live event info
-          if (
-            (window as any).currentLiveEvent &&
-            (window as any).currentLiveEventInfo
-          ) {
-            // Debug log removed
-            displayLiveEvent((window as any).currentLiveEvent);
-          }
-}
-
-        if (
-          !twoColumnLayout &&
-          zapsContainer &&
-          !zapsContainer.classList.contains('loading')
-        ) {
-          setupLiveEventTwoColumnLayout();
-        }
-}
-    }, CONTENT_MONITOR_INTERVAL); // Check every 10 seconds
-  };
-
-  const initializeLiveVideoPlayer = (streamingUrl: string) => {
-    console.log('🎥 Initializing video player with URL:', streamingUrl);
-
-    const video = document.getElementById('live-video') as HTMLVideoElement;
-    const videoError = document.getElementById('video-error');
-
-    if (!video) {
-      console.error('❌ Video element not found!');
-      return;
-    }
-    console.log('✅ Video element found:', video);
-
-    // Store player state for recovery
-    let lastVolume = video.volume || 0.8;
-    let wasMuted = video.muted || false;
-    let wasPlaying = false;
-    let reconnectAttempts = 0;
-    const maxReconnectAttempts = 10;
-    let hlsInstance: any = null;
-
-    // Preserve volume and mute state
-    const preserveAudioState = () => {
-      if (!wasMuted && video.muted) {
-        video.muted = false;
-      }
-if (lastVolume > 0 && video.volume !== lastVolume) {
-        video.volume = lastVolume;
-      }
-    };
-
-    // Save current audio state
-    const saveAudioState = () => {
-      lastVolume = video.volume;
-      wasMuted = video.muted;
-      wasPlaying = !video.paused;
-    };
-
-    // Show error function
-    const showError = () => {
-      if (video) video.style.display = 'none';
-      if (videoError) videoError.style.display = 'block';
-    };
-
-    // Hide error function
-    const hideError = () => {
-      if (video) video.style.display = 'block';
-      if (videoError) videoError.style.display = 'none';
-    };
-
-    // Reconnect function
-    const attemptReconnect = () => {
-      if (reconnectAttempts >= maxReconnectAttempts) {
-        console.error('❌ Max reconnection attempts reached');
-        showError();
-        return;
-      }
-
-      reconnectAttempts++;
-      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), SUBSCRIPTION_TIMEOUT);
-      console.log(
-        `🔄 Attempting reconnection ${reconnectAttempts}/${maxReconnectAttempts} in ${delay}ms`
-      );
-
-      setTimeout(() => {
-        initializeStream();
-      }, delay);
-    };
-
-    // Initialize stream function
-    const initializeStream = () => {
-      console.log('🎥 Initializing stream...');
-
-      // Handle different streaming formats
-      if (streamingUrl.includes('.m3u8') || streamingUrl.includes('hls')) {
-        // HLS stream - try to use HLS.js if available
-        if (
-          typeof (window as any).Hls !== 'undefined' &&
-          (window as any).Hls.isSupported()
-        ) {
-          console.log('🎥 Using HLS.js for HLS stream');
-          hlsInstance = new (window as any).Hls({
-            enableWorker: true,
-            lowLatencyMode: false,
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
-            liveSyncDurationCount: 3,
-            liveMaxLatencyDurationCount: 5
-          });
-
-          hlsInstance.loadSource(streamingUrl);
-          hlsInstance.attachMedia(video);
-
-          hlsInstance.on((window as any).Hls.Events.MANIFEST_PARSED, () => {
-            console.log('✅ HLS manifest parsed');
-            reconnectAttempts = 0;
-            hideError();
-            video
-              .play()
-              .then(() => {
-                preserveAudioState();
-              })
-              .catch(e => {
-                preserveAudioState();
-              });
-          });
-
-          hlsInstance.on(
-            (window as any).Hls.Events.ERROR,
-            (_event: unknown, data: unknown) => {
-              console.error('❌ HLS error:', data);
-              const errorData = data as { fatal?: boolean; type?: string; details?: string };
-              if (errorData.fatal) {
-                attemptReconnect();
-              }
-}
-    );
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          // Native HLS support (Safari)
-          console.log('🎥 Using native HLS support');
-          video.src = streamingUrl;
-          video
-            .play()
-            .then(() => {
-              console.log('✅ Native HLS stream started');
-              reconnectAttempts = 0;
-              hideError();
-              preserveAudioState();
-            })
-            .catch(e => {
-              console.error('❌ Native HLS play failed:', e);
-              preserveAudioState();
-              attemptReconnect();
-            });
-        } else {
-          console.error('❌ HLS not supported');
-          showError();
-        }
-} else {
-        // Regular video formats (MP4, WebM, etc.)
-        console.log('🎥 Using regular video format');
-        video.src = streamingUrl;
-        video
-          .play()
-          .then(() => {
-            console.log('✅ Regular video stream started');
-            reconnectAttempts = 0;
-            hideError();
-            preserveAudioState();
-          })
-          .catch(e => {
-            console.error('❌ Regular video play failed:', e);
-            preserveAudioState();
-            attemptReconnect();
-          });
-      }
-    };
-
-    // Enhanced video event handlers
-    video.addEventListener('error', e => {
-      console.error('❌ Video error:', e);
-      saveAudioState();
-      attemptReconnect();
-    });
-
-    video.addEventListener('loadstart', () => {
-      console.log('🎥 Video load started');
-    });
-
-    video.addEventListener('canplay', () => {
-      console.log('✅ Video can play');
-      hideError();
-      preserveAudioState();
-    });
-
-    video.addEventListener('play', () => {
-      wasPlaying = true;
-      preserveAudioState();
-    });
-
-    video.addEventListener('pause', () => {
-      wasPlaying = false;
-      saveAudioState();
-    });
-
-    video.addEventListener('volumechange', () => {
-      saveAudioState();
-    });
-
-    video.addEventListener('stalled', () => {
-      saveAudioState();
-      setTimeout(() => {
-        if (video.readyState < 3 && wasPlaying) {
-          attemptReconnect();
-        }
-}, 5000);
-    });
-
-    video.addEventListener('waiting', () => {
-      saveAudioState();
-    });
-
-    // Start initial stream
-    initializeStream();
-  };
+  // initializeLiveVideoPlayer and cleanupLiveVideoPlayer are now provided by useVideoPlayer hook
 
   // generateQRCode, updateQRLinks, updateQRPreviews, and generateLiveEventQRCodes are now imported from useQRCode hook
 
@@ -1550,10 +959,10 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
   }
 
           // Store current live event info for reconnection
-          (window as any).currentLiveEventInfo = { pubkey, identifier, kind };
+          window.currentLiveEventInfo = { pubkey, identifier, kind };
 
           // Reset reconnection attempts
-          (window as any).reconnectionAttempts = { event: 0, chat: 0, zaps: 0 };
+          window.reconnectionAttempts = { event: 0, chat: 0, zaps: 0 };
 
           // Subscribe to the live event, chat, and zaps
           subscribeLiveEvent(pubkey, identifier, kind);
@@ -1573,38 +982,15 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
         }
 
         // Show loading animations
-        const noteContent = document.querySelector('.note-content');
-        const zapsList = document.getElementById('zaps');
+        const noteContent = querySelector('.note-content');
+        const zapsList = getElementById('zaps');
 
-        if (noteContent) {
-          noteContent.classList.add('loading');
-          // Add loading text if not already present
-          if (!noteContent.querySelector('.loading-text')) {
-            const loadingText = document.createElement('div');
-            loadingText.className = 'loading-text';
-            loadingText.textContent = 'Loading note content...';
-            noteContent.appendChild(loadingText);
-          }
-}
-
-        if (zapsList) {
-          zapsList.classList.add('loading');
-          // Add loading text if not already present
-          if (!zapsList.querySelector('.loading-text')) {
-            const loadingText = document.createElement('div');
-            loadingText.className = 'loading-text';
-            loadingText.textContent = 'Loading zaps...';
-            zapsList.appendChild(loadingText);
-          }
-}
+        showElementLoadingState(noteContent, 'Loading note content...');
+        showElementLoadingState(zapsList, 'Loading zaps...');
 
         subscribeKind1(kind1ID);
-        const noteLoaderContainer = document.getElementById(
-          'noteLoaderContainer'
-        );
-        if (noteLoaderContainer) {
-          noteLoaderContainer.style.display = 'none';
-        }
+        const noteLoaderContainer = getElementById('noteLoaderContainer');
+        hideElement(noteLoaderContainer);
 } catch (e) {
         // If decoding fails, try to use the input directly as a note ID
 
@@ -1633,12 +1019,8 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
 }
 
         subscribeKind1(noteId);
-        const noteLoaderContainer = document.getElementById(
-          'noteLoaderContainer'
-        );
-        if (noteLoaderContainer) {
-          noteLoaderContainer.style.display = 'none';
-        }
+        const noteLoaderContainer = getElementById('noteLoaderContainer');
+        hideElement(noteLoaderContainer);
 }
     } catch (err) {
       setError(
@@ -1650,38 +1032,22 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
   // validateNoteId and stripNostrPrefix are now imported from '../utils/eventIdParser'
 
   const showNoteLoaderError = (message: string) => {
-    const errorElement = document.getElementById('noteLoaderError');
-    if (errorElement) {
-      errorElement.textContent = message;
-      errorElement.style.display = 'block';
-    }
+    showErrorHelper('noteLoaderError', message);
   };
 
   const hideNoteLoaderError = () => {
-    const errorElement = document.getElementById('noteLoaderError');
-    if (errorElement) {
-      errorElement.style.display = 'none';
-    }
+    hideErrorHelper('noteLoaderError');
   };
 
   const showLoadingError = (message: string) => {
-    const errorElement = document.getElementById('noteLoaderError');
-    if (errorElement) {
-      errorElement.textContent = message;
-      errorElement.style.display = 'block';
-    }
+    showErrorHelper('noteLoaderError', message);
 
     // Ensure noteLoader is visible and main layout is hidden when there's an error
-    const noteLoaderContainer = document.getElementById('noteLoaderContainer');
-    const mainLayout = document.getElementById('mainLayout');
+    const noteLoaderContainer = getElementById('noteLoaderContainer');
+    const mainLayout = getElementById('mainLayout');
 
-    if (noteLoaderContainer) {
-      noteLoaderContainer.style.display = 'flex';
-    }
-
-    if (mainLayout) {
-      mainLayout.style.display = 'none';
-    }
+    showElement(noteLoaderContainer, 'flex');
+    hideElement(mainLayout);
   };
 
   // resetToDefaults is now provided by useStyleManagement hook
@@ -1708,7 +1074,7 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
       // Use utility functions to extract zap data
       const amount = extractZapAmount(kind9735);
       if (amount === 0) {
-        console.log('⚠️ No amount found in zap');
+        logger.warn('No amount found in zap', ErrorCategory.VALIDATION, { zapId: kind9735.id });
         return;
       }
 
@@ -1725,7 +1091,13 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
         timestamp: kind9735.created_at
       });
     } catch (error) {
-      console.error('❌ Error processing new zap for notification:', error);
+      handleError(
+        error,
+        'Error processing new zap for notification',
+        ErrorCategory.SUBSCRIPTION,
+        ErrorSeverity.MEDIUM,
+        { zapId: kind9735.id }
+      );
     }
   };
 
@@ -1762,7 +1134,7 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
 
       if (amount9735 === 0) continue; // Skip if no amount
 
-      const kind1from9735 = kind9735.tags.find(
+const kind1from9735 = kind9735.tags.find(
         (tag: string[]) => tag[0] === 'e'
       )?.[1];
       const kind9735id = nip19.noteEncode(kind9735.id) || kind9735.id;
@@ -1789,7 +1161,7 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
           // Use defaults if profile parsing fails
           kind0npub = nip19.npubEncode(kind0fromkind9735.pubkey) || '';
         }
-      }
+}
 
       const json9735 = {
         e: kind1from9735,
@@ -1825,12 +1197,10 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
     zapsContainer.innerHTML = '';
 
     // Store zap data globally for timestamp lookup
-    (window as any).zaps = json9735List;
+    window.zaps = json9735List;
 
     // Hide zaps loading animation
-    zapsContainer.classList.remove('loading');
-    const loadingText = zapsContainer.querySelector('.loading-text');
-    if (loadingText) loadingText.remove();
+    hideLoadingState(zapsContainer);
 
     const totalAmountZapped = json9735List.reduce(
       (sum, zaps) => sum + zaps.amount,
@@ -1984,7 +1354,7 @@ if (lastVolume > 0 && video.volume !== lastVolume) {
   // Get the rank of a single zap based on its amount
   const getSingleZapRank = (zapAmount: number): number | undefined => {
     // Use window.zaps which is populated before the React state
-    const existingZaps = (window as any).zaps || [];
+    const existingZaps = window.zaps || [];
 
     // Get all zap amounts INCLUDING the current zap being evaluated
     const allZapAmounts = [
@@ -2281,463 +1651,38 @@ break;
     }
   };
 
+  // Wrapper function that uses the hook implementation
   const drawKind1 = async (kind1: Kind1Event) => {
     // Set ref immediately when function is called (for first call)
     if (!drawKind1Ref.current) {
-      drawKind1Ref.current = drawKind1;
+      drawKind1Ref.current = drawKind1FromHook;
     }
-    // Debug log removed
-
-    // Store note ID globally for QR regeneration
-    (window as any).currentNoteId = kind1.id;
-
-    // Set event type to regular note and remove livestream class
-    (window as any).currentEventType = 'note';
-    document.body.classList.remove('livestream');
-
-    const noteContent = document.getElementById('noteContent');
-    // Debug log removed
-
-    // Process content for both images and nostr mentions
-    const processedContent = await processNoteContent(kind1.content);
-    
-    if (noteContent) {
-      // Debug log removed
-      noteContent.innerHTML = processedContent;
-
-      // Hide note content loading animation
-      noteContent.classList.remove('loading');
-      const loadingText = noteContent.querySelector('.loading-text');
-      if (loadingText) loadingText.remove();
-    }
-
-    // Update React state with processed content (not raw)
-    setNoteContent(processedContent);
-
-    // Update Lightning state now that we have an event ID
-    if ((window as any).lightningEnabled) {
-      // Debug log removed
-      setTimeout(() => {
-        if ((window as any).enableLightningPayments) {
-          (window as any).enableLightningPayments();
-        }
-}, 100);
-    }
-
-    // Generate multiple QR code formats
-    const noteId = kind1.id;
-    const neventId = nip19.neventEncode({ id: noteId, relays: [] });
-    const note1Id = nip19.noteEncode(noteId);
-    const njumpUrl = `https://njump.me/${note1Id}`;
-    const nostrNevent = `nostr:${neventId}`;
-    const nostrNote = `nostr:${note1Id}`;
-
-    const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
-
-    // Generate QR codes for all formats
-    const qrcodeContainers = [
-      {
-        element: document.getElementById('qrCode'),
-        value: njumpUrl,
-        link: document.getElementById('qrcodeLinkNostr'),
-        preview: document.getElementById('qrDataPreview1')
-      },
-      {
-        element: document.getElementById('qrCodeNevent'),
-        value: nostrNevent,
-        link: document.getElementById('qrcodeNeventLink'),
-        preview: document.getElementById('qrDataPreview2')
-      },
-      {
-        element: document.getElementById('qrCodeNote'),
-        value: nostrNote,
-        link: document.getElementById('qrcodeNoteLink'),
-        preview: document.getElementById('qrDataPreview3')
-      }
-    ];
-
-    qrcodeContainers.forEach(({ element, value, link, preview }) => {
-      if (element) {
-        generateQRCode(element.id, value, qrSize);
-
-        // Set link href
-        if (link) (link as HTMLAnchorElement).href = value;
-
-        // Set data preview (uppercase, max 60 chars)
-        if (preview) {
-          const truncate = (text: string, maxLength: number = 60) => {
-            return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
-          };
-          preview.textContent = truncate(value.toUpperCase());
-        }
-}
-    });
-
-    // Initialize swiper if not already initialized
-    if (!(window as any).qrSwiper) {
-      (window as any).qrSwiper = new (window as any).Swiper('.qr-swiper', {
-        slidesPerView: 1,
-        spaceBetween: 0,
-        pagination: {
-          el: '.swiper-pagination',
-          clickable: true,
-          dynamicBullets: false
-        },
-        loop: false, // Disable loop to avoid warnings when slides are dynamically hidden
-        autoplay: {
-          delay: 10000,
-          disableOnInteraction: false,
-          pauseOnMouseEnter: true
-        },
-        autoHeight: false, // Use fixed height to avoid layout issues
-        height: 250,
-        watchOverflow: true, // Handle case where all slides might be hidden
-        observer: true, // Watch for DOM changes
-        observeParents: true
-      });
-    }
-
-    // QR visibility will be handled by loadInitialStyles() after all styles are loaded
+    await drawKind1FromHook(kind1);
   };
 
+  // Wrapper function that uses the hook implementation
   const drawKind0 = (kind0: Kind0Event) => {
     // Set ref immediately when function is called (for first call)
     if (!drawKind0Ref.current) {
-      drawKind0Ref.current = drawKind0;
+      drawKind0Ref.current = drawKind0FromHook;
     }
-    // Debug log removed
-
-    try {
-      const profile = JSON.parse(kind0.content) as Record<string, unknown>;
-      setAuthorName((profile.name || profile.display_name || 'Anonymous') as string);
-      setAuthorImage(sanitizeImageUrl((profile.picture as string) || '') || '/live/images/gradient_color.gif');
-      setAuthorNip05((profile.nip05 as string) || '');
-      setAuthorLud16((profile.lud16 as string) || '');
-    } catch (e) {
-      // Ignore parsing errors
-    }
+    drawKind0FromHook(kind0);
   };
 
-  // Helper to get display name for npub/nprofile
-  const getMentionUserName = useCallback(async (identifier: string): Promise<string> => {
-    try {
-      let pubkey: string;
-      
-      // Decode npub/nprofile to get pubkey
-      const decoded = nip19.decode(identifier);
-      if (decoded.type === 'npub') {
-        pubkey = decoded.data;
-      } else if (decoded.type === 'nprofile') {
-        pubkey = decoded.data.pubkey;
-      } else {
-        // Not a user identifier, return shortened version
-        return identifier.length > 35
-          ? `${identifier.substr(0, 4)}...${identifier.substr(identifier.length - 4)}`
-          : identifier;
-      }
-
-      // Check if profile is already cached
-      const profiles = (window as any).profiles || {};
-      let profile = profiles[pubkey];
-      
-      // If not cached, fetch it
-      if (!profile && nostrClient) {
-        try {
-          profile = await new Promise<Kind0Event | null>((resolve) => {
-            const timeout = setTimeout(() => resolve(null), PROFILE_FETCH_TIMEOUT);
-            
-            const subscription = nostrClient.subscribeToProfiles(
-              [pubkey],
-              (event: NostrEvent) => {
-                const kind0Event = event as Kind0Event;
-                clearTimeout(timeout);
-                // Keep the newest profile event (highest created_at)
-                const existing = profiles[pubkey];
-                if (!existing || kind0Event.created_at > existing.created_at) {
-                  profiles[pubkey] = kind0Event;
-                }
-                subscription.unsubscribe();
-                resolve(profiles[pubkey]);
-              },
-              {
-                timeout: PROFILE_FETCH_TIMEOUT
-              }
-            );
-
-            // Handle oneose separately - set a timeout to resolve if no profile found
-            setTimeout(() => {
-              clearTimeout(timeout);
-              subscription.unsubscribe();
-              resolve(null);
-            }, PROFILE_FETCH_TIMEOUT);
-          });
-        } catch (e) {
-          console.error('Error fetching profile:', e);
-        }
-      }
-
-      // Parse profile and get display name
-      if (profile && profile.content) {
-        try {
-          const profileData = JSON.parse(profile.content);
-          const displayName = profileData.display_name || profileData.displayName || profileData.name;
-          if (displayName) {
-            return displayName;
-          }
-} catch (e) {
-          console.error('Error parsing profile data:', e);
-        }
-}
-
-      // Fallback to shortened identifier
-      return identifier.length > 35
-        ? `${identifier.substr(0, 4)}...${identifier.substr(identifier.length - 4)}`
-        : identifier;
-    } catch (error) {
-      console.error('Error getting mention username:', error);
-      return identifier.length > 35
-        ? `${identifier.substr(0, 4)}...${identifier.substr(identifier.length - 4)}`
-        : identifier;
-    }
-  }, [nostrClient, liveEventService]);
-
-  const processNoteContent = async (content: string): Promise<string> => {
-    if (!content) return '';
-    
-    let processed = content;
-    
-    // First, process media URLs BEFORE escaping HTML
-    // This prevents URLs from being broken by HTML escaping
-    
-    // Handle video URLs (mp4, webm, ogg, mov)
-    processed = processed.replace(
-      /(https?:\/\/[^\s<>]+)\.(mp4|webm|ogg|mov)/gi,
-      (match) => {
-        const sanitizedUrl = sanitizeUrl(match);
-        if (!sanitizedUrl) return escapeHtml(match); // Escape if URL is invalid
-        return `<div class="video-container" style="position: relative; width: 100%; max-width: 600px; margin: 12px 0;">
-          <video src="${sanitizedUrl}" controls style="width: 100%; border-radius: 8px; background: #000;">
-            Your browser does not support the video tag.
-          </video>
-        </div>`;
-      }
-    );
-    
-    // Handle image URLs (jpg, jpeg, png, gif, webp)
-    processed = processed.replace(
-      /(https?:\/\/[^\s<>]+)\.(jpg|jpeg|png|gif|webp)/gi,
-      (match) => {
-        const sanitizedUrl = sanitizeImageUrl(match);
-        if (!sanitizedUrl) return escapeHtml(match); // Escape if URL is invalid
-        return `<div class="image-container" style="margin: 12px 0;">
-          <img src="${sanitizedUrl}" style="max-width: 100%; border-radius: 8px;" alt="Image" />
-        </div>`;
-      }
-    );
-    
-    // Process mentions in order: bare npub/note first (before adding any HTML), then prefixed versions
-    // Match paynote's logic - fetch usernames asynchronously
-    // Use a Map to track which positions have been processed to avoid double-processing
-    
-    const processedRanges: Array<{start: number, end: number, replacement: string}> = [];
-    
-    // First, handle bare npub/nprofile mentions (process before other formats to avoid conflicts)
-    const bareNpubMatches = Array.from(processed.matchAll(/\b((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi));
-    
-    for (const matchObj of bareNpubMatches) {
-      const match = matchObj[0];
-      const offset = matchObj.index || 0;
-      
-      // Check if it's preceded by nostr: or @
-      const prefix = processed.substring(Math.max(0, offset - 7), offset);
-      if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
-        continue; // Skip this one, it will be processed with its prefix
-      }
-
-      const displayName = await getMentionUserName(match);
-      const replacement = `<a href="/profile/${match}" class="nostrMention" target="_blank">${displayName}</a>`;
-      processedRanges.push({
-        start: offset,
-        end: offset + match.length,
-        replacement: replacement
-      });
-    }
-    
-    // Handle bare note/nevent/naddr mentions (no username fetching needed)
-    const bareNoteMatches = Array.from(processed.matchAll(/\b((note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi));
-    
-    for (const matchObj of bareNoteMatches) {
-      const match = matchObj[0];
-      const offset = matchObj.index || 0;
-      
-      // Check if it's preceded by nostr: or @
-      const prefix = processed.substring(Math.max(0, offset - 7), offset);
-      if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
-        continue; // Skip this one, it will be processed with its prefix
-      }
-
-      const clean = String(match);
-      const shortId =
-        clean.length > 35
-          ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
-          : clean;
-      
-      let linkPath = '';
-      if (clean.startsWith('note') || clean.startsWith('nevent')) {
-        linkPath = `/note/${clean}`;
-      } else if (clean.startsWith('naddr')) {
-        linkPath = `/live/${clean}`;
-      }
-
-      const replacement = `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
-      processedRanges.push({
-        start: offset,
-        end: offset + match.length,
-        replacement: replacement
-      });
-    }
-    
-    // Apply replacements in reverse order to maintain correct positions
-    processedRanges.sort((a, b) => b.start - a.start);
-    for (const range of processedRanges) {
-      processed = processed.substring(0, range.start) + range.replacement + processed.substring(range.end);
-    }
-    
-    // Handle nostr:npub/nprofile mentions
-    const nostrNpubMatches = processed.match(/nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi);
-    
-    if (nostrNpubMatches) {
-      const replacements = await Promise.all(
-        nostrNpubMatches.map(async match => {
-          const cleanMatch = match.replace(/^nostr:/i, '');
-          const displayName = await getMentionUserName(cleanMatch);
-          return {
-            match,
-            replacement: `<a href="/profile/${cleanMatch}" class="nostrMention" target="_blank">${displayName}</a>`
-          };
-        })
-      );
-      
-      replacements.forEach(({ match, replacement }) => {
-        processed = processed.replace(match, replacement);
-      });
-    }
-    
-    // Handle nostr:note/nevent/naddr mentions (no username fetching)
-    processed = processed.replace(
-      /nostr:((note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-      (_m, identifier) => {
-        const clean = String(identifier);
-        const shortId =
-          clean.length > 35
-            ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
-            : clean;
-        
-        let linkPath = '';
-        if (clean.startsWith('note') || clean.startsWith('nevent')) {
-          linkPath = `/note/${clean}`;
-        } else if (clean.startsWith('naddr')) {
-          linkPath = `/live/${clean}`;
-        }
-
-        return `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
-      }
-    );
-    
-    // Handle @npub/@nprofile mentions
-    const atNpubMatches = processed.match(/@((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi);
-    
-    if (atNpubMatches) {
-      const replacements = await Promise.all(
-        atNpubMatches.map(async match => {
-          const cleanMatch = match.replace(/^@/i, '');
-          const displayName = await getMentionUserName(cleanMatch);
-          return {
-            match,
-            replacement: `<a href="/profile/${cleanMatch}" class="nostrMention" target="_blank">${displayName}</a>`
-          };
-        })
-      );
-      
-      replacements.forEach(({ match, replacement }) => {
-        processed = processed.replace(match, replacement);
-      });
-    }
-    
-    // Handle @note/@nevent/@naddr mentions (no username fetching)
-    processed = processed.replace(
-      /@((note|nevent|naddr)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi,
-      (_m, identifier) => {
-        const clean = String(identifier);
-        const shortId =
-          clean.length > 35
-            ? `${clean.substr(0, 4)}...${clean.substr(clean.length - 4)}`
-            : clean;
-        
-        let linkPath = '';
-        if (clean.startsWith('note') || clean.startsWith('nevent')) {
-          linkPath = `/note/${clean}`;
-        } else if (clean.startsWith('naddr')) {
-          linkPath = `/live/${clean}`;
-        }
-
-        return `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
-      }
-    );
-    
-    // Process regular URLs (but skip if already processed as video/image)
-    processed = processed.replace(
-      /(?:^|\s)(https?:\/\/[^\s<>]+)/g,
-      (match, url) => {
-        // Skip if this URL was already processed as video or image
-        if (processed.includes(`src="${url}"`)) {
-          return match;
-        }
-const sanitizedUrl = sanitizeUrl(url);
-        if (!sanitizedUrl) return match; // Skip if URL is invalid
-        const leadingSpace = match.startsWith(' ') ? ' ' : '';
-        return `${leadingSpace}<a href="${sanitizedUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`;
-      }
-    );
-    
-    // Convert line breaks to <br>
-    processed = processed.replace(/\n/g, '<br>');
-    
-    // Sanitize the final HTML before returning
-    return sanitizeHTML(processed);
-  };
+  // getMentionUserName and processNoteContent are now provided by useContentRendering hook
 
 
   // Helper function to show loading state
   const showLoadingState = (noteContentText: string, zapsText: string) => {
-    const noteContent = document.querySelector('.note-content');
-    const zapsList = document.getElementById('zaps');
+    const noteContent = querySelector('.note-content');
+    const zapsList = getElementById('zaps');
 
-    if (noteContent) {
-      noteContent.classList.add('loading');
-      if (!noteContent.querySelector('.loading-text')) {
-        const loadingText = document.createElement('div');
-        loadingText.className = 'loading-text';
-        loadingText.textContent = noteContentText;
-        noteContent.appendChild(loadingText);
-      }
-    }
-
-    if (zapsList) {
-      zapsList.classList.add('loading');
-      if (!zapsList.querySelector('.loading-text')) {
-        const loadingText = document.createElement('div');
-        loadingText.className = 'loading-text';
-        loadingText.textContent = zapsText;
-        zapsList.appendChild(loadingText);
-      }
-    }
+    showElementLoadingState(noteContent, noteContentText);
+    showElementLoadingState(zapsList, zapsText);
   };
 
   const handleNoteLoaderSubmit = async () => {
-    const inputField = document.getElementById(
-      'note1LoaderInput'
-    ) as HTMLInputElement;
+    const inputField = getElementById<HTMLInputElement>('note1LoaderInput');
     const noteId = inputField?.value?.trim();
 
     // Debug log removed
@@ -3046,11 +1991,11 @@ setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
   };
 
   // Expose functions globally for testing and debugging
-  (window as any).refreshBitcoinPrices = refreshBitcoinPrices;
-  (window as any).startLivePriceUpdates = startLivePriceUpdates;
-  (window as any).stopLivePriceUpdates = stopLivePriceUpdates;
-  (window as any).recalculateTotalZaps = recalculateTotalZaps;
-  (window as any).updateFiatAmounts = debouncedUpdateFiatAmounts;
+  window.refreshBitcoinPrices = refreshBitcoinPrices;
+  window.startLivePriceUpdates = startLivePriceUpdates;
+  window.stopLivePriceUpdates = stopLivePriceUpdates;
+  window.recalculateTotalZaps = recalculateTotalZaps;
+  window.updateFiatAmounts = debouncedUpdateFiatAmounts;
 
   // Style options functionality
   const setupStyleOptions = () => {
@@ -3072,14 +2017,14 @@ setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
         const target = e.target as HTMLSelectElement;
         if (target) {
           setSelectedCurrency(target.value);
-          // Update fiat amounts with new currency if toggle is enabled
-          const showFiatToggle = document.getElementById(
-            'showFiatToggle'
-          ) as HTMLInputElement;
-          if (showFiatToggle && showFiatToggle.checked) {
-            debouncedUpdateFiatAmounts();
-          }
-          saveCurrentStylesToLocalStorage();
+        // Update fiat amounts with new currency if toggle is enabled
+        const showFiatToggle = document.getElementById(
+          'showFiatToggle'
+        ) as HTMLInputElement;
+        if (showFiatToggle && showFiatToggle.checked) {
+          debouncedUpdateFiatAmounts();
+        }
+saveCurrentStylesToLocalStorage();
         }
       });
     }
@@ -3253,12 +2198,12 @@ saveCurrentStylesToLocalStorage();
         // If grid is not active, re-render zaps to apply podium styling
         // Note: zaps is Kind9735Event[], but drawKinds9735 expects ProcessedZapData[]
         // The processed zaps are stored in window.zaps
-        const processedZaps = (window as any).zaps || [];
+        const processedZaps = window.zaps || [];
         if (processedZaps.length > 0) {
           // Debug log removed
           drawKinds9735(processedZaps);
         }
-      }
+}
     });
 
     setupToggle('zapGridToggle', (checked: boolean) => {
@@ -3284,10 +2229,10 @@ setTimeout(() => {
             }, 10);
             
             // Start periodic re-organization to catch new zaps during load
-            if ((window as any).gridPeriodicCheckInterval) {
-              clearInterval((window as any).gridPeriodicCheckInterval);
+            if (window.gridPeriodicCheckInterval) {
+              clearInterval(window.gridPeriodicCheckInterval);
             }
-(window as any).gridPeriodicCheckInterval = setInterval(() => {
+            window.gridPeriodicCheckInterval = setInterval(() => {
               const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
               const container = document.getElementById('zaps-only-list');
               if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
@@ -3304,9 +2249,9 @@ setTimeout(() => {
 }, 2000); // Check every 2 seconds
           } else {
             // Stop periodic check
-            if ((window as any).gridPeriodicCheckInterval) {
-              clearInterval((window as any).gridPeriodicCheckInterval);
-              (window as any).gridPeriodicCheckInterval = null;
+            if (window.gridPeriodicCheckInterval) {
+              clearInterval(window.gridPeriodicCheckInterval);
+              window.gridPeriodicCheckInterval = null;
             }
 
             // Clean up FIRST (this sets inline styles to force row layout)
@@ -3334,10 +2279,10 @@ setTimeout(() => {
             }, 10);
             
             // Start periodic re-organization for kind1 notes too
-            if ((window as any).gridPeriodicCheckInterval) {
-              clearInterval((window as any).gridPeriodicCheckInterval);
+            if (window.gridPeriodicCheckInterval) {
+              clearInterval(window.gridPeriodicCheckInterval);
             }
-(window as any).gridPeriodicCheckInterval = setInterval(() => {
+            window.gridPeriodicCheckInterval = setInterval(() => {
               const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
               const container = document.getElementById('zaps');
               if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
@@ -3354,9 +2299,9 @@ setTimeout(() => {
 }, 2000); // Check every 2 seconds
           } else {
             // Stop periodic check
-            if ((window as any).gridPeriodicCheckInterval) {
-              clearInterval((window as any).gridPeriodicCheckInterval);
-              (window as any).gridPeriodicCheckInterval = null;
+            if (window.gridPeriodicCheckInterval) {
+              clearInterval(window.gridPeriodicCheckInterval);
+              window.gridPeriodicCheckInterval = null;
             }
 
             // Clean up FIRST (this sets inline styles to force row layout)
@@ -3695,9 +2640,12 @@ debouncedApplyAllStyles();
     // Setup preset buttons
     const presetButtons = document.querySelectorAll('.preset-btn');
     presetButtons.forEach(button => {
-      button.addEventListener('click', (e: any) => {
-        const preset = e.target.getAttribute('data-preset');
-        applyPreset(preset);
+      button.addEventListener('click', (e: Event) => {
+        const target = e.target as HTMLElement;
+        const preset = target.getAttribute('data-preset');
+        if (preset) {
+          applyPreset(preset);
+        }
       });
     });
 
