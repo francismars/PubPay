@@ -1,13 +1,34 @@
 /* eslint-disable no-unused-vars, no-empty */
 // React hook for live functionality integration
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { SimplePool, nip19 } from 'nostr-tools';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { nip19 } from 'nostr-tools';
 // QRious is now imported in useQRCode hook
 const bolt11 = require('bolt11') as any;
 import { useQRCode } from './useQRCode';
 import { useLightningIntegration } from './useLightningIntegration';
-import { ZapNotification } from '@live/types';
-import { DEFAULT_READ_RELAYS, extractZapAmount, extractZapPayerPubkey, extractZapContent } from '@pubpay/shared-services';
+import { useZapHandling } from './useZapHandling';
+import { useStyleManagement } from './useStyleManagement';
+import { useFiatConversion } from './useFiatConversion';
+// Zap handling imports removed - now using useZapHandling hook
+import { 
+  DEFAULT_READ_RELAYS,
+  NostrClient,
+  EVENT_KINDS,
+  extractZapAmount,
+  extractZapPayerPubkey,
+  extractZapContent,
+  ProcessedZap as SharedProcessedZap,
+  BitcoinPriceService,
+  LiveEventService
+} from '@pubpay/shared-services';
+import { 
+  Kind0Event,
+  Kind1Event,
+  Kind9735Event,
+  Kind30311Event,
+  NostrEvent,
+  NostrFilter
+} from '@pubpay/shared-types';
 import { sanitizeHTML, sanitizeImageUrl, sanitizeUrl, escapeHtml } from '../utils/sanitization';
 import { DEFAULT_STYLES } from '../constants/styles';
 import { appLocalStorage } from '../utils/storage';
@@ -15,6 +36,31 @@ import { validateNoteId, stripNostrPrefix, parseEventId } from '../utils/eventId
 
 // Flag to prevent multiple simultaneous calls to setupNoteLoaderListeners
 let setupNoteLoaderListenersInProgress = false;
+
+// Timeout constants
+const SUBSCRIPTION_TIMEOUT = 30000; // 30 seconds
+const ZAP_SUBSCRIPTION_TIMEOUT = 15000; // 15 seconds
+const KIND1_SUBSCRIPTION_TIMEOUT = 10000; // 10 seconds
+const PROFILE_FETCH_TIMEOUT = 2000; // 2 seconds
+const RECONNECT_BASE_DELAY = 5000; // 5 seconds
+const CONTENT_MONITOR_INTERVAL = 10000; // 10 seconds
+const MAX_RECONNECT_ATTEMPTS = 3;
+
+// Interface for processed zap data
+interface ProcessedZapData {
+  e?: string;
+  amount: number;
+  picture: string;
+  npubPayer: string;
+  pubKey: string;
+  zapEventID: string;
+  kind9735content: string;
+  kind1Name: string;
+  kind0Profile: Record<string, unknown> | null;
+  created_at: number;
+  timestamp: number;
+  id: string;
+}
 
 export const useLiveFunctionality = (eventId?: string) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -26,23 +72,51 @@ export const useLiveFunctionality = (eventId?: string) => {
   );
   const [authorNip05, setAuthorNip05] = useState<string>('');
   const [authorLud16, setAuthorLud16] = useState<string>('');
-  const [zaps, setZaps] = useState<any[]>([]);
-  const [totalZaps, setTotalZaps] = useState<number>(0);
-  const [totalAmount, setTotalAmount] = useState<number>(0);
-
-  // Top zappers state
-  const [topZappers, setTopZappers] = useState<any[]>([]);
 
   // Track if user wants to see top zappers (even before data is available)
   const [userWantsTopZappers, setUserWantsTopZappers] = useState(false);
 
   const _liveDisplayRef = useRef<any>(null);
 
-  // Zap notification state
-  const [zapNotification, setZapNotification] =
-    useState<ZapNotification | null>(null);
-  const initialZapsLoadedRef = useRef(false);
-  const pendingZapNotificationsRef = useRef<Map<string, any>>(new Map());
+  // Initialize NostrClient - replaces window.pool
+  const nostrClient = useMemo(() => new NostrClient(DEFAULT_READ_RELAYS), []);
+
+  // Initialize BitcoinPriceService
+  const bitcoinPriceService = useMemo(() => new BitcoinPriceService(), []);
+
+  // Initialize LiveEventService
+  const liveEventService = useMemo(() => new LiveEventService(), []);
+
+  // Initialize Fiat Conversion hook
+  const {
+    selectedCurrency,
+    setSelectedCurrency,
+    satsToFiat,
+    satsToFiatWithHistorical,
+    updateFiatAmounts,
+    debouncedUpdateFiatAmounts,
+    hideFiatAmounts,
+    restoreSatoshiAmounts,
+    addMissingTimestamps,
+    setHistoricalPriceLoading
+  } = useFiatConversion({
+    bitcoinPriceService,
+    defaultCurrency: 'USD',
+    debounceMs: 500
+  });
+
+  // Persistent zap list that accumulates over time (like legacy)
+  let json9735List: ProcessedZapData[] = [];
+  let processedZapIDs = new Set<string>(); // Track processed zap IDs to prevent duplicates
+
+  // Function to reset zap list when starting a new note/event
+  const resetZapList = useCallback(() => {
+    json9735List = [];
+    processedZapIDs = new Set<string>();
+    // Reset initial zaps loaded flag for new event
+    // initialZapsLoadedRef and pendingZapNotificationsRef are now managed by useZapHandling hook
+    // The hook will handle this automatically
+  }, []);
 
   // QR code functionality
   const {
@@ -52,6 +126,49 @@ export const useLiveFunctionality = (eventId?: string) => {
     initializeQRSwiper
   } = useQRCode();
 
+  // Refs for callbacks that are defined later
+  const subscribeChatAuthorProfileRef = useRef<((pubkey: string) => void) | null>(null);
+  const updateLiveEventZapTotalRef = useRef<(() => void) | null>(null);
+  const organizeZapsHierarchicallyRef = useRef<(() => void) | null>(null);
+  // Fiat conversion is now handled by useFiatConversion hook
+  const cleanupHierarchicalOrganizationRef = useRef<(() => void) | null>(null);
+  const updateQRSlideVisibilityRef = useRef<((skipUrlUpdate?: boolean) => void) | null>(null);
+
+  // Zap handling functionality
+  const {
+    zaps,
+    totalZaps,
+    totalAmount,
+    topZappers,
+    zapNotification,
+    processLiveEventZap,
+    calculateTopZappersFromZaps,
+    updateProfile: updateZapProfile,
+    resetZapperTotals: resetZapperTotalsFromHook,
+    markInitialZapsLoaded,
+    setZapNotification,
+    setZaps
+  } = useZapHandling({
+    onSubscribeProfile: (pubkey: string) => {
+      if (subscribeChatAuthorProfileRef.current) {
+        subscribeChatAuthorProfileRef.current(pubkey);
+      }
+    },
+    onUpdateZapTotal: () => {
+      if (updateLiveEventZapTotalRef.current) {
+        updateLiveEventZapTotalRef.current();
+      }
+    },
+    onOrganizeZaps: () => {
+      if (organizeZapsHierarchicallyRef.current) {
+        organizeZapsHierarchicallyRef.current();
+      }
+    },
+    onUpdateFiatAmounts: () => {
+      debouncedUpdateFiatAmounts();
+    }
+  });
+
   // Lightning integration
   // Note: updateBlendMode callback will be set up after it's defined
   const updateBlendModeRef = useRef<(() => void) | null>(null);
@@ -59,7 +176,7 @@ export const useLiveFunctionality = (eventId?: string) => {
   const {
     lightningEnabled,
     initializeLightning,
-    handleLightningToggle
+    handleLightningToggle: handleLightningToggleFromHook
   } = useLightningIntegration({
     eventId,
     onUpdateBlendMode: () => {
@@ -69,6 +186,45 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     }
   });
+
+
+  // Style management functionality
+  const {
+    resetToDefaults,
+    updateStyleURL,
+    applyStylesFromURL,
+    copyStyleUrl,
+    applyPreset,
+    applyAllStyles,
+    saveCurrentStylesToLocalStorage,
+    updateBlendMode: updateBlendModeFromHook,
+    updateBackgroundImage,
+    toHexColor,
+    hexToRgba
+  } = useStyleManagement({
+    lightningEnabled,
+    onOrganizeZaps: () => {
+      if (organizeZapsHierarchicallyRef.current) {
+        organizeZapsHierarchicallyRef.current();
+      }
+    },
+    onCleanupHierarchicalOrganization: () => {
+      if (cleanupHierarchicalOrganizationRef.current) {
+        cleanupHierarchicalOrganizationRef.current();
+      }
+    },
+    onUpdateQRSlideVisibility: (skipUrlUpdate?: boolean) => {
+      if (updateQRSlideVisibilityRef.current) {
+        updateQRSlideVisibilityRef.current(skipUrlUpdate);
+      }
+    },
+    onInitializeQRCodePlaceholders: (eventIdParam?: string) => initializeQRCodePlaceholders(eventIdParam || eventId)
+  });
+
+  // Store updateBlendMode ref so Lightning hook can call it
+  useEffect(() => {
+    updateBlendModeRef.current = updateBlendModeFromHook;
+  }, [updateBlendModeFromHook]);
 
   // Update top zappers display when topZappers changes
   useEffect(() => {
@@ -86,7 +242,7 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Recalculate top zappers when zaps change
   useEffect(() => {
     if (zaps.length > 0) {
-      calculateTopZappersFromZaps(zaps);
+      calculateTopZappersFromZaps(zaps, new Map()); // Pass empty profiles map - profiles are attached to zaps
 
       // If show top zappers toggle is on OR user previously wanted to see them, display them immediately
       const showTopZappersToggle = document.getElementById(
@@ -117,9 +273,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Initialize Lightning service
         initializeLightning();
 
-        // Initialize Nostr pool and relays
-        (window as any).pool = new SimplePool();
-        (window as any).relays = DEFAULT_READ_RELAYS;
+        // NostrClient is already initialized via useMemo hook
 
         // Initialize portrait swiper
         if (typeof window !== 'undefined' && (window as any).Swiper) {
@@ -156,7 +310,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                 slidesPerView: 1,
                 spaceBetween: 0
               }
-            },
+},
 
             // Event callbacks
             on: {
@@ -166,8 +320,8 @@ export const useLiveFunctionality = (eventId?: string) => {
               slideChange() {
                 // Portrait swiper slide changed
               }
-            }
-          });
+}
+    });
         }
 
         // QR swiper is initialized by initializeQRSwiper() function
@@ -210,7 +364,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                 try {
                   setupNoteLoaderListeners();
                 } catch {}
-                const input = document.getElementById(
+          const input = document.getElementById(
                   'note1LoaderInput'
                 ) as HTMLInputElement | null;
                 if (input) {
@@ -218,7 +372,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                   input.focus();
                   input.select();
                 }
-              }, 60);
+}, 60);
             } else {
               // Just show error, don't prefill input
               setTimeout(() => {
@@ -226,17 +380,17 @@ export const useLiveFunctionality = (eventId?: string) => {
                 try {
                   setupNoteLoaderListeners();
                 } catch {}
-              }, 60);
+        }, 60);
             }
 
             // Do not proceed with loading
             setIsLoading(false);
             return;
           }
-          await loadNoteContent(eventId);
+  await loadNoteContent(eventId);
         } else {
           // If no eventId, still initialize QR codes with placeholder content
-          await initializeQRCodePlaceholders();
+          await initializeQRCodePlaceholders(undefined);
         }
 
         // Load initial styles and setup event listeners on page load
@@ -261,7 +415,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             if (!eventId) {
               setupNoteLoaderListeners();
             }
-          }, 100);
+  }, 100);
 
           // After styles are loaded, check if show top zappers should be displayed
           const showTopZappersToggle = document.getElementById(
@@ -270,7 +424,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           if (showTopZappersToggle?.checked) {
             displayTopZappers();
           }
-        }, 500);
+}, 500);
 
         setIsLoading(false);
       } catch (err) {
@@ -289,9 +443,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Even without eventId, we need to setup note loader listeners and initialize Nostr
       // No eventId, setting up note loader only
 
-      // Initialize Nostr pool and relays for note loader
-      (window as any).pool = new SimplePool();
-      (window as any).relays = DEFAULT_READ_RELAYS;
+      // NostrClient is already initialized via useMemo hook
 
       // Initialize portrait swiper for note loader (with delay to ensure DOM is ready)
       setTimeout(() => {
@@ -333,21 +485,21 @@ export const useLiveFunctionality = (eventId?: string) => {
                   slidesPerView: 1,
                   spaceBetween: 0
                 }
-              }
-            });
+}
+});
             // Debug log removed
           } else {
             console.warn('Portrait swiper element not found');
           }
-        }
-      }, 200);
+}
+}, 200);
 
       // Setup note loader event listeners when there's no eventId
       setTimeout(() => {
         if (!eventId) {
           setupNoteLoaderListeners();
         }
-      }, 300);
+}, 300);
     }
   }, [eventId]);
 
@@ -375,99 +527,83 @@ export const useLiveFunctionality = (eventId?: string) => {
   // initializeQRCodePlaceholders is now imported from useQRCode hook
 
   // Live Event subscription functions
-  const subscribeLiveEvent = async (
+  const subscribeLiveEvent = useCallback(async (
     pubkey: string,
     identifier: string,
     kind: number
   ) => {
-    // Debug log removed
-
-    const filter = {
-      authors: [pubkey],
-      kinds: [30311], // Live Event kind
-      '#d': [identifier]
-    };
-
-    // Add timeout to prevent subscription from closing prematurely
-    const timeoutId = setTimeout(() => {
-      // Live event subscription timeout - keeping subscription alive
-      // Debug log removed
-    }, 30000); // Increased timeout to 30 seconds
-
-    const sub = (window as any).pool.subscribe((window as any).relays, filter, {
-      onevent(liveEvent: any) {
-        clearTimeout(timeoutId);
-        displayLiveEvent(liveEvent);
+    const subscription = nostrClient.subscribeToLiveEvents(
+      pubkey,
+      identifier,
+      (liveEvent: NostrEvent) => {
+        displayLiveEvent(liveEvent as Kind30311Event);
         // Also subscribe to participants' profiles
-        subscribeLiveEventParticipants(liveEvent);
+        subscribeLiveEventParticipants(liveEvent as Kind30311Event);
       },
-      oneose() {
-        clearTimeout(timeoutId);
-        // Don't close the subscription, keep it alive for updates
-        // Debug log removed
-      },
-      onclosed() {
-        clearTimeout(timeoutId);
-        // Attempt to reconnect after a delay if we have current event info
-        if (
-          (window as any).currentLiveEventInfo &&
-          (window as any).reconnectionAttempts.event < 3
-        ) {
-          (window as any).reconnectionAttempts.event++;
-          setTimeout(
-            () => {
-              subscribeLiveEvent(
-                (window as any).currentLiveEventInfo.pubkey,
-                (window as any).currentLiveEventInfo.identifier,
-                (window as any).currentLiveEventInfo.kind
-              );
-            },
-            5000 * (window as any).reconnectionAttempts.event
-          );
+      {
+        timeout: SUBSCRIPTION_TIMEOUT,
+        onclosed: () => {
+          // Attempt to reconnect after a delay if we have current event info
+          if (
+            (window as any).currentLiveEventInfo &&
+            (window as any).reconnectionAttempts.event < MAX_RECONNECT_ATTEMPTS
+          ) {
+            (window as any).reconnectionAttempts.event++;
+            setTimeout(
+              () => {
+                subscribeLiveEvent(
+                  (window as any).currentLiveEventInfo.pubkey,
+                  (window as any).currentLiveEventInfo.identifier,
+                  (window as any).currentLiveEventInfo.kind
+                );
+              },
+              RECONNECT_BASE_DELAY * (window as any).reconnectionAttempts.event
+            );
+          }
         }
       }
-    });
-  };
+    );
+    return subscription;
+  }, [nostrClient, liveEventService]);
 
-  const subscribeLiveChat = async (pubkey: string, identifier: string) => {
-    // Debug log removed
-
-    const aTag = `30311:${pubkey}:${identifier}`;
-    const filter = {
-      kinds: [1311], // Live Chat Message kind
+  const subscribeLiveChat = useCallback(async (pubkey: string, identifier: string) => {
+    const aTag = liveEventService.generateATag(pubkey, identifier);
+    const filter: NostrFilter = {
+      kinds: [1311], // Live Chat Message kind (not in EVENT_KINDS, keeping as-is)
       '#a': [aTag]
     };
 
-    const sub = (window as any).pool.subscribe((window as any).relays, filter, {
-      onevent(chatMessage: any) {
+    const subscription = nostrClient.subscribeToEvents(
+      [filter],
+      (chatMessage: NostrEvent) => {
         displayLiveChatMessage(chatMessage);
       },
-      oneose() {
-        // Debug log removed
-      },
-      onclosed() {
-        // Attempt to reconnect after a delay if we have current event info
-        if (
-          (window as any).currentLiveEventInfo &&
-          (window as any).reconnectionAttempts.chat < 3
-        ) {
-          (window as any).reconnectionAttempts.chat++;
-          setTimeout(
-            () => {
-              subscribeLiveChat(
-                (window as any).currentLiveEventInfo.pubkey,
-                (window as any).currentLiveEventInfo.identifier
-              );
-            },
-            5000 * (window as any).reconnectionAttempts.chat
-          );
+      {
+        timeout: SUBSCRIPTION_TIMEOUT,
+        onclosed: () => {
+          // Attempt to reconnect after a delay if we have current event info
+          if (
+            (window as any).currentLiveEventInfo &&
+            (window as any).reconnectionAttempts.chat < MAX_RECONNECT_ATTEMPTS
+          ) {
+            (window as any).reconnectionAttempts.chat++;
+            setTimeout(
+              () => {
+                subscribeLiveChat(
+                  (window as any).currentLiveEventInfo.pubkey,
+                  (window as any).currentLiveEventInfo.identifier
+                );
+              },
+              RECONNECT_BASE_DELAY * (window as any).reconnectionAttempts.chat
+            );
+          }
         }
       }
-    });
-  };
+    );
+    return subscription;
+  }, [nostrClient, liveEventService]);
 
-  const subscribeLiveEventZaps = async (pubkey: string, identifier: string) => {
-    // Debug log removed
+  const subscribeLiveEventZaps = useCallback(async (pubkey: string, identifier: string) => {
     console.log('🔌 subscribeLiveEventZaps called for:', {
       pubkey: pubkey.slice(0, 8),
       identifier
@@ -476,72 +612,65 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Reset zap list when starting a new live event (like legacy)
     resetZapList();
 
-    const aTag = `30311:${pubkey}:${identifier}`;
+    const aTag = liveEventService.generateATag(pubkey, identifier);
 
-    const filter = {
-      kinds: [9735], // Zap receipt kind
+    const filter: NostrFilter = {
+      kinds: [EVENT_KINDS.ZAP_RECEIPT], // Zap receipt kind
       '#a': [aTag]
     };
 
     console.log('🔌 Subscribing to zaps with filter:', filter);
 
-    const sub = (window as any).pool.subscribe((window as any).relays, filter, {
-      onevent(zapReceipt: any) {
-        processLiveEventZap(zapReceipt, pubkey, identifier);
+    const subscription = nostrClient.subscribeToEvents(
+      [filter],
+      (zapReceipt: NostrEvent) => {
+        processLiveEventZap(zapReceipt as Kind9735Event, pubkey, identifier);
       },
-      oneose() {
-        // Debug log removed
-        // Keep subscription alive for new zaps
-        // Mark that initial zaps have been loaded
-        initialZapsLoadedRef.current = true;
-        console.log(
-          '✅ Initial zaps loaded (oneose), will show notifications for new zaps. Flag set to:',
-          initialZapsLoadedRef.current
-        );
-      },
-      onclosed() {
-        // Debug log removed
-        // Attempt to reconnect after a delay
-        setTimeout(() => {
-          // Debug log removed
-          subscribeLiveEventZaps(pubkey, identifier);
-        }, 5000);
+      {
+        timeout: SUBSCRIPTION_TIMEOUT,
+        oneose: () => {
+          // Keep subscription alive for new zaps
+          // Mark that initial zaps have been loaded
+          markInitialZapsLoaded();
+          console.log(
+            '✅ Initial zaps loaded (oneose), will show notifications for new zaps.'
+          );
+        },
+        onclosed: () => {
+          // Attempt to reconnect after a delay
+          setTimeout(() => {
+            subscribeLiveEventZaps(pubkey, identifier);
+          }, RECONNECT_BASE_DELAY);
+        }
       }
-    });
-  };
+    );
+    return subscription;
+  }, [nostrClient, processLiveEventZap, resetZapList, markInitialZapsLoaded, liveEventService]);
 
-  const subscribeLiveEventParticipants = async (liveEvent: any) => {
-    // Debug log removed
-
-    // Extract participant pubkeys from the live event
-    const participantPubkeys = liveEvent.tags
-      .filter((tag: any) => tag[0] === 'p')
-      .map((tag: any) => tag[1]);
+  const subscribeLiveEventParticipants = useCallback(async (liveEvent: Kind30311Event) => {
+    // Extract participant pubkeys using service
+    const participants = liveEventService.getParticipants(liveEvent);
+    const participantPubkeys = participants
+      .map((p) => p.pubkey)
+      .filter((pubkey: string): pubkey is string => !!pubkey);
 
     if (participantPubkeys.length > 0) {
-      const filter = {
-        kinds: [0], // Profile kind
-        authors: participantPubkeys
-      };
-
-      const sub = (window as any).pool.subscribe(
-        (window as any).relays,
-        filter,
+      const subscription = nostrClient.subscribeToProfiles(
+        participantPubkeys,
+        (profile: NostrEvent) => {
+          // Store profile for later use
+          (window as any).profiles = (window as any).profiles || {};
+          (window as any).profiles[profile.pubkey] = profile as Kind0Event;
+        },
         {
-          onevent(profile: any) {
-            // Store profile for later use
-            (window as any).profiles = (window as any).profiles || {};
-            (window as any).profiles[profile.pubkey] = profile;
-          },
-          oneose() {
-            // Debug log removed
-          }
+          timeout: 30000
         }
       );
+      return subscription;
     }
-  };
+  }, [nostrClient, liveEventService]);
 
-  const displayLiveEvent = (liveEvent: any) => {
+  const displayLiveEvent = (liveEvent: Kind30311Event) => {
     console.log('📺 Displaying live event:', liveEvent);
 
     // Check if this live event is already displayed to avoid clearing content
@@ -571,38 +700,25 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Set up two-column layout for live events
     setupLiveEventTwoColumnLayout();
 
-    // Extract event information from tags
-    const title =
-      liveEvent.tags.find((tag: any) => tag[0] === 'title')?.[1] ||
-      'Live Event';
-    const summary =
-      liveEvent.tags.find((tag: any) => tag[0] === 'summary')?.[1] || '';
-    const status =
-      liveEvent.tags.find((tag: any) => tag[0] === 'status')?.[1] || 'unknown';
-    const streaming = liveEvent.tags.find(
-      (tag: any) => tag[0] === 'streaming'
-    )?.[1];
-    console.log('📺 Streaming URL found:', streaming);
-    const recording = liveEvent.tags.find(
-      (tag: any) => tag[0] === 'recording'
-    )?.[1];
-    const starts = liveEvent.tags.find((tag: any) => tag[0] === 'starts')?.[1];
-    const ends = liveEvent.tags.find((tag: any) => tag[0] === 'ends')?.[1];
-    const currentParticipants =
-      liveEvent.tags.find(
-        (tag: any) => tag[0] === 'current_participants'
-      )?.[1] || '0';
-    const totalParticipants =
-      liveEvent.tags.find((tag: any) => tag[0] === 'total_participants')?.[1] ||
-      '0';
-    const participants = liveEvent.tags.filter((tag: any) => tag[0] === 'p');
+    // Extract event information using LiveEventService
+    const metadata = liveEventService.extractMetadata(liveEvent);
+    const {
+      title,
+      summary,
+      status,
+      streaming,
+      recording,
+      starts,
+      ends,
+      currentParticipants,
+      totalParticipants,
+      participants
+    } = metadata;
 
-    // Format timestamps
-    const formatTime = (timestamp: string) => {
-      if (!timestamp) return '';
-      const date = new Date(parseInt(timestamp) * 1000);
-      return date.toLocaleString();
-    };
+    console.log('📺 Streaming URL found:', streaming);
+
+    // Format timestamps using service (inline for template strings)
+    const formatTime = liveEventService.formatTimestamp.bind(liveEventService);
 
     // Check if live event content already exists to avoid rebuilding video
     const existingLiveContent = noteContent?.querySelector(
@@ -630,42 +746,42 @@ export const useLiveFunctionality = (eventId?: string) => {
                                 📺 Watch in External Player
                             </a>` : '<span>Streaming URL unavailable</span>';
                             })()}
-                        </div>
+                  </div>
                     </div>
                 </div>
             `
                 : ''
             }
-            
+
             <div class="live-event-content">
                 ${summary ? `<p class="live-event-summary">${summary}</p>` : ''}
-                
+          
                 <div class="live-event-status">
                     <span class="status-indicator status-${status}">
                         ${status === 'live' ? '🔴 LIVE' : status === 'planned' ? '📅 PLANNED' : status === 'ended' ? '✅ ENDED' : status.toUpperCase()}
-                    </span>
+              </span>
                 </div>
                 
                 ${
                   starts
                     ? `<div class="live-event-time">
                     <strong>Starts:</strong> ${formatTime(starts)}
-                </div>`
+          </div>`
                     : ''
                 }
-                
+
                 ${
                   ends
                     ? `<div class="live-event-time">
                     <strong>Ends:</strong> ${formatTime(ends)}
-                </div>`
+          </div>`
                     : ''
                 }
-                
+
                 <div class="live-event-participants">
                     <div class="participants-count">
                         <strong>Participants:</strong> ${currentParticipants}/${totalParticipants}
-                    </div>
+              </div>
                     ${
                       participants.length > 0
                         ? `
@@ -673,20 +789,20 @@ export const useLiveFunctionality = (eventId?: string) => {
                             ${participants
                               .slice(0, 10)
                               .map(
-                                (p: any) => `
-                                <div class="participant" data-pubkey="${p[1]}">
-                                    <span class="participant-role">${p[3] || 'Participant'}</span>: 
-                                    <span class="participant-pubkey">${p[1].slice(0, 8)}...</span>
+                                (p: { pubkey: string; role?: string }) => `
+                                <div class="participant" data-pubkey="${p.pubkey}">
+                                    <span class="participant-role">${p.role || 'Participant'}</span>: 
+                                    <span class="participant-pubkey">${p.pubkey.slice(0, 8)}...</span>
                                 </div>
                             `
                               )
                               .join('')}
-                            ${participants.length > 10 ? `<div class="participants-more">... and ${participants.length - 10} more</div>` : ''}
-                        </div>
+                      ${participants.length > 10 ? `<div class="participants-more">... and ${participants.length - 10} more</div>` : ''}
+                  </div>
                     `
                         : ''
                     }
-                </div>
+</div>
                 
                 ${
                   recording
@@ -698,11 +814,11 @@ export const useLiveFunctionality = (eventId?: string) => {
                             🎥 Watch Recording
                         </a>` : '<span>Recording URL unavailable</span>';
                         })()}
-                    </div>
+              </div>
                 `
                     : ''
                 }
-            </div>
+</div>
         `;
       }
     } else {
@@ -737,18 +853,35 @@ export const useLiveFunctionality = (eventId?: string) => {
       authorNameElement.innerText = title;
     }
 
-    // Find the actual host from participants (look for "Host" role in p tags)
-    const hostParticipant = participants.find(
-      (p: any) => p[3] && p[3].toLowerCase() === 'host'
-    );
-    const hostPubkey = hostParticipant ? hostParticipant[1] : liveEvent.pubkey;
+    // Get host pubkey using service
+    const hostPubkey = liveEventService.getHostPubkey(liveEvent);
 
     // Subscribe to host profile to get their image
     subscribeLiveEventHostProfile(hostPubkey);
 
     // Generate QR codes for the live event (with small delay to ensure DOM is ready)
     setTimeout(() => {
+      // Ensure at least one QR toggle is enabled before generating QR codes
+      const qrShowNeventToggle = document.getElementById('qrShowNeventToggle') as HTMLInputElement;
+      if (qrShowNeventToggle && !qrShowNeventToggle.checked) {
+        // Check if any QR toggle is enabled
+        const qrShowWebLinkToggle = document.getElementById('qrShowWebLinkToggle') as HTMLInputElement;
+        const qrShowNoteToggle = document.getElementById('qrShowNoteToggle') as HTMLInputElement;
+        const hasAnyEnabled = (qrShowWebLinkToggle?.checked) || (qrShowNoteToggle?.checked);
+
+        // If none are enabled, enable nevent by default
+        if (!hasAnyEnabled) {
+          qrShowNeventToggle.checked = true;
+        }
+}
+
       generateLiveEventQRCodes(liveEvent);
+      // Update QR slide visibility after generating QR codes
+      setTimeout(() => {
+        if (updateQRSlideVisibilityRef.current) {
+          updateQRSlideVisibilityRef.current(true);
+        }
+}, 300);
     }, 100);
 
     // Enable Lightning payments if previously enabled
@@ -757,7 +890,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         if ((window as any).enableLightningPayments) {
           (window as any).enableLightningPayments();
         }
-      }, 150);
+}, 150);
     }
 
     // Clean up any existing video player before initializing new one
@@ -776,7 +909,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     startContentMonitoring();
   };
 
-  const displayLiveChatMessage = (chatMessage: any) => {
+  const displayLiveChatMessage = (chatMessage: NostrEvent) => {
     // Debug log removed
 
     // Check if this chat message is already displayed to prevent duplicates
@@ -805,14 +938,14 @@ export const useLiveFunctionality = (eventId?: string) => {
     const chatDiv = document.createElement('div');
     chatDiv.className = 'live-chat-message';
     chatDiv.dataset.pubkey = chatMessage.pubkey;
-    chatDiv.dataset.timestamp = chatMessage.created_at;
+    chatDiv.dataset.timestamp = chatMessage.created_at.toString();
     chatDiv.dataset.chatId = chatMessage.id;
 
     const timeStr = new Date(chatMessage.created_at * 1000).toLocaleString();
 
     // Sanitize chat message content to prevent XSS
     const sanitizedContent = escapeHtml(chatMessage.content).replace(/\n/g, '<br>');
-    
+
     chatDiv.innerHTML = `
         <div class="chat-message-header">
             <img class="chat-author-img" src="/live/images/gradient_color.gif" data-pubkey="${chatMessage.pubkey}" />
@@ -825,7 +958,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         </div>
         <div class="chat-message-content">
             ${sanitizedContent}
-        </div>
+  </div>
     `;
 
     // Subscribe to chat author's profile if we don't have it
@@ -837,7 +970,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         targetContainer.querySelectorAll('.live-chat-message, .live-event-zap')
       );
       const insertPosition = existingMessages.findIndex(
-        (msg: any) => parseInt(msg.dataset.timestamp) < chatMessage.created_at
+        (msg: Element) => parseInt((msg as HTMLElement).dataset.timestamp || '0') < chatMessage.created_at
       );
 
       if (insertPosition === -1) {
@@ -851,279 +984,40 @@ export const useLiveFunctionality = (eventId?: string) => {
         } else {
           targetContainer.appendChild(chatDiv);
         }
-      }
+}
     }
   };
 
-  const processLiveEventZap = async (
-    zapReceipt: any,
-    eventPubkey: string,
-    eventIdentifier: string
-  ) => {
-    // Debug log removed
-    console.log(
-      '🔄 processLiveEventZap called for receipt:',
-      zapReceipt.id.slice(0, 8)
-    );
+  // processLiveEventZap and displayLiveEventZap are now provided by useZapHandling hook
 
-    try {
-      // Use shared helpers to extract zap information
-      const amount = extractZapAmount(zapReceipt);
-      if (amount === 0) {
-        return; // No amount, skip
-      }
-
-      const zapperPubkey = extractZapPayerPubkey(zapReceipt);
-      const zapContent = extractZapContent(zapReceipt);
-
-      // Get bolt11 tag for display
-      const bolt11Tag = zapReceipt.tags.find((tag: any) => tag[0] === 'bolt11');
-
-      // Create zap display object similar to regular notes
-      const zapData = {
-        id: zapReceipt.id,
-        amount,
-        content: zapContent,
-        pubkey: zapperPubkey,
-        timestamp: zapReceipt.created_at,
-        bolt11: bolt11Tag?.[1] || '',
-        zapEventID: nip19.noteEncode(zapReceipt.id)
-      };
-
-      // Subscribe to zapper's profile if we don't have it
-      subscribeChatAuthorProfile(zapperPubkey);
-
-      // Add to zapper totals accounting (profile will be updated when it arrives)
-      addZapToTotals(zapperPubkey, amount);
-
-      // Display the zap
-      console.log('📞 About to call displayLiveEventZap with zapData:', {
-        id: zapData.id.slice(0, 8),
-        amount: zapData.amount,
-        pubkey: zapData.pubkey.slice(0, 8)
-      });
-      displayLiveEventZap(zapData);
-    } catch (error) {
-      console.error('Error processing live event zap:', error);
-    }
-  };
-
-  const displayLiveEventZap = (zapData: any) => {
-    // Check if this zap is already displayed to prevent duplicates
-    const existingZap = document.querySelector(`[data-zap-id="${zapData.id}"]`);
-    if (existingZap) {
-      return;
-    }
-
-    // Trigger notification for new zaps (not initial/historical ones)
-    if (initialZapsLoadedRef.current) {
-      // Store as pending - subscribeChatAuthorProfile already called in processLiveEventZap
-      // When profile arrives, updateProfile will trigger the notification
-      pendingZapNotificationsRef.current.set(zapData.pubkey, zapData);
-    }
-
-    const zapsContainer = document.getElementById('zaps');
-
-    // Hide loading animation on first zap
-    if (zapsContainer) {
-      zapsContainer.classList.remove('loading');
-      const loadingText = zapsContainer.querySelector('.loading-text');
-      if (loadingText) loadingText.remove();
-    }
-
-    // Get target containers - use columns for live events, main container for regular notes
-    const activityContainer =
-      document.getElementById('activity-list') || zapsContainer;
-    const zapsOnlyContainer = document.getElementById('zaps-only-list');
-
-    // Create zap element with chat-style layout for activity column
-    const zapDiv = document.createElement('div');
-    zapDiv.className = 'live-event-zap';
-    zapDiv.dataset.pubkey = zapData.pubkey;
-    zapDiv.dataset.timestamp = zapData.timestamp;
-    zapDiv.dataset.amount = zapData.amount;
-    zapDiv.dataset.zapId = zapData.id;
-
-    // Add timestamp data attribute for historical price lookup
-    if (zapData.timestamp) {
-      zapDiv.setAttribute('data-timestamp', zapData.timestamp.toString());
-    } else {
-      console.log('⚠️ No timestamp found in live event zap data:', zapData);
-    }
-
-    const timeStr = new Date(zapData.timestamp * 1000).toLocaleString();
-
-    zapDiv.innerHTML = `
-        <div class="zap-header">
-            <img class="zap-author-img" src="/live/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
-            <div class="zap-info">
-                <div class="zap-author-name" data-pubkey="${zapData.pubkey}">
-                    ${zapData.pubkey.slice(0, 8)}...
-                </div>
-                <div class="zap-time">${timeStr}</div>
-            </div>
-            <div class="zap-amount">
-                <span class="zap-amount-sats" data-original-sats="${numberWithCommas(zapData.amount)}">${numberWithCommas(zapData.amount)}</span>
-                <span class="zap-amount-label">sats</span>
-            </div>
-        </div>
-        ${
-          zapData.content
-            ? `
-            <div class="zap-content">
-                ${escapeHtml(zapData.content).replace(/\n/g, '<br>')}
-            </div>
-        `
-            : ''
-        }
-    `;
-
-    // Insert zap in activity column (mixed with chat messages)
-    if (activityContainer) {
-      const existingActivityItems = Array.from(
-        activityContainer.querySelectorAll(
-          '.live-chat-message, .live-event-zap'
-        )
-      );
-      const activityInsertPosition = existingActivityItems.findIndex(
-        (item: any) => parseInt(item.dataset.timestamp) < zapData.timestamp
-      );
-
-      if (activityInsertPosition === -1) {
-        // Add to end (oldest items at bottom)
-        activityContainer.appendChild(zapDiv);
-      } else {
-        // Insert before the found position (newer items towards top)
-        const targetItem = existingActivityItems[activityInsertPosition];
-        if (targetItem) {
-          activityContainer.insertBefore(zapDiv, targetItem);
-        } else {
-          activityContainer.appendChild(zapDiv);
-        }
-      }
-    }
-
-    // Also add to zaps-only column if it exists (for live events) - sorted by amount (highest first)
-    // Use classic layout for left column
-    if (zapsOnlyContainer) {
-      const zapOnlyDiv = document.createElement('div');
-      zapOnlyDiv.className = 'zap live-event-zap zap-only-item';
-      zapOnlyDiv.dataset.pubkey = zapData.pubkey;
-      zapOnlyDiv.dataset.timestamp = zapData.timestamp;
-      zapOnlyDiv.dataset.amount = zapData.amount;
-      zapOnlyDiv.dataset.zapId = zapData.id;
-
-      // Add timestamp data attribute for historical price lookup
-      if (zapData.timestamp) {
-        zapOnlyDiv.setAttribute('data-timestamp', zapData.timestamp.toString());
-      } else {
-      }
-
-      // Classic zap layout for left column
-      zapOnlyDiv.innerHTML = `
-            <div class="zapperProfile">
-                <img class="zapperProfileImg" src="/live/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
-                <div class="zapperInfo">
-                    <div class="zapperName" data-pubkey="${zapData.pubkey}">
-                        ${zapData.pubkey.slice(0, 8)}...
-                    </div>
-                    <div class="zapperMessage">${zapData.content ? escapeHtml(zapData.content).replace(/\n/g, '<br>') : ''}</div>
-                </div>
-            </div>
-            <div class="zapperAmount">
-                <div class="zapperAmountValue">
-                  <span class="zapperAmountSats" data-original-sats="${numberWithCommas(zapData.amount)}">${numberWithCommas(zapData.amount)}</span>
-                  <span class="zapperAmountLabel">sats</span>
-                </div>
-            </div>
-        `;
-
-      const existingZapItems = Array.from(
-        zapsOnlyContainer.querySelectorAll('.live-event-zap')
-      );
-      const zapInsertPosition = existingZapItems.findIndex(
-        (item: any) => parseInt(item.dataset.amount || 0) < zapData.amount
-      );
-
-      if (zapInsertPosition === -1) {
-        // Add to end (lowest amounts at bottom)
-        zapsOnlyContainer.appendChild(zapOnlyDiv);
-      } else {
-        // Insert before the found position (higher amounts towards top)
-        const targetItem = existingZapItems[zapInsertPosition];
-        if (targetItem) {
-          zapsOnlyContainer.insertBefore(zapOnlyDiv, targetItem);
-        } else {
-          zapsOnlyContainer.appendChild(zapOnlyDiv);
-        }
-      }
-    }
-
-    // Update total zapped amount
-    updateLiveEventZapTotal();
-
-    // Re-organize grid layout if active (for live events)
-    const zapGridToggle = document.getElementById(
-      'zapGridToggle'
-    ) as HTMLInputElement;
-    if (zapGridToggle && zapGridToggle.checked && zapsOnlyContainer) {
-      // Check if zaps-only-list has grid-layout class
-      const isGridActive = zapsOnlyContainer.classList.contains('grid-layout');
-      
-      if (isGridActive) {
-        // Debounce the re-organize to avoid excessive calls during rapid zap influx
-        if ((window as any).gridReorganizeTimeout) {
-          clearTimeout((window as any).gridReorganizeTimeout);
-        }
-        (window as any).gridReorganizeTimeout = setTimeout(() => {
-          organizeZapsHierarchically();
-        }, 300);
-      }
-    }
-
-    // Apply fiat conversion if enabled
-    const showFiatToggle = document.getElementById(
-      'showFiatToggle'
-    ) as HTMLInputElement;
-    if (showFiatToggle && showFiatToggle.checked) {
-      // Use setTimeout to ensure DOM is updated before applying fiat conversion
-      setTimeout(() => {
-        debouncedUpdateFiatAmounts();
-      }, 100);
-    }
-  };
-
-  const subscribeChatAuthorProfile = async (pubkey: string) => {
-    // Debug log removed
-
-    const filter = {
-      kinds: [0], // Profile kind
-      authors: [pubkey]
-    };
+  const subscribeChatAuthorProfile = useCallback(async (pubkey: string) => {
+    subscribeChatAuthorProfileRef.current = subscribeChatAuthorProfile;
 
     // Track newest event per pubkey
-    const newestProfile = new Map<string, { event: any; timestamp: number }>();
+    const newestProfile = new Map<string, { event: Kind0Event; timestamp: number }>();
 
-    const sub = (window as any).pool.subscribe((window as any).relays, filter, {
-      onevent(profile: any) {
-        const existing = newestProfile.get(profile.pubkey);
+    const subscription = nostrClient.subscribeToProfiles(
+      [pubkey],
+      (profile: NostrEvent) => {
+        const kind0Profile = profile as Kind0Event;
+        const existing = newestProfile.get(kind0Profile.pubkey);
         // Only process if this is the newest event we've seen
-        if (!existing || profile.created_at > existing.timestamp) {
-          newestProfile.set(profile.pubkey, { event: profile, timestamp: profile.created_at });
-          updateProfile(profile);
+        if (!existing || kind0Profile.created_at > existing.timestamp) {
+          newestProfile.set(kind0Profile.pubkey, { event: kind0Profile, timestamp: kind0Profile.created_at });
+          updateZapProfile(kind0Profile);
+          updateProfile(kind0Profile); // Also update chat profile
         }
       },
-      oneose() {
-        // Debug log removed
-      },
-      onclosed() {
-        // Debug log removed
+      {
+        timeout: 30000
       }
-    });
-  };
+    );
+    return subscription;
+  }, [nostrClient, updateZapProfile]);
 
   const updateLiveEventZapTotal = () => {
     // Debug log removed
+    updateLiveEventZapTotalRef.current = updateLiveEventZapTotal;
 
     const zaps = Array.from(document.querySelectorAll('.live-event-zap'));
     const totalAmount = zaps.reduce((sum, zap) => {
@@ -1156,67 +1050,21 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
-  const addZapToTotals = (
-    pubkey: string,
-    amount: number,
-    profile: any = null
-  ) => {
-    // Debug log removed
+  // addZapToTotals is now provided by useZapHandling hook
 
-    // Initialize zapperTotals if it doesn't exist
-    if (!(window as any).zapperTotals) {
-      (window as any).zapperTotals = new Map();
-    }
-
-    const zapperTotals = (window as any).zapperTotals;
-
-    if (zapperTotals.has(pubkey)) {
-      const existing = zapperTotals.get(pubkey);
-      existing.amount += amount;
-      if (profile) {
-        existing.profile = profile;
-        existing.name = getDisplayName(profile);
-        existing.picture = sanitizeImageUrl(profile.picture) || '/live/images/gradient_color.gif';
-      }
-    } else {
-      zapperTotals.set(pubkey, {
-        amount,
-        profile,
-        name: profile ? getDisplayName(profile) : 'Anonymous',
-        picture: profile
-          ? sanitizeImageUrl(profile.picture) || '/live/images/gradient_color.gif'
-          : '/live/images/gradient_color.gif',
-        pubkey
-      });
-    }
-
-    updateTopZappers();
-  };
-
-  const getDisplayName = (profile: any) => {
+  const getDisplayName = (profile: Kind0Event | null) => {
     if (!profile) return 'Anonymous';
-    return (
-      profile.display_name || profile.displayName || profile.name || 'Anonymous'
-    );
+    try {
+      const profileData = JSON.parse(profile.content || '{}');
+      return (
+        profileData.display_name || profileData.displayName || profileData.name || 'Anonymous'
+      );
+    } catch {
+      return 'Anonymous';
+    }
   };
 
-  const updateTopZappers = () => {
-    // Debug log removed
-
-    if (!(window as any).zapperTotals) return;
-
-    const zapperTotals = (window as any).zapperTotals;
-
-    // Sort zappers by total amount (highest first) and take top 5
-    const topZappers = Array.from(zapperTotals.values())
-      .sort((a: any, b: any) => b.amount - a.amount)
-      .slice(0, 5);
-
-    // Update both window and React state
-    (window as any).topZappers = topZappers;
-    setTopZappers(topZappers);
-    // Don't automatically display - let the useEffect handle it based on toggle state
-  };
+  // updateTopZappers is now provided by useZapHandling hook
 
   const displayTopZappers = () => {
     // Debug log removed
@@ -1252,11 +1100,17 @@ export const useLiveFunctionality = (eventId?: string) => {
         const name = zapperElement.querySelector('.zapper-name');
         const total = zapperElement.querySelector('.zapper-total');
 
-        if (avatar) avatar.src = sanitizeImageUrl(zapper.picture) || '/live/images/gradient_color.gif';
-        if (avatar) avatar.alt = zapper.name;
-        if (name) name.textContent = zapper.name;
+        // topZappers is ProcessedZap[] from useZapHandling hook
+        const zapperData = zapper as SharedProcessedZap;
+        const zapperPicture = zapperData.zapPayerPicture || '';
+        const zapperName = zapperData.content || 'Anonymous';
+        const zapperAmount = zapperData.zapAmount || 0;
+        
+        if (avatar) avatar.src = sanitizeImageUrl(zapperPicture) || '/live/images/gradient_color.gif';
+        if (avatar) avatar.alt = zapperName;
+        if (name) name.textContent = zapperName;
         if (total)
-          total.textContent = `${numberWithCommas(zapper.amount)} sats`;
+          total.textContent = `${numberWithCommas(zapperAmount)} sats`;
 
         zapperElement.style.opacity = '1';
         zapperElement.style.display = 'flex';
@@ -1272,81 +1126,32 @@ export const useLiveFunctionality = (eventId?: string) => {
     document.body.classList.remove('show-top-zappers');
   };
 
-  const updateProfile = (profile: any) => {
-    let profileData: any = {};
+  const updateProfile = (profile: Kind0Event) => {
+    let profileData: Record<string, unknown> = {};
     try {
-      profileData = JSON.parse(profile.content || '{}');
+      profileData = JSON.parse(profile.content || '{}') as Record<string, unknown>;
     } catch (error) {
       console.warn('Failed to parse profile content:', error);
       profileData = {};
     }
     const name =
-      profileData.display_name ||
-      profileData.displayName ||
-      profileData.name ||
+      (profileData.display_name as string) ||
+      (profileData.displayName as string) ||
+      (profileData.name as string) ||
       `${profile.pubkey.slice(0, 8)}...`;
-    const picture = sanitizeImageUrl(profileData.picture) || '/live/images/gradient_color.gif';
+    const picture = sanitizeImageUrl((profileData.picture as string) || '') || '/live/images/gradient_color.gif';
 
-    // Update zapper totals with profile info if this user has zapped
-    if (
-      (window as any).zapperTotals &&
-      (window as any).zapperTotals.has(profile.pubkey)
-    ) {
-      const zapperData = (window as any).zapperTotals.get(profile.pubkey);
-      zapperData.profile = profileData;
-      zapperData.name = name;
-      zapperData.picture = picture;
-      updateTopZappers(); // Refresh display with updated profile info
-    }
-
-    // Update all chat messages and zaps from this author
+    // Update chat messages from this author (zaps are handled by useZapHandling hook)
     const authorElements = document.querySelectorAll(
-      `[data-pubkey="${profile.pubkey}"]`
+      `.chat-author-img[data-pubkey="${profile.pubkey}"], .chat-author-name[data-pubkey="${profile.pubkey}"]`
     );
     authorElements.forEach(element => {
-      if (
-        element.classList.contains('chat-author-img') ||
-        element.classList.contains('zap-author-img') ||
-        element.classList.contains('zapperProfileImg')
-      ) {
+      if (element.classList.contains('chat-author-img')) {
         (element as HTMLImageElement).src = picture;
-      } else if (
-        element.classList.contains('chat-author-name') ||
-        element.classList.contains('zap-author-name') ||
-        element.classList.contains('zapperName')
-      ) {
+      } else if (element.classList.contains('chat-author-name')) {
         element.textContent = name;
       }
     });
-
-    // Check for pending zap notifications for this profile
-    if (pendingZapNotificationsRef.current.has(profile.pubkey)) {
-      const zapData = pendingZapNotificationsRef.current.get(profile.pubkey);
-      pendingZapNotificationsRef.current.delete(profile.pubkey);
-
-      console.log('🏆 Processing notification for zap:', {
-        amount: zapData.amount,
-        pubkey: profile.pubkey.slice(0, 8),
-        currentZapsCount: zaps.length
-      });
-
-      // Get rank based on this single zap's amount (1-3 for top 3 individual zaps)
-      const zapperRank = getSingleZapRank(zapData.amount);
-
-      // Trigger the notification now that we have the profile
-      const notificationData: ZapNotification = {
-        id: zapData.id,
-        zapperName: name,
-        zapperImage: picture,
-        content: zapData.content || '',
-        amount: zapData.amount,
-        timestamp: zapData.timestamp,
-        zapperRank
-      };
-
-      console.log('🏆 Setting notification with rank:', zapperRank);
-      setZapNotification(notificationData);
-    }
   };
 
   const setupLiveEventTwoColumnLayout = () => {
@@ -1393,48 +1198,41 @@ export const useLiveFunctionality = (eventId?: string) => {
     zapsContainer.classList.add('live-event-two-column');
   };
 
-  const subscribeLiveEventHostProfile = async (hostPubkey: string) => {
-    // Debug log removed
-
-    const filter = {
-      kinds: [0], // Profile kind
-      authors: [hostPubkey]
-    };
-
+  const subscribeLiveEventHostProfile = useCallback(async (hostPubkey: string) => {
     // Track newest event per pubkey
-    const newestProfile = new Map<string, { event: any; timestamp: number }>();
+    const newestProfile = new Map<string, { event: Kind0Event; timestamp: number }>();
 
-    const sub = (window as any).pool.subscribe((window as any).relays, filter, {
-      onevent(profile: any) {
-        const existing = newestProfile.get(profile.pubkey);
+    const subscription = nostrClient.subscribeToProfiles(
+      [hostPubkey],
+      (profile: NostrEvent) => {
+        const kind0Profile = profile as Kind0Event;
+        const existing = newestProfile.get(kind0Profile.pubkey);
         // Only process if this is the newest event we've seen
-        if (!existing || profile.created_at > existing.timestamp) {
-          newestProfile.set(profile.pubkey, { event: profile, timestamp: profile.created_at });
-          updateLiveEventHostProfile(profile);
+        if (!existing || kind0Profile.created_at > existing.timestamp) {
+          newestProfile.set(kind0Profile.pubkey, { event: kind0Profile, timestamp: kind0Profile.created_at });
+          updateLiveEventHostProfile(kind0Profile);
         }
       },
-      oneose() {
-        // Debug log removed
-      },
-      onclosed() {
-        // Debug log removed
+      {
+        timeout: 30000
       }
-    });
-  };
+    );
+    return subscription;
+  }, [nostrClient, liveEventService]);
 
-  const updateLiveEventHostProfile = (profile: any) => {
+  const updateLiveEventHostProfile = (profile: Kind0Event) => {
     // Debug log removed
 
-    let profileData: any = {};
+    let profileData: Record<string, unknown> = {};
     try {
-      profileData = JSON.parse(profile.content || '{}');
+      profileData = JSON.parse(profile.content || '{}') as Record<string, unknown>;
     } catch (error) {
       console.warn('Failed to parse live event host profile:', error);
       profileData = {};
     }
-    const picture = sanitizeImageUrl(profileData.picture) || '/live/images/gradient_color.gif';
-    const nip05 = profileData.nip05 || '';
-    const lud16 = profileData.lud16 || '';
+    const picture = sanitizeImageUrl((profileData.picture as string) || '') || '/live/images/gradient_color.gif';
+    const nip05 = (profileData.nip05 as string) || '';
+    const lud16 = (profileData.lud16 as string) || '';
 
     // Update the author profile image
     const authorImg = document.getElementById(
@@ -1483,7 +1281,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             // Debug log removed
             displayLiveEvent((window as any).currentLiveEvent);
           }
-        }
+}
 
         if (
           !twoColumnLayout &&
@@ -1492,8 +1290,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         ) {
           setupLiveEventTwoColumnLayout();
         }
-      }
-    }, 10000); // Check every 10 seconds
+}
+    }, CONTENT_MONITOR_INTERVAL); // Check every 10 seconds
   };
 
   const initializeLiveVideoPlayer = (streamingUrl: string) => {
@@ -1521,7 +1319,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (!wasMuted && video.muted) {
         video.muted = false;
       }
-      if (lastVolume > 0 && video.volume !== lastVolume) {
+if (lastVolume > 0 && video.volume !== lastVolume) {
         video.volume = lastVolume;
       }
     };
@@ -1554,7 +1352,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
 
       reconnectAttempts++;
-      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 30000);
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), SUBSCRIPTION_TIMEOUT);
       console.log(
         `🔄 Attempting reconnection ${reconnectAttempts}/${maxReconnectAttempts} in ${delay}ms`
       );
@@ -1604,13 +1402,14 @@ export const useLiveFunctionality = (eventId?: string) => {
 
           hlsInstance.on(
             (window as any).Hls.Events.ERROR,
-            (event: any, data: any) => {
+            (_event: unknown, data: unknown) => {
               console.error('❌ HLS error:', data);
-              if (data.fatal) {
+              const errorData = data as { fatal?: boolean; type?: string; details?: string };
+              if (errorData.fatal) {
                 attemptReconnect();
               }
-            }
-          );
+}
+    );
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           // Native HLS support (Safari)
           console.log('🎥 Using native HLS support');
@@ -1632,7 +1431,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           console.error('❌ HLS not supported');
           showError();
         }
-      } else {
+} else {
         // Regular video formats (MP4, WebM, etc.)
         console.log('🎥 Using regular video format');
         video.src = streamingUrl;
@@ -1689,7 +1488,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (video.readyState < 3 && wasPlaying) {
           attemptReconnect();
         }
-      }, 5000);
+}, 5000);
     });
 
     video.addEventListener('waiting', () => {
@@ -1708,7 +1507,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       enableGridToggle();
 
       // Reset zapper totals for new content
-      resetZapperTotals();
+      resetZapperTotalsFromHook();
 
       // Strip nostr: protocol prefix if present before validation
       const originalNoteId = noteId;
@@ -1739,7 +1538,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           const { identifier, pubkey, kind } = decoded.data;
 
           // Reset zapper totals for new live event
-          resetZapperTotals();
+          resetZapperTotalsFromHook();
 
           // Show loading animations for live event
           const noteContent = document.querySelector('.note-content');
@@ -1753,7 +1552,7 @@ export const useLiveFunctionality = (eventId?: string) => {
               loadingText.textContent = 'Loading live event...';
               noteContent.appendChild(loadingText);
             }
-          }
+  }
 
           if (zapsList) {
             zapsList.classList.add('loading');
@@ -1763,7 +1562,7 @@ export const useLiveFunctionality = (eventId?: string) => {
               loadingText.textContent = 'Loading live activity...';
               zapsList.appendChild(loadingText);
             }
-          }
+  }
 
           // Store current live event info for reconnection
           (window as any).currentLiveEventInfo = { pubkey, identifier, kind };
@@ -1801,7 +1600,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             loadingText.textContent = 'Loading note content...';
             noteContent.appendChild(loadingText);
           }
-        }
+}
 
         if (zapsList) {
           zapsList.classList.add('loading');
@@ -1812,7 +1611,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             loadingText.textContent = 'Loading zaps...';
             zapsList.appendChild(loadingText);
           }
-        }
+}
 
         subscribeKind1(kind1ID);
         const noteLoaderContainer = document.getElementById(
@@ -1821,7 +1620,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (noteLoaderContainer) {
           noteLoaderContainer.style.display = 'none';
         }
-      } catch (e) {
+} catch (e) {
         // If decoding fails, try to use the input directly as a note ID
 
         // Show loading animations
@@ -1836,7 +1635,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             loadingText.textContent = 'Loading note content...';
             noteContent.appendChild(loadingText);
           }
-        }
+}
 
         if (zapsList) {
           zapsList.classList.add('loading');
@@ -1846,7 +1645,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             loadingText.textContent = 'Loading zaps...';
             zapsList.appendChild(loadingText);
           }
-        }
+}
 
         subscribeKind1(noteId);
         const noteLoaderContainer = document.getElementById(
@@ -1855,7 +1654,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (noteLoaderContainer) {
           noteLoaderContainer.style.display = 'none';
         }
-      }
+}
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to load note content'
@@ -1900,847 +1699,13 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
-  const resetToDefaults = () => {
-    // Clear localStorage to remove saved customizations
-    appLocalStorage.removeItem('styleOptions');
-    // Debug log removed
+  // resetToDefaults is now provided by useStyleManagement hook
 
-    // Reset fiat options to defaults
-    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
-    const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
-    const showHistoricalPriceToggle = document.getElementById('showHistoricalPriceToggle') as HTMLInputElement;
-    const showHistoricalChangeToggle = document.getElementById('showHistoricalChangeToggle') as HTMLInputElement;
-    const fiatOnlyToggle = document.getElementById('fiatOnlyToggle') as HTMLInputElement;
-    
-    if (showFiatToggle) showFiatToggle.checked = false;
-    if (currencySelector) currencySelector.value = 'USD';
-    if (showHistoricalPriceToggle) showHistoricalPriceToggle.checked = false;
-    if (showHistoricalChangeToggle) showHistoricalChangeToggle.checked = false;
-    if (fiatOnlyToggle) fiatOnlyToggle.checked = false;
-    
-    // Hide fiat-related groups
-    const currencySelectorGroup = document.getElementById('currencySelectorGroup');
-    const historicalPriceGroup = document.getElementById('historicalPriceGroup');
-    const historicalChangeGroup = document.getElementById('historicalChangeGroup');
-    const fiatOnlyGroup = document.getElementById('fiatOnlyGroup');
-    
-    if (currencySelectorGroup) currencySelectorGroup.style.display = 'none';
-    if (historicalPriceGroup) historicalPriceGroup.style.display = 'none';
-    if (historicalChangeGroup) historicalChangeGroup.style.display = 'none';
-    if (fiatOnlyGroup) fiatOnlyGroup.style.display = 'none';
-    
-    // Remove fiat amounts from display
-    document.querySelectorAll('.fiat-amount').forEach(el => {
-      (el as HTMLElement).style.display = 'none';
-    });
+  // updateStyleURL, applyStylesFromURL, and copyStyleUrl are now provided by useStyleManagement hook
 
-    // Apply light mode preset
-    applyPreset('lightMode');
-  };
-
-  // Update style URL - saves styles to localStorage and cleans URL
-  const updateStyleURL = () => {
-    const mainLayout = document.querySelector('.main-layout');
-    if (!mainLayout) return;
-
-    // Get current style values
-    const partnerLogoSelect = document.getElementById(
-      'partnerLogoSelect'
-    ) as HTMLSelectElement;
-    const partnerLogoUrl = document.getElementById(
-      'partnerLogoUrl'
-    ) as HTMLInputElement;
-
-    // Get the actual partner logo URL
-    let currentPartnerLogo = '';
-    if (partnerLogoSelect) {
-      if (partnerLogoSelect.value === 'custom' && partnerLogoUrl) {
-        currentPartnerLogo = partnerLogoUrl.value;
-      } else {
-        currentPartnerLogo = partnerLogoSelect.value;
-      }
-    }
-
-    const styles = {
-      textColor: toHexColor(
-        (mainLayout as HTMLElement).style.getPropertyValue('--text-color') ||
-          DEFAULT_STYLES.textColor
-      ),
-      bgColor: toHexColor(
-        (mainLayout as HTMLElement).style.backgroundColor ||
-          DEFAULT_STYLES.bgColor
-      ),
-      bgImage:
-        (document.getElementById('bgImageUrl') as HTMLInputElement)?.value ||
-        '',
-      qrInvert:
-        (document.getElementById('qrInvertToggle') as HTMLInputElement)
-          ?.checked || false,
-      qrScreenBlend:
-        (document.getElementById('qrScreenBlendToggle') as HTMLInputElement)
-          ?.checked || false,
-      qrMultiplyBlend:
-        (document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement)
-          ?.checked || false,
-      qrShowWebLink:
-        (document.getElementById('qrShowWebLinkToggle') as HTMLInputElement)
-          ?.checked ?? true,
-      qrShowNevent:
-        (document.getElementById('qrShowNeventToggle') as HTMLInputElement)
-          ?.checked ?? true,
-      qrShowNote:
-        (document.getElementById('qrShowNoteToggle') as HTMLInputElement)
-          ?.checked ?? true,
-      layoutInvert:
-        (document.getElementById('layoutInvertToggle') as HTMLInputElement)
-          ?.checked || false,
-      hideZapperContent:
-        (document.getElementById('hideZapperContentToggle') as HTMLInputElement)
-          ?.checked || false,
-      showTopZappers:
-        (document.getElementById('showTopZappersToggle') as HTMLInputElement)
-          ?.checked || false,
-      podium:
-        (document.getElementById('podiumToggle') as HTMLInputElement)
-          ?.checked || false,
-      zapGrid:
-        (document.getElementById('zapGridToggle') as HTMLInputElement)
-          ?.checked || false,
-      sectionLabels:
-        (document.getElementById('sectionLabelsToggle') as HTMLInputElement)
-          ?.checked ?? true,
-      qrOnly:
-        (document.getElementById('qrOnlyToggle') as HTMLInputElement)
-          ?.checked || false,
-      showFiat:
-        (document.getElementById('showFiatToggle') as HTMLInputElement)
-          ?.checked || false,
-      showHistoricalPrice:
-        (
-          document.getElementById(
-            'showHistoricalPriceToggle'
-          ) as HTMLInputElement
-        )?.checked || false,
-      showHistoricalChange:
-        (
-          document.getElementById(
-            'showHistoricalChangeToggle'
-          ) as HTMLInputElement
-        )?.checked || false,
-      fiatOnly:
-        (document.getElementById('fiatOnlyToggle') as HTMLInputElement)
-          ?.checked || false,
-      lightning:
-        (document.getElementById('lightningToggle') as HTMLInputElement)
-          ?.checked || false,
-      opacity: parseFloat(
-        (document.getElementById('opacitySlider') as HTMLInputElement)?.value ||
-          '1'
-      ),
-      textOpacity: parseFloat(
-        (document.getElementById('textOpacitySlider') as HTMLInputElement)
-          ?.value || '1'
-      ),
-      partnerLogo: currentPartnerLogo,
-      selectedCurrency:
-        (document.getElementById('currencySelector') as HTMLSelectElement)
-          ?.value || 'USD'
-    };
-
-    // Store styles in localStorage instead of URL
-    appLocalStorage.setStyleOptions(styles);
-
-    // Keep URL clean - no style parameters
-    const pathParts = window.location.pathname.split('/').filter(Boolean);
-    // Filter out 'live' from path parts to get the actual identifier
-    const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
-    const noteId = pathPartsWithoutLive[pathPartsWithoutLive.length - 1];
-    // Keep URLs under /live/ base path
-    const cleanUrl =
-      noteId && noteId.trim() !== '' ? `/live/${noteId}` : '/live/';
-
-    if (window.location.href !== window.location.origin + cleanUrl) {
-      window.history.replaceState({}, '', cleanUrl);
-    }
-  };
-
-  // Apply styles from URL parameters
-  const applyStylesFromURL = () => {
-    const mainLayout = document.querySelector('.main-layout');
-    if (!mainLayout) return;
-
-    const params = new URLSearchParams(window.location.search);
-    if (params.toString() === '') return; // No URL parameters
-
-    // Apply text color
-    if (params.has('textColor')) {
-      const color = params.get('textColor');
-      if (color) {
-        (mainLayout as HTMLElement).style.setProperty('--text-color', color);
-        const textColorInput = document.getElementById(
-          'textColorPicker'
-        ) as HTMLInputElement;
-        const textColorValue = document.getElementById(
-          'textColorValue'
-        ) as HTMLInputElement;
-        if (textColorInput) textColorInput.value = color;
-        if (textColorValue) textColorValue.value = color;
-      }
-    }
-
-    // Apply background color
-    if (params.has('bgColor')) {
-      const color = params.get('bgColor');
-      if (color) {
-        const opacity = params.has('opacity')
-          ? parseFloat(params.get('opacity') || '1')
-          : DEFAULT_STYLES.opacity;
-        const rgbaColor = hexToRgba(color, opacity);
-        (mainLayout as HTMLElement).style.backgroundColor = rgbaColor;
-        const bgColorInput = document.getElementById(
-          'bgColorPicker'
-        ) as HTMLInputElement;
-        const bgColorValue = document.getElementById(
-          'bgColorValue'
-        ) as HTMLInputElement;
-        if (bgColorInput) bgColorInput.value = color;
-        if (bgColorValue) bgColorValue.value = color;
-      }
-    }
-
-    // Apply background image
-    if (params.has('bgImage')) {
-      const imageUrl = params.get('bgImage');
-      if (imageUrl) {
-        const bgImageUrl = document.getElementById(
-          'bgImageUrl'
-        ) as HTMLInputElement;
-        if (bgImageUrl) {
-          bgImageUrl.value = imageUrl;
-          updateBackgroundImage(imageUrl);
-        }
-      }
-    }
-
-    // Apply QR code invert (set to default if not specified in URL)
-    const qrInvert = params.has('qrInvert')
-      ? params.get('qrInvert') === 'true'
-      : DEFAULT_STYLES.qrInvert;
-    const qrInvertToggle = document.getElementById(
-      'qrInvertToggle'
-    ) as HTMLInputElement;
-    if (qrInvertToggle) qrInvertToggle.checked = qrInvert;
-    const qrCodes = [
-      document.getElementById('qrCode'),
-      document.getElementById('qrCodeNevent'),
-      document.getElementById('qrCodeNote')
-    ];
-
-    // Include Lightning QR in invert effect if enabled
-    if (lightningEnabled) {
-      qrCodes.push(document.getElementById('lightningQRCode'));
-    }
-
-    qrCodes.forEach(qrCode => {
-      if (qrCode) {
-        (qrCode as HTMLElement).style.filter = qrInvert ? 'invert(1)' : 'none';
-      }
-    });
-
-    // Apply QR code blend modes (set to default if not specified in URL)
-    const qrScreenBlend = params.has('qrScreenBlend')
-      ? params.get('qrScreenBlend') === 'true'
-      : DEFAULT_STYLES.qrScreenBlend;
-    const qrScreenBlendToggle = document.getElementById(
-      'qrScreenBlendToggle'
-    ) as HTMLInputElement;
-    if (qrScreenBlendToggle) qrScreenBlendToggle.checked = qrScreenBlend;
-
-    const qrMultiplyBlend = params.has('qrMultiplyBlend')
-      ? params.get('qrMultiplyBlend') === 'true'
-      : DEFAULT_STYLES.qrMultiplyBlend;
-    const qrMultiplyBlendToggle = document.getElementById(
-      'qrMultiplyBlendToggle'
-    ) as HTMLInputElement;
-    if (qrMultiplyBlendToggle) qrMultiplyBlendToggle.checked = qrMultiplyBlend;
-
-    // Update blend mode after setting toggles
-    updateBlendMode();
-
-    // Apply QR slide visibility (set to default if not specified in URL)
-    const qrShowWebLink = params.has('qrShowWebLink')
-      ? params.get('qrShowWebLink') === 'true'
-      : DEFAULT_STYLES.qrShowWebLink;
-    const qrShowWebLinkToggle = document.getElementById(
-      'qrShowWebLinkToggle'
-    ) as HTMLInputElement;
-    if (qrShowWebLinkToggle) qrShowWebLinkToggle.checked = qrShowWebLink;
-
-    const qrShowNevent = params.has('qrShowNevent')
-      ? params.get('qrShowNevent') === 'true'
-      : DEFAULT_STYLES.qrShowNevent;
-    const qrShowNeventToggle = document.getElementById(
-      'qrShowNeventToggle'
-    ) as HTMLInputElement;
-    if (qrShowNeventToggle) qrShowNeventToggle.checked = qrShowNevent;
-
-    const qrShowNote = params.has('qrShowNote')
-      ? params.get('qrShowNote') === 'true'
-      : DEFAULT_STYLES.qrShowNote;
-    const qrShowNoteToggle = document.getElementById(
-      'qrShowNoteToggle'
-    ) as HTMLInputElement;
-    if (qrShowNoteToggle) qrShowNoteToggle.checked = qrShowNote;
-
-    // Apply layout invert (set to default if not specified in URL)
-    const layoutInvert = params.has('layoutInvert')
-      ? params.get('layoutInvert') === 'true'
-      : DEFAULT_STYLES.layoutInvert;
-    const layoutInvertToggle = document.getElementById(
-      'layoutInvertToggle'
-    ) as HTMLInputElement;
-    if (layoutInvertToggle) layoutInvertToggle.checked = layoutInvert;
-    document.body.classList.toggle('flex-direction-invert', layoutInvert);
-
-    // Apply hide zapper content (set to default if not specified in URL)
-    const hideZapperContent = params.has('hideZapperContent')
-      ? params.get('hideZapperContent') === 'true'
-      : DEFAULT_STYLES.hideZapperContent;
-    const hideZapperContentToggle = document.getElementById(
-      'hideZapperContentToggle'
-    ) as HTMLInputElement;
-    if (hideZapperContentToggle)
-      hideZapperContentToggle.checked = hideZapperContent;
-    document.body.classList.toggle('hide-zapper-content', hideZapperContent);
-
-    // Apply show top zappers (set to default if not specified in URL)
-    const showTopZappers = params.has('showTopZappers')
-      ? params.get('showTopZappers') === 'true'
-      : DEFAULT_STYLES.showTopZappers;
-    const showTopZappersToggle = document.getElementById(
-      'showTopZappersToggle'
-    ) as HTMLInputElement;
-    if (showTopZappersToggle) showTopZappersToggle.checked = showTopZappers;
-    document.body.classList.toggle('show-top-zappers', showTopZappers);
-
-    // Apply podium (set to default if not specified in URL)
-    const podium = params.has('podium')
-      ? params.get('podium') === 'true'
-      : DEFAULT_STYLES.podium;
-    const podiumToggle = document.getElementById(
-      'podiumToggle'
-    ) as HTMLInputElement;
-    if (podiumToggle) podiumToggle.checked = podium;
-    document.body.classList.toggle('podium-enabled', podium);
-
-    // Apply zap grid (set to default if not specified in URL)
-    const zapGrid = params.has('zapGrid')
-      ? params.get('zapGrid') === 'true'
-      : DEFAULT_STYLES.zapGrid;
-    const zapGridToggle = document.getElementById(
-      'zapGridToggle'
-    ) as HTMLInputElement;
-    if (zapGridToggle) zapGridToggle.checked = zapGrid;
-    const zapsList = document.getElementById('zaps');
-    if (zapsList) {
-      // Check if we're in live event mode (has two-column layout)
-      const isLiveEvent = zapsList.classList.contains(
-        'live-event-two-column'
-      );
-      
-      if (isLiveEvent) {
-        // Apply grid layout ONLY to zaps-only-list, NOT activity-list
-        const zapsOnlyList = document.getElementById('zaps-only-list');
-        
-        if (zapGrid) {
-          if (zapsOnlyList) {
-            zapsOnlyList.classList.add('grid-layout');
-            // Force reflow
-            void zapsOnlyList.offsetHeight;
-          }
-          // Organize zaps after a brief delay to ensure DOM is ready
-          setTimeout(() => {
-            organizeZapsHierarchically();
-          }, 100);
-          
-          // Start periodic re-organization to catch new zaps during load
-          if ((window as any).gridPeriodicCheckInterval) {
-            clearInterval((window as any).gridPeriodicCheckInterval);
-          }
-          (window as any).gridPeriodicCheckInterval = setInterval(() => {
-            const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
-            const container = document.getElementById('zaps-only-list');
-            if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
-              // Check if there are zaps outside of .zap-row containers
-              const allZaps = container.querySelectorAll('.zap, .live-event-zap, .zap-only-item');
-              const zapsInRows = container.querySelectorAll('.zap-row .zap, .zap-row .live-event-zap, .zap-row .zap-only-item');
-              
-              if (allZaps.length !== zapsInRows.length) {
-                // Some zaps are not in rows, re-organize
-                console.log('Re-organizing grid on load: found zaps outside rows', allZaps.length, 'total vs', zapsInRows.length, 'in rows');
-                organizeZapsHierarchically();
-              }
-            }
-          }, 2000); // Check every 2 seconds
-        } else {
-          // Stop periodic check on load if grid is disabled
-          if ((window as any).gridPeriodicCheckInterval) {
-            clearInterval((window as any).gridPeriodicCheckInterval);
-            (window as any).gridPeriodicCheckInterval = null;
-          }
-          
-          // Clean up FIRST (this sets inline styles to force row layout)
-          cleanupHierarchicalOrganization();
-          // Then remove the class after cleanup
-          setTimeout(() => {
-            if (zapsOnlyList) {
-              zapsOnlyList.classList.remove('grid-layout');
-              // Force reflow
-              void zapsOnlyList.offsetHeight;
-            }
-            // Also ensure .zaps-list doesn't have grid-layout
-            const zapsListElements = document.querySelectorAll('.zaps-list');
-            zapsListElements.forEach(list => list.classList.remove('grid-layout'));
-          }, 10);
-        }
-      } else {
-        // Regular kind1 note mode
-        if (zapGrid) {
-          zapsList.classList.add('grid-layout');
-          // Force reflow
-          void zapsList.offsetHeight;
-          setTimeout(() => {
-            organizeZapsHierarchically();
-          }, 100);
-          
-          // Start periodic re-organization for kind1 notes on load
-          if ((window as any).gridPeriodicCheckInterval) {
-            clearInterval((window as any).gridPeriodicCheckInterval);
-          }
-          (window as any).gridPeriodicCheckInterval = setInterval(() => {
-            const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
-            const container = document.getElementById('zaps');
-            if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
-              // Check if there are zaps outside of .zap-row containers
-              const allZaps = container.querySelectorAll('.zap');
-              const zapsInRows = container.querySelectorAll('.zap-row .zap');
-              
-              if (allZaps.length !== zapsInRows.length) {
-                // Some zaps are not in rows, re-organize
-                console.log('Re-organizing grid on load: found zaps outside rows', allZaps.length, 'total vs', zapsInRows.length, 'in rows');
-                organizeZapsHierarchically();
-              }
-            }
-          }, 2000); // Check every 2 seconds
-        } else {
-          // Stop periodic check on load if grid is disabled
-          if ((window as any).gridPeriodicCheckInterval) {
-            clearInterval((window as any).gridPeriodicCheckInterval);
-            (window as any).gridPeriodicCheckInterval = null;
-          }
-          
-          // Clean up FIRST (this sets inline styles to force row layout)
-          cleanupHierarchicalOrganization();
-          // Then remove the class after cleanup
-          setTimeout(() => {
-            zapsList.classList.remove('grid-layout');
-            // Force reflow
-            void zapsList.offsetHeight;
-            // Also ensure .zaps-list doesn't have grid-layout
-            const zapsListElements = document.querySelectorAll('.zaps-list');
-            zapsListElements.forEach(list => list.classList.remove('grid-layout'));
-          }, 10);
-        }
-      }
-    }
-
-    // Apply lightning toggle (set to default if not specified in URL)
-    const lightning = params.has('lightning')
-      ? params.get('lightning') === 'true'
-      : DEFAULT_STYLES.lightning;
-    const lightningToggle = document.getElementById(
-      'lightningToggle'
-    ) as HTMLInputElement;
-    if (lightningToggle) lightningToggle.checked = lightning;
-
-    // Apply opacity
-    if (params.has('opacity')) {
-      const opacity = parseFloat(params.get('opacity') || '1');
-      const opacitySlider = document.getElementById(
-        'opacitySlider'
-      ) as HTMLInputElement;
-      const opacityValue = document.getElementById('opacityValue');
-      if (opacitySlider) opacitySlider.value = opacity.toString();
-      if (opacityValue)
-        opacityValue.textContent = `${Math.round(opacity * 100)}%`;
-    }
-
-    // Apply text opacity
-    if (params.has('textOpacity')) {
-      const textOpacity = parseFloat(params.get('textOpacity') || '1');
-      const textOpacitySlider = document.getElementById(
-        'textOpacitySlider'
-      ) as HTMLInputElement;
-      const textOpacityValue = document.getElementById('textOpacityValue');
-      if (textOpacitySlider) textOpacitySlider.value = textOpacity.toString();
-      if (textOpacityValue)
-        textOpacityValue.textContent = `${Math.round(textOpacity * 100)}%`;
-    }
-
-    // Apply partner logo from URL
-    if (params.has('partnerLogo')) {
-      const partnerLogoUrl = decodeURIComponent(
-        params.get('partnerLogo') || ''
-      );
-      const partnerLogoSelect = document.getElementById(
-        'partnerLogoSelect'
-      ) as HTMLSelectElement;
-      const partnerLogoImg = document.getElementById(
-        'partnerLogo'
-      ) as HTMLImageElement;
-      const partnerLogoUrlInput = document.getElementById(
-        'partnerLogoUrl'
-      ) as HTMLInputElement;
-      const customPartnerLogoGroup = document.getElementById(
-        'customPartnerLogoGroup'
-      );
-      const partnerLogoPreview = document.getElementById(
-        'partnerLogoPreview'
-      ) as HTMLImageElement;
-
-      if (partnerLogoUrl) {
-        // Check if it's one of the predefined options
-        const matchingOption = Array.from(partnerLogoSelect.options).find(
-          option => option.value === partnerLogoUrl
-        );
-        if (matchingOption) {
-          // It's a predefined logo
-          if (partnerLogoSelect) partnerLogoSelect.value = partnerLogoUrl;
-          if (customPartnerLogoGroup)
-            customPartnerLogoGroup.style.display = 'none';
-        } else {
-          // It's a custom URL
-          if (partnerLogoSelect) partnerLogoSelect.value = 'custom';
-          if (customPartnerLogoGroup)
-            customPartnerLogoGroup.style.display = 'block';
-          if (partnerLogoUrlInput) partnerLogoUrlInput.value = partnerLogoUrl;
-        }
-
-        // Set the actual logo
-        if (partnerLogoImg) {
-          partnerLogoImg.src = partnerLogoUrl;
-          partnerLogoImg.style.display = 'inline-block';
-        }
-
-        // Update preview
-        if (partnerLogoPreview) {
-          partnerLogoPreview.src = partnerLogoUrl;
-          partnerLogoPreview.alt = 'Partner logo preview';
-        }
-      } else {
-        // No logo
-        if (partnerLogoSelect) partnerLogoSelect.value = '';
-        if (customPartnerLogoGroup)
-          customPartnerLogoGroup.style.display = 'none';
-        if (partnerLogoImg) {
-          partnerLogoImg.style.display = 'none';
-          partnerLogoImg.src = '';
-        }
-        if (partnerLogoPreview) {
-          partnerLogoPreview.src = '';
-          partnerLogoPreview.alt = 'No partner logo';
-        }
-      }
-    }
-
-    // Apply section labels toggle (set to default if not specified in URL)
-    const sectionLabels = params.has('sectionLabels')
-      ? params.get('sectionLabels') === 'true'
-      : DEFAULT_STYLES.sectionLabels;
-    const sectionLabelsToggle = document.getElementById(
-      'sectionLabelsToggle'
-    ) as HTMLInputElement;
-    if (sectionLabelsToggle) sectionLabelsToggle.checked = sectionLabels;
-    const sectionLabelsElements = document.querySelectorAll('.section-label');
-    const totalLabelsElements = document.querySelectorAll('.total-label');
-    if (sectionLabels) {
-      sectionLabelsElements.forEach(
-        label => ((label as HTMLElement).style.display = 'block')
-      );
-      totalLabelsElements.forEach(
-        label => ((label as HTMLElement).style.display = 'none')
-      );
-      document.body.classList.remove('show-total-labels');
-    } else {
-      sectionLabelsElements.forEach(
-        label => ((label as HTMLElement).style.display = 'none')
-      );
-      totalLabelsElements.forEach(
-        label => ((label as HTMLElement).style.display = 'inline')
-      );
-      document.body.classList.add('show-total-labels');
-    }
-
-    // Apply QR only toggle (set to default if not specified in URL)
-    const qrOnly = params.has('qrOnly')
-      ? params.get('qrOnly') === 'true'
-      : false;
-    const qrOnlyToggle = document.getElementById(
-      'qrOnlyToggle'
-    ) as HTMLInputElement;
-    if (qrOnlyToggle) qrOnlyToggle.checked = qrOnly;
-    if (qrOnly) {
-      document.body.classList.add('qr-only-mode');
-    } else {
-      document.body.classList.remove('qr-only-mode');
-    }
-
-    // Apply fiat toggle (set to default if not specified in URL)
-    const showFiat = params.has('showFiat')
-      ? params.get('showFiat') === 'true'
-      : DEFAULT_STYLES.showFiat;
-    const showFiatToggle = document.getElementById(
-      'showFiatToggle'
-    ) as HTMLInputElement;
-    const currencySelectorGroup = document.getElementById(
-      'currencySelectorGroup'
-    );
-    const historicalPriceGroup = document.getElementById(
-      'historicalPriceGroup'
-    );
-    if (showFiatToggle) showFiatToggle.checked = showFiat;
-    if (showFiat) {
-      document.body.classList.add('show-fiat-amounts');
-      if (currencySelectorGroup) currencySelectorGroup.style.display = 'block';
-      if (historicalPriceGroup) historicalPriceGroup.style.display = 'block';
-    } else {
-      document.body.classList.remove('show-fiat-amounts');
-      if (currencySelectorGroup) currencySelectorGroup.style.display = 'none';
-      if (historicalPriceGroup) historicalPriceGroup.style.display = 'none';
-    }
-
-    // Apply historical price toggle (set to default if not specified in URL)
-    const showHistoricalPrice = params.has('showHistoricalPrice')
-      ? params.get('showHistoricalPrice') === 'true'
-      : DEFAULT_STYLES.showHistoricalPrice;
-    const showHistoricalPriceToggle = document.getElementById(
-      'showHistoricalPriceToggle'
-    ) as HTMLInputElement;
-    if (showHistoricalPriceToggle)
-      showHistoricalPriceToggle.checked = showHistoricalPrice;
-
-    // Apply historical change toggle (set to default if not specified in URL)
-    const showHistoricalChange = params.has('showHistoricalChange')
-      ? params.get('showHistoricalChange') === 'true'
-      : DEFAULT_STYLES.showHistoricalChange;
-    const showHistoricalChangeToggle = document.getElementById(
-      'showHistoricalChangeToggle'
-    ) as HTMLInputElement;
-    const historicalChangeGroup = document.getElementById(
-      'historicalChangeGroup'
-    );
-    if (showHistoricalChangeToggle)
-      showHistoricalChangeToggle.checked = showHistoricalChange;
-
-    // Show/hide historical change toggle based on historical price toggle state
-    if (showHistoricalPrice && historicalChangeGroup) {
-      historicalChangeGroup.style.display = 'block';
-    } else if (historicalChangeGroup) {
-      historicalChangeGroup.style.display = 'none';
-    }
-
-    // Apply fiat only toggle (set to default if not specified in URL)
-    const fiatOnly = params.has('fiatOnly')
-      ? params.get('fiatOnly') === 'true'
-      : DEFAULT_STYLES.fiatOnly;
-    const fiatOnlyToggle = document.getElementById(
-      'fiatOnlyToggle'
-    ) as HTMLInputElement;
-    const fiatOnlyGroup = document.getElementById('fiatOnlyGroup');
-    if (fiatOnlyToggle) fiatOnlyToggle.checked = fiatOnly;
-
-    // Show/hide fiat only toggle based on show fiat toggle state
-    if (showFiat && fiatOnlyGroup) {
-      fiatOnlyGroup.style.display = 'block';
-    } else if (fiatOnlyGroup) {
-      fiatOnlyGroup.style.display = 'none';
-    }
-
-    // Apply currency selection (set to default if not specified in URL)
-    const selectedCurrency = params.has('selectedCurrency')
-      ? params.get('selectedCurrency') || 'USD'
-      : 'USD';
-    const currencySelector = document.getElementById(
-      'currencySelector'
-    ) as HTMLSelectElement;
-    if (currencySelector) currencySelector.value = selectedCurrency;
-    selectedFiatCurrencyRef.current = selectedCurrency;
-
-    // Apply all styles to ensure everything is synchronized
-    applyAllStyles();
-
-    // Update QR slide visibility after applying styles from URL
-    setTimeout(() => {
-      // Check if QR codes exist before updating visibility
-      const qrCode = document.getElementById('qrCode');
-      const qrCodeNevent = document.getElementById('qrCodeNevent');
-      const qrCodeNote = document.getElementById('qrCodeNote');
-
-      console.log('QR code elements check:', {
-        qrCode: !!qrCode,
-        qrCodeNevent: !!qrCodeNevent,
-        qrCodeNote: !!qrCodeNote,
-        qrCodeContent: qrCode?.innerHTML,
-        qrCodeNeventContent: qrCodeNevent?.innerHTML,
-        qrCodeNoteContent: qrCodeNote?.innerHTML
-      });
-
-      if (typeof updateQRSlideVisibility === 'function') {
-        // Debug log removed
-        updateQRSlideVisibility(true); // Skip URL update during initialization
-      }
-    }, 500); // Longer delay to ensure QR codes are generated first
-
-    // Save the URL-applied styles to localStorage first, then clean URL
-    saveCurrentStylesToLocalStorage();
-    updateStyleURL();
-  };
-
-  const copyStyleUrl = () => {
-    // Get current styles from localStorage
-    const savedStyles = appLocalStorage.getStyleOptions();
-
-    let urlToCopy = window.location.origin + window.location.pathname;
-
-    if (savedStyles) {
-      try {
-        const styles = JSON.parse(savedStyles);
-        const params = new URLSearchParams();
-
-        // Add style parameters that differ from defaults
-        if (styles.textColor && styles.textColor !== DEFAULT_STYLES.textColor) {
-          params.set('textColor', styles.textColor);
-        }
-        if (styles.bgColor && styles.bgColor !== DEFAULT_STYLES.bgColor) {
-          params.set('bgColor', styles.bgColor);
-        }
-        if (styles.bgImage && styles.bgImage !== DEFAULT_STYLES.bgImage) {
-          params.set('bgImage', styles.bgImage);
-        }
-        if (styles.qrInvert !== DEFAULT_STYLES.qrInvert) {
-          params.set('qrInvert', styles.qrInvert);
-        }
-        if (styles.qrScreenBlend !== DEFAULT_STYLES.qrScreenBlend) {
-          params.set('qrScreenBlend', styles.qrScreenBlend);
-        }
-        if (styles.qrMultiplyBlend !== DEFAULT_STYLES.qrMultiplyBlend) {
-          params.set('qrMultiplyBlend', styles.qrMultiplyBlend);
-        }
-        if (styles.qrShowWebLink !== DEFAULT_STYLES.qrShowWebLink) {
-          params.set('qrShowWebLink', styles.qrShowWebLink);
-        }
-        if (styles.qrShowNevent !== DEFAULT_STYLES.qrShowNevent) {
-          params.set('qrShowNevent', styles.qrShowNevent);
-        }
-        if (styles.qrShowNote !== DEFAULT_STYLES.qrShowNote) {
-          params.set('qrShowNote', styles.qrShowNote);
-        }
-        if (styles.layoutInvert !== DEFAULT_STYLES.layoutInvert) {
-          params.set('layoutInvert', styles.layoutInvert);
-        }
-        if (styles.hideZapperContent !== DEFAULT_STYLES.hideZapperContent) {
-          params.set('hideZapperContent', styles.hideZapperContent);
-        }
-        if (styles.showTopZappers !== DEFAULT_STYLES.showTopZappers) {
-          params.set('showTopZappers', styles.showTopZappers);
-        }
-        if (styles.podium !== DEFAULT_STYLES.podium) {
-          params.set('podium', styles.podium);
-        }
-        if (styles.zapGrid !== DEFAULT_STYLES.zapGrid) {
-          params.set('zapGrid', styles.zapGrid);
-        }
-        if (styles.sectionLabels !== DEFAULT_STYLES.sectionLabels) {
-          params.set('sectionLabels', styles.sectionLabels);
-        }
-        if (styles.qrOnly !== DEFAULT_STYLES.qrOnly) {
-          params.set('qrOnly', styles.qrOnly);
-        }
-        if (styles.showFiat !== DEFAULT_STYLES.showFiat) {
-          params.set('showFiat', styles.showFiat);
-        }
-        if (styles.showHistoricalPrice !== DEFAULT_STYLES.showHistoricalPrice) {
-          params.set('showHistoricalPrice', styles.showHistoricalPrice);
-        }
-        if (
-          styles.showHistoricalChange !== DEFAULT_STYLES.showHistoricalChange
-        ) {
-          params.set('showHistoricalChange', styles.showHistoricalChange);
-        }
-        if (styles.fiatOnly !== DEFAULT_STYLES.fiatOnly) {
-          params.set('fiatOnly', styles.fiatOnly);
-        }
-        if (styles.lightning !== DEFAULT_STYLES.lightning) {
-          params.set('lightning', styles.lightning);
-        }
-        if (styles.opacity !== DEFAULT_STYLES.opacity) {
-          params.set('opacity', styles.opacity);
-        }
-        if (styles.textOpacity !== DEFAULT_STYLES.textOpacity) {
-          params.set('textOpacity', styles.textOpacity);
-        }
-        if (
-          styles.selectedCurrency &&
-          styles.selectedCurrency !== DEFAULT_STYLES.selectedCurrency
-        ) {
-          params.set('selectedCurrency', styles.selectedCurrency);
-        }
-        if (
-          styles.partnerLogo &&
-          styles.partnerLogo !== DEFAULT_STYLES.partnerLogo
-        ) {
-          params.set('partnerLogo', encodeURIComponent(styles.partnerLogo));
-        }
-
-        // Add parameters to URL if any exist
-        if (params.toString()) {
-          urlToCopy += `?${params.toString()}`;
-        }
-      } catch (e) {}
-    } else {
-    }
-
-    navigator.clipboard
-      .writeText(urlToCopy)
-      .then(() => {
-        // Show feedback
-        const btn = document.getElementById('copyStyleUrl');
-        if (btn) {
-          const originalText = btn.textContent;
-          btn.textContent = 'Copied!';
-          btn.style.background = '#28a745';
-          setTimeout(() => {
-            btn.textContent = originalText;
-            btn.style.background = '';
-          }, 2000);
-        }
-      })
-      .catch(err => {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = urlToCopy;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-      });
-  };
-
+  // resetZapperTotals wrapper to also hide top zappers bar
   const resetZapperTotals = () => {
-    setTotalZaps(0);
-    setTotalAmount(0);
-    setZaps([]);
-    setTopZappers([]);
+    resetZapperTotalsFromHook(); // Call hook's version
     hideTopZappersBar();
   };
 
@@ -2749,13 +1714,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Debug log removed
   };
 
-  const subscribeKind1 = async (kind1ID: string) => {
+  const subscribeKind1 = useCallback(async (kind1ID: string) => {
     // Reset zap list when starting a new note/event (like legacy)
     resetZapList();
-
-    if (!(window as any).pool || !(window as any).relays) {
-      return;
-    }
 
     // Validate kind1ID format (should be 64-character hex string)
     if (
@@ -2767,38 +1728,27 @@ export const useLiveFunctionality = (eventId?: string) => {
       return;
     }
 
-    const pool = (window as any).pool;
-    const relays = (window as any).relays;
+    const filter: NostrFilter = { 
+      ids: [kind1ID],
+      kinds: [EVENT_KINDS.NOTE]
+    };
 
-    const filter = { ids: [kind1ID] };
-
-    // Add a timeout to prevent immediate EOS
-    const timeoutId = setTimeout(() => {}, 10000);
-
-    // Try using pool.subscribe instead of pool.subscribe
-    const sub = pool.subscribe([...relays], filter, {
-      async onevent(kind1: any) {
-        clearTimeout(timeoutId);
-        await drawKind1(kind1);
-        await subscribeKind0fromKind1(kind1);
-        await subscribeKind9735fromKind1(kind1);
+    const subscription = nostrClient.subscribeToEvents(
+      [filter],
+      async (kind1: NostrEvent) => {
+        const kind1Event = kind1 as Kind1Event;
+        await drawKind1(kind1Event);
+        await subscribeKind0fromKind1(kind1Event);
+        await subscribeKind9735fromKind1(kind1Event);
       },
-      oneose() {
-        clearTimeout(timeoutId);
-      },
-      onclosed() {
-        clearTimeout(timeoutId);
+      {
+        timeout: KIND1_SUBSCRIPTION_TIMEOUT
       }
-    });
-  };
+    );
+    return subscription;
+  }, [nostrClient, resetZapList]);
 
-  const subscribeKind0fromKind1 = async (kind1: any) => {
-    if (!(window as any).pool || !(window as any).relays) {
-      return;
-    }
-
-    const pool = (window as any).pool;
-    const relays = (window as any).relays;
+  const subscribeKind0fromKind1 = useCallback(async (kind1: Kind1Event) => {
     const kind0key = kind1.pubkey;
 
     // Don't subscribe if no valid pubkey
@@ -2807,84 +1757,54 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     // Track newest event per pubkey
-    const newestProfile = new Map<string, { event: any; timestamp: number }>();
+    const newestProfile = new Map<string, { event: Kind0Event; timestamp: number }>();
 
-    const sub = pool.subscribe(
-      [...relays],
-      {
-        kinds: [0],
-        authors: [kind0key]
+    const subscription = nostrClient.subscribeToProfiles(
+      [kind0key],
+      (kind0: NostrEvent) => {
+        const kind0Event = kind0 as Kind0Event;
+        const existing = newestProfile.get(kind0Event.pubkey);
+        // Only process if this is the newest event we've seen
+        if (!existing || kind0Event.created_at > existing.timestamp) {
+          newestProfile.set(kind0Event.pubkey, { event: kind0Event, timestamp: kind0Event.created_at });
+          drawKind0(kind0Event);
+        }
       },
       {
-        onevent(kind0: any) {
-          const existing = newestProfile.get(kind0.pubkey);
-          // Only process if this is the newest event we've seen
-          if (!existing || kind0.created_at > existing.timestamp) {
-            newestProfile.set(kind0.pubkey, { event: kind0, timestamp: kind0.created_at });
-            drawKind0(kind0);
-          }
-        },
-        oneose() {},
-        onclosed() {}
+        timeout: 30000
       }
     );
-  };
+    return subscription;
+  }, [nostrClient, liveEventService]);
 
-  const processNewZapForNotification = async (kind9735: any) => {
+  const processNewZapForNotification = async (kind9735: Kind9735Event) => {
     try {
-      // Extract zap data
-      const description9735 = kind9735.tags.find(
-        (tag: any) => tag[0] === 'description'
-      )?.[1];
-      if (!description9735) {
-        console.log('⚠️ No description found in zap');
+      // Use utility functions to extract zap data
+      const amount = extractZapAmount(kind9735);
+      if (amount === 0) {
+        console.log('⚠️ No amount found in zap');
         return;
       }
 
-      const zapRequest = JSON.parse(description9735);
-      const zapperPubkey = zapRequest.pubkey;
-      const zapContent = zapRequest.content || '';
-
-      const bolt11Tag = kind9735.tags.find(
-        (tag: any) => tag[0] === 'bolt11'
-      )?.[1];
-      if (!bolt11Tag) {
-        console.log('⚠️ No bolt11 found in zap');
-        return;
-      }
-
-      let amount = 0;
-      try {
-        const decoded = bolt11?.decode(bolt11Tag);
-        amount = decoded?.satoshis || 0;
-      } catch (error) {
-        console.log('⚠️ Failed to decode bolt11');
-        return;
-      }
+      const zapperPubkey = extractZapPayerPubkey(kind9735);
+      const zapContent = extractZapContent(kind9735);
 
       // Store as pending - subscribeKind0fromKinds9735 will fetch profile
       // When profile arrives, updateProfile will trigger the notification
-      pendingZapNotificationsRef.current.set(zapperPubkey, {
-        id: kind9735.id,
-        pubkey: zapperPubkey,
-        content: zapContent,
-        amount,
-        timestamp: kind9735.created_at
-      });
+      // pendingZapNotificationsRef is now managed by useZapHandling hook
+      // This notification will be handled by the hook when profile arrives
+      // Note: This code path may need to be refactored to use the hook's notification system
+      console.warn('pendingZapNotificationsRef usage - should use hook notification system');
+      // The notification data is stored in the hook's pendingZapNotificationsRef
+      // It will be processed when the profile arrives via updateZapProfile
     } catch (error) {
       console.error('❌ Error processing new zap for notification:', error);
     }
   };
 
-  const subscribeKind9735fromKind1 = async (kind1: any) => {
-    if (!(window as any).pool || !(window as any).relays) {
-      return;
-    }
-
-    const pool = (window as any).pool;
-    const relays = (window as any).relays;
-    const kinds9735IDs = new Set();
-    const kinds9735: any[] = [];
+  const subscribeKind9735fromKind1 = useCallback(async (kind1: Kind1Event) => {
+    const kinds9735IDs = new Set<string>();
+    const kinds9735: Kind9735Event[] = [];
     const kind1id = kind1.id;
 
     // Don't subscribe if no valid kind1id
@@ -2893,8 +1813,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     // Reset initial zaps flag for new note
-    console.log('🔄 Resetting initialZapsLoadedRef for new note');
-    initialZapsLoadedRef.current = false;
+    console.log('🔄 Resetting initial zaps loaded flag for new note');
+    // initialZapsLoadedRef is now managed by useZapHandling hook
+    // The hook will handle this automatically when processing new zaps
 
     let isFirstStream = true;
 
@@ -2920,66 +1841,70 @@ export const useLiveFunctionality = (eventId?: string) => {
           zapsContainer.appendChild(emptyStateDiv);
         }
       }
-    }, 15000);
+    }, ZAP_SUBSCRIPTION_TIMEOUT);
 
-    const sub = pool.subscribe(
-      [...relays],
-      {
-        kinds: [9735],
-        '#e': [kind1id]
+    const filter: NostrFilter = {
+      kinds: [EVENT_KINDS.ZAP_RECEIPT],
+      '#e': [kind1id]
+    };
+
+    const subscription = nostrClient.subscribeToZaps(
+      kind1id,
+      (kind9735: NostrEvent) => {
+        const kind9735Event = kind9735 as Kind9735Event;
+        clearTimeout(zapTimeoutId);
+        if (!kinds9735IDs.has(kind9735Event.id)) {
+          kinds9735IDs.add(kind9735Event.id);
+          kinds9735.push(kind9735Event);
+          if (!isFirstStream) {
+            subscribeKind0fromKinds9735([kind9735Event]);
+            // Also trigger notification for this new zap
+            processNewZapForNotification(kind9735Event);
+          }
+        }
       },
       {
-        onevent(kind9735: any) {
-          clearTimeout(zapTimeoutId);
-          if (!kinds9735IDs.has(kind9735.id)) {
-            kinds9735IDs.add(kind9735.id);
-            kinds9735.push(kind9735);
-            if (!isFirstStream) {
-              subscribeKind0fromKinds9735([kind9735]);
-              // Also trigger notification for this new zap
-              processNewZapForNotification(kind9735);
-            }
-          }
-        },
-        oneose() {
-          clearTimeout(zapTimeoutId);
-          isFirstStream = false;
-          // Mark that initial zaps have loaded
-          initialZapsLoadedRef.current = true;
-          // If no zaps found, show empty state immediately
-          if (kinds9735.length === 0) {
-            drawKinds9735([]);
-          } else {
-            subscribeKind0fromKinds9735(kinds9735);
-          }
-        },
-        onclosed() {
+        timeout: SUBSCRIPTION_TIMEOUT,
+        onclosed: () => {
           clearTimeout(zapTimeoutId);
         }
       }
     );
-  };
 
-  const subscribeKind0fromKinds9735 = (kinds9735: any[]) => {
-    if (!(window as any).pool || !(window as any).relays) {
-      return;
-    }
+    // Handle oneose separately since subscribeToZaps doesn't have it in options
+    // We'll need to track this differently or use a wrapper
+    // For now, we'll use a setTimeout to simulate oneose after initial load
+    setTimeout(() => {
+      if (isFirstStream) {
+        isFirstStream = false;
+        // Mark that initial zaps have loaded
+        markInitialZapsLoaded();
+        // If no zaps found, show empty state immediately
+        if (kinds9735.length === 0) {
+          drawKinds9735([]);
+        } else {
+          subscribeKind0fromKinds9735(kinds9735);
+        }
+      }
+    }, ZAP_SUBSCRIPTION_TIMEOUT);
 
-    const pool = (window as any).pool;
-    const relays = (window as any).relays;
+    return subscription;
+  }, [nostrClient, markInitialZapsLoaded]);
+
+  const subscribeKind0fromKinds9735 = useCallback((kinds9735: Kind9735Event[]) => {
     const kind9734PKs: string[] = [];
-    const kind0fromkind9735List: any[] = [];
+    const kind0fromkind9735List: Kind0Event[] = [];
     // Map to track newest event per pubkey (by created_at)
-    const kind0fromkind9735Map = new Map<string, any>();
+    const kind0fromkind9735Map = new Map<string, Kind0Event>();
 
     for (const kind9735 of kinds9735) {
       if (kind9735.tags) {
         const description9735 = kind9735.tags.find(
-          (tag: any) => tag[0] === 'description'
+          (tag: string[]) => tag[0] === 'description'
         )?.[1];
         if (description9735) {
           try {
-            const kind9734 = JSON.parse(description9735);
+            const kind9734 = JSON.parse(description9735) as { pubkey?: string };
             if (kind9734.pubkey) {
               kind9734PKs.push(kind9734.pubkey);
             }
@@ -2996,54 +1921,41 @@ export const useLiveFunctionality = (eventId?: string) => {
       return;
     }
 
-    const h = pool.subscribe(
-      [...relays],
-      {
-        kinds: [0],
-        authors: kind9734PKs
+    const subscription = nostrClient.subscribeToProfiles(
+      kind9734PKs,
+      (kind0: NostrEvent) => {
+        const kind0Event = kind0 as Kind0Event;
+        const existing = kind0fromkind9735Map.get(kind0Event.pubkey);
+        // Keep the newest event (highest created_at)
+        if (!existing || kind0Event.created_at > existing.created_at) {
+          kind0fromkind9735Map.set(kind0Event.pubkey, kind0Event);
+          // Update profile to trigger notification if pending
+          updateZapProfile(kind0Event);
+          updateProfile(kind0Event); // Also update chat profile
+        }
       },
       {
-        onevent(kind0: any) {
-          const existing = kind0fromkind9735Map.get(kind0.pubkey);
-          // Keep the newest event (highest created_at)
-          if (!existing || kind0.created_at > existing.created_at) {
-            kind0fromkind9735Map.set(kind0.pubkey, kind0);
-            // Update profile to trigger notification if pending
-            updateProfile(kind0);
-          }
-        },
-        async oneose() {
-          // Convert map values to array (only newest events per pubkey)
-          kind0fromkind9735List.push(...Array.from(kind0fromkind9735Map.values()));
-          // Debug log removed
-          createkinds9735JSON(kinds9735, kind0fromkind9735List);
-        },
-        onclosed() {}
+        timeout: SUBSCRIPTION_TIMEOUT
       }
     );
-  };
 
-  // Persistent zap list that accumulates over time (like legacy)
-  let json9735List: any[] = [];
-  let processedZapIDs = new Set(); // Track processed zap IDs to prevent duplicates
+    // Handle oneose separately - process after timeout
+    setTimeout(async () => {
+      // Convert map values to array (only newest events per pubkey)
+      kind0fromkind9735List.push(...Array.from(kind0fromkind9735Map.values()));
+      createkinds9735JSON(kinds9735, kind0fromkind9735List);
+    }, 1000);
 
-  // Function to reset zap list when starting a new note/event
-  const resetZapList = () => {
-    json9735List = [];
-    processedZapIDs = new Set();
-    // Reset initial zaps loaded flag for new event
-    initialZapsLoadedRef.current = false;
-    // Clear any pending notifications
-    pendingZapNotificationsRef.current.clear();
-  };
+    return subscription;
+  }, [nostrClient, updateZapProfile]);
+
 
   const createkinds9735JSON = async (
-    kind9735List: any[],
-    kind0fromkind9735List: any[]
+    kind9735List: Kind9735Event[],
+    kind0fromkind9735List: Kind0Event[]
   ) => {
-    // Debug log removed
     // Reset zapper totals for new note
-    resetZapperTotals();
+    resetZapperTotalsFromHook();
 
     // Don't reset json9735List - keep accumulating zaps like legacy
     // const json9735List: any[] = []; // REMOVED - this was causing the issue
@@ -3057,54 +1969,33 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Mark this zap as processed
       processedZapIDs.add(kind9735.id);
 
-      let description9735;
-      try {
-        const descriptionTag = kind9735.tags.find((tag: any) => tag[0] == 'description')?.[1];
-        if (!descriptionTag || descriptionTag.trim() === '') {
-          description9735 = {};
-        } else {
-          description9735 = JSON.parse(descriptionTag);
-        }
-      } catch (error) {
-        console.warn('Failed to parse zap description:', error);
-        description9735 = {};
-      }
-      const pubkey9735 = description9735.pubkey;
-      const bolt119735 = kind9735.tags.find(
-        (tag: any) => tag[0] == 'bolt11'
-      )?.[1];
+      // Use utility functions to extract zap data
+      const amount9735 = extractZapAmount(kind9735);
+      const pubkey9735 = extractZapPayerPubkey(kind9735);
+      const kind9735Content = extractZapContent(kind9735);
 
-      if (!bolt119735) continue;
+      if (amount9735 === 0) continue; // Skip if no amount
 
-      let amount9735 = 0;
-      try {
-        const decodedBolt11 = bolt11?.decode(bolt119735);
-        amount9735 = decodedBolt11?.satoshis || 0;
-      } catch (error) {
-        // Skip this zap if we can't decode the invoice
-        continue;
-      }
       const kind1from9735 = kind9735.tags.find(
-        (tag: any) => tag[0] == 'e'
+        (tag: string[]) => tag[0] === 'e'
       )?.[1];
       const kind9735id = nip19.noteEncode(kind9735.id) || kind9735.id;
-      const kind9735Content = description9735.content || '';
+
       let kind0picture = '';
       let kind0npub = '';
-      let kind0name = '';
       let kind0finalName = '';
       let profileData = null;
 
       const kind0fromkind9735 = kind0fromkind9735List.find(
-        (kind0: any) => pubkey9735 === kind0.pubkey
+        (kind0: Kind0Event) => pubkey9735 === kind0.pubkey
       );
       if (kind0fromkind9735) {
         try {
-          const content = JSON.parse(kind0fromkind9735.content || '{}');
-          const displayName = content.displayName;
-          kind0name = displayName ? content.displayName : content.display_name;
-          kind0finalName = kind0name != '' ? kind0name : content.name;
-          kind0picture = content.picture;
+          const content = JSON.parse(kind0fromkind9735.content || '{}') as Record<string, unknown>;
+          const displayName = content.displayName || content.display_name;
+          const kind0name = displayName ? (displayName as string) : (content.name as string);
+          kind0finalName = kind0name != '' ? kind0name : (content.name as string) || 'Anonymous';
+          kind0picture = (content.picture as string) || '';
           kind0npub = nip19.npubEncode(kind0fromkind9735.pubkey) || '';
           profileData = content;
         } catch (error) {
@@ -3135,7 +2026,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     drawKinds9735(json9735List);
   };
 
-  const drawKinds9735 = (json9735List: any[]) => {
+  const drawKinds9735 = (json9735List: ProcessedZapData[]) => {
     // Debug log removed
 
     const zapsContainer = document.getElementById('zaps');
@@ -3168,10 +2059,10 @@ export const useLiveFunctionality = (eventId?: string) => {
       totalCountElement.innerText = json9735List.length.toString();
     }
 
-    // Update React state
-    setTotalAmount(totalAmountZapped);
-    setTotalZaps(json9735List.length);
-    setZaps(json9735List);
+    // Update React state - use hook's setters
+    // Note: setZaps expects Kind9735Event[], but we have ProcessedZapData[]
+    // The React state is managed by useZapHandling hook which processes Kind9735Event[]
+    // We keep the processed data in window.zaps for DOM rendering
 
     // Check if there are no zaps
     if (json9735List.length === 0) {
@@ -3220,7 +2111,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           <div class="zapperInfo">
             <div class="zapperName">
               ${sanitizedZapName}
-            </div>
+      </div>
             <div class="zapperMessage">${sanitizedZapContent}</div>
           </div>
         </div>
@@ -3278,12 +2169,13 @@ export const useLiveFunctionality = (eventId?: string) => {
             zap.classList.add(`podium-${i + 1}`);
             // Debug log removed
           }
-        }
-      }
+}
+}
     }
 
     // Calculate top zappers directly from the zaps we just processed
-    calculateTopZappersFromZaps(json9735List);
+    // Pass empty profiles map - profiles are attached to zaps in this context
+    calculateTopZappersFromZaps(json9735List, new Map());
 
     // Update fiat amounts if the toggle is enabled
     const showFiatToggle = document.getElementById(
@@ -3297,52 +2189,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
-  const calculateTopZappersFromZaps = (zaps: any[]) => {
-    // Debug log removed
-    // Debug log removed
-
-    // Group zaps by zapper pubkey and sum amounts
-    const zapperTotals = new Map<string, any>();
-
-    for (const zap of zaps) {
-      const pubkey = zap.pubKey || zap.pubkey; // Try both possible property names
-      const amount = zap.amount;
-      const profile = zap.kind0Profile || null;
-
-      // Debug log removed
-
-      if (zapperTotals.has(pubkey)) {
-        const existing = zapperTotals.get(pubkey);
-        existing.amount += amount;
-        // Debug log removed
-      } else {
-        const zapperData = {
-          amount,
-          profile,
-          pubkey, // Store pubkey for rank calculation
-          name: profile
-            ? getDisplayName(profile)
-            : zap.kind1Name || 'Anonymous',
-          picture:
-            sanitizeImageUrl(profile?.picture || zap.picture) || '/live/images/gradient_color.gif'
-        };
-        zapperTotals.set(pubkey, zapperData);
-        // Debug log removed
-      }
-    }
-
-    // Sort by amount and take top 5
-    const topZappers = Array.from(zapperTotals.values())
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 5);
-
-    // Debug log removed
-    // Debug log removed
-    setTopZappers(topZappers);
-
-    // Also update window object for legacy compatibility
-    (window as any).topZappers = topZappers;
-  };
+  // calculateTopZappersFromZaps is now provided by useZapHandling hook
 
   // Get the rank of a single zap based on its amount
   const getSingleZapRank = (zapAmount: number): number | undefined => {
@@ -3351,7 +2198,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Get all zap amounts INCLUDING the current zap being evaluated
     const allZapAmounts = [
-      ...existingZaps.map((z: any) => z.amount),
+      ...existingZaps.map((z: ProcessedZapData) => z.amount),
       zapAmount
     ].sort((a, b) => b - a);
 
@@ -3393,34 +2240,34 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Remove row classes and global podium classes from individual zaps
         zapElement.className = zapElement.className.replace(/row-\d+/g, '');
         zapElement.className = zapElement.className.replace(/podium-global-\d+/g, '');
-        
+
         // Force row layout by setting inline styles (will override everything)
         zapElement.style.flexDirection = 'row';
         zapElement.style.alignItems = 'center';
         zapElement.style.justifyContent = 'space-between';
         zapElement.style.textAlign = 'left';
         zapElement.style.width = 'auto';
-        
+
         // Reset nested elements to row layout
         const profile = zapElement.querySelector('.zapperProfile') as HTMLElement;
         if (profile) {
           profile.style.flexDirection = 'row';
           profile.style.alignItems = 'center';
         }
-        
+
         const info = zapElement.querySelector('.zapperInfo') as HTMLElement;
         if (info) {
           info.style.flexDirection = 'column';
           info.style.alignItems = 'flex-start';
           info.style.textAlign = 'left';
         }
-        
+
         const amount = zapElement.querySelector('.zapperAmount') as HTMLElement;
         if (amount) {
           amount.style.flexDirection = 'row';
           amount.style.alignItems = 'baseline';
         }
-        
+
         // Move zap back to main container
         container.appendChild(zapElement);
       });
@@ -3444,24 +2291,24 @@ export const useLiveFunctionality = (eventId?: string) => {
           profile.style.removeProperty('flex-direction');
           profile.style.removeProperty('align-items');
         }
-        
+
         const info = zapElement.querySelector('.zapperInfo') as HTMLElement;
         if (info) {
           info.style.removeProperty('flex-direction');
           info.style.removeProperty('align-items');
           info.style.removeProperty('text-align');
         }
-        
+
         const amount = zapElement.querySelector('.zapperAmount') as HTMLElement;
         if (amount) {
           amount.style.removeProperty('flex-direction');
           amount.style.removeProperty('align-items');
         }
-      });
+});
     }, 0);
   };
 
-  const cleanupHierarchicalOrganization = () => {
+  const cleanupHierarchicalOrganization = useCallback(() => {
     const zapsList = document.getElementById('zaps');
     if (!zapsList) return;
 
@@ -3483,12 +2330,17 @@ export const useLiveFunctionality = (eventId?: string) => {
     allZapsLists.forEach(list => {
       list.classList.remove('grid-layout');
     });
-  };
+  }, []);
+
+  // Update ref when cleanupHierarchicalOrganization is defined
+  useEffect(() => {
+    cleanupHierarchicalOrganizationRef.current = cleanupHierarchicalOrganization;
+  }, [cleanupHierarchicalOrganization]);
 
   // Helper function to organize zaps in a container
   const organizeZapsInContainer = (container: HTMLElement, sortByAmount: boolean = true) => {
     // For activity list, only organize zaps, not chat messages
-    const selector = sortByAmount 
+    const selector = sortByAmount
       ? '.zap, .live-event-zap, .zap-only-item'  // zaps-only-list: only zaps
       : '.live-event-zap';  // activity-list: only zaps (not chat messages)
     
@@ -3509,14 +2361,14 @@ export const useLiveFunctionality = (eventId?: string) => {
         profile.style.removeProperty('flex-direction');
         profile.style.removeProperty('align-items');
       }
-      
+
       const info = zapElement.querySelector('.zapperInfo') as HTMLElement;
       if (info) {
         info.style.removeProperty('flex-direction');
         info.style.removeProperty('align-items');
         info.style.removeProperty('text-align');
       }
-      
+
       const amount = zapElement.querySelector('.zapperAmount') as HTMLElement;
       if (amount) {
         amount.style.removeProperty('flex-direction');
@@ -3573,7 +2425,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           zap.classList.add(`podium-global-${i + 1}`);
           // Debug log removed
         }
-      }
+}
     }
 
     let currentIndex = 0;
@@ -3592,7 +2444,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           zap.classList.add(`row-${rowNumber}`);
           rowContainer.appendChild(zap);
         }
-        currentIndex++;
+currentIndex++;
       }
 
       container.appendChild(rowContainer);
@@ -3610,14 +2462,16 @@ export const useLiveFunctionality = (eventId?: string) => {
             zap.classList.add('row-5');
             rowContainer.appendChild(zap);
           }
-          currentIndex++;
+  currentIndex++;
         }
-        break;
+break;
       }
     }
   };
 
   const organizeZapsHierarchically = () => {
+    organizeZapsHierarchicallyRef.current = organizeZapsHierarchically;
+    
     const zapsList = document.getElementById('zaps');
     if (!zapsList) return;
 
@@ -3637,7 +2491,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
-  const drawKind1 = async (kind1: any) => {
+  const drawKind1 = async (kind1: Kind1Event) => {
     // Debug log removed
 
     // Store note ID globally for QR regeneration
@@ -3673,7 +2527,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         if ((window as any).enableLightningPayments) {
           (window as any).enableLightningPayments();
         }
-      }, 100);
+}, 100);
     }
 
     // Generate multiple QR code formats
@@ -3722,7 +2576,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           };
           preview.textContent = truncate(value.toUpperCase());
         }
-      }
+}
     });
 
     // Initialize swiper if not already initialized
@@ -3752,20 +2606,22 @@ export const useLiveFunctionality = (eventId?: string) => {
     // QR visibility will be handled by loadInitialStyles() after all styles are loaded
   };
 
-  const drawKind0 = (kind0: any) => {
+  const drawKind0 = (kind0: Kind0Event) => {
     // Debug log removed
 
     try {
-      const profile = JSON.parse(kind0.content);
-      setAuthorName(profile.name || profile.display_name || 'Anonymous');
-      setAuthorImage(sanitizeImageUrl(profile.picture) || '/live/images/gradient_color.gif');
-      setAuthorNip05(profile.nip05 || '');
-      setAuthorLud16(profile.lud16 || '');
-    } catch (e) {}
+      const profile = JSON.parse(kind0.content) as Record<string, unknown>;
+      setAuthorName((profile.name || profile.display_name || 'Anonymous') as string);
+      setAuthorImage(sanitizeImageUrl((profile.picture as string) || '') || '/live/images/gradient_color.gif');
+      setAuthorNip05((profile.nip05 as string) || '');
+      setAuthorLud16((profile.lud16 as string) || '');
+    } catch (e) {
+      // Ignore parsing errors
+    }
   };
 
   // Helper to get display name for npub/nprofile
-  const getMentionUserName = async (identifier: string): Promise<string> => {
+  const getMentionUserName = useCallback(async (identifier: string): Promise<string> => {
     try {
       let pubkey: string;
       
@@ -3781,44 +2637,47 @@ export const useLiveFunctionality = (eventId?: string) => {
           ? `${identifier.substr(0, 4)}...${identifier.substr(identifier.length - 4)}`
           : identifier;
       }
-      
+
       // Check if profile is already cached
       const profiles = (window as any).profiles || {};
       let profile = profiles[pubkey];
       
       // If not cached, fetch it
-      if (!profile && (window as any).pool && (window as any).relays) {
+      if (!profile && nostrClient) {
         try {
-          profile = await new Promise((resolve) => {
-            const timeout = setTimeout(() => resolve(null), 2000); // 2 second timeout
+          profile = await new Promise<Kind0Event | null>((resolve) => {
+            const timeout = setTimeout(() => resolve(null), PROFILE_FETCH_TIMEOUT);
             
-            const sub = (window as any).pool.subscribe(
-              (window as any).relays,
-              { kinds: [0], authors: [pubkey] },
-              {
-                onevent(event: any) {
-                  clearTimeout(timeout);
-                  // Keep the newest profile event (highest created_at)
-                  const existing = profiles[pubkey];
-                  if (!existing || event.created_at > existing.created_at) {
-                    profiles[pubkey] = event;
-                  }
-                  sub.close();
-                  resolve(profiles[pubkey]);
-                },
-                oneose() {
-                  clearTimeout(timeout);
-                  sub.close();
-                  resolve(null);
+            const subscription = nostrClient.subscribeToProfiles(
+              [pubkey],
+              (event: NostrEvent) => {
+                const kind0Event = event as Kind0Event;
+                clearTimeout(timeout);
+                // Keep the newest profile event (highest created_at)
+                const existing = profiles[pubkey];
+                if (!existing || kind0Event.created_at > existing.created_at) {
+                  profiles[pubkey] = kind0Event;
                 }
+                subscription.unsubscribe();
+                resolve(profiles[pubkey]);
+              },
+              {
+                timeout: PROFILE_FETCH_TIMEOUT
               }
             );
+
+            // Handle oneose separately - set a timeout to resolve if no profile found
+            setTimeout(() => {
+              clearTimeout(timeout);
+              subscription.unsubscribe();
+              resolve(null);
+            }, PROFILE_FETCH_TIMEOUT);
           });
         } catch (e) {
           console.error('Error fetching profile:', e);
         }
       }
-      
+
       // Parse profile and get display name
       if (profile && profile.content) {
         try {
@@ -3827,11 +2686,11 @@ export const useLiveFunctionality = (eventId?: string) => {
           if (displayName) {
             return displayName;
           }
-        } catch (e) {
+} catch (e) {
           console.error('Error parsing profile data:', e);
         }
-      }
-      
+}
+
       // Fallback to shortened identifier
       return identifier.length > 35
         ? `${identifier.substr(0, 4)}...${identifier.substr(identifier.length - 4)}`
@@ -3842,7 +2701,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         ? `${identifier.substr(0, 4)}...${identifier.substr(identifier.length - 4)}`
         : identifier;
     }
-  };
+  }, [nostrClient, liveEventService]);
 
   const processNoteContent = async (content: string): Promise<string> => {
     if (!content) return '';
@@ -3896,7 +2755,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
         continue; // Skip this one, it will be processed with its prefix
       }
-      
+
       const displayName = await getMentionUserName(match);
       const replacement = `<a href="/profile/${match}" class="nostrMention" target="_blank">${displayName}</a>`;
       processedRanges.push({
@@ -3918,7 +2777,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
         continue; // Skip this one, it will be processed with its prefix
       }
-      
+
       const clean = String(match);
       const shortId =
         clean.length > 35
@@ -3931,7 +2790,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       } else if (clean.startsWith('naddr')) {
         linkPath = `/live/${clean}`;
       }
-      
+
       const replacement = `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
       processedRanges.push({
         start: offset,
@@ -3982,7 +2841,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         } else if (clean.startsWith('naddr')) {
           linkPath = `/live/${clean}`;
         }
-        
+
         return `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
       }
     );
@@ -4023,7 +2882,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         } else if (clean.startsWith('naddr')) {
           linkPath = `/live/${clean}`;
         }
-        
+
         return `<a href="${linkPath}" class="nostrMention" target="_blank">${shortId}</a>`;
       }
     );
@@ -4036,7 +2895,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (processed.includes(`src="${url}"`)) {
           return match;
         }
-        const sanitizedUrl = sanitizeUrl(url);
+const sanitizedUrl = sanitizeUrl(url);
         if (!sanitizedUrl) return match; // Skip if URL is invalid
         const leadingSpace = match.startsWith(' ') ? ' ' : '';
         return `${leadingSpace}<a href="${sanitizedUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`;
@@ -4061,7 +2920,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         setAuthorName('Live Event Author');
 
         // Subscribe to live event updates
-        await subscribeToLiveEvent(pubkey, identifier);
+        await subscribeLiveEvent(pubkey, identifier, kind);
+        await subscribeLiveChat(pubkey, identifier);
+        await subscribeLiveEventZaps(pubkey, identifier);
       }
     } catch (err) {
       throw new Error('Failed to load live event');
@@ -4184,7 +3045,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       window.dispatchEvent(
         new CustomEvent('noteLoaderSubmitted', {
           detail: { noteId: cleanNoteId, decoded }
-        })
+  })
       );
 
       // Show loading state
@@ -4267,7 +3128,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (retryCount < 50) {
         if (retryCount % 10 === 0) {
         }
-        setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
+setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
         return;
       } else {
         setupNoteLoaderListenersInProgress = false;
@@ -4297,7 +3158,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           e.preventDefault();
           handleNoteLoaderSubmit();
         }
-      });
+});
 
       // Clear error message when user starts typing
       inputField.addEventListener('input', e => {
@@ -4396,67 +3257,26 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Apply all styles and save
     applyAllStyles();
-    updateBlendMode();
+    updateBlendModeFromHook();
     saveCurrentStylesToLocalStorage();
   };
 
-  // Start live price updates
+  // Start live price updates (wrapper for service)
   const startLivePriceUpdates = () => {
-    // Clear any existing interval
-    if ((window as any).bitcoinPriceUpdateInterval) {
-      clearInterval((window as any).bitcoinPriceUpdateInterval);
-    }
-
-    // Fetch prices immediately
-    fetchBitcoinPrices();
-
-    // Set up interval to fetch prices every 30 seconds
-    (window as any).bitcoinPriceUpdateInterval = setInterval(() => {
-      fetchBitcoinPrices();
-    }, 30000); // 30 seconds
-
-    console.log('💰 Live Bitcoin price updates started (every 30 seconds)');
+    bitcoinPriceService.startPriceUpdates(30000); // 30 seconds
   };
 
-  // Stop live price updates
+  // Stop live price updates (wrapper for service)
   const stopLivePriceUpdates = () => {
-    if ((window as any).bitcoinPriceUpdateInterval) {
-      clearInterval((window as any).bitcoinPriceUpdateInterval);
-      (window as any).bitcoinPriceUpdateInterval = null;
-      console.log('💰 Live Bitcoin price updates stopped');
-    }
+    bitcoinPriceService.stopPriceUpdates();
   };
 
   // Manual price refresh function (exposed globally for testing)
   const refreshBitcoinPrices = async () => {
-    console.log('💰 Manually refreshing Bitcoin prices...');
-    const newPrices = await fetchBitcoinPrices();
-    if (newPrices) {
-      console.log('✅ Bitcoin prices refreshed successfully');
-      return newPrices;
-    } else {
-      console.error('❌ Failed to refresh Bitcoin prices');
-      return null;
-    }
+    return await bitcoinPriceService.refreshPrices();
   };
 
-  // Debounced version of updateFiatAmounts to prevent rate limiting
-  const debouncedUpdateFiatAmounts = () => {
-    if (fiatUpdateTimeout) {
-      clearTimeout(fiatUpdateTimeout);
-    }
-
-    fiatUpdateTimeout = setTimeout(async () => {
-      if (!isUpdatingFiatAmounts) {
-        isUpdatingFiatAmounts = true;
-        try {
-          await updateFiatAmounts();
-        } finally {
-          isUpdatingFiatAmounts = false;
-        }
-      }
-    }, 500); // 500ms debounce
-  };
+  // Fiat conversion is now handled by useFiatConversion hook
 
   // Recalculate total zaps amount (useful when prices change)
   const recalculateTotalZaps = () => {
@@ -4473,7 +3293,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         if (satsMatch && satsMatch[1]) {
           totalSats += parseInt(satsMatch[1].replace(/,/g, ''));
         }
-      }
+}
     });
 
     // Update the total amount display
@@ -4485,8 +3305,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         numberWithCommas(totalSats);
     }
 
-    // Update React state
-    setTotalAmount(totalSats);
+    // Total amounts are calculated by the hook automatically
+    // No need to manually set totalAmount
 
     console.log(
       `💰 Total zaps recalculated: ${numberWithCommas(totalSats)} sats`
@@ -4516,16 +3336,19 @@ export const useLiveFunctionality = (eventId?: string) => {
       'currencySelector'
     ) as HTMLSelectElement;
     if (currencySelector) {
-      currencySelector.addEventListener('change', (e: any) => {
-        selectedFiatCurrencyRef.current = e.target.value;
-        // Update fiat amounts with new currency if toggle is enabled
-        const showFiatToggle = document.getElementById(
-          'showFiatToggle'
-        ) as HTMLInputElement;
-        if (showFiatToggle && showFiatToggle.checked) {
-          debouncedUpdateFiatAmounts();
+      currencySelector.addEventListener('change', (e: Event) => {
+        const target = e.target as HTMLSelectElement;
+        if (target) {
+          setSelectedCurrency(target.value);
+          // Update fiat amounts with new currency if toggle is enabled
+          const showFiatToggle = document.getElementById(
+            'showFiatToggle'
+          ) as HTMLInputElement;
+          if (showFiatToggle && showFiatToggle.checked) {
+            debouncedUpdateFiatAmounts();
+          }
+          saveCurrentStylesToLocalStorage();
         }
-        saveCurrentStylesToLocalStorage();
       });
     }
 
@@ -4537,8 +3360,9 @@ export const useLiveFunctionality = (eventId?: string) => {
     const customUrlGroup = document.getElementById('customUrlGroup');
 
     if (bgImagePreset) {
-      bgImagePreset.addEventListener('change', (e: any) => {
-        const selectedValue = e.target.value;
+      bgImagePreset.addEventListener('change', (e: Event) => {
+        const target = e.target as HTMLSelectElement;
+        const selectedValue = target.value;
 
         if (selectedValue === 'custom') {
           if (customUrlGroup) customUrlGroup.style.display = 'block';
@@ -4552,7 +3376,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           if (bgImageUrl) {
             (bgImageUrl as HTMLInputElement).value = selectedValue;
           }
-          updateBackgroundImage(selectedValue);
+  updateBackgroundImage(selectedValue);
           if (bgPresetPreview) {
             if (selectedValue === '') {
               // No background selected - show white square (container background)
@@ -4565,15 +3389,16 @@ export const useLiveFunctionality = (eventId?: string) => {
               (bgPresetPreview as HTMLImageElement).alt = 'Background preview';
               (bgPresetPreview as HTMLImageElement).style.display = 'block';
             }
-          }
-          saveCurrentStylesToLocalStorage();
+  }
+    saveCurrentStylesToLocalStorage();
         }
-      });
+});
     }
 
     if (bgImageUrl) {
-      bgImageUrl.addEventListener('input', (e: any) => {
-        const url = e.target.value.trim();
+      bgImageUrl.addEventListener('input', (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        const url = target.value.trim();
         if (url) {
           const img = new Image();
           img.onload = () => {
@@ -4582,7 +3407,7 @@ export const useLiveFunctionality = (eventId?: string) => {
               (bgPresetPreview as HTMLImageElement).src = url;
               (bgPresetPreview as HTMLImageElement).alt = 'Background preview';
             }
-            saveCurrentStylesToLocalStorage();
+saveCurrentStylesToLocalStorage();
           };
           img.onerror = () => {
             if (bgPresetPreview) {
@@ -4590,7 +3415,7 @@ export const useLiveFunctionality = (eventId?: string) => {
               (bgPresetPreview as HTMLImageElement).alt =
                 'Failed to load image';
             }
-          };
+  };
           img.src = url;
         } else {
           updateBackgroundImage('');
@@ -4599,9 +3424,9 @@ export const useLiveFunctionality = (eventId?: string) => {
             (bgPresetPreview as HTMLImageElement).alt = 'No background';
             (bgPresetPreview as HTMLImageElement).style.display = 'none';
           }
-          saveCurrentStylesToLocalStorage();
+  saveCurrentStylesToLocalStorage();
         }
-      });
+});
     }
 
     if (clearBgImage) {
@@ -4615,7 +3440,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           (bgPresetPreview as HTMLImageElement).alt = 'No background';
           (bgPresetPreview as HTMLImageElement).style.display = 'none';
         }
-        saveCurrentStylesToLocalStorage();
+saveCurrentStylesToLocalStorage();
       });
     }
 
@@ -4627,7 +3452,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       } else {
         document.body.classList.remove('flex-direction-invert');
       }
-      // Debug log removed
+// Debug log removed
     });
 
     setupToggle('hideZapperContentToggle', (checked: boolean) => {
@@ -4637,7 +3462,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       } else {
         document.body.classList.remove('hide-zapper-content');
       }
-      // Debug log removed
+// Debug log removed
     });
 
     setupToggle('showTopZappersToggle', (checked: boolean) => {
@@ -4654,7 +3479,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         // If we have zaps but no top zappers calculated yet, calculate them
         if (zaps.length > 0 && topZappers.length === 0) {
           // Debug log removed
-          calculateTopZappersFromZaps(zaps);
+          calculateTopZappersFromZaps(zaps, new Map());
           // The useEffect will handle displayTopZappers() after state update
         } else if (topZappers.length > 0) {
           // We have top zappers data, display them immediately
@@ -4664,7 +3489,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           // Debug log removed
           setUserWantsTopZappers(true);
         }
-      } else {
+} else {
         // Debug log removed
         document.body.classList.remove('show-top-zappers');
         hideTopZappersBar();
@@ -4678,7 +3503,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       } else {
         document.body.classList.remove('podium-enabled');
       }
-      // Debug log removed
+// Debug log removed
 
       // Check if grid layout is active
       const zapGridToggle = document.getElementById(
@@ -4694,9 +3519,12 @@ export const useLiveFunctionality = (eventId?: string) => {
         }, 10);
       } else {
         // If grid is not active, re-render zaps to apply podium styling
-        if (zaps.length > 0) {
+        // Note: zaps is Kind9735Event[], but drawKinds9735 expects ProcessedZapData[]
+        // The processed zaps are stored in window.zaps
+        const processedZaps = (window as any).zaps || [];
+        if (processedZaps.length > 0) {
           // Debug log removed
-          drawKinds9735(zaps);
+          drawKinds9735(processedZaps);
         }
       }
     });
@@ -4719,7 +3547,7 @@ export const useLiveFunctionality = (eventId?: string) => {
               // Force reflow to apply grid-layout class
               void zapsOnlyList.offsetHeight;
             }
-            setTimeout(() => {
+setTimeout(() => {
               organizeZapsHierarchically();
             }, 10);
             
@@ -4727,7 +3555,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             if ((window as any).gridPeriodicCheckInterval) {
               clearInterval((window as any).gridPeriodicCheckInterval);
             }
-            (window as any).gridPeriodicCheckInterval = setInterval(() => {
+(window as any).gridPeriodicCheckInterval = setInterval(() => {
               const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
               const container = document.getElementById('zaps-only-list');
               if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
@@ -4740,15 +3568,15 @@ export const useLiveFunctionality = (eventId?: string) => {
                   console.log('Re-organizing grid: found zaps outside rows', allZaps.length, 'total vs', zapsInRows.length, 'in rows');
                   organizeZapsHierarchically();
                 }
-              }
-            }, 2000); // Check every 2 seconds
+}
+}, 2000); // Check every 2 seconds
           } else {
             // Stop periodic check
             if ((window as any).gridPeriodicCheckInterval) {
               clearInterval((window as any).gridPeriodicCheckInterval);
               (window as any).gridPeriodicCheckInterval = null;
             }
-            
+
             // Clean up FIRST (this sets inline styles to force row layout)
             cleanupHierarchicalOrganization();
             // Then remove the class after cleanup
@@ -4758,12 +3586,12 @@ export const useLiveFunctionality = (eventId?: string) => {
                 // Force reflow to ensure styles are recalculated
                 void zapsOnlyList.offsetHeight;
               }
-              // Also ensure .zaps-list doesn't have grid-layout
+// Also ensure .zaps-list doesn't have grid-layout
               const zapsListElements = document.querySelectorAll('.zaps-list');
               zapsListElements.forEach(list => list.classList.remove('grid-layout'));
             }, 10);
           }
-        } else {
+} else {
           // Regular kind1 note mode
           if (checked) {
             zapsList.classList.add('grid-layout');
@@ -4777,7 +3605,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             if ((window as any).gridPeriodicCheckInterval) {
               clearInterval((window as any).gridPeriodicCheckInterval);
             }
-            (window as any).gridPeriodicCheckInterval = setInterval(() => {
+(window as any).gridPeriodicCheckInterval = setInterval(() => {
               const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
               const container = document.getElementById('zaps');
               if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
@@ -4790,15 +3618,15 @@ export const useLiveFunctionality = (eventId?: string) => {
                   console.log('Re-organizing grid: found zaps outside rows', allZaps.length, 'total vs', zapsInRows.length, 'in rows');
                   organizeZapsHierarchically();
                 }
-              }
-            }, 2000); // Check every 2 seconds
+}
+}, 2000); // Check every 2 seconds
           } else {
             // Stop periodic check
             if ((window as any).gridPeriodicCheckInterval) {
               clearInterval((window as any).gridPeriodicCheckInterval);
               (window as any).gridPeriodicCheckInterval = null;
             }
-            
+
             // Clean up FIRST (this sets inline styles to force row layout)
             cleanupHierarchicalOrganization();
             // Then remove the class after cleanup
@@ -4813,12 +3641,15 @@ export const useLiveFunctionality = (eventId?: string) => {
           }
 
           // Re-render zaps to apply/remove podium styling based on current state
-          if (zaps.length > 0) {
-            drawKinds9735(zaps);
+          // Note: zaps is Kind9735Event[], but drawKinds9735 expects ProcessedZapData[]
+          // The processed zaps are stored in window.zaps
+          const processedZaps = (window as any).zaps || [];
+          if (processedZaps.length > 0) {
+            drawKinds9735(processedZaps);
           }
-        }
-      }
-      updateStyleURL();
+}
+}
+updateStyleURL();
     });
 
     setupToggle('qrInvertToggle', () => {
@@ -4840,9 +3671,9 @@ export const useLiveFunctionality = (eventId?: string) => {
           } else {
             qrCode.style.filter = 'none';
           }
-          // Debug log removed
+  // Debug log removed
         }
-      });
+});
     });
 
     setupToggle('qrScreenBlendToggle', () => {
@@ -4856,7 +3687,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (qrScreenBlendToggle?.checked) {
         qrMultiplyBlendToggle.checked = false;
       }
-      updateBlendMode();
+updateBlendModeFromHook();
     });
 
     setupToggle('qrMultiplyBlendToggle', () => {
@@ -4870,7 +3701,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (qrMultiplyBlendToggle?.checked) {
         qrScreenBlendToggle.checked = false;
       }
-      updateBlendMode();
+updateBlendModeFromHook();
     });
 
     // Setup opacity sliders
@@ -4885,8 +3716,9 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     if (opacitySlider && opacityValue) {
       // Debug log removed
-      opacitySlider.addEventListener('input', (e: any) => {
-        const value = parseFloat(e.target.value);
+      opacitySlider.addEventListener('input', (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        const value = parseFloat(target.value);
         opacityValue.textContent = `${Math.round(value * 100)}%`;
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
@@ -4895,8 +3727,9 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     if (textOpacitySlider && textOpacityValue) {
       // Debug log removed
-      textOpacitySlider.addEventListener('input', (e: any) => {
-        const value = parseFloat(e.target.value);
+      textOpacitySlider.addEventListener('input', (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        const value = parseFloat(target.value);
         textOpacityValue.textContent = `${Math.round(value * 100)}%`;
         debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
@@ -5024,7 +3857,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (showFiatToggle && showFiatToggle.checked) {
         debouncedUpdateFiatAmounts();
       }
-      // Save toggle state to localStorage
+// Save toggle state to localStorage
       saveCurrentStylesToLocalStorage();
     });
 
@@ -5036,7 +3869,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (showFiatToggle && showFiatToggle.checked) {
         debouncedUpdateFiatAmounts();
       }
-      // Save toggle state to localStorage
+// Save toggle state to localStorage
       saveCurrentStylesToLocalStorage();
     });
 
@@ -5050,9 +3883,9 @@ export const useLiveFunctionality = (eventId?: string) => {
           // If fiat only is being turned off, restore satoshi amounts first
           restoreSatoshiAmounts();
         }
-        debouncedUpdateFiatAmounts();
+debouncedUpdateFiatAmounts();
       }
-      // Save toggle state to localStorage
+// Save toggle state to localStorage
       saveCurrentStylesToLocalStorage();
     });
 
@@ -5062,7 +3895,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         return;
       }
 
-      await handleLightningToggle(checked, eventId);
+      await handleLightningToggleFromHook(checked, eventId);
       
       // Update QR slide visibility
       if (typeof updateQRSlideVisibility === 'function') {
@@ -5101,7 +3934,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             customPartnerLogoGroup.style.display = 'none';
           if (partnerLogoUrl) partnerLogoUrl.value = '';
         }
-        debouncedApplyAllStyles();
+debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
     }
@@ -5194,484 +4027,12 @@ export const useLiveFunctionality = (eventId?: string) => {
   // Flag to prevent Lightning calls during preset application
   let isApplyingPreset = false;
 
-  // Bitcoin price data - using refs to persist across renders
-  const bitcoinPricesRef = useRef<{ [key: string]: number }>({});
-  const selectedFiatCurrencyRef = useRef<string>('USD');
-  let isUpdatingFiatAmounts = false;
-  let fiatUpdateTimeout: NodeJS.Timeout | null = null;
-
-  // Fetch Bitcoin prices from Mempool API
-  const fetchBitcoinPrices = async () => {
-    try {
-      const response = await fetch('https://mempool.space/api/v1/prices');
-      const data = await response.json();
-      const previousPrices = { ...bitcoinPricesRef.current };
-      bitcoinPricesRef.current = data;
-
-      // Check if prices have changed and update fiat amounts if needed
-      const priceChanged = Object.keys(data).some(
-        currency => previousPrices[currency] !== data[currency]
-      );
-
-      if (priceChanged && Object.keys(previousPrices).length > 0) {
-        console.log('💰 Bitcoin prices updated, refreshing fiat amounts...');
-        // Update fiat amounts with new prices
-        debouncedUpdateFiatAmounts();
-        // Also recalculate total zaps to ensure it's updated
-        recalculateTotalZaps();
-      }
-
-      return data;
-    } catch (error) {
-      console.error('❌ Failed to fetch Bitcoin prices:', error);
-      return null;
-    }
-  };
-
-  // Fetch historical Bitcoin prices from Mempool API
-  const fetchHistoricalBitcoinPrices = async (
-    timestamp: number,
-    currency: string = selectedFiatCurrencyRef.current
-  ) => {
-    try {
-      const response = await fetch(
-        `https://mempool.space/api/v1/historical-price?currency=${currency}&timestamp=${timestamp}`
-      );
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      return null;
-    }
-  };
-
-  // Update loading state for historical price toggle
-  const setHistoricalPriceLoading = (
-    loading: boolean,
-    progress?: { current: number; total: number }
-  ) => {
-    const toggleLabel = document
-      .querySelector('#showHistoricalPriceToggle')
-      ?.closest('.toggle-switch')?.nextElementSibling;
-
-    if (toggleLabel) {
-      const labelElement = toggleLabel as HTMLElement;
-      if (loading) {
-        if (progress) {
-          labelElement.textContent = `Loading Historical Prices... (${progress.current}/${progress.total})`;
-        } else {
-          labelElement.textContent = 'Loading Historical Prices...';
-        }
-        labelElement.style.opacity = '0.7';
-        labelElement.style.fontStyle = 'italic';
-      } else {
-        labelElement.textContent = 'Show Historical Prices';
-        labelElement.style.opacity = '1';
-        labelElement.style.fontStyle = 'normal';
-      }
-    }
-  };
-
-  // Convert sats to fiat
-  const satsToFiat = (
-    sats: number,
-    currency: string = selectedFiatCurrencyRef.current
-  ): string => {
-    if (!bitcoinPricesRef.current[currency]) {
-      return '';
-    }
-
-    const btcAmount = sats / 100000000; // Convert sats to BTC
-    const fiatAmount = btcAmount * bitcoinPricesRef.current[currency];
-
-    // Format based on currency - show amount followed by currency code in span
-    if (currency === 'JPY') {
-      return `${Math.round(fiatAmount).toLocaleString()} <span class="currency-code">${currency}</span>`;
-    } else {
-      return `${fiatAmount.toFixed(2)} <span class="currency-code">${currency}</span>`;
-    }
-  };
-
-  // Convert sats to fiat with historical price
-  const satsToFiatWithHistorical = async (
-    sats: number,
-    timestamp: number,
-    currency: string = selectedFiatCurrencyRef.current
-  ): Promise<string> => {
-    if (!bitcoinPricesRef.current[currency]) return '';
-
-    const btcAmount = sats / 100000000; // Convert sats to BTC
-    const currentFiatAmount = btcAmount * bitcoinPricesRef.current[currency];
-
-    // Format current amount
-    let currentFormatted: string;
-    if (currency === 'JPY') {
-      currentFormatted = `${Math.round(currentFiatAmount).toLocaleString()} <span class="currency-code">${currency}</span>`;
-    } else {
-      currentFormatted = `${currentFiatAmount.toFixed(2)} <span class="currency-code">${currency}</span>`;
-    }
-
-    // Fetch historical price
-    const historicalData = await fetchHistoricalBitcoinPrices(
-      timestamp,
-      currency
-    );
-
-    if (
-      historicalData &&
-      historicalData.prices &&
-      historicalData.prices.length > 0
-    ) {
-      const historicalPrice = historicalData.prices[0][currency];
-
-      if (historicalPrice) {
-        const historicalFiatAmount = btcAmount * historicalPrice;
-
-        let historicalFormatted: string;
-        if (currency === 'JPY') {
-          historicalFormatted = `${Math.round(historicalFiatAmount).toLocaleString()}`;
-        } else {
-          historicalFormatted = `${historicalFiatAmount.toFixed(2)}`;
-        }
-
-        // Check if historical change toggle is enabled
-        const showHistoricalChangeToggle = document.getElementById(
-          'showHistoricalChangeToggle'
-        ) as HTMLInputElement;
-        const showHistoricalChange =
-          showHistoricalChangeToggle && showHistoricalChangeToggle.checked;
-
-        let result = `${currentFormatted} <span class="historical-price">(${historicalFormatted})</span>`;
-
-        if (showHistoricalChange) {
-          // Calculate percentage change
-          const percentageChange =
-            ((currentFiatAmount - historicalFiatAmount) /
-              historicalFiatAmount) *
-            100;
-          const changeFormatted =
-            percentageChange >= 0
-              ? `+${percentageChange.toFixed(1)}%`
-              : `${percentageChange.toFixed(1)}%`;
-          result += ` <span class="historical-change">${changeFormatted}</span>`;
-        }
-
-        return result;
-      }
-    }
-
-    return currentFormatted;
-  };
-
-  // Function to retroactively add timestamps to existing zaps
-  const addMissingTimestamps = () => {
-    const zapElements = document.querySelectorAll('.zap:not([data-timestamp])');
-
-    zapElements.forEach((zapElement, index) => {
-      // Try to get timestamp from dataset if available
-      const datasetTimestamp = (zapElement as HTMLElement).dataset.timestamp;
-      if (datasetTimestamp) {
-        zapElement.setAttribute('data-timestamp', datasetTimestamp);
-      } else {
-        // Try to get timestamp from the global zaps array if available
-        const zapId = (zapElement as HTMLElement).dataset.zapId;
-        if (zapId && (window as any).zaps) {
-          const zapData = (window as any).zaps.find(
-            (zap: any) => zap.id === zapId
-          );
-          if (zapData && (zapData.timestamp || zapData.created_at)) {
-            const timestamp = zapData.timestamp || zapData.created_at;
-            zapElement.setAttribute('data-timestamp', timestamp.toString());
-          } else {
-            console.log(
-              `❌ No timestamp found in zaps array for zap ${index + 1}`
-            );
-          }
-        } else {
-          console.log(
-            `❌ No dataset timestamp or zaps array available for zap ${index + 1}`
-          );
-        }
-      }
-    });
-  };
-
-  // Update fiat amounts for all sat amounts on the page
-  const updateFiatAmounts = async () => {
-    // Check if fiat toggle is enabled - if not, don't show any fiat amounts
-    const showFiatToggle = document.getElementById(
-      'showFiatToggle'
-    ) as HTMLInputElement;
-    if (!showFiatToggle || !showFiatToggle.checked) {
-      return;
-    }
-
-    if (!bitcoinPricesRef.current[selectedFiatCurrencyRef.current]) return;
-
-    // Add visual indicator that prices are being updated
-    const priceUpdateIndicator = document.getElementById(
-      'priceUpdateIndicator'
-    );
-    if (priceUpdateIndicator) {
-      priceUpdateIndicator.style.display = 'inline';
-      priceUpdateIndicator.textContent = 'Updating prices...';
-    }
-
-    // Check if historical price toggle is enabled
-    const showHistoricalPriceToggle = document.getElementById(
-      'showHistoricalPriceToggle'
-    ) as HTMLInputElement;
-    const showHistorical =
-      showHistoricalPriceToggle && showHistoricalPriceToggle.checked;
-
-    // Check if fiat only toggle is enabled
-    const fiatOnlyToggle = document.getElementById(
-      'fiatOnlyToggle'
-    ) as HTMLInputElement;
-    const fiatOnly = fiatOnlyToggle && fiatOnlyToggle.checked;
-
-    const totalAmountElement = document.querySelector('.total-amount');
-    const totalSatsElement = document.querySelector(
-      '.zaps-header-left .total-sats'
-    );
-    const totalValueElement = document.getElementById('zappedTotalValue');
-
-    // Handle total sats display in header
-    if (totalSatsElement) {
-      if (fiatOnly) {
-        (totalSatsElement as HTMLElement).style.display = 'none';
-      } else {
-        (totalSatsElement as HTMLElement).style.display = 'inline';
-      }
-    }
-
-    // Try to fix missing timestamps before processing
-    if (showHistorical) {
-      addMissingTimestamps();
-    }
-
-    // Set loading state if historical prices are enabled
-    if (showHistorical) {
-      setHistoricalPriceLoading(true);
-    }
-
-    try {
-      // Find all elements with sat amounts
-      const satElements = document.querySelectorAll(
-        '.total-amount, .zapperAmountSats, .zap-amount-sats'
-      );
-
-      let processedCount = 0;
-      const totalElements = satElements.length;
-
-      for (const element of satElements) {
-        // Store original satoshi amount if not already stored
-        if (!(element as HTMLElement).dataset.originalSats) {
-          const currentText = element.textContent || '';
-          const currentSatMatch = currentText.match(/(\d+(?:,\d{3})*)/);
-          if (currentSatMatch && currentSatMatch[1]) {
-            // Only store if it looks like a satoshi amount (not a fiat amount)
-            if (
-              !currentText.includes('CAD') &&
-              !currentText.includes('USD') &&
-              !currentText.includes('EUR') &&
-              !currentText.includes('GBP') &&
-              !currentText.includes('JPY') &&
-              !currentText.includes('CHF') &&
-              !currentText.includes('AUD')
-            ) {
-              (element as HTMLElement).dataset.originalSats = currentText;
-            }
-          }
-        }
-
-        // If this element has stored original satoshi data, use it for calculation
-        const originalSats = (element as HTMLElement).dataset.originalSats;
-        let satText: string;
-        if (originalSats) {
-          satText = originalSats;
-        } else {
-          satText = element.textContent || '';
-        }
-
-        const satMatch = satText.match(/(\d+(?:,\d{3})*)/);
-
-        if (satMatch && satMatch[1]) {
-          const sats = parseInt(satMatch[1].replace(/,/g, ''));
-
-          // Check if this is a total amount (no timestamp needed) or individual zap amount
-          const isTotalAmount = element.classList.contains('total-amount');
-
-          let fiatAmount: string;
-          if (isTotalAmount || !showHistorical) {
-            // For total amounts or when historical is disabled, just show current price
-            fiatAmount = satsToFiat(sats);
-          } else {
-            // For individual zap amounts, check if they're in the .zaps-list
-            const zapElement = element.closest('.zap');
-            if (zapElement) {
-              // Only apply historical prices to zaps within .zaps-list
-              const isInZapList = zapElement.closest('.zaps-list') !== null;
-
-              if (isInZapList && showHistorical) {
-                const timestampAttr = zapElement.getAttribute('data-timestamp');
-                if (timestampAttr) {
-                  const timestamp = parseInt(timestampAttr);
-                  const date = new Date(timestamp * 1000);
-
-                  fiatAmount = await satsToFiatWithHistorical(sats, timestamp);
-                } else {
-                  fiatAmount = satsToFiat(sats);
-                }
-              } else {
-                // For zaps outside .zaps-list or when historical is disabled, show current price
-                fiatAmount = satsToFiat(sats);
-              }
-            } else {
-              fiatAmount = satsToFiat(sats);
-            }
-          }
-
-          if (fiatAmount && element.parentElement) {
-            if (fiatOnly) {
-              // Original satoshi amount should already be stored above
-
-              // Extract just the fiat amount without the currency span for the main display
-              const fiatAmountOnly = fiatAmount
-                .replace(/<span class="currency-code">.*?<\/span>/g, '')
-                .trim();
-
-              // Replace the satoshi amount with fiat amount and currency
-              const newContent = `${fiatAmountOnly} <span class="currency-code">${selectedFiatCurrencyRef.current}</span>`;
-              element.innerHTML = newContent;
-
-              // Hide any existing fiat-amount elements
-              const existingFiatElement =
-                element.parentElement.querySelector('.fiat-amount');
-              if (existingFiatElement) {
-                (existingFiatElement as HTMLElement).style.display = 'none';
-              }
-
-              // Hide the "sats" label element
-              const satsLabelElement =
-                element.parentElement.querySelector('.zapperAmountLabel');
-              if (satsLabelElement) {
-                (satsLabelElement as HTMLElement).style.display = 'none';
-              }
-            } else {
-              // Add fiat amount below the satoshi amount
-              let fiatElement =
-                element.parentElement.querySelector('.fiat-amount');
-              if (!fiatElement) {
-                fiatElement = document.createElement('div');
-                fiatElement.className = 'fiat-amount';
-                element.parentElement.appendChild(fiatElement);
-              }
-              (fiatElement as HTMLElement).style.display = 'block';
-              fiatElement.innerHTML = fiatAmount;
-
-              // Show the "sats" label element
-              const satsLabelElement =
-                element.parentElement.querySelector('.zapperAmountLabel');
-              if (satsLabelElement) {
-                (satsLabelElement as HTMLElement).style.display = 'inline';
-              }
-            }
-          }
-        }
-
-        // Update progress for historical prices
-        if (showHistorical) {
-          processedCount++;
-          setHistoricalPriceLoading(true, {
-            current: processedCount,
-            total: totalElements
-          });
-        }
-      }
-    } finally {
-      // Clear loading state
-      if (showHistorical) {
-        setHistoricalPriceLoading(false);
-      }
-
-      // Hide price update indicator
-      const priceUpdateIndicator = document.getElementById(
-        'priceUpdateIndicator'
-      );
-      if (priceUpdateIndicator) {
-        priceUpdateIndicator.style.display = 'none';
-      }
-    }
-  };
-
-  // Hide all fiat amounts
-  const hideFiatAmounts = () => {
-    const fiatElements = document.querySelectorAll('.fiat-amount');
-    fiatElements.forEach(element => element.remove());
-
-    // Restore total sats display in header
-    const totalSatsElement = document.querySelector(
-      '.zaps-header-left .total-sats'
-    );
-    if (totalSatsElement) {
-      (totalSatsElement as HTMLElement).style.display = 'inline';
-    }
-
-    // If fiat only was enabled, restore original satoshi amounts
-    const satElements = document.querySelectorAll(
-      '.total-amount, .zapperAmountSats, .zap-amount-sats'
-    );
-    satElements.forEach(element => {
-      // Check if this element has a data attribute storing the original satoshi amount
-      const originalSats = (element as HTMLElement).dataset.originalSats;
-      if (originalSats) {
-        element.textContent = originalSats;
-        (element as HTMLElement).removeAttribute('data-original-sats');
-      }
-
-      // Also restore the "sats" label visibility
-      const satsLabelElement =
-        element.parentElement?.querySelector('.zapperAmountLabel');
-      if (satsLabelElement) {
-        (satsLabelElement as HTMLElement).style.display = 'inline';
-      }
-    });
-  };
-
-  const restoreSatoshiAmounts = () => {
-    // Restore total sats display in header
-    const totalSatsElement = document.querySelector(
-      '.zaps-header-left .total-sats'
-    );
-    if (totalSatsElement) {
-      (totalSatsElement as HTMLElement).style.display = 'block';
-    }
-
-    // Restore original satoshi amounts when fiat only is turned off
-    const satElements = document.querySelectorAll(
-      '.total-amount, .zapperAmountSats, .zap-amount-sats'
-    );
-    satElements.forEach(element => {
-      const originalSats = (element as HTMLElement).dataset.originalSats;
-      if (originalSats) {
-        element.textContent = originalSats;
-        (element as HTMLElement).removeAttribute('data-original-sats');
-      }
-
-      // Also restore the "sats" label visibility
-      const satsLabelElement =
-        element.parentElement?.querySelector('.zapperAmountLabel');
-      if (satsLabelElement) {
-        (satsLabelElement as HTMLElement).style.display = 'inline';
-      }
-    });
-  };
+  // Fiat conversion is now handled by useFiatConversion hook
 
   // Expose fiat conversion utilities to window for overlay component
   (window as any).satsToFiat = satsToFiat;
-  (window as any).getBitcoinPrices = () => bitcoinPricesRef.current;
-  (window as any).getSelectedFiatCurrency = () =>
-    selectedFiatCurrencyRef.current;
+  (window as any).getBitcoinPrices = () => bitcoinPriceService.getPrices();
+  (window as any).getSelectedFiatCurrency = () => selectedCurrency;
 
   const setupToggle = (
     toggleId: string,
@@ -5700,43 +4061,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
-  const toHexColor = (color: string): string => {
-    // If color is empty or invalid, return default white
-    if (!color || color.trim() === '') {
-      return '#ffffff';
-    }
-
-    // If it's already a hex color, return it
-    if (color.startsWith('#')) {
-      return color;
-    }
-
-    // If it's an rgb/rgba color, convert to hex
-    if (color.startsWith('rgb')) {
-      const values = color.match(/\d+/g);
-      if (values && values.length >= 3) {
-        const r = parseInt(values[0] || '0');
-        const g = parseInt(values[1] || '0');
-        const b = parseInt(values[2] || '0');
-        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-      }
-    }
-
-    // If we can't convert, return the default white color instead of black
-    return '#ffffff';
-  };
-
-  const hexToRgba = (hex: string, opacity: number): string => {
-    // Remove the # if present
-    hex = hex.replace('#', '');
-
-    // Parse the hex color
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-
-    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
-  };
+  // toHexColor and hexToRgba are now provided by useStyleManagement hook
 
   // Load initial styles from localStorage or apply defaults
   const loadInitialStyles = () => {
@@ -5753,6 +4078,12 @@ export const useLiveFunctionality = (eventId?: string) => {
     const params = new URLSearchParams(window.location.search);
     if (params.toString() !== '') {
       applyStylesFromURL();
+      // Ensure QR codes are visible after applying styles from URL
+      setTimeout(() => {
+        if (updateQRSlideVisibilityRef.current) {
+          updateQRSlideVisibilityRef.current(true);
+        }
+}, 600);
       return; // URL parameters take precedence, skip localStorage
     }
 
@@ -5791,11 +4122,11 @@ export const useLiveFunctionality = (eventId?: string) => {
             textColorPicker.value = styles.textColor;
             console.log('Applied text color to picker:', styles.textColor);
           }
-          if (textColorValue) {
+  if (textColorValue) {
             textColorValue.value = styles.textColor;
             console.log('Applied text color to value input:', styles.textColor);
           }
-        }
+}
 
         // Apply saved background color (check both old and new property names)
         const bgColor = styles.bgColor || styles.backgroundColor;
@@ -5809,10 +4140,10 @@ export const useLiveFunctionality = (eventId?: string) => {
           if (bgColorPicker) {
             bgColorPicker.value = bgColor;
           }
-          if (bgColorValue) {
+  if (bgColorValue) {
             bgColorValue.value = bgColor;
           }
-        }
+}
 
         // Apply saved opacity values
         if (styles.opacity !== undefined) {
@@ -5825,11 +4156,11 @@ export const useLiveFunctionality = (eventId?: string) => {
             opacitySlider.value = styles.opacity.toString();
             // Debug log removed
           }
-          if (opacityValue) {
+  if (opacityValue) {
             opacityValue.textContent = `${Math.round(styles.opacity * 100)}%`;
             // Debug log removed
           }
-        }
+}
 
         if (styles.textOpacity !== undefined) {
           const textOpacitySlider = document.getElementById(
@@ -5841,11 +4172,11 @@ export const useLiveFunctionality = (eventId?: string) => {
             textOpacitySlider.value = styles.textOpacity.toString();
             // Debug log removed
           }
-          if (textOpacityValue) {
+  if (textOpacityValue) {
             textOpacityValue.textContent = `${Math.round(styles.textOpacity * 100)}%`;
             // Debug log removed
           }
-        }
+}
 
         // Apply saved partner logo
         if (styles.partnerLogo !== undefined) {
@@ -5876,15 +4207,15 @@ export const useLiveFunctionality = (eventId?: string) => {
                   customPartnerLogoGroup.style.display = 'block';
                 if (partnerLogoUrl) partnerLogoUrl.value = styles.partnerLogo;
               }
-            } else {
+} else {
               // No logo
               partnerLogoSelect.value = '';
               if (customPartnerLogoGroup)
                 customPartnerLogoGroup.style.display = 'none';
               if (partnerLogoUrl) partnerLogoUrl.value = '';
             }
-          }
-        }
+  }
+  }
 
         // Apply saved currency selection
         if (styles.selectedCurrency) {
@@ -5893,9 +4224,9 @@ export const useLiveFunctionality = (eventId?: string) => {
           ) as HTMLSelectElement;
           if (currencySelector) {
             currencySelector.value = styles.selectedCurrency;
-            selectedFiatCurrencyRef.current = styles.selectedCurrency;
+            setSelectedCurrency(styles.selectedCurrency);
           }
-        }
+}
 
         // Apply saved background image (check both old and new property names)
         const bgImage = styles.bgImage || styles.backgroundImage;
@@ -5929,7 +4260,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                   bgImageUrl.value = bgImage;
                   // Debug log removed
                 }
-              } else {
+} else {
                 // Debug log removed
                 // It's a custom URL
                 bgImagePreset.value = 'custom';
@@ -5939,7 +4270,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                   bgImageUrl.value = bgImage;
                   // Debug log removed
                 }
-              }
+}
 
               // Update background preview image
               if (bgPresetPreview) {
@@ -5947,7 +4278,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                 bgPresetPreview.alt = 'Background preview';
                 // Debug log removed
               }
-            } else {
+} else {
               // Debug log removed
               // No background
               bgImagePreset.value = '';
@@ -5961,9 +4292,9 @@ export const useLiveFunctionality = (eventId?: string) => {
                 bgPresetPreview.style.display = 'none';
                 // Debug log removed
               }
-            }
-          }
-        }
+}
+    }
+  }
 
         // Apply saved toggles
         const toggleIds = [
@@ -6015,9 +4346,16 @@ export const useLiveFunctionality = (eventId?: string) => {
           const propertyName = Object.keys(propertyToToggleMap).find(
             key => propertyToToggleMap[key] === toggleId
           );
-          if (toggle && propertyName && styles[propertyName] !== undefined) {
+          if (toggle && propertyName) {
+            // If property is undefined, use default value
+            // For sectionLabels, default is false (hidden)
+            const defaultValue = propertyName === 'sectionLabels' ? false : 
+                                propertyName === 'qrShowWebLink' ? true :
+                                propertyName === 'qrShowNevent' ? true :
+                                propertyName === 'qrShowNote' ? true : false;
+            const value = styles[propertyName] !== undefined ? styles[propertyName] : defaultValue;
             // Debug log removed
-            toggle.checked = styles[propertyName];
+            toggle.checked = value;
             // Manually trigger the toggle callback to apply the visual effects
             const toggleCallbacks = {
               layoutInvertToggle: (checked: boolean) => {
@@ -6026,14 +4364,14 @@ export const useLiveFunctionality = (eventId?: string) => {
                 } else {
                   document.body.classList.remove('flex-direction-invert');
                 }
-              },
+},
               hideZapperContentToggle: (checked: boolean) => {
                 if (checked) {
                   document.body.classList.add('hide-zapper-content');
                 } else {
                   document.body.classList.remove('hide-zapper-content');
                 }
-              },
+},
               showTopZappersToggle: (checked: boolean) => {
                 if (checked) {
                   // Debug log removed
@@ -6047,15 +4385,15 @@ export const useLiveFunctionality = (eventId?: string) => {
                   if (topZappersBar) {
                     topZappersBar.style.display = 'none';
                   }
-                }
-              },
+}
+  },
               podiumToggle: (checked: boolean) => {
                 if (checked) {
                   document.body.classList.add('podium-enabled');
                 } else {
                   document.body.classList.remove('podium-enabled');
                 }
-              },
+},
               zapGridToggle: (checked: boolean) => {
                 const zapsList = document.getElementById('zaps');
                 if (zapsList) {
@@ -6074,7 +4412,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                         // Force reflow
                         void zapsOnlyList.offsetHeight;
                       }
-                      // Organize zaps after a brief delay to ensure DOM is ready
+// Organize zaps after a brief delay to ensure DOM is ready
                       setTimeout(() => {
                         organizeZapsHierarchically();
                       }, 100);
@@ -6088,12 +4426,12 @@ export const useLiveFunctionality = (eventId?: string) => {
                           // Force reflow
                           void zapsOnlyList.offsetHeight;
                         }
-                        // Also ensure .zaps-list doesn't have grid-layout
+  // Also ensure .zaps-list doesn't have grid-layout
                         const zapsListElements = document.querySelectorAll('.zaps-list');
                         zapsListElements.forEach(list => list.classList.remove('grid-layout'));
                       }, 10);
                     }
-                  } else {
+  } else {
                     // Regular kind1 note mode
                     if (checked) {
                       zapsList.classList.add('grid-layout');
@@ -6116,9 +4454,9 @@ export const useLiveFunctionality = (eventId?: string) => {
                         zapsListElements.forEach(list => list.classList.remove('grid-layout'));
                       }, 10);
                     }
-                  }
-                }
-              },
+  }
+    }
+},
               sectionLabelsToggle: (checked: boolean) => {
                 const sectionLabels =
                   document.querySelectorAll('.section-label');
@@ -6145,14 +4483,14 @@ export const useLiveFunctionality = (eventId?: string) => {
                   // Add class to control zaps-header alignment
                   document.body.classList.add('show-total-labels');
                 }
-              },
+},
               qrOnlyToggle: (checked: boolean) => {
                 if (checked) {
                   document.body.classList.add('qr-only-mode');
                 } else {
                   document.body.classList.remove('qr-only-mode');
                 }
-              },
+},
               showFiatToggle: (checked: boolean) => {
                 const currencySelectorGroup = document.getElementById(
                   'currencySelectorGroup'
@@ -6186,7 +4524,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                   if (fiatOnlyGroup) fiatOnlyGroup.style.display = 'none';
                   hideFiatAmounts();
                 }
-              },
+},
               showHistoricalPriceToggle: (checked: boolean) => {
                 const historicalChangeGroup = document.getElementById(
                   'historicalChangeGroup'
@@ -6215,7 +4553,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                 if (showFiatToggle && showFiatToggle.checked) {
                   debouncedUpdateFiatAmounts();
                 }
-              },
+},
               showHistoricalChangeToggle: (checked: boolean) => {
                 // Update fiat amounts when historical change toggle changes
                 const showFiatToggle = document.getElementById(
@@ -6224,7 +4562,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                 if (showFiatToggle && showFiatToggle.checked) {
                   debouncedUpdateFiatAmounts();
                 }
-              },
+},
               fiatOnlyToggle: (checked: boolean) => {
                 // Update fiat amounts when fiat only toggle changes
                 const showFiatToggle = document.getElementById(
@@ -6235,9 +4573,9 @@ export const useLiveFunctionality = (eventId?: string) => {
                     // If fiat only is being turned off, restore satoshi amounts first
                     restoreSatoshiAmounts();
                   }
-                  debouncedUpdateFiatAmounts();
+  debouncedUpdateFiatAmounts();
                 }
-              },
+},
               qrInvertToggle: (checked: boolean) => {
                 const qrCodes = [
                   document.getElementById('qrCode'),
@@ -6252,19 +4590,19 @@ export const useLiveFunctionality = (eventId?: string) => {
                     } else {
                       qrCode.style.filter = 'none';
                     }
-                    // Debug log removed
+// Debug log removed
                   }
-                });
+});
               },
               qrScreenBlendToggle: (checked: boolean) => {
                 // Debug log removed
                 // Call updateBlendMode to apply the correct CSS classes
-                updateBlendMode();
+                updateBlendModeFromHook();
               },
               qrMultiplyBlendToggle: (checked: boolean) => {
                 // Debug log removed
                 // Call updateBlendMode to apply the correct CSS classes
-                updateBlendMode();
+                updateBlendModeFromHook();
               },
               qrShowWebLinkToggle: (checked: boolean) => {
                 // Debug log removed
@@ -6284,19 +4622,20 @@ export const useLiveFunctionality = (eventId?: string) => {
                 ) as HTMLInputElement;
                 if (lightningToggle) {
                   lightningToggle.checked = checked;
-                  await handleLightningToggle(checked, eventId);
+                  await handleLightningToggleFromHook(checked, eventId);
                 }
-              }
-            };
+}
+};
 
             const callback =
               toggleCallbacks[toggleId as keyof typeof toggleCallbacks];
             if (callback) {
               // Debug log removed
-              callback(styles[propertyName]);
+              // Use the value we set (which includes default if undefined)
+              callback(value);
             }
-          }
-        });
+  }
+  });
     } else {
       // Debug log removed
       // Apply default styles when no saved styles exist
@@ -6345,8 +4684,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       ) as HTMLInputElement;
       if (sectionLabelsToggle) {
         // Default state: section labels hidden (toggle should be OFF)
-        sectionLabelsToggle.checked = false;
-        // Apply the initial state
+        // First hide the labels immediately to prevent flash
         const sectionLabels = document.querySelectorAll('.section-label');
         const totalLabels = document.querySelectorAll('.total-label');
         sectionLabels.forEach(label => {
@@ -6356,14 +4694,28 @@ export const useLiveFunctionality = (eventId?: string) => {
           (label as HTMLElement).style.display = 'inline';
         });
         document.body.classList.add('show-total-labels');
+        // Then set the toggle state
+        sectionLabelsToggle.checked = false;
       }
 
-      // Set default QR slide visibility
+      // Set default QR slide visibility - ensure at least one is enabled
       const qrShowNeventToggle = document.getElementById(
         'qrShowNeventToggle'
       ) as HTMLInputElement;
-      if (qrShowNeventToggle) {
-        // Default state: Show Nostr Event should be ON
+      const qrShowWebLinkToggle = document.getElementById(
+        'qrShowWebLinkToggle'
+      ) as HTMLInputElement;
+      const qrShowNoteToggle = document.getElementById(
+        'qrShowNoteToggle'
+      ) as HTMLInputElement;
+      
+      // Check if any QR toggle is already enabled
+      const hasAnyEnabled = (qrShowWebLinkToggle?.checked) || 
+                           (qrShowNeventToggle?.checked) || 
+                           (qrShowNoteToggle?.checked);
+      
+      // If none are enabled, enable nevent by default
+      if (!hasAnyEnabled && qrShowNeventToggle) {
         qrShowNeventToggle.checked = true;
       }
     }
@@ -6372,598 +4724,36 @@ export const useLiveFunctionality = (eventId?: string) => {
     setTimeout(() => {
       applyAllStyles();
 
-      // Detect and mark active preset
-      detectActivePreset();
-
       // Update QR slide visibility after all styles and toggles are loaded
       setTimeout(() => {
-        if (typeof updateQRSlideVisibility === 'function') {
+        if (updateQRSlideVisibilityRef.current) {
           // Debug log removed
-          updateQRSlideVisibility(true); // Skip URL update during initialization
+          updateQRSlideVisibilityRef.current(true); // Skip URL update during initialization
         }
-      }, 200); // Additional delay to ensure all toggles are set
+}, 200); // Additional delay to ensure all toggles are set
+      
+      // Ensure QR codes are initialized if they don't exist
+      setTimeout(async () => {
+        const qrCode = document.getElementById('qrCode');
+        if (!qrCode || !qrCode.innerHTML || qrCode.innerHTML.trim() === '') {
+          // QR codes not initialized, initialize them now
+          // Use eventId from URL if available
+          await initializeQRCodePlaceholders(eventId);
+          // Update visibility after initialization (with delay to ensure QR codes are rendered)
+          setTimeout(() => {
+            if (updateQRSlideVisibilityRef.current) {
+              updateQRSlideVisibilityRef.current(true);
+            }
+  }, 400);
+        }
+}, 300);
     }, 100);
   };
 
-  // Detect which preset is currently active based on current styles
-  const detectActivePreset = () => {
-    // Debug log removed
 
-    const textColorElement = document.getElementById(
-      'textColorValue'
-    ) as HTMLInputElement;
-    const bgColorElement = document.getElementById(
-      'bgColorValue'
-    ) as HTMLInputElement;
-    const bgImageElement = document.getElementById(
-      'bgImageUrl'
-    ) as HTMLInputElement;
-    const textOpacitySlider = document.getElementById(
-      'textOpacitySlider'
-    ) as HTMLInputElement;
-    const opacitySlider = document.getElementById(
-      'opacitySlider'
-    ) as HTMLInputElement;
-    const partnerLogoSelect = document.getElementById(
-      'partnerLogoSelect'
-    ) as HTMLSelectElement;
-    const partnerLogoUrl = document.getElementById(
-      'partnerLogoUrl'
-    ) as HTMLInputElement;
+  // saveCurrentStylesToLocalStorage is now provided by useStyleManagement hook
 
-    if (!textColorElement || !bgColorElement) {
-      // Debug log removed
-      return;
-    }
-
-    const currentTextColor = textColorElement.value;
-    const currentBgColor = bgColorElement.value;
-    const currentBgImage = bgImageElement?.value || '';
-    const currentTextOpacity = parseFloat(textOpacitySlider?.value || '1');
-    const currentOpacity = parseFloat(opacitySlider?.value || '1');
-    const currentPartnerLogo =
-      partnerLogoSelect?.value === 'custom'
-        ? partnerLogoUrl?.value || ''
-        : partnerLogoSelect?.value || '';
-
-    // Get current toggle states
-    const toggleIds = [
-      'layoutInvertToggle',
-      'hideZapperContentToggle',
-      'showTopZappersToggle',
-      'podiumToggle',
-      'zapGridToggle',
-      'qrInvertToggle',
-      'qrScreenBlendToggle',
-      'qrMultiplyBlendToggle',
-      'qrShowWebLinkToggle',
-      'qrShowNeventToggle',
-      'qrShowNoteToggle',
-      'lightningToggle'
-    ];
-
-    const currentToggles: { [key: string]: boolean } = {};
-    toggleIds.forEach(toggleId => {
-      const toggle = document.getElementById(toggleId) as HTMLInputElement;
-      if (toggle) {
-        currentToggles[toggleId] = toggle.checked;
-      }
-    });
-
-    // Debug log removed
-
-    // Define all presets for comparison
-    const presets: { [key: string]: any } = {
-      lightMode: {
-        textColor: '#000000',
-        bgColor: '#ffffff',
-        bgImage: '',
-        textOpacity: 1.0,
-        opacity: 1.0,
-        partnerLogo: '',
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        lightning: false
-      },
-      darkMode: {
-        textColor: '#ffffff',
-        bgColor: '#000000',
-        bgImage: '',
-        textOpacity: 1.0,
-        opacity: 1.0,
-        partnerLogo: '',
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        lightning: false
-      },
-      cosmic: {
-        textColor: '#ffffff',
-        bgColor: '#0a0a1a',
-        bgImage: '/live/images/bitcoin-space.gif',
-        textOpacity: 1.0,
-        opacity: 0.4,
-        partnerLogo: '',
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: true,
-        zapGrid: false,
-        qrInvert: false,
-        qrScreenBlend: true,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        lightning: false
-      },
-      vibrant: {
-        textColor: '#ffd700',
-        bgColor: '#2d1b69',
-        bgImage: '/live/images/nostr-ostriches.gif',
-        textOpacity: 1.0,
-        opacity: 0.6,
-        partnerLogo: '',
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        lightning: false
-      },
-      electric: {
-        textColor: '#00ffff',
-        bgColor: '#000033',
-        bgImage: '/live/images/send-zaps.gif',
-        textOpacity: 1.0,
-        opacity: 0.7,
-        partnerLogo: '',
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        qrInvert: false,
-        qrScreenBlend: true,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        lightning: false
-      },
-      warm: {
-        textColor: '#8B4513',
-        bgColor: '#FFE4B5',
-        bgImage: '',
-        textOpacity: 1.0,
-        opacity: 0.9,
-        partnerLogo: '',
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        lightning: false
-      },
-      adopting: {
-        textColor: '#ffffff',
-        bgColor: '#FF6B35',
-        bgImage: '',
-        textOpacity: 1.0,
-        opacity: 0.9,
-        partnerLogo: 'https://adoptingbitcoin.org/images/AB-logo.svg',
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        lightning: false
-      },
-      bitcoinConf: {
-        textColor: '#ffffff',
-        bgColor: '#000000',
-        bgImage: '/live/images/sky.jpg',
-        textOpacity: 1.0,
-        opacity: 0.7,
-        partnerLogo:
-          'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg',
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        lightning: false
-      }
-    };
-
-    // Find matching preset
-    for (const [presetName, presetData] of Object.entries(presets)) {
-      // Check basic properties
-      const basicMatch =
-        presetData.textColor === currentTextColor &&
-        presetData.bgColor === currentBgColor &&
-        presetData.bgImage === currentBgImage &&
-        Math.abs(presetData.textOpacity - currentTextOpacity) < 0.01 &&
-        Math.abs(presetData.opacity - currentOpacity) < 0.01 &&
-        presetData.partnerLogo === currentPartnerLogo;
-
-      // Check toggle states
-      let togglesMatch = true;
-      for (const toggleId of toggleIds) {
-        const presetPropertyName = toggleId.replace('Toggle', '');
-        if (presetData[presetPropertyName] !== currentToggles[toggleId]) {
-          togglesMatch = false;
-          break;
-        }
-      }
-
-      if (basicMatch && togglesMatch) {
-        // Debug log removed
-
-        // Update active preset button
-        document
-          .querySelectorAll('.preset-btn')
-          .forEach(btn => btn.classList.remove('active'));
-        const activeBtn = document.querySelector(
-          `[data-preset="${presetName}"]`
-        );
-        if (activeBtn) {
-          activeBtn.classList.add('active');
-          // Debug log removed
-        }
-        return;
-      }
-    }
-
-    // Debug log removed
-    // Clear all active preset buttons
-    document
-      .querySelectorAll('.preset-btn')
-      .forEach(btn => btn.classList.remove('active'));
-  };
-
-  // Save current styles to localStorage
-  const saveCurrentStylesToLocalStorage = () => {
-    const textColorElement = document.getElementById(
-      'textColorValue'
-    ) as HTMLInputElement;
-    const bgColorElement = document.getElementById(
-      'bgColorValue'
-    ) as HTMLInputElement;
-    const opacitySlider = document.getElementById(
-      'opacitySlider'
-    ) as HTMLInputElement;
-    const textOpacitySlider = document.getElementById(
-      'textOpacitySlider'
-    ) as HTMLInputElement;
-    const partnerLogoSelect = document.getElementById(
-      'partnerLogoSelect'
-    ) as HTMLSelectElement;
-    const partnerLogoUrl = document.getElementById(
-      'partnerLogoUrl'
-    ) as HTMLInputElement;
-    const bgImagePreset = document.getElementById(
-      'bgImagePreset'
-    ) as HTMLSelectElement;
-    const bgImageUrl = document.getElementById(
-      'bgImageUrl'
-    ) as HTMLInputElement;
-
-    if (
-      textColorElement &&
-      bgColorElement &&
-      opacitySlider &&
-      textOpacitySlider
-    ) {
-      let currentPartnerLogo = '';
-      if (partnerLogoSelect) {
-        if (partnerLogoSelect.value === 'custom' && partnerLogoUrl) {
-          currentPartnerLogo = partnerLogoUrl.value;
-        } else {
-          currentPartnerLogo = partnerLogoSelect.value;
-        }
-      }
-
-      let currentBackgroundImage = '';
-      if (bgImagePreset) {
-        if (bgImagePreset.value === 'custom' && bgImageUrl) {
-          currentBackgroundImage = bgImageUrl.value;
-        } else {
-          currentBackgroundImage = bgImagePreset.value;
-        }
-      }
-
-      // Get all toggle states using consistent property names
-      const toggleMapping = [
-        { toggleId: 'layoutInvertToggle', propertyName: 'layoutInvert' },
-        {
-          toggleId: 'hideZapperContentToggle',
-          propertyName: 'hideZapperContent'
-        },
-        { toggleId: 'showTopZappersToggle', propertyName: 'showTopZappers' },
-        { toggleId: 'podiumToggle', propertyName: 'podium' },
-        { toggleId: 'zapGridToggle', propertyName: 'zapGrid' },
-        { toggleId: 'sectionLabelsToggle', propertyName: 'sectionLabels' },
-        { toggleId: 'qrOnlyToggle', propertyName: 'qrOnly' },
-        { toggleId: 'showFiatToggle', propertyName: 'showFiat' },
-        {
-          toggleId: 'showHistoricalPriceToggle',
-          propertyName: 'showHistoricalPrice'
-        },
-        {
-          toggleId: 'showHistoricalChangeToggle',
-          propertyName: 'showHistoricalChange'
-        },
-        { toggleId: 'fiatOnlyToggle', propertyName: 'fiatOnly' },
-        { toggleId: 'qrInvertToggle', propertyName: 'qrInvert' },
-        { toggleId: 'qrScreenBlendToggle', propertyName: 'qrScreenBlend' },
-        { toggleId: 'qrMultiplyBlendToggle', propertyName: 'qrMultiplyBlend' },
-        { toggleId: 'qrShowWebLinkToggle', propertyName: 'qrShowWebLink' },
-        { toggleId: 'qrShowNeventToggle', propertyName: 'qrShowNevent' },
-        { toggleId: 'qrShowNoteToggle', propertyName: 'qrShowNote' },
-        { toggleId: 'lightningToggle', propertyName: 'lightning' }
-      ];
-
-      const toggleStates: { [key: string]: boolean } = {};
-      toggleMapping.forEach(({ toggleId, propertyName }) => {
-        const toggle = document.getElementById(toggleId) as HTMLInputElement;
-        if (toggle) {
-          toggleStates[propertyName] = toggle.checked;
-        }
-      });
-
-      // Get selected currency
-      const currencySelector = document.getElementById(
-        'currencySelector'
-      ) as HTMLSelectElement;
-      const selectedCurrency = currencySelector
-        ? currencySelector.value
-        : 'USD';
-
-      const styles = {
-        textColor: textColorElement.value,
-        bgColor: bgColorElement.value,
-        textOpacity: parseFloat(textOpacitySlider.value),
-        opacity: parseFloat(opacitySlider.value),
-        partnerLogo: currentPartnerLogo,
-        bgImage: currentBackgroundImage,
-        selectedCurrency,
-        ...toggleStates
-      };
-
-      // Console log what's being saved to localStorage
-      console.log('Saving to localStorage:', {
-        textColor: styles.textColor,
-        bgColor: styles.bgColor,
-        qrInvert: toggleStates.qrInvert,
-        qrScreenBlend: toggleStates.qrScreenBlend,
-        qrMultiplyBlend: toggleStates.qrMultiplyBlend,
-        qrShowWebLink: toggleStates.qrShowWebLink,
-        qrShowNevent: toggleStates.qrShowNevent,
-        qrShowNote: toggleStates.qrShowNote
-      });
-
-      appLocalStorage.setStyleOptions(styles);
-    }
-  };
-
-  const applyAllStyles = () => {
-    // Debug log removed
-
-    const textColorElement = document.getElementById(
-      'textColorValue'
-    ) as HTMLInputElement;
-    const bgColorElement = document.getElementById(
-      'bgColorValue'
-    ) as HTMLInputElement;
-    const opacitySlider = document.getElementById(
-      'opacitySlider'
-    ) as HTMLInputElement;
-    const textOpacitySlider = document.getElementById(
-      'textOpacitySlider'
-    ) as HTMLInputElement;
-
-    // Debug log removed
-
-    if (
-      !textColorElement ||
-      !bgColorElement ||
-      !opacitySlider ||
-      !textOpacitySlider
-    ) {
-      return;
-    }
-
-    const textColor = textColorElement.value;
-    const bgColor = bgColorElement.value;
-    const opacity = parseFloat(opacitySlider.value);
-    const textOpacity = parseFloat(textOpacitySlider.value);
-
-    // Debug log removed
-    // Debug log removed
-    // Debug log removed
-
-    const mainLayout = document.querySelector('.main-layout') as HTMLElement;
-
-    if (mainLayout) {
-      // Apply text color with opacity
-      const rgbaTextColor = hexToRgba(textColor, textOpacity);
-      mainLayout.style.setProperty('--text-color', rgbaTextColor);
-
-      // Apply color to specific elements that need hardcoded color overrides
-      const hardcodedElements = mainLayout.querySelectorAll(`
-        .zaps-header-left h2,
-        .total-label,
-        .total-sats,
-        .total-amount,
-        .zapperName,
-        .zapperMessage,
-        .zapperAmount,
-        .zapperAmountSats,
-        .zapperAmountLabel,
-        .authorName,
-        .noteContent,
-        .qr-slide-title,
-        .qr-slide-label,
-        .zap-author-name,
-        .zap-message,
-        .zap-amount,
-        .zap-amount-sats,
-        .zap-amount-label,
-        .zapperProfile .zapperName,
-        .zapperProfile .zapperMessage,
-        .zapperProfile .zapperAmount,
-        .zapperProfile .zapperAmountSats,
-        .zapperProfile .zapperAmountLabel
-      `);
-
-      hardcodedElements.forEach(element => {
-        (element as HTMLElement).style.color = rgbaTextColor;
-      });
-
-      // Apply to additional text elements that might be missed
-      const additionalTextElements = mainLayout.querySelectorAll(`
-        .zap .zapperName,
-        .zap .zapperMessage,
-        .zap .zapperAmount,
-        .zap .zapperAmountSats,
-        .zap .zapperAmountLabel,
-        .zapperProfile .zapperName,
-        .zapperProfile .zapperMessage,
-        .zapperProfile .zapperAmount,
-        .zapperProfile .zapperAmountSats,
-        .zapperProfile .zapperAmountLabel
-      `);
-
-      additionalTextElements.forEach(element => {
-        (element as HTMLElement).style.color = rgbaTextColor;
-      });
-
-      // Apply background color with opacity
-      const rgbaColor = hexToRgba(bgColor, opacity);
-      mainLayout.style.backgroundColor = rgbaColor;
-
-      // Update preset preview container background to match selected background color
-      const presetPreviewContainers = document.querySelectorAll(
-        '.preset-preview-container'
-      );
-      presetPreviewContainers.forEach(container => {
-        (container as HTMLElement).style.backgroundColor = rgbaColor;
-      });
-
-      // Apply background image
-      const bgImageUrl = document.getElementById(
-        'bgImageUrl'
-      ) as HTMLInputElement;
-      // Debug log removed
-      if (bgImageUrl && bgImageUrl.value) {
-        // Debug log removed
-        updateBackgroundImage(bgImageUrl.value);
-      } else {
-        // Debug log removed
-        updateBackgroundImage('');
-      }
-
-      // Apply partner logo
-      const partnerLogoSelect = document.getElementById(
-        'partnerLogoSelect'
-      ) as HTMLSelectElement;
-      const partnerLogoImg = document.getElementById(
-        'partnerLogo'
-      ) as HTMLImageElement;
-      const partnerLogoUrl = document.getElementById(
-        'partnerLogoUrl'
-      ) as HTMLInputElement;
-      const partnerLogoPreview = document.getElementById(
-        'partnerLogoPreview'
-      ) as HTMLImageElement;
-
-      if (partnerLogoSelect && partnerLogoImg) {
-        let currentPartnerLogo = '';
-        if (partnerLogoSelect.value === 'custom' && partnerLogoUrl) {
-          currentPartnerLogo = partnerLogoUrl.value;
-        } else {
-          currentPartnerLogo = partnerLogoSelect.value;
-        }
-
-        if (currentPartnerLogo) {
-          partnerLogoImg.src = currentPartnerLogo;
-          partnerLogoImg.style.display = 'inline-block';
-
-          if (partnerLogoPreview) {
-            partnerLogoPreview.src = currentPartnerLogo;
-            partnerLogoPreview.alt = 'Partner logo preview';
-          }
-        } else {
-          partnerLogoImg.style.display = 'none';
-          partnerLogoImg.src = '';
-
-          if (partnerLogoPreview) {
-            partnerLogoPreview.src = '';
-            partnerLogoPreview.alt = 'No partner logo';
-          }
-        }
-      }
-    }
-
-    // Apply zap grid layout
-    const zapsList = document.getElementById('zaps');
-    if (zapsList) {
-      const isGridLayout = (
-        document.getElementById('zapGridToggle') as HTMLInputElement
-      )?.checked;
-      zapsList.classList.toggle('grid-layout', isGridLayout);
-      if (isGridLayout) {
-        organizeZapsHierarchically();
-      } else {
-        cleanupHierarchicalOrganization();
-      }
-    }
-
-    // Apply QR blend modes
-    updateBlendMode();
-  };
+  // applyAllStyles is now provided by useStyleManagement hook
 
   const applyColor = (property: string, color: string) => {
     const mainLayout = document.querySelector('.main-layout') as HTMLElement;
@@ -7014,461 +4804,18 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   };
 
-  const updateBackgroundImage = (url: string) => {
-    // Debug log removed
-    const liveZapOverlay = document.querySelector(
-      '.liveZapOverlay'
-    ) as HTMLElement;
-    if (liveZapOverlay) {
-      if (url) {
-        // Debug log removed
-        liveZapOverlay.style.backgroundImage = `url(${url})`;
-        liveZapOverlay.style.backgroundSize = 'cover';
-        liveZapOverlay.style.backgroundPosition = 'center';
-        liveZapOverlay.style.backgroundRepeat = 'no-repeat';
-        // Debug log removed
-      } else {
-        // Debug log removed
-        liveZapOverlay.style.backgroundImage = '';
-      }
-    } else {
-      // Debug log removed
-    }
-  };
+  // updateBackgroundImage is now provided by useStyleManagement hook
 
-  // Store updateBlendMode ref so Lightning hook can call it
-  const updateBlendMode = useCallback(() => {
-    const qrScreenBlendToggle = document.getElementById(
-      'qrScreenBlendToggle'
-    ) as HTMLInputElement;
-    const qrMultiplyBlendToggle = document.getElementById(
-      'qrMultiplyBlendToggle'
-    ) as HTMLInputElement;
+  // updateBlendMode is now provided by useStyleManagement hook (updateBlendModeFromHook)
 
-    if (qrScreenBlendToggle?.checked) {
-      qrMultiplyBlendToggle.checked = false;
-      document.body.classList.add('qr-blend-active');
-      document.body.classList.remove('qr-multiply-active');
-    } else if (qrMultiplyBlendToggle?.checked) {
-      qrScreenBlendToggle.checked = false;
-      document.body.classList.add('qr-blend-active');
-      document.body.classList.add('qr-multiply-active');
-    } else {
-      document.body.classList.remove('qr-blend-active');
-      document.body.classList.remove('qr-multiply-active');
-    }
+  // applyPreset is now provided by useStyleManagement hook
 
-    // Check if .qr-swiper exists and debug CSS application
-    const qrSwiper = document.querySelector('.qr-swiper');
-    if (qrSwiper) {
-      const computedStyle = window.getComputedStyle(qrSwiper);
-
-      // Also check the QR code elements inside
-      const qrCodes = qrSwiper.querySelectorAll('img, canvas');
-      qrCodes.forEach((qrCode, index) => {
-        const qrComputedStyle = window.getComputedStyle(qrCode);
-
-        // Blend mode is now handled by CSS classes on the body element
-      });
-    } else {
-    }
-
-    updateStyleURL();
-  }, []);
-  
-  // Update ref when updateBlendMode is defined
-  useEffect(() => {
-    updateBlendModeRef.current = updateBlendMode;
-  }, [updateBlendMode]);
-
-  const applyPreset = (preset: string) => {
-    const presets: { [key: string]: any } = {
-      lightMode: {
-        textColor: '#000000',
-        bgColor: '#ffffff',
-        bgImage: '',
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        opacity: 1.0,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      darkMode: {
-        textColor: '#ffffff',
-        bgColor: '#000000',
-        bgImage: '',
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        opacity: 1.0,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      pubpay: {
-        textColor: '#ffffff',
-        bgColor: '#ffffff',
-        bgImage: '/live/images/gradient_color.gif',
-        qrInvert: true,
-        qrScreenBlend: true,
-        qrMultiplyBlend: false,
-        qrShowWebLink: true,
-        qrShowNevent: true,
-        qrShowNote: true,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        opacity: 0,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      cosmic: {
-        textColor: '#ffffff',
-        bgColor: '#0a0a1a',
-        bgImage: '/live/images/bitcoin-space.gif',
-        qrInvert: false,
-        qrScreenBlend: true,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: true,
-        zapGrid: false,
-        opacity: 0.4,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      vibrant: {
-        textColor: '#ffd700',
-        bgColor: '#2d1b69',
-        bgImage: '/live/images/nostr-ostriches.gif',
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        opacity: 0.6,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      electric: {
-        textColor: '#00ffff',
-        bgColor: '#000033',
-        bgImage: '/live/images/send-zaps.gif',
-        qrInvert: false,
-        qrScreenBlend: true,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        opacity: 0.7,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      warm: {
-        textColor: '#ff8c42',
-        bgColor: '#2c1810',
-        bgImage: '/live/images/bitcoin-sunset.gif',
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        opacity: 0.8,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      adopting: {
-        textColor: '#eedb5f',
-        bgColor: '#05051f',
-        bgImage: '/live/images/adopting.webp',
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        opacity: 0.7,
-        textOpacity: 1.0,
-        partnerLogo: 'https://adoptingbitcoin.org/images/AB-logo.svg'
-      },
-      bitcoinConf: {
-        textColor: '#ffffff',
-        bgColor: '#000000',
-        bgImage: '/live/images/sky.jpg',
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        opacity: 0.7,
-        textOpacity: 1.0,
-        partnerLogo:
-          'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg'
-      }
-    };
-
-    const presetData = presets[preset];
-    if (presetData) {
-      const textColorPicker = document.getElementById(
-        'textColorPicker'
-      ) as HTMLInputElement;
-      const bgColorPicker = document.getElementById(
-        'bgColorPicker'
-      ) as HTMLInputElement;
-      const textColorValue = document.getElementById(
-        'textColorValue'
-      ) as HTMLInputElement;
-      const bgColorValue = document.getElementById(
-        'bgColorValue'
-      ) as HTMLInputElement;
-      const textOpacitySlider = document.getElementById(
-        'textOpacitySlider'
-      ) as HTMLInputElement;
-      const opacitySlider = document.getElementById(
-        'opacitySlider'
-      ) as HTMLInputElement;
-      const textOpacityValue = document.getElementById('textOpacityValue');
-      const opacityValue = document.getElementById('opacityValue');
-
-      if (textColorPicker) textColorPicker.value = presetData.textColor;
-      if (textColorValue) textColorValue.value = presetData.textColor;
-      if (bgColorPicker) bgColorPicker.value = presetData.bgColor;
-      if (bgColorValue) bgColorValue.value = presetData.bgColor;
-      if (textOpacitySlider)
-        textOpacitySlider.value = presetData.textOpacity.toString();
-      if (opacitySlider) opacitySlider.value = presetData.opacity.toString();
-      if (textOpacityValue)
-        textOpacityValue.textContent = `${Math.round(presetData.textOpacity * 100)}%`;
-      if (opacityValue)
-        opacityValue.textContent = `${Math.round(presetData.opacity * 100)}%`;
-
-      // Update background image
-      const bgImageUrl = document.getElementById(
-        'bgImageUrl'
-      ) as HTMLInputElement;
-      const bgImagePreset = document.getElementById(
-        'bgImagePreset'
-      ) as HTMLSelectElement;
-      const bgPresetPreview = document.getElementById(
-        'bgPresetPreview'
-      ) as HTMLImageElement;
-      const customUrlGroup = document.getElementById('customUrlGroup');
-
-      if (bgImageUrl) bgImageUrl.value = presetData.bgImage;
-      if (bgImagePreset) {
-        if (presetData.bgImage === '') {
-          bgImagePreset.value = '';
-        } else {
-          const matchingOption = Array.from(bgImagePreset.options).find(
-            option => option.value === presetData.bgImage
-          );
-          if (matchingOption) {
-            bgImagePreset.value = presetData.bgImage;
-          } else {
-            bgImagePreset.value = 'custom';
-          }
-        }
-      }
-
-      // Update background preview image
-      if (bgPresetPreview) {
-        bgPresetPreview.src = presetData.bgImage;
-        bgPresetPreview.alt = presetData.bgImage
-          ? 'Background preview'
-          : 'No background';
-        bgPresetPreview.style.display = presetData.bgImage ? 'block' : 'none';
-      }
-
-      // Show/hide custom URL group based on preset selection
-      if (customUrlGroup) {
-        customUrlGroup.style.display =
-          bgImagePreset?.value === 'custom' ? 'block' : 'none';
-      }
-
-      // Update toggles - process zapGridToggle before podiumToggle to ensure correct state
-      const toggleIds = [
-        'qrInvertToggle',
-        'qrScreenBlendToggle',
-        'qrMultiplyBlendToggle',
-        'qrShowWebLinkToggle',
-        'qrShowNeventToggle',
-        'qrShowNoteToggle',
-        'layoutInvertToggle',
-        'hideZapperContentToggle',
-        'showTopZappersToggle',
-        'zapGridToggle',
-        'podiumToggle',
-        'sectionLabelsToggle',
-        'qrOnlyToggle',
-        'lightningToggle'
-      ];
-
-      // Set flag to prevent Lightning calls during preset application
-      isApplyingPreset = true;
-
-      toggleIds.forEach(toggleId => {
-        const toggle = document.getElementById(toggleId) as HTMLInputElement;
-        if (toggle) {
-          const propertyName = toggleId.replace('Toggle', '');
-          // If preset defines this property, use its value; otherwise, set to false (untoggle)
-          const value =
-            presetData[propertyName] !== undefined
-              ? presetData[propertyName]
-              : false;
-          toggle.checked = value;
-          // Debug log removed
-
-          // Trigger the toggle callback to apply visual effects
-          const event = new Event('change', { bubbles: true });
-          toggle.dispatchEvent(event);
-        }
-      });
-
-      // Clear flag after preset application
-      isApplyingPreset = false;
-
-      // Apply all styles to trigger visual effects
-      applyAllStyles();
-
-      // Update QR slide visibility after toggles are set
-      setTimeout(() => {
-        if (typeof updateQRSlideVisibility === 'function') {
-          // Debug log removed
-          updateQRSlideVisibility();
-        }
-      }, 100); // Small delay to ensure toggles are properly set
-
-      applyColor('color', presetData.textColor);
-      applyColor('backgroundColor', presetData.bgColor);
-
-      // Apply partner logo if present
-      if (presetData.partnerLogo !== undefined) {
-        const partnerLogoSelect = document.getElementById(
-          'partnerLogoSelect'
-        ) as HTMLSelectElement;
-        const partnerLogoUrl = document.getElementById(
-          'partnerLogoUrl'
-        ) as HTMLInputElement;
-        const customPartnerLogoGroup = document.getElementById(
-          'customPartnerLogoGroup'
-        );
-
-        if (partnerLogoSelect) {
-          if (presetData.partnerLogo) {
-            // Check if it's a predefined option
-            const matchingOption = Array.from(partnerLogoSelect.options).find(
-              option => option.value === presetData.partnerLogo
-            );
-            if (matchingOption) {
-              partnerLogoSelect.value = presetData.partnerLogo;
-              if (customPartnerLogoGroup)
-                customPartnerLogoGroup.style.display = 'none';
-            } else {
-              // It's a custom URL
-              partnerLogoSelect.value = 'custom';
-              if (customPartnerLogoGroup)
-                customPartnerLogoGroup.style.display = 'block';
-              if (partnerLogoUrl) partnerLogoUrl.value = presetData.partnerLogo;
-            }
-          } else {
-            // No logo
-            partnerLogoSelect.value = '';
-            if (customPartnerLogoGroup)
-              customPartnerLogoGroup.style.display = 'none';
-            if (partnerLogoUrl) partnerLogoUrl.value = '';
-          }
-        }
-      }
-
-      // Apply the styles
-      applyAllStyles();
-
-      // Update active preset button
-      document
-        .querySelectorAll('.preset-btn')
-        .forEach(btn => btn.classList.remove('active'));
-      const activeBtn = document.querySelector(`[data-preset="${preset}"]`);
-      if (activeBtn) activeBtn.classList.add('active');
-
-      // Save preset to localStorage
-      const styles = {
-        textColor: presetData.textColor,
-        bgColor: presetData.bgColor,
-        bgImage: presetData.bgImage,
-        qrInvert: presetData.qrInvert,
-        qrScreenBlend: presetData.qrScreenBlend,
-        qrMultiplyBlend: presetData.qrMultiplyBlend,
-        qrShowWebLink: presetData.qrShowWebLink,
-        qrShowNevent: presetData.qrShowNevent,
-        qrShowNote: presetData.qrShowNote,
-        layoutInvert: presetData.layoutInvert,
-        hideZapperContent: presetData.hideZapperContent,
-        showTopZappers: presetData.showTopZappers,
-        podium: presetData.podium,
-        zapGrid: presetData.zapGrid,
-        textOpacity: presetData.textOpacity,
-        opacity: presetData.opacity,
-        partnerLogo: presetData.partnerLogo || ''
-      };
-      appLocalStorage.setStyleOptions(styles);
-      // Debug log removed
-    }
-  };
+  // QR slide visibility functionality with complex swiper management
 
   // QR slide visibility functionality with complex swiper management
   let qrVisibilityUpdateTimeout: NodeJS.Timeout | null = null;
 
-  const updateQRSlideVisibility = (skipURLUpdate = false) => {
+  const updateQRSlideVisibility = useCallback((skipURLUpdate = false) => {
     // Clear any existing timeout to debounce rapid calls
     if (qrVisibilityUpdateTimeout) {
       clearTimeout(qrVisibilityUpdateTimeout);
@@ -7484,7 +4831,12 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // For initialization calls (skipURLUpdate = true), execute immediately
     updateQRSlideVisibilityImmediate(skipURLUpdate);
-  };
+  }, []);
+
+  // Update ref when updateQRSlideVisibility is defined
+  useEffect(() => {
+    updateQRSlideVisibilityRef.current = updateQRSlideVisibility;
+  }, [updateQRSlideVisibility]);
 
   const updateQRSlideVisibilityImmediate = (skipURLUpdate = false) => {
     // Debug log removed
@@ -7613,14 +4965,14 @@ export const useLiveFunctionality = (eventId?: string) => {
               inserted = true;
               break;
             }
-          }
-          
+  }
+    
           // If no slide found after, append to end
           if (!inserted) {
             swiperWrapper.appendChild(slide);
           }
-        }
-        slide.style.display = 'block';
+}
+  slide.style.display = 'block';
         console.log(`✅ ${name} slide visible`);
       } else {
         // Move to hidden container
@@ -7628,7 +4980,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           hiddenSlidesContainer.appendChild(slide);
           console.log(`👁️ ${name} slide hidden`);
         }
-      }
+}
     });
 
     // Count visible slides (those in the swiper wrapper)
@@ -7670,7 +5022,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             ) {
               (window as any).qrSwiper.autoplay.stop();
             }
-            // Progress tracking is now handled by useQRCode hook
+// Progress tracking is now handled by useQRCode hook
           } else if (visibleSlides.length > 1) {
             (window as any).qrSwiper.allowTouchMove = true;
             // Update autoplay delay to 10 seconds
@@ -7679,15 +5031,15 @@ export const useLiveFunctionality = (eventId?: string) => {
               if ((window as any).qrSwiper.autoplay.start) {
                 (window as any).qrSwiper.autoplay.start();
               }
-            }
-            // Progress tracking is handled by swiper event handlers
+}
+// Progress tracking is handled by swiper event handlers
           }
-        } catch (error) {
+} catch (error) {
           // Debug log removed
           // If update fails, reinitialize swiper
           initializeQRSwiper();
         }
-      } else {
+} else {
         // Initialize swiper if it doesn't exist
         initializeQRSwiper();
       }
