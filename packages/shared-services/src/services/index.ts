@@ -5,6 +5,8 @@ export * from './api';
 export * from './storage';
 export * from './zap';
 export * from './nip05';
+export * from './bitcoin';
+export * from './live';
 export { ErrorService, ErrorLevel } from './ErrorService';
 export { BlossomService } from './BlossomService';
 

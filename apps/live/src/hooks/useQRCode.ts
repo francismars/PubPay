@@ -14,6 +14,9 @@ export function useQRCode() {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pausedProgressRef = useRef<number>(0);
 
+  // Ref to store initializeQRSwiper function (defined later)
+  const initializeQRSwiperRef = useRef<(() => void) | null>(null);
+
   /**
    * Generate QR code in an element
    */
@@ -141,24 +144,76 @@ export function useQRCode() {
 
       // Update previews
       updateQRPreviews(njumpUrl, nostrNaddr, naddrId);
+
+      // Initialize QR swiper after QR codes are generated
+      setTimeout(() => {
+        if (initializeQRSwiperRef.current) {
+          initializeQRSwiperRef.current();
+        }
+      }, 200);
     } catch (error) {
       console.error('Error generating live event QR codes:', error);
     }
   }, [generateQRCode, updateQRLinks, updateQRPreviews]);
 
   /**
-   * Initialize QR code placeholders
+   * Initialize QR code placeholders or generate QR codes from eventId
    */
-  const initializeQRCodePlaceholders = useCallback(async () => {
-    // Generate placeholder QR codes
-    const placeholderNoteId = 'placeholder-note-id';
-    const neventId =
-      nip19.neventEncode({ id: placeholderNoteId, relays: [] }) ||
-      'placeholder-nevent';
-    const note1Id = nip19.noteEncode(placeholderNoteId) || 'placeholder-note';
-    const njumpUrl = `https://njump.me/${note1Id}`;
-    const nostrNevent = `nostr:${neventId}`;
-    const nostrNote = `nostr:${note1Id}`;
+  const initializeQRCodePlaceholders = useCallback(async (eventId?: string) => {
+    let njumpUrl = '';
+    let nostrNevent = '';
+    let nostrNote = '';
+
+    // If eventId is provided, parse it and generate QR codes from it
+    if (eventId && eventId.trim() !== '' && eventId.trim() !== 'live') {
+      try {
+        const { parseEventId, getContentType, stripNostrPrefix } = await import('../utils/eventIdParser');
+        const cleanId = stripNostrPrefix(eventId);
+        const decoded = parseEventId(cleanId);
+        const contentType = getContentType(cleanId);
+
+        if (contentType === 'live' && decoded.type === 'naddr') {
+          // For live events (naddr1), use the naddr directly
+          const naddrId = cleanId;
+          njumpUrl = `https://njump.me/${naddrId}`;
+          nostrNevent = `nostr:${naddrId}`;
+          nostrNote = `nostr:${naddrId}`;
+        } else if (decoded.type === 'nevent') {
+          // For nevent1, use it directly and also generate note1
+          const neventId = cleanId;
+          const noteId = decoded.data.id;
+          const note1Id = nip19.noteEncode(noteId);
+          njumpUrl = `https://njump.me/${neventId}`;
+          nostrNevent = `nostr:${neventId}`;
+          nostrNote = `nostr:${note1Id}`;
+        } else if (decoded.type === 'note') {
+          // For note1, use it directly and also generate nevent1
+          const note1Id = cleanId;
+          const noteId = decoded.data as string; // note type has data as string (the hex event ID)
+          const neventId = nip19.neventEncode({ id: noteId, relays: [] });
+          njumpUrl = `https://njump.me/${note1Id}`;
+          nostrNevent = `nostr:${neventId}`;
+          nostrNote = `nostr:${note1Id}`;
+        } else {
+          // Fallback to placeholder
+          throw new Error('Unsupported event type');
+        }
+      } catch (error) {
+        console.warn('Failed to parse eventId, using placeholders:', error);
+        // Fall through to placeholder generation
+      }
+    }
+
+    // If no eventId or parsing failed, use safe placeholder values
+    if (!njumpUrl) {
+      // Use a valid 64-character hex string for placeholder (all zeros)
+      const placeholderNoteId = '0'.repeat(64);
+      const note1Id = nip19.noteEncode(placeholderNoteId);
+      const neventId = nip19.neventEncode({ id: placeholderNoteId, relays: [] });
+      njumpUrl = `https://njump.me/${note1Id}`;
+      nostrNevent = `nostr:${neventId}`;
+      nostrNote = `nostr:${note1Id}`;
+    }
 
     const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
 
@@ -202,6 +257,27 @@ export function useQRCode() {
         }
       }
     });
+
+    // Ensure at least one QR toggle is enabled
+    const qrShowNeventToggle = document.getElementById('qrShowNeventToggle') as HTMLInputElement;
+    if (qrShowNeventToggle && !qrShowNeventToggle.checked) {
+      // Check if any QR toggle is enabled
+      const qrShowWebLinkToggle = document.getElementById('qrShowWebLinkToggle') as HTMLInputElement;
+      const qrShowNoteToggle = document.getElementById('qrShowNoteToggle') as HTMLInputElement;
+      const hasAnyEnabled = (qrShowWebLinkToggle?.checked) || (qrShowNoteToggle?.checked);
+
+      // If none are enabled, enable nevent by default
+      if (!hasAnyEnabled) {
+        qrShowNeventToggle.checked = true;
+      }
+    }
+
+    // Initialize QR swiper after QR codes are generated
+    setTimeout(() => {
+      if (initializeQRSwiperRef.current) {
+        initializeQRSwiperRef.current();
+      }
+    }, 200);
   }, [generateQRCode]);
 
   /**
@@ -538,6 +614,9 @@ export function useQRCode() {
       }
     }
   }, [startProgressTracking, setupProgressBarEvents]);
+
+  // Store the function in ref so it can be called by functions defined earlier
+  initializeQRSwiperRef.current = initializeQRSwiper;
 
   return {
     generateQRCode,
