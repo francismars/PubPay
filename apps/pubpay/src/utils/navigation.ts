@@ -3,7 +3,7 @@ import { nip19 } from 'nostr-tools';
 /**
  * Detect if we're in single post mode by checking URL parameters and pathname
  * Extracted to utility to remove duplication across hooks
- * 
+ *
  * @returns Object with singlePostMode flag and singlePostEventId if in single post mode
  */
 export function detectSinglePostMode(): {
@@ -45,4 +45,3 @@ export function detectSinglePostMode(): {
     singlePostEventId
   };
 }
-

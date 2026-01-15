@@ -1,4 +1,11 @@
-import { nip04, nip19, utils, finalizeEvent, getPublicKey, SimplePool } from 'nostr-tools';
+import {
+  nip04,
+  nip19,
+  utils,
+  finalizeEvent,
+  getPublicKey,
+  SimplePool
+} from 'nostr-tools';
 
 type NwcUri = {
   walletPubkey: string;
@@ -39,15 +46,15 @@ export class NwcClient {
         kinds: [13194],
         authors: [this.uri.walletPubkey]
       } as any;
-      
+
       // Add timeout to get() call
-      const timeoutPromise = new Promise<null>((resolve) => {
+      const timeoutPromise = new Promise<null>(resolve => {
         setTimeout(() => resolve(null), 10000); // 10 second timeout
       });
-      
+
       const getPromise = (this.pool as any).get(this.uri.relays, filter);
       const evt = await Promise.race([getPromise, timeoutPromise]);
-      
+
       if (!evt) return null;
       const content: string = evt.content || '';
       const methods = content.trim() ? content.trim().split(/\s+/) : [];
@@ -217,9 +224,7 @@ export class NwcClient {
     }>(request);
   }
 
-  async lookupInvoice(
-    paymentHash: string
-  ): Promise<
+  async lookupInvoice(paymentHash: string): Promise<
     RpcResponse<{
       invoice: string;
       payment_hash: string;
@@ -277,10 +282,7 @@ export class NwcClient {
     };
 
     const skBytes = utils.hexToBytes(this.uri.clientSecretHex);
-    const requestEvent = finalizeEvent(
-      eventTemplate as any,
-      skBytes
-    );
+    const requestEvent = finalizeEvent(eventTemplate as any, skBytes);
 
     // Publish
     try {
@@ -291,7 +293,8 @@ export class NwcClient {
         result: null,
         error: {
           code: 'publish_failed',
-          message: error instanceof Error ? error.message : 'Failed to publish request'
+          message:
+            error instanceof Error ? error.message : 'Failed to publish request'
         }
       };
     }
@@ -384,7 +387,10 @@ export class NwcClient {
           result: null,
           error: {
             code: 'subscription_setup_failed',
-            message: error instanceof Error ? error.message : 'Failed to set up subscription'
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Failed to set up subscription'
           }
         });
       }
@@ -435,9 +441,7 @@ export class NwcClient {
       throw new Error('Invalid NWC connection string');
     }
 
-    const clientPubkey = getPublicKey(
-      utils.hexToBytes(clientSecretHex)
-    );
+    const clientPubkey = getPublicKey(utils.hexToBytes(clientSecretHex));
     return { walletPubkey, relays, clientSecretHex, clientPubkey };
   }
 }

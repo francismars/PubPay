@@ -35,20 +35,24 @@ Note: While `zap-min` and `zap-max` are commonly used to define payment amounts,
 Specifies the minimum payment amount in millisatoshis. Must be a positive integer string.
 
 **Behavior**:
+
 - If both `zap-min` and `zap-max` are present and equal, the payment is fixed at that amount
 - If `zap-min` < `zap-max`, payers can choose any amount within the range
 - If only `zap-min` is present, there is no maximum limit (though clients may enforce reasonable limits)
 - If only `zap-max` is present, the minimum is effectively 1
 
 **Validation**:
+
 - Must be a positive integer string
 - Recommended maximum: 21,000,000,000,000 millisatoshis (21M sats, the total Bitcoin supply)
 - Clients should validate the amount is within reasonable bounds
 
 **Example**:
+
 ```json
 ["zap-min", "1000000"]
 ```
+
 This sets a minimum of 1,000,000 millisatoshis (1,000 sats or 0.00001 BTC).
 
 #### `zap-max`
@@ -58,14 +62,17 @@ This sets a minimum of 1,000,000 millisatoshis (1,000 sats or 0.00001 BTC).
 Specifies the maximum payment amount in millisatoshis. Must be a positive integer string.
 
 **Behavior**:
+
 - Must be greater than or equal to `zap-min` if both are present
 - If both `zap-min` and `zap-max` are present and equal, the payment is fixed
 - If `zap-min` < `zap-max`, payers can choose any amount within the range
 
 **Example**:
+
 ```json
 ["zap-max", "5000000"]
 ```
+
 This sets a maximum of 5,000,000 millisatoshis (5,000 sats).
 
 #### `zap-goal`
@@ -75,15 +82,18 @@ This sets a maximum of 5,000,000 millisatoshis (5,000 sats).
 Specifies a fundraising goal amount in millisatoshis. When the cumulative total of all zaps reaches or exceeds this amount, the payment request is considered complete.
 
 **Behavior**:
+
 - Must be a positive integer string
 - Clients should track the cumulative total of all zaps (kind 9735 events) linked to the payment request
 - When the goal is reached, clients may mark the request as complete and optionally disable further payments
 - The goal is independent of `zap-uses`; either condition can mark the request as complete
 
 **Example**:
+
 ```json
 ["zap-goal", "100000000"]
 ```
+
 This sets a fundraising goal of 100,000,000 millisatoshis (100,000 sats or 0.001 BTC).
 
 #### `zap-uses`
@@ -93,6 +103,7 @@ This sets a fundraising goal of 100,000,000 millisatoshis (100,000 sats or 0.001
 Specifies the maximum number of times the payment request can be used. Once this limit is reached, the request is considered complete.
 
 **Behavior**:
+
 - Must be a positive integer string
 - Clients should count only zaps that meet the amount restrictions (`zap-min`/`zap-max`) and payer restrictions (`zap-payer`) if present
 - Zaps should be counted in chronological order (by `created_at` timestamp)
@@ -100,9 +111,11 @@ Specifies the maximum number of times the payment request can be used. Once this
 - The limit is independent of `zap-goal`; either condition can mark the request as complete
 
 **Example**:
+
 ```json
 ["zap-uses", "10"]
 ```
+
 This allows the payment request to be used up to 10 times.
 
 #### `zap-payer`
@@ -112,6 +125,7 @@ This allows the payment request to be used up to 10 times.
 Restricts payments to a specific payer identified by their public key in hexadecimal format.
 
 **Behavior**:
+
 - Must be a valid 64-character hexadecimal string representing a Nostr public key
 - Only zaps from the specified payer should be counted toward `zap-uses` and `zap-goal`
 - Clients should validate that the payer's public key in the zap receipt (kind 9735) matches this restriction
@@ -119,8 +133,12 @@ Restricts payments to a specific payer identified by their public key in hexadec
 - This enables use cases like authorized service payments or private transactions
 
 **Example**:
+
 ```json
-["zap-payer", "3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"]
+[
+  "zap-payer",
+  "3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"
+]
 ```
 
 #### `zap-lnurl`
@@ -130,12 +148,14 @@ Restricts payments to a specific payer identified by their public key in hexadec
 Overrides the default Lightning address for this payment request. The Lightning address should be in the format `user@domain.com`.
 
 **Behavior**:
+
 - Overrides the author's `lud16` field from their profile (kind 0)
 - Must be a valid Lightning address format
 - Clients should use this address when generating zap invoices instead of the author's profile address
 - This enables use cases where different payment requests should go to different Lightning addresses
 
 **Example**:
+
 ```json
 ["zap-lnurl", "merchant@lightningprovider.com"]
 ```
@@ -252,7 +272,10 @@ A payment request restricted to a specific authorized payer:
   "tags": [
     ["zap-min", "20000000"],
     ["zap-max", "20000000"],
-    ["zap-payer", "3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"]
+    [
+      "zap-payer",
+      "3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d"
+    ]
   ]
 }
 ```
@@ -333,4 +356,3 @@ This NIP enables various payment scenarios:
 ## Copyright
 
 This NIP is placed in the public domain.
-

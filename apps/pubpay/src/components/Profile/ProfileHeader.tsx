@@ -1,7 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DIMENSIONS } from '../../constants';
-import { trimWebsiteUrl, sanitizeUrl, sanitizeImageUrl } from '../../utils/profileUtils';
+import {
+  trimWebsiteUrl,
+  sanitizeUrl,
+  sanitizeImageUrl
+} from '../../utils/profileUtils';
 
 interface ProfileData {
   displayName: string;
@@ -42,9 +46,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   followBusy,
   children
 }) => {
-  const shouldShowSkeleton = 
-    isLoading || 
-    isInitialLoad || 
+  const shouldShowSkeleton =
+    isLoading ||
+    isInitialLoad ||
     !profileDataLoaded ||
     (loadStartTime !== null && Date.now() - loadStartTime < 300);
 
@@ -67,7 +71,10 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <div className="profileUserInfo">
         <div className="profileAvatar">
           {shouldShowSkeleton ? (
-            <div className="skeleton skeleton-avatar" style={{ width: '120px', height: '120px' }}></div>
+            <div
+              className="skeleton skeleton-avatar"
+              style={{ width: '120px', height: '120px' }}
+            ></div>
           ) : profileData.picture && sanitizeImageUrl(profileData.picture) ? (
             <img
               src={sanitizeImageUrl(profileData.picture)!}
@@ -105,16 +112,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           >
             <h2 style={{ margin: 0 }}>
               {shouldShowSkeleton ? (
-                <div className="skeleton skeleton-text" style={{ width: DIMENSIONS.BANNER_WIDTH, height: '28px' }}></div>
+                <div
+                  className="skeleton skeleton-text"
+                  style={{ width: DIMENSIONS.BANNER_WIDTH, height: '28px' }}
+                ></div>
               ) : (
                 profileData.displayName || displayName || 'Anonymous User'
               )}
             </h2>
             {isOwnProfile ? (
-              <button
-                className="profileEditButton"
-                onClick={onEditClick}
-              >
+              <button className="profileEditButton" onClick={onEditClick}>
                 Edit
               </button>
             ) : (
@@ -135,9 +142,18 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
           {shouldShowSkeleton ? (
             <>
-              <div className="skeleton skeleton-text short" style={{ height: '16px', marginBottom: '8px' }}></div>
-              <div className="skeleton skeleton-text" style={{ height: '14px', width: '100%', marginBottom: '4px' }}></div>
-              <div className="skeleton skeleton-text medium" style={{ height: '14px' }}></div>
+              <div
+                className="skeleton skeleton-text short"
+                style={{ height: '16px', marginBottom: '8px' }}
+              ></div>
+              <div
+                className="skeleton skeleton-text"
+                style={{ height: '14px', width: '100%', marginBottom: '4px' }}
+              ></div>
+              <div
+                className="skeleton skeleton-text medium"
+                style={{ height: '14px' }}
+              ></div>
             </>
           ) : (
             <>
@@ -160,5 +176,3 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     </div>
   );
 };
-
-

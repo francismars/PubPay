@@ -122,7 +122,9 @@ export class FollowService {
         privateKey = await AuthService.decryptStoredPrivateKey();
       } catch (error) {
         // If password is required, return false
-        alert('Your private key is password-protected. Please log in again and enter your password to follow users.');
+        alert(
+          'Your private key is password-protected. Please log in again and enter your password to follow users.'
+        );
         return false;
       }
     }
@@ -169,7 +171,7 @@ export class FollowService {
     };
 
     const { encryptedPrivateKey, method } = AuthService.getStoredAuthData();
-    
+
     // Decrypt private key if needed (device key mode - automatic)
     let privateKey: string | null = null;
     if (encryptedPrivateKey && method === 'nsec') {
@@ -178,11 +180,13 @@ export class FollowService {
         privateKey = await AuthService.decryptStoredPrivateKey();
       } catch (error) {
         // If password is required, return false
-        alert('Your private key is password-protected. Please log in again and enter your password to unfollow users.');
+        alert(
+          'Your private key is password-protected. Please log in again and enter your password to unfollow users.'
+        );
         return false;
       }
     }
-    
+
     let signed: any;
     if (method === 'extension') {
       if ((window as any).nostr)

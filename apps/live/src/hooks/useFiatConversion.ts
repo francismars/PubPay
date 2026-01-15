@@ -1,6 +1,6 @@
 /**
  * useFiatConversion Hook
- * 
+ *
  * Manages fiat currency conversion functionality using BitcoinPriceService.
  * Handles:
  * - Currency selection and state management
@@ -23,7 +23,7 @@ export interface UseFiatConversionReturn {
   // State
   selectedCurrency: string;
   setSelectedCurrency: (currency: string) => void;
-  
+
   // Conversion functions
   satsToFiat: (sats: number, currency?: string) => string;
   satsToFiatWithHistorical: (
@@ -31,20 +31,20 @@ export interface UseFiatConversionReturn {
     timestamp: number,
     currency?: string
   ) => Promise<string>;
-  
+
   // DOM update functions
   updateFiatAmounts: () => Promise<void>;
   debouncedUpdateFiatAmounts: () => void;
   hideFiatAmounts: () => void;
   restoreSatoshiAmounts: () => void;
-  
+
   // Utility functions
   addMissingTimestamps: () => void;
   setHistoricalPriceLoading: (
     loading: boolean,
     progress?: { current: number; total: number }
   ) => void;
-  
+
   // Service access
   bitcoinPriceService: BitcoinPriceService;
 }
@@ -383,7 +383,13 @@ export function useFiatConversion(
         priceUpdateIndicator.style.display = 'none';
       }
     }
-  }, [satsToFiat, satsToFiatWithHistorical, addMissingTimestamps, setHistoricalPriceLoading, bitcoinPriceService]);
+  }, [
+    satsToFiat,
+    satsToFiatWithHistorical,
+    addMissingTimestamps,
+    setHistoricalPriceLoading,
+    bitcoinPriceService
+  ]);
 
   // Debounced version of updateFiatAmounts to prevent rate limiting
   const debouncedUpdateFiatAmounts = useCallback(() => {

@@ -22,7 +22,9 @@ export const DEFAULT_WRITE_RELAYS = [
 ];
 
 // Legacy constant: union of all default relays (for backward compatibility)
-export const RELAYS = [...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])];
+export const RELAYS = [
+  ...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])
+];
 
 // Re-export DEFAULT_STYLES from shared-utils to avoid duplication
 export { DEFAULT_STYLES } from '@pubpay/shared-utils';

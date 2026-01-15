@@ -12,15 +12,39 @@ import DOMPurify from 'isomorphic-dompurify';
 export function sanitizeHTML(html: string): string {
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
-      'a', 'br', 'img', 'video', 'div', 'iframe',
-      'p', 'span', 'strong', 'em', 'u', 'b', 'i'
+      'a',
+      'br',
+      'img',
+      'video',
+      'div',
+      'iframe',
+      'p',
+      'span',
+      'strong',
+      'em',
+      'u',
+      'b',
+      'i'
     ],
     ALLOWED_ATTR: [
-      'href', 'target', 'rel', 'class', 'src', 'style',
-      'controls', 'frameborder', 'allowfullscreen', 'alt',
-      'data-pubkey', 'data-timestamp', 'data-amount', 'data-zap-id', 'data-chat-id'
+      'href',
+      'target',
+      'rel',
+      'class',
+      'src',
+      'style',
+      'controls',
+      'frameborder',
+      'allowfullscreen',
+      'alt',
+      'data-pubkey',
+      'data-timestamp',
+      'data-amount',
+      'data-zap-id',
+      'data-chat-id'
     ],
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^-a-z+.:]|$))/i,
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^-a-z+.:]|$))/i,
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false
   });
@@ -63,7 +87,10 @@ function sanitizeUrlInternal(
       try {
         const withProtocol = `https://${trimmed}`;
         const parsed = new URL(withProtocol);
-        if (parsed.protocol === 'https:' && allowedProtocols.includes('https:')) {
+        if (
+          parsed.protocol === 'https:' &&
+          allowedProtocols.includes('https:')
+        ) {
           return withProtocol;
         }
       } catch {
@@ -83,7 +110,9 @@ export function sanitizeUrl(url: string | null | undefined): string | null {
  * Sanitize image URL to prevent XSS attacks
  * Only allows http, https protocols (no data: or javascript:)
  */
-export function sanitizeImageUrl(url: string | null | undefined): string | null {
+export function sanitizeImageUrl(
+  url: string | null | undefined
+): string | null {
   return sanitizeUrlInternal(url, ['http:', 'https:']);
 }
 

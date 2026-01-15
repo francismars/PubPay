@@ -153,8 +153,10 @@ export function toggleElementVisibility(
   if (force !== undefined) {
     showElement(element, force ? 'block' : 'none');
   } else {
-    const isHidden = element.style.display === 'none' || 
-                     !element.style.display && window.getComputedStyle(element).display === 'none';
+    const isHidden =
+      element.style.display === 'none' ||
+      (!element.style.display &&
+        window.getComputedStyle(element).display === 'none');
     showElement(element, isHidden ? 'block' : 'none');
   }
 }
@@ -164,10 +166,7 @@ export function toggleElementVisibility(
  * @param element - Element to modify
  * @param className - Class name to add
  */
-export function addClass(
-  element: HTMLElement | null,
-  className: string
-): void {
+export function addClass(element: HTMLElement | null, className: string): void {
   if (element) {
     element.classList.add(className);
   }
@@ -222,10 +221,7 @@ export function setTextContent(
  * @param element - Element to modify
  * @param html - HTML content to set
  */
-export function setInnerHTML(
-  element: HTMLElement | null,
-  html: string
-): void {
+export function setInnerHTML(element: HTMLElement | null, html: string): void {
   if (element) {
     element.innerHTML = html;
   }
@@ -335,7 +331,9 @@ export function hideLoadingState(
 
   removeClass(element, 'loading');
 
-  const loadingElement = element.querySelector(`.${loadingClassName}`) as HTMLElement | null;
+  const loadingElement = element.querySelector(
+    `.${loadingClassName}`
+  ) as HTMLElement | null;
   if (loadingElement) {
     removeElement(loadingElement);
   }
@@ -346,10 +344,7 @@ export function hideLoadingState(
  * @param errorElementId - ID of the error element
  * @param message - Error message to display
  */
-export function showError(
-  errorElementId: string,
-  message: string
-): void {
+export function showError(errorElementId: string, message: string): void {
   const errorElement = getElementById(errorElementId);
   if (errorElement) {
     setTextContent(errorElement, message);
@@ -376,7 +371,11 @@ export function hideError(errorElementId: string): void {
 export function isElementVisible(element: HTMLElement | null): boolean {
   if (!element) return false;
   const style = window.getComputedStyle(element);
-  return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+  return (
+    style.display !== 'none' &&
+    style.visibility !== 'hidden' &&
+    style.opacity !== '0'
+  );
 }
 
 /**

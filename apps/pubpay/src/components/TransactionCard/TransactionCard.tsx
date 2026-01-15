@@ -27,15 +27,18 @@ interface TransactionCardProps {
   type: 'incoming' | 'outgoing';
   created_at?: number;
   paid_at?: number;
-  
+
   // Wallet transaction specific
   transaction?: Invoice;
   isInvoiceExpired?: (invoice: Invoice) => boolean;
   isInvoicePaid?: (invoice: Invoice) => boolean;
-  
+
   // Public zap specific
   zap?: PublicZap;
-  getProfileData?: (profile: Kind0Event | null) => { name: string; picture: string };
+  getProfileData?: (profile: Kind0Event | null) => {
+    name: string;
+    picture: string;
+  };
 }
 
 export const TransactionCard: React.FC<TransactionCardProps> = ({
@@ -59,13 +62,15 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
   const content = isWalletTransaction
     ? transaction.metadata?.zap_request?.content
     : zap?.content;
-  
+
   const description = isWalletTransaction ? transaction.description : undefined;
 
   // Get note ID for navigation
   const getNoteId = (): string | null => {
     if (isWalletTransaction) {
-      const eTag = transaction.metadata?.zap_request?.tags?.find((t: string[]) => t[0] === 'e');
+      const eTag = transaction.metadata?.zap_request?.tags?.find(
+        (t: string[]) => t[0] === 'e'
+      );
       return eTag?.[1] || null;
     }
     return zap?.eventId || null;
@@ -75,10 +80,15 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
 
   // Get status for wallet transactions
   const getTransactionStatus = () => {
-    if (!isWalletTransaction || !isInvoiceExpired || !isInvoicePaid) return null;
-    
-    const isSettled = paid_at !== undefined || transaction.state === 'settled' || isInvoicePaid(transaction);
-    const isExpired = transaction.state === 'expired' || isInvoiceExpired(transaction);
+    if (!isWalletTransaction || !isInvoiceExpired || !isInvoicePaid)
+      return null;
+
+    const isSettled =
+      paid_at !== undefined ||
+      transaction.state === 'settled' ||
+      isInvoicePaid(transaction);
+    const isExpired =
+      transaction.state === 'expired' || isInvoiceExpired(transaction);
     const isFailed = transaction.state === 'failed';
     const isPending = !isSettled && !isExpired && !isFailed;
 
@@ -108,7 +118,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
   // Get profile data for public zaps
   const getProfileInfo = () => {
     if (!isPublicZap || !getProfileData) return null;
-    
+
     if (type === 'outgoing') {
       const recipientData = getProfileData(zap.recipientProfile);
       return { ...recipientData, label: 'To:' };
@@ -150,7 +160,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
             {formatTimestamp(paid_at || created_at)}
           </div>
         )}
-        
+
         {/* Badges */}
         <div
           style={{
@@ -161,7 +171,8 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
           }}
         >
           {/* Public/View badge */}
-          {(isWalletTransaction && transaction.metadata?.zap_request) || (isPublicZap && noteId) ? (
+          {(isWalletTransaction && transaction.metadata?.zap_request) ||
+          (isPublicZap && noteId) ? (
             <span
               onClick={handleNoteClick}
               style={{
@@ -174,12 +185,12 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
                 cursor: noteId ? 'pointer' : 'default',
                 transition: 'opacity 0.2s ease'
               }}
-              onMouseEnter={(e) => {
+              onMouseEnter={e => {
                 if (noteId) {
                   e.currentTarget.style.opacity = '0.8';
                 }
               }}
-              onMouseLeave={(e) => {
+              onMouseLeave={e => {
                 if (noteId) {
                   e.currentTarget.style.opacity = '1';
                 }
@@ -220,7 +231,7 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
           )}
         </div>
       </div>
-      
+
       <div
         style={{
           display: 'flex',
@@ -239,10 +250,10 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
             }}
           >
             {amount
-              ? `${isPublicZap ? (amount).toLocaleString() : (amount / LIGHTNING.MILLISATS_PER_SAT).toLocaleString()} sats`
+              ? `${isPublicZap ? amount.toLocaleString() : (amount / LIGHTNING.MILLISATS_PER_SAT).toLocaleString()} sats`
               : 'Amount not specified'}
           </div>
-          
+
           {/* Profile info for public zaps */}
           {profileInfo && (
             <div
@@ -298,17 +309,23 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
           )}
 
           {/* Fees (wallet transactions only) */}
-          {isWalletTransaction && transaction.fees_paid !== undefined && transaction.fees_paid > 0 && (
-            <div
-              style={{
-                fontSize: '11px',
-                color: 'var(--text-tertiary)',
-                marginTop: '4px'
-              }}
-            >
-              Fees: {(transaction.fees_paid / LIGHTNING.MILLISATS_PER_SAT).toLocaleString()} sats
-            </div>
-          )}
+          {isWalletTransaction &&
+            transaction.fees_paid !== undefined &&
+            transaction.fees_paid > 0 && (
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--text-tertiary)',
+                  marginTop: '4px'
+                }}
+              >
+                Fees:{' '}
+                {(
+                  transaction.fees_paid / LIGHTNING.MILLISATS_PER_SAT
+                ).toLocaleString()}{' '}
+                sats
+              </div>
+            )}
         </div>
 
         {/* Right side: status only */}

@@ -19,9 +19,11 @@ interface RegisterPageProps {
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const { authState, checkAuthStatus } = useOutletContext<{ 
-    authState: any; 
-    checkAuthStatus?: (password?: string) => Promise<{ requiresPassword: boolean }>;
+  const { authState, checkAuthStatus } = useOutletContext<{
+    authState: any;
+    checkAuthStatus?: (
+      password?: string
+    ) => Promise<{ requiresPassword: boolean }>;
   }>();
   const [formData, setFormData] = useState({
     displayName: '',
@@ -85,12 +87,12 @@ const RegisterPage: React.FC = () => {
         await checkAuthStatus(password);
       } else {
         // Fallback: Update Zustand store directly if checkAuthStatus not available
-      setAuth({
-        isLoggedIn: true,
-        publicKey: hexPublicKey,
-        displayName: formData.displayName || 'Anonymous',
-        signInMethod: 'nsec'
-      });
+        setAuth({
+          isLoggedIn: true,
+          publicKey: hexPublicKey,
+          displayName: formData.displayName || 'Anonymous',
+          signInMethod: 'nsec'
+        });
       }
 
       openToast('Successfully logged in with your new account!', 'success');
@@ -835,13 +837,19 @@ const RegisterPage: React.FC = () => {
                 <strong>⚠️ Publishing Failed</strong>
                 <p>{publishError}</p>
                 <p
-                  style={{ fontSize: FONT_SIZES.SM, color: COLORS.TEXT_LIGHT, marginTop: '10px' }}
+                  style={{
+                    fontSize: FONT_SIZES.SM,
+                    color: COLORS.TEXT_LIGHT,
+                    marginTop: '10px'
+                  }}
                 >
                   <strong>What this means:</strong> Your Nostr keys were
                   generated successfully, but some relays are blocking new
                   accounts. This is normal for new Nostr users.
                 </p>
-                <p style={{ fontSize: FONT_SIZES.SM, color: COLORS.TEXT_LIGHT }}>
+                <p
+                  style={{ fontSize: FONT_SIZES.SM, color: COLORS.TEXT_LIGHT }}
+                >
                   <strong>What you can do:</strong> Try again later, or use a
                   different Nostr client to publish your profile manually.
                 </p>
@@ -874,15 +882,17 @@ const RegisterPage: React.FC = () => {
                   />
                   <span>I've backed up my keys</span>
                 </label>
-                
+
                 <div style={{ marginTop: '16px', marginBottom: '16px' }}>
-                  <label style={{ 
-                    display: 'block', 
-                    marginBottom: '8px', 
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: 'var(--text-primary)'
-                  }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      marginBottom: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
                     Password (optional, for extra security)
                   </label>
                   <input
@@ -901,13 +911,16 @@ const RegisterPage: React.FC = () => {
                       boxSizing: 'border-box'
                     }}
                   />
-                  <p style={{
-                    fontSize: '12px',
-                    color: 'var(--text-secondary)',
-                    marginTop: '8px',
-                    marginBottom: '0'
-                  }}>
-                    Optional: Set a password to encrypt your private key with extra security. You'll need to enter it each session.
+                  <p
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)',
+                      marginTop: '8px',
+                      marginBottom: '0'
+                    }}
+                  >
+                    Optional: Set a password to encrypt your private key with
+                    extra security. You'll need to enter it each session.
                   </p>
                 </div>
 
@@ -972,7 +985,11 @@ const RegisterPage: React.FC = () => {
             </p>
 
             <p
-              style={{ margin: '0 0 16px 0', color: COLORS.TEXT_LIGHT, fontSize: FONT_SIZES.SM }}
+              style={{
+                margin: '0 0 16px 0',
+                color: COLORS.TEXT_LIGHT,
+                fontSize: FONT_SIZES.SM
+              }}
             >
               <code
                 style={{

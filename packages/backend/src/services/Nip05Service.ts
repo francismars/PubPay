@@ -32,9 +32,12 @@ export class Nip05Service {
   constructor() {
     this.logger = new Logger('Nip05Service');
     // Storage file in backend directory
-    this.storagePath = path.resolve(__dirname, '../../nip05-registrations.json');
+    this.storagePath = path.resolve(
+      __dirname,
+      '../../nip05-registrations.json'
+    );
     this.DOMAIN = process.env['NIP05_DOMAIN'] || 'yourdomain.com';
-    
+
     // Load existing registrations
     this.loadRegistrations().catch(err => {
       this.logger.error('Failed to load registrations:', err);
@@ -107,13 +110,15 @@ export class Nip05Service {
         throw new Error('Invalid npub format');
       }
     } catch (error) {
-      throw new Error(`Failed to decode npub: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to decode npub: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
 
     // Check rate limiting: max 5 registrations per pubkey (check by hex to avoid duplicates)
-    const existingRegistrations = Array.from(this.registrations.values()).filter(
-      r => (r.pubkeyHex || this.npubToHex(r.pubkey)) === pubkeyHex
-    );
+    const existingRegistrations = Array.from(
+      this.registrations.values()
+    ).filter(r => (r.pubkeyHex || this.npubToHex(r.pubkey)) === pubkeyHex);
     if (existingRegistrations.length >= 5) {
       throw new Error(
         'Maximum 5 NIP-05 names per public key. Please use an existing registration.'
@@ -130,7 +135,7 @@ export class Nip05Service {
       // Use provided suffix
       finalSuffix = suffix;
       fullName = `${userChoice}${finalSuffix}`;
-      
+
       // Check if name already exists
       if (this.nameExists(fullName)) {
         throw new Error('Name already exists. Please try again.');
@@ -144,9 +149,7 @@ export class Nip05Service {
         attempts++;
 
         if (attempts > maxAttempts) {
-          throw new Error(
-            'Unable to generate unique name. Please try again.'
-          );
+          throw new Error('Unable to generate unique name. Please try again.');
         }
       } while (this.nameExists(fullName));
     }
@@ -167,14 +170,16 @@ export class Nip05Service {
 
     // Store registration
     this.registrations.set(fullName, registration);
-    
+
     // Persist to file
     await this.saveRegistrations();
 
     // Update nostr.json file
     await this.updateNostrJson();
 
-    this.logger.info(`✅ Registered NIP-05: ${fullName}@${this.DOMAIN} for ${pubkey.substring(0, 16)}...`);
+    this.logger.info(
+      `✅ Registered NIP-05: ${fullName}@${this.DOMAIN} for ${pubkey.substring(0, 16)}...`
+    );
 
     return registration;
   }
@@ -198,7 +203,9 @@ export class Nip05Service {
   /**
    * Get registration by payment proof (checking_id)
    */
-  getRegistrationByPaymentProof(paymentProof: string): Nip05Registration | null {
+  getRegistrationByPaymentProof(
+    paymentProof: string
+  ): Nip05Registration | null {
     for (const reg of this.registrations.values()) {
       if (reg.paymentProof === paymentProof) {
         return reg;
@@ -238,7 +245,7 @@ export class Nip05Service {
    */
   private generateNostrJson(name?: string): Nip05Json {
     const names: Record<string, string> = {};
-    
+
     // Only include paid registrations
     for (const reg of this.registrations.values()) {
       if (reg.paid) {
@@ -269,24 +276,31 @@ export class Nip05Service {
     try {
       const json = this.generateNostrJson();
       const jsonString = JSON.stringify(json, null, 2);
-      
+
       // Note: In production, this should be written to the web server's .well-known directory
       // For now, we'll write it to a location that can be served
-      const nostrJsonPath = path.resolve(__dirname, '../../public/.well-known/nostr.json');
+      const nostrJsonPath = path.resolve(
+        __dirname,
+        '../../public/.well-known/nostr.json'
+      );
       const wellKnownDir = path.dirname(nostrJsonPath);
-      
+
       // Ensure directory exists (recursive creates all parent directories)
       await fs.mkdir(wellKnownDir, { recursive: true });
-      
+
       // Write file
       await fs.writeFile(nostrJsonPath, jsonString, 'utf-8');
-      
-      this.logger.info(`✅ Updated nostr.json with ${Object.keys(json.names).length} names`);
+
+      this.logger.info(
+        `✅ Updated nostr.json with ${Object.keys(json.names).length} names`
+      );
     } catch (error: any) {
       this.logger.error('Failed to update nostr.json:', error);
       // Don't throw - allow the service to continue even if file write fails
       // The route handler will generate it on-demand
-      console.warn('Warning: Could not write nostr.json file, but service will serve it on-demand');
+      console.warn(
+        'Warning: Could not write nostr.json file, but service will serve it on-demand'
+      );
     }
   }
 
@@ -305,33 +319,37 @@ export class Nip05Service {
     try {
       const data = await fs.readFile(this.storagePath, 'utf-8');
       const registrations = JSON.parse(data) as Nip05Registration[];
-      
+
       let migratedCount = 0;
-      
+
       // Convert date strings back to Date objects and migrate old registrations
       for (const reg of registrations) {
         reg.createdAt = new Date(reg.createdAt);
-        
+
         // Backward compatibility: if pubkeyHex is missing, generate it from npub
         if (!reg.pubkeyHex && reg.pubkey) {
           reg.pubkeyHex = this.npubToHex(reg.pubkey);
           migratedCount++;
         }
-        
+
         this.registrations.set(reg.fullName, reg);
       }
-      
+
       // If we migrated any registrations, save them back with the new format
       if (migratedCount > 0) {
-        this.logger.info(`Migrated ${migratedCount} registrations to include pubkeyHex`);
+        this.logger.info(
+          `Migrated ${migratedCount} registrations to include pubkeyHex`
+        );
         await this.saveRegistrations();
       }
-      
+
       this.logger.info(`Loaded ${registrations.length} NIP-05 registrations`);
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         // File doesn't exist yet - that's fine
-        this.logger.info('No existing registrations file found. Starting fresh.');
+        this.logger.info(
+          'No existing registrations file found. Starting fresh.'
+        );
       } else {
         this.logger.error('Failed to load registrations:', error);
       }
@@ -369,4 +387,3 @@ export class Nip05Service {
     return this.DOMAIN;
   }
 }
-

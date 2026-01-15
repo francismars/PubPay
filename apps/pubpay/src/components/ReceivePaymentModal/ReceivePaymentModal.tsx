@@ -8,7 +8,9 @@ interface ReceivePaymentModalProps {
   isVisible: boolean;
   onClose: () => void;
   receiveOption: 'public-address' | 'create-note' | 'create-invoice';
-  setReceiveOption: (option: 'public-address' | 'create-note' | 'create-invoice') => void;
+  setReceiveOption: (
+    option: 'public-address' | 'create-note' | 'create-invoice'
+  ) => void;
   userLightningAddress: string | null;
   isLoggedIn: boolean;
   nwcClient: any;
@@ -49,7 +51,12 @@ const GenericQR: React.FC<{ value: string }> = ({ value }) => {
   }, [value]);
 
   return (
-    <canvas ref={canvasRef} width="200" height="200" style={{ maxWidth: '100%', height: 'auto' }}></canvas>
+    <canvas
+      ref={canvasRef}
+      width="200"
+      height="200"
+      style={{ maxWidth: '100%', height: 'auto' }}
+    ></canvas>
   );
 };
 
@@ -77,12 +84,20 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
   const handleCopy = async (text: string, label: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      useUIStore.getState().openToast(`${label} copied to clipboard`, 'success', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      useUIStore
+        .getState()
+        .openToast(`${label} copied to clipboard`, 'success', false);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.SHORT
+      );
     } catch (err) {
       console.error('Failed to copy:', err);
       useUIStore.getState().openToast('Failed to copy', 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.SHORT
+      );
     }
   };
 
@@ -112,7 +127,7 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
     >
       <div
         className="overlayInner"
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
         style={{
           transform: 'none',
           animation: 'none',
@@ -150,8 +165,14 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
               padding: '10px 16px',
               borderRadius: '6px',
               border: 'none',
-              background: receiveOption === 'create-note' ? COLORS.PRIMARY : 'transparent',
-              color: receiveOption === 'create-note' ? COLORS.TEXT_WHITE : 'var(--text-secondary)',
+              background:
+                receiveOption === 'create-note'
+                  ? COLORS.PRIMARY
+                  : 'transparent',
+              color:
+                receiveOption === 'create-note'
+                  ? COLORS.TEXT_WHITE
+                  : 'var(--text-secondary)',
               fontSize: '14px',
               fontWeight: '500',
               cursor: generatingInvoice ? 'not-allowed' : 'pointer',
@@ -170,8 +191,14 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
               padding: '10px 16px',
               borderRadius: '6px',
               border: 'none',
-              background: receiveOption === 'public-address' ? COLORS.PRIMARY : 'transparent',
-              color: receiveOption === 'public-address' ? COLORS.TEXT_WHITE : 'var(--text-secondary)',
+              background:
+                receiveOption === 'public-address'
+                  ? COLORS.PRIMARY
+                  : 'transparent',
+              color:
+                receiveOption === 'public-address'
+                  ? COLORS.TEXT_WHITE
+                  : 'var(--text-secondary)',
               fontSize: '14px',
               fontWeight: '500',
               cursor: generatingInvoice ? 'not-allowed' : 'pointer',
@@ -190,8 +217,14 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
               padding: '10px 16px',
               borderRadius: '6px',
               border: 'none',
-              background: receiveOption === 'create-invoice' ? COLORS.PRIMARY : 'transparent',
-              color: receiveOption === 'create-invoice' ? COLORS.TEXT_WHITE : 'var(--text-secondary)',
+              background:
+                receiveOption === 'create-invoice'
+                  ? COLORS.PRIMARY
+                  : 'transparent',
+              color:
+                receiveOption === 'create-invoice'
+                  ? COLORS.TEXT_WHITE
+                  : 'var(--text-secondary)',
               fontSize: '14px',
               fontWeight: '500',
               cursor: generatingInvoice ? 'not-allowed' : 'pointer',
@@ -216,7 +249,14 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                   border: '1px solid var(--border-color)'
                 }}
               >
-                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px', marginTop: 0 }}>
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '16px',
+                    marginTop: 0
+                  }}
+                >
                   Please log in to view your public payments address
                 </p>
                 <button
@@ -248,8 +288,15 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                   border: '1px solid var(--border-color)'
                 }}
               >
-                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>
-                  No Lightning Address found in your profile. Please add one in your profile settings.
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: 'var(--text-secondary)',
+                    margin: 0
+                  }}
+                >
+                  No Lightning Address found in your profile. Please add one in
+                  your profile settings.
                 </p>
               </div>
             ) : (
@@ -284,12 +331,14 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                       cursor: 'text',
                       marginBottom: 0
                     }}
-                    onClick={(e) => {
+                    onClick={e => {
                       (e.target as HTMLInputElement).select();
                     }}
                   />
                   <button
-                    onClick={() => handleCopy(userLightningAddress, 'Lightning Address')}
+                    onClick={() =>
+                      handleCopy(userLightningAddress, 'Lightning Address')
+                    }
                     style={{
                       padding: '8px 12px',
                       background: 'var(--bg-secondary)',
@@ -332,7 +381,13 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                   border: '1px solid var(--border-color)'
                 }}
               >
-                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '16px'
+                  }}
+                >
                   Please log in to create a pay note
                 </p>
                 <button
@@ -364,7 +419,13 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                   border: '1px solid var(--border-color)'
                 }}
               >
-                <p style={{ fontSize: '14px', color: 'var(--text-primary)', marginBottom: '16px' }}>
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: 'var(--text-primary)',
+                    marginBottom: '16px'
+                  }}
+                >
                   Create a public payment request that others can pay
                 </p>
                 <button
@@ -400,8 +461,16 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                   border: '1px solid var(--border-color)'
                 }}
               >
-                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px', marginTop: 0 }}>
-                  To generate BOLT11 invoices, you need to connect a compatible wallet.
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '16px',
+                    marginTop: 0
+                  }}
+                >
+                  To generate BOLT11 invoices, you need to connect a compatible
+                  wallet.
                 </p>
                 <button
                   onClick={() => {
@@ -439,7 +508,7 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                   <input
                     type="number"
                     value={receiveAmount}
-                    onChange={(e) => setReceiveAmount(e.target.value)}
+                    onChange={e => setReceiveAmount(e.target.value)}
                     placeholder="Enter amount"
                     disabled={generatingInvoice}
                     style={{
@@ -469,7 +538,7 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                   </label>
                   <textarea
                     value={receiveDescription}
-                    onChange={(e) => setReceiveDescription(e.target.value)}
+                    onChange={e => setReceiveDescription(e.target.value)}
                     placeholder="Enter description"
                     disabled={generatingInvoice}
                     rows={3}
@@ -549,7 +618,7 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
                       wordBreak: 'break-all',
                       cursor: 'text'
                     }}
-                    onClick={(e) => {
+                    onClick={e => {
                       (e.target as HTMLInputElement).select();
                     }}
                   />
@@ -643,4 +712,3 @@ export const ReceivePaymentModal: React.FC<ReceivePaymentModalProps> = ({
     </div>
   );
 };
-

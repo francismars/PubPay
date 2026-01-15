@@ -48,7 +48,9 @@ export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
   onSuccess,
   onClose
 }) => {
-  const [step, setStep] = useState<'name' | 'payment' | 'processing' | 'success'>('name');
+  const [step, setStep] = useState<
+    'name' | 'payment' | 'processing' | 'success'
+  >('name');
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState('');
   const [serviceInfo, setServiceInfo] = useState<Nip05ServiceInfo | null>(null);
@@ -56,7 +58,9 @@ export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
   const [checkingId, setCheckingId] = useState<string | null>(null);
   const [isValidatingName, setIsValidatingName] = useState(false);
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
-  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'error'>('pending');
+  const [paymentStatus, setPaymentStatus] = useState<
+    'pending' | 'paid' | 'error'
+  >('pending');
 
   // Load service info on mount
   useEffect(() => {
@@ -219,7 +223,9 @@ export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
       } else {
         // Check if it's a limit error
         const errorMessage = data.error || 'Failed to register name';
-        const isLimitError = errorMessage.includes('Maximum 5') || errorMessage.includes('maximum');
+        const isLimitError =
+          errorMessage.includes('Maximum 5') ||
+          errorMessage.includes('maximum');
 
         setPaymentStatus('error');
         setNameError(errorMessage);
@@ -287,7 +293,13 @@ export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
 
         {step === 'name' && (
           <div>
-            <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: 'var(--text-primary)' }}>
+            <h3
+              style={{
+                margin: '0 0 16px 0',
+                fontSize: '18px',
+                color: 'var(--text-primary)'
+              }}
+            >
               Purchase Identifier (nip-05)
             </h3>
             <p
@@ -298,8 +310,10 @@ export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
                 lineHeight: '1.6'
               }}
             >
-              Get a verified identifier (nip-05) for {serviceInfo?.price || 1000} sats.
-              Your name will have a 4-digit suffix added (e.g., bob4829@{serviceInfo?.domain || 'domain.com'}).
+              Get a verified identifier (nip-05) for{' '}
+              {serviceInfo?.price || 1000} sats. Your name will have a 4-digit
+              suffix added (e.g., bob4829@{serviceInfo?.domain || 'domain.com'}
+              ).
             </p>
 
             <div className="formField">
@@ -324,13 +338,22 @@ export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
               )}
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'flex-end',
+                marginTop: '24px'
+              }}
+            >
               <button
                 className="cta"
                 onClick={createInvoice}
                 disabled={!name.trim() || isValidatingName || isCreatingInvoice}
               >
-                {isCreatingInvoice ? 'Creating Invoice...' : 'Continue to Payment'}
+                {isCreatingInvoice
+                  ? 'Creating Invoice...'
+                  : 'Continue to Payment'}
               </button>
             </div>
             <a
@@ -351,11 +374,21 @@ export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
 
         {step === 'payment' && invoice?.invoice && (
           <div>
-            <p className="label" style={{ marginBottom: '8px', fontSize: '16px' }}>
-              Pay {serviceInfo?.price || 1000} sats to complete your identifier registration.
+            <p
+              className="label"
+              style={{ marginBottom: '8px', fontSize: '16px' }}
+            >
+              Pay {serviceInfo?.price || 1000} sats to complete your identifier
+              registration.
             </p>
 
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                marginBottom: '16px'
+              }}
+            >
               <GenericQR id="nip05QR" data={invoice.invoice.payment_request} />
             </div>
 
@@ -388,7 +421,8 @@ export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
                   if (paymentRequest) {
                     try {
                       await navigator.clipboard.writeText(paymentRequest);
-                      const button = document.getElementById('nip05CopyInvoice');
+                      const button =
+                        document.getElementById('nip05CopyInvoice');
                       if (button) {
                         const originalText = button.textContent;
                         button.textContent = 'Copied!';
@@ -404,7 +438,8 @@ export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
                       textArea.select();
                       document.execCommand('copy');
                       document.body.removeChild(textArea);
-                      const button = document.getElementById('nip05CopyInvoice');
+                      const button =
+                        document.getElementById('nip05CopyInvoice');
                       if (button) {
                         const originalText = button.textContent;
                         button.textContent = 'Copied!';
@@ -435,12 +470,24 @@ export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
             </div>
 
             {paymentStatus === 'paid' && (
-              <div style={{ textAlign: 'center', marginTop: '20px', color: '#28a745' }}>
+              <div
+                style={{
+                  textAlign: 'center',
+                  marginTop: '20px',
+                  color: '#28a745'
+                }}
+              >
                 ✓ Payment received! Registering your name...
               </div>
             )}
             {paymentStatus === 'error' && (
-              <div style={{ textAlign: 'center', marginTop: '20px', color: COLORS.ERROR_ALT }}>
+              <div
+                style={{
+                  textAlign: 'center',
+                  marginTop: '20px',
+                  color: COLORS.ERROR_ALT
+                }}
+              >
                 {nameError || 'Payment verification failed. Please try again.'}
               </div>
             )}
@@ -471,4 +518,3 @@ export const Nip05PurchaseOverlay: React.FC<Nip05PurchaseOverlayProps> = ({
     </div>
   );
 };
-

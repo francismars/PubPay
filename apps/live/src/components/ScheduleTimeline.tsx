@@ -2064,11 +2064,15 @@ export const ScheduleTimeline: React.FC<ScheduleTimelineProps> = ({
                           {hasLives ? (
                             <>
                               <span style={{ fontSize: '12px' }}>🔴</span>
-                              <span>{livesCount} LIVE{livesCount !== 1 ? 'S' : ''}</span>
+                              <span>
+                                {livesCount} LIVE{livesCount !== 1 ? 'S' : ''}
+                              </span>
                             </>
                           ) : (
                             <>
-                              <span style={{ fontSize: '12px', opacity: 0.6 }}>⚪</span>
+                              <span style={{ fontSize: '12px', opacity: 0.6 }}>
+                                ⚪
+                              </span>
                               <span style={{ opacity: 0.8 }}>NO LIVES</span>
                             </>
                           )}

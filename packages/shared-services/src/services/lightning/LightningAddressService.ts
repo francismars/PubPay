@@ -51,7 +51,10 @@ export class LightningAddressService {
     // Check format: must have exactly one @
     const addressParts = trimmed.split('@');
     if (addressParts.length !== 2) {
-      return { valid: false, error: 'Invalid format. Must be: user@domain.com' };
+      return {
+        valid: false,
+        error: 'Invalid format. Must be: user@domain.com'
+      };
     }
 
     const [username, domain] = addressParts;
@@ -62,7 +65,10 @@ export class LightningAddressService {
     }
 
     if (username.length > 64) {
-      return { valid: false, error: 'Username is too long (max 64 characters)' };
+      return {
+        valid: false,
+        error: 'Username is too long (max 64 characters)'
+      };
     }
 
     // Validate domain
@@ -71,7 +77,8 @@ export class LightningAddressService {
     }
 
     // Basic domain format check
-    const domainRegex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}$/i;
+    const domainRegex =
+      /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}$/i;
     if (!domainRegex.test(domain)) {
       return { valid: false, error: 'Invalid domain format' };
     }
@@ -88,7 +95,7 @@ export class LightningAddressService {
   ): Promise<LNURLPayInfo> {
     const timeout = options.timeout || 10000;
     const parsed = this.parseAddress(address);
-    
+
     if (!parsed) {
       throw new Error('Invalid Lightning Address format');
     }
@@ -102,32 +109,42 @@ export class LightningAddressService {
       response = await fetch(discoveryUrl, {
         signal: controller.signal,
         headers: {
-          'Accept': 'application/json'
+          Accept: 'application/json'
         }
       });
       clearTimeout(timeoutId);
     } catch (fetchError) {
       clearTimeout(timeoutId);
       if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        throw new Error('Request timed out. The domain may be unreachable or slow to respond.');
+        throw new Error(
+          'Request timed out. The domain may be unreachable or slow to respond.'
+        );
       }
-      throw new Error('Failed to connect to domain. Check your internet connection.');
+      throw new Error(
+        'Failed to connect to domain. Check your internet connection.'
+      );
     }
 
     if (!response.ok) {
       if (response.status === 404) {
-        throw new Error('Lightning Address not found. This address may not exist or the domain does not support Lightning Addresses.');
+        throw new Error(
+          'Lightning Address not found. This address may not exist or the domain does not support Lightning Addresses.'
+        );
       } else if (response.status === 500) {
         throw new Error('Server error. The domain may be experiencing issues.');
       } else {
-        throw new Error(`Failed to discover Lightning Address (HTTP ${response.status})`);
+        throw new Error(
+          `Failed to discover Lightning Address (HTTP ${response.status})`
+        );
       }
     }
 
     const lnurlInfo = await response.json();
 
     if (!lnurlInfo.callback) {
-      throw new Error('This Lightning Address does not support payments (no callback URL found)');
+      throw new Error(
+        'This Lightning Address does not support payments (no callback URL found)'
+      );
     }
 
     return lnurlInfo as LNURLPayInfo;
@@ -185,14 +202,17 @@ export class LightningAddressService {
     }
 
     const invoiceController = new AbortController();
-    const invoiceTimeoutId = setTimeout(() => invoiceController.abort(), timeout);
+    const invoiceTimeoutId = setTimeout(
+      () => invoiceController.abort(),
+      timeout
+    );
 
     let invoiceResponse: Response;
     try {
       invoiceResponse = await fetch(callbackUrl.toString(), {
         signal: invoiceController.signal,
         headers: {
-          'Accept': 'application/json'
+          Accept: 'application/json'
         }
       });
       clearTimeout(invoiceTimeoutId);
@@ -221,6 +241,3 @@ export class LightningAddressService {
     return invoiceData.pr;
   }
 }
-
-
-

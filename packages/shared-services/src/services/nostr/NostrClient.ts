@@ -6,7 +6,10 @@ import {
   EventHandler,
   Subscription
 } from '@pubpay/shared-types';
-import { DEFAULT_READ_RELAYS, DEFAULT_WRITE_RELAYS } from '../../utils/constants';
+import {
+  DEFAULT_READ_RELAYS,
+  DEFAULT_WRITE_RELAYS
+} from '../../utils/constants';
 import { SimplePool } from 'nostr-tools';
 
 interface RelayConfig {
@@ -117,8 +120,8 @@ export class NostrClient {
       // Convert NostrFilter to compatible format for SimplePool
       // SimplePool.subscribe expects a single Filter, not an array
       const poolFilter = filter as any; // Type assertion for index signatures
-        // Use read relays for subscribing/fetching events
-        const sub = this.pool.subscribe(this.readRelays, poolFilter, {
+      // Use read relays for subscribing/fetching events
+      const sub = this.pool.subscribe(this.readRelays, poolFilter, {
         onevent: (event: NostrEvent) => {
           if (timeoutId) {
             clearTimeout(timeoutId);
@@ -586,7 +589,11 @@ export class NostrClient {
   /**
    * Add a new relay (adds to both read and write by default)
    */
-  addRelay(relayUrl: string, read: boolean = true, write: boolean = true): void {
+  addRelay(
+    relayUrl: string,
+    read: boolean = true,
+    write: boolean = true
+  ): void {
     if (!this.readRelays.includes(relayUrl) && read) {
       this.readRelays.push(relayUrl);
     }

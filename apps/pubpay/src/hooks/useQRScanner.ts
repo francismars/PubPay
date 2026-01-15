@@ -8,7 +8,10 @@ interface UseQRScannerOptions {
   onNsecScanned?: (nsec: string) => void;
 }
 
-export const useQRScanner = ({ isVisible, onNsecScanned }: UseQRScannerOptions) => {
+export const useQRScanner = ({
+  isVisible,
+  onNsecScanned
+}: UseQRScannerOptions) => {
   const navigate = useNavigate();
   const [qrScanner, setQrScanner] = useState<any>(null);
   const [isScannerRunning, setIsScannerRunning] = useState(false);
@@ -60,11 +63,7 @@ export const useQRScanner = ({ isVisible, onNsecScanned }: UseQRScannerOptions) 
   // Initialize QR scanner when overlay opens
   useEffect(() => {
     const initScanner = async () => {
-      if (
-        isVisible &&
-        !qrScanner &&
-        (window as any).Html5Qrcode
-      ) {
+      if (isVisible && !qrScanner && (window as any).Html5Qrcode) {
         try {
           const html5QrCode = new (window as any).Html5Qrcode('reader');
 
@@ -91,7 +90,7 @@ export const useQRScanner = ({ isVisible, onNsecScanned }: UseQRScannerOptions) 
                 (decodedText: string) => {
                   console.log('QR Code scanned:', decodedText);
                   setIsScannerRunning(false);
-                  
+
                   // Check for nsec first (needs special handling)
                   const nsec = extractNsecFromQR(decodedText);
                   if (nsec && onNsecScanned) {
@@ -179,7 +178,7 @@ export const useQRScanner = ({ isVisible, onNsecScanned }: UseQRScannerOptions) 
         { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 },
         (decodedText: string) => {
           setIsScannerRunning(false);
-          
+
           // Check for nsec first
           const nsec = extractNsecFromQR(decodedText);
           if (nsec && onNsecScanned) {
@@ -248,4 +247,3 @@ export const useQRScanner = ({ isVisible, onNsecScanned }: UseQRScannerOptions) 
     safelyStopScanner
   };
 };
-

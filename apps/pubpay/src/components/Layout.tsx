@@ -1,6 +1,10 @@
 import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { useUIStore, NostrRegistrationService, AuthService } from '@pubpay/shared-services';
+import {
+  useUIStore,
+  NostrRegistrationService,
+  AuthService
+} from '@pubpay/shared-services';
 import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
 import { usePostStoreData } from '../stores/usePostStore';
@@ -36,11 +40,8 @@ export const Layout: React.FC = () => {
   const { showLoggedInForm } = useModalState();
 
   // Use composite hooks for grouped state
-  const {
-    extensionAvailable,
-    externalSignerAvailable,
-    externalSignerLoading
-  } = useExtensionAvailability();
+  const { extensionAvailable, externalSignerAvailable, externalSignerLoading } =
+    useExtensionAvailability();
 
   const {
     showNsecGroup,
@@ -173,7 +174,13 @@ export const Layout: React.FC = () => {
     setNsecPassword('');
     // Show info toast
     try {
-      useUIStore.getState().openToast('Nsec scanned. Add optional password to encrypt your key.', 'info', false);
+      useUIStore
+        .getState()
+        .openToast(
+          'Nsec scanned. Add optional password to encrypt your key.',
+          'info',
+          false
+        );
       setTimeout(() => {
         try {
           useUIStore.getState().closeToast();
@@ -213,7 +220,9 @@ export const Layout: React.FC = () => {
       closePasswordPrompt();
       // Show success feedback
       try {
-        useUIStore.getState().openToast('Password accepted. Welcome back!', 'success', false);
+        useUIStore
+          .getState()
+          .openToast('Password accepted. Welcome back!', 'success', false);
         setTimeout(() => {
           try {
             useUIStore.getState().closeToast();
@@ -239,7 +248,11 @@ export const Layout: React.FC = () => {
         // Show password prompt if:
         // 1. User is logged in with nsec method
         // 2. Private key is not yet decrypted (null)
-        if (authState.isLoggedIn && authState.signInMethod === 'nsec' && !authState.privateKey) {
+        if (
+          authState.isLoggedIn &&
+          authState.signInMethod === 'nsec' &&
+          !authState.privateKey
+        ) {
           openPasswordPrompt();
         } else if (authState.privateKey) {
           // Private key is now available, hide the prompt
@@ -254,7 +267,10 @@ export const Layout: React.FC = () => {
     checkPasswordRequirement().catch(console.error);
   }, [authState.isLoggedIn, authState.privateKey, authState.signInMethod]);
 
-  const handleRecoveryFromMnemonic = async (mnemonic: string, password?: string) => {
+  const handleRecoveryFromMnemonic = async (
+    mnemonic: string,
+    password?: string
+  ) => {
     try {
       const result = NostrRegistrationService.recoverKeyPairFromMnemonic(
         mnemonic.trim()
@@ -319,7 +335,7 @@ export const Layout: React.FC = () => {
       try {
         await navigator.share({
           title: 'Check out this PubPay!',
-          text: 'Here\'s a PubPay I want to share with you:',
+          text: "Here's a PubPay I want to share with you:",
           url: shareURL
         });
       } catch (error) {
@@ -409,7 +425,8 @@ export const Layout: React.FC = () => {
 
   // Initialize dark mode on mount
   useEffect(() => {
-    const savedDarkMode = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
+    const savedDarkMode =
+      localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
     if (savedDarkMode) {
       document.body.classList.add('dark-mode');
     }

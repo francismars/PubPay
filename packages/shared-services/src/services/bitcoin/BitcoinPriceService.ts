@@ -1,6 +1,6 @@
 /**
  * BitcoinPriceService - Handles Bitcoin price fetching and conversion
- * 
+ *
  * Provides functionality to:
  * - Fetch current Bitcoin prices from Mempool API
  * - Fetch historical Bitcoin prices
@@ -42,19 +42,19 @@ export class BitcoinPriceService {
       if (!response.ok) {
         throw new Error(`Failed to fetch prices: ${response.statusText}`);
       }
-      const data = await response.json() as BitcoinPrices;
-      
+      const data = (await response.json()) as BitcoinPrices;
+
       // Check if prices have changed
       const pricesChanged = this.hasPricesChanged(data);
-      
+
       // Update current prices
       this.currentPrices = data;
-      
+
       // Notify callbacks if prices changed
       if (pricesChanged && Object.keys(this.currentPrices).length > 0) {
         this.notifyCallbacks(data);
       }
-      
+
       return data;
     } catch (error) {
       console.error('❌ Failed to fetch Bitcoin prices:', error);
@@ -74,9 +74,11 @@ export class BitcoinPriceService {
         `${this.baseUrl}/historical-price?currency=${currency}&timestamp=${timestamp}`
       );
       if (!response.ok) {
-        throw new Error(`Failed to fetch historical price: ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch historical price: ${response.statusText}`
+        );
       }
-      const data = await response.json() as HistoricalPriceData;
+      const data = (await response.json()) as HistoricalPriceData;
       return data;
     } catch (error) {
       console.error('❌ Failed to fetch historical Bitcoin price:', error);
@@ -179,7 +181,8 @@ export class BitcoinPriceService {
 
         let historicalFormatted: string;
         if (currency === 'JPY') {
-          historicalFormatted = Math.round(historicalFiatAmount).toLocaleString();
+          historicalFormatted =
+            Math.round(historicalFiatAmount).toLocaleString();
         } else {
           historicalFormatted = historicalFiatAmount.toFixed(2);
         }
@@ -191,12 +194,14 @@ export class BitcoinPriceService {
         if (showHistoricalChange) {
           // Calculate percentage change
           const percentageChange =
-            ((currentFiatAmount - historicalFiatAmount) / historicalFiatAmount) * 100;
+            ((currentFiatAmount - historicalFiatAmount) /
+              historicalFiatAmount) *
+            100;
           const changeFormatted =
             percentageChange >= 0
               ? `+${percentageChange.toFixed(1)}%`
               : `${percentageChange.toFixed(1)}%`;
-          
+
           result += includeHtml
             ? ` <span class="historical-change">${changeFormatted}</span>`
             : ` ${changeFormatted}`;
@@ -224,7 +229,9 @@ export class BitcoinPriceService {
       this.fetchPrices();
     }, intervalMs);
 
-    console.log(`💰 Live Bitcoin price updates started (every ${intervalMs / 1000} seconds)`);
+    console.log(
+      `💰 Live Bitcoin price updates started (every ${intervalMs / 1000} seconds)`
+    );
   }
 
   /**
@@ -258,7 +265,7 @@ export class BitcoinPriceService {
    */
   onPriceUpdate(callback: PriceUpdateCallback): () => void {
     this.updateCallbacks.add(callback);
-    
+
     // Return unsubscribe function
     return () => {
       this.updateCallbacks.delete(callback);

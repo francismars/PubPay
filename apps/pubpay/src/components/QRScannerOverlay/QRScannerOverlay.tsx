@@ -189,4 +189,3 @@ export const QRScannerOverlay: React.FC<QRScannerOverlayProps> = ({
     </div>
   );
 };
-

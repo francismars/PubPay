@@ -45,7 +45,9 @@ export class BlossomService {
         privateKey = await AuthService.decryptStoredPrivateKey();
       } catch (error) {
         // If password is required, throw error
-        throw new Error('Your private key is password-protected. Please log in again and enter your password to use Blossom.');
+        throw new Error(
+          'Your private key is password-protected. Please log in again and enter your password to use Blossom.'
+        );
       }
     }
 

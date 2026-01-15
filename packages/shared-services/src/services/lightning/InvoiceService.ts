@@ -282,7 +282,10 @@ export class InvoiceService {
 
     // Basic format check - must start with lnbc, lntb, or lnbcrt
     if (!trimmedInvoice.match(/^(lnbc|lntb|lnbcrt)/i)) {
-      return { success: false, error: 'Invalid invoice format. Must start with lnbc, lntb, or lnbcrt' };
+      return {
+        success: false,
+        error: 'Invalid invoice format. Must start with lnbc, lntb, or lnbcrt'
+      };
     }
 
     try {
@@ -290,7 +293,10 @@ export class InvoiceService {
 
       // Check if invoice is expired
       const timestamp = decoded.timestamp || Math.floor(Date.now() / 1000);
-      const expiry = decoded.tags?.find((tag: { tagName: string; data?: number }) => tag.tagName === 'expiry')?.data || 3600;
+      const expiry =
+        decoded.tags?.find(
+          (tag: { tagName: string; data?: number }) => tag.tagName === 'expiry'
+        )?.data || 3600;
       const expiryTime = timestamp + expiry;
       const currentTime = Math.floor(Date.now() / 1000);
 
@@ -306,7 +312,11 @@ export class InvoiceService {
       }
 
       const amount = decoded.satoshis || 0;
-      const description = decoded.tags?.find((tag: { tagName: string; data?: string }) => tag.tagName === 'description')?.data || '';
+      const description =
+        decoded.tags?.find(
+          (tag: { tagName: string; data?: string }) =>
+            tag.tagName === 'description'
+        )?.data || '';
 
       return {
         success: true,
@@ -319,14 +329,25 @@ export class InvoiceService {
       };
     } catch (error) {
       // Provide specific error messages
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
 
       if (errorMessage.includes('Invalid bech32')) {
-        return { success: false, error: 'Invalid invoice format. Check for typos or missing characters.' };
+        return {
+          success: false,
+          error:
+            'Invalid invoice format. Check for typos or missing characters.'
+        };
       } else if (errorMessage.includes('checksum')) {
-        return { success: false, error: 'Invalid invoice checksum. The invoice may be corrupted.' };
+        return {
+          success: false,
+          error: 'Invalid invoice checksum. The invoice may be corrupted.'
+        };
       } else if (errorMessage.includes('network')) {
-        return { success: false, error: 'Unsupported network. This invoice is for a different network.' };
+        return {
+          success: false,
+          error: 'Unsupported network. This invoice is for a different network.'
+        };
       } else {
         return { success: false, error: `Invalid invoice: ${errorMessage}` };
       }
@@ -340,7 +361,10 @@ export class InvoiceService {
     try {
       const decoded = bolt11.decode(invoice);
       const timestamp = decoded.timestamp || Math.floor(Date.now() / 1000);
-      const expiry = decoded.tags?.find((tag: { tagName: string; data?: number }) => tag.tagName === 'expiry')?.data || 3600;
+      const expiry =
+        decoded.tags?.find(
+          (tag: { tagName: string; data?: number }) => tag.tagName === 'expiry'
+        )?.data || 3600;
       const expiryTime = timestamp + expiry;
       const currentTime = Math.floor(Date.now() / 1000);
       return currentTime > expiryTime;

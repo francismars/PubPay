@@ -25,17 +25,23 @@ export function extractPostZapTags(event: Kind1Event): PostZapTags {
   const zapGoalTag = event.tags.find(tag => tag[0] === 'zap-goal');
   const zapPayerTag = event.tags.find(tag => tag[0] === 'zap-payer');
   const zapLNURLTag = event.tags.find(tag => tag[0] === 'zap-lnurl');
-  
-  const zapMin = zapMinTag ? Math.floor(parseInt(zapMinTag[1] || '0') / 1000) : 0;
-  const zapMax = zapMaxTag ? Math.floor(parseInt(zapMaxTag[1] || '0') / 1000) : zapMin;
+
+  const zapMin = zapMinTag
+    ? Math.floor(parseInt(zapMinTag[1] || '0') / 1000)
+    : 0;
+  const zapMax = zapMaxTag
+    ? Math.floor(parseInt(zapMaxTag[1] || '0') / 1000)
+    : zapMin;
   const zapUses = zapUsesTag ? parseInt(zapUsesTag[1] || '0') : 0;
-  const zapGoal = zapGoalTag ? Math.floor(parseInt(zapGoalTag[1] || '0') / 1000) : undefined;
+  const zapGoal = zapGoalTag
+    ? Math.floor(parseInt(zapGoalTag[1] || '0') / 1000)
+    : undefined;
   const zapPayer = zapPayerTag?.[1];
   const zapLNURL = zapLNURLTag?.[1];
-  
+
   const hasZapTags = !!(zapMinTag || zapMaxTag || zapUsesTag || zapGoalTag);
   const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
-  
+
   return {
     zapMin,
     zapMax,
@@ -56,7 +62,7 @@ export function calculateIsPayable(
   zapTags: PostZapTags
 ): boolean {
   if (!zapTags.hasPaymentAmount) return false;
-  
+
   // Check for lightning address in author profile
   let hasLud16 = false;
   if (author && author.content && author.content !== '{}') {
@@ -67,7 +73,7 @@ export function calculateIsPayable(
       // Keep hasLud16 as false
     }
   }
-  
+
   // Post is payable if: (has lightning address OR zap LNURL override) AND has payment amount
   return (hasLud16 || !!zapTags.zapLNURL) && zapTags.hasPaymentAmount;
 }
@@ -83,17 +89,27 @@ export function getZapPayerProfile(
   if (!zapPayerPubkey) {
     return { picture: genericUserIcon };
   }
-  
+
   const zapPayerProfile = profiles.get(zapPayerPubkey);
-  if (!zapPayerProfile || !zapPayerProfile.content || zapPayerProfile.content === '{}') {
+  if (
+    !zapPayerProfile ||
+    !zapPayerProfile.content ||
+    zapPayerProfile.content === '{}'
+  ) {
     return { picture: genericUserIcon };
   }
-  
+
   try {
-    const profileData = safeJson<Record<string, any>>(zapPayerProfile.content, {});
+    const profileData = safeJson<Record<string, any>>(
+      zapPayerProfile.content,
+      {}
+    );
     return {
       picture: (profileData as any).picture || genericUserIcon,
-      name: (profileData as any).display_name || (profileData as any).name || undefined
+      name:
+        (profileData as any).display_name ||
+        (profileData as any).name ||
+        undefined
     };
   } catch {
     return { picture: genericUserIcon };
@@ -110,7 +126,7 @@ export function getAuthorPaymentInfo(author: Kind0Event | null): {
   if (!author || !author.content || author.content === '{}') {
     return { hasLud16: false, hasNip05: false };
   }
-  
+
   try {
     const authorData = safeJson<Record<string, any>>(author.content, {});
     return {
@@ -121,4 +137,3 @@ export function getAuthorPaymentInfo(author: Kind0Event | null): {
     return { hasLud16: false, hasNip05: false };
   }
 }
-

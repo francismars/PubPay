@@ -11,7 +11,7 @@ import type { HlsInstance, HlsConfig, HlsError } from '../types/global';
 
 /**
  * useVideoPlayer Hook
- * 
+ *
  * Manages live video player functionality including:
  * - HLS.js streaming support
  * - Native HLS support (Safari)
@@ -19,7 +19,7 @@ import type { HlsInstance, HlsConfig, HlsError } from '../types/global';
  * - Automatic reconnection with exponential backoff
  * - Audio state preservation (volume, mute)
  * - Video event handling
- * 
+ *
  * @param options - Configuration options for video player
  * @param options.videoElementId - ID of the video element (default: 'live-video')
  * @param options.errorElementId - ID of the error element (default: 'video-error')
@@ -35,8 +35,9 @@ interface UseVideoPlayerOptions {
   errorElementId?: string;
 }
 export const useVideoPlayer = (options: UseVideoPlayerOptions = {}) => {
-  const { videoElementId = 'live-video', errorElementId = 'video-error' } = options;
-  
+  const { videoElementId = 'live-video', errorElementId = 'video-error' } =
+    options;
+
   // Store HLS instance and player state in refs to persist across renders
   const hlsInstanceRef = useRef<HlsInstance | null>(null);
   const reconnectAttemptsRef = useRef<number>(0);
@@ -68,28 +69,35 @@ export const useVideoPlayer = (options: UseVideoPlayerOptions = {}) => {
   /**
    * Shows error message and hides video
    */
-  const showError = useCallback((video: HTMLVideoElement | null, videoError: HTMLElement | null) => {
-    if (video) video.style.display = 'none';
-    if (videoError) videoError.style.display = 'block';
-  }, []);
+  const showError = useCallback(
+    (video: HTMLVideoElement | null, videoError: HTMLElement | null) => {
+      if (video) video.style.display = 'none';
+      if (videoError) videoError.style.display = 'block';
+    },
+    []
+  );
 
   /**
    * Hides error message and shows video
    */
-  const hideError = useCallback((video: HTMLVideoElement | null, videoError: HTMLElement | null) => {
-    if (video) video.style.display = 'block';
-    if (videoError) videoError.style.display = 'none';
-  }, []);
+  const hideError = useCallback(
+    (video: HTMLVideoElement | null, videoError: HTMLElement | null) => {
+      if (video) video.style.display = 'block';
+      if (videoError) videoError.style.display = 'none';
+    },
+    []
+  );
 
   /**
    * Attempts to reconnect to the video stream
    */
-  const attemptReconnect = useCallback((
-    video: HTMLVideoElement,
-    videoError: HTMLElement | null,
-    streamingUrl: string,
-    initializeStream: () => void
-  ) => {
+  const attemptReconnect = useCallback(
+    (
+      video: HTMLVideoElement,
+      videoError: HTMLElement | null,
+      streamingUrl: string,
+      initializeStream: () => void
+    ) => {
       if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
         handleError(
           new Error('Max reconnection attempts reached'),
@@ -103,117 +111,123 @@ export const useVideoPlayer = (options: UseVideoPlayerOptions = {}) => {
       }
 
       reconnectAttemptsRef.current++;
-      const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current - 1), SUBSCRIPTION_TIMEOUT);
+      const delay = Math.min(
+        1000 * Math.pow(2, reconnectAttemptsRef.current - 1),
+        SUBSCRIPTION_TIMEOUT
+      );
       logger.info(
         `Attempting reconnection ${reconnectAttemptsRef.current}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`,
         ErrorCategory.VIDEO,
         { attempt: reconnectAttemptsRef.current, delay, streamingUrl }
       );
 
-    setTimeout(() => {
-      initializeStream();
-    }, delay);
-  }, []);
+      setTimeout(() => {
+        initializeStream();
+      }, delay);
+    },
+    []
+  );
 
   /**
    * Initializes the video stream (HLS or regular format)
    */
-  const initializeStream = useCallback((
-    video: HTMLVideoElement,
-    videoError: HTMLElement | null,
-    streamingUrl: string
-  ) => {
-    logger.info('Initializing stream', ErrorCategory.VIDEO, { streamingUrl });
+  const initializeStream = useCallback(
+    (
+      video: HTMLVideoElement,
+      videoError: HTMLElement | null,
+      streamingUrl: string
+    ) => {
+      logger.info('Initializing stream', ErrorCategory.VIDEO, { streamingUrl });
 
-    // Handle different streaming formats
-    if (streamingUrl.includes('.m3u8') || streamingUrl.includes('hls')) {
-      // HLS stream - try to use HLS.js if available
-      if (
-        typeof window.Hls !== 'undefined' &&
-        window.Hls.isSupported()
-      ) {
-          logger.info('Using HLS.js for HLS stream', ErrorCategory.VIDEO, { streamingUrl });
-        
-        // Clean up existing HLS instance if any
-        if (hlsInstanceRef.current) {
-          try {
-            hlsInstanceRef.current.destroy();
-          } catch (e) {
-            handleErrorSilently(
-              e,
-              'Error destroying previous HLS instance',
-              ErrorCategory.VIDEO
-            );
-          }
-        }
+      // Handle different streaming formats
+      if (streamingUrl.includes('.m3u8') || streamingUrl.includes('hls')) {
+        // HLS stream - try to use HLS.js if available
+        if (typeof window.Hls !== 'undefined' && window.Hls.isSupported()) {
+          logger.info('Using HLS.js for HLS stream', ErrorCategory.VIDEO, {
+            streamingUrl
+          });
 
-        hlsInstanceRef.current = new window.Hls!({
-          enableWorker: true,
-          lowLatencyMode: false,
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-          liveSyncDurationCount: 3,
-          liveMaxLatencyDurationCount: 5
-        });
-
-        hlsInstanceRef.current.loadSource(streamingUrl);
-        hlsInstanceRef.current.attachMedia(video);
-
-          hlsInstanceRef.current.on(window.Hls!.Events.MANIFEST_PARSED, () => {
-            logger.info('HLS manifest parsed', ErrorCategory.VIDEO, { streamingUrl });
-          reconnectAttemptsRef.current = 0;
-          hideError(video, videoError);
-          video
-            .play()
-            .then(() => {
-              preserveAudioState(video);
-            })
-            .catch(e => {
-              preserveAudioState(video);
-            });
-        });
-
-        hlsInstanceRef.current.on(
-          window.Hls!.Events.ERROR,
-          (_event: unknown, data: unknown) => {
-            videoErrorHandler(
-              data,
-              'HLS playback error',
-              undefined,
-              { streamingUrl, hlsError: data }
-            );
-            const errorData = data as HlsError;
-            if (errorData.fatal) {
-              attemptReconnect(video, videoError, streamingUrl, () => 
-                initializeStream(video, videoError, streamingUrl)
+          // Clean up existing HLS instance if any
+          if (hlsInstanceRef.current) {
+            try {
+              hlsInstanceRef.current.destroy();
+            } catch (e) {
+              handleErrorSilently(
+                e,
+                'Error destroying previous HLS instance',
+                ErrorCategory.VIDEO
               );
             }
           }
-        );
+
+          hlsInstanceRef.current = new window.Hls!({
+            enableWorker: true,
+            lowLatencyMode: false,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 5
+          });
+
+          hlsInstanceRef.current.loadSource(streamingUrl);
+          hlsInstanceRef.current.attachMedia(video);
+
+          hlsInstanceRef.current.on(window.Hls!.Events.MANIFEST_PARSED, () => {
+            logger.info('HLS manifest parsed', ErrorCategory.VIDEO, {
+              streamingUrl
+            });
+            reconnectAttemptsRef.current = 0;
+            hideError(video, videoError);
+            video
+              .play()
+              .then(() => {
+                preserveAudioState(video);
+              })
+              .catch(e => {
+                preserveAudioState(video);
+              });
+          });
+
+          hlsInstanceRef.current.on(
+            window.Hls!.Events.ERROR,
+            (_event: unknown, data: unknown) => {
+              videoErrorHandler(data, 'HLS playback error', undefined, {
+                streamingUrl,
+                hlsError: data
+              });
+              const errorData = data as HlsError;
+              if (errorData.fatal) {
+                attemptReconnect(video, videoError, streamingUrl, () =>
+                  initializeStream(video, videoError, streamingUrl)
+                );
+              }
+            }
+          );
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           // Native HLS support (Safari)
-          logger.info('Using native HLS support', ErrorCategory.VIDEO, { streamingUrl });
+          logger.info('Using native HLS support', ErrorCategory.VIDEO, {
+            streamingUrl
+          });
           video.src = streamingUrl;
           video
             .play()
             .then(() => {
-              logger.info('Native HLS stream started', ErrorCategory.VIDEO, { streamingUrl });
-            reconnectAttemptsRef.current = 0;
-            hideError(video, videoError);
-            preserveAudioState(video);
-          })
+              logger.info('Native HLS stream started', ErrorCategory.VIDEO, {
+                streamingUrl
+              });
+              reconnectAttemptsRef.current = 0;
+              hideError(video, videoError);
+              preserveAudioState(video);
+            })
             .catch(e => {
-              videoErrorHandler(
-                e,
-                'Native HLS play failed',
-                undefined,
-                { streamingUrl }
+              videoErrorHandler(e, 'Native HLS play failed', undefined, {
+                streamingUrl
+              });
+              preserveAudioState(video);
+              attemptReconnect(video, videoError, streamingUrl, () =>
+                initializeStream(video, videoError, streamingUrl)
               );
-            preserveAudioState(video);
-            attemptReconnect(video, videoError, streamingUrl, () => 
-              initializeStream(video, videoError, streamingUrl)
-            );
-          });
+            });
         } else {
           handleError(
             new Error('HLS not supported'),
@@ -226,133 +240,150 @@ export const useVideoPlayer = (options: UseVideoPlayerOptions = {}) => {
         }
       } else {
         // Regular video formats (MP4, WebM, etc.)
-        logger.info('Using regular video format', ErrorCategory.VIDEO, { streamingUrl });
+        logger.info('Using regular video format', ErrorCategory.VIDEO, {
+          streamingUrl
+        });
         video.src = streamingUrl;
         video
           .play()
           .then(() => {
-            logger.info('Regular video stream started', ErrorCategory.VIDEO, { streamingUrl });
-          reconnectAttemptsRef.current = 0;
-          hideError(video, videoError);
-          preserveAudioState(video);
-        })
+            logger.info('Regular video stream started', ErrorCategory.VIDEO, {
+              streamingUrl
+            });
+            reconnectAttemptsRef.current = 0;
+            hideError(video, videoError);
+            preserveAudioState(video);
+          })
           .catch(e => {
-            videoErrorHandler(
-              e,
-              'Regular video play failed',
-              undefined,
-              { streamingUrl }
+            videoErrorHandler(e, 'Regular video play failed', undefined, {
+              streamingUrl
+            });
+            preserveAudioState(video);
+            attemptReconnect(video, videoError, streamingUrl, () =>
+              initializeStream(video, videoError, streamingUrl)
             );
-          preserveAudioState(video);
-          attemptReconnect(video, videoError, streamingUrl, () => 
-            initializeStream(video, videoError, streamingUrl)
-          );
-        });
-    }
-  }, [preserveAudioState, hideError, showError, attemptReconnect]);
+          });
+      }
+    },
+    [preserveAudioState, hideError, showError, attemptReconnect]
+  );
 
   /**
    * Initializes the live video player with a streaming URL
    */
-  const initializeLiveVideoPlayer = useCallback((streamingUrl: string) => {
-    logger.info('Initializing video player', ErrorCategory.VIDEO, { streamingUrl });
+  const initializeLiveVideoPlayer = useCallback(
+    (streamingUrl: string) => {
+      logger.info('Initializing video player', ErrorCategory.VIDEO, {
+        streamingUrl
+      });
 
-    const video = document.getElementById(videoElementId) as HTMLVideoElement;
-    const videoError = document.getElementById(errorElementId);
+      const video = document.getElementById(videoElementId) as HTMLVideoElement;
+      const videoError = document.getElementById(errorElementId);
 
-    if (!video) {
-      handleError(
-        new Error(`Video element with id "${videoElementId}" not found`),
-        'Video element not found',
-        ErrorCategory.VIDEO,
-        ErrorSeverity.HIGH,
-        { videoElementId }
-      );
-      return;
-    }
-    logger.info('Video element found', ErrorCategory.VIDEO, { videoElementId });
+      if (!video) {
+        handleError(
+          new Error(`Video element with id "${videoElementId}" not found`),
+          'Video element not found',
+          ErrorCategory.VIDEO,
+          ErrorSeverity.HIGH,
+          { videoElementId }
+        );
+        return;
+      }
+      logger.info('Video element found', ErrorCategory.VIDEO, {
+        videoElementId
+      });
 
-    // Initialize audio state from current video state
-    lastVolumeRef.current = video.volume || 0.8;
-    wasMutedRef.current = video.muted || false;
-    reconnectAttemptsRef.current = 0;
+      // Initialize audio state from current video state
+      lastVolumeRef.current = video.volume || 0.8;
+      wasMutedRef.current = video.muted || false;
+      reconnectAttemptsRef.current = 0;
 
-    // Set up video event handlers
-    const handleVideoError = (e: Event) => {
-      videoErrorHandler(
-        e,
-        'Video playback error occurred',
-        undefined,
-        { streamingUrl }
-      );
-      saveAudioState(video);
-      attemptReconnect(video, videoError, streamingUrl, () => 
-        initializeStream(video, videoError, streamingUrl)
-      );
-    };
+      // Set up video event handlers
+      const handleVideoError = (e: Event) => {
+        videoErrorHandler(e, 'Video playback error occurred', undefined, {
+          streamingUrl
+        });
+        saveAudioState(video);
+        attemptReconnect(video, videoError, streamingUrl, () =>
+          initializeStream(video, videoError, streamingUrl)
+        );
+      };
 
-    const handleLoadstart = () => {
-      logger.info('Video load started', ErrorCategory.VIDEO, { streamingUrl });
-    };
+      const handleLoadstart = () => {
+        logger.info('Video load started', ErrorCategory.VIDEO, {
+          streamingUrl
+        });
+      };
 
-    const handleCanplay = () => {
-      logger.info('Video can play', ErrorCategory.VIDEO, { streamingUrl });
-      hideError(video, videoError);
-      preserveAudioState(video);
-    };
+      const handleCanplay = () => {
+        logger.info('Video can play', ErrorCategory.VIDEO, { streamingUrl });
+        hideError(video, videoError);
+        preserveAudioState(video);
+      };
 
-    const handlePlay = () => {
-      wasPlayingRef.current = true;
-      preserveAudioState(video);
-    };
+      const handlePlay = () => {
+        wasPlayingRef.current = true;
+        preserveAudioState(video);
+      };
 
-    const handlePause = () => {
-      wasPlayingRef.current = false;
-      saveAudioState(video);
-    };
+      const handlePause = () => {
+        wasPlayingRef.current = false;
+        saveAudioState(video);
+      };
 
-    const handleVolumechange = () => {
-      saveAudioState(video);
-    };
+      const handleVolumechange = () => {
+        saveAudioState(video);
+      };
 
-    const handleStalled = () => {
-      saveAudioState(video);
-      setTimeout(() => {
-        if (video.readyState < 3 && wasPlayingRef.current) {
-          attemptReconnect(video, videoError, streamingUrl, () => 
-            initializeStream(video, videoError, streamingUrl)
-          );
-        }
-      }, 5000);
-    };
+      const handleStalled = () => {
+        saveAudioState(video);
+        setTimeout(() => {
+          if (video.readyState < 3 && wasPlayingRef.current) {
+            attemptReconnect(video, videoError, streamingUrl, () =>
+              initializeStream(video, videoError, streamingUrl)
+            );
+          }
+        }, 5000);
+      };
 
-    const handleWaiting = () => {
-      saveAudioState(video);
-    };
+      const handleWaiting = () => {
+        saveAudioState(video);
+      };
 
-    // Remove existing event listeners to avoid duplicates
-    video.removeEventListener('error', handleVideoError);
-    video.removeEventListener('loadstart', handleLoadstart);
-    video.removeEventListener('canplay', handleCanplay);
-    video.removeEventListener('play', handlePlay);
-    video.removeEventListener('pause', handlePause);
-    video.removeEventListener('volumechange', handleVolumechange);
-    video.removeEventListener('stalled', handleStalled);
-    video.removeEventListener('waiting', handleWaiting);
+      // Remove existing event listeners to avoid duplicates
+      video.removeEventListener('error', handleVideoError);
+      video.removeEventListener('loadstart', handleLoadstart);
+      video.removeEventListener('canplay', handleCanplay);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('volumechange', handleVolumechange);
+      video.removeEventListener('stalled', handleStalled);
+      video.removeEventListener('waiting', handleWaiting);
 
-    // Add event listeners
-    video.addEventListener('error', handleVideoError);
-    video.addEventListener('loadstart', handleLoadstart);
-    video.addEventListener('canplay', handleCanplay);
-    video.addEventListener('play', handlePlay);
-    video.addEventListener('pause', handlePause);
-    video.addEventListener('volumechange', handleVolumechange);
-    video.addEventListener('stalled', handleStalled);
-    video.addEventListener('waiting', handleWaiting);
+      // Add event listeners
+      video.addEventListener('error', handleVideoError);
+      video.addEventListener('loadstart', handleLoadstart);
+      video.addEventListener('canplay', handleCanplay);
+      video.addEventListener('play', handlePlay);
+      video.addEventListener('pause', handlePause);
+      video.addEventListener('volumechange', handleVolumechange);
+      video.addEventListener('stalled', handleStalled);
+      video.addEventListener('waiting', handleWaiting);
 
-    // Start initial stream
-    initializeStream(video, videoError, streamingUrl);
-  }, [videoElementId, errorElementId, initializeStream, preserveAudioState, saveAudioState, hideError, attemptReconnect]);
+      // Start initial stream
+      initializeStream(video, videoError, streamingUrl);
+    },
+    [
+      videoElementId,
+      errorElementId,
+      initializeStream,
+      preserveAudioState,
+      saveAudioState,
+      hideError,
+      attemptReconnect
+    ]
+  );
 
   /**
    * Cleans up the video player (destroys HLS instance, removes event listeners)

@@ -5,7 +5,7 @@ import { usePostStore, usePostActions } from '../stores/usePostStore';
 /**
  * Hook for wrapping store actions to match React.Dispatch<SetStateAction<T>> signature
  * Extracted from useHomeFunctionality for better separation of concerns
- * 
+ *
  * These wrappers allow hooks that expect React setState signatures to work with Zustand store actions
  */
 export const usePostStateWrappers = () => {
@@ -132,4 +132,3 @@ export const usePostStateWrappers = () => {
     setPaymentErrors
   };
 };
-

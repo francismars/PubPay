@@ -25,7 +25,9 @@ interface ProfileStore {
 
   // Profile data
   profileData: ProfileData;
-  setProfileData: (data: Partial<ProfileData> | ((prev: ProfileData) => Partial<ProfileData>)) => void;
+  setProfileData: (
+    data: Partial<ProfileData> | ((prev: ProfileData) => Partial<ProfileData>)
+  ) => void;
   resetProfileData: () => void;
 
   // NIP-05 validation
@@ -58,7 +60,9 @@ interface ProfileStore {
   isLoadingPaynotes: boolean;
   hasMorePaynotes: boolean;
   paynotesUntil: number | undefined;
-  setUserPaynotes: (paynotes: PubPayPost[] | ((prev: PubPayPost[]) => PubPayPost[])) => void;
+  setUserPaynotes: (
+    paynotes: PubPayPost[] | ((prev: PubPayPost[]) => PubPayPost[])
+  ) => void;
   addUserPaynotes: (paynotes: PubPayPost[]) => void;
   updateUserPaynote: (postId: string, updates: Partial<PubPayPost>) => void;
   setIsLoadingPaynotes: (loading: boolean) => void;
@@ -98,129 +102,146 @@ const initialActivityStats: ActivityStats = {
 export const useProfileStore = create<ProfileStore>()(
   devtools(
     (set, get) => ({
-  // Current profile
-  currentProfilePubkey: null,
-
-  // Profile data
-  profileData: initialProfileData,
-  setProfileData: (data: Partial<ProfileData> | ((prev: ProfileData) => Partial<ProfileData>)) =>
-    set(state => ({
-      profileData: {
-        ...state.profileData,
-        ...(typeof data === 'function' ? data(state.profileData) : data)
-      }
-    })),
-  resetProfileData: () => set({ profileData: initialProfileData }),
-
-  // NIP-05 validation
-  nip05Valid: null,
-  nip05Validating: false,
-  setNip05Valid: (valid: boolean | null) => set({ nip05Valid: valid }),
-  setNip05Validating: (validating: boolean) => set({ nip05Validating: validating }),
-
-  // Loading states
-  isLoadingProfile: false,
-  profileError: null,
-  isInitialLoad: true,
-  loadStartTime: null,
-  profileDataLoaded: false,
-  setIsLoadingProfile: (loading: boolean) => set({ isLoadingProfile: loading }),
-  setProfileError: (error: string | null) => set({ profileError: error }),
-  setIsInitialLoad: (isInitial: boolean) => set({ isInitialLoad: isInitial }),
-  setLoadStartTime: (time: number | null) => set({ loadStartTime: time }),
-  setProfileDataLoaded: (loaded: boolean) => set({ profileDataLoaded: loaded }),
-
-  // Activity stats
-  activityLoading: false,
-  activityStats: initialActivityStats,
-  setActivityLoading: (loading: boolean) => set({ activityLoading: loading }),
-  setActivityStats: (stats: Partial<ActivityStats>) =>
-    set(state => ({
-      activityStats: { ...state.activityStats, ...stats }
-    })),
-  resetActivityStats: () => set({ activityStats: initialActivityStats }),
-
-  // User paynotes
-  userPaynotes: [],
-  isLoadingPaynotes: false,
-  hasMorePaynotes: false,
-  paynotesUntil: undefined,
-  setUserPaynotes: (paynotes: PubPayPost[] | ((prev: PubPayPost[]) => PubPayPost[])) =>
-    set(state => ({
-      userPaynotes: typeof paynotes === 'function' ? paynotes(state.userPaynotes) : paynotes
-    })),
-  addUserPaynotes: (paynotes: PubPayPost[]) =>
-    set(state => ({
-      userPaynotes: [...state.userPaynotes, ...paynotes]
-    })),
-  updateUserPaynote: (postId: string, updates: Partial<PubPayPost>) =>
-    set(state => ({
-      userPaynotes: state.userPaynotes.map(post =>
-        post.id === postId ? { ...post, ...updates } : post
-      )
-    })),
-  setIsLoadingPaynotes: (loading: boolean) => set({ isLoadingPaynotes: loading }),
-  setHasMorePaynotes: (hasMore: boolean) => set({ hasMorePaynotes: hasMore }),
-  setPaynotesUntil: (until: number | undefined) => set({ paynotesUntil: until }),
-  clearUserPaynotes: () =>
-    set({
-      userPaynotes: [],
-      hasMorePaynotes: false,
-      paynotesUntil: undefined
-    }),
-
-  // Follow state
-  isFollowing: false,
-  followBusy: false,
-  setIsFollowing: (following: boolean) => set({ isFollowing: following }),
-  setFollowBusy: (busy: boolean) => set({ followBusy: busy }),
-
-  // Set current profile (resets state for new profile)
-  setCurrentProfile: (pubkey: string | null) => {
-    if (pubkey !== get().currentProfilePubkey) {
-      set({
-        currentProfilePubkey: pubkey,
-        profileData: initialProfileData,
-        nip05Valid: null,
-        nip05Validating: false,
-        isLoadingProfile: false,
-        profileError: null,
-        isInitialLoad: true,
-        loadStartTime: null,
-        profileDataLoaded: false,
-        activityLoading: false,
-        activityStats: initialActivityStats,
-        userPaynotes: [],
-        isLoadingPaynotes: false,
-        hasMorePaynotes: false,
-        paynotesUntil: undefined,
-        isFollowing: false,
-        followBusy: false
-      });
-    }
-  },
-
-  // Reset all state
-  reset: () =>
-    set({
+      // Current profile
       currentProfilePubkey: null,
+
+      // Profile data
       profileData: initialProfileData,
+      setProfileData: (
+        data:
+          | Partial<ProfileData>
+          | ((prev: ProfileData) => Partial<ProfileData>)
+      ) =>
+        set(state => ({
+          profileData: {
+            ...state.profileData,
+            ...(typeof data === 'function' ? data(state.profileData) : data)
+          }
+        })),
+      resetProfileData: () => set({ profileData: initialProfileData }),
+
+      // NIP-05 validation
       nip05Valid: null,
       nip05Validating: false,
+      setNip05Valid: (valid: boolean | null) => set({ nip05Valid: valid }),
+      setNip05Validating: (validating: boolean) =>
+        set({ nip05Validating: validating }),
+
+      // Loading states
       isLoadingProfile: false,
       profileError: null,
       isInitialLoad: true,
       loadStartTime: null,
       profileDataLoaded: false,
+      setIsLoadingProfile: (loading: boolean) =>
+        set({ isLoadingProfile: loading }),
+      setProfileError: (error: string | null) => set({ profileError: error }),
+      setIsInitialLoad: (isInitial: boolean) =>
+        set({ isInitialLoad: isInitial }),
+      setLoadStartTime: (time: number | null) => set({ loadStartTime: time }),
+      setProfileDataLoaded: (loaded: boolean) =>
+        set({ profileDataLoaded: loaded }),
+
+      // Activity stats
       activityLoading: false,
       activityStats: initialActivityStats,
+      setActivityLoading: (loading: boolean) =>
+        set({ activityLoading: loading }),
+      setActivityStats: (stats: Partial<ActivityStats>) =>
+        set(state => ({
+          activityStats: { ...state.activityStats, ...stats }
+        })),
+      resetActivityStats: () => set({ activityStats: initialActivityStats }),
+
+      // User paynotes
       userPaynotes: [],
       isLoadingPaynotes: false,
       hasMorePaynotes: false,
       paynotesUntil: undefined,
+      setUserPaynotes: (
+        paynotes: PubPayPost[] | ((prev: PubPayPost[]) => PubPayPost[])
+      ) =>
+        set(state => ({
+          userPaynotes:
+            typeof paynotes === 'function'
+              ? paynotes(state.userPaynotes)
+              : paynotes
+        })),
+      addUserPaynotes: (paynotes: PubPayPost[]) =>
+        set(state => ({
+          userPaynotes: [...state.userPaynotes, ...paynotes]
+        })),
+      updateUserPaynote: (postId: string, updates: Partial<PubPayPost>) =>
+        set(state => ({
+          userPaynotes: state.userPaynotes.map(post =>
+            post.id === postId ? { ...post, ...updates } : post
+          )
+        })),
+      setIsLoadingPaynotes: (loading: boolean) =>
+        set({ isLoadingPaynotes: loading }),
+      setHasMorePaynotes: (hasMore: boolean) =>
+        set({ hasMorePaynotes: hasMore }),
+      setPaynotesUntil: (until: number | undefined) =>
+        set({ paynotesUntil: until }),
+      clearUserPaynotes: () =>
+        set({
+          userPaynotes: [],
+          hasMorePaynotes: false,
+          paynotesUntil: undefined
+        }),
+
+      // Follow state
       isFollowing: false,
-      followBusy: false
-    })
+      followBusy: false,
+      setIsFollowing: (following: boolean) => set({ isFollowing: following }),
+      setFollowBusy: (busy: boolean) => set({ followBusy: busy }),
+
+      // Set current profile (resets state for new profile)
+      setCurrentProfile: (pubkey: string | null) => {
+        if (pubkey !== get().currentProfilePubkey) {
+          set({
+            currentProfilePubkey: pubkey,
+            profileData: initialProfileData,
+            nip05Valid: null,
+            nip05Validating: false,
+            isLoadingProfile: false,
+            profileError: null,
+            isInitialLoad: true,
+            loadStartTime: null,
+            profileDataLoaded: false,
+            activityLoading: false,
+            activityStats: initialActivityStats,
+            userPaynotes: [],
+            isLoadingPaynotes: false,
+            hasMorePaynotes: false,
+            paynotesUntil: undefined,
+            isFollowing: false,
+            followBusy: false
+          });
+        }
+      },
+
+      // Reset all state
+      reset: () =>
+        set({
+          currentProfilePubkey: null,
+          profileData: initialProfileData,
+          nip05Valid: null,
+          nip05Validating: false,
+          isLoadingProfile: false,
+          profileError: null,
+          isInitialLoad: true,
+          loadStartTime: null,
+          profileDataLoaded: false,
+          activityLoading: false,
+          activityStats: initialActivityStats,
+          userPaynotes: [],
+          isLoadingPaynotes: false,
+          hasMorePaynotes: false,
+          paynotesUntil: undefined,
+          isFollowing: false,
+          followBusy: false
+        })
     }),
     { name: 'ProfileStore' }
   )
@@ -281,8 +302,10 @@ export const useProfileActions = () =>
 
 // Individual hooks for specific values
 export const useProfileData = () => useProfileStore(state => state.profileData);
-export const useUserPaynotes = () => useProfileStore(state => state.userPaynotes);
-export const useActivityStats = () => useProfileStore(state => state.activityStats);
+export const useUserPaynotes = () =>
+  useProfileStore(state => state.userPaynotes);
+export const useActivityStats = () =>
+  useProfileStore(state => state.activityStats);
 export const useIsFollowing = () => useProfileStore(state => state.isFollowing);
 
 /**
@@ -346,4 +369,3 @@ export const useProfileManagementActions = () =>
       setCurrentProfile: state.setCurrentProfile
     }))
   );
-

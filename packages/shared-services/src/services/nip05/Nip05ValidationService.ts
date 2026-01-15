@@ -124,7 +124,8 @@ export class Nip05ValidationService {
 
           // Compare hex pubkeys (64 chars) or npub format
           isValid =
-            normalizedRegistered.toLowerCase() === normalizedExpected.toLowerCase();
+            normalizedRegistered.toLowerCase() ===
+            normalizedExpected.toLowerCase();
         }
 
         this.nip05ValidationCache.set(cacheKey, {
@@ -164,4 +165,3 @@ export class Nip05ValidationService {
     this.nip05ValidationCache.clear();
   }
 }
-

@@ -20,7 +20,9 @@ export const PasswordPromptOverlay: React.FC<PasswordPromptOverlayProps> = ({
       // Show validation message
       try {
         const { useUIStore } = await import('@pubpay/shared-services');
-        useUIStore.getState().openToast('Please enter your password', 'error', false);
+        useUIStore
+          .getState()
+          .openToast('Please enter your password', 'error', false);
         setTimeout(() => {
           try {
             useUIStore.getState().closeToast();
@@ -40,11 +42,13 @@ export const PasswordPromptOverlay: React.FC<PasswordPromptOverlayProps> = ({
     } catch (error) {
       console.error('Password prompt failed:', error);
       // Extract user-friendly error message
-      const errorMessage = error instanceof Error
-        ? (error.message.includes('incorrect') || error.message.includes('password')
+      const errorMessage =
+        error instanceof Error
+          ? error.message.includes('incorrect') ||
+            error.message.includes('password')
             ? error.message
-            : 'Incorrect password. Please check your password and try again.')
-        : 'Incorrect password. Please check your password and try again.';
+            : 'Incorrect password. Please check your password and try again.'
+          : 'Incorrect password. Please check your password and try again.';
 
       try {
         const { useUIStore } = await import('@pubpay/shared-services');
@@ -100,7 +104,13 @@ export const PasswordPromptOverlay: React.FC<PasswordPromptOverlayProps> = ({
           PUB<span className="logoPay">PAY</span>
           <span className="logoMe">.me</span>
         </div>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: 'var(--text-primary)' }}>
+        <h3
+          style={{
+            margin: '0 0 16px 0',
+            fontSize: '18px',
+            color: 'var(--text-primary)'
+          }}
+        >
           Enter Password
         </h3>
         <p
@@ -110,7 +120,8 @@ export const PasswordPromptOverlay: React.FC<PasswordPromptOverlayProps> = ({
             margin: '0 0 24px 0'
           }}
         >
-          Your private key is encrypted with a password. Please enter it to continue.
+          Your private key is encrypted with a password. Please enter it to
+          continue.
         </p>
         <form onSubmit={handleSubmit}>
           <input
@@ -147,7 +158,7 @@ export const PasswordPromptOverlay: React.FC<PasswordPromptOverlayProps> = ({
           <a
             href="#"
             className="label"
-            onClick={(e) => {
+            onClick={e => {
               e.preventDefault();
               handleLogout();
             }}
@@ -165,4 +176,3 @@ export const PasswordPromptOverlay: React.FC<PasswordPromptOverlayProps> = ({
     </div>
   );
 };
-

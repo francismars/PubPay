@@ -4,7 +4,11 @@ import { NostrUtil } from '@pubpay/shared-services';
 import { AuthService } from '@pubpay/shared-services';
 import { Kind0Event, Kind9735Event } from '@pubpay/shared-types';
 import { TIMEOUT, LIGHTNING, STORAGE_KEYS, TOAST_DURATION } from '../constants';
-import { validateNoteContent, validatePaymentAmount, validatePaymentAmountRange } from '../utils/validation';
+import {
+  validateNoteContent,
+  validatePaymentAmount,
+  validatePaymentAmountRange
+} from '../utils/validation';
 
 // Import npm packages
 import { nip19, finalizeEvent, getEventHash, verifyEvent } from 'nostr-tools';
@@ -51,10 +55,7 @@ export const useHomeFunctionality = () => {
   const { setActiveFeed, clearAllPosts: clearPosts } = usePostActions();
 
   // Use services hook (nostrReady is now managed by store)
-  const {
-    nostrClientRef,
-    zapServiceRef
-  } = useServices();
+  const { nostrClientRef, zapServiceRef } = useServices();
 
   // Use authentication hook
   const {
@@ -212,7 +213,13 @@ export const useHomeFunctionality = () => {
 
   // Get store actions to pass to useSubscriptions
   // Actions are stable references, so we can use them directly from the actions hook
-  const { updatePost, updateFollowingPost, updateReply, addPost, addFollowingPost } = usePostActions();
+  const {
+    updatePost,
+    updateFollowingPost,
+    updateReply,
+    addPost,
+    addFollowingPost
+  } = usePostActions();
 
   // Use subscriptions hook - now uses store actions directly
   useSubscriptions({
@@ -254,7 +261,6 @@ export const useHomeFunctionality = () => {
     followingPubkeysRef.current = [];
   };
 
-
   const handlePostNote = async (
     formData: Record<string, string | undefined>
   ) => {
@@ -284,8 +290,17 @@ export const useHomeFunctionality = () => {
       // Validate note content
       if (!payNoteContent || payNoteContent.trim() === '') {
         const { useUIStore } = await import('@pubpay/shared-services');
-        useUIStore.getState().openToast('Please enter a payment request description', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+        useUIStore
+          .getState()
+          .openToast(
+            'Please enter a payment request description',
+            'error',
+            false
+          );
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.MEDIUM
+        );
         return;
       }
 
@@ -293,8 +308,17 @@ export const useHomeFunctionality = () => {
       if (!noteContentValidation.valid) {
         // Import useUIStore dynamically
         const { useUIStore } = await import('@pubpay/shared-services');
-        useUIStore.getState().openToast(noteContentValidation.error || 'Invalid note content', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+        useUIStore
+          .getState()
+          .openToast(
+            noteContentValidation.error || 'Invalid note content',
+            'error',
+            false
+          );
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.MEDIUM
+        );
         return;
       }
 
@@ -309,8 +333,17 @@ export const useHomeFunctionality = () => {
         const amountValidation = validatePaymentAmount(zapFixed);
         if (!amountValidation.valid) {
           const { useUIStore } = await import('@pubpay/shared-services');
-          useUIStore.getState().openToast(amountValidation.error || 'Invalid amount', 'error', false);
-          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          useUIStore
+            .getState()
+            .openToast(
+              amountValidation.error || 'Invalid amount',
+              'error',
+              false
+            );
+          setTimeout(
+            () => useUIStore.getState().closeToast(),
+            TOAST_DURATION.MEDIUM
+          );
           return;
         }
         const amount = parseInt(zapFixed.trim(), 10);
@@ -318,12 +351,27 @@ export const useHomeFunctionality = () => {
         const zapMaxAmount = amount * LIGHTNING.MILLISATS_PER_SAT;
         tags.push(['zap-min', zapMinAmount.toString()]);
         tags.push(['zap-max', zapMaxAmount.toString()]);
-      } else if (paymentType === 'range' && zapMin && zapMin.trim() !== '' && zapMax && zapMax.trim() !== '') {
+      } else if (
+        paymentType === 'range' &&
+        zapMin &&
+        zapMin.trim() !== '' &&
+        zapMax &&
+        zapMax.trim() !== ''
+      ) {
         const rangeValidation = validatePaymentAmountRange(zapMin, zapMax);
         if (!rangeValidation.valid) {
           const { useUIStore } = await import('@pubpay/shared-services');
-          useUIStore.getState().openToast(rangeValidation.error || 'Invalid amount range', 'error', false);
-          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          useUIStore
+            .getState()
+            .openToast(
+              rangeValidation.error || 'Invalid amount range',
+              'error',
+              false
+            );
+          setTimeout(
+            () => useUIStore.getState().closeToast(),
+            TOAST_DURATION.MEDIUM
+          );
           return;
         }
         const minAmount = parseInt(zapMin.trim(), 10);
@@ -340,8 +388,17 @@ export const useHomeFunctionality = () => {
         const goalValidation = validatePaymentAmount(zapGoal);
         if (!goalValidation.valid) {
           const { useUIStore } = await import('@pubpay/shared-services');
-          useUIStore.getState().openToast(goalValidation.error || 'Invalid goal amount', 'error', false);
-          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          useUIStore
+            .getState()
+            .openToast(
+              goalValidation.error || 'Invalid goal amount',
+              'error',
+              false
+            );
+          setTimeout(
+            () => useUIStore.getState().closeToast(),
+            TOAST_DURATION.MEDIUM
+          );
           return;
         }
         const goalAmount = parseInt(zapGoal.trim(), 10);
@@ -415,7 +472,10 @@ export const useHomeFunctionality = () => {
           return;
         }
         // Decode nsec - nip19.decode returns a union type, cast through unknown for type safety
-        const decoded = nip19.decode(authState.privateKey) as unknown as { type: 'nsec'; data: Uint8Array };
+        const decoded = nip19.decode(authState.privateKey) as unknown as {
+          type: 'nsec';
+          data: Uint8Array;
+        };
         if (decoded.type !== 'nsec') {
           console.error('Invalid nsec format');
           return;
@@ -426,7 +486,10 @@ export const useHomeFunctionality = () => {
         event.pubkey = authState.publicKey!;
         event.id = getEventHash(event);
         const eventString = JSON.stringify(event);
-        sessionStorage.setItem(STORAGE_KEYS.SIGN_KIND1, JSON.stringify({ event }));
+        sessionStorage.setItem(
+          STORAGE_KEYS.SIGN_KIND1,
+          JSON.stringify({ event })
+        );
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
         return;
       } else {

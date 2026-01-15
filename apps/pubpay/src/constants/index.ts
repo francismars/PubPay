@@ -319,4 +319,3 @@ export const SEPARATORS = {
   LIGHTNING_ADDRESS: '@', // Used for lightning addresses and NIP-05
   PATH: '/'
 } as const;
-

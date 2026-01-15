@@ -7,7 +7,15 @@ import { nip19 } from 'nostr-tools';
 import { formatContent } from '../../utils/contentFormatter';
 import { useUIStore } from '@pubpay/shared-services';
 import { sanitizeImageUrl, sanitizeUrl } from '../../utils/profileUtils';
-import { INTERVAL, TIMEOUT, API_PATHS, PROTOCOLS, SEPARATORS, COLORS, STORAGE_KEYS } from '../../constants';
+import {
+  INTERVAL,
+  TIMEOUT,
+  API_PATHS,
+  PROTOCOLS,
+  SEPARATORS,
+  COLORS,
+  STORAGE_KEYS
+} from '../../constants';
 import { SendPaymentModal } from '../SendPaymentModal/SendPaymentModal';
 import { useWalletState } from '../../stores/useWalletStore';
 
@@ -58,7 +66,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
   }) => {
     const navigate = useNavigate();
     const { nwcClient } = useWalletState();
-    
+
     // Debug: log payment error changes
     useEffect(() => {
       if (paymentError) {
@@ -97,23 +105,31 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       const raw = post.event.content || '';
       // Baseline formatting: linkify nostr:npub, @npub, bare npub, and URLs
       let baseline = raw;
-      
+
       // Process mentions using position-based replacement to handle duplicate mentions correctly
-      const processedRanges: Array<{start: number, end: number, replacement: string}> = [];
-      
+      const processedRanges: Array<{
+        start: number;
+        end: number;
+        replacement: string;
+      }> = [];
+
       // First, handle bare npub mentions (process before other formats to avoid conflicts)
-      const bareNpubMatches = Array.from(baseline.matchAll(/\b((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi));
-      
+      const bareNpubMatches = Array.from(
+        baseline.matchAll(
+          /\b((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi
+        )
+      );
+
       for (const matchObj of bareNpubMatches) {
         const match = matchObj[0];
         const offset = matchObj.index || 0;
-        
+
         // Check if it's preceded by nostr: or @
         const prefix = baseline.substring(Math.max(0, offset - 7), offset);
         if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
           continue; // Skip, will be processed with prefix
         }
-        
+
         const shortId =
           match.length > 35
             ? `${match.substr(0, 4)}...${match.substr(match.length - 4)}`
@@ -125,10 +141,14 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           replacement: replacement
         });
       }
-      
+
       // Handle nostr:npub mentions
-      const nostrNpubMatches = Array.from(baseline.matchAll(/nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi));
-      
+      const nostrNpubMatches = Array.from(
+        baseline.matchAll(
+          /nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
+        )
+      );
+
       for (const matchObj of nostrNpubMatches) {
         const match = matchObj[0];
         const offset = matchObj.index || 0;
@@ -144,10 +164,14 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           replacement: replacement
         });
       }
-      
+
       // Handle @npub mentions
-      const atNpubMatches = Array.from(baseline.matchAll(/@((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi));
-      
+      const atNpubMatches = Array.from(
+        baseline.matchAll(
+          /@((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
+        )
+      );
+
       for (const matchObj of atNpubMatches) {
         const match = matchObj[0];
         const offset = matchObj.index || 0;
@@ -163,26 +187,26 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           replacement: replacement
         });
       }
-      
+
       // Apply all replacements in reverse order to maintain correct positions
       processedRanges.sort((a, b) => b.start - a.start);
       for (const range of processedRanges) {
-        baseline = baseline.substring(0, range.start) + range.replacement + baseline.substring(range.end);
+        baseline =
+          baseline.substring(0, range.start) +
+          range.replacement +
+          baseline.substring(range.end);
       }
-      
+
       // Handle URLs - validate before creating links (defense-in-depth)
       baseline = baseline
-        .replace(
-          /(https?:\/\/[^\s<]+)/g,
-          (match) => {
-            // Validate URL before creating link
-            const validatedUrl = sanitizeUrl(match);
-            if (!validatedUrl) return match; // Return original if invalid
-            return `<a href="${validatedUrl}" target="_blank" rel="noopener noreferrer">${match}</a>`;
-          }
-        )
+        .replace(/(https?:\/\/[^\s<]+)/g, match => {
+          // Validate URL before creating link
+          const validatedUrl = sanitizeUrl(match);
+          if (!validatedUrl) return match; // Return original if invalid
+          return `<a href="${validatedUrl}" target="_blank" rel="noopener noreferrer">${match}</a>`;
+        })
         .replace(/\n/g, '<br />');
-      
+
       setFormattedContent(baseline);
 
       const upgrade = async () => {
@@ -253,32 +277,38 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       const paddingRight = parseFloat(inputStyle.paddingRight) || 0;
       const availableWidth = containerWidth - paddingRight;
       const textCenter = availableWidth / 2;
-      const suffixLeft = textCenter + (textWidth / 2) + 10; // 10px gap after number
+      const suffixLeft = textCenter + textWidth / 2 + 10; // 10px gap after number
 
       suffix.style.left = `${suffixLeft}px`;
     }, [zapAmount]);
 
     // Callback ref - calculates position when input is mounted
-    const inputRefCallback = useCallback((element: HTMLInputElement | null) => {
-      zapAmountInputRef.current = element;
-      if (element) {
-        // Wait for suffix to be available, then calculate position
-        requestAnimationFrame(() => {
-          if (zapAmountSuffixRef.current) {
-            updateSatsPosition();
-          }
-        });
-      }
-    }, [updateSatsPosition]);
+    const inputRefCallback = useCallback(
+      (element: HTMLInputElement | null) => {
+        zapAmountInputRef.current = element;
+        if (element) {
+          // Wait for suffix to be available, then calculate position
+          requestAnimationFrame(() => {
+            if (zapAmountSuffixRef.current) {
+              updateSatsPosition();
+            }
+          });
+        }
+      },
+      [updateSatsPosition]
+    );
 
     // Callback ref for suffix - calculates position when suffix is mounted
-    const suffixRefCallback = useCallback((element: HTMLSpanElement | null) => {
-      zapAmountSuffixRef.current = element;
-      if (element && zapAmountInputRef.current) {
-        // Both elements are now available, calculate position
-        requestAnimationFrame(updateSatsPosition);
-      }
-    }, [updateSatsPosition]);
+    const suffixRefCallback = useCallback(
+      (element: HTMLSpanElement | null) => {
+        zapAmountSuffixRef.current = element;
+        if (element && zapAmountInputRef.current) {
+          // Both elements are now available, calculate position
+          requestAnimationFrame(updateSatsPosition);
+        }
+      },
+      [updateSatsPosition]
+    );
 
     // Update position when zapAmount changes or window resizes
     useEffect(() => {
@@ -311,24 +341,27 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     const isProfileLoading = post.profileLoading === true;
     const displayName = isProfileLoading
       ? '' // Will show skeleton
-      : (authorData?.display_name || authorData?.name || 'Anonymous');
+      : authorData?.display_name || authorData?.name || 'Anonymous';
     const profilePicture = isProfileLoading
       ? genericUserIcon // Will show skeleton
-      : (sanitizeImageUrl(authorData?.picture) || genericUserIcon);
+      : sanitizeImageUrl(authorData?.picture) || genericUserIcon;
     const nip05 = isProfileLoading ? undefined : authorData?.nip05;
     const lud16 = isProfileLoading ? undefined : authorData?.lud16;
     const hasValidLightning = !!lud16 && /.+@.+\..+/.test(lud16);
     // Use validation result if available, otherwise fall back to format check
-    const isLightningValid = post.lightningValid !== undefined
-      ? post.lightningValid
-      : hasValidLightning;
+    const isLightningValid =
+      post.lightningValid !== undefined
+        ? post.lightningValid
+        : hasValidLightning;
 
     // Check if note has payment amount defined (zap-min or zap-max)
     const hasPaymentAmount = post.zapMin > 0 || post.zapMax > 0;
-    
+
     // Check if this is a pubpay post (has #pubpay tag)
-    const isPubpayPost = post.hasZapTags || post.event?.tags?.some(tag => tag[0] === 't' && tag[1] === 'pubpay');
-    
+    const isPubpayPost =
+      post.hasZapTags ||
+      post.event?.tags?.some(tag => tag[0] === 't' && tag[1] === 'pubpay');
+
     // Calculate total amount from zaps within limits (for goal checking)
     // Must respect: amount limits (zap-min/zap-max) and zap-payer restriction (if present)
     // CRITICAL: Sort zaps by created_at (oldest first) to ensure correct order for zap-uses and zap-goal
@@ -337,7 +370,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       const timeB = b.created_at || 0;
       return timeA - timeB; // Oldest first
     });
-    
+
     const hasZapPayerRestrictionForTotals = !!post.zapPayer;
     const zapsWithinLimits = sortedZapsForTotals.filter(zap => {
       const amount = zap.zapAmount || 0;
@@ -355,14 +388,17 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       }
 
       // Check zap-payer restriction
-      const matchesPayer = !hasZapPayerRestrictionForTotals || zap.zapPayerPubkey === post.zapPayer;
+      const matchesPayer =
+        !hasZapPayerRestrictionForTotals ||
+        zap.zapPayerPubkey === post.zapPayer;
 
       return isWithinRange && matchesPayer;
     });
 
-    const zapsToCount = post.zapUses && post.zapUses > 0
-      ? zapsWithinLimits.slice(0, post.zapUses)
-      : zapsWithinLimits;
+    const zapsToCount =
+      post.zapUses && post.zapUses > 0
+        ? zapsWithinLimits.slice(0, post.zapUses)
+        : zapsWithinLimits;
 
     const totalAmount = zapsToCount.reduce(
       (sum, zap) => sum + (zap.zapAmount || 0),
@@ -370,16 +406,19 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
     );
 
     // Check if restrictions have been met
-    const zapUsesReached = post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses;
-    const zapGoalReached = post.zapGoal && post.zapGoal > 0 && totalAmount >= post.zapGoal;
+    const zapUsesReached =
+      post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses;
+    const zapGoalReached =
+      post.zapGoal && post.zapGoal > 0 && totalAmount >= post.zapGoal;
     const restrictionsMet = zapUsesReached || zapGoalReached;
-    
+
     // Check if current user matches zap-payer restriction (if present)
     const hasZapPayerRestriction = !!post.zapPayer;
-    const isCurrentUserZapPayer = hasZapPayerRestriction && 
-      currentUserPublicKey && 
+    const isCurrentUserZapPayer =
+      hasZapPayerRestriction &&
+      currentUserPublicKey &&
       currentUserPublicKey === post.zapPayer;
-    
+
     // Check if note is payable - must have:
     // 1. Valid lightning address
     // 2. zap-min or zap-max tags (payment amount defined)
@@ -593,12 +632,12 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       const zapMax = post.zapMax || 0;
       const hasZapPayerRestriction = !!post.zapPayer;
       const hasZapUsesRestriction = !!(post.zapUses && post.zapUses > 0);
-      
+
       // Check if there are any restrictions at all
-      const hasAnyRestrictions = 
-        zapMin > 0 || 
-        zapMax > 0 || 
-        hasZapPayerRestriction || 
+      const hasAnyRestrictions =
+        zapMin > 0 ||
+        zapMax > 0 ||
+        hasZapPayerRestriction ||
         hasZapUsesRestriction;
 
       // If no restrictions, all zaps go to hero (zapReaction) - maintain chronological order
@@ -628,7 +667,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             isWithinRange = zap.zapAmount <= zapMax;
           }
         }
-        
+
         // Check zap-payer restriction
         const matchesPayer =
           !hasZapPayerRestriction || zap.zapPayerPubkey === post.zapPayer;
@@ -760,9 +799,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           {isProfileLoading ? (
             <div className="skeleton skeleton-avatar"></div>
           ) : (
-          <Link to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}>
-            <img className="userImg" src={profilePicture} alt="Profile" />
-          </Link>
+            <Link to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}>
+              <img className="userImg" src={profilePicture} alt="Profile" />
+            </Link>
           )}
         </div>
         <div className="noteData">
@@ -770,21 +809,36 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             <div className="noteAuthor">
               <div className="noteDisplayName">
                 {isProfileLoading ? (
-                  <div className="skeleton skeleton-text short" style={{ display: 'inline-block', width: '120px', height: '16px' }}></div>
+                  <div
+                    className="skeleton skeleton-text short"
+                    style={{
+                      display: 'inline-block',
+                      width: '120px',
+                      height: '16px'
+                    }}
+                  ></div>
                 ) : (
-                <Link
-                  to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}
-                  className="noteAuthorLink"
-                >
-                  {displayName}
-                </Link>
+                  <Link
+                    to={`/profile/${nip19.npubEncode(post.event.pubkey)}`}
+                    className="noteAuthorLink"
+                  >
+                    {displayName}
+                  </Link>
                 )}
               </div>
 
               {/* NIP-05 Verification */}
               <div className="noteNIP05 label">
                 {isProfileLoading ? (
-                  <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '100px', height: '8px', marginTop: '4px' }}></div>
+                  <div
+                    className="skeleton skeleton-text tiny"
+                    style={{
+                      display: 'inline-block',
+                      width: '100px',
+                      height: '8px',
+                      marginTop: '4px'
+                    }}
+                  ></div>
                 ) : nip05 ? (
                   post.nip05Valid === false ? (
                     // Invalid NIP-05 - still clickable
@@ -820,7 +874,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       rel="noopener noreferrer"
                       title="Verified NIP-05 identifier"
                     >
-                      <span className="material-symbols-outlined">check_circle</span>
+                      <span className="material-symbols-outlined">
+                        check_circle
+                      </span>
                       {nip05}
                     </a>
                   )
@@ -835,7 +891,15 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               {/* Lightning Address */}
               <div className="noteLNAddress label">
                 {isProfileLoading ? (
-                  <div className="skeleton skeleton-text tiny" style={{ display: 'inline-block', width: '120px', height: '8px', marginTop: '4px' }}></div>
+                  <div
+                    className="skeleton skeleton-text tiny"
+                    style={{
+                      display: 'inline-block',
+                      width: '120px',
+                      height: '8px',
+                      marginTop: '4px'
+                    }}
+                  ></div>
                 ) : lud16 ? (
                   post.lightningValid === false ? (
                     // Invalid lightning address - still clickable
@@ -858,7 +922,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       className="label"
                       title="Validating lightning address..."
                     >
-                      <span className="material-symbols-outlined validating-icon">hourglass_empty</span>
+                      <span className="material-symbols-outlined validating-icon">
+                        hourglass_empty
+                      </span>
                       {lud16}
                     </a>
                   ) : (
@@ -892,12 +958,18 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             onClick={e => {
               // Check if the clicked element is a link or inside a link
               const target = e.target as HTMLElement;
-              const clickedLink = target.tagName === 'A' ? target as HTMLAnchorElement : target.closest('a');
+              const clickedLink =
+                target.tagName === 'A'
+                  ? (target as HTMLAnchorElement)
+                  : target.closest('a');
 
               if (clickedLink) {
                 // Check if it's an internal profile or note link
                 const href = clickedLink.getAttribute('href');
-                if (href && (href.startsWith('/profile/') || href.startsWith('/note/'))) {
+                if (
+                  href &&
+                  (href.startsWith('/profile/') || href.startsWith('/note/'))
+                ) {
                   e.preventDefault();
                   e.stopPropagation();
                   navigate(href);
@@ -929,7 +1001,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
               <div className="zapPayerInner">
                 <img
                   className="userImg"
-                  src={sanitizeImageUrl(post.zapPayerPicture) || genericUserIcon}
+                  src={
+                    sanitizeImageUrl(post.zapPayerPicture) || genericUserIcon
+                  }
                 />
                 <div className="userName">
                   {post.zapPayerName && post.zapPayerName.trim() !== ''
@@ -984,7 +1058,9 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   <Link to={`/profile/${zap.zapPayerPubkey}`}>
                     <img
                       className="userImg"
-                      src={sanitizeImageUrl(zap.zapPayerPicture) || genericUserIcon}
+                      src={
+                        sanitizeImageUrl(zap.zapPayerPicture) || genericUserIcon
+                      }
                     />
                   </Link>
                   <Link
@@ -996,7 +1072,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   {zap.content && (
                     <div className="zapReactionTooltip">
                       {zap.content.length > 21
-                        ? `${zap.content.substring(0, 21)  }...`
+                        ? `${zap.content.substring(0, 21)}...`
                         : zap.content}
                     </div>
                   )}
@@ -1007,93 +1083,98 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
 
           {/* Total Zaps Accounting - only count zaps within payment restrictions
               Always show if zap-goal exists, even with zero zaps */}
-          {(post.zaps.length > 0 || (post.zapGoal && post.zapGoal > 0)) && (() => {
-            // CRITICAL: Sort zaps by created_at (oldest first) to ensure correct order for zap-uses and zap-goal
-            const sortedZapsForAccounting = [...post.zaps].sort((a, b) => {
-              const timeA = a.created_at || 0;
-              const timeB = b.created_at || 0;
-              return timeA - timeB; // Oldest first
-            });
-            
-            // Filter zaps by amount limits and zap-payer restriction (matches logic from useHomeFunctionality)
-            const hasZapPayerRestriction = !!post.zapPayer;
-            const zapsWithinLimits = sortedZapsForAccounting.filter(zap => {
-              const amount = zap.zapAmount || 0;
-              const min = post.zapMin || 0;
-              const max = post.zapMax || 0;
+          {(post.zaps.length > 0 || (post.zapGoal && post.zapGoal > 0)) &&
+            (() => {
+              // CRITICAL: Sort zaps by created_at (oldest first) to ensure correct order for zap-uses and zap-goal
+              const sortedZapsForAccounting = [...post.zaps].sort((a, b) => {
+                const timeA = a.created_at || 0;
+                const timeB = b.created_at || 0;
+                return timeA - timeB; // Oldest first
+              });
 
-              // Check amount range
-              let isWithinRange = true;
-              if (min > 0 && max > 0) {
-                // Both min and max specified
-                isWithinRange = amount >= min && amount <= max;
-              } else if (min > 0 && max === 0) {
-                // Only min specified
-                isWithinRange = amount >= min;
-              } else if (min === 0 && max > 0) {
-                // Only max specified
-                isWithinRange = amount <= max;
+              // Filter zaps by amount limits and zap-payer restriction (matches logic from useHomeFunctionality)
+              const hasZapPayerRestriction = !!post.zapPayer;
+              const zapsWithinLimits = sortedZapsForAccounting.filter(zap => {
+                const amount = zap.zapAmount || 0;
+                const min = post.zapMin || 0;
+                const max = post.zapMax || 0;
+
+                // Check amount range
+                let isWithinRange = true;
+                if (min > 0 && max > 0) {
+                  // Both min and max specified
+                  isWithinRange = amount >= min && amount <= max;
+                } else if (min > 0 && max === 0) {
+                  // Only min specified
+                  isWithinRange = amount >= min;
+                } else if (min === 0 && max > 0) {
+                  // Only max specified
+                  isWithinRange = amount <= max;
+                }
+
+                // Check zap-payer restriction
+                const matchesPayer =
+                  !hasZapPayerRestriction ||
+                  zap.zapPayerPubkey === post.zapPayer;
+
+                return isWithinRange && matchesPayer;
+              });
+
+              // Cap count at zapUses if specified
+              const zapsToCount =
+                post.zapUses && post.zapUses > 0
+                  ? zapsWithinLimits.slice(0, post.zapUses)
+                  : zapsWithinLimits;
+
+              const totalAmount = zapsToCount.reduce(
+                (sum, zap) => sum + (zap.zapAmount || 0),
+                0
+              );
+              const totalCount = zapsToCount.length;
+
+              // Don't show if total is 0, unless there's a zap-goal (goal should always be visible)
+              if (
+                totalAmount === 0 &&
+                totalCount === 0 &&
+                !(post.zapGoal && post.zapGoal > 0)
+              ) {
+                return null;
               }
 
-              // Check zap-payer restriction
-              const matchesPayer = !hasZapPayerRestriction || zap.zapPayerPubkey === post.zapPayer;
+              // Calculate goal progress if zap-goal exists
+              let goalProgress = null;
+              let goalPercentage = null;
+              if (post.zapGoal && post.zapGoal > 0) {
+                const progress = Math.min(
+                  (totalAmount / post.zapGoal) * 100,
+                  100
+                );
+                goalProgress = progress;
+                goalPercentage = Math.round(progress);
+              }
 
-              return isWithinRange && matchesPayer;
-            });
-
-            // Cap count at zapUses if specified
-            const zapsToCount = post.zapUses && post.zapUses > 0
-              ? zapsWithinLimits.slice(0, post.zapUses)
-              : zapsWithinLimits;
-
-            const totalAmount = zapsToCount.reduce(
-              (sum, zap) => sum + (zap.zapAmount || 0),
-              0
-            );
-            const totalCount = zapsToCount.length;
-
-            // Don't show if total is 0, unless there's a zap-goal (goal should always be visible)
-            if (totalAmount === 0 && totalCount === 0 && !(post.zapGoal && post.zapGoal > 0)) {
-              return null;
-            }
-
-            // Calculate goal progress if zap-goal exists
-            let goalProgress = null;
-            let goalPercentage = null;
-            if (post.zapGoal && post.zapGoal > 0) {
-              const progress = Math.min((totalAmount / post.zapGoal) * 100, 100);
-              goalProgress = progress;
-              goalPercentage = Math.round(progress);
-            }
-
-            return (
-              <div className="totalZapsAccounting">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', flexWrap: 'wrap' }}>
-                  {post.zapGoal && post.zapGoal > 0 ? (
-                    <>
-                      <div className="totalZapsGoal">
-                        <span className="totalZapsNumber">
-                          {totalAmount.toLocaleString()} / {post.zapGoal.toLocaleString()}
-                        </span>
-                        <span className="label"> sats ({goalPercentage}%)</span>
-                      </div>
-                      <div className="totalZapsSeparator">·</div>
-                      <div className="totalZapsCount">
-                        <span className="totalZapsNumber">{totalCount}</span>
-                        <span className="label">
-                          {totalCount === 1 ? 'zap' : 'zaps'}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div className="totalZapsAmount">
+              return (
+                <div className="totalZapsAccounting">
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    {post.zapGoal && post.zapGoal > 0 ? (
+                      <>
+                        <div className="totalZapsGoal">
                           <span className="totalZapsNumber">
-                            {totalAmount.toLocaleString()}
+                            {totalAmount.toLocaleString()} /{' '}
+                            {post.zapGoal.toLocaleString()}
                           </span>
-                          <span className="label">sats</span>
+                          <span className="label">
+                            {' '}
+                            sats ({goalPercentage}%)
+                          </span>
                         </div>
                         <div className="totalZapsSeparator">·</div>
                         <div className="totalZapsCount">
@@ -1102,27 +1183,53 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                             {totalCount === 1 ? 'zap' : 'zaps'}
                           </span>
                         </div>
-                        
+                      </>
+                    ) : (
+                      <>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}
+                        >
+                          <div className="totalZapsAmount">
+                            <span className="totalZapsNumber">
+                              {totalAmount.toLocaleString()}
+                            </span>
+                            <span className="label">sats</span>
+                          </div>
+                          <div className="totalZapsSeparator">·</div>
+                          <div className="totalZapsCount">
+                            <span className="totalZapsNumber">
+                              {totalCount}
+                            </span>
+                            <span className="label">
+                              {totalCount === 1 ? 'zap' : 'zaps'}
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  {post.zapGoal &&
+                    post.zapGoal > 0 &&
+                    goalProgress !== null && (
+                      <div className="zapGoalBar">
+                        <div
+                          className="zapGoalBarFill"
+                          style={{ width: `${goalProgress}%` }}
+                        />
                       </div>
-                     
-                    </>
-                  )}
+                    )}
+                  <div className="zapTotalLabel">
+                    {post.zapGoal && post.zapGoal > 0 && goalProgress !== null
+                      ? 'Progress'
+                      : 'Totals'}
+                  </div>
                 </div>
-                {post.zapGoal && post.zapGoal > 0 && goalProgress !== null && (
-                  <div className="zapGoalBar">
-                    <div
-                      className="zapGoalBarFill"
-                      style={{ width: `${goalProgress}%` }}
-                    />
-                  </div>
-                )}
-                 <div className="zapTotalLabel">
-                  {post.zapGoal && post.zapGoal > 0 && goalProgress !== null  ? 'Progress' : 'Totals'}
-                  </div>
-                  
-              </div>
-            );
-          })()}
+              );
+            })()}
 
           {/* Zap Values - only show for notes with zap tags, right above slider */}
           {/* Hide min/max display when there's a range (they're overlaid on input) */}
@@ -1134,7 +1241,8 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   <div className="zapMin">
                     <span className="zapMinVal">
                       {post.zapMin.toLocaleString()}
-                    </span><br/>
+                    </span>
+                    <br />
                     <span className="label">sats</span>
                   </div>
                   <div className="zapMinLabel">Fixed Amount</div>
@@ -1168,11 +1276,15 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     <>
                       <div className="zapAmountMinOverlay">
                         <span className="zapAmountOverlayLabel">Min</span>
-                        <span className="zapAmountOverlayValue">{post.zapMin.toLocaleString()}</span>
+                        <span className="zapAmountOverlayValue">
+                          {post.zapMin.toLocaleString()}
+                        </span>
                       </div>
                       <div className="zapAmountMaxOverlay">
                         <span className="zapAmountOverlayLabel">Max</span>
-                        <span className="zapAmountOverlayValue">{post.zapMax.toLocaleString()}</span>
+                        <span className="zapAmountOverlayValue">
+                          {post.zapMax.toLocaleString()}
+                        </span>
                       </div>
                     </>
                   )}
@@ -1230,7 +1342,13 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
 
                   // If already paid, show toast and do nothing (only on quick click, not long press)
                   if (restrictionsMet) {
-                    useUIStore.getState().openToast('This post has been fully paid', 'info', false);
+                    useUIStore
+                      .getState()
+                      .openToast(
+                        'This post has been fully paid',
+                        'info',
+                        false
+                      );
                     return;
                   }
 
@@ -1288,28 +1406,29 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       ? 'This post has been fully paid - Long press to open payment overlay'
                       : !hasPaymentAmount
                         ? 'Click to choose amount or long press to open payment overlay'
-                      : hasZapPayerRestriction && !isCurrentUserZapPayer
-                        ? 'Only the specified payer can pay this post'
-                      : !isPayable
-                        ? 'This post is not payable'
-                        : post.zapUses > 0 && post.zapUsesCurrent >= post.zapUses
-                          ? 'This post has been fully paid - Long press to open payment overlay'
-                          : 'Click to pay or long press to open payment overlay'
+                        : hasZapPayerRestriction && !isCurrentUserZapPayer
+                          ? 'Only the specified payer can pay this post'
+                          : !isPayable
+                            ? 'This post is not payable'
+                            : post.zapUses > 0 &&
+                                post.zapUsesCurrent >= post.zapUses
+                              ? 'This post has been fully paid - Long press to open payment overlay'
+                              : 'Click to pay or long press to open payment overlay'
                 }
               >
                 {paymentError
                   ? paymentError
                   : isPaying
-                  ? 'Paying…'
-                  : restrictionsMet
-                    ? 'Paid'
-                    : !hasPaymentAmount
-                      ? 'Pay'
-                    : hasZapPayerRestriction && !isCurrentUserZapPayer
-                      ? 'Authorized Payer Only'
-                    : !isPayable
-                      ? 'Not Payable'
-                      : 'Pay'}
+                    ? 'Paying…'
+                    : restrictionsMet
+                      ? 'Paid'
+                      : !hasPaymentAmount
+                        ? 'Pay'
+                        : hasZapPayerRestriction && !isCurrentUserZapPayer
+                          ? 'Authorized Payer Only'
+                          : !isPayable
+                            ? 'Not Payable'
+                            : 'Pay'}
               </button>
             </div>
           )}
@@ -1326,7 +1445,10 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     <Link to={`/profile/${zap.zapPayerPubkey}`}>
                       <img
                         className="userImg"
-                        src={sanitizeImageUrl(zap.zapPayerPicture) || genericUserIcon}
+                        src={
+                          sanitizeImageUrl(zap.zapPayerPicture) ||
+                          genericUserIcon
+                        }
                       />
                     </Link>
                     <Link
@@ -1338,7 +1460,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     {zap.content && (
                       <div className="zapReactionTooltip">
                         {zap.content.length > 21
-                          ? `${zap.content.substring(0, 21)  }...`
+                          ? `${zap.content.substring(0, 21)}...`
                           : zap.content}
                       </div>
                     )}
@@ -1350,121 +1472,136 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             <div className="noteActions">
               {/* Zap Menu - hide for pubpay posts (use main pay button instead) */}
               {!isPubpayPost && (
-              <a
-                ref={zapActionRef}
-                className={`noteAction zapMenuAction ${!hasValidLightning ? 'disabled' : ''}`}
-                onClick={e => {
-                  e.preventDefault();
-                  if (!hasValidLightning) return;
-                  const newState = !showZapMenu;
-                  setShowZapMenu(newState);
-                  if (!newState) {
-                    setShowCommentInput(false);
+                <a
+                  ref={zapActionRef}
+                  className={`noteAction zapMenuAction ${!hasValidLightning ? 'disabled' : ''}`}
+                  onClick={e => {
+                    e.preventDefault();
+                    if (!hasValidLightning) return;
+                    const newState = !showZapMenu;
+                    setShowZapMenu(newState);
+                    if (!newState) {
+                      setShowCommentInput(false);
+                    }
+                  }}
+                  style={{ position: 'relative' }}
+                  title={
+                    !hasValidLightning
+                      ? 'Lightning address missing or invalid'
+                      : 'Open zap menu'
                   }
-                }}
-                style={{ position: 'relative' }}
-                title={
-                  !hasValidLightning
-                    ? 'Lightning address missing or invalid'
-                    : 'Open zap menu'
-                }
-              >
-                <span className="material-symbols-outlined">bolt</span>
-                <div
-                  className={`zapMenu ${showZapMenu ? 'show' : ''}`}
-                  ref={zapMenuRef}
-                  onClick={e => e.stopPropagation()}
                 >
-                  <div className="zapMenuCustom">
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
-                    <input
-                      type="number"
-                      id="customZapInput"
-                      placeholder="sats"
-                      min="1"
-                      value={customZapAmount}
-                      onChange={e => setCustomZapAmount(e.target.value)}
-                      onClick={e => e.stopPropagation()}
-                        style={{ flex: 1 }}
-                    />
-                      {!showCommentInput && (
-                        <button
-                          type="button"
-                          onClick={e => {
-                            e.stopPropagation();
-                            setShowCommentInput(true);
-                          }}
-                          style={{
-                            padding: '0',
-                            background: 'transparent',
-                            border: '2px solid var(--border-color)',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            color: 'var(--text-secondary)',
-                            whiteSpace: 'nowrap',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'all 0.2s ease',
-                            minWidth: '36px',
-                            width: '36px',
-                            boxSizing: 'border-box',
-                            alignSelf: 'stretch'
-                          }}
-                          onMouseEnter={e => {
-                            e.currentTarget.style.background = 'var(--hover-bg)';
-                            e.currentTarget.style.borderColor = 'var(--text-secondary)';
-                          }}
-                          onMouseLeave={e => {
-                            e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.borderColor = 'var(--border-color)';
-                          }}
-                          title="Add comment"
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: '18px', verticalAlign: 'middle' }}>
-                            comment
-                          </span>
-                        </button>
+                  <span className="material-symbols-outlined">bolt</span>
+                  <div
+                    className={`zapMenu ${showZapMenu ? 'show' : ''}`}
+                    ref={zapMenuRef}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="zapMenuCustom">
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'stretch'
+                        }}
+                      >
+                        <input
+                          type="number"
+                          id="customZapInput"
+                          placeholder="sats"
+                          min="1"
+                          value={customZapAmount}
+                          onChange={e => setCustomZapAmount(e.target.value)}
+                          onClick={e => e.stopPropagation()}
+                          style={{ flex: 1 }}
+                        />
+                        {!showCommentInput && (
+                          <button
+                            type="button"
+                            onClick={e => {
+                              e.stopPropagation();
+                              setShowCommentInput(true);
+                            }}
+                            style={{
+                              padding: '0',
+                              background: 'transparent',
+                              border: '2px solid var(--border-color)',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '12px',
+                              color: 'var(--text-secondary)',
+                              whiteSpace: 'nowrap',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s ease',
+                              minWidth: '36px',
+                              width: '36px',
+                              boxSizing: 'border-box',
+                              alignSelf: 'stretch'
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background =
+                                'var(--hover-bg)';
+                              e.currentTarget.style.borderColor =
+                                'var(--text-secondary)';
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = 'transparent';
+                              e.currentTarget.style.borderColor =
+                                'var(--border-color)';
+                            }}
+                            title="Add comment"
+                          >
+                            <span
+                              className="material-symbols-outlined"
+                              style={{
+                                fontSize: '18px',
+                                verticalAlign: 'middle'
+                              }}
+                            >
+                              comment
+                            </span>
+                          </button>
+                        )}
+                      </div>
+                      {showCommentInput && (
+                        <textarea
+                          id="zapCommentInput"
+                          placeholder="Comment (optional)"
+                          value={zapComment}
+                          onChange={e => setZapComment(e.target.value)}
+                          onClick={e => e.stopPropagation()}
+                          rows={2}
+                          style={{ marginTop: '8px' }}
+                          autoFocus
+                        />
                       )}
+                      <button
+                        id="customZapButton"
+                        onClick={async e => {
+                          e.stopPropagation();
+                          await handleCustomZap();
+                        }}
+                        disabled={isPaying}
+                        style={{ opacity: isPaying ? 0.5 : 1 }}
+                      >
+                        {isPaying ? 'Zapping…' : 'Zap'}
+                      </button>
+                      <button
+                        id="customAnonZapButton"
+                        onClick={async e => {
+                          e.stopPropagation();
+                          await handleAnonZap();
+                        }}
+                        disabled={isAnonPaying}
+                        style={{ opacity: isAnonPaying ? 0.5 : 1 }}
+                      >
+                        {isAnonPaying ? 'anon…' : 'anonZap'}
+                      </button>
                     </div>
-                    {showCommentInput && (
-                    <textarea
-                      id="zapCommentInput"
-                        placeholder="Comment (optional)"
-                      value={zapComment}
-                      onChange={e => setZapComment(e.target.value)}
-                      onClick={e => e.stopPropagation()}
-                      rows={2}
-                        style={{ marginTop: '8px' }}
-                        autoFocus
-                    />
-                    )}
-                    <button
-                      id="customZapButton"
-                      onClick={async e => {
-                        e.stopPropagation();
-                        await handleCustomZap();
-                      }}
-                      disabled={isPaying}
-                      style={{ opacity: isPaying ? 0.5 : 1 }}
-                    >
-                      {isPaying ? 'Zapping…' : 'Zap'}
-                    </button>
-                    <button
-                      id="customAnonZapButton"
-                      onClick={async e => {
-                        e.stopPropagation();
-                        await handleAnonZap();
-                      }}
-                      disabled={isAnonPaying}
-                      style={{ opacity: isAnonPaying ? 0.5 : 1 }}
-                    >
-                      {isAnonPaying ? 'anon…' : 'anonZap'}
-                    </button>
                   </div>
-                </div>
-              </a>
+                </a>
               )}
 
               {/* Share */}
@@ -1511,7 +1648,11 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       const noteId = /^[0-9a-f]{64}$/i.test(post.id)
                         ? nip19.noteEncode(post.id)
                         : post.id;
-                      window.open(`/live/${noteId}`, '_blank', 'noopener,noreferrer');
+                      window.open(
+                        `/live/${noteId}`,
+                        '_blank',
+                        'noopener,noreferrer'
+                      );
                     }}
                   >
                     View on live
@@ -1523,134 +1664,134 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         </div>
 
         {/* Zap Confirmation Modal */}
-          <div
-            className="overlayContainer"
+        <div
+          className="overlayContainer"
           style={{
             display: 'flex',
             visibility: showZapModal ? 'visible' : 'hidden',
             opacity: showZapModal ? 1 : 0,
             pointerEvents: showZapModal ? 'auto' : 'none'
           }}
-            onClick={() => {
-              setShowZapModal(false);
-              setZapModalComment('');
-              setIsAnonymousModal(false);
-            }}
+          onClick={() => {
+            setShowZapModal(false);
+            setZapModalComment('');
+            setIsAnonymousModal(false);
+          }}
+        >
+          <div
+            className="overlayInner zapModal"
+            onClick={e => e.stopPropagation()}
           >
-            <div
-              className="overlayInner zapModal"
-              onClick={e => e.stopPropagation()}
+            <h3
+              style={{
+                margin: '0 0 20px 0',
+                color: 'var(--text-primary)',
+                textAlign: 'center'
+              }}
             >
-              <h3
-                style={{
-                  margin: '0 0 20px 0',
-                  color: 'var(--text-primary)',
-                  textAlign: 'center'
-                }}
-              >
-                {isAnonymousModal ? 'Pay Anonymously' : 'Confirm Zap'}
-              </h3>
+              {isAnonymousModal ? 'Pay Anonymously' : 'Confirm Zap'}
+            </h3>
 
-              <div
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '20px'
+              }}
+            >
+              <img
+                src={sanitizeImageUrl(profilePicture) || genericUserIcon}
+                alt="Profile"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  marginBottom: '20px'
+                  width: '48px',
+                  height: '48px',
+                  borderRadius: '50%',
+                  objectFit: 'cover'
                 }}
-              >
-                <img
-                  src={sanitizeImageUrl(profilePicture) || genericUserIcon}
-                  alt="Profile"
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    objectFit: 'cover'
-                  }}
-                  onError={e => {
-                    e.currentTarget.src = genericUserIcon;
-                  }}
-                />
-                <div>
-                  <div
-                    style={{
-                      fontWeight: '600',
-                      color: 'var(--text-primary)',
-                      marginBottom: '4px'
-                    }}
-                  >
-                    {displayName}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '24px',
-                      fontWeight: '700',
-                      color: COLORS.PRIMARY
-                    }}
-                  >
-                    ⚡ {zapAmount} sats
-                  </div>
-                </div>
-              </div>
-
-              <textarea
-                id="zapModalComment"
-                placeholder="Comment (optional)"
-                value={zapModalComment}
-                onChange={e => setZapModalComment(e.target.value)}
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  border: '2px solid var(--border-color)',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: '400',
-                  fontFamily: 'Inter, sans-serif',
-                  backgroundColor: 'var(--input-bg)',
-                  color: 'var(--text-primary)',
-                  transition: 'all 0.2s ease',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  resize: 'vertical',
-                  marginBottom: '20px'
+                onError={e => {
+                  e.currentTarget.src = genericUserIcon;
                 }}
               />
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  className="cta"
-                  onClick={handleZapFromModal}
-                  disabled={isPaying}
+              <div>
+                <div
                   style={{
-                    flex: 1,
-                    opacity: isPaying ? 0.5 : 1,
-                    marginBottom: 0
-                  }}
-                >
-                  {isPaying ? 'Paying…' : 'Pay'}
-                </button>
-                <button
-                  className="cta"
-                  onClick={() => {
-                    setShowZapModal(false);
-                    setZapModalComment('');
-                    setIsAnonymousModal(false);
-                  }}
-                  style={{
-                    flex: 1,
-                    background: 'var(--bg-tertiary)',
+                    fontWeight: '600',
                     color: 'var(--text-primary)',
-                    border: '1px solid var(--border-color)',
-                    marginBottom: 0
+                    marginBottom: '4px'
                   }}
                 >
-                  Cancel
-                </button>
+                  {displayName}
+                </div>
+                <div
+                  style={{
+                    fontSize: '24px',
+                    fontWeight: '700',
+                    color: COLORS.PRIMARY
+                  }}
+                >
+                  ⚡ {zapAmount} sats
+                </div>
               </div>
             </div>
+
+            <textarea
+              id="zapModalComment"
+              placeholder="Comment (optional)"
+              value={zapModalComment}
+              onChange={e => setZapModalComment(e.target.value)}
+              rows={3}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                border: '2px solid var(--border-color)',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '400',
+                fontFamily: 'Inter, sans-serif',
+                backgroundColor: 'var(--input-bg)',
+                color: 'var(--text-primary)',
+                transition: 'all 0.2s ease',
+                outline: 'none',
+                boxSizing: 'border-box',
+                resize: 'vertical',
+                marginBottom: '20px'
+              }}
+            />
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="cta"
+                onClick={handleZapFromModal}
+                disabled={isPaying}
+                style={{
+                  flex: 1,
+                  opacity: isPaying ? 0.5 : 1,
+                  marginBottom: 0
+                }}
+              >
+                {isPaying ? 'Paying…' : 'Pay'}
+              </button>
+              <button
+                className="cta"
+                onClick={() => {
+                  setShowZapModal(false);
+                  setZapModalComment('');
+                  setIsAnonymousModal(false);
+                }}
+                style={{
+                  flex: 1,
+                  background: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
+                  marginBottom: 0
+                }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
+        </div>
 
         {/* Send Payment Modal (for long press and when no amount) */}
         <SendPaymentModal
@@ -1658,7 +1799,16 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           onClose={() => setShowSendPaymentModal(false)}
           nwcClient={nwcClient}
           nostrClient={nostrClient}
-          authState={authState || { isLoggedIn: false, publicKey: null, privateKey: null, signInMethod: null, userProfile: null, displayName: null }}
+          authState={
+            authState || {
+              isLoggedIn: false,
+              publicKey: null,
+              privateKey: null,
+              signInMethod: null,
+              userProfile: null,
+              displayName: null
+            }
+          }
           onPaymentSent={() => {
             setShowSendPaymentModal(false);
             // Optionally refresh or update UI

@@ -1,6 +1,6 @@
 /**
  * LiveEventService - Handles parsing and extraction of live event data
- * 
+ *
  * Provides functionality to:
  * - Parse live event (kind 30311) data from tags
  * - Extract metadata (title, summary, status, streaming URL, etc.)
@@ -92,12 +92,14 @@ export class LiveEventService {
 
     // Extract participants (p tags)
     const participantTags = tags.filter((tag: string[]) => tag[0] === 'p');
-    const participants: Participant[] = participantTags.map((tag: string[]) => ({
-      pubkey: tag[1] || '',
-      relay: tag[2],
-      petname: tag[3],
-      role: tag[3] // Role is often in position 3
-    })).filter((p: Participant) => p.pubkey);
+    const participants: Participant[] = participantTags
+      .map((tag: string[]) => ({
+        pubkey: tag[1] || '',
+        relay: tag[2],
+        petname: tag[3],
+        role: tag[3] // Role is often in position 3
+      }))
+      .filter((p: Participant) => p.pubkey);
 
     // Find host from participants (look for "Host" role)
     const hostParticipant = participants.find(
@@ -148,7 +150,9 @@ export class LiveEventService {
    * Extract streaming URL from live event
    */
   getStreamingUrl(event: Kind30311Event): string | undefined {
-    const streamingTag = event.tags.find((tag: string[]) => tag[0] === 'streaming');
+    const streamingTag = event.tags.find(
+      (tag: string[]) => tag[0] === 'streaming'
+    );
     return streamingTag?.[1];
   }
 
@@ -156,7 +160,9 @@ export class LiveEventService {
    * Extract recording URL from live event
    */
   getRecordingUrl(event: Kind30311Event): string | undefined {
-    const recordingTag = event.tags.find((tag: string[]) => tag[0] === 'recording');
+    const recordingTag = event.tags.find(
+      (tag: string[]) => tag[0] === 'recording'
+    );
     return recordingTag?.[1];
   }
 
@@ -173,13 +179,17 @@ export class LiveEventService {
    * Extract participants from live event
    */
   getParticipants(event: Kind30311Event): Participant[] {
-    const participantTags = event.tags.filter((tag: string[]) => tag[0] === 'p');
-    return participantTags.map((tag: string[]) => ({
-      pubkey: tag[1] || '',
-      relay: tag[2],
-      petname: tag[3],
-      role: tag[3]
-    })).filter((p: Participant) => p.pubkey);
+    const participantTags = event.tags.filter(
+      (tag: string[]) => tag[0] === 'p'
+    );
+    return participantTags
+      .map((tag: string[]) => ({
+        pubkey: tag[1] || '',
+        relay: tag[2],
+        petname: tag[3],
+        role: tag[3]
+      }))
+      .filter((p: Participant) => p.pubkey);
   }
 
   /**
@@ -264,7 +274,9 @@ export class LiveEventService {
   /**
    * Normalize status value to known status types
    */
-  private normalizeStatus(status: string): 'live' | 'planned' | 'ended' | 'unknown' {
+  private normalizeStatus(
+    status: string
+  ): 'live' | 'planned' | 'ended' | 'unknown' {
     const normalized = status.toLowerCase().trim();
     if (normalized === 'live') return 'live';
     if (normalized === 'planned') return 'planned';

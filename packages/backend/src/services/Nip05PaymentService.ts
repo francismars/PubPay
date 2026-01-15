@@ -25,7 +25,9 @@ export class Nip05PaymentService {
     this.lnbitsApiKey = process.env['LNBITS_API_KEY'] || '';
 
     if (!this.lnbitsApiKey) {
-      this.logger.warn('⚠️  LNBITS_API_KEY not configured - NIP-05 payments will not work');
+      this.logger.warn(
+        '⚠️  LNBITS_API_KEY not configured - NIP-05 payments will not work'
+      );
     }
   }
 
@@ -52,7 +54,11 @@ export class Nip05PaymentService {
         amount: this.PRICE_SATS,
         unit: 'sat',
         memo: `NIP-05 Verification: ${displayName}@${domain}`,
-        webhook: webhookUrl || (process.env['WEBHOOK_URL']?.trim().replace(/\/+$/, '') ? `${process.env['WEBHOOK_URL'].trim().replace(/\/+$/, '')}/nip05/webhook` : undefined),
+        webhook:
+          webhookUrl ||
+          (process.env['WEBHOOK_URL']?.trim().replace(/\/+$/, '')
+            ? `${process.env['WEBHOOK_URL'].trim().replace(/\/+$/, '')}/nip05/webhook`
+            : undefined),
         internal: false
       };
 
@@ -61,17 +67,14 @@ export class Nip05PaymentService {
         memo: requestBody.memo
       });
 
-      const response = await fetch(
-        `${this.lnbitsUrl}/api/v1/payments`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Api-Key': this.lnbitsApiKey
-          },
-          body: JSON.stringify(requestBody)
-        }
-      );
+      const response = await fetch(`${this.lnbitsUrl}/api/v1/payments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Api-Key': this.lnbitsApiKey
+        },
+        body: JSON.stringify(requestBody)
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -174,7 +177,10 @@ export class Nip05PaymentService {
       // So we always divide by 1000 to convert to sats
       amount = webhookData.amount / 1000;
     } else if (webhookData.paid_amount) {
-      amount = webhookData.paid_amount >= 1000000 ? webhookData.paid_amount / 1000 : webhookData.paid_amount;
+      amount =
+        webhookData.paid_amount >= 1000000
+          ? webhookData.paid_amount / 1000
+          : webhookData.paid_amount;
     }
 
     this.logger.info('Webhook verification:', {
@@ -207,4 +213,3 @@ export class Nip05PaymentService {
     return this.PRICE_SATS;
   }
 }
-

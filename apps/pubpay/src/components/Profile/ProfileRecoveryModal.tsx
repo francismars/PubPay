@@ -19,10 +19,7 @@ export const ProfileRecoveryModal: React.FC<ProfileRecoveryModalProps> = ({
   if (!show) return null;
 
   return (
-    <div
-      className="overlayContainer"
-      onClick={onClose}
-    >
+    <div className="overlayContainer" onClick={onClose}>
       <div
         className="overlayInner"
         style={{ textAlign: 'center' }}
@@ -32,10 +29,14 @@ export const ProfileRecoveryModal: React.FC<ProfileRecoveryModalProps> = ({
           Recover Existing Account
         </h3>
         <p
-          style={{ margin: '0 0 20px 0', color: COLORS.TEXT_LIGHT, fontSize: FONT_SIZES.SM }}
+          style={{
+            margin: '0 0 20px 0',
+            color: COLORS.TEXT_LIGHT,
+            fontSize: FONT_SIZES.SM
+          }}
         >
-          If you have a 12-word recovery phrase from a previous account, you
-          can recover your keys here.
+          If you have a 12-word recovery phrase from a previous account, you can
+          recover your keys here.
         </p>
 
         <div className="profileFormField" style={{ textAlign: 'left' }}>
@@ -66,10 +67,7 @@ export const ProfileRecoveryModal: React.FC<ProfileRecoveryModalProps> = ({
           >
             Recover Keys
           </button>
-          <button
-            className="profileCopyButton"
-            onClick={onClose}
-          >
+          <button className="profileCopyButton" onClick={onClose}>
             Cancel
           </button>
         </div>
@@ -77,4 +75,3 @@ export const ProfileRecoveryModal: React.FC<ProfileRecoveryModalProps> = ({
     </div>
   );
 };
-

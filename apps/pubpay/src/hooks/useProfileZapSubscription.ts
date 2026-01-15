@@ -1,8 +1,5 @@
 import { useEffect, useRef } from 'react';
-import {
-  ensureProfiles,
-  getQueryClient
-} from '@pubpay/shared-services';
+import { ensureProfiles, getQueryClient } from '@pubpay/shared-services';
 import { nip19 } from 'nostr-tools';
 import { parseZapDescription, safeJson } from '@pubpay/shared-utils';
 import bolt11 from 'bolt11';
@@ -31,18 +28,20 @@ export const useProfileZapSubscription = (
   // Track previous event IDs string to only re-subscribe when the set of posts actually changes
   const previousEventIdsStringRef = useRef<string>('');
   const subscriptionRef = useRef<any>(null);
-  
+
   // Track previous relevant state for selective subscription
   const lastRelevantStateRef = useRef<{
     postIdsString: string;
     postCount: number;
   } | null>(null);
-  
+
   // Debounce timeout for store subscription callback
   const subscriptionDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Batch zap updates to reduce state update frequency
-  const zapBatchRef = useRef<Array<{ postId: string; zap: any; zapAmount: number }>>([]);
+  const zapBatchRef = useRef<
+    Array<{ postId: string; zap: any; zapAmount: number }>
+  >([]);
   const zapBatchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const processedZapIdsRef = useRef<Set<string>>(new Set()); // Track processed zap IDs to prevent duplicates
 
@@ -58,7 +57,10 @@ export const useProfileZapSubscription = (
     zapBatchRef.current = [];
 
     // Group zaps by post ID
-    const zapsByPost = new Map<string, Array<{ zap: any; zapAmount: number }>>();
+    const zapsByPost = new Map<
+      string,
+      Array<{ zap: any; zapAmount: number }>
+    >();
     for (const { postId, zap, zapAmount } of batch) {
       if (!zapsByPost.has(postId)) {
         zapsByPost.set(postId, []);
@@ -82,11 +84,11 @@ export const useProfileZapSubscription = (
         // Filter out zaps that already exist in state or have been processed in this session
         const existingZapIds = new Set(post.zaps.map((z: any) => z.id));
         const newZaps = zaps.filter(
-          ({ zap }) => 
-            !existingZapIds.has(zap.id) && 
+          ({ zap }) =>
+            !existingZapIds.has(zap.id) &&
             !processedZapIdsRef.current.has(zap.id)
         );
-        
+
         if (newZaps.length === 0) continue;
 
         // Add new zap IDs to the processed set to prevent duplicate processing
@@ -98,7 +100,7 @@ export const useProfileZapSubscription = (
 
         for (const { zap, zapAmount } of newZaps) {
           totalZapAmount += zapAmount;
-          
+
           // Check if within limits
           const isWithinLimits = (() => {
             const amount = zapAmount;
@@ -115,7 +117,7 @@ export const useProfileZapSubscription = (
               return true;
             }
           })();
-          
+
           if (isWithinLimits) {
             totalWithinLimits++;
           }
@@ -128,9 +130,11 @@ export const useProfileZapSubscription = (
           zapAmount: post.zapAmount + totalZapAmount,
           zapUsesCurrent: post.zapUsesCurrent + totalWithinLimits
         };
-        
+
         updated = true;
-        console.log(`Profile page: updated post ${postId} with ${newZaps.length} new zaps`);
+        console.log(
+          `Profile page: updated post ${postId} with ${newZaps.length} new zaps`
+        );
       }
 
       return updated ? newPaynotes : prevPaynotes;
@@ -147,7 +151,10 @@ export const useProfileZapSubscription = (
             subscriptionRef.current.unsubscribe();
             subscriptionRef.current = null;
           } catch (e) {
-            console.warn('Error unsubscribing from profile zap subscription:', e);
+            console.warn(
+              'Error unsubscribing from profile zap subscription:',
+              e
+            );
           }
         }
         previousEventIdsStringRef.current = '';
@@ -163,7 +170,10 @@ export const useProfileZapSubscription = (
       const currentEventIdsString = [...currentEventIds].sort().join(',');
 
       // Check if the IDs string actually changed
-      if (currentEventIdsString === previousEventIdsStringRef.current && subscriptionRef.current) {
+      if (
+        currentEventIdsString === previousEventIdsStringRef.current &&
+        subscriptionRef.current
+      ) {
         // IDs haven't changed, keep existing subscription
         // Don't log here to avoid spam - only log when actually re-subscribing
         return;
@@ -183,7 +193,10 @@ export const useProfileZapSubscription = (
             subscriptionRef.current.unsubscribe();
             subscriptionRef.current = null;
           } catch (e) {
-            console.warn('Error unsubscribing from profile zap subscription:', e);
+            console.warn(
+              'Error unsubscribing from profile zap subscription:',
+              e
+            );
           }
         }
         previousEventIdsStringRef.current = '';
@@ -195,7 +208,10 @@ export const useProfileZapSubscription = (
         try {
           subscriptionRef.current.unsubscribe();
         } catch (e) {
-          console.warn('Error unsubscribing from previous zap subscription:', e);
+          console.warn(
+            'Error unsubscribing from previous zap subscription:',
+            e
+          );
         }
       }
 
@@ -205,151 +221,157 @@ export const useProfileZapSubscription = (
       const eventIds = currentEventIds;
 
       // Only log if this is a meaningful change (not just initial setup or same count)
-      const previousCount = previousEventIdsStringRef.current.split(',').filter(Boolean).length;
+      const previousCount = previousEventIdsStringRef.current
+        .split(',')
+        .filter(Boolean).length;
       if (previousCount > 0 && previousCount !== eventIds.length) {
         console.log(
           `Profile page: re-subscribing to zaps - post count changed from ${previousCount} to ${eventIds.length}`
         );
       } else if (previousCount === 0) {
-        console.log('Profile page: subscribing to zaps for', eventIds.length, 'posts');
+        console.log(
+          'Profile page: subscribing to zaps for',
+          eventIds.length,
+          'posts'
+        );
       }
 
       subscriptionRef.current = nostrClient.subscribeToEvents(
-      [
-        {
-          kinds: [9735],
-          '#e': eventIds
-        }
-      ],
-      async (zapEvent: any) => {
-        if (zapEvent.kind !== 9735) return;
-        if (isAborted) return;
-
-        const eTag = zapEvent.tags.find((t: any[]) => t[0] === 'e');
-        if (!eTag || !eTag[1]) return;
-
-        const postId = eTag[1];
-        if (!eventIds.includes(postId)) return;
-
-        // Process the zap
-        const bolt11Tag = zapEvent.tags.find((t: any[]) => t[0] === 'bolt11');
-        let zapAmount = 0;
-        if (bolt11Tag) {
-          try {
-            const decoded = bolt11.decode(bolt11Tag[1] || '');
-            zapAmount = decoded.satoshis || 0;
-          } catch {
-            zapAmount = 0;
+        [
+          {
+            kinds: [9735],
+            '#e': eventIds
           }
-        }
-
-        const descriptionTag = zapEvent.tags.find(
-          (t: any[]) => t[0] === 'description'
-        );
-        let zapPayerPubkey = zapEvent.pubkey;
-        let zapContent = '';
-
-        if (descriptionTag) {
-          try {
-            const zapData = parseZapDescription(
-              descriptionTag[1] || undefined
-            );
-            if (zapData?.pubkey) {
-              zapPayerPubkey = zapData.pubkey;
-            }
-            if (
-              zapData &&
-              'content' in zapData &&
-              typeof zapData.content === 'string'
-            ) {
-              zapContent = zapData.content;
-            }
-          } catch {
-            // Use zap.pubkey as fallback
-          }
-        }
-
-        // Load zap payer profile
-        let zapPayerProfile = null;
-        try {
+        ],
+        async (zapEvent: any) => {
+          if (zapEvent.kind !== 9735) return;
           if (isAborted) return;
-          
-          const profileMap = await ensureProfiles(
-            getQueryClient(),
-            nostrClient,
-            [zapPayerPubkey]
+
+          const eTag = zapEvent.tags.find((t: any[]) => t[0] === 'e');
+          if (!eTag || !eTag[1]) return;
+
+          const postId = eTag[1];
+          if (!eventIds.includes(postId)) return;
+
+          // Process the zap
+          const bolt11Tag = zapEvent.tags.find((t: any[]) => t[0] === 'bolt11');
+          let zapAmount = 0;
+          if (bolt11Tag) {
+            try {
+              const decoded = bolt11.decode(bolt11Tag[1] || '');
+              zapAmount = decoded.satoshis || 0;
+            } catch {
+              zapAmount = 0;
+            }
+          }
+
+          const descriptionTag = zapEvent.tags.find(
+            (t: any[]) => t[0] === 'description'
           );
-          
-          if (isAborted) return;
-          
-          zapPayerProfile = profileMap.get(zapPayerPubkey);
-        } catch (error) {
-          if (isAbortError(error)) {
-            return;
+          let zapPayerPubkey = zapEvent.pubkey;
+          let zapContent = '';
+
+          if (descriptionTag) {
+            try {
+              const zapData = parseZapDescription(
+                descriptionTag[1] || undefined
+              );
+              if (zapData?.pubkey) {
+                zapPayerPubkey = zapData.pubkey;
+              }
+              if (
+                zapData &&
+                'content' in zapData &&
+                typeof zapData.content === 'string'
+              ) {
+                zapContent = zapData.content;
+              }
+            } catch {
+              // Use zap.pubkey as fallback
+            }
           }
-          console.error('Error loading zap payer profile:', error);
-        }
 
-        const zapPayerPicture = zapPayerProfile
-          ? (
-              safeJson<Record<string, unknown>>(
-                zapPayerProfile.content || '{}',
-                {}
-              ) as any
-            ).picture || genericUserIcon
-          : genericUserIcon;
+          // Load zap payer profile
+          let zapPayerProfile = null;
+          try {
+            if (isAborted) return;
 
-        const zapPayerNpub = nip19.npubEncode(zapPayerPubkey);
+            const profileMap = await ensureProfiles(
+              getQueryClient(),
+              nostrClient,
+              [zapPayerPubkey]
+            );
 
-        if (isAborted) return;
+            if (isAborted) return;
 
-        // Check for duplicates early (before processing)
-        if (processedZapIdsRef.current.has(zapEvent.id)) {
-          return; // Already processed this zap
-        }
-        
-        const processedZap = {
-          ...zapEvent,
-          zapAmount,
-          zapPayerPubkey,
-          zapPayerPicture,
-          zapPayerNpub,
-          content: zapContent
-        };
+            zapPayerProfile = profileMap.get(zapPayerPubkey);
+          } catch (error) {
+            if (isAbortError(error)) {
+              return;
+            }
+            console.error('Error loading zap payer profile:', error);
+          }
 
-        // Add to batch for processing
-        zapBatchRef.current.push({
-          postId,
-          zap: processedZap,
-          zapAmount
-        });
-        
-        // Mark as processed
-        processedZapIdsRef.current.add(zapEvent.id);
+          const zapPayerPicture = zapPayerProfile
+            ? (
+                safeJson<Record<string, unknown>>(
+                  zapPayerProfile.content || '{}',
+                  {}
+                ) as any
+              ).picture || genericUserIcon
+            : genericUserIcon;
 
-        // Clear existing timeout
-        if (zapBatchTimeoutRef.current) {
-          clearTimeout(zapBatchTimeoutRef.current);
-        }
+          const zapPayerNpub = nip19.npubEncode(zapPayerPubkey);
 
-        // Process batch immediately if it reaches 10 zaps, otherwise wait 200ms
-        if (zapBatchRef.current.length >= 10) {
-          processZapBatch();
-        } else {
-          zapBatchTimeoutRef.current = setTimeout(() => {
+          if (isAborted) return;
+
+          // Check for duplicates early (before processing)
+          if (processedZapIdsRef.current.has(zapEvent.id)) {
+            return; // Already processed this zap
+          }
+
+          const processedZap = {
+            ...zapEvent,
+            zapAmount,
+            zapPayerPubkey,
+            zapPayerPicture,
+            zapPayerNpub,
+            content: zapContent
+          };
+
+          // Add to batch for processing
+          zapBatchRef.current.push({
+            postId,
+            zap: processedZap,
+            zapAmount
+          });
+
+          // Mark as processed
+          processedZapIdsRef.current.add(zapEvent.id);
+
+          // Clear existing timeout
+          if (zapBatchTimeoutRef.current) {
+            clearTimeout(zapBatchTimeoutRef.current);
+          }
+
+          // Process batch immediately if it reaches 10 zaps, otherwise wait 200ms
+          if (zapBatchRef.current.length >= 10) {
             processZapBatch();
-          }, 200); // 200ms debounce
-        }
-      },
-      {
-        oneose: () => {
-          console.log('Profile page: zap subscription EOS');
+          } else {
+            zapBatchTimeoutRef.current = setTimeout(() => {
+              processZapBatch();
+            }, 200); // 200ms debounce
+          }
         },
-        onclosed: () => {
-          console.log('Profile page: zap subscription closed');
+        {
+          oneose: () => {
+            console.log('Profile page: zap subscription EOS');
+          },
+          onclosed: () => {
+            console.log('Profile page: zap subscription closed');
+          }
         }
-      }
-    );
+      );
     };
 
     // Initial check
@@ -367,12 +389,12 @@ export const useProfileZapSubscription = (
       // Debounce the actual check to avoid rapid-fire calls
       subscriptionDebounceTimeoutRef.current = setTimeout(() => {
         subscriptionDebounceTimeoutRef.current = null;
-        
+
         const storeState = useProfileStore.getState();
         const userPaynotes = storeState.userPaynotes;
         const postIds = userPaynotes.map(post => post.id);
         const postIdsString = [...postIds].sort().join(',');
-        
+
         const currentRelevantState = {
           postIdsString,
           postCount: userPaynotes.length
@@ -381,8 +403,10 @@ export const useProfileZapSubscription = (
         // Only trigger if relevant state actually changed
         if (
           lastRelevantStateRef.current &&
-          lastRelevantStateRef.current.postIdsString === currentRelevantState.postIdsString &&
-          lastRelevantStateRef.current.postCount === currentRelevantState.postCount
+          lastRelevantStateRef.current.postIdsString ===
+            currentRelevantState.postIdsString &&
+          lastRelevantStateRef.current.postCount ===
+            currentRelevantState.postCount
         ) {
           // Relevant state hasn't changed, skip
           return;
@@ -395,7 +419,9 @@ export const useProfileZapSubscription = (
 
     // Subscribe to store changes with selective callback
     // Zustand's basic subscribe fires on every state change, so we filter manually
-    const unsubscribe = useProfileStore.subscribe(selectiveSubscriptionCallback);
+    const unsubscribe = useProfileStore.subscribe(
+      selectiveSubscriptionCallback
+    );
 
     return () => {
       unsubscribe();
@@ -422,4 +448,3 @@ export const useProfileZapSubscription = (
     };
   }, [nostrClient, nostrReady, signal, isAborted]);
 };
-

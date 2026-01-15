@@ -44,13 +44,13 @@ export function saveNWCConnections(connections: NWCConnection[]): void {
 export function saveNWCConnection(connection: NWCConnection): void {
   const connections = getNWCConnections();
   const index = connections.findIndex(c => c.id === connection.id);
-  
+
   if (index >= 0) {
     connections[index] = connection;
   } else {
     connections.push(connection);
   }
-  
+
   saveNWCConnections(connections);
 }
 
@@ -61,7 +61,7 @@ export function deleteNWCConnection(id: string): void {
   const connections = getNWCConnections();
   const filtered = connections.filter(c => c.id !== id);
   saveNWCConnections(filtered);
-  
+
   // If we deleted the active connection, clear the active ID
   const activeId = getActiveNWCConnectionId();
   if (activeId === id) {
@@ -112,7 +112,7 @@ export function clearActiveNWCConnection(): void {
 export function getActiveNWCConnection(): NWCConnection | null {
   const activeId = getActiveNWCConnectionId();
   if (!activeId) return null;
-  
+
   const connections = getNWCConnections();
   return connections.find(c => c.id === activeId) || null;
 }
@@ -132,11 +132,11 @@ export function migrateOldNWCConnection(): void {
   try {
     const oldUri = localStorage.getItem(STORAGE_KEYS.NWC_CONNECTION_STRING);
     if (!oldUri) return;
-    
+
     // Check if we already have connections
     const existing = getNWCConnections();
     if (existing.length > 0) return; // Already migrated
-    
+
     // Create a connection from the old format
     const oldCaps = localStorage.getItem(STORAGE_KEYS.NWC_CAPABILITIES);
     let capabilities: NWCConnection['capabilities'] | undefined;
@@ -147,7 +147,7 @@ export function migrateOldNWCConnection(): void {
         // Ignore parse errors
       }
     }
-    
+
     const connection: NWCConnection = {
       id: `migrated-${Date.now()}`,
       label: 'My Wallet',
@@ -155,10 +155,10 @@ export function migrateOldNWCConnection(): void {
       capabilities,
       createdAt: Date.now()
     };
-    
+
     saveNWCConnection(connection);
     setActiveNWCConnection(connection.id);
-    
+
     // Optionally clear old keys (keep them for now for safety)
     // localStorage.removeItem('nwcConnectionString');
     // localStorage.removeItem('nwcCapabilities');
@@ -173,4 +173,3 @@ export function migrateOldNWCConnection(): void {
 export function generateNWCConnectionId(): string {
   return `nwc-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
-

@@ -107,7 +107,7 @@ export class AuthService {
         sessionStorage.removeItem('signIn');
         return {
           success: false,
-          error: 'Failed to launch \'nostrsigner\': Redirection did not occur.'
+          error: "Failed to launch 'nostrsigner': Redirection did not occur."
         };
       }
 
@@ -470,9 +470,8 @@ export class AuthService {
     const encryptionKey = await this.deriveDeviceEncryptionKey();
 
     // Decode from base64
-    const encrypted = Uint8Array.from(
-      atob(encryptedData.encrypted),
-      c => c.charCodeAt(0)
+    const encrypted = Uint8Array.from(atob(encryptedData.encrypted), c =>
+      c.charCodeAt(0)
     );
     const iv = Uint8Array.from(atob(encryptedData.iv), c => c.charCodeAt(0));
 
@@ -494,36 +493,41 @@ export class AuthService {
     password: string
   ): Promise<string> {
     try {
-    // Decode salt and IV from base64
-    const salt = Uint8Array.from(atob(encryptedData.salt), c => c.charCodeAt(0));
-    const iv = Uint8Array.from(atob(encryptedData.iv), c => c.charCodeAt(0));
+      // Decode salt and IV from base64
+      const salt = Uint8Array.from(atob(encryptedData.salt), c =>
+        c.charCodeAt(0)
+      );
+      const iv = Uint8Array.from(atob(encryptedData.iv), c => c.charCodeAt(0));
 
-    // Derive encryption key from password
-    const encryptionKey = await this.derivePasswordEncryptionKey(
-      password,
-      salt
-    );
+      // Derive encryption key from password
+      const encryptionKey = await this.derivePasswordEncryptionKey(
+        password,
+        salt
+      );
 
-    // Decode encrypted data
-    const encrypted = Uint8Array.from(
-      atob(encryptedData.encrypted),
-      c => c.charCodeAt(0)
-    );
+      // Decode encrypted data
+      const encrypted = Uint8Array.from(atob(encryptedData.encrypted), c =>
+        c.charCodeAt(0)
+      );
 
-    // Decrypt
-    const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv },
-      encryptionKey,
-      encrypted
-    );
+      // Decrypt
+      const decrypted = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv },
+        encryptionKey,
+        encrypted
+      );
 
-    return new TextDecoder().decode(decrypted);
+      return new TextDecoder().decode(decrypted);
     } catch (error) {
       // Provide clearer error for password decryption failures
       if (error instanceof DOMException && error.name === 'OperationError') {
-        throw new Error('The password you entered is incorrect. Please check your password and try again.');
+        throw new Error(
+          'The password you entered is incorrect. Please check your password and try again.'
+        );
       }
-      throw new Error('Failed to decrypt with password. The password may be incorrect.');
+      throw new Error(
+        'Failed to decrypt with password. The password may be incorrect.'
+      );
     }
   }
 
@@ -552,10 +556,7 @@ export class AuthService {
       }
 
       // Store encrypted private key
-      localStorage.setItem(
-        'privateKey',
-        JSON.stringify(encryptedData)
-      );
+      localStorage.setItem('privateKey', JSON.stringify(encryptedData));
       // Also clear from sessionStorage if it exists there
       sessionStorage.removeItem('privateKey');
     } else {
@@ -571,21 +572,25 @@ export class AuthService {
    */
   static cleanupLegacyKeys(): boolean {
     let cleaned = false;
-    
+
     // Check localStorage
     const localKey = localStorage.getItem('privateKey');
     if (localKey && !localKey.startsWith('{') && !localKey.startsWith('[')) {
       localStorage.removeItem('privateKey');
       cleaned = true;
     }
-    
+
     // Check sessionStorage
     const sessionKey = sessionStorage.getItem('privateKey');
-    if (sessionKey && !sessionKey.startsWith('{') && !sessionKey.startsWith('[')) {
+    if (
+      sessionKey &&
+      !sessionKey.startsWith('{') &&
+      !sessionKey.startsWith('[')
+    ) {
       sessionStorage.removeItem('privateKey');
       cleaned = true;
     }
-    
+
     return cleaned;
   }
 
@@ -612,7 +617,11 @@ export class AuthService {
         // Try to parse as encrypted format
         encryptedPrivateKey = JSON.parse(privateKeyStr) as EncryptedPrivateKey;
         // Validate it has the expected structure
-        if (!encryptedPrivateKey.encrypted || !encryptedPrivateKey.iv || !encryptedPrivateKey.salt) {
+        if (
+          !encryptedPrivateKey.encrypted ||
+          !encryptedPrivateKey.iv ||
+          !encryptedPrivateKey.salt
+        ) {
           encryptedPrivateKey = null;
         }
       } catch {
@@ -639,7 +648,9 @@ export class AuthService {
 
     if (!encryptedPrivateKey) {
       // No encrypted key found - user needs to log in again
-      throw new Error('Unable to decrypt your private key. Please log in again. Your key will be encrypted automatically.');
+      throw new Error(
+        'Unable to decrypt your private key. Please log in again. Your key will be encrypted automatically.'
+      );
     }
 
     try {
@@ -649,20 +660,25 @@ export class AuthService {
           // Use cached decrypted key if no new password provided
           return this.decryptedKeyCache;
         }
-        
+
         // Password mode: require password if not cached
         if (!password && !this.decryptedKeyCache) {
-          throw new Error('Password is required to decrypt your private key. Please enter your password.');
+          throw new Error(
+            'Password is required to decrypt your private key. Please enter your password.'
+          );
         }
-        
+
         // Decrypt with password
-        const decryptedKey = await this.decryptWithPassword(encryptedPrivateKey, password!);
-        
+        const decryptedKey = await this.decryptWithPassword(
+          encryptedPrivateKey,
+          password!
+        );
+
         // Cache the decrypted key in memory for this session
         if (decryptedKey) {
           this.decryptedKeyCache = decryptedKey;
         }
-        
+
         return decryptedKey;
       } else {
         // Device key mode: decrypt automatically
@@ -674,22 +690,37 @@ export class AuthService {
       // Provide clearer error messages based on error type
       if (encryptedPrivateKey.hasPassword) {
         // Password mode errors
-        if (error instanceof Error && error.message.includes('Password is required')) {
+        if (
+          error instanceof Error &&
+          error.message.includes('Password is required')
+        ) {
           throw error; // Re-throw the original message
         }
         // Wrong password or decryption failed
-        throw new Error('The password you entered is incorrect. Please try again.');
+        throw new Error(
+          'The password you entered is incorrect. Please try again.'
+        );
       } else {
         // Device key mode errors
-        if ((error instanceof Error && error.message.includes('OperationError')) ||
-            (error instanceof Error && error.message.includes('decrypt'))) {
-          throw new Error('Unable to decrypt your private key. Your browser\'s local storage may have been cleared. Please log in again.');
+        if (
+          (error instanceof Error &&
+            error.message.includes('OperationError')) ||
+          (error instanceof Error && error.message.includes('decrypt'))
+        ) {
+          throw new Error(
+            "Unable to decrypt your private key. Your browser's local storage may have been cleared. Please log in again."
+          );
         }
         // Re-throw if it's already our custom error message
-        if (error instanceof Error && error.message.includes('Please log in again')) {
+        if (
+          error instanceof Error &&
+          error.message.includes('Please log in again')
+        ) {
           throw error;
         }
-        throw new Error('Unable to decrypt your private key. Please log in again.');
+        throw new Error(
+          'Unable to decrypt your private key. Please log in again.'
+        );
       }
     }
   }

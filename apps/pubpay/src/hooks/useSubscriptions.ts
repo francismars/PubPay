@@ -5,7 +5,10 @@ import type { PubPayPost, FeedType } from '../types/postTypes';
 import { useZapProcessor } from './useZapProcessor';
 import { useNoteProcessor } from './useNoteProcessor';
 import { usePostSubscription } from './usePostSubscription';
-import { useZapSubscription, createUpdateZapSubscriptionForNewPost } from './useZapSubscription';
+import {
+  useZapSubscription,
+  createUpdateZapSubscriptionForNewPost
+} from './useZapSubscription';
 
 interface UseSubscriptionsOptions {
   // Refs (only for subscription tracking, not state)
@@ -27,7 +30,10 @@ interface UseSubscriptionsOptions {
 
   // Functions from other hooks
   loadProfilesBatched: (pubkeys: string[]) => Promise<Map<string, any>>;
-  validateLightningAddresses: (posts: PubPayPost[], feed: FeedType) => Promise<void>;
+  validateLightningAddresses: (
+    posts: PubPayPost[],
+    feed: FeedType
+  ) => Promise<void>;
   validateNip05s: (posts: PubPayPost[], feed: FeedType) => Promise<void>;
 }
 
@@ -43,22 +49,22 @@ interface UseSubscriptionsOptions {
  */
 export const useSubscriptions = (options: UseSubscriptionsOptions) => {
   const {
-  nostrClientRef,
-  followingPubkeysRef,
-  newestPostTimestampRef,
-  subscriptionRef,
-  zapSubscriptionRef,
-  zapBatchRef,
-  zapBatchTimeoutRef,
-  subscribedEventIdsRef,
-  updatePost,
-  updateFollowingPost,
-  updateReply,
-  addPost,
-  addFollowingPost,
-  loadProfilesBatched,
-  validateLightningAddresses,
-  validateNip05s
+    nostrClientRef,
+    followingPubkeysRef,
+    newestPostTimestampRef,
+    subscriptionRef,
+    zapSubscriptionRef,
+    zapBatchRef,
+    zapBatchTimeoutRef,
+    subscribedEventIdsRef,
+    updatePost,
+    updateFollowingPost,
+    updateReply,
+    addPost,
+    addFollowingPost,
+    loadProfilesBatched,
+    validateLightningAddresses,
+    validateNip05s
   } = options;
 
   // Initialize sub-hooks
@@ -70,14 +76,16 @@ export const useSubscriptions = (options: UseSubscriptionsOptions) => {
   });
 
   // Create updateZapSubscriptionForNewPost helper
-  const updateZapSubscriptionForNewPost = createUpdateZapSubscriptionForNewPost({
-    nostrClientRef,
-    zapSubscriptionRef,
-    zapBatchRef,
-    zapBatchTimeoutRef,
-    subscribedEventIdsRef,
-    processZapBatch: zapProcessor.processZapBatch
-  });
+  const updateZapSubscriptionForNewPost = createUpdateZapSubscriptionForNewPost(
+    {
+      nostrClientRef,
+      zapSubscriptionRef,
+      zapBatchRef,
+      zapBatchTimeoutRef,
+      subscribedEventIdsRef,
+      processZapBatch: zapProcessor.processZapBatch
+    }
+  );
 
   const noteProcessor = useNoteProcessor({
     nostrClientRef,

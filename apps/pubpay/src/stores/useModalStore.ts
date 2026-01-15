@@ -60,73 +60,84 @@ interface ModalStore {
 export const useModalStore = create<ModalStore>()(
   devtools(
     set => ({
-  // QR Scanner
-  showQRScanner: false,
-  openQRScanner: () => set({ showQRScanner: true }),
-  closeQRScanner: () => set({ showQRScanner: false }),
-
-  // Logged In Form
-  showLoggedInForm: false,
-  openLoggedInForm: () => set({ showLoggedInForm: true }),
-  closeLoggedInForm: () => set({ showLoggedInForm: false }),
-
-  // New Pay Note Form
-  showNewPayNoteForm: false,
-  isPublishing: false,
-  openNewPayNoteForm: () => set({ showNewPayNoteForm: true }),
-  closeNewPayNoteForm: () => set({ showNewPayNoteForm: false, isPublishing: false }),
-  setIsPublishing: (publishing: boolean) => set({ isPublishing: publishing }),
-
-  // NSEC Group
-  showNsecGroup: false,
-  nsecInput: '',
-  nsecPassword: '',
-  openNsecGroup: () => set({ showNsecGroup: true }),
-  closeNsecGroup: () => set({ showNsecGroup: false }),
-  setNsecInput: (input: string) => set({ nsecInput: input }),
-  setNsecPassword: (password: string) => set({ nsecPassword: password }),
-  resetNsecForm: () => set({ nsecInput: '', nsecPassword: '', showNsecGroup: false }),
-
-  // Recovery Group
-  showRecoveryGroup: false,
-  recoveryMnemonic: '',
-  recoveryPassword: '',
-  openRecoveryGroup: () => set({ showRecoveryGroup: true }),
-  closeRecoveryGroup: () => set({ showRecoveryGroup: false }),
-  setRecoveryMnemonic: (mnemonic: string) => set({ recoveryMnemonic: mnemonic }),
-  setRecoveryPassword: (password: string) => set({ recoveryPassword: password }),
-  resetRecoveryForm: () =>
-    set({ recoveryMnemonic: '', recoveryPassword: '', showRecoveryGroup: false }),
-
-  // Password Prompt
-  showPasswordPrompt: false,
-  openPasswordPrompt: () => set({ showPasswordPrompt: true }),
-  closePasswordPrompt: () => set({ showPasswordPrompt: false }),
-
-  // Extension/Signer Availability
-  extensionAvailable: true,
-  externalSignerAvailable: true,
-  externalSignerLoading: false,
-  setExtensionAvailable: (available: boolean) => set({ extensionAvailable: available }),
-  setExternalSignerAvailable: (available: boolean) =>
-    set({ externalSignerAvailable: available }),
-  setExternalSignerLoading: (loading: boolean) => set({ externalSignerLoading: loading }),
-
-  // Reset all modals
-  resetAllModals: () =>
-    set({
+      // QR Scanner
       showQRScanner: false,
+      openQRScanner: () => set({ showQRScanner: true }),
+      closeQRScanner: () => set({ showQRScanner: false }),
+
+      // Logged In Form
       showLoggedInForm: false,
+      openLoggedInForm: () => set({ showLoggedInForm: true }),
+      closeLoggedInForm: () => set({ showLoggedInForm: false }),
+
+      // New Pay Note Form
       showNewPayNoteForm: false,
       isPublishing: false,
+      openNewPayNoteForm: () => set({ showNewPayNoteForm: true }),
+      closeNewPayNoteForm: () =>
+        set({ showNewPayNoteForm: false, isPublishing: false }),
+      setIsPublishing: (publishing: boolean) =>
+        set({ isPublishing: publishing }),
+
+      // NSEC Group
       showNsecGroup: false,
       nsecInput: '',
       nsecPassword: '',
+      openNsecGroup: () => set({ showNsecGroup: true }),
+      closeNsecGroup: () => set({ showNsecGroup: false }),
+      setNsecInput: (input: string) => set({ nsecInput: input }),
+      setNsecPassword: (password: string) => set({ nsecPassword: password }),
+      resetNsecForm: () =>
+        set({ nsecInput: '', nsecPassword: '', showNsecGroup: false }),
+
+      // Recovery Group
       showRecoveryGroup: false,
       recoveryMnemonic: '',
       recoveryPassword: '',
-      showPasswordPrompt: false
-    })
+      openRecoveryGroup: () => set({ showRecoveryGroup: true }),
+      closeRecoveryGroup: () => set({ showRecoveryGroup: false }),
+      setRecoveryMnemonic: (mnemonic: string) =>
+        set({ recoveryMnemonic: mnemonic }),
+      setRecoveryPassword: (password: string) =>
+        set({ recoveryPassword: password }),
+      resetRecoveryForm: () =>
+        set({
+          recoveryMnemonic: '',
+          recoveryPassword: '',
+          showRecoveryGroup: false
+        }),
+
+      // Password Prompt
+      showPasswordPrompt: false,
+      openPasswordPrompt: () => set({ showPasswordPrompt: true }),
+      closePasswordPrompt: () => set({ showPasswordPrompt: false }),
+
+      // Extension/Signer Availability
+      extensionAvailable: true,
+      externalSignerAvailable: true,
+      externalSignerLoading: false,
+      setExtensionAvailable: (available: boolean) =>
+        set({ extensionAvailable: available }),
+      setExternalSignerAvailable: (available: boolean) =>
+        set({ externalSignerAvailable: available }),
+      setExternalSignerLoading: (loading: boolean) =>
+        set({ externalSignerLoading: loading }),
+
+      // Reset all modals
+      resetAllModals: () =>
+        set({
+          showQRScanner: false,
+          showLoggedInForm: false,
+          showNewPayNoteForm: false,
+          isPublishing: false,
+          showNsecGroup: false,
+          nsecInput: '',
+          nsecPassword: '',
+          showRecoveryGroup: false,
+          recoveryMnemonic: '',
+          recoveryPassword: '',
+          showPasswordPrompt: false
+        })
     }),
     { name: 'ModalStore' }
   )
@@ -183,10 +194,13 @@ export const useModalActions = () =>
   );
 
 // Individual hooks for single values
-export const useShowQRScanner = () => useModalStore(state => state.showQRScanner);
-export const useShowNewPayNoteForm = () => useModalStore(state => state.showNewPayNoteForm);
+export const useShowQRScanner = () =>
+  useModalStore(state => state.showQRScanner);
+export const useShowNewPayNoteForm = () =>
+  useModalStore(state => state.showNewPayNoteForm);
 export const useIsPublishing = () => useModalStore(state => state.isPublishing);
-export const useShowPasswordPrompt = () => useModalStore(state => state.showPasswordPrompt);
+export const useShowPasswordPrompt = () =>
+  useModalStore(state => state.showPasswordPrompt);
 
 /**
  * Common composite hooks for frequently used patterns
@@ -256,4 +270,3 @@ export const useNewPayNoteForm = () =>
       setIsPublishing: state.setIsPublishing
     }))
   );
-

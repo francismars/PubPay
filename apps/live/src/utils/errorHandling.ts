@@ -7,10 +7,10 @@
  * Error severity levels
  */
 export enum ErrorSeverity {
-  LOW = 'low',           // Non-critical, can be ignored
-  MEDIUM = 'medium',     // Should be logged and handled
-  HIGH = 'high',         // Critical, requires user notification
-  CRITICAL = 'critical'  // Application-breaking, requires immediate attention
+  LOW = 'low', // Non-critical, can be ignored
+  MEDIUM = 'medium', // Should be logged and handled
+  HIGH = 'high', // Critical, requires user notification
+  CRITICAL = 'critical' // Application-breaking, requires immediate attention
 }
 
 /**
@@ -66,7 +66,9 @@ export class AppError extends Error {
       case ErrorCategory.NETWORK:
         return 'Network error. Please check your connection and try again.';
       case ErrorCategory.VALIDATION:
-        return this.message || 'Invalid input. Please check your data and try again.';
+        return (
+          this.message || 'Invalid input. Please check your data and try again.'
+        );
       case ErrorCategory.PARSING:
         return 'Failed to parse data. Please try again.';
       case ErrorCategory.SUBSCRIPTION:
@@ -78,7 +80,9 @@ export class AppError extends Error {
       case ErrorCategory.STORAGE:
         return 'Storage error. Your data may not be saved.';
       default:
-        return this.message || 'An unexpected error occurred. Please try again.';
+        return (
+          this.message || 'An unexpected error occurred. Please try again.'
+        );
     }
   }
 
@@ -92,11 +96,13 @@ export class AppError extends Error {
       severity: this.severity,
       category: this.category,
       context: this.context,
-      originalError: this.originalError ? {
-        name: this.originalError.name,
-        message: this.originalError.message,
-        stack: this.originalError.stack
-      } : undefined,
+      originalError: this.originalError
+        ? {
+            name: this.originalError.name,
+            message: this.originalError.message,
+            stack: this.originalError.stack
+          }
+        : undefined,
       timestamp: this.timestamp.toISOString(),
       stack: this.stack
     };
@@ -128,13 +134,36 @@ class ErrorLogger {
       switch (error.severity) {
         case ErrorSeverity.CRITICAL:
         case ErrorSeverity.HIGH:
-          console.error(this.formatMessage(error.message, error.severity, error.category, error.context), logObj);
+          console.error(
+            this.formatMessage(
+              error.message,
+              error.severity,
+              error.category,
+              error.context
+            ),
+            logObj
+          );
           break;
         case ErrorSeverity.MEDIUM:
-          console.warn(this.formatMessage(error.message, error.severity, error.category, error.context), logObj);
+          console.warn(
+            this.formatMessage(
+              error.message,
+              error.severity,
+              error.category,
+              error.context
+            ),
+            logObj
+          );
           break;
         case ErrorSeverity.LOW:
-          console.log(this.formatMessage(error.message, error.severity, error.category, error.context));
+          console.log(
+            this.formatMessage(
+              error.message,
+              error.severity,
+              error.category,
+              error.context
+            )
+          );
           break;
       }
     } else {
@@ -153,12 +182,24 @@ class ErrorLogger {
     }
   }
 
-  static logWarning(message: string, category: ErrorCategory = ErrorCategory.UNKNOWN, context?: Record<string, unknown>): void {
-    console.warn(this.formatMessage(message, ErrorSeverity.LOW, category, context));
+  static logWarning(
+    message: string,
+    category: ErrorCategory = ErrorCategory.UNKNOWN,
+    context?: Record<string, unknown>
+  ): void {
+    console.warn(
+      this.formatMessage(message, ErrorSeverity.LOW, category, context)
+    );
   }
 
-  static logInfo(message: string, category: ErrorCategory = ErrorCategory.UNKNOWN, context?: Record<string, unknown>): void {
-    console.log(this.formatMessage(message, ErrorSeverity.LOW, category, context));
+  static logInfo(
+    message: string,
+    category: ErrorCategory = ErrorCategory.UNKNOWN,
+    context?: Record<string, unknown>
+  ): void {
+    console.log(
+      this.formatMessage(message, ErrorSeverity.LOW, category, context)
+    );
   }
 }
 
@@ -313,22 +354,51 @@ export function createErrorHandler(
 /**
  * Pre-configured error handlers for common categories
  */
-export const networkErrorHandler = createErrorHandler(ErrorCategory.NETWORK, ErrorSeverity.HIGH);
-export const validationErrorHandler = createErrorHandler(ErrorCategory.VALIDATION, ErrorSeverity.MEDIUM);
-export const parsingErrorHandler = createErrorHandler(ErrorCategory.PARSING, ErrorSeverity.LOW);
-export const subscriptionErrorHandler = createErrorHandler(ErrorCategory.SUBSCRIPTION, ErrorSeverity.MEDIUM);
-export const renderingErrorHandler = createErrorHandler(ErrorCategory.RENDERING, ErrorSeverity.MEDIUM);
-export const videoErrorHandler = createErrorHandler(ErrorCategory.VIDEO, ErrorSeverity.MEDIUM);
-export const storageErrorHandler = createErrorHandler(ErrorCategory.STORAGE, ErrorSeverity.LOW);
+export const networkErrorHandler = createErrorHandler(
+  ErrorCategory.NETWORK,
+  ErrorSeverity.HIGH
+);
+export const validationErrorHandler = createErrorHandler(
+  ErrorCategory.VALIDATION,
+  ErrorSeverity.MEDIUM
+);
+export const parsingErrorHandler = createErrorHandler(
+  ErrorCategory.PARSING,
+  ErrorSeverity.LOW
+);
+export const subscriptionErrorHandler = createErrorHandler(
+  ErrorCategory.SUBSCRIPTION,
+  ErrorSeverity.MEDIUM
+);
+export const renderingErrorHandler = createErrorHandler(
+  ErrorCategory.RENDERING,
+  ErrorSeverity.MEDIUM
+);
+export const videoErrorHandler = createErrorHandler(
+  ErrorCategory.VIDEO,
+  ErrorSeverity.MEDIUM
+);
+export const storageErrorHandler = createErrorHandler(
+  ErrorCategory.STORAGE,
+  ErrorSeverity.LOW
+);
 
 /**
  * Logging utilities (for non-error logging)
  */
 export const logger = {
-  info: (message: string, category?: ErrorCategory, context?: Record<string, unknown>) => {
+  info: (
+    message: string,
+    category?: ErrorCategory,
+    context?: Record<string, unknown>
+  ) => {
     ErrorLogger.logInfo(message, category, context);
   },
-  warn: (message: string, category?: ErrorCategory, context?: Record<string, unknown>) => {
+  warn: (
+    message: string,
+    category?: ErrorCategory,
+    context?: Record<string, unknown>
+  ) => {
     ErrorLogger.logWarning(message, category, context);
   }
 };

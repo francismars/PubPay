@@ -4,7 +4,10 @@ import { useUIStore } from '@pubpay/shared-services';
 import { parseZapDescription } from '@pubpay/shared-utils';
 import { Kind0Event, Kind9735Event } from '@pubpay/shared-types';
 import type { PubPayPost } from '../types/postTypes';
-import { processNewZapWithProfiles, isZapWithinLimits } from '../utils/zapProcessing';
+import {
+  processNewZapWithProfiles,
+  isZapWithinLimits
+} from '../utils/zapProcessing';
 import { usePostStore } from '../stores/usePostStore';
 
 interface UseZapProcessorOptions {
@@ -19,12 +22,8 @@ interface UseZapProcessorOptions {
  * Extracted from useSubscriptions for better separation of concerns
  */
 export const useZapProcessor = (options: UseZapProcessorOptions) => {
-  const {
-    loadProfilesBatched,
-    updatePost,
-    updateFollowingPost,
-    updateReply
-  } = options;
+  const { loadProfilesBatched, updatePost, updateFollowingPost, updateReply } =
+    options;
 
   const processZapBatch = useCallback(
     async (zapEvents: Kind9735Event[]) => {
@@ -135,8 +134,7 @@ export const useZapProcessor = (options: UseZapProcessorOptions) => {
             );
             updateFollowingPost(postId, {
               zaps: [...followingPost.zaps, processedZap],
-              zapAmount:
-                followingPost.zapAmount + processedZap.zapAmount,
+              zapAmount: followingPost.zapAmount + processedZap.zapAmount,
               zapUsesCurrent:
                 followingPost.zapUsesCurrent + (isWithinLimits ? 1 : 0)
             });
@@ -171,4 +169,3 @@ export const useZapProcessor = (options: UseZapProcessorOptions) => {
     processZapBatch
   };
 };
-

@@ -17,7 +17,7 @@ import { COLORS } from '../constants';
 
 export const FeedsPage: React.FC = () => {
   const location = useLocation();
-  
+
   // Use optimized selector hook to get all post state in a single subscription
   // This prevents unnecessary re-renders by using shallow equality
   const {
@@ -31,10 +31,15 @@ export const FeedsPage: React.FC = () => {
     nostrReady,
     paymentErrors
   } = usePostStoreData();
-  
+
   // Get actions separately (actions don't change, so no need for shallow)
-  const { clearAllPosts: clearPosts, setSingleNoteMode, clearSingleNoteMode, setFeedMode } = usePostActions();
-  
+  const {
+    clearAllPosts: clearPosts,
+    setSingleNoteMode,
+    clearSingleNoteMode,
+    setFeedMode
+  } = usePostActions();
+
   // Get handlers and authState from Layout context (authState includes privateKey from local state)
   const {
     authState,
@@ -265,14 +270,22 @@ export const FeedsPage: React.FC = () => {
         <button
           id="feedModeToggle"
           className={`feedModeToggle ${feedMode === 'pubpay' ? 'active' : ''}`}
-          onClick={(e) => {
+          onClick={e => {
             e.preventDefault();
             handleFeedModeChange(feedMode === 'pubpay' ? 'nostr' : 'pubpay');
           }}
-          title={feedMode === 'pubpay' ? 'Filtering for #pubpay - Click to show all Nostr posts' : 'Showing all Nostr posts - Click to filter for #pubpay'}
+          title={
+            feedMode === 'pubpay'
+              ? 'Filtering for #pubpay - Click to show all Nostr posts'
+              : 'Showing all Nostr posts - Click to filter for #pubpay'
+          }
         >
-          <span className="material-symbols-outlined feedModeToggleIcon">filter_list</span>
-          <span className="feedModeToggleText">{feedMode === 'pubpay' ? '#pubpay' : 'nostr'}</span>
+          <span className="material-symbols-outlined feedModeToggleIcon">
+            filter_list
+          </span>
+          <span className="feedModeToggleText">
+            {feedMode === 'pubpay' ? '#pubpay' : 'nostr'}
+          </span>
         </button>
       </div>
 

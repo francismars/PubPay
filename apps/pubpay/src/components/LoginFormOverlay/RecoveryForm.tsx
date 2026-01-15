@@ -34,10 +34,7 @@ export const RecoveryForm: React.FC<RecoveryFormProps> = ({
   };
 
   return (
-    <div
-      id="recoveryInputGroup"
-      style={{ display: 'block' }}
-    >
+    <div id="recoveryInputGroup" style={{ display: 'block' }}>
       <form onSubmit={handleSubmit}>
         <div
           className="formField"
@@ -94,7 +91,8 @@ export const RecoveryForm: React.FC<RecoveryFormProps> = ({
             textAlign: 'left'
           }}
         >
-          Optional: Set a password to encrypt your private key. You'll need to enter it each session.
+          Optional: Set a password to encrypt your private key. You'll need to
+          enter it each session.
         </p>
         <button id="continueWithRecovery" className="cta" type="submit">
           Recover Account
@@ -121,4 +119,3 @@ export const RecoveryForm: React.FC<RecoveryFormProps> = ({
     </div>
   );
 };
-

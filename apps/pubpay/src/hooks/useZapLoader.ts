@@ -1,6 +1,9 @@
 import { useCallback } from 'react';
 import { Kind1Event, Kind0Event, Kind9735Event } from '@pubpay/shared-types';
-import { extractZapPayerPubkeys, type ProcessedZap } from '@pubpay/shared-services';
+import {
+  extractZapPayerPubkeys,
+  type ProcessedZap
+} from '@pubpay/shared-services';
 import { parseZapDescription, safeJson } from '@pubpay/shared-utils';
 import { nip19 } from 'nostr-tools';
 import * as bolt11 from 'bolt11';
@@ -21,7 +24,8 @@ interface UseZapLoaderOptions {
  * Extracted from useFeedLoader for better separation of concerns
  */
 export const useZapLoader = (options: UseZapLoaderOptions) => {
-  const { loadProfilesBatched, setPosts, setFollowingPosts, setReplies } = options;
+  const { loadProfilesBatched, setPosts, setFollowingPosts, setReplies } =
+    options;
 
   const loadZapsForPosts = useCallback(
     async (
@@ -67,7 +71,9 @@ export const useZapLoader = (options: UseZapLoaderOptions) => {
         zapPayerProfiles =
           zapPayerPubkeys.size > 0
             ? Array.from(
-                (await loadProfilesBatched(Array.from(zapPayerPubkeys))).values()
+                (
+                  await loadProfilesBatched(Array.from(zapPayerPubkeys))
+                ).values()
               )
             : [];
       }
@@ -117,7 +123,9 @@ export const useZapLoader = (options: UseZapLoaderOptions) => {
               }
             }
 
-            const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
+            const descriptionTag = zap.tags.find(
+              tag => tag[0] === 'description'
+            );
             let zapPayerPubkey = zap.pubkey;
             let zapContent = '';
 
@@ -216,4 +224,3 @@ export const useZapLoader = (options: UseZapLoaderOptions) => {
     loadZapsForPosts
   };
 };
-

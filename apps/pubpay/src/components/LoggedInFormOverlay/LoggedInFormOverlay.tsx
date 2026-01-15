@@ -66,16 +66,10 @@ export const LoggedInFormOverlay: React.FC<LoggedInFormOverlayProps> = ({
         <a href="" id="logoutButton" className="cta" onClick={onLogout}>
           Logout
         </a>
-        <a
-          id="cancelLoggedin"
-          href="#"
-          className="label"
-          onClick={onClose}
-        >
+        <a id="cancelLoggedin" href="#" className="label" onClick={onClose}>
           cancel
         </a>
       </div>
     </div>
   );
 };
-

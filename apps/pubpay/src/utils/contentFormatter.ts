@@ -12,20 +12,44 @@ import { sanitizeImageUrl, sanitizeUrl } from './profileUtils';
 function sanitizeHTML(html: string): string {
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
-      'a', 'br', 'img', 'video', 'div', 'iframe',
-      'p', 'span', 'strong', 'em', 'u', 'b', 'i'
+      'a',
+      'br',
+      'img',
+      'video',
+      'div',
+      'iframe',
+      'p',
+      'span',
+      'strong',
+      'em',
+      'u',
+      'b',
+      'i'
     ],
     ALLOWED_ATTR: [
-      'href', 'target', 'rel', 'class', 'src', 'style',
-      'controls', 'frameborder', 'allowfullscreen',
-      'alt', 'loading', 'referrerpolicy', 'sandbox',
-      'allow', 'title', 'preload'
+      'href',
+      'target',
+      'rel',
+      'class',
+      'src',
+      'style',
+      'controls',
+      'frameborder',
+      'allowfullscreen',
+      'alt',
+      'loading',
+      'referrerpolicy',
+      'sandbox',
+      'allow',
+      'title',
+      'preload'
     ],
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
     // Allow style attribute but sanitize it
     ALLOW_DATA_ATTR: false,
     // Keep relative URLs for profile links
-    ALLOW_UNKNOWN_PROTOCOLS: false,
+    ALLOW_UNKNOWN_PROTOCOLS: false
   });
 }
 
@@ -105,22 +129,30 @@ export async function formatContent(
 ): Promise<string> {
   // Process mentions in order: bare npub first (before adding HTML), then prefixed versions
   // Use position-based replacement to handle duplicate mentions correctly
-  
-  const processedRanges: Array<{start: number, end: number, replacement: string}> = [];
-  
+
+  const processedRanges: Array<{
+    start: number;
+    end: number;
+    replacement: string;
+  }> = [];
+
   // First, handle bare npub mentions (match all, filter by prefix check)
-  const allNpubMatches = Array.from(content.matchAll(/\b((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi));
-  
+  const allNpubMatches = Array.from(
+    content.matchAll(
+      /\b((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})\b/gi
+    )
+  );
+
   for (const matchObj of allNpubMatches) {
     const match = matchObj[0];
     const offset = matchObj.index || 0;
-    
+
     // Check if it's preceded by nostr: or @
     const prefix = content.substring(Math.max(0, offset - 7), offset);
     if (prefix.endsWith('nostr:') || prefix.endsWith('@')) {
       continue; // Skip this one, it will be processed with its prefix
     }
-    
+
     const displayName = await getMentionUserName(match, nostrClient);
     const replacement = `<a href="/profile/${match}" class="nostrMention">${displayName}</a>`;
     processedRanges.push({
@@ -131,8 +163,12 @@ export async function formatContent(
   }
 
   // Handle nostr:npub mentions
-  const nostrNpubMatches = Array.from(content.matchAll(/nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi));
-  
+  const nostrNpubMatches = Array.from(
+    content.matchAll(
+      /nostr:((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
+    )
+  );
+
   for (const matchObj of nostrNpubMatches) {
     const match = matchObj[0];
     const offset = matchObj.index || 0;
@@ -147,8 +183,12 @@ export async function formatContent(
   }
 
   // Handle @npub mentions
-  const atNpubMatches = Array.from(content.matchAll(/@((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi));
-  
+  const atNpubMatches = Array.from(
+    content.matchAll(
+      /@((npub|nprofile)1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58,})/gi
+    )
+  );
+
   for (const matchObj of atNpubMatches) {
     const match = matchObj[0];
     const offset = matchObj.index || 0;
@@ -161,11 +201,14 @@ export async function formatContent(
       replacement: replacement
     });
   }
-  
+
   // Apply all replacements in reverse order to maintain correct positions
   processedRanges.sort((a, b) => b.start - a.start);
   for (const range of processedRanges) {
-    content = content.substring(0, range.start) + range.replacement + content.substring(range.end);
+    content =
+      content.substring(0, range.start) +
+      range.replacement +
+      content.substring(range.end);
   }
 
   // Handle hex pubkey mentions (64-character hex strings)
@@ -199,7 +242,7 @@ export async function formatContent(
     match => {
       const validatedUrl = sanitizeImageUrl(match);
       if (!validatedUrl) return match; // Return original if invalid
-      
+
       return `<img src="${validatedUrl}" alt="" loading="lazy" referrerpolicy="no-referrer" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;">`;
     }
   );
@@ -210,7 +253,7 @@ export async function formatContent(
     match => {
       const validatedUrl = sanitizeImageUrl(match); // Use same function, validates http/https
       if (!validatedUrl) return match;
-      
+
       return `<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 8px 0;"><video src="${validatedUrl}" controls preload="metadata" referrerpolicy="no-referrer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;">Your browser does not support the video tag.</video></div>`;
     }
   );
@@ -220,12 +263,12 @@ export async function formatContent(
     /(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([\w\-]+)|https?:\/\/youtu\.be\/([\w\-]+))/gi,
     (match, p1, p2) => {
       const videoId = p2 || p1;
-      
+
       // Validate video ID (alphanumeric, hyphens, underscores only)
       if (!/^[\w\-]+$/.test(videoId)) {
         return match; // Return original if invalid
       }
-      
+
       return `<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 8px 0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation" referrerpolicy="strict-origin-when-cross-origin" loading="lazy" title="YouTube video player"></iframe></div>`;
     }
   );
@@ -244,11 +287,11 @@ export async function formatContent(
         return match;
       }
       const url = match.startsWith('http') ? match : `http://${match}`;
-      
+
       // Validate URL before creating link (defense-in-depth)
       const validatedUrl = sanitizeUrl(url);
       if (!validatedUrl) return match; // Return original if invalid
-      
+
       return `<a href="${validatedUrl}" target="_blank" rel="noopener noreferrer" class="nostrMention">${match}</a>`;
     }
   );

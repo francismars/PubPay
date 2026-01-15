@@ -57,9 +57,10 @@ export const LivePage: React.FC = () => {
     const styleOptionsModal = document.getElementById('styleOptionsModal');
     if (styleOptionsModal) {
       // Check both display and show class to determine if it's open
-      const isOpen = styleOptionsModal.style.display === 'block' || 
-                    styleOptionsModal.classList.contains('show');
-      
+      const isOpen =
+        styleOptionsModal.style.display === 'block' ||
+        styleOptionsModal.classList.contains('show');
+
       if (isOpen) {
         // Close the modal
         styleOptionsModal.classList.remove('show');
@@ -740,13 +741,16 @@ export const LivePage: React.FC = () => {
                 <img
                   id="authorNameProfileImg"
                   className="author-image"
-                  src={sanitizeImageUrl(authorImage) || '/live/images/gradient_color.gif'}
+                  src={
+                    sanitizeImageUrl(authorImage) ||
+                    '/live/images/gradient_color.gif'
+                  }
                 />
                 <div className="author-info">
                   <div id="authorName" className="author-name">
                     {authorName}
                   </div>
-                  
+
                   {/* NIP-05 Verification */}
                   <div className="noteNIP05 label">
                     {authorNip05 ? (
@@ -794,7 +798,11 @@ export const LivePage: React.FC = () => {
               {/* Note Content Section */}
               <div className="note-section">
                 <div id="noteContent" className="note-content">
-                  {noteContent ? <div dangerouslySetInnerHTML={{ __html: noteContent }} /> : ''}
+                  {noteContent ? (
+                    <div dangerouslySetInnerHTML={{ __html: noteContent }} />
+                  ) : (
+                    ''
+                  )}
                 </div>
               </div>
 
@@ -890,8 +898,8 @@ export const LivePage: React.FC = () => {
               </div>
 
               <div className="zaps-header-right">
-                <button 
-                  id="styleToggleBtn" 
+                <button
+                  id="styleToggleBtn"
                   className="style-toggle-btn"
                   onClick={handleStyleToggle}
                 >

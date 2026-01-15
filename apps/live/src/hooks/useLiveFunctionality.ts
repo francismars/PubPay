@@ -1,6 +1,6 @@
 /**
  * useLiveFunctionality Hook
- * 
+ *
  * Main hook for managing live event functionality including:
  * - Nostr event subscriptions (live events, chat, zaps, profiles)
  * - Content rendering (notes, profiles, live events, chat messages)
@@ -10,7 +10,7 @@
  * - Style management
  * - QR code generation
  * - Lightning payment integration
- * 
+ *
  * @param eventId - Optional event ID to load on mount
  * @returns Hook state and functions for managing live functionality
  */
@@ -25,7 +25,7 @@ import { useNostrSubscriptions } from './useNostrSubscriptions';
 import { useContentRendering } from './useContentRendering';
 import { useVideoPlayer } from './useVideoPlayer';
 // Zap handling imports removed - now using useZapHandling hook
-import { 
+import {
   DEFAULT_READ_RELAYS,
   NostrClient,
   EVENT_KINDS,
@@ -36,7 +36,7 @@ import {
   BitcoinPriceService,
   LiveEventService
 } from '@pubpay/shared-services';
-import { 
+import {
   Kind0Event,
   Kind1Event,
   Kind9735Event,
@@ -44,10 +44,19 @@ import {
   NostrEvent,
   NostrFilter
 } from '@pubpay/shared-types';
-import { sanitizeHTML, sanitizeImageUrl, sanitizeUrl, escapeHtml } from '../utils/sanitization';
+import {
+  sanitizeHTML,
+  sanitizeImageUrl,
+  sanitizeUrl,
+  escapeHtml
+} from '../utils/sanitization';
 import { DEFAULT_STYLES } from '../constants/styles';
 import { appLocalStorage } from '../utils/storage';
-import { validateNoteId, stripNostrPrefix, parseEventId } from '../utils/eventIdParser';
+import {
+  validateNoteId,
+  stripNostrPrefix,
+  parseEventId
+} from '../utils/eventIdParser';
 import {
   getElementById,
   querySelector,
@@ -134,13 +143,23 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Define callback functions that will be used by subscriptions
   // These need to be defined before useNostrSubscriptions
-  const displayLiveEventRef = useRef<((liveEvent: Kind30311Event) => void) | null>(null);
-  const displayLiveChatMessageRef = useRef<((chatMessage: NostrEvent) => void) | null>(null);
+  const displayLiveEventRef = useRef<
+    ((liveEvent: Kind30311Event) => void) | null
+  >(null);
+  const displayLiveChatMessageRef = useRef<
+    ((chatMessage: NostrEvent) => void) | null
+  >(null);
   const updateProfileRef = useRef<((profile: Kind0Event) => void) | null>(null);
-  const updateLiveEventHostProfileRef = useRef<((profile: Kind0Event) => void) | null>(null);
-  const drawKind1Ref = useRef<((kind1: Kind1Event) => Promise<void>) | null>(null);
+  const updateLiveEventHostProfileRef = useRef<
+    ((profile: Kind0Event) => void) | null
+  >(null);
+  const drawKind1Ref = useRef<((kind1: Kind1Event) => Promise<void>) | null>(
+    null
+  );
   const drawKind0Ref = useRef<((kind0: Kind0Event) => void) | null>(null);
-  const drawKinds9735Ref = useRef<((zaps: ProcessedZapData[]) => void) | null>(null);
+  const drawKinds9735Ref = useRef<((zaps: ProcessedZapData[]) => void) | null>(
+    null
+  );
 
   // Persistent zap list that accumulates over time (like legacy)
   let json9735List: ProcessedZapData[] = [];
@@ -164,12 +183,16 @@ export const useLiveFunctionality = (eventId?: string) => {
   } = useQRCode();
 
   // Refs for callbacks that are defined later
-  const subscribeChatAuthorProfileRef = useRef<((pubkey: string) => void) | null>(null);
+  const subscribeChatAuthorProfileRef = useRef<
+    ((pubkey: string) => void) | null
+  >(null);
   const updateLiveEventZapTotalRef = useRef<(() => void) | null>(null);
   const organizeZapsHierarchicallyRef = useRef<(() => void) | null>(null);
   // Fiat conversion is now handled by useFiatConversion hook
   const cleanupHierarchicalOrganizationRef = useRef<(() => void) | null>(null);
-  const updateQRSlideVisibilityRef = useRef<((skipUrlUpdate?: boolean) => void) | null>(null);
+  const updateQRSlideVisibilityRef = useRef<
+    ((skipUrlUpdate?: boolean) => void) | null
+  >(null);
 
   // Zap handling functionality
   const {
@@ -225,7 +248,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
   });
 
-
   // Style management functionality
   const {
     resetToDefaults,
@@ -256,7 +278,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         updateQRSlideVisibilityRef.current(skipUrlUpdate);
       }
     },
-    onInitializeQRCodePlaceholders: (eventIdParam?: string) => initializeQRCodePlaceholders(eventIdParam || eventId)
+    onInitializeQRCodePlaceholders: (eventIdParam?: string) =>
+      initializeQRCodePlaceholders(eventIdParam || eventId)
   });
 
   // Store updateBlendMode ref so Lightning hook can call it
@@ -288,7 +311,10 @@ export const useLiveFunctionality = (eventId?: string) => {
       } else {
         // If ref not set yet, set it and call immediately
         // This handles the case where the function hasn't been defined yet
-        logger.warn('displayLiveEventRef not set yet, event will be lost', ErrorCategory.RENDERING);
+        logger.warn(
+          'displayLiveEventRef not set yet, event will be lost',
+          ErrorCategory.RENDERING
+        );
       }
     },
     onLiveChatMessage: (chatMessage: NostrEvent) => {
@@ -296,10 +322,17 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (callback) {
         callback(chatMessage);
       } else {
-        logger.warn('displayLiveChatMessageRef not set yet, message will be lost', ErrorCategory.RENDERING);
+        logger.warn(
+          'displayLiveChatMessageRef not set yet, message will be lost',
+          ErrorCategory.RENDERING
+        );
       }
     },
-    onLiveEventZap: (zap: Kind9735Event, pubkey: string, identifier: string) => {
+    onLiveEventZap: (
+      zap: Kind9735Event,
+      pubkey: string,
+      identifier: string
+    ) => {
       processLiveEventZap(zap, pubkey, identifier);
     },
     onProfileUpdate: (profile: Kind0Event) => {
@@ -326,7 +359,10 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (callback) {
         await callback(kind1);
       } else {
-        logger.warn('drawKind1Ref not set yet - function may not be defined', ErrorCategory.RENDERING);
+        logger.warn(
+          'drawKind1Ref not set yet - function may not be defined',
+          ErrorCategory.RENDERING
+        );
         setTimeout(async () => {
           if (drawKind1Ref.current) {
             await drawKind1Ref.current(kind1);
@@ -362,8 +398,10 @@ export const useLiveFunctionality = (eventId?: string) => {
       // When zaps are loaded, process them with profiles
       // Get profiles from window.profiles (set by subscribeKind0fromKinds9735)
       const profiles = window.profiles || {};
-      const kind0fromkind9735List: Kind0Event[] = Object.values(profiles) as Kind0Event[];
-      
+      const kind0fromkind9735List: Kind0Event[] = Object.values(
+        profiles
+      ) as Kind0Event[];
+
       // Process zaps with profiles using createkinds9735JSON
       if (zaps.length > 0) {
         createkinds9735JSON(zaps, kind0fromkind9735List);
@@ -372,7 +410,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         const zapsContainer = getElementById('zaps');
         if (zapsContainer) {
           hideLoadingState(zapsContainer);
-          
+
           const emptyStateDiv = createElement('div', {
             className: 'empty-zaps-state',
             innerHTML: `
@@ -436,9 +474,11 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Store subscription functions in refs for backward compatibility
   subscribeChatAuthorProfileRef.current = subscribeChatAuthorProfile;
-  
+
   // Create a ref to store subscribeLiveEventParticipants for use in displayLiveEvent
-  const subscribeLiveEventParticipantsRef = useRef<((liveEvent: Kind30311Event) => Promise<unknown>) | null>(null);
+  const subscribeLiveEventParticipantsRef = useRef<
+    ((liveEvent: Kind30311Event) => Promise<unknown>) | null
+  >(null);
   subscribeLiveEventParticipantsRef.current = subscribeLiveEventParticipants;
 
   // CRITICAL: Set callback refs immediately after functions are defined
@@ -530,7 +570,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                 slidesPerView: 1,
                 spaceBetween: 0
               }
-},
+            },
 
             // Event callbacks
             on: {
@@ -540,8 +580,8 @@ export const useLiveFunctionality = (eventId?: string) => {
               slideChange() {
                 // Portrait swiper slide changed
               }
-}
-    });
+            }
+          });
         }
 
         // QR swiper is initialized by initializeQRSwiper() function
@@ -584,7 +624,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                 try {
                   setupNoteLoaderListeners();
                 } catch {}
-          const input = document.getElementById(
+                const input = document.getElementById(
                   'note1LoaderInput'
                 ) as HTMLInputElement | null;
                 if (input) {
@@ -592,7 +632,7 @@ export const useLiveFunctionality = (eventId?: string) => {
                   input.focus();
                   input.select();
                 }
-}, 60);
+              }, 60);
             } else {
               // Just show error, don't prefill input
               setTimeout(() => {
@@ -600,14 +640,14 @@ export const useLiveFunctionality = (eventId?: string) => {
                 try {
                   setupNoteLoaderListeners();
                 } catch {}
-        }, 60);
+              }, 60);
             }
 
             // Do not proceed with loading
             setIsLoading(false);
             return;
           }
-  await loadNoteContent(eventId);
+          await loadNoteContent(eventId);
         } else {
           // If no eventId, still initialize QR codes with placeholder content
           await initializeQRCodePlaceholders(undefined);
@@ -635,7 +675,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             if (!eventId) {
               setupNoteLoaderListeners();
             }
-  }, 100);
+          }, 100);
 
           // After styles are loaded, check if show top zappers should be displayed
           const showTopZappersToggle = document.getElementById(
@@ -644,7 +684,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           if (showTopZappersToggle?.checked) {
             displayTopZappers();
           }
-}, 500);
+        }, 500);
 
         setIsLoading(false);
       } catch (err) {
@@ -705,21 +745,24 @@ export const useLiveFunctionality = (eventId?: string) => {
                   slidesPerView: 1,
                   spaceBetween: 0
                 }
-}
-});
+              }
+            });
             // Debug log removed
           } else {
-            logger.warn('Portrait swiper element not found', ErrorCategory.RENDERING);
+            logger.warn(
+              'Portrait swiper element not found',
+              ErrorCategory.RENDERING
+            );
           }
-}
-}, 200);
+        }
+      }, 200);
 
       // Setup note loader event listeners when there's no eventId
       setTimeout(() => {
         if (!eventId) {
           setupNoteLoaderListeners();
         }
-}, 300);
+      }, 300);
     }
   }, [eventId]);
 
@@ -808,9 +851,12 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (!profile) return 'Anonymous';
     try {
       const profileData = JSON.parse(profile.content || '{}');
-    return (
-        profileData.display_name || profileData.displayName || profileData.name || 'Anonymous'
-    );
+      return (
+        profileData.display_name ||
+        profileData.displayName ||
+        profileData.name ||
+        'Anonymous'
+      );
     } catch {
       return 'Anonymous';
     }
@@ -849,21 +895,31 @@ export const useLiveFunctionality = (eventId?: string) => {
         const avatar = zapperElement.querySelector(
           '.zapper-avatar'
         ) as HTMLImageElement;
-        const name = zapperElement.querySelector('.zapper-name') as HTMLElement | null;
-        const total = zapperElement.querySelector('.zapper-total') as HTMLElement | null;
+        const name = zapperElement.querySelector(
+          '.zapper-name'
+        ) as HTMLElement | null;
+        const total = zapperElement.querySelector(
+          '.zapper-total'
+        ) as HTMLElement | null;
 
         // topZappers is ProcessedZap[] from useZapHandling hook
         const zapperData = zapper as SharedProcessedZap;
         const zapperPicture = zapperData.zapPayerPicture || '';
         const zapperName = zapperData.content || 'Anonymous';
         const zapperAmount = zapperData.zapAmount || 0;
-        
+
         if (avatar) {
-          avatar.src = sanitizeImageUrl(zapperPicture) || '/live/images/gradient_color.gif';
+          avatar.src =
+            sanitizeImageUrl(zapperPicture) ||
+            '/live/images/gradient_color.gif';
           avatar.alt = zapperName;
         }
         if (name) setTextContent(name as HTMLElement, zapperName);
-        if (total) setTextContent(total as HTMLElement, `${numberWithCommas(zapperAmount)} sats`);
+        if (total)
+          setTextContent(
+            total as HTMLElement,
+            `${numberWithCommas(zapperAmount)} sats`
+          );
 
         zapperElement.style.opacity = '1';
         zapperElement.style.display = 'flex';
@@ -896,7 +952,8 @@ export const useLiveFunctionality = (eventId?: string) => {
   const updateLiveEventHostProfile = (profile: Kind0Event) => {
     // Set ref immediately when function is called (for first call)
     if (!updateLiveEventHostProfileRef.current) {
-      updateLiveEventHostProfileRef.current = updateLiveEventHostProfileFromHook;
+      updateLiveEventHostProfileRef.current =
+        updateLiveEventHostProfileFromHook;
     }
     updateLiveEventHostProfileFromHook(profile);
   };
@@ -958,7 +1015,7 @@ export const useLiveFunctionality = (eventId?: string) => {
               loadingText.textContent = 'Loading live event...';
               noteContent.appendChild(loadingText);
             }
-  }
+          }
 
           if (zapsList) {
             zapsList.classList.add('loading');
@@ -968,7 +1025,7 @@ export const useLiveFunctionality = (eventId?: string) => {
               loadingText.textContent = 'Loading live activity...';
               zapsList.appendChild(loadingText);
             }
-  }
+          }
 
           // Store current live event info for reconnection
           window.currentLiveEventInfo = { pubkey, identifier, kind };
@@ -1003,7 +1060,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         subscribeKind1(kind1ID);
         const noteLoaderContainer = getElementById('noteLoaderContainer');
         hideElement(noteLoaderContainer);
-} catch (e) {
+      } catch (e) {
         // If decoding fails, try to use the input directly as a note ID
 
         // Show loading animations
@@ -1018,7 +1075,7 @@ export const useLiveFunctionality = (eventId?: string) => {
             loadingText.textContent = 'Loading note content...';
             noteContent.appendChild(loadingText);
           }
-}
+        }
 
         if (zapsList) {
           zapsList.classList.add('loading');
@@ -1028,12 +1085,12 @@ export const useLiveFunctionality = (eventId?: string) => {
             loadingText.textContent = 'Loading zaps...';
             zapsList.appendChild(loadingText);
           }
-}
+        }
 
         subscribeKind1(noteId);
         const noteLoaderContainer = getElementById('noteLoaderContainer');
         hideElement(noteLoaderContainer);
-}
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to load note content'
@@ -1086,7 +1143,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       // Use utility functions to extract zap data
       const amount = extractZapAmount(kind9735);
       if (amount === 0) {
-        logger.warn('No amount found in zap', ErrorCategory.VALIDATION, { zapId: kind9735.id });
+        logger.warn('No amount found in zap', ErrorCategory.VALIDATION, {
+          zapId: kind9735.id
+        });
         return;
       }
 
@@ -1119,7 +1178,6 @@ export const useLiveFunctionality = (eventId?: string) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   // subscribeKind0fromKinds9735 is now provided by useNostrSubscriptions hook
 
-
   const createkinds9735JSON = async (
     kind9735List: Kind9735Event[],
     kind0fromkind9735List: Kind0Event[]
@@ -1146,7 +1204,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       if (amount9735 === 0) continue; // Skip if no amount
 
-const kind1from9735 = kind9735.tags.find(
+      const kind1from9735 = kind9735.tags.find(
         (tag: string[]) => tag[0] === 'e'
       )?.[1];
       const kind9735id = nip19.noteEncode(kind9735.id) || kind9735.id;
@@ -1161,10 +1219,17 @@ const kind1from9735 = kind9735.tags.find(
       );
       if (kind0fromkind9735) {
         try {
-          const content = JSON.parse(kind0fromkind9735.content || '{}') as Record<string, unknown>;
+          const content = JSON.parse(
+            kind0fromkind9735.content || '{}'
+          ) as Record<string, unknown>;
           const displayName = content.displayName || content.display_name;
-          const kind0name = displayName ? (displayName as string) : (content.name as string);
-          kind0finalName = kind0name != '' ? kind0name : (content.name as string) || 'Anonymous';
+          const kind0name = displayName
+            ? (displayName as string)
+            : (content.name as string);
+          kind0finalName =
+            kind0name != ''
+              ? kind0name
+              : (content.name as string) || 'Anonymous';
           kind0picture = (content.picture as string) || '';
           kind0npub = nip19.npubEncode(kind0fromkind9735.pubkey) || '';
           profileData = content;
@@ -1178,7 +1243,7 @@ const kind1from9735 = kind9735.tags.find(
           // Use defaults if profile parsing fails
           kind0npub = nip19.npubEncode(kind0fromkind9735.pubkey) || '';
         }
-}
+      }
 
       const json9735 = {
         e: kind1from9735,
@@ -1278,9 +1343,14 @@ const kind1from9735 = kind9735.tags.find(
       }
 
       if (!zap.picture) zap.picture = '';
-      const profileImage = sanitizeImageUrl(zap.picture) || '/live/images/gradient_color.gif';
-      const sanitizedZapContent = zap.kind9735content ? escapeHtml(zap.kind9735content).replace(/\n/g, '<br>') : '';
-      const sanitizedZapName = zap.kind1Name ? escapeHtml(zap.kind1Name) : 'Anonymous';
+      const profileImage =
+        sanitizeImageUrl(zap.picture) || '/live/images/gradient_color.gif';
+      const sanitizedZapContent = zap.kind9735content
+        ? escapeHtml(zap.kind9735content).replace(/\n/g, '<br>')
+        : '';
+      const sanitizedZapName = zap.kind1Name
+        ? escapeHtml(zap.kind1Name)
+        : 'Anonymous';
 
       zapDiv.innerHTML = `
         <div class="zapperProfile">
@@ -1340,8 +1410,8 @@ const kind1from9735 = kind9735.tags.find(
             zap.classList.add(`podium-${i + 1}`);
             // Debug log removed
           }
-}
-}
+        }
+      }
     }
 
     // Calculate top zappers directly from the zaps we just processed
@@ -1395,7 +1465,9 @@ const kind1from9735 = kind9735.tags.find(
   };
 
   // Helper function to cleanup hierarchical organization in a container
-  const cleanupHierarchicalOrganizationInContainer = (container: HTMLElement) => {
+  const cleanupHierarchicalOrganizationInContainer = (
+    container: HTMLElement
+  ) => {
     // Remove all row containers and move zaps back to the main container
     const existingRows = container.querySelectorAll('.zap-row');
     existingRows.forEach(row => {
@@ -1405,7 +1477,10 @@ const kind1from9735 = kind9735.tags.find(
         const zapElement = zap as HTMLElement;
         // Remove row classes and global podium classes from individual zaps
         zapElement.className = zapElement.className.replace(/row-\d+/g, '');
-        zapElement.className = zapElement.className.replace(/podium-global-\d+/g, '');
+        zapElement.className = zapElement.className.replace(
+          /podium-global-\d+/g,
+          ''
+        );
 
         // Force row layout by setting inline styles (will override everything)
         zapElement.style.flexDirection = 'row';
@@ -1415,7 +1490,9 @@ const kind1from9735 = kind9735.tags.find(
         zapElement.style.width = 'auto';
 
         // Reset nested elements to row layout
-        const profile = zapElement.querySelector('.zapperProfile') as HTMLElement;
+        const profile = zapElement.querySelector(
+          '.zapperProfile'
+        ) as HTMLElement;
         if (profile) {
           profile.style.flexDirection = 'row';
           profile.style.alignItems = 'center';
@@ -1440,10 +1517,12 @@ const kind1from9735 = kind9735.tags.find(
       // Remove the empty row container
       row.remove();
     });
-    
+
     // After cleanup, remove inline styles after a frame to let CSS take over
     setTimeout(() => {
-      const allZaps = container.querySelectorAll('.zap, .live-event-zap, .zap-only-item');
+      const allZaps = container.querySelectorAll(
+        '.zap, .live-event-zap, .zap-only-item'
+      );
       allZaps.forEach(zap => {
         const zapElement = zap as HTMLElement;
         zapElement.style.removeProperty('flex-direction');
@@ -1451,8 +1530,10 @@ const kind1from9735 = kind9735.tags.find(
         zapElement.style.removeProperty('justify-content');
         zapElement.style.removeProperty('text-align');
         zapElement.style.removeProperty('width');
-        
-        const profile = zapElement.querySelector('.zapperProfile') as HTMLElement;
+
+        const profile = zapElement.querySelector(
+          '.zapperProfile'
+        ) as HTMLElement;
         if (profile) {
           profile.style.removeProperty('flex-direction');
           profile.style.removeProperty('align-items');
@@ -1470,7 +1551,7 @@ const kind1from9735 = kind9735.tags.find(
           amount.style.removeProperty('flex-direction');
           amount.style.removeProperty('align-items');
         }
-});
+      });
     }, 0);
   };
 
@@ -1482,7 +1563,7 @@ const kind1from9735 = kind9735.tags.find(
     if (zapsList.classList.contains('live-event-two-column')) {
       // Only cleanup zaps-only-list (activity-list never has grid layout)
       const zapsOnlyList = document.getElementById('zaps-only-list');
-      
+
       if (zapsOnlyList) {
         cleanupHierarchicalOrganizationInContainer(zapsOnlyList);
       }
@@ -1490,7 +1571,7 @@ const kind1from9735 = kind9735.tags.find(
       // Regular kind1 note mode - cleanup main zaps list
       cleanupHierarchicalOrganizationInContainer(zapsList);
     }
-    
+
     // Also ensure .zaps-list elements don't have grid-layout class
     const allZapsLists = document.querySelectorAll('.zaps-list');
     allZapsLists.forEach(list => {
@@ -1500,16 +1581,20 @@ const kind1from9735 = kind9735.tags.find(
 
   // Update ref when cleanupHierarchicalOrganization is defined
   useEffect(() => {
-    cleanupHierarchicalOrganizationRef.current = cleanupHierarchicalOrganization;
+    cleanupHierarchicalOrganizationRef.current =
+      cleanupHierarchicalOrganization;
   }, [cleanupHierarchicalOrganization]);
 
   // Helper function to organize zaps in a container
-  const organizeZapsInContainer = (container: HTMLElement, sortByAmount: boolean = true) => {
+  const organizeZapsInContainer = (
+    container: HTMLElement,
+    sortByAmount: boolean = true
+  ) => {
     // For activity list, only organize zaps, not chat messages
     const selector = sortByAmount
-      ? '.zap, .live-event-zap, .zap-only-item'  // zaps-only-list: only zaps
-      : '.live-event-zap';  // activity-list: only zaps (not chat messages)
-    
+      ? '.zap, .live-event-zap, .zap-only-item' // zaps-only-list: only zaps
+      : '.live-event-zap'; // activity-list: only zaps (not chat messages)
+
     const zaps = Array.from(container.querySelectorAll(selector));
     if (zaps.length === 0) return;
 
@@ -1521,7 +1606,7 @@ const kind1from9735 = kind9735.tags.find(
       zapElement.style.removeProperty('justify-content');
       zapElement.style.removeProperty('text-align');
       zapElement.style.removeProperty('width');
-      
+
       const profile = zapElement.querySelector('.zapperProfile') as HTMLElement;
       if (profile) {
         profile.style.removeProperty('flex-direction');
@@ -1570,8 +1655,12 @@ const kind1from9735 = kind9735.tags.find(
         return amountB - amountA;
       } else {
         // Sort by timestamp (for activity-list) - newest first
-        const timestampA = parseInt((a as HTMLElement).dataset.timestamp || '0');
-        const timestampB = parseInt((b as HTMLElement).dataset.timestamp || '0');
+        const timestampA = parseInt(
+          (a as HTMLElement).dataset.timestamp || '0'
+        );
+        const timestampB = parseInt(
+          (b as HTMLElement).dataset.timestamp || '0'
+        );
         return timestampB - timestampA;
       }
     });
@@ -1585,7 +1674,7 @@ const kind1from9735 = kind9735.tags.find(
           zap.classList.add(`podium-global-${i + 1}`);
           // Debug log removed
         }
-}
+      }
     }
 
     let currentIndex = 0;
@@ -1604,7 +1693,7 @@ const kind1from9735 = kind9735.tags.find(
           zap.classList.add(`row-${rowNumber}`);
           rowContainer.appendChild(zap);
         }
-currentIndex++;
+        currentIndex++;
       }
 
       container.appendChild(rowContainer);
@@ -1622,16 +1711,16 @@ currentIndex++;
             zap.classList.add('row-5');
             rowContainer.appendChild(zap);
           }
-  currentIndex++;
+          currentIndex++;
         }
-break;
+        break;
       }
     }
   };
 
   const organizeZapsHierarchically = () => {
     organizeZapsHierarchicallyRef.current = organizeZapsHierarchically;
-    
+
     const zapsList = document.getElementById('zaps');
     if (!zapsList) return;
 
@@ -1640,7 +1729,7 @@ break;
       // Only organize zaps-only-list in grid layout
       // Activity list stays as chronological list (not affected by grid toggle)
       const zapsOnlyList = document.getElementById('zaps-only-list');
-      
+
       if (zapsOnlyList) {
         // Sort by amount (highest first) for zaps-only column
         organizeZapsInContainer(zapsOnlyList, true);
@@ -1670,7 +1759,6 @@ break;
   };
 
   // getMentionUserName and processNoteContent are now provided by useContentRendering hook
-
 
   // Helper function to show loading state
   const showLoadingState = (noteContentText: string, zapsText: string) => {
@@ -1720,7 +1808,7 @@ break;
       window.dispatchEvent(
         new CustomEvent('noteLoaderSubmitted', {
           detail: { noteId: cleanNoteId, decoded }
-  })
+        })
       );
 
       // Show loading state
@@ -1805,7 +1893,7 @@ break;
       if (retryCount < 50) {
         if (retryCount % 10 === 0) {
         }
-setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
+        setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
         return;
       } else {
         setupNoteLoaderListenersInProgress = false;
@@ -1835,7 +1923,7 @@ setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
           e.preventDefault();
           handleNoteLoaderSubmit();
         }
-});
+      });
 
       // Clear error message when user starts typing
       inputField.addEventListener('input', e => {
@@ -1970,7 +2058,7 @@ setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
         if (satsMatch && satsMatch[1]) {
           totalSats += parseInt(satsMatch[1].replace(/,/g, ''));
         }
-}
+      }
     });
 
     // Update the total amount display
@@ -2018,14 +2106,14 @@ setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
         const target = e.target as HTMLSelectElement;
         if (target) {
           setSelectedCurrency(target.value);
-        // Update fiat amounts with new currency if toggle is enabled
-        const showFiatToggle = document.getElementById(
-          'showFiatToggle'
-        ) as HTMLInputElement;
-        if (showFiatToggle && showFiatToggle.checked) {
-          debouncedUpdateFiatAmounts();
-        }
-saveCurrentStylesToLocalStorage();
+          // Update fiat amounts with new currency if toggle is enabled
+          const showFiatToggle = document.getElementById(
+            'showFiatToggle'
+          ) as HTMLInputElement;
+          if (showFiatToggle && showFiatToggle.checked) {
+            debouncedUpdateFiatAmounts();
+          }
+          saveCurrentStylesToLocalStorage();
         }
       });
     }
@@ -2054,7 +2142,7 @@ saveCurrentStylesToLocalStorage();
           if (bgImageUrl) {
             (bgImageUrl as HTMLInputElement).value = selectedValue;
           }
-  updateBackgroundImage(selectedValue);
+          updateBackgroundImage(selectedValue);
           if (bgPresetPreview) {
             if (selectedValue === '') {
               // No background selected - show white square (container background)
@@ -2067,10 +2155,10 @@ saveCurrentStylesToLocalStorage();
               (bgPresetPreview as HTMLImageElement).alt = 'Background preview';
               (bgPresetPreview as HTMLImageElement).style.display = 'block';
             }
-  }
-    saveCurrentStylesToLocalStorage();
+          }
+          saveCurrentStylesToLocalStorage();
         }
-});
+      });
     }
 
     if (bgImageUrl) {
@@ -2085,7 +2173,7 @@ saveCurrentStylesToLocalStorage();
               (bgPresetPreview as HTMLImageElement).src = url;
               (bgPresetPreview as HTMLImageElement).alt = 'Background preview';
             }
-saveCurrentStylesToLocalStorage();
+            saveCurrentStylesToLocalStorage();
           };
           img.onerror = () => {
             if (bgPresetPreview) {
@@ -2093,7 +2181,7 @@ saveCurrentStylesToLocalStorage();
               (bgPresetPreview as HTMLImageElement).alt =
                 'Failed to load image';
             }
-  };
+          };
           img.src = url;
         } else {
           updateBackgroundImage('');
@@ -2102,9 +2190,9 @@ saveCurrentStylesToLocalStorage();
             (bgPresetPreview as HTMLImageElement).alt = 'No background';
             (bgPresetPreview as HTMLImageElement).style.display = 'none';
           }
-  saveCurrentStylesToLocalStorage();
+          saveCurrentStylesToLocalStorage();
         }
-});
+      });
     }
 
     if (clearBgImage) {
@@ -2118,7 +2206,7 @@ saveCurrentStylesToLocalStorage();
           (bgPresetPreview as HTMLImageElement).alt = 'No background';
           (bgPresetPreview as HTMLImageElement).style.display = 'none';
         }
-saveCurrentStylesToLocalStorage();
+        saveCurrentStylesToLocalStorage();
       });
     }
 
@@ -2130,7 +2218,7 @@ saveCurrentStylesToLocalStorage();
       } else {
         document.body.classList.remove('flex-direction-invert');
       }
-// Debug log removed
+      // Debug log removed
     });
 
     setupToggle('hideZapperContentToggle', (checked: boolean) => {
@@ -2140,7 +2228,7 @@ saveCurrentStylesToLocalStorage();
       } else {
         document.body.classList.remove('hide-zapper-content');
       }
-// Debug log removed
+      // Debug log removed
     });
 
     setupToggle('showTopZappersToggle', (checked: boolean) => {
@@ -2167,7 +2255,7 @@ saveCurrentStylesToLocalStorage();
           // Debug log removed
           setUserWantsTopZappers(true);
         }
-} else {
+      } else {
         // Debug log removed
         document.body.classList.remove('show-top-zappers');
         hideTopZappersBar();
@@ -2181,7 +2269,7 @@ saveCurrentStylesToLocalStorage();
       } else {
         document.body.classList.remove('podium-enabled');
       }
-// Debug log removed
+      // Debug log removed
 
       // Check if grid layout is active
       const zapGridToggle = document.getElementById(
@@ -2204,7 +2292,7 @@ saveCurrentStylesToLocalStorage();
           // Debug log removed
           drawKinds9735(processedZaps);
         }
-}
+      }
     });
 
     setupToggle('zapGridToggle', (checked: boolean) => {
@@ -2214,40 +2302,51 @@ saveCurrentStylesToLocalStorage();
         const isLiveEvent = zapsList.classList.contains(
           'live-event-two-column'
         );
-        
+
         if (isLiveEvent) {
           // Apply grid layout ONLY to zaps-only-list, NOT activity-list
           const zapsOnlyList = document.getElementById('zaps-only-list');
-          
+
           if (checked) {
             if (zapsOnlyList) {
               zapsOnlyList.classList.add('grid-layout');
               // Force reflow to apply grid-layout class
               void zapsOnlyList.offsetHeight;
             }
-setTimeout(() => {
+            setTimeout(() => {
               organizeZapsHierarchically();
             }, 10);
-            
+
             // Start periodic re-organization to catch new zaps during load
             if (window.gridPeriodicCheckInterval) {
               clearInterval(window.gridPeriodicCheckInterval);
             }
             window.gridPeriodicCheckInterval = setInterval(() => {
-              const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+              const gridToggle = document.getElementById(
+                'zapGridToggle'
+              ) as HTMLInputElement;
               const container = document.getElementById('zaps-only-list');
-              if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
+              if (
+                gridToggle &&
+                gridToggle.checked &&
+                container &&
+                container.classList.contains('grid-layout')
+              ) {
                 // Check if there are zaps outside of .zap-row containers
-                const allZaps = container.querySelectorAll('.zap, .live-event-zap, .zap-only-item');
-                const zapsInRows = container.querySelectorAll('.zap-row .zap, .zap-row .live-event-zap, .zap-row .zap-only-item');
-                
+                const allZaps = container.querySelectorAll(
+                  '.zap, .live-event-zap, .zap-only-item'
+                );
+                const zapsInRows = container.querySelectorAll(
+                  '.zap-row .zap, .zap-row .live-event-zap, .zap-row .zap-only-item'
+                );
+
                 if (allZaps.length !== zapsInRows.length) {
                   // Some zaps are not in rows, re-organize
                   // Re-organizing grid: found zaps outside rows
                   organizeZapsHierarchically();
                 }
-}
-}, 2000); // Check every 2 seconds
+              }
+            }, 2000); // Check every 2 seconds
           } else {
             // Stop periodic check
             if (window.gridPeriodicCheckInterval) {
@@ -2264,12 +2363,14 @@ setTimeout(() => {
                 // Force reflow to ensure styles are recalculated
                 void zapsOnlyList.offsetHeight;
               }
-// Also ensure .zaps-list doesn't have grid-layout
+              // Also ensure .zaps-list doesn't have grid-layout
               const zapsListElements = document.querySelectorAll('.zaps-list');
-              zapsListElements.forEach(list => list.classList.remove('grid-layout'));
+              zapsListElements.forEach(list =>
+                list.classList.remove('grid-layout')
+              );
             }, 10);
           }
-} else {
+        } else {
           // Regular kind1 note mode
           if (checked) {
             zapsList.classList.add('grid-layout');
@@ -2278,26 +2379,33 @@ setTimeout(() => {
             setTimeout(() => {
               organizeZapsHierarchically();
             }, 10);
-            
+
             // Start periodic re-organization for kind1 notes too
             if (window.gridPeriodicCheckInterval) {
               clearInterval(window.gridPeriodicCheckInterval);
             }
             window.gridPeriodicCheckInterval = setInterval(() => {
-              const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+              const gridToggle = document.getElementById(
+                'zapGridToggle'
+              ) as HTMLInputElement;
               const container = document.getElementById('zaps');
-              if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
+              if (
+                gridToggle &&
+                gridToggle.checked &&
+                container &&
+                container.classList.contains('grid-layout')
+              ) {
                 // Check if there are zaps outside of .zap-row containers
                 const allZaps = container.querySelectorAll('.zap');
                 const zapsInRows = container.querySelectorAll('.zap-row .zap');
-                
+
                 if (allZaps.length !== zapsInRows.length) {
                   // Some zaps are not in rows, re-organize
                   // Re-organizing grid: found zaps outside rows
                   organizeZapsHierarchically();
                 }
-}
-}, 2000); // Check every 2 seconds
+              }
+            }, 2000); // Check every 2 seconds
           } else {
             // Stop periodic check
             if (window.gridPeriodicCheckInterval) {
@@ -2314,7 +2422,9 @@ setTimeout(() => {
               void zapsList.offsetHeight;
               // Also ensure .zaps-list doesn't have grid-layout
               const zapsListElements = document.querySelectorAll('.zaps-list');
-              zapsListElements.forEach(list => list.classList.remove('grid-layout'));
+              zapsListElements.forEach(list =>
+                list.classList.remove('grid-layout')
+              );
             }, 10);
           }
 
@@ -2325,9 +2435,9 @@ setTimeout(() => {
           if (processedZaps.length > 0) {
             drawKinds9735(processedZaps);
           }
-}
-}
-updateStyleURL();
+        }
+      }
+      updateStyleURL();
     });
 
     setupToggle('qrInvertToggle', () => {
@@ -2349,9 +2459,9 @@ updateStyleURL();
           } else {
             qrCode.style.filter = 'none';
           }
-  // Debug log removed
+          // Debug log removed
         }
-});
+      });
     });
 
     setupToggle('qrScreenBlendToggle', () => {
@@ -2365,7 +2475,7 @@ updateStyleURL();
       if (qrScreenBlendToggle?.checked) {
         qrMultiplyBlendToggle.checked = false;
       }
-updateBlendModeFromHook();
+      updateBlendModeFromHook();
     });
 
     setupToggle('qrMultiplyBlendToggle', () => {
@@ -2379,7 +2489,7 @@ updateBlendModeFromHook();
       if (qrMultiplyBlendToggle?.checked) {
         qrScreenBlendToggle.checked = false;
       }
-updateBlendModeFromHook();
+      updateBlendModeFromHook();
     });
 
     // Setup opacity sliders
@@ -2535,7 +2645,7 @@ updateBlendModeFromHook();
       if (showFiatToggle && showFiatToggle.checked) {
         debouncedUpdateFiatAmounts();
       }
-// Save toggle state to localStorage
+      // Save toggle state to localStorage
       saveCurrentStylesToLocalStorage();
     });
 
@@ -2547,7 +2657,7 @@ updateBlendModeFromHook();
       if (showFiatToggle && showFiatToggle.checked) {
         debouncedUpdateFiatAmounts();
       }
-// Save toggle state to localStorage
+      // Save toggle state to localStorage
       saveCurrentStylesToLocalStorage();
     });
 
@@ -2561,9 +2671,9 @@ updateBlendModeFromHook();
           // If fiat only is being turned off, restore satoshi amounts first
           restoreSatoshiAmounts();
         }
-debouncedUpdateFiatAmounts();
+        debouncedUpdateFiatAmounts();
       }
-// Save toggle state to localStorage
+      // Save toggle state to localStorage
       saveCurrentStylesToLocalStorage();
     });
 
@@ -2574,7 +2684,7 @@ debouncedUpdateFiatAmounts();
       }
 
       await handleLightningToggleFromHook(checked, eventId);
-      
+
       // Update QR slide visibility
       if (typeof updateQRSlideVisibility === 'function') {
         updateQRSlideVisibility();
@@ -2612,7 +2722,7 @@ debouncedUpdateFiatAmounts();
             customPartnerLogoGroup.style.display = 'none';
           if (partnerLogoUrl) partnerLogoUrl.value = '';
         }
-debouncedApplyAllStyles();
+        debouncedApplyAllStyles();
         saveCurrentStylesToLocalStorage();
       });
     }
@@ -2770,7 +2880,7 @@ debouncedApplyAllStyles();
         if (updateQRSlideVisibilityRef.current) {
           updateQRSlideVisibilityRef.current(true);
         }
-}, 600);
+      }, 600);
       return; // URL parameters take precedence, skip localStorage
     }
 
@@ -2781,537 +2891,551 @@ debouncedApplyAllStyles();
       const styles = savedStyles;
       // Loading styles from localStorage
 
-        // Debug background image loading
-        if (styles.bgImage || styles.backgroundImage) {
+      // Debug background image loading
+      if (styles.bgImage || styles.backgroundImage) {
+        // Debug log removed
+      }
+
+      // Apply saved text color
+      if (styles.textColor) {
+        const textColorPicker = document.getElementById(
+          'textColorPicker'
+        ) as HTMLInputElement;
+        const textColorValue = document.getElementById(
+          'textColorValue'
+        ) as HTMLInputElement;
+        if (textColorPicker) {
+          textColorPicker.value = styles.textColor;
+          // Applied text color to picker
+        }
+        if (textColorValue) {
+          textColorValue.value = styles.textColor;
+          // Applied text color to value input
+        }
+      }
+
+      // Apply saved background color (check both old and new property names)
+      const bgColor = styles.bgColor || styles.backgroundColor;
+      if (bgColor) {
+        const bgColorPicker = document.getElementById(
+          'bgColorPicker'
+        ) as HTMLInputElement;
+        const bgColorValue = document.getElementById(
+          'bgColorValue'
+        ) as HTMLInputElement;
+        if (bgColorPicker) {
+          bgColorPicker.value = bgColor;
+        }
+        if (bgColorValue) {
+          bgColorValue.value = bgColor;
+        }
+      }
+
+      // Apply saved opacity values
+      if (styles.opacity !== undefined) {
+        const opacitySlider = document.getElementById(
+          'opacitySlider'
+        ) as HTMLInputElement;
+        const opacityValue = document.getElementById('opacityValue');
+        // Debug log removed
+        if (opacitySlider) {
+          opacitySlider.value = styles.opacity.toString();
           // Debug log removed
         }
-
-        // Apply saved text color
-        if (styles.textColor) {
-          const textColorPicker = document.getElementById(
-            'textColorPicker'
-          ) as HTMLInputElement;
-          const textColorValue = document.getElementById(
-            'textColorValue'
-          ) as HTMLInputElement;
-          if (textColorPicker) {
-            textColorPicker.value = styles.textColor;
-            // Applied text color to picker
-          }
-  if (textColorValue) {
-            textColorValue.value = styles.textColor;
-            // Applied text color to value input
-          }
-}
-
-        // Apply saved background color (check both old and new property names)
-        const bgColor = styles.bgColor || styles.backgroundColor;
-        if (bgColor) {
-          const bgColorPicker = document.getElementById(
-            'bgColorPicker'
-          ) as HTMLInputElement;
-          const bgColorValue = document.getElementById(
-            'bgColorValue'
-          ) as HTMLInputElement;
-          if (bgColorPicker) {
-            bgColorPicker.value = bgColor;
-          }
-  if (bgColorValue) {
-            bgColorValue.value = bgColor;
-          }
-}
-
-        // Apply saved opacity values
-        if (styles.opacity !== undefined) {
-          const opacitySlider = document.getElementById(
-            'opacitySlider'
-          ) as HTMLInputElement;
-          const opacityValue = document.getElementById('opacityValue');
+        if (opacityValue) {
+          opacityValue.textContent = `${Math.round(styles.opacity * 100)}%`;
           // Debug log removed
-          if (opacitySlider) {
-            opacitySlider.value = styles.opacity.toString();
-            // Debug log removed
-          }
-  if (opacityValue) {
-            opacityValue.textContent = `${Math.round(styles.opacity * 100)}%`;
-            // Debug log removed
-          }
-}
+        }
+      }
 
-        if (styles.textOpacity !== undefined) {
-          const textOpacitySlider = document.getElementById(
-            'textOpacitySlider'
-          ) as HTMLInputElement;
-          const textOpacityValue = document.getElementById('textOpacityValue');
+      if (styles.textOpacity !== undefined) {
+        const textOpacitySlider = document.getElementById(
+          'textOpacitySlider'
+        ) as HTMLInputElement;
+        const textOpacityValue = document.getElementById('textOpacityValue');
+        // Debug log removed
+        if (textOpacitySlider) {
+          textOpacitySlider.value = styles.textOpacity.toString();
           // Debug log removed
-          if (textOpacitySlider) {
-            textOpacitySlider.value = styles.textOpacity.toString();
-            // Debug log removed
-          }
-  if (textOpacityValue) {
-            textOpacityValue.textContent = `${Math.round(styles.textOpacity * 100)}%`;
-            // Debug log removed
-          }
-}
+        }
+        if (textOpacityValue) {
+          textOpacityValue.textContent = `${Math.round(styles.textOpacity * 100)}%`;
+          // Debug log removed
+        }
+      }
 
-        // Apply saved partner logo
-        if (styles.partnerLogo !== undefined) {
-          const partnerLogoSelect = document.getElementById(
-            'partnerLogoSelect'
-          ) as HTMLSelectElement;
-          const partnerLogoUrl = document.getElementById(
-            'partnerLogoUrl'
-          ) as HTMLInputElement;
-          const customPartnerLogoGroup = document.getElementById(
-            'customPartnerLogoGroup'
-          );
+      // Apply saved partner logo
+      if (styles.partnerLogo !== undefined) {
+        const partnerLogoSelect = document.getElementById(
+          'partnerLogoSelect'
+        ) as HTMLSelectElement;
+        const partnerLogoUrl = document.getElementById(
+          'partnerLogoUrl'
+        ) as HTMLInputElement;
+        const customPartnerLogoGroup = document.getElementById(
+          'customPartnerLogoGroup'
+        );
 
-          if (partnerLogoSelect) {
-            if (styles.partnerLogo) {
-              // Check if it's a predefined option
-              const matchingOption = Array.from(partnerLogoSelect.options).find(
-                option => option.value === styles.partnerLogo
-              );
-              if (matchingOption) {
-                partnerLogoSelect.value = styles.partnerLogo;
-                if (customPartnerLogoGroup)
-                  customPartnerLogoGroup.style.display = 'none';
-              } else {
-                // It's a custom URL
-                partnerLogoSelect.value = 'custom';
-                if (customPartnerLogoGroup)
-                  customPartnerLogoGroup.style.display = 'block';
-                if (partnerLogoUrl) partnerLogoUrl.value = styles.partnerLogo;
-              }
-} else {
-              // No logo
-              partnerLogoSelect.value = '';
+        if (partnerLogoSelect) {
+          if (styles.partnerLogo) {
+            // Check if it's a predefined option
+            const matchingOption = Array.from(partnerLogoSelect.options).find(
+              option => option.value === styles.partnerLogo
+            );
+            if (matchingOption) {
+              partnerLogoSelect.value = styles.partnerLogo;
               if (customPartnerLogoGroup)
                 customPartnerLogoGroup.style.display = 'none';
-              if (partnerLogoUrl) partnerLogoUrl.value = '';
+            } else {
+              // It's a custom URL
+              partnerLogoSelect.value = 'custom';
+              if (customPartnerLogoGroup)
+                customPartnerLogoGroup.style.display = 'block';
+              if (partnerLogoUrl) partnerLogoUrl.value = styles.partnerLogo;
             }
-  }
-  }
-
-        // Apply saved currency selection
-        if (styles.selectedCurrency) {
-          const currencySelector = document.getElementById(
-            'currencySelector'
-          ) as HTMLSelectElement;
-          if (currencySelector) {
-            currencySelector.value = styles.selectedCurrency;
-            setSelectedCurrency(styles.selectedCurrency);
+          } else {
+            // No logo
+            partnerLogoSelect.value = '';
+            if (customPartnerLogoGroup)
+              customPartnerLogoGroup.style.display = 'none';
+            if (partnerLogoUrl) partnerLogoUrl.value = '';
           }
-}
+        }
+      }
 
-        // Apply saved background image (check both old and new property names)
-        const bgImage = styles.bgImage || styles.backgroundImage;
-        if (bgImage !== undefined) {
-          const bgImagePreset = document.getElementById(
-            'bgImagePreset'
-          ) as HTMLSelectElement;
-          const bgImageUrl = document.getElementById(
-            'bgImageUrl'
-          ) as HTMLInputElement;
-          const customBgImageGroup =
-            document.getElementById('customBgImageGroup');
-          const bgPresetPreview = document.getElementById(
-            'bgPresetPreview'
-          ) as HTMLImageElement;
+      // Apply saved currency selection
+      if (styles.selectedCurrency) {
+        const currencySelector = document.getElementById(
+          'currencySelector'
+        ) as HTMLSelectElement;
+        if (currencySelector) {
+          currencySelector.value = styles.selectedCurrency;
+          setSelectedCurrency(styles.selectedCurrency);
+        }
+      }
 
-          if (bgImagePreset) {
-            if (bgImage) {
-              // Debug log removed
-              // Check if it's a predefined option
-              const matchingOption = Array.from(bgImagePreset.options).find(
-                option => option.value === bgImage
-              );
-              if (matchingOption) {
-                // Debug log removed
-                bgImagePreset.value = bgImage;
-                if (customBgImageGroup)
-                  customBgImageGroup.style.display = 'none';
-                // Immediately set the URL value to avoid timing issues
-                if (bgImageUrl) {
-                  bgImageUrl.value = bgImage;
-                  // Debug log removed
-                }
-} else {
-                // Debug log removed
-                // It's a custom URL
-                bgImagePreset.value = 'custom';
-                if (customBgImageGroup)
-                  customBgImageGroup.style.display = 'block';
-                if (bgImageUrl) {
-                  bgImageUrl.value = bgImage;
-                  // Debug log removed
-                }
-}
+      // Apply saved background image (check both old and new property names)
+      const bgImage = styles.bgImage || styles.backgroundImage;
+      if (bgImage !== undefined) {
+        const bgImagePreset = document.getElementById(
+          'bgImagePreset'
+        ) as HTMLSelectElement;
+        const bgImageUrl = document.getElementById(
+          'bgImageUrl'
+        ) as HTMLInputElement;
+        const customBgImageGroup =
+          document.getElementById('customBgImageGroup');
+        const bgPresetPreview = document.getElementById(
+          'bgPresetPreview'
+        ) as HTMLImageElement;
 
-              // Update background preview image
-              if (bgPresetPreview) {
-                bgPresetPreview.src = bgImage;
-                bgPresetPreview.alt = 'Background preview';
-                // Debug log removed
-              }
-} else {
-              // Debug log removed
-              // No background
-              bgImagePreset.value = '';
-              if (customBgImageGroup) customBgImageGroup.style.display = 'none';
-              if (bgImageUrl) bgImageUrl.value = '';
-
-              // Clear background preview image
-              if (bgPresetPreview) {
-                bgPresetPreview.src = '';
-                bgPresetPreview.alt = 'No background';
-                bgPresetPreview.style.display = 'none';
-                // Debug log removed
-              }
-}
-    }
-  }
-
-        // Apply saved toggles
-        const toggleIds = [
-          'layoutInvertToggle',
-          'hideZapperContentToggle',
-          'showTopZappersToggle',
-          'podiumToggle',
-          'zapGridToggle',
-          'sectionLabelsToggle',
-          'qrOnlyToggle',
-          'showFiatToggle',
-          'showHistoricalPriceToggle',
-          'showHistoricalChangeToggle',
-          'fiatOnlyToggle',
-          'qrInvertToggle',
-          'qrScreenBlendToggle',
-          'qrMultiplyBlendToggle',
-          'qrShowWebLinkToggle',
-          'qrShowNeventToggle',
-          'qrShowNoteToggle',
-          'lightningToggle'
-        ];
-
-        // Map localStorage property names to toggle IDs
-        const propertyToToggleMap: { [key: string]: string } = {
-          qrShowWebLink: 'qrShowWebLinkToggle',
-          qrShowNevent: 'qrShowNeventToggle',
-          qrShowNote: 'qrShowNoteToggle',
-          qrInvert: 'qrInvertToggle',
-          qrScreenBlend: 'qrScreenBlendToggle',
-          qrMultiplyBlend: 'qrMultiplyBlendToggle',
-          layoutInvert: 'layoutInvertToggle',
-          hideZapperContent: 'hideZapperContentToggle',
-          showTopZappers: 'showTopZappersToggle',
-          podium: 'podiumToggle',
-          zapGrid: 'zapGridToggle',
-          sectionLabels: 'sectionLabelsToggle',
-          qrOnly: 'qrOnlyToggle',
-          showFiat: 'showFiatToggle',
-          showHistoricalPrice: 'showHistoricalPriceToggle',
-          showHistoricalChange: 'showHistoricalChangeToggle',
-          fiatOnly: 'fiatOnlyToggle',
-          lightning: 'lightningToggle'
-        };
-
-        toggleIds.forEach(toggleId => {
-          const toggle = document.getElementById(toggleId) as HTMLInputElement;
-          // Find the corresponding property name in localStorage
-          const propertyName = Object.keys(propertyToToggleMap).find(
-            key => propertyToToggleMap[key] === toggleId
-          );
-          if (toggle && propertyName) {
-            // If property is undefined, use default value
-            // For sectionLabels, default is false (hidden)
-            const defaultValue = propertyName === 'sectionLabels' ? false : 
-                                propertyName === 'qrShowWebLink' ? true :
-                                propertyName === 'qrShowNevent' ? true :
-                                propertyName === 'qrShowNote' ? true : false;
-            const value = styles[propertyName] !== undefined ? styles[propertyName] : defaultValue;
+        if (bgImagePreset) {
+          if (bgImage) {
             // Debug log removed
-            toggle.checked = value;
-            // Manually trigger the toggle callback to apply the visual effects
-            const toggleCallbacks = {
-              layoutInvertToggle: (checked: boolean) => {
-                if (checked) {
-                  document.body.classList.add('flex-direction-invert');
-                } else {
-                  document.body.classList.remove('flex-direction-invert');
+            // Check if it's a predefined option
+            const matchingOption = Array.from(bgImagePreset.options).find(
+              option => option.value === bgImage
+            );
+            if (matchingOption) {
+              // Debug log removed
+              bgImagePreset.value = bgImage;
+              if (customBgImageGroup) customBgImageGroup.style.display = 'none';
+              // Immediately set the URL value to avoid timing issues
+              if (bgImageUrl) {
+                bgImageUrl.value = bgImage;
+                // Debug log removed
+              }
+            } else {
+              // Debug log removed
+              // It's a custom URL
+              bgImagePreset.value = 'custom';
+              if (customBgImageGroup)
+                customBgImageGroup.style.display = 'block';
+              if (bgImageUrl) {
+                bgImageUrl.value = bgImage;
+                // Debug log removed
+              }
+            }
+
+            // Update background preview image
+            if (bgPresetPreview) {
+              bgPresetPreview.src = bgImage;
+              bgPresetPreview.alt = 'Background preview';
+              // Debug log removed
+            }
+          } else {
+            // Debug log removed
+            // No background
+            bgImagePreset.value = '';
+            if (customBgImageGroup) customBgImageGroup.style.display = 'none';
+            if (bgImageUrl) bgImageUrl.value = '';
+
+            // Clear background preview image
+            if (bgPresetPreview) {
+              bgPresetPreview.src = '';
+              bgPresetPreview.alt = 'No background';
+              bgPresetPreview.style.display = 'none';
+              // Debug log removed
+            }
+          }
+        }
+      }
+
+      // Apply saved toggles
+      const toggleIds = [
+        'layoutInvertToggle',
+        'hideZapperContentToggle',
+        'showTopZappersToggle',
+        'podiumToggle',
+        'zapGridToggle',
+        'sectionLabelsToggle',
+        'qrOnlyToggle',
+        'showFiatToggle',
+        'showHistoricalPriceToggle',
+        'showHistoricalChangeToggle',
+        'fiatOnlyToggle',
+        'qrInvertToggle',
+        'qrScreenBlendToggle',
+        'qrMultiplyBlendToggle',
+        'qrShowWebLinkToggle',
+        'qrShowNeventToggle',
+        'qrShowNoteToggle',
+        'lightningToggle'
+      ];
+
+      // Map localStorage property names to toggle IDs
+      const propertyToToggleMap: { [key: string]: string } = {
+        qrShowWebLink: 'qrShowWebLinkToggle',
+        qrShowNevent: 'qrShowNeventToggle',
+        qrShowNote: 'qrShowNoteToggle',
+        qrInvert: 'qrInvertToggle',
+        qrScreenBlend: 'qrScreenBlendToggle',
+        qrMultiplyBlend: 'qrMultiplyBlendToggle',
+        layoutInvert: 'layoutInvertToggle',
+        hideZapperContent: 'hideZapperContentToggle',
+        showTopZappers: 'showTopZappersToggle',
+        podium: 'podiumToggle',
+        zapGrid: 'zapGridToggle',
+        sectionLabels: 'sectionLabelsToggle',
+        qrOnly: 'qrOnlyToggle',
+        showFiat: 'showFiatToggle',
+        showHistoricalPrice: 'showHistoricalPriceToggle',
+        showHistoricalChange: 'showHistoricalChangeToggle',
+        fiatOnly: 'fiatOnlyToggle',
+        lightning: 'lightningToggle'
+      };
+
+      toggleIds.forEach(toggleId => {
+        const toggle = document.getElementById(toggleId) as HTMLInputElement;
+        // Find the corresponding property name in localStorage
+        const propertyName = Object.keys(propertyToToggleMap).find(
+          key => propertyToToggleMap[key] === toggleId
+        );
+        if (toggle && propertyName) {
+          // If property is undefined, use default value
+          // For sectionLabels, default is false (hidden)
+          const defaultValue =
+            propertyName === 'sectionLabels'
+              ? false
+              : propertyName === 'qrShowWebLink'
+                ? true
+                : propertyName === 'qrShowNevent'
+                  ? true
+                  : propertyName === 'qrShowNote'
+                    ? true
+                    : false;
+          const value =
+            styles[propertyName] !== undefined
+              ? styles[propertyName]
+              : defaultValue;
+          // Debug log removed
+          toggle.checked = value;
+          // Manually trigger the toggle callback to apply the visual effects
+          const toggleCallbacks = {
+            layoutInvertToggle: (checked: boolean) => {
+              if (checked) {
+                document.body.classList.add('flex-direction-invert');
+              } else {
+                document.body.classList.remove('flex-direction-invert');
+              }
+            },
+            hideZapperContentToggle: (checked: boolean) => {
+              if (checked) {
+                document.body.classList.add('hide-zapper-content');
+              } else {
+                document.body.classList.remove('hide-zapper-content');
+              }
+            },
+            showTopZappersToggle: (checked: boolean) => {
+              if (checked) {
+                // Debug log removed
+                document.body.classList.add('show-top-zappers');
+                // Don't call displayTopZappers here - it will be called by the useEffect when topZappers data is ready
+              } else {
+                // Debug log removed
+                document.body.classList.remove('show-top-zappers');
+                const topZappersBar =
+                  document.getElementById('top-zappers-bar');
+                if (topZappersBar) {
+                  topZappersBar.style.display = 'none';
                 }
-},
-              hideZapperContentToggle: (checked: boolean) => {
-                if (checked) {
-                  document.body.classList.add('hide-zapper-content');
-                } else {
-                  document.body.classList.remove('hide-zapper-content');
-                }
-},
-              showTopZappersToggle: (checked: boolean) => {
-                if (checked) {
-                  // Debug log removed
-                  document.body.classList.add('show-top-zappers');
-                  // Don't call displayTopZappers here - it will be called by the useEffect when topZappers data is ready
-                } else {
-                  // Debug log removed
-                  document.body.classList.remove('show-top-zappers');
-                  const topZappersBar =
-                    document.getElementById('top-zappers-bar');
-                  if (topZappersBar) {
-                    topZappersBar.style.display = 'none';
-                  }
-}
-  },
-              podiumToggle: (checked: boolean) => {
-                if (checked) {
-                  document.body.classList.add('podium-enabled');
-                } else {
-                  document.body.classList.remove('podium-enabled');
-                }
-},
-              zapGridToggle: (checked: boolean) => {
-                const zapsList = document.getElementById('zaps');
-                if (zapsList) {
-                  // Check if we're in live event mode (has two-column layout)
-                  const isLiveEvent = zapsList.classList.contains(
-                    'live-event-two-column'
-                  );
-                  
-                  if (isLiveEvent) {
-                    // Apply grid layout ONLY to zaps-only-list, NOT activity-list
-                    const zapsOnlyList = document.getElementById('zaps-only-list');
-                    
-                    if (checked) {
+              }
+            },
+            podiumToggle: (checked: boolean) => {
+              if (checked) {
+                document.body.classList.add('podium-enabled');
+              } else {
+                document.body.classList.remove('podium-enabled');
+              }
+            },
+            zapGridToggle: (checked: boolean) => {
+              const zapsList = document.getElementById('zaps');
+              if (zapsList) {
+                // Check if we're in live event mode (has two-column layout)
+                const isLiveEvent = zapsList.classList.contains(
+                  'live-event-two-column'
+                );
+
+                if (isLiveEvent) {
+                  // Apply grid layout ONLY to zaps-only-list, NOT activity-list
+                  const zapsOnlyList =
+                    document.getElementById('zaps-only-list');
+
+                  if (checked) {
+                    if (zapsOnlyList) {
+                      zapsOnlyList.classList.add('grid-layout');
+                      // Force reflow
+                      void zapsOnlyList.offsetHeight;
+                    }
+                    // Organize zaps after a brief delay to ensure DOM is ready
+                    setTimeout(() => {
+                      organizeZapsHierarchically();
+                    }, 100);
+                  } else {
+                    // Clean up FIRST (this sets inline styles to force row layout)
+                    cleanupHierarchicalOrganization();
+                    // Then remove the class after cleanup
+                    setTimeout(() => {
                       if (zapsOnlyList) {
-                        zapsOnlyList.classList.add('grid-layout');
+                        zapsOnlyList.classList.remove('grid-layout');
                         // Force reflow
                         void zapsOnlyList.offsetHeight;
                       }
-// Organize zaps after a brief delay to ensure DOM is ready
-                      setTimeout(() => {
-                        organizeZapsHierarchically();
-                      }, 100);
-                    } else {
-                      // Clean up FIRST (this sets inline styles to force row layout)
-                      cleanupHierarchicalOrganization();
-                      // Then remove the class after cleanup
-                      setTimeout(() => {
-                        if (zapsOnlyList) {
-                          zapsOnlyList.classList.remove('grid-layout');
-                          // Force reflow
-                          void zapsOnlyList.offsetHeight;
-                        }
-  // Also ensure .zaps-list doesn't have grid-layout
-                        const zapsListElements = document.querySelectorAll('.zaps-list');
-                        zapsListElements.forEach(list => list.classList.remove('grid-layout'));
-                      }, 10);
-                    }
-  } else {
-                    // Regular kind1 note mode
-                    if (checked) {
-                      zapsList.classList.add('grid-layout');
+                      // Also ensure .zaps-list doesn't have grid-layout
+                      const zapsListElements =
+                        document.querySelectorAll('.zaps-list');
+                      zapsListElements.forEach(list =>
+                        list.classList.remove('grid-layout')
+                      );
+                    }, 10);
+                  }
+                } else {
+                  // Regular kind1 note mode
+                  if (checked) {
+                    zapsList.classList.add('grid-layout');
+                    // Force reflow
+                    void zapsList.offsetHeight;
+                    // Organize zaps after a brief delay to ensure DOM is ready
+                    setTimeout(() => {
+                      organizeZapsHierarchically();
+                    }, 100);
+                  } else {
+                    // Clean up FIRST (this sets inline styles to force row layout)
+                    cleanupHierarchicalOrganization();
+                    // Then remove the class after cleanup
+                    setTimeout(() => {
+                      zapsList.classList.remove('grid-layout');
                       // Force reflow
                       void zapsList.offsetHeight;
-                      // Organize zaps after a brief delay to ensure DOM is ready
-                      setTimeout(() => {
-                        organizeZapsHierarchically();
-                      }, 100);
-                    } else {
-                      // Clean up FIRST (this sets inline styles to force row layout)
-                      cleanupHierarchicalOrganization();
-                      // Then remove the class after cleanup
-                      setTimeout(() => {
-                        zapsList.classList.remove('grid-layout');
-                        // Force reflow
-                        void zapsList.offsetHeight;
-                        // Also ensure .zaps-list doesn't have grid-layout
-                        const zapsListElements = document.querySelectorAll('.zaps-list');
-                        zapsListElements.forEach(list => list.classList.remove('grid-layout'));
-                      }, 10);
-                    }
-  }
-    }
-},
-              sectionLabelsToggle: (checked: boolean) => {
-                const sectionLabels =
-                  document.querySelectorAll('.section-label');
-                const totalLabels = document.querySelectorAll('.total-label');
-
-                if (checked) {
-                  // Show section labels, hide total labels
-                  sectionLabels.forEach(label => {
-                    (label as HTMLElement).style.display = 'block';
-                  });
-                  totalLabels.forEach(label => {
-                    (label as HTMLElement).style.display = 'none';
-                  });
-                  // Remove class to control zaps-header alignment
-                  document.body.classList.remove('show-total-labels');
-                } else {
-                  // Hide section labels, show total labels
-                  sectionLabels.forEach(label => {
-                    (label as HTMLElement).style.display = 'none';
-                  });
-                  totalLabels.forEach(label => {
-                    (label as HTMLElement).style.display = 'inline';
-                  });
-                  // Add class to control zaps-header alignment
-                  document.body.classList.add('show-total-labels');
-                }
-},
-              qrOnlyToggle: (checked: boolean) => {
-                if (checked) {
-                  document.body.classList.add('qr-only-mode');
-                } else {
-                  document.body.classList.remove('qr-only-mode');
-                }
-},
-              showFiatToggle: (checked: boolean) => {
-                const currencySelectorGroup = document.getElementById(
-                  'currencySelectorGroup'
-                );
-                const historicalPriceGroup = document.getElementById(
-                  'historicalPriceGroup'
-                );
-                const historicalChangeGroup = document.getElementById(
-                  'historicalChangeGroup'
-                );
-                const fiatOnlyGroup = document.getElementById('fiatOnlyGroup');
-
-                if (checked) {
-                  // Show fiat amounts, currency selector, and historical price toggle
-                  document.body.classList.add('show-fiat-amounts');
-                  if (currencySelectorGroup)
-                    currencySelectorGroup.style.display = 'block';
-                  if (historicalPriceGroup)
-                    historicalPriceGroup.style.display = 'block';
-                  if (fiatOnlyGroup) fiatOnlyGroup.style.display = 'block';
-                  debouncedUpdateFiatAmounts();
-                } else {
-                  // Hide fiat amounts, currency selector, and historical price toggle
-                  document.body.classList.remove('show-fiat-amounts');
-                  if (currencySelectorGroup)
-                    currencySelectorGroup.style.display = 'none';
-                  if (historicalPriceGroup)
-                    historicalPriceGroup.style.display = 'none';
-                  if (historicalChangeGroup)
-                    historicalChangeGroup.style.display = 'none';
-                  if (fiatOnlyGroup) fiatOnlyGroup.style.display = 'none';
-                  hideFiatAmounts();
-                }
-},
-              showHistoricalPriceToggle: (checked: boolean) => {
-                const historicalChangeGroup = document.getElementById(
-                  'historicalChangeGroup'
-                );
-
-                if (checked) {
-                  // Show historical change toggle when historical prices are enabled
-                  if (historicalChangeGroup)
-                    historicalChangeGroup.style.display = 'block';
-                } else {
-                  // Hide historical change toggle when historical prices are disabled
-                  if (historicalChangeGroup)
-                    historicalChangeGroup.style.display = 'none';
-                  // Also uncheck the historical change toggle
-                  const showHistoricalChangeToggle = document.getElementById(
-                    'showHistoricalChangeToggle'
-                  ) as HTMLInputElement;
-                  if (showHistoricalChangeToggle)
-                    showHistoricalChangeToggle.checked = false;
-                }
-
-                // Update fiat amounts when historical price toggle changes
-                const showFiatToggle = document.getElementById(
-                  'showFiatToggle'
-                ) as HTMLInputElement;
-                if (showFiatToggle && showFiatToggle.checked) {
-                  debouncedUpdateFiatAmounts();
-                }
-},
-              showHistoricalChangeToggle: (checked: boolean) => {
-                // Update fiat amounts when historical change toggle changes
-                const showFiatToggle = document.getElementById(
-                  'showFiatToggle'
-                ) as HTMLInputElement;
-                if (showFiatToggle && showFiatToggle.checked) {
-                  debouncedUpdateFiatAmounts();
-                }
-},
-              fiatOnlyToggle: (checked: boolean) => {
-                // Update fiat amounts when fiat only toggle changes
-                const showFiatToggle = document.getElementById(
-                  'showFiatToggle'
-                ) as HTMLInputElement;
-                if (showFiatToggle && showFiatToggle.checked) {
-                  if (!checked) {
-                    // If fiat only is being turned off, restore satoshi amounts first
-                    restoreSatoshiAmounts();
+                      // Also ensure .zaps-list doesn't have grid-layout
+                      const zapsListElements =
+                        document.querySelectorAll('.zaps-list');
+                      zapsListElements.forEach(list =>
+                        list.classList.remove('grid-layout')
+                      );
+                    }, 10);
                   }
-  debouncedUpdateFiatAmounts();
                 }
-},
-              qrInvertToggle: (checked: boolean) => {
-                const qrCodes = [
-                  document.getElementById('qrCode'),
-                  document.getElementById('qrCodeNevent'),
-                  document.getElementById('qrCodeNote')
-                ];
+              }
+            },
+            sectionLabelsToggle: (checked: boolean) => {
+              const sectionLabels = document.querySelectorAll('.section-label');
+              const totalLabels = document.querySelectorAll('.total-label');
 
-                qrCodes.forEach((qrCode, index) => {
-                  if (qrCode) {
-                    if (checked) {
-                      qrCode.style.filter = 'invert(1)';
-                    } else {
-                      qrCode.style.filter = 'none';
-                    }
-// Debug log removed
-                  }
-});
-              },
-              qrScreenBlendToggle: (checked: boolean) => {
-                // Debug log removed
-                // Call updateBlendMode to apply the correct CSS classes
-                updateBlendModeFromHook();
-              },
-              qrMultiplyBlendToggle: (checked: boolean) => {
-                // Debug log removed
-                // Call updateBlendMode to apply the correct CSS classes
-                updateBlendModeFromHook();
-              },
-              qrShowWebLinkToggle: (checked: boolean) => {
-                // Debug log removed
-                // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
-              },
-              qrShowNeventToggle: (checked: boolean) => {
-                // Debug log removed
-                // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
-              },
-              qrShowNoteToggle: (checked: boolean) => {
-                // Debug log removed
-                // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
-              },
-              lightningToggle: async (checked: boolean) => {
-                const lightningToggle = document.getElementById(
-                  'lightningToggle'
+              if (checked) {
+                // Show section labels, hide total labels
+                sectionLabels.forEach(label => {
+                  (label as HTMLElement).style.display = 'block';
+                });
+                totalLabels.forEach(label => {
+                  (label as HTMLElement).style.display = 'none';
+                });
+                // Remove class to control zaps-header alignment
+                document.body.classList.remove('show-total-labels');
+              } else {
+                // Hide section labels, show total labels
+                sectionLabels.forEach(label => {
+                  (label as HTMLElement).style.display = 'none';
+                });
+                totalLabels.forEach(label => {
+                  (label as HTMLElement).style.display = 'inline';
+                });
+                // Add class to control zaps-header alignment
+                document.body.classList.add('show-total-labels');
+              }
+            },
+            qrOnlyToggle: (checked: boolean) => {
+              if (checked) {
+                document.body.classList.add('qr-only-mode');
+              } else {
+                document.body.classList.remove('qr-only-mode');
+              }
+            },
+            showFiatToggle: (checked: boolean) => {
+              const currencySelectorGroup = document.getElementById(
+                'currencySelectorGroup'
+              );
+              const historicalPriceGroup = document.getElementById(
+                'historicalPriceGroup'
+              );
+              const historicalChangeGroup = document.getElementById(
+                'historicalChangeGroup'
+              );
+              const fiatOnlyGroup = document.getElementById('fiatOnlyGroup');
+
+              if (checked) {
+                // Show fiat amounts, currency selector, and historical price toggle
+                document.body.classList.add('show-fiat-amounts');
+                if (currencySelectorGroup)
+                  currencySelectorGroup.style.display = 'block';
+                if (historicalPriceGroup)
+                  historicalPriceGroup.style.display = 'block';
+                if (fiatOnlyGroup) fiatOnlyGroup.style.display = 'block';
+                debouncedUpdateFiatAmounts();
+              } else {
+                // Hide fiat amounts, currency selector, and historical price toggle
+                document.body.classList.remove('show-fiat-amounts');
+                if (currencySelectorGroup)
+                  currencySelectorGroup.style.display = 'none';
+                if (historicalPriceGroup)
+                  historicalPriceGroup.style.display = 'none';
+                if (historicalChangeGroup)
+                  historicalChangeGroup.style.display = 'none';
+                if (fiatOnlyGroup) fiatOnlyGroup.style.display = 'none';
+                hideFiatAmounts();
+              }
+            },
+            showHistoricalPriceToggle: (checked: boolean) => {
+              const historicalChangeGroup = document.getElementById(
+                'historicalChangeGroup'
+              );
+
+              if (checked) {
+                // Show historical change toggle when historical prices are enabled
+                if (historicalChangeGroup)
+                  historicalChangeGroup.style.display = 'block';
+              } else {
+                // Hide historical change toggle when historical prices are disabled
+                if (historicalChangeGroup)
+                  historicalChangeGroup.style.display = 'none';
+                // Also uncheck the historical change toggle
+                const showHistoricalChangeToggle = document.getElementById(
+                  'showHistoricalChangeToggle'
                 ) as HTMLInputElement;
-                if (lightningToggle) {
-                  lightningToggle.checked = checked;
-                  await handleLightningToggleFromHook(checked, eventId);
-                }
-}
-};
+                if (showHistoricalChangeToggle)
+                  showHistoricalChangeToggle.checked = false;
+              }
 
-            const callback =
-              toggleCallbacks[toggleId as keyof typeof toggleCallbacks];
-            if (callback) {
+              // Update fiat amounts when historical price toggle changes
+              const showFiatToggle = document.getElementById(
+                'showFiatToggle'
+              ) as HTMLInputElement;
+              if (showFiatToggle && showFiatToggle.checked) {
+                debouncedUpdateFiatAmounts();
+              }
+            },
+            showHistoricalChangeToggle: (checked: boolean) => {
+              // Update fiat amounts when historical change toggle changes
+              const showFiatToggle = document.getElementById(
+                'showFiatToggle'
+              ) as HTMLInputElement;
+              if (showFiatToggle && showFiatToggle.checked) {
+                debouncedUpdateFiatAmounts();
+              }
+            },
+            fiatOnlyToggle: (checked: boolean) => {
+              // Update fiat amounts when fiat only toggle changes
+              const showFiatToggle = document.getElementById(
+                'showFiatToggle'
+              ) as HTMLInputElement;
+              if (showFiatToggle && showFiatToggle.checked) {
+                if (!checked) {
+                  // If fiat only is being turned off, restore satoshi amounts first
+                  restoreSatoshiAmounts();
+                }
+                debouncedUpdateFiatAmounts();
+              }
+            },
+            qrInvertToggle: (checked: boolean) => {
+              const qrCodes = [
+                document.getElementById('qrCode'),
+                document.getElementById('qrCodeNevent'),
+                document.getElementById('qrCodeNote')
+              ];
+
+              qrCodes.forEach((qrCode, index) => {
+                if (qrCode) {
+                  if (checked) {
+                    qrCode.style.filter = 'invert(1)';
+                  } else {
+                    qrCode.style.filter = 'none';
+                  }
+                  // Debug log removed
+                }
+              });
+            },
+            qrScreenBlendToggle: (checked: boolean) => {
               // Debug log removed
-              // Use the value we set (which includes default if undefined)
-              callback(value);
+              // Call updateBlendMode to apply the correct CSS classes
+              updateBlendModeFromHook();
+            },
+            qrMultiplyBlendToggle: (checked: boolean) => {
+              // Debug log removed
+              // Call updateBlendMode to apply the correct CSS classes
+              updateBlendModeFromHook();
+            },
+            qrShowWebLinkToggle: (checked: boolean) => {
+              // Debug log removed
+              // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
+            },
+            qrShowNeventToggle: (checked: boolean) => {
+              // Debug log removed
+              // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
+            },
+            qrShowNoteToggle: (checked: boolean) => {
+              // Debug log removed
+              // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
+            },
+            lightningToggle: async (checked: boolean) => {
+              const lightningToggle = document.getElementById(
+                'lightningToggle'
+              ) as HTMLInputElement;
+              if (lightningToggle) {
+                lightningToggle.checked = checked;
+                await handleLightningToggleFromHook(checked, eventId);
+              }
             }
-  }
-  });
+          };
+
+          const callback =
+            toggleCallbacks[toggleId as keyof typeof toggleCallbacks];
+          if (callback) {
+            // Debug log removed
+            // Use the value we set (which includes default if undefined)
+            callback(value);
+          }
+        }
+      });
     } else {
       // Debug log removed
       // Apply default styles when no saved styles exist
@@ -3384,12 +3508,13 @@ debouncedApplyAllStyles();
       const qrShowNoteToggle = document.getElementById(
         'qrShowNoteToggle'
       ) as HTMLInputElement;
-      
+
       // Check if any QR toggle is already enabled
-      const hasAnyEnabled = (qrShowWebLinkToggle?.checked) || 
-                           (qrShowNeventToggle?.checked) || 
-                           (qrShowNoteToggle?.checked);
-      
+      const hasAnyEnabled =
+        qrShowWebLinkToggle?.checked ||
+        qrShowNeventToggle?.checked ||
+        qrShowNoteToggle?.checked;
+
       // If none are enabled, enable nevent by default
       if (!hasAnyEnabled && qrShowNeventToggle) {
         qrShowNeventToggle.checked = true;
@@ -3406,8 +3531,8 @@ debouncedApplyAllStyles();
           // Debug log removed
           updateQRSlideVisibilityRef.current(true); // Skip URL update during initialization
         }
-}, 200); // Additional delay to ensure all toggles are set
-      
+      }, 200); // Additional delay to ensure all toggles are set
+
       // Ensure QR codes are initialized if they don't exist
       setTimeout(async () => {
         const qrCode = document.getElementById('qrCode');
@@ -3420,12 +3545,11 @@ debouncedApplyAllStyles();
             if (updateQRSlideVisibilityRef.current) {
               updateQRSlideVisibilityRef.current(true);
             }
-  }, 400);
+          }, 400);
         }
-}, 300);
+      }, 300);
     }, 100);
   };
-
 
   // saveCurrentStylesToLocalStorage is now provided by useStyleManagement hook
 
@@ -3604,7 +3728,7 @@ debouncedApplyAllStyles();
     // Process slides in order to maintain proper sequence
     slideOrder.forEach((slideInfo, index) => {
       const { slide, show, name } = slideInfo;
-      
+
       if (!slide) return;
 
       if (show) {
@@ -3613,7 +3737,7 @@ debouncedApplyAllStyles();
           // Find the correct position to insert
           let inserted = false;
           const existingSlides = Array.from(swiperWrapper.children);
-          
+
           // Insert before the first slide that comes after this one in slideOrder
           for (let i = index + 1; i < slideOrder.length; i++) {
             const nextSlide = slideOrder[i].slide;
@@ -3622,14 +3746,14 @@ debouncedApplyAllStyles();
               inserted = true;
               break;
             }
-  }
-    
+          }
+
           // If no slide found after, append to end
           if (!inserted) {
             swiperWrapper.appendChild(slide);
           }
-}
-  slide.style.display = 'block';
+        }
+        slide.style.display = 'block';
         // Slide is visible
       } else {
         // Move to hidden container
@@ -3637,7 +3761,7 @@ debouncedApplyAllStyles();
           hiddenSlidesContainer.appendChild(slide);
           // Slide is hidden
         }
-}
+      }
     });
 
     // Count visible slides (those in the swiper wrapper)
@@ -3679,7 +3803,7 @@ debouncedApplyAllStyles();
             ) {
               (window as any).qrSwiper.autoplay.stop();
             }
-// Progress tracking is now handled by useQRCode hook
+            // Progress tracking is now handled by useQRCode hook
           } else if (visibleSlides.length > 1) {
             (window as any).qrSwiper.allowTouchMove = true;
             // Update autoplay delay to 10 seconds
@@ -3688,15 +3812,15 @@ debouncedApplyAllStyles();
               if ((window as any).qrSwiper.autoplay.start) {
                 (window as any).qrSwiper.autoplay.start();
               }
-}
-// Progress tracking is handled by swiper event handlers
+            }
+            // Progress tracking is handled by swiper event handlers
           }
-} catch (error) {
+        } catch (error) {
           // Debug log removed
           // If update fails, reinitialize swiper
           initializeQRSwiper();
         }
-} else {
+      } else {
         // Initialize swiper if it doesn't exist
         initializeQRSwiper();
       }

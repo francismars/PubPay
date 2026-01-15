@@ -34,7 +34,8 @@ export async function processPostsBasic(
 
     // Basic post info (no zaps yet)
     // Mark as loading if no author profile found (will be updated when profiles load)
-    const hasAuthorProfile = author && author.content && author.content !== '{}';
+    const hasAuthorProfile =
+      author && author.content && author.content !== '{}';
     const post: PubPayPost = {
       id: event.id,
       event,
@@ -79,7 +80,8 @@ export async function processPostsBasic(
       post.zapUses = parseInt(zapUsesTag[1]) || 0;
     }
     if (zapGoalTag && zapGoalTag[1]) {
-      post.zapGoal = parseInt(zapGoalTag[1]) / LIGHTNING.MILLISATS_PER_SAT || undefined; // Convert from millisats to sats
+      post.zapGoal =
+        parseInt(zapGoalTag[1]) / LIGHTNING.MILLISATS_PER_SAT || undefined; // Convert from millisats to sats
     }
     if (zapPayerTag && zapPayerTag[1]) {
       post.zapPayer = zapPayerTag[1];
@@ -128,7 +130,8 @@ export async function processPostsBasic(
       post.hasZapTags = hasZapTags;
       // isPayable requires: lightning address AND payment amount (zap-min or zap-max)
       const hasPaymentAmount = !!(zapMinTag || zapMaxTag);
-      post.isPayable = (hasLud16 || !!(post as any).zapLNURL) && hasPaymentAmount;
+      post.isPayable =
+        (hasLud16 || !!(post as any).zapLNURL) && hasPaymentAmount;
       // Mark as validating if we have a lightning address to validate
       if (hasLud16) {
         post.lightningValidating = true;
@@ -317,4 +320,3 @@ export function updatePostWithProfileData(
 
   return updatedPost;
 }
-

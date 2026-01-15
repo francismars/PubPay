@@ -20,130 +20,283 @@ export function useQRCode() {
   /**
    * Generate QR code in an element
    */
-  const generateQRCode = useCallback((elementId: string, value: string, size: number) => {
-    const element = document.getElementById(elementId);
-    if (!element || !QRious) {
-      if (!element) console.error('❌ QR code element not found:', elementId);
-      if (!QRious) console.error('❌ QRious library not available');
-      return;
-    }
-
-    try {
-      const originalDisplay = element.style.display;
-      element.style.display = 'block';
-
-      const isImg = element.tagName === 'IMG';
-      let targetElement: HTMLElement;
-
-      if (isImg) {
-        (element as HTMLImageElement).src = '';
-        targetElement = element;
-      } else {
-        // For div or other elements, create canvas inside
-        element.innerHTML = '';
-        const canvas = document.createElement('canvas');
-        canvas.className = 'qr-code';
-        element.appendChild(canvas);
-        targetElement = canvas;
+  const generateQRCode = useCallback(
+    (elementId: string, value: string, size: number) => {
+      const element = document.getElementById(elementId);
+      if (!element || !QRious) {
+        if (!element) console.error('❌ QR code element not found:', elementId);
+        if (!QRious) console.error('❌ QRious library not available');
+        return;
       }
 
-      new QRious({
-        element: targetElement,
-        size: size * 0.9,
-        value
-      });
+      try {
+        const originalDisplay = element.style.display;
+        element.style.display = 'block';
 
-      if (originalDisplay) {
-        element.style.display = originalDisplay;
+        const isImg = element.tagName === 'IMG';
+        let targetElement: HTMLElement;
+
+        if (isImg) {
+          (element as HTMLImageElement).src = '';
+          targetElement = element;
+        } else {
+          // For div or other elements, create canvas inside
+          element.innerHTML = '';
+          const canvas = document.createElement('canvas');
+          canvas.className = 'qr-code';
+          element.appendChild(canvas);
+          targetElement = canvas;
+        }
+
+        new QRious({
+          element: targetElement,
+          size: size * 0.9,
+          value
+        });
+
+        if (originalDisplay) {
+          element.style.display = originalDisplay;
+        }
+      } catch (error) {
+        console.error('❌ Error generating QR code:', error);
       }
-    } catch (error) {
-      console.error('❌ Error generating QR code:', error);
-    }
-  }, []);
+    },
+    []
+  );
 
   /**
    * Update QR code links
    */
-  const updateQRLinks = useCallback((
-    njumpUrl: string,
-    nostrNaddr: string,
-    naddrId: string
-  ) => {
-    const qrcodeLinkNostr = document.getElementById(
-      'qrcodeLinkNostr'
-    ) as HTMLAnchorElement;
-    const qrcodeNeventLink = document.getElementById(
-      'qrcodeNeventLink'
-    ) as HTMLAnchorElement;
-    const qrcodeNoteLink = document.getElementById(
-      'qrcodeNoteLink'
-    ) as HTMLAnchorElement;
+  const updateQRLinks = useCallback(
+    (njumpUrl: string, nostrNaddr: string, naddrId: string) => {
+      const qrcodeLinkNostr = document.getElementById(
+        'qrcodeLinkNostr'
+      ) as HTMLAnchorElement;
+      const qrcodeNeventLink = document.getElementById(
+        'qrcodeNeventLink'
+      ) as HTMLAnchorElement;
+      const qrcodeNoteLink = document.getElementById(
+        'qrcodeNoteLink'
+      ) as HTMLAnchorElement;
 
-    if (qrcodeLinkNostr) qrcodeLinkNostr.href = njumpUrl;
-    if (qrcodeNeventLink) qrcodeNeventLink.href = nostrNaddr;
-    if (qrcodeNoteLink) qrcodeNoteLink.href = naddrId;
-  }, []);
+      if (qrcodeLinkNostr) qrcodeLinkNostr.href = njumpUrl;
+      if (qrcodeNeventLink) qrcodeNeventLink.href = nostrNaddr;
+      if (qrcodeNoteLink) qrcodeNoteLink.href = naddrId;
+    },
+    []
+  );
 
   /**
    * Update QR code previews
    */
-  const updateQRPreviews = useCallback((
-    njumpUrl: string,
-    nostrNaddr: string,
-    naddrId: string
-  ) => {
-    const qrDataPreview1 = document.getElementById('qrDataPreview1');
-    const qrDataPreview2 = document.getElementById('qrDataPreview2');
-    const qrDataPreview3 = document.getElementById('qrDataPreview3');
+  const updateQRPreviews = useCallback(
+    (njumpUrl: string, nostrNaddr: string, naddrId: string) => {
+      const qrDataPreview1 = document.getElementById('qrDataPreview1');
+      const qrDataPreview2 = document.getElementById('qrDataPreview2');
+      const qrDataPreview3 = document.getElementById('qrDataPreview3');
 
-    // Set preview text in uppercase (max 60 chars to prevent overflow)
-    const truncate = (text: string, maxLength: number = 60) => {
-      return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
-    };
+      // Set preview text in uppercase (max 60 chars to prevent overflow)
+      const truncate = (text: string, maxLength: number = 60) => {
+        return text.length > maxLength
+          ? `${text.substring(0, maxLength)}...`
+          : text;
+      };
 
-    if (qrDataPreview1) qrDataPreview1.textContent = truncate(njumpUrl.toUpperCase());
-    if (qrDataPreview2) qrDataPreview2.textContent = truncate(nostrNaddr.toUpperCase());
-    if (qrDataPreview3) qrDataPreview3.textContent = truncate(naddrId.toUpperCase());
-  }, []);
+      if (qrDataPreview1)
+        qrDataPreview1.textContent = truncate(njumpUrl.toUpperCase());
+      if (qrDataPreview2)
+        qrDataPreview2.textContent = truncate(nostrNaddr.toUpperCase());
+      if (qrDataPreview3)
+        qrDataPreview3.textContent = truncate(naddrId.toUpperCase());
+    },
+    []
+  );
 
   /**
    * Generate QR codes for a live event
    */
-  const generateLiveEventQRCodes = useCallback((liveEvent: any) => {
-    const identifier = liveEvent.tags.find((tag: any) => tag[0] === 'd')?.[1];
-    const pubkey = liveEvent.pubkey;
-    const kind = 30311;
+  const generateLiveEventQRCodes = useCallback(
+    (liveEvent: any) => {
+      const identifier = liveEvent.tags.find((tag: any) => tag[0] === 'd')?.[1];
+      const pubkey = liveEvent.pubkey;
+      const kind = 30311;
 
-    if (!identifier || !pubkey) return;
+      if (!identifier || !pubkey) return;
 
-    try {
-      // Generate naddr
-      const naddrId = nip19.naddrEncode({
-        identifier,
-        pubkey,
-        kind,
-        relays: []
-      });
+      try {
+        // Generate naddr
+        const naddrId = nip19.naddrEncode({
+          identifier,
+          pubkey,
+          kind,
+          relays: []
+        });
 
-      const njumpUrl = `https://njump.me/${naddrId}`;
-      const nostrNaddr = `nostr:${naddrId}`;
+        const njumpUrl = `https://njump.me/${naddrId}`;
+        const nostrNaddr = `nostr:${naddrId}`;
 
-      // Calculate QR size
+        // Calculate QR size
+        const qrSize = Math.min(
+          window.innerWidth * 0.6,
+          window.innerHeight * 0.7
+        );
+
+        // Generate QR codes
+        generateQRCode('qrCode', njumpUrl, qrSize);
+        generateQRCode('qrCodeNevent', nostrNaddr, qrSize);
+        generateQRCode('qrCodeNote', naddrId, qrSize);
+
+        // Update links
+        updateQRLinks(njumpUrl, nostrNaddr, naddrId);
+
+        // Update previews
+        updateQRPreviews(njumpUrl, nostrNaddr, naddrId);
+
+        // Initialize QR swiper after QR codes are generated
+        setTimeout(() => {
+          if (initializeQRSwiperRef.current) {
+            initializeQRSwiperRef.current();
+          }
+        }, 200);
+      } catch (error) {
+        console.error('Error generating live event QR codes:', error);
+      }
+    },
+    [generateQRCode, updateQRLinks, updateQRPreviews]
+  );
+
+  /**
+   * Initialize QR code placeholders or generate QR codes from eventId
+   */
+  const initializeQRCodePlaceholders = useCallback(
+    async (eventId?: string) => {
+      let njumpUrl = '';
+      let nostrNevent = '';
+      let nostrNote = '';
+
+      // If eventId is provided, parse it and generate QR codes from it
+      if (eventId && eventId.trim() !== '' && eventId.trim() !== 'live') {
+        try {
+          const { parseEventId, getContentType, stripNostrPrefix } =
+            await import('../utils/eventIdParser');
+          const cleanId = stripNostrPrefix(eventId);
+          const decoded = parseEventId(cleanId);
+          const contentType = getContentType(cleanId);
+
+          if (contentType === 'live' && decoded.type === 'naddr') {
+            // For live events (naddr1), use the naddr directly
+            const naddrId = cleanId;
+            njumpUrl = `https://njump.me/${naddrId}`;
+            nostrNevent = `nostr:${naddrId}`;
+            nostrNote = `nostr:${naddrId}`;
+          } else if (decoded.type === 'nevent') {
+            // For nevent1, use it directly and also generate note1
+            const neventId = cleanId;
+            const noteId = decoded.data.id;
+            const note1Id = nip19.noteEncode(noteId);
+            njumpUrl = `https://njump.me/${neventId}`;
+            nostrNevent = `nostr:${neventId}`;
+            nostrNote = `nostr:${note1Id}`;
+          } else if (decoded.type === 'note') {
+            // For note1, use it directly and also generate nevent1
+            const note1Id = cleanId;
+            const noteId = decoded.data as string; // note type has data as string (the hex event ID)
+            const neventId = nip19.neventEncode({ id: noteId, relays: [] });
+            njumpUrl = `https://njump.me/${note1Id}`;
+            nostrNevent = `nostr:${neventId}`;
+            nostrNote = `nostr:${note1Id}`;
+          } else {
+            // Fallback to placeholder
+            throw new Error('Unsupported event type');
+          }
+        } catch (error) {
+          console.warn('Failed to parse eventId, using placeholders:', error);
+          // Fall through to placeholder generation
+        }
+      }
+
+      // If no eventId or parsing failed, use safe placeholder values
+      if (!njumpUrl) {
+        // Use a valid 64-character hex string for placeholder (all zeros)
+        const placeholderNoteId = '0'.repeat(64);
+        const note1Id = nip19.noteEncode(placeholderNoteId);
+        const neventId = nip19.neventEncode({
+          id: placeholderNoteId,
+          relays: []
+        });
+        njumpUrl = `https://njump.me/${note1Id}`;
+        nostrNevent = `nostr:${neventId}`;
+        nostrNote = `nostr:${note1Id}`;
+      }
+
       const qrSize = Math.min(
         window.innerWidth * 0.6,
         window.innerHeight * 0.7
       );
 
-      // Generate QR codes
-      generateQRCode('qrCode', njumpUrl, qrSize);
-      generateQRCode('qrCodeNevent', nostrNaddr, qrSize);
-      generateQRCode('qrCodeNote', naddrId, qrSize);
+      // Generate QR codes for all formats
+      const qrcodeContainers = [
+        {
+          element: document.getElementById('qrCode'),
+          value: njumpUrl,
+          link: document.getElementById('qrcodeLinkNostr'),
+          preview: document.getElementById('qrDataPreview1')
+        },
+        {
+          element: document.getElementById('qrCodeNevent'),
+          value: nostrNevent,
+          link: document.getElementById('qrcodeNeventLink'),
+          preview: document.getElementById('qrDataPreview2')
+        },
+        {
+          element: document.getElementById('qrCodeNote'),
+          value: nostrNote,
+          link: document.getElementById('qrcodeNoteLink'),
+          preview: document.getElementById('qrDataPreview3')
+        }
+      ];
 
-      // Update links
-      updateQRLinks(njumpUrl, nostrNaddr, naddrId);
+      // Truncate function for preview text
+      const truncate = (text: string, maxLength: number = 60) => {
+        return text.length > maxLength
+          ? `${text.substring(0, maxLength)}...`
+          : text;
+      };
 
-      // Update previews
-      updateQRPreviews(njumpUrl, nostrNaddr, naddrId);
+      qrcodeContainers.forEach(({ element, value, link, preview }) => {
+        if (element && QRious) {
+          generateQRCode(element.id, value, qrSize);
+
+          if (link) {
+            (link as HTMLAnchorElement).href = value;
+          }
+
+          if (preview) {
+            preview.textContent = truncate(value.toUpperCase());
+          }
+        }
+      });
+
+      // Ensure at least one QR toggle is enabled
+      const qrShowNeventToggle = document.getElementById(
+        'qrShowNeventToggle'
+      ) as HTMLInputElement;
+      if (qrShowNeventToggle && !qrShowNeventToggle.checked) {
+        // Check if any QR toggle is enabled
+        const qrShowWebLinkToggle = document.getElementById(
+          'qrShowWebLinkToggle'
+        ) as HTMLInputElement;
+        const qrShowNoteToggle = document.getElementById(
+          'qrShowNoteToggle'
+        ) as HTMLInputElement;
+        const hasAnyEnabled =
+          qrShowWebLinkToggle?.checked || qrShowNoteToggle?.checked;
+
+        // If none are enabled, enable nevent by default
+        if (!hasAnyEnabled) {
+          qrShowNeventToggle.checked = true;
+        }
+      }
 
       // Initialize QR swiper after QR codes are generated
       setTimeout(() => {
@@ -151,134 +304,9 @@ export function useQRCode() {
           initializeQRSwiperRef.current();
         }
       }, 200);
-    } catch (error) {
-      console.error('Error generating live event QR codes:', error);
-    }
-  }, [generateQRCode, updateQRLinks, updateQRPreviews]);
-
-  /**
-   * Initialize QR code placeholders or generate QR codes from eventId
-   */
-  const initializeQRCodePlaceholders = useCallback(async (eventId?: string) => {
-    let njumpUrl = '';
-    let nostrNevent = '';
-    let nostrNote = '';
-
-    // If eventId is provided, parse it and generate QR codes from it
-    if (eventId && eventId.trim() !== '' && eventId.trim() !== 'live') {
-      try {
-        const { parseEventId, getContentType, stripNostrPrefix } = await import('../utils/eventIdParser');
-        const cleanId = stripNostrPrefix(eventId);
-        const decoded = parseEventId(cleanId);
-        const contentType = getContentType(cleanId);
-
-        if (contentType === 'live' && decoded.type === 'naddr') {
-          // For live events (naddr1), use the naddr directly
-          const naddrId = cleanId;
-          njumpUrl = `https://njump.me/${naddrId}`;
-          nostrNevent = `nostr:${naddrId}`;
-          nostrNote = `nostr:${naddrId}`;
-        } else if (decoded.type === 'nevent') {
-          // For nevent1, use it directly and also generate note1
-          const neventId = cleanId;
-          const noteId = decoded.data.id;
-          const note1Id = nip19.noteEncode(noteId);
-          njumpUrl = `https://njump.me/${neventId}`;
-          nostrNevent = `nostr:${neventId}`;
-          nostrNote = `nostr:${note1Id}`;
-        } else if (decoded.type === 'note') {
-          // For note1, use it directly and also generate nevent1
-          const note1Id = cleanId;
-          const noteId = decoded.data as string; // note type has data as string (the hex event ID)
-          const neventId = nip19.neventEncode({ id: noteId, relays: [] });
-          njumpUrl = `https://njump.me/${note1Id}`;
-          nostrNevent = `nostr:${neventId}`;
-          nostrNote = `nostr:${note1Id}`;
-        } else {
-          // Fallback to placeholder
-          throw new Error('Unsupported event type');
-        }
-      } catch (error) {
-        console.warn('Failed to parse eventId, using placeholders:', error);
-        // Fall through to placeholder generation
-      }
-    }
-
-    // If no eventId or parsing failed, use safe placeholder values
-    if (!njumpUrl) {
-      // Use a valid 64-character hex string for placeholder (all zeros)
-      const placeholderNoteId = '0'.repeat(64);
-      const note1Id = nip19.noteEncode(placeholderNoteId);
-      const neventId = nip19.neventEncode({ id: placeholderNoteId, relays: [] });
-      njumpUrl = `https://njump.me/${note1Id}`;
-      nostrNevent = `nostr:${neventId}`;
-      nostrNote = `nostr:${note1Id}`;
-    }
-
-    const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
-
-    // Generate QR codes for all formats
-    const qrcodeContainers = [
-      {
-        element: document.getElementById('qrCode'),
-        value: njumpUrl,
-        link: document.getElementById('qrcodeLinkNostr'),
-        preview: document.getElementById('qrDataPreview1')
-      },
-      {
-        element: document.getElementById('qrCodeNevent'),
-        value: nostrNevent,
-        link: document.getElementById('qrcodeNeventLink'),
-        preview: document.getElementById('qrDataPreview2')
-      },
-      {
-        element: document.getElementById('qrCodeNote'),
-        value: nostrNote,
-        link: document.getElementById('qrcodeNoteLink'),
-        preview: document.getElementById('qrDataPreview3')
-      }
-    ];
-
-    // Truncate function for preview text
-    const truncate = (text: string, maxLength: number = 60) => {
-      return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
-    };
-
-    qrcodeContainers.forEach(({ element, value, link, preview }) => {
-      if (element && QRious) {
-        generateQRCode(element.id, value, qrSize);
-
-        if (link) {
-          (link as HTMLAnchorElement).href = value;
-        }
-
-        if (preview) {
-          preview.textContent = truncate(value.toUpperCase());
-        }
-      }
-    });
-
-    // Ensure at least one QR toggle is enabled
-    const qrShowNeventToggle = document.getElementById('qrShowNeventToggle') as HTMLInputElement;
-    if (qrShowNeventToggle && !qrShowNeventToggle.checked) {
-      // Check if any QR toggle is enabled
-      const qrShowWebLinkToggle = document.getElementById('qrShowWebLinkToggle') as HTMLInputElement;
-      const qrShowNoteToggle = document.getElementById('qrShowNoteToggle') as HTMLInputElement;
-      const hasAnyEnabled = (qrShowWebLinkToggle?.checked) || (qrShowNoteToggle?.checked);
-
-      // If none are enabled, enable nevent by default
-      if (!hasAnyEnabled) {
-        qrShowNeventToggle.checked = true;
-      }
-    }
-
-    // Initialize QR swiper after QR codes are generated
-    setTimeout(() => {
-      if (initializeQRSwiperRef.current) {
-        initializeQRSwiperRef.current();
-      }
-    }, 200);
-  }, [generateQRCode]);
+    },
+    [generateQRCode]
+  );
 
   /**
    * Start progress tracking for QR swiper
@@ -370,13 +398,15 @@ export function useQRCode() {
     const autoplayDelay = qrSwiper.params?.autoplay?.delay || 10000;
 
     // Calculate remaining time based on paused progress
-    const remainingTime = ((100 - pausedProgressRef.current) / 100) * autoplayDelay;
+    const remainingTime =
+      ((100 - pausedProgressRef.current) / 100) * autoplayDelay;
     const resumeTime = Date.now();
 
     progressIntervalRef.current = setInterval(() => {
       const elapsed = Date.now() - resumeTime;
       const progress =
-        pausedProgressRef.current + (elapsed / remainingTime) * (100 - pausedProgressRef.current);
+        pausedProgressRef.current +
+        (elapsed / remainingTime) * (100 - pausedProgressRef.current);
       const finalProgress = Math.min(progress, 100);
 
       // Set CSS custom property for progress
@@ -415,20 +445,27 @@ export function useQRCode() {
         if (activeBullet) {
           const currentProgress =
             activeBullet.style.getPropertyValue('--progress') || '0%';
-          pausedProgressRef.current = parseFloat(currentProgress.replace('%', ''));
+          pausedProgressRef.current = parseFloat(
+            currentProgress.replace('%', '')
+          );
         }
       }
     });
 
     (window as any).qrSwiper.el.addEventListener('mouseleave', () => {
       // Resume progress animation on mouse leave
-      if (progressPauseTimeRef.current && progressStartTimeRef.current && pausedProgressRef.current < 100) {
+      if (
+        progressPauseTimeRef.current &&
+        progressStartTimeRef.current &&
+        pausedProgressRef.current < 100
+      ) {
         resumeProgressTracking();
 
         // Calculate remaining time and manually trigger slide change when progress completes
         const autoplayDelay =
           (window as any).qrSwiper?.params?.autoplay?.delay || 10000;
-        const remainingTime = ((100 - pausedProgressRef.current) / 100) * autoplayDelay;
+        const remainingTime =
+          ((100 - pausedProgressRef.current) / 100) * autoplayDelay;
 
         // Set a timeout to trigger slide change when progress completes
         setTimeout(() => {
@@ -476,8 +513,10 @@ export function useQRCode() {
       if (qrSection) {
         const errorMsg = document.createElement('div');
         errorMsg.className = 'qr-swiper-error';
-        errorMsg.style.cssText = 'color: var(--text-color); padding: 20px; text-align: center;';
-        errorMsg.textContent = 'Slideshow library failed to load. Please refresh the page.';
+        errorMsg.style.cssText =
+          'color: var(--text-color); padding: 20px; text-align: center;';
+        errorMsg.textContent =
+          'Slideshow library failed to load. Please refresh the page.';
         qrSection.appendChild(errorMsg);
       }
       return;
@@ -600,7 +639,11 @@ export function useQRCode() {
       // Setup progress bar events after swiper is initialized
       setupProgressBarEvents();
 
-      console.log('✅ QR Swiper initialized successfully with', visibleSlides.length, 'slides');
+      console.log(
+        '✅ QR Swiper initialized successfully with',
+        visibleSlides.length,
+        'slides'
+      );
     } catch (error) {
       console.error('❌ Failed to initialize QR Swiper:', error);
       // Show error to user if swiper fails
@@ -608,8 +651,10 @@ export function useQRCode() {
       if (qrSection) {
         const errorMsg = document.createElement('div');
         errorMsg.className = 'qr-swiper-error';
-        errorMsg.style.cssText = 'color: var(--text-color); padding: 20px; text-align: center;';
-        errorMsg.textContent = 'QR slideshow failed to load. Please refresh the page.';
+        errorMsg.style.cssText =
+          'color: var(--text-color); padding: 20px; text-align: center;';
+        errorMsg.textContent =
+          'QR slideshow failed to load. Please refresh the page.';
         qrSection.appendChild(errorMsg);
       }
     }

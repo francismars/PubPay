@@ -20,7 +20,9 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
   isPublishing = false,
   nostrClient
 }) => {
-  const [paymentType, setPaymentType] = useState<'fixed' | 'range' | 'goal'>('fixed');
+  const [paymentType, setPaymentType] = useState<'fixed' | 'range' | 'goal'>(
+    'fixed'
+  );
   const [isUploading, setIsUploading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewContent, setPreviewContent] = useState('');
@@ -434,7 +436,14 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
 
           {/* Payment Options Section */}
           <div className="formField">
-            <label className="label" style={{ marginBottom: '20px', fontSize: '13px', textTransform: 'uppercase' }}>
+            <label
+              className="label"
+              style={{
+                marginBottom: '20px',
+                fontSize: '13px',
+                textTransform: 'uppercase'
+              }}
+            >
               Payment Options (Optional)
             </label>
 
@@ -448,7 +457,9 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
                   id="paymentType"
                   name="paymentType"
                   value={paymentType}
-                  onChange={e => setPaymentType(e.target.value as 'fixed' | 'range')}
+                  onChange={e =>
+                    setPaymentType(e.target.value as 'fixed' | 'range')
+                  }
                   className="paymentTypeDropdown"
                 >
                   <option value="fixed">Fixed</option>
@@ -526,9 +537,7 @@ export const NewPayNoteOverlay: React.FC<NewPayNoteOverlayProps> = ({
           </div>
 
           <details className="formField">
-            <summary className="legend summaryOptions">
-              Advanced
-            </summary>
+            <summary className="legend summaryOptions">Advanced</summary>
 
             {/* Inline mentions implemented; dedicated tag UI removed */}
 

@@ -1,7 +1,10 @@
 import React from 'react';
 import { useUIStore } from '@pubpay/shared-services';
 import { InvoiceQR } from '@pubpay/shared-ui';
-import { getActiveNWCUri, migrateOldNWCConnection } from '../../utils/nwcStorage';
+import {
+  getActiveNWCUri,
+  migrateOldNWCConnection
+} from '../../utils/nwcStorage';
 import { sanitizeImageUrl } from '../../utils/profileUtils';
 import { TOAST_DURATION, TIMEOUT, COLORS } from '../../constants';
 import { genericUserIcon } from '../../assets/images';
@@ -40,8 +43,10 @@ export const InvoiceOverlay: React.FC<InvoiceOverlayProps> = ({
     if (post && post.author) {
       try {
         const authorData = JSON.parse(post.author.content || '{}');
-        recipientName = authorData?.display_name || authorData?.name || 'Anonymous';
-        recipientPicture = sanitizeImageUrl(authorData?.picture) || genericUserIcon;
+        recipientName =
+          authorData?.display_name || authorData?.name || 'Anonymous';
+        recipientPicture =
+          sanitizeImageUrl(authorData?.picture) || genericUserIcon;
       } catch {
         // Use defaults
       }
@@ -53,7 +58,9 @@ export const InvoiceOverlay: React.FC<InvoiceOverlayProps> = ({
 
     try {
       await navigator.clipboard.writeText(bolt11);
-      useUIStore.getState().openToast('Invoice copied to clipboard', 'success', false);
+      useUIStore
+        .getState()
+        .openToast('Invoice copied to clipboard', 'success', false);
       setTimeout(() => {
         useUIStore.getState().closeToast();
       }, TOAST_DURATION.SHORT);
@@ -66,7 +73,9 @@ export const InvoiceOverlay: React.FC<InvoiceOverlayProps> = ({
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
-      useUIStore.getState().openToast('Invoice copied to clipboard', 'success', false);
+      useUIStore
+        .getState()
+        .openToast('Invoice copied to clipboard', 'success', false);
       setTimeout(() => {
         useUIStore.getState().closeToast();
       }, TOAST_DURATION.SHORT);
@@ -89,11 +98,15 @@ export const InvoiceOverlay: React.FC<InvoiceOverlayProps> = ({
 
       const nwcUri = getActiveNWCUri();
       if (!nwcUri) {
-        useUIStore.getState().openToast('No NWC connection configured', 'error', false);
+        useUIStore
+          .getState()
+          .openToast('No NWC connection configured', 'error', false);
         return;
       }
 
-      useUIStore.getState().openToast('Sending invoice to wallet…', 'loading', true);
+      useUIStore
+        .getState()
+        .openToast('Sending invoice to wallet…', 'loading', true);
       const { NwcClient } = await import('@pubpay/shared-services');
       const client = new NwcClient(nwcUri);
 
@@ -151,7 +164,9 @@ export const InvoiceOverlay: React.FC<InvoiceOverlayProps> = ({
       const isEnabled = await window.webln!.isEnabled();
 
       if (!isEnabled) {
-        useUIStore.getState().openToast('Requesting permission…', 'loading', true);
+        useUIStore
+          .getState()
+          .openToast('Requesting permission…', 'loading', true);
         await window.webln!.enable();
       }
 
@@ -166,7 +181,9 @@ export const InvoiceOverlay: React.FC<InvoiceOverlayProps> = ({
           useUIStore.getState().closeInvoice();
         }, TOAST_DURATION.SHORT);
       } else {
-        useUIStore.getState().updateToast('WebLN payment failed', 'error', true);
+        useUIStore
+          .getState()
+          .updateToast('WebLN payment failed', 'error', true);
       }
     } catch (err: any) {
       console.warn('WebLN payment exception:', err);
@@ -216,8 +233,18 @@ export const InvoiceOverlay: React.FC<InvoiceOverlayProps> = ({
           PUB<span className="logoPay">PAY</span>
           <span className="logoMe">.me</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', marginBottom: '8px' }}>
-          <span className="label" style={{ fontSize: '16px' }}>Pay</span>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            justifyContent: 'center',
+            marginBottom: '8px'
+          }}
+        >
+          <span className="label" style={{ fontSize: '16px' }}>
+            Pay
+          </span>
           <img
             src={recipientPicture}
             alt={recipientName}
@@ -229,9 +256,13 @@ export const InvoiceOverlay: React.FC<InvoiceOverlayProps> = ({
               flexShrink: 0
             }}
           />
-          <span className="label" style={{ fontSize: '16px' }}>{recipientName}</span>
+          <span className="label" style={{ fontSize: '16px' }}>
+            {recipientName}
+          </span>
           {amountInSats > 0 && (
-            <span className="label" style={{ fontSize: '16px' }}>{amountInSats.toLocaleString()} sats</span>
+            <span className="label" style={{ fontSize: '16px' }}>
+              {amountInSats.toLocaleString()} sats
+            </span>
           )}
         </div>
         <InvoiceQR bolt11={bolt11} />
@@ -286,7 +317,10 @@ export const InvoiceOverlay: React.FC<InvoiceOverlayProps> = ({
             }}
             title="Copy invoice"
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: '20px' }}
+            >
               content_copy
             </span>
           </button>
@@ -356,4 +390,3 @@ export const InvoiceOverlay: React.FC<InvoiceOverlayProps> = ({
     </div>
   );
 };
-

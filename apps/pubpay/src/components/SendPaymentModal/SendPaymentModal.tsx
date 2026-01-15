@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   useUIStore,
@@ -13,8 +19,19 @@ import {
 } from '@pubpay/shared-services';
 import { formatContent } from '../../utils/contentFormatter';
 import { sanitizeImageUrl } from '../../utils/profileUtils';
-import { TOAST_DURATION, TIMEOUT, COLORS, Z_INDEX, STORAGE_KEYS, LIGHTNING } from '../../constants';
-import { validatePaymentAmount, validateInvoice, validateLightningAddressFormat } from '../../utils/validation';
+import {
+  TOAST_DURATION,
+  TIMEOUT,
+  COLORS,
+  Z_INDEX,
+  STORAGE_KEYS,
+  LIGHTNING
+} from '../../constants';
+import {
+  validatePaymentAmount,
+  validateInvoice,
+  validateLightningAddressFormat
+} from '../../utils/validation';
 import { useWalletState } from '../../stores/useWalletStore';
 
 interface SendPaymentModalProps {
@@ -61,8 +78,17 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   const [sending, setSending] = useState(false);
 
   // Detected type: 'invoice' | 'lightning-address' | 'lnurl' | 'nostr-user' | 'nostr-post' | null
-  const [detectedType, setDetectedType] = useState<'invoice' | 'lightning-address' | 'lnurl' | 'nostr-user' | 'nostr-post' | null>(null);
-  const [detectedNostrPubkey, setDetectedNostrPubkey] = useState<string | null>(null);
+  const [detectedType, setDetectedType] = useState<
+    | 'invoice'
+    | 'lightning-address'
+    | 'lnurl'
+    | 'nostr-user'
+    | 'nostr-post'
+    | null
+  >(null);
+  const [detectedNostrPubkey, setDetectedNostrPubkey] = useState<string | null>(
+    null
+  );
   const [detectedNostrProfile, setDetectedNostrProfile] = useState<any>(null);
   const [detectedPostEvent, setDetectedPostEvent] = useState<any>(null);
   const [detectedPostAuthor, setDetectedPostAuthor] = useState<any>(null);
@@ -101,12 +127,15 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
   // Lightning Address domain suggestions
   const [lnAddressDomainQuery, setLnAddressDomainQuery] = useState('');
-  const [showLnAddressSuggestions, setShowLnAddressSuggestions] = useState(false);
+  const [showLnAddressSuggestions, setShowLnAddressSuggestions] =
+    useState(false);
   const [activeLnAddressIndex, setActiveLnAddressIndex] = useState(0);
   const [previewSuffix, setPreviewSuffix] = useState<string | null>(null);
 
   // Payment type for Nostr user payments: 'zap' (public) or 'lightning' (private)
-  const [paymentType, setPaymentType] = useState<'zap' | 'lightning'>('lightning');
+  const [paymentType, setPaymentType] = useState<'zap' | 'lightning'>(
+    'lightning'
+  );
   // Anonymous zap option (only relevant when paymentType === 'zap')
   const [anonymousZap, setAnonymousZap] = useState(false);
 
@@ -120,7 +149,10 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   // Force anonymous mode when user is not logged in and payment type is zap or for posts
   useEffect(() => {
     const isNotLoggedIn = !authState?.isLoggedIn || !authState?.publicKey;
-    if (isNotLoggedIn && (paymentType === 'zap' || detectedType === 'nostr-post')) {
+    if (
+      isNotLoggedIn &&
+      (paymentType === 'zap' || detectedType === 'nostr-post')
+    ) {
       setAnonymousZap(true);
     }
   }, [paymentType, detectedType, authState?.isLoggedIn, authState?.publicKey]);
@@ -148,7 +180,10 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
     (disabled: boolean, marginTop: string = '6px') => {
       // Hide toggle if user is not logged in and payment type is zap or for posts (must be anonymous)
       const isNotLoggedIn = !authState?.isLoggedIn || !authState?.publicKey;
-      if (isNotLoggedIn && (paymentType === 'zap' || detectedType === 'nostr-post')) {
+      if (
+        isNotLoggedIn &&
+        (paymentType === 'zap' || detectedType === 'nostr-post')
+      ) {
         return null;
       }
 
@@ -160,7 +195,12 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         if (authState?.userProfile?.content) {
           try {
             const profileData = JSON.parse(authState.userProfile.content);
-            return profileData.display_name || profileData.displayName || profileData.name || 'You';
+            return (
+              profileData.display_name ||
+              profileData.displayName ||
+              profileData.name ||
+              'You'
+            );
           } catch {
             return 'You';
           }
@@ -192,7 +232,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
               flex: 1,
               padding: '8px 12px',
               borderRadius: '4px',
-              border: !anonymousZap ? `1.5px solid ${COLORS.PRIMARY}` : '1.5px solid var(--border-color)',
+              border: !anonymousZap
+                ? `1.5px solid ${COLORS.PRIMARY}`
+                : '1.5px solid var(--border-color)',
               background: !anonymousZap ? 'var(--bg-secondary)' : 'transparent',
               color: !anonymousZap ? COLORS.PRIMARY : 'var(--text-secondary)',
               cursor: disabled ? 'not-allowed' : 'pointer',
@@ -219,7 +261,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
               flex: 1,
               padding: '8px 12px',
               borderRadius: '4px',
-              border: anonymousZap ? `1.5px solid ${COLORS.PRIMARY}` : '1.5px solid var(--border-color)',
+              border: anonymousZap
+                ? `1.5px solid ${COLORS.PRIMARY}`
+                : '1.5px solid var(--border-color)',
               background: anonymousZap ? 'var(--bg-secondary)' : 'transparent',
               color: anonymousZap ? COLORS.PRIMARY : 'var(--text-secondary)',
               cursor: disabled ? 'not-allowed' : 'pointer',
@@ -241,7 +285,15 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         </div>
       );
     },
-    [anonymousZap, paymentType, detectedType, authState?.isLoggedIn, authState?.publicKey, authState?.displayName, authState?.userProfile]
+    [
+      anonymousZap,
+      paymentType,
+      detectedType,
+      authState?.isLoggedIn,
+      authState?.publicKey,
+      authState?.displayName,
+      authState?.userProfile
+    ]
   );
 
   const sendInputRef = useRef<HTMLInputElement>(null);
@@ -293,7 +345,11 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   }, []);
 
   // Fetch invoice from Lightning Address (with parameters)
-  const fetchInvoiceFromLNAddress = async (address: string, amount: number, description?: string): Promise<string | null> => {
+  const fetchInvoiceFromLNAddress = async (
+    address: string,
+    amount: number,
+    description?: string
+  ): Promise<string | null> => {
     setFetchingInvoice(true);
     setLnurlError('');
 
@@ -301,17 +357,24 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       // Validate lightning address format first
       const addressValidation = validateLightningAddressFormat(address);
       if (!addressValidation.valid) {
-        setLnurlError(addressValidation.error || 'Invalid lightning address format');
+        setLnurlError(
+          addressValidation.error || 'Invalid lightning address format'
+        );
         setFetchingInvoice(false);
         return null;
       }
 
-      const invoice = await LightningAddressService.fetchInvoice(address, amount, { description });
+      const invoice = await LightningAddressService.fetchInvoice(
+        address,
+        amount,
+        { description }
+      );
       parseInvoice(invoice);
       return invoice;
     } catch (error) {
       console.error('Failed to fetch invoice from Lightning Address:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch invoice';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to fetch invoice';
       setLnurlError(errorMessage);
       return null;
     } finally {
@@ -343,7 +406,8 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       }
     } catch (error) {
       console.error('Failed to discover LNURL:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to discover LNURL';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to discover LNURL';
       setLnurlError(errorMessage);
       setLnurlInfo(null);
     } finally {
@@ -352,17 +416,24 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   }, []);
 
   // Fetch invoice from LNURL (with parameters)
-  const fetchInvoiceFromLNURL = async (lnurl: string, amount: number, description?: string): Promise<string | null> => {
+  const fetchInvoiceFromLNURL = async (
+    lnurl: string,
+    amount: number,
+    description?: string
+  ): Promise<string | null> => {
     setFetchingInvoice(true);
     setLnurlError('');
 
     try {
-      const invoice = await LnurlService.fetchInvoice(lnurl, amount, { description });
+      const invoice = await LnurlService.fetchInvoice(lnurl, amount, {
+        description
+      });
       parseInvoice(invoice);
       return invoice;
     } catch (error) {
       console.error('Failed to fetch invoice from LNURL:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch invoice';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to fetch invoice';
       setLnurlError(errorMessage);
       return null;
     } finally {
@@ -373,8 +444,17 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
   // Handle send payment
   const handleSendPayment = async () => {
     if (!detectedType) {
-      useUIStore.getState().openToast('Please enter an invoice, Lightning Address, LNURL, or Nostr user', 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      useUIStore
+        .getState()
+        .openToast(
+          'Please enter an invoice, Lightning Address, LNURL, or Nostr user',
+          'error',
+          false
+        );
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.SHORT
+      );
       return;
     }
 
@@ -383,12 +463,17 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
     if (detectedType === 'invoice') {
       // Validate invoice
       if (invoiceError || !parsedInvoice) {
-        useUIStore.getState().openToast(
-          invoiceError || 'Please enter a valid invoice',
-          'error',
-          false
+        useUIStore
+          .getState()
+          .openToast(
+            invoiceError || 'Please enter a valid invoice',
+            'error',
+            false
+          );
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.MEDIUM
         );
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
         return;
       }
 
@@ -396,15 +481,29 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
     } else if (detectedType === 'lightning-address') {
       // Validate amount
       if (!sendAmount.trim()) {
-        useUIStore.getState().openToast('Please enter an amount', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        useUIStore
+          .getState()
+          .openToast('Please enter an amount', 'error', false);
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.SHORT
+        );
         return;
       }
 
       const amountValidation = validatePaymentAmount(sendAmount);
       if (!amountValidation.valid) {
-        useUIStore.getState().openToast(amountValidation.error || 'Invalid amount', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        useUIStore
+          .getState()
+          .openToast(
+            amountValidation.error || 'Invalid amount',
+            'error',
+            false
+          );
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.SHORT
+        );
         return;
       }
 
@@ -412,31 +511,52 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
       // Fetch invoice automatically
       useUIStore.getState().openToast('Fetching invoice...', 'loading', true);
-      invoiceToPay = await fetchInvoiceFromLNAddress(sendInput.trim(), amount, sendDescription);
+      invoiceToPay = await fetchInvoiceFromLNAddress(
+        sendInput.trim(),
+        amount,
+        sendDescription
+      );
 
       if (!invoiceToPay) {
-        useUIStore.getState().updateToast(
-          lnurlError || 'Failed to fetch invoice',
-          'error',
-          true
+        useUIStore
+          .getState()
+          .updateToast(lnurlError || 'Failed to fetch invoice', 'error', true);
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.MEDIUM
         );
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
         return;
       }
 
-        useUIStore.getState().updateToast('Invoice fetched! Sending payment...', 'loading', true);
+      useUIStore
+        .getState()
+        .updateToast('Invoice fetched! Sending payment...', 'loading', true);
     } else if (detectedType === 'lnurl') {
       // Validate amount
       if (!sendAmount.trim()) {
-        useUIStore.getState().openToast('Please enter an amount', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        useUIStore
+          .getState()
+          .openToast('Please enter an amount', 'error', false);
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.SHORT
+        );
         return;
       }
 
       const amountValidation = validatePaymentAmount(sendAmount);
       if (!amountValidation.valid) {
-        useUIStore.getState().openToast(amountValidation.error || 'Invalid amount', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        useUIStore
+          .getState()
+          .openToast(
+            amountValidation.error || 'Invalid amount',
+            'error',
+            false
+          );
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.SHORT
+        );
         return;
       }
 
@@ -444,32 +564,56 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
       // Fetch invoice automatically
       useUIStore.getState().openToast('Fetching invoice...', 'loading', true);
-      invoiceToPay = await fetchInvoiceFromLNURL(sendInput.trim(), amount, sendDescription);
+      invoiceToPay = await fetchInvoiceFromLNURL(
+        sendInput.trim(),
+        amount,
+        sendDescription
+      );
 
       if (!invoiceToPay) {
-        useUIStore.getState().updateToast(
-          lnurlError || 'Failed to fetch invoice',
-          'error',
-          true
+        useUIStore
+          .getState()
+          .updateToast(lnurlError || 'Failed to fetch invoice', 'error', true);
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.MEDIUM
         );
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
         return;
       }
 
-      useUIStore.getState().updateToast('Invoice fetched! Sending payment...', 'loading', true);
-      console.log('LNURL invoice fetched:', invoiceToPay ? `${invoiceToPay.substring(0, 50)}...` : 'null');
+      useUIStore
+        .getState()
+        .updateToast('Invoice fetched! Sending payment...', 'loading', true);
+      console.log(
+        'LNURL invoice fetched:',
+        invoiceToPay ? `${invoiceToPay.substring(0, 50)}...` : 'null'
+      );
     } else if (detectedType === 'nostr-post') {
       // Validate amount
       if (!sendAmount.trim()) {
-        useUIStore.getState().openToast('Please enter an amount', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        useUIStore
+          .getState()
+          .openToast('Please enter an amount', 'error', false);
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.SHORT
+        );
         return;
       }
 
       const amountValidation = validatePaymentAmount(sendAmount);
       if (!amountValidation.valid) {
-        useUIStore.getState().openToast(amountValidation.error || 'Invalid amount', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        useUIStore
+          .getState()
+          .openToast(
+            amountValidation.error || 'Invalid amount',
+            'error',
+            false
+          );
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.SHORT
+        );
         return;
       }
 
@@ -478,7 +622,10 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       // Validate post event is loaded
       if (!detectedPostEvent) {
         useUIStore.getState().openToast('Post not loaded', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.MEDIUM
+        );
         return;
       }
 
@@ -492,18 +639,25 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       }
 
       try {
-        useUIStore.getState().updateToast(
-          anonymousZap ? 'Creating anonymous zap request...' : 'Creating zap request...',
-          'loading',
-          true
-        );
+        useUIStore
+          .getState()
+          .updateToast(
+            anonymousZap
+              ? 'Creating anonymous zap request...'
+              : 'Creating zap request...',
+            'loading',
+            true
+          );
 
         // Import ZapService
         const { ZapService } = await import('@pubpay/shared-services');
         const zapService = new ZapService();
 
         // Get callback for the post author
-        const callback = await zapService.getInvoiceCallBack(detectedPostEvent, detectedPostAuthor);
+        const callback = await zapService.getInvoiceCallBack(
+          detectedPostEvent,
+          detectedPostAuthor
+        );
         if (!callback) {
           throw new Error('Failed to get Lightning callback');
         }
@@ -513,7 +667,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           detectedPostEvent,
           amount,
           callback.lud16ToZap,
-          anonymousZap ? null : (authState?.publicKey || null),
+          anonymousZap ? null : authState?.publicKey || null,
           sendDescription
         );
 
@@ -529,53 +683,76 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           callback.lud16ToZap,
           detectedPostEvent.id,
           anonymousZap,
-          anonymousZap ? null : (authState?.privateKey || null)
+          anonymousZap ? null : authState?.privateKey || null
         );
 
         if (success) {
-          useUIStore.getState().updateToast(
-            anonymousZap ? 'Anonymous zap sent!' : 'Zap sent!',
-            'success',
-            false
-          );
-            setTimeout(async () => {
-              useUIStore.getState().closeToast();
-              handleClose();
-              onPaymentSent();
-              // Navigate to post page after zap
-              try {
-                const { nip19 } = await import('nostr-tools');
-                const nevent = nip19.noteEncode(detectedPostEvent.id);
-                navigate(`/note/${nevent}`);
-              } catch (error) {
-                console.error('Failed to navigate to post:', error);
-              }
-            }, 2000);
+          useUIStore
+            .getState()
+            .updateToast(
+              anonymousZap ? 'Anonymous zap sent!' : 'Zap sent!',
+              'success',
+              false
+            );
+          setTimeout(async () => {
+            useUIStore.getState().closeToast();
+            handleClose();
+            onPaymentSent();
+            // Navigate to post page after zap
+            try {
+              const { nip19 } = await import('nostr-tools');
+              const nevent = nip19.noteEncode(detectedPostEvent.id);
+              navigate(`/note/${nevent}`);
+            } catch (error) {
+              console.error('Failed to navigate to post:', error);
+            }
+          }, 2000);
         } else {
-          useUIStore.getState().updateToast('Failed to send zap', 'error', true);
-          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          useUIStore
+            .getState()
+            .updateToast('Failed to send zap', 'error', true);
+          setTimeout(
+            () => useUIStore.getState().closeToast(),
+            TOAST_DURATION.MEDIUM
+          );
         }
       } catch (error) {
         console.error('Zap payment error:', error);
-        const errorMessage = error instanceof Error
-          ? error.message
-          : 'Failed to send zap';
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to send zap';
         useUIStore.getState().updateToast(errorMessage, 'error', true);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.MEDIUM
+        );
       }
       return; // Exit early for zap flow (doesn't use invoiceToPay)
     } else if (detectedType === 'nostr-user') {
       // Validate amount
       if (!sendAmount.trim()) {
-        useUIStore.getState().openToast('Please enter an amount', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        useUIStore
+          .getState()
+          .openToast('Please enter an amount', 'error', false);
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.SHORT
+        );
         return;
       }
 
       const amountValidation = validatePaymentAmount(sendAmount);
       if (!amountValidation.valid) {
-        useUIStore.getState().openToast(amountValidation.error || 'Invalid amount', 'error', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        useUIStore
+          .getState()
+          .openToast(
+            amountValidation.error || 'Invalid amount',
+            'error',
+            false
+          );
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.SHORT
+        );
         return;
       }
 
@@ -583,19 +760,35 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
       // Get lightning address from profile
       if (!detectedNostrProfile) {
-        useUIStore.getState().openToast('Loading user profile...', 'loading', true);
+        useUIStore
+          .getState()
+          .openToast('Loading user profile...', 'loading', true);
         try {
-          const profileMap = await ensureProfiles(getQueryClient(), nostrClient, [detectedNostrPubkey!]);
+          const profileMap = await ensureProfiles(
+            getQueryClient(),
+            nostrClient,
+            [detectedNostrPubkey!]
+          );
           const profile = profileMap.get(detectedNostrPubkey!);
           setDetectedNostrProfile(profile || null);
           if (!profile) {
-            useUIStore.getState().updateToast('User profile not found', 'error', true);
-            setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+            useUIStore
+              .getState()
+              .updateToast('User profile not found', 'error', true);
+            setTimeout(
+              () => useUIStore.getState().closeToast(),
+              TOAST_DURATION.MEDIUM
+            );
             return;
           }
         } catch {
-          useUIStore.getState().updateToast('Failed to load user profile', 'error', true);
-          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          useUIStore
+            .getState()
+            .updateToast('Failed to load user profile', 'error', true);
+          setTimeout(
+            () => useUIStore.getState().closeToast(),
+            TOAST_DURATION.MEDIUM
+          );
           return;
         }
       }
@@ -603,18 +796,25 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       // Extract lud16 from profile
       let lud16: string | null = null;
       try {
-        const profileContent = typeof detectedNostrProfile?.content === 'string'
-          ? JSON.parse(detectedNostrProfile.content)
-          : detectedNostrProfile?.content || detectedNostrProfile;
+        const profileContent =
+          typeof detectedNostrProfile?.content === 'string'
+            ? JSON.parse(detectedNostrProfile.content)
+            : detectedNostrProfile?.content || detectedNostrProfile;
         lud16 = profileContent?.lud16 || profileContent?.lud06 || null;
       } catch {
         // Try direct access
-        lud16 = detectedNostrProfile?.lud16 || detectedNostrProfile?.lud06 || null;
+        lud16 =
+          detectedNostrProfile?.lud16 || detectedNostrProfile?.lud06 || null;
       }
 
       if (!lud16) {
-        useUIStore.getState().updateToast('User does not have a Lightning Address', 'error', true);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+        useUIStore
+          .getState()
+          .updateToast('User does not have a Lightning Address', 'error', true);
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.MEDIUM
+        );
         return;
       }
 
@@ -623,18 +823,25 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         // Send as public zap
         // Note: Anonymous zaps don't require login (same as posts)
         // If user is not logged in, anonymousZap should already be forced to true by useEffect
-        if (!anonymousZap && (!authState?.isLoggedIn || !authState?.publicKey)) {
+        if (
+          !anonymousZap &&
+          (!authState?.isLoggedIn || !authState?.publicKey)
+        ) {
           // This should not happen due to useEffect, but as a safety check:
           setAnonymousZap(true);
           // Continue with anonymous zap instead of blocking
         }
 
         try {
-          useUIStore.getState().updateToast(
-            anonymousZap ? 'Creating anonymous zap request...' : 'Creating zap request...',
-            'loading',
-            true
-          );
+          useUIStore
+            .getState()
+            .updateToast(
+              anonymousZap
+                ? 'Creating anonymous zap request...'
+                : 'Creating zap request...',
+              'loading',
+              true
+            );
 
           // Import ZapService
           const { ZapService } = await import('@pubpay/shared-services');
@@ -646,17 +853,19 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
             detectedNostrProfile,
             amount,
             sendDescription,
-            anonymousZap ? null : (authState?.publicKey || null),
-            anonymousZap ? null : (authState?.privateKey || null),
+            anonymousZap ? null : authState?.publicKey || null,
+            anonymousZap ? null : authState?.privateKey || null,
             anonymousZap // Pass anonymous flag
           );
 
           if (success) {
-            useUIStore.getState().updateToast(
-              anonymousZap ? 'Anonymous zap sent!' : 'Zap sent!',
-              'success',
-              false
-            );
+            useUIStore
+              .getState()
+              .updateToast(
+                anonymousZap ? 'Anonymous zap sent!' : 'Zap sent!',
+                'success',
+                false
+              );
             setTimeout(() => {
               useUIStore.getState().closeToast();
               handleClose();
@@ -671,40 +880,63 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
               }
             }, 2000);
           } else {
-            useUIStore.getState().updateToast('Failed to send zap', 'error', true);
-            setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+            useUIStore
+              .getState()
+              .updateToast('Failed to send zap', 'error', true);
+            setTimeout(
+              () => useUIStore.getState().closeToast(),
+              TOAST_DURATION.MEDIUM
+            );
           }
         } catch (error) {
           console.error('Zap payment error:', error);
-          const errorMessage = error instanceof Error
-            ? error.message
-            : 'Failed to send zap';
+          const errorMessage =
+            error instanceof Error ? error.message : 'Failed to send zap';
           useUIStore.getState().updateToast(errorMessage, 'error', true);
-          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          setTimeout(
+            () => useUIStore.getState().closeToast(),
+            TOAST_DURATION.MEDIUM
+          );
         }
         return; // Exit early for zap flow (doesn't use invoiceToPay)
       } else {
         // Send as private lightning payment (existing behavior)
-        useUIStore.getState().updateToast('Fetching invoice...', 'loading', true);
-        invoiceToPay = await fetchInvoiceFromLNAddress(lud16, amount, sendDescription);
+        useUIStore
+          .getState()
+          .updateToast('Fetching invoice...', 'loading', true);
+        invoiceToPay = await fetchInvoiceFromLNAddress(
+          lud16,
+          amount,
+          sendDescription
+        );
 
         if (!invoiceToPay) {
-          useUIStore.getState().updateToast(
-            lnurlError || 'Failed to fetch invoice',
-            'error',
-            true
+          useUIStore
+            .getState()
+            .updateToast(
+              lnurlError || 'Failed to fetch invoice',
+              'error',
+              true
+            );
+          setTimeout(
+            () => useUIStore.getState().closeToast(),
+            TOAST_DURATION.MEDIUM
           );
-          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
           return;
         }
 
-        useUIStore.getState().updateToast('Invoice fetched! Sending payment...', 'loading', true);
+        useUIStore
+          .getState()
+          .updateToast('Invoice fetched! Sending payment...', 'loading', true);
       }
     }
 
     if (!invoiceToPay) {
       useUIStore.getState().openToast('No invoice to pay', 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.SHORT
+      );
       return;
     }
 
@@ -747,18 +979,18 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         throw new Error('Invalid invoice format');
       }
 
-      console.log('Sending payment with invoice:', `${invoiceToPay.substring(0, 50)}...`);
+      console.log(
+        'Sending payment with invoice:',
+        `${invoiceToPay.substring(0, 50)}...`
+      );
       useUIStore.getState().openToast('Sending payment...', 'loading', true);
       const response = await nwcClient.payInvoice(invoiceToPay);
       console.log('NWC payment response:', response);
       if (response.error) {
         console.error('NWC payment error:', response.error);
-        const errorMessage = response.error.message || response.error.code || 'Payment failed';
-        useUIStore.getState().updateToast(
-          errorMessage,
-          'error',
-          true
-        );
+        const errorMessage =
+          response.error.message || response.error.code || 'Payment failed';
+        useUIStore.getState().updateToast(errorMessage, 'error', true);
       } else if (response.result) {
         useUIStore.getState().updateToast('Payment sent!', 'success', false);
         setTimeout(() => {
@@ -769,25 +1001,19 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       } else {
         // No error and no result - unexpected response
         console.error('Unexpected NWC response:', response);
-        useUIStore.getState().updateToast(
-          'Unexpected response from wallet',
-          'error',
-          true
-        );
+        useUIStore
+          .getState()
+          .updateToast('Unexpected response from wallet', 'error', true);
       }
     } catch (error) {
       console.error('Send payment error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Payment failed';
-      useUIStore.getState().updateToast(
-        errorMessage,
-        'error',
-        true
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : 'Payment failed';
+      useUIStore.getState().updateToast(errorMessage, 'error', true);
     } finally {
       setSending(false);
     }
   };
-
 
   // Load follow list
   const loadFollowList = useCallback(async () => {
@@ -798,7 +1024,10 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
     setLoadingFollowList(true);
     try {
-      const suggestions = await FollowService.getFollowSuggestions(nostrClient, authState.publicKey);
+      const suggestions = await FollowService.getFollowSuggestions(
+        nostrClient,
+        authState.publicKey
+      );
       setFollowList(suggestions);
     } catch (error) {
       console.error('Failed to load follow list:', error);
@@ -877,7 +1106,8 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
     const afterAt = upto.slice(at + 1);
 
     // Check if there's text before @ (like "user@") - this is a Lightning Address
-    const hasTextBeforeAt = beforeAt.trim().length > 0 && /[a-z0-9_-]+/i.test(beforeAt.trim());
+    const hasTextBeforeAt =
+      beforeAt.trim().length > 0 && /[a-z0-9_-]+/i.test(beforeAt.trim());
 
     // Check if @ is at start or after whitespace - this is a Nostr mention
     const isNostrMention = at === 0 || /\s/.test(beforeAt.slice(-1));
@@ -969,11 +1199,12 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       setDetectedPostEvent(null);
       setDetectedPostAuthor(null);
       // Load profile
-      ensureProfiles(getQueryClient(), nostrClient, [detection.data.pubkey])
-        .then(profileMap => {
-          const profile = profileMap.get(detection.data.pubkey);
-          setDetectedNostrProfile(profile || null);
-        });
+      ensureProfiles(getQueryClient(), nostrClient, [
+        detection.data.pubkey
+      ]).then(profileMap => {
+        const profile = profileMap.get(detection.data.pubkey);
+        setDetectedNostrProfile(profile || null);
+      });
     } else if (detection.type === 'nostr-post') {
       setDetectedNostrPubkey(null);
       setDetectedNostrProfile(null);
@@ -985,7 +1216,8 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       const postData = detection.data;
       const eventId = postData.eventId;
 
-      nostrClient.getEvents([{ kinds: [1], ids: [eventId] }])
+      nostrClient
+        .getEvents([{ kinds: [1], ids: [eventId] }])
         .then((events: any[]) => {
           if (events && events.length > 0) {
             const postEvent = events[0];
@@ -1004,14 +1236,22 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           } else {
             setLoadingPost(false);
             useUIStore.getState().openToast('Post not found', 'error', false);
-            setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+            setTimeout(
+              () => useUIStore.getState().closeToast(),
+              TOAST_DURATION.MEDIUM
+            );
           }
         })
         .catch((error: any) => {
           console.error('Failed to fetch post:', error);
           setLoadingPost(false);
-          useUIStore.getState().openToast('Failed to load post', 'error', false);
-          setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+          useUIStore
+            .getState()
+            .openToast('Failed to load post', 'error', false);
+          setTimeout(
+            () => useUIStore.getState().closeToast(),
+            TOAST_DURATION.MEDIUM
+          );
         });
     } else {
       setDetectedNostrPubkey(null);
@@ -1029,11 +1269,15 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         return;
       }
       try {
-        const rich = await formatContent(detectedPostEvent.content, nostrClient);
+        const rich = await formatContent(
+          detectedPostEvent.content,
+          nostrClient
+        );
         if (!cancelled) setFormattedPostContent(rich);
       } catch (error) {
         console.error('Failed to format post content:', error);
-        if (!cancelled) setFormattedPostContent(detectedPostEvent.content || '');
+        if (!cancelled)
+          setFormattedPostContent(detectedPostEvent.content || '');
       }
     };
 
@@ -1055,7 +1299,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       return;
     }
 
-    const scannedAddress = sessionStorage.getItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS);
+    const scannedAddress = sessionStorage.getItem(
+      STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS
+    );
     if (scannedAddress) {
       sessionStorage.removeItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS);
       setSendInput(scannedAddress);
@@ -1093,14 +1339,32 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       }
     };
 
-    window.addEventListener('walletScannedInvoice', handleScannedInvoice as EventListener);
-    window.addEventListener('walletScannedLightningAddress', handleScannedLightningAddress as EventListener);
-    window.addEventListener('walletScannedLnurl', handleScannedLnurl as EventListener);
+    window.addEventListener(
+      'walletScannedInvoice',
+      handleScannedInvoice as EventListener
+    );
+    window.addEventListener(
+      'walletScannedLightningAddress',
+      handleScannedLightningAddress as EventListener
+    );
+    window.addEventListener(
+      'walletScannedLnurl',
+      handleScannedLnurl as EventListener
+    );
 
     return () => {
-      window.removeEventListener('walletScannedInvoice', handleScannedInvoice as EventListener);
-      window.removeEventListener('walletScannedLightningAddress', handleScannedLightningAddress as EventListener);
-      window.removeEventListener('walletScannedLnurl', handleScannedLnurl as EventListener);
+      window.removeEventListener(
+        'walletScannedInvoice',
+        handleScannedInvoice as EventListener
+      );
+      window.removeEventListener(
+        'walletScannedLightningAddress',
+        handleScannedLightningAddress as EventListener
+      );
+      window.removeEventListener(
+        'walletScannedLnurl',
+        handleScannedLnurl as EventListener
+      );
     };
   }, [isVisible]);
 
@@ -1164,10 +1428,25 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         </div>
 
         {/* Main Content Area - grows to fill space */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            overflowY: 'auto'
+          }}
+        >
           {/* Unified Send Input */}
           <div style={{ marginBottom: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '8px'
+              }}
+            >
               <label
                 style={{
                   display: 'block',
@@ -1177,25 +1456,37 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
               >
                 Send to <span style={{ color: COLORS.ERROR }}>*</span>
                 {detectedType && (
-                  <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                    ({
-                      detectedType === 'invoice'
-                        ? 'Invoice'
-                        : detectedType === 'lightning-address'
-                          ? 'Lightning Address'
-                          : detectedType === 'lnurl'
-                            ? 'LNURL'
-                            : detectedType === 'nostr-post'
-                              ? 'Nostr Post'
-                              : 'Nostr User'
-                    })
+                  <span
+                    style={{
+                      marginLeft: '8px',
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    (
+                    {detectedType === 'invoice'
+                      ? 'Invoice'
+                      : detectedType === 'lightning-address'
+                        ? 'Lightning Address'
+                        : detectedType === 'lnurl'
+                          ? 'LNURL'
+                          : detectedType === 'nostr-post'
+                            ? 'Nostr Post'
+                            : 'Nostr User'}
+                    )
                   </span>
                 )}
               </label>
             </div>
 
             {/* Main Input Field */}
-            <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+            <div
+              style={{
+                position: 'relative',
+                display: 'inline-block',
+                width: '100%'
+              }}
+            >
               {detectedType === 'invoice' ? (
                 <textarea
                   value={sendInput}
@@ -1209,7 +1500,11 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                     width: '100%',
                     minHeight: '100px',
                     padding: '12px',
-                    border: invoiceError ? `2px solid ${COLORS.ERROR}` : parsedInvoice ? `2px solid ${COLORS.SUCCESS}` : '2px solid var(--border-color)',
+                    border: invoiceError
+                      ? `2px solid ${COLORS.ERROR}`
+                      : parsedInvoice
+                        ? `2px solid ${COLORS.SUCCESS}`
+                        : '2px solid var(--border-color)',
                     borderRadius: '6px',
                     fontSize: '12px',
                     fontFamily: 'monospace',
@@ -1256,10 +1551,15 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                       }}
                       onKeyDown={e => {
                         // Handle Lightning Address domain suggestions
-                        if (showLnAddressSuggestions && filteredLnProviders.length > 0) {
+                        if (
+                          showLnAddressSuggestions &&
+                          filteredLnProviders.length > 0
+                        ) {
                           if (e.key === 'ArrowDown') {
                             e.preventDefault();
-                            const newIndex = (activeLnAddressIndex + 1) % filteredLnProviders.length;
+                            const newIndex =
+                              (activeLnAddressIndex + 1) %
+                              filteredLnProviders.length;
                             setActiveLnAddressIndex(newIndex);
                             // Update preview (show full suggestion)
                             const input = sendInputRef.current;
@@ -1277,7 +1577,11 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                             }
                           } else if (e.key === 'ArrowUp') {
                             e.preventDefault();
-                            const newIndex = (activeLnAddressIndex - 1 + filteredLnProviders.length) % filteredLnProviders.length;
+                            const newIndex =
+                              (activeLnAddressIndex -
+                                1 +
+                                filteredLnProviders.length) %
+                              filteredLnProviders.length;
                             setActiveLnAddressIndex(newIndex);
                             // Update preview (show full suggestion)
                             const input = sendInputRef.current;
@@ -1295,7 +1599,8 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                             }
                           } else if (e.key === 'Enter' || e.key === 'Tab') {
                             e.preventDefault();
-                            const choice = filteredLnProviders[activeLnAddressIndex];
+                            const choice =
+                              filteredLnProviders[activeLnAddressIndex];
                             if (choice) {
                               const input = sendInputRef.current;
                               if (!input) return;
@@ -1327,10 +1632,15 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                           }
                         }
                         // Handle Nostr user mention suggestions
-                        else if (showMentionSuggestions && filteredMentionFollows.length > 0) {
+                        else if (
+                          showMentionSuggestions &&
+                          filteredMentionFollows.length > 0
+                        ) {
                           if (e.key === 'ArrowDown') {
                             e.preventDefault();
-                            const newIndex = (activeMentionIndex + 1) % filteredMentionFollows.length;
+                            const newIndex =
+                              (activeMentionIndex + 1) %
+                              filteredMentionFollows.length;
                             setActiveMentionIndex(newIndex);
                             // Update preview (show full suggestion with display name)
                             const input = sendInputRef.current;
@@ -1342,14 +1652,19 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                               if (at !== -1) {
                                 const before = value.slice(0, at);
                                 const choice = filteredMentionFollows[newIndex];
-                                const displayName = choice.displayName || choice.npub;
+                                const displayName =
+                                  choice.displayName || choice.npub;
                                 const fullSuggestion = before + displayName;
                                 setPreviewSuffix(fullSuggestion);
                               }
                             }
                           } else if (e.key === 'ArrowUp') {
                             e.preventDefault();
-                            const newIndex = (activeMentionIndex - 1 + filteredMentionFollows.length) % filteredMentionFollows.length;
+                            const newIndex =
+                              (activeMentionIndex -
+                                1 +
+                                filteredMentionFollows.length) %
+                              filteredMentionFollows.length;
                             setActiveMentionIndex(newIndex);
                             // Update preview (show full suggestion with display name)
                             const input = sendInputRef.current;
@@ -1361,14 +1676,16 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                               if (at !== -1) {
                                 const before = value.slice(0, at);
                                 const choice = filteredMentionFollows[newIndex];
-                                const displayName = choice.displayName || choice.npub;
+                                const displayName =
+                                  choice.displayName || choice.npub;
                                 const fullSuggestion = before + displayName;
                                 setPreviewSuffix(fullSuggestion);
                               }
                             }
                           } else if (e.key === 'Enter' || e.key === 'Tab') {
                             e.preventDefault();
-                            const choice = filteredMentionFollows[activeMentionIndex];
+                            const choice =
+                              filteredMentionFollows[activeMentionIndex];
                             if (choice) {
                               const input = sendInputRef.current;
                               if (!input) return;
@@ -1412,50 +1729,83 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                           setPreviewSuffix(null);
                         }, TIMEOUT.DEBOUNCE);
                       }}
-                      placeholder={previewSuffix ? '' : 'Enter invoice, Lightning Address, LNURL, npub, or type @...'}
+                      placeholder={
+                        previewSuffix
+                          ? ''
+                          : 'Enter invoice, Lightning Address, LNURL, npub, or type @...'
+                      }
                       disabled={sending || fetchingInvoice}
                       style={{
                         backgroundColor: 'var(--input-bg)',
-                        color: previewSuffix ? 'transparent' : 'var(--text-primary)',
-                        border: (invoiceError || lnurlError) ? `2px solid ${COLORS.ERROR}` : (detectedType && sendInput.trim()) ? `2px solid ${COLORS.SUCCESS}` : '2px solid var(--border-color)',
+                        color: previewSuffix
+                          ? 'transparent'
+                          : 'var(--text-primary)',
+                        border:
+                          invoiceError || lnurlError
+                            ? `2px solid ${COLORS.ERROR}`
+                            : detectedType && sendInput.trim()
+                              ? `2px solid ${COLORS.SUCCESS}`
+                              : '2px solid var(--border-color)',
                         borderRadius: '6px',
-                        padding: sendInput ? '12px 38px 12px 16px' : '12px 70px 12px 16px',
+                        padding: sendInput
+                          ? '12px 38px 12px 16px'
+                          : '12px 70px 12px 16px',
                         width: '100%',
                         fontSize: '14px',
                         boxSizing: 'border-box'
                       }}
                     />
                     {/* Paste, Clear, and User icon buttons */}
-                    <div style={{ 
-                      position: 'absolute', 
-                      right: '8px', 
-                      top: '8px',
-                      height: '30px',
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      gap: '4px'
-                    }}>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '8px',
+                        height: '30px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px'
+                      }}
+                    >
                       {!sendInput && (
                         <button
                           type="button"
-                          onClick={async (e) => {
+                          onClick={async e => {
                             e.preventDefault();
                             e.stopPropagation();
                             try {
                               const text = await navigator.clipboard.readText();
                               if (text && text.trim()) {
                                 setSendInput(text.trim());
-                                useUIStore.getState().openToast('Pasted from clipboard', 'success', false);
-                                setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+                                useUIStore
+                                  .getState()
+                                  .openToast(
+                                    'Pasted from clipboard',
+                                    'success',
+                                    false
+                                  );
+                                setTimeout(
+                                  () => useUIStore.getState().closeToast(),
+                                  TOAST_DURATION.SHORT
+                                );
                               }
                             } catch (error) {
                               console.error('Failed to read clipboard:', error);
-                              useUIStore.getState().openToast('Failed to read from clipboard', 'error', false);
-                              setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+                              useUIStore
+                                .getState()
+                                .openToast(
+                                  'Failed to read from clipboard',
+                                  'error',
+                                  false
+                                );
+                              setTimeout(
+                                () => useUIStore.getState().closeToast(),
+                                TOAST_DURATION.SHORT
+                              );
                             }
                           }}
-                          onMouseDown={(e) => {
+                          onMouseDown={e => {
                             e.preventDefault(); // Prevent input from losing focus
                           }}
                           disabled={sending || fetchingInvoice}
@@ -1463,29 +1813,40 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                           style={{
                             background: 'transparent',
                             border: 'none',
-                            cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                            cursor:
+                              sending || fetchingInvoice
+                                ? 'not-allowed'
+                                : 'pointer',
                             padding: '4px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: 'var(--text-secondary)',
-                            opacity: (sending || fetchingInvoice) ? 0.5 : 1,
+                            opacity: sending || fetchingInvoice ? 0.5 : 1,
                             transition: 'color 0.2s ease',
                             outline: 'none'
                           }}
-                          onMouseEnter={(e) => {
+                          onMouseEnter={e => {
                             if (!sending && !fetchingInvoice) {
                               e.currentTarget.style.color = COLORS.PRIMARY;
                             }
                           }}
-                          onMouseLeave={(e) => {
+                          onMouseLeave={e => {
                             if (!sending && !fetchingInvoice) {
-                              e.currentTarget.style.color = 'var(--text-secondary)';
+                              e.currentTarget.style.color =
+                                'var(--text-secondary)';
                             }
                           }}
                           title="Paste from clipboard"
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: '20px', display: 'flex', alignItems: 'center' }}>
+                          <span
+                            className="material-symbols-outlined"
+                            style={{
+                              fontSize: '20px',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}
+                          >
                             content_paste
                           </span>
                         </button>
@@ -1493,7 +1854,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                       {sendInput && (
                         <button
                           type="button"
-                          onClick={(e) => {
+                          onClick={e => {
                             e.preventDefault();
                             e.stopPropagation();
                             setSendInput('');
@@ -1504,7 +1865,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                             setDetectedNostrPubkey(null);
                             setDetectedNostrProfile(null);
                           }}
-                          onMouseDown={(e) => {
+                          onMouseDown={e => {
                             e.preventDefault(); // Prevent input from losing focus
                           }}
                           disabled={sending || fetchingInvoice}
@@ -1512,29 +1873,40 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                           style={{
                             background: 'transparent',
                             border: 'none',
-                            cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                            cursor:
+                              sending || fetchingInvoice
+                                ? 'not-allowed'
+                                : 'pointer',
                             padding: '4px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: 'var(--text-secondary)',
-                            opacity: (sending || fetchingInvoice) ? 0.5 : 1,
+                            opacity: sending || fetchingInvoice ? 0.5 : 1,
                             transition: 'color 0.2s ease',
                             outline: 'none'
                           }}
-                          onMouseEnter={(e) => {
+                          onMouseEnter={e => {
                             if (!sending && !fetchingInvoice) {
                               e.currentTarget.style.color = COLORS.ERROR;
                             }
                           }}
-                          onMouseLeave={(e) => {
+                          onMouseLeave={e => {
                             if (!sending && !fetchingInvoice) {
-                              e.currentTarget.style.color = 'var(--text-secondary)';
+                              e.currentTarget.style.color =
+                                'var(--text-secondary)';
                             }
                           }}
                           title="Clear"
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: '20px', display: 'flex', alignItems: 'center' }}>
+                          <span
+                            className="material-symbols-outlined"
+                            style={{
+                              fontSize: '20px',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}
+                          >
                             close
                           </span>
                         </button>
@@ -1542,7 +1914,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                       {authState?.isLoggedIn && !sendInput && (
                         <button
                           type="button"
-                          onClick={(e) => {
+                          onClick={e => {
                             e.preventDefault();
                             e.stopPropagation();
                             const input = sendInputRef.current;
@@ -1550,12 +1922,15 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
                             // Insert "@" at cursor position or at the end
                             const currentValue = input.value;
-                            const caret = input.selectionStart || currentValue.length;
+                            const caret =
+                              input.selectionStart || currentValue.length;
                             const before = currentValue.slice(0, caret);
                             const after = currentValue.slice(caret);
 
                             // Only add "@" if there isn't already one at the cursor position
-                            const needsAt = !before.endsWith('@') && (caret === 0 || /\s/.test(before.slice(-1)));
+                            const needsAt =
+                              !before.endsWith('@') &&
+                              (caret === 0 || /\s/.test(before.slice(-1)));
                             if (needsAt) {
                               const newValue = `${before}@${after}`;
                               setSendInput(newValue);
@@ -1573,7 +1948,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                               detectMention();
                             }
                           }}
-                          onMouseDown={(e) => {
+                          onMouseDown={e => {
                             e.preventDefault(); // Prevent input from losing focus
                           }}
                           disabled={sending || fetchingInvoice}
@@ -1581,29 +1956,40 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                           style={{
                             background: 'transparent',
                             border: 'none',
-                            cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                            cursor:
+                              sending || fetchingInvoice
+                                ? 'not-allowed'
+                                : 'pointer',
                             padding: '4px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: 'var(--text-secondary)',
-                            opacity: (sending || fetchingInvoice) ? 0.5 : 1,
+                            opacity: sending || fetchingInvoice ? 0.5 : 1,
                             transition: 'color 0.2s ease',
                             outline: 'none'
                           }}
-                          onMouseEnter={(e) => {
+                          onMouseEnter={e => {
                             if (!sending && !fetchingInvoice) {
                               e.currentTarget.style.color = COLORS.PRIMARY;
                             }
                           }}
-                          onMouseLeave={(e) => {
+                          onMouseLeave={e => {
                             if (!sending && !fetchingInvoice) {
-                              e.currentTarget.style.color = 'var(--text-secondary)';
+                              e.currentTarget.style.color =
+                                'var(--text-secondary)';
                             }
                           }}
                           title="Select from follows"
                         >
-                          <span className="material-symbols-outlined" style={{ fontSize: '20px', display: 'flex', alignItems: 'center' }}>
+                          <span
+                            className="material-symbols-outlined"
+                            style={{
+                              fontSize: '20px',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}
+                          >
                             people
                           </span>
                         </button>
@@ -1631,108 +2017,147 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                     )}
                   </div>
                   {/* Lightning Address Domain Suggestions */}
-                  {showLnAddressSuggestions && filteredLnProviders.length > 0 && (
-                    <div
-                      className="suggestionDropdown"
-                      style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        right: 0,
-                        marginTop: '4px',
-                        background: 'var(--card-bg)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '6px',
-                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-                        zIndex: Z_INDEX.DROPDOWN,
-                        maxHeight: '240px',
-                        overflowY: 'auto',
-                        overflowX: 'hidden',
-                        width: '100%',
-                        boxSizing: 'border-box'
-                      }}
-                    >
-                      {filteredLnProviders.map((provider: string, idx: number) => {
-                        const input = sendInputRef.current;
-                        if (!input) return null;
-                        const value = input.value;
-                        const caret = input.selectionStart || 0;
-                        const upto = value.slice(0, caret);
-                        const at = upto.lastIndexOf('@');
-                        const username = at >= 0 ? upto.slice(0, at + 1) : '';
-                        const fullAddress = username + provider;
+                  {showLnAddressSuggestions &&
+                    filteredLnProviders.length > 0 && (
+                      <div
+                        className="suggestionDropdown"
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          marginTop: '4px',
+                          background: 'var(--card-bg)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+                          zIndex: Z_INDEX.DROPDOWN,
+                          maxHeight: '240px',
+                          overflowY: 'auto',
+                          overflowX: 'hidden',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      >
+                        {filteredLnProviders.map(
+                          (provider: string, idx: number) => {
+                            const input = sendInputRef.current;
+                            if (!input) return null;
+                            const value = input.value;
+                            const caret = input.selectionStart || 0;
+                            const upto = value.slice(0, caret);
+                            const at = upto.lastIndexOf('@');
+                            const username =
+                              at >= 0 ? upto.slice(0, at + 1) : '';
+                            const fullAddress = username + provider;
 
-                        return (
-                          <div
-                            key={provider}
-                            onMouseDown={e => {
-                              e.preventDefault();
-                              if (!input) return;
-                              const value = input.value;
-                              const caret = input.selectionStart || 0;
-                              const upto = value.slice(0, caret);
-                              const at = upto.lastIndexOf('@');
-                              if (at !== -1) {
-                                const before = value.slice(0, at + 1);
-                                const after = value.slice(caret);
-                                const insert = provider;
-                                setSendInput(before + insert + after);
-                                setShowLnAddressSuggestions(false);
-                                setLnAddressDomainQuery('');
-                                setActiveLnAddressIndex(0);
-                                setTimeout(() => {
-                                  input.focus();
-                                  const newPos = (before + insert).length;
-                                  input.setSelectionRange(newPos, newPos);
-                                }, 0);
-                              }
-                            }}
-                            onMouseEnter={() => {
-                              setActiveLnAddressIndex(idx);
-                              // Update preview (show full suggestion on hover)
-                              const input = sendInputRef.current;
-                              if (input) {
-                                const value = input.value;
-                                const caret = input.selectionStart || 0;
-                                const upto = value.slice(0, caret);
-                                const at = upto.lastIndexOf('@');
-                                if (at !== -1) {
-                                  const before = value.slice(0, at + 1);
-                                  const fullSuggestion = before + provider;
-                                  setPreviewSuffix(fullSuggestion);
-                                }
-                              }
-                            }}
-                            className={`suggestionItem ${idx === activeLnAddressIndex ? 'active' : ''}`}
-                            style={{
-                              padding: '10px 16px',
-                              cursor: 'pointer',
-                              background: idx === activeLnAddressIndex ? 'var(--bg-secondary)' : 'transparent',
-                              borderBottom: idx < filteredLnProviders.length - 1 ? '1px solid var(--border-color)' : 'none',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '12px',
-                              transition: 'background 0.15s ease',
-                              minWidth: 0,
-                              overflow: 'hidden'
-                            }}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>
-                              alternate_email
-                            </span>
-                            <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                              <div style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {fullAddress}
+                            return (
+                              <div
+                                key={provider}
+                                onMouseDown={e => {
+                                  e.preventDefault();
+                                  if (!input) return;
+                                  const value = input.value;
+                                  const caret = input.selectionStart || 0;
+                                  const upto = value.slice(0, caret);
+                                  const at = upto.lastIndexOf('@');
+                                  if (at !== -1) {
+                                    const before = value.slice(0, at + 1);
+                                    const after = value.slice(caret);
+                                    const insert = provider;
+                                    setSendInput(before + insert + after);
+                                    setShowLnAddressSuggestions(false);
+                                    setLnAddressDomainQuery('');
+                                    setActiveLnAddressIndex(0);
+                                    setTimeout(() => {
+                                      input.focus();
+                                      const newPos = (before + insert).length;
+                                      input.setSelectionRange(newPos, newPos);
+                                    }, 0);
+                                  }
+                                }}
+                                onMouseEnter={() => {
+                                  setActiveLnAddressIndex(idx);
+                                  // Update preview (show full suggestion on hover)
+                                  const input = sendInputRef.current;
+                                  if (input) {
+                                    const value = input.value;
+                                    const caret = input.selectionStart || 0;
+                                    const upto = value.slice(0, caret);
+                                    const at = upto.lastIndexOf('@');
+                                    if (at !== -1) {
+                                      const before = value.slice(0, at + 1);
+                                      const fullSuggestion = before + provider;
+                                      setPreviewSuffix(fullSuggestion);
+                                    }
+                                  }
+                                }}
+                                className={`suggestionItem ${idx === activeLnAddressIndex ? 'active' : ''}`}
+                                style={{
+                                  padding: '10px 16px',
+                                  cursor: 'pointer',
+                                  background:
+                                    idx === activeLnAddressIndex
+                                      ? 'var(--bg-secondary)'
+                                      : 'transparent',
+                                  borderBottom:
+                                    idx < filteredLnProviders.length - 1
+                                      ? '1px solid var(--border-color)'
+                                      : 'none',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '12px',
+                                  transition: 'background 0.15s ease',
+                                  minWidth: 0,
+                                  overflow: 'hidden'
+                                }}
+                              >
+                                <span
+                                  className="material-symbols-outlined"
+                                  style={{
+                                    fontSize: '18px',
+                                    color: 'var(--text-secondary)'
+                                  }}
+                                >
+                                  alternate_email
+                                </span>
+                                <div
+                                  style={{
+                                    flex: 1,
+                                    minWidth: 0,
+                                    overflow: 'hidden'
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      fontSize: '14px',
+                                      fontWeight: '500',
+                                      color: 'var(--text-primary)',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    {fullAddress}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: '12px',
+                                      color: 'var(--text-secondary)',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    {provider}
+                                  </div>
+                                </div>
                               </div>
-                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {provider}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                            );
+                          }
+                        )}
+                      </div>
+                    )}
 
                   {/* Nostr User Mention Suggestions */}
                   {showMentionSuggestions && (
@@ -1777,110 +2202,144 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                           >
                             progress_activity
                           </span>
-                          <span style={{ fontSize: '14px' }}>Loading follows...</span>
+                          <span style={{ fontSize: '14px' }}>
+                            Loading follows...
+                          </span>
                         </div>
                       ) : filteredMentionFollows.length > 0 ? (
                         filteredMentionFollows.map((f: any, idx: number) => (
-                        <div
-                          key={f.pubkey + idx}
-                          onMouseDown={e => {
-                            e.preventDefault();
-                            const input = sendInputRef.current;
-                            if (!input) return;
-                            const value = input.value;
-                            const caret = input.selectionStart || 0;
-                            const upto = value.slice(0, caret);
-                            const at = upto.lastIndexOf('@');
-                            if (at !== -1) {
-                              const before = value.slice(0, at);
-                              const after = value.slice(caret);
-                              // Insert npub for detection, not display name
-                              const insert = f.npub;
-                              setSendInput(before + insert + after);
-                              setShowMentionSuggestions(false);
-                              setMentionQuery('');
-                              setActiveMentionIndex(0);
-                              setPreviewSuffix(null);
-                              setTimeout(() => {
-                                input.focus();
-                                const newPos = (before + insert).length;
-                                input.setSelectionRange(newPos, newPos);
-                              }, 0);
-                            }
-                          }}
-                          onMouseEnter={() => {
-                            setActiveMentionIndex(idx);
-                            // Update preview (show full suggestion with display name on hover)
-                            const input = sendInputRef.current;
-                            if (input) {
+                          <div
+                            key={f.pubkey + idx}
+                            onMouseDown={e => {
+                              e.preventDefault();
+                              const input = sendInputRef.current;
+                              if (!input) return;
                               const value = input.value;
                               const caret = input.selectionStart || 0;
                               const upto = value.slice(0, caret);
                               const at = upto.lastIndexOf('@');
                               if (at !== -1) {
                                 const before = value.slice(0, at);
-                                const displayName = f.displayName || f.npub;
-                                const fullSuggestion = before + displayName;
-                                setPreviewSuffix(fullSuggestion);
+                                const after = value.slice(caret);
+                                // Insert npub for detection, not display name
+                                const insert = f.npub;
+                                setSendInput(before + insert + after);
+                                setShowMentionSuggestions(false);
+                                setMentionQuery('');
+                                setActiveMentionIndex(0);
+                                setPreviewSuffix(null);
+                                setTimeout(() => {
+                                  input.focus();
+                                  const newPos = (before + insert).length;
+                                  input.setSelectionRange(newPos, newPos);
+                                }, 0);
                               }
-                            }
-                          }}
-                          className={`suggestionItem ${idx === activeMentionIndex ? 'active' : ''}`}
-                          style={{
-                            padding: '10px 16px',
-                            cursor: 'pointer',
-                            background: idx === activeMentionIndex ? 'var(--bg-secondary)' : 'transparent',
-                            borderBottom: idx < filteredMentionFollows.length - 1 ? '1px solid var(--border-color)' : 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            transition: 'background 0.15s ease',
-                            minWidth: 0,
-                            overflow: 'hidden'
-                          }}
-                        >
-                          {(() => {
-                            const sanitized = sanitizeImageUrl(f.picture);
-                            return sanitized ? (
-                              <img
-                                src={sanitized}
-                                alt={f.displayName}
-                              className="suggestionAvatar"
-                              style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
-                                objectFit: 'cover'
-                              }}
-                            />
-                          ) : (
+                            }}
+                            onMouseEnter={() => {
+                              setActiveMentionIndex(idx);
+                              // Update preview (show full suggestion with display name on hover)
+                              const input = sendInputRef.current;
+                              if (input) {
+                                const value = input.value;
+                                const caret = input.selectionStart || 0;
+                                const upto = value.slice(0, caret);
+                                const at = upto.lastIndexOf('@');
+                                if (at !== -1) {
+                                  const before = value.slice(0, at);
+                                  const displayName = f.displayName || f.npub;
+                                  const fullSuggestion = before + displayName;
+                                  setPreviewSuffix(fullSuggestion);
+                                }
+                              }
+                            }}
+                            className={`suggestionItem ${idx === activeMentionIndex ? 'active' : ''}`}
+                            style={{
+                              padding: '10px 16px',
+                              cursor: 'pointer',
+                              background:
+                                idx === activeMentionIndex
+                                  ? 'var(--bg-secondary)'
+                                  : 'transparent',
+                              borderBottom:
+                                idx < filteredMentionFollows.length - 1
+                                  ? '1px solid var(--border-color)'
+                                  : 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              transition: 'background 0.15s ease',
+                              minWidth: 0,
+                              overflow: 'hidden'
+                            }}
+                          >
+                            {(() => {
+                              const sanitized = sanitizeImageUrl(f.picture);
+                              return sanitized ? (
+                                <img
+                                  src={sanitized}
+                                  alt={f.displayName}
+                                  className="suggestionAvatar"
+                                  style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover'
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  className="suggestionAvatar"
+                                  style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    background: 'var(--bg-primary)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'var(--text-secondary)',
+                                    fontSize: '14px'
+                                  }}
+                                >
+                                  {f.displayName.charAt(0).toUpperCase()}
+                                </div>
+                              );
+                            })()}
                             <div
-                              className="suggestionAvatar"
+                              className="suggestionInfo"
                               style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
-                                background: 'var(--bg-primary)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: 'var(--text-secondary)',
-                                fontSize: '14px'
+                                flex: 1,
+                                minWidth: 0,
+                                overflow: 'hidden'
                               }}
                             >
-                              {f.displayName.charAt(0).toUpperCase()}
-                            </div>
-                          );
-                        })()}
-                          <div className="suggestionInfo" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                            <div className="suggestionName" style={{ fontSize: '14px', fontWeight: '500', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {f.displayName}
-                            </div>
-                            <div className="suggestionNpub" style={{ fontSize: '12px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {f.npub.substring(0, 20)}…
+                              <div
+                                className="suggestionName"
+                                style={{
+                                  fontSize: '14px',
+                                  fontWeight: '500',
+                                  color: 'var(--text-primary)',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {f.displayName}
+                              </div>
+                              <div
+                                className="suggestionNpub"
+                                style={{
+                                  fontSize: '12px',
+                                  color: 'var(--text-secondary)',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {f.npub.substring(0, 20)}…
+                              </div>
                             </div>
                           </div>
-                        </div>
                         ))
                       ) : (
                         <div
@@ -1916,46 +2375,88 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   gap: '8px'
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: COLORS.ERROR, flexShrink: 0 }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{
+                    fontSize: '18px',
+                    color: COLORS.ERROR,
+                    flexShrink: 0
+                  }}
+                >
                   error_outline
                 </span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: COLORS.ERROR, marginBottom: '4px' }}>
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: COLORS.ERROR,
+                      marginBottom: '4px'
+                    }}
+                  >
                     Invalid Invoice
                   </div>
-                  <div style={{ fontSize: '12px', color: COLORS.ERROR, lineHeight: '1.5' }}>
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: COLORS.ERROR,
+                      lineHeight: '1.5'
+                    }}
+                  >
                     {invoiceError}
                   </div>
                 </div>
               </div>
             )}
 
-            {lnurlError && (detectedType === 'lightning-address' || detectedType === 'lnurl') && (
-              <div
-                style={{
-                  marginTop: '12px',
-                  padding: '12px',
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '8px'
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: COLORS.ERROR, flexShrink: 0 }}>
-                  error_outline
-                </span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: COLORS.ERROR, marginBottom: '4px' }}>
-                    Error
-                  </div>
-                  <div style={{ fontSize: '12px', color: COLORS.ERROR, lineHeight: '1.5' }}>
-                    {lnurlError}
+            {lnurlError &&
+              (detectedType === 'lightning-address' ||
+                detectedType === 'lnurl') && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    padding: '12px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '8px'
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined"
+                    style={{
+                      fontSize: '18px',
+                      color: COLORS.ERROR,
+                      flexShrink: 0
+                    }}
+                  >
+                    error_outline
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: COLORS.ERROR,
+                        marginBottom: '4px'
+                      }}
+                    >
+                      Error
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '12px',
+                        color: COLORS.ERROR,
+                        lineHeight: '1.5'
+                      }}
+                    >
+                      {lnurlError}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Instructions - Show when input is empty or no valid format detected yet */}
             {!sendInput.trim() && !detectedType && (
@@ -1971,20 +2472,44 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   gap: '8px'
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-secondary)', flexShrink: 0 }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{
+                    fontSize: '18px',
+                    color: 'var(--text-secondary)',
+                    flexShrink: 0
+                  }}
+                >
                   info
                 </span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: 'var(--text-primary)',
+                      marginBottom: '4px'
+                    }}
+                  >
                     Accepted Formats
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
-                    • BOLT11 invoice (lnbc, lntb, or lnbcrt)<br />
-                    • Lightning Address (e.g., user@domain.com)<br />
-                    • LNURL (lnurl1)<br />
-                    • Nostr user (npub or nprofile)<br />
-                    • Nostr post (note1 or nevent1)<br />
-                    • Type @ to mention a follow
+                  <div
+                    style={{
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)',
+                      lineHeight: '1.6'
+                    }}
+                  >
+                    • BOLT11 invoice (lnbc, lntb, or lnbcrt)
+                    <br />
+                    • Lightning Address (e.g., user@domain.com)
+                    <br />
+                    • LNURL (lnurl1)
+                    <br />
+                    • Nostr user (npub or nprofile)
+                    <br />
+                    • Nostr post (note1 or nevent1)
+                    <br />• Type @ to mention a follow
                   </div>
                 </div>
               </div>
@@ -2002,12 +2527,23 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 }}
               >
                 {parsedInvoice.amount && (
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    Amount: <strong style={{ color: 'var(--text-primary)' }}>{parsedInvoice.amount.toLocaleString()} sats</strong>
+                  <div
+                    style={{ fontSize: '13px', color: 'var(--text-secondary)' }}
+                  >
+                    Amount:{' '}
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      {parsedInvoice.amount.toLocaleString()} sats
+                    </strong>
                   </div>
                 )}
                 {parsedInvoice.description && (
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: parsedInvoice.amount ? '4px' : '0' }}>
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      color: 'var(--text-secondary)',
+                      marginTop: parsedInvoice.amount ? '4px' : '0'
+                    }}
+                  >
                     Description: {parsedInvoice.description}
                   </div>
                 )}
@@ -2028,10 +2564,15 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   gap: '8px'
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-secondary)' }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: '18px', color: 'var(--text-secondary)' }}
+                >
                   hourglass_empty
                 </span>
-                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                <span
+                  style={{ fontSize: '13px', color: 'var(--text-secondary)' }}
+                >
                   Loading LNURL info...
                 </span>
               </div>
@@ -2048,13 +2589,31 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 }}
               >
                 {lnurlInfo.minSendable && (
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    Min: <strong style={{ color: 'var(--text-primary)' }}>{Math.ceil(lnurlInfo.minSendable / 1000).toLocaleString()} sats</strong>
+                  <div
+                    style={{ fontSize: '13px', color: 'var(--text-secondary)' }}
+                  >
+                    Min:{' '}
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      {Math.ceil(lnurlInfo.minSendable / 1000).toLocaleString()}{' '}
+                      sats
+                    </strong>
                   </div>
                 )}
                 {lnurlInfo.maxSendable && (
-                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: lnurlInfo.minSendable ? '4px' : '0' }}>
-                    Max: <strong style={{ color: 'var(--text-primary)' }}>{Math.floor(lnurlInfo.maxSendable / 1000).toLocaleString()} sats</strong>
+                  <div
+                    style={{
+                      fontSize: '13px',
+                      color: 'var(--text-secondary)',
+                      marginTop: lnurlInfo.minSendable ? '4px' : '0'
+                    }}
+                  >
+                    Max:{' '}
+                    <strong style={{ color: 'var(--text-primary)' }}>
+                      {Math.floor(
+                        lnurlInfo.maxSendable / 1000
+                      ).toLocaleString()}{' '}
+                      sats
+                    </strong>
                   </div>
                 )}
                 {(() => {
@@ -2068,18 +2627,34 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
 
                     // Find the first text/plain entry
                     const textEntry = metadata.find(
-                      (item: any) => Array.isArray(item) && item[0] === 'text/plain' && item[1]
+                      (item: any) =>
+                        Array.isArray(item) &&
+                        item[0] === 'text/plain' &&
+                        item[1]
                     );
 
                     if (textEntry && textEntry[1]) {
                       return (
-                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: (lnurlInfo.minSendable || lnurlInfo.maxSendable) ? '4px' : '0' }}>
+                        <div
+                          style={{
+                            fontSize: '13px',
+                            color: 'var(--text-secondary)',
+                            marginTop:
+                              lnurlInfo.minSendable || lnurlInfo.maxSendable
+                                ? '4px'
+                                : '0'
+                          }}
+                        >
                           Description: {textEntry[1]}
                         </div>
                       );
                     }
                   } catch (error) {
-                    console.error('Failed to parse LNURL metadata:', error, lnurlInfo.metadata);
+                    console.error(
+                      'Failed to parse LNURL metadata:',
+                      error,
+                      lnurlInfo.metadata
+                    );
                   }
 
                   return null;
@@ -2096,13 +2671,19 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   border: '1px solid var(--border-color)'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px' }}
+                >
                   {(() => {
-                    const profileContent = typeof detectedNostrProfile?.content === 'string'
-                      ? JSON.parse(detectedNostrProfile.content)
-                      : detectedNostrProfile?.content || detectedNostrProfile;
+                    const profileContent =
+                      typeof detectedNostrProfile?.content === 'string'
+                        ? JSON.parse(detectedNostrProfile.content)
+                        : detectedNostrProfile?.content || detectedNostrProfile;
                     const picture = profileContent?.picture;
-                    const displayName = profileContent?.display_name || profileContent?.name || 'Unknown';
+                    const displayName =
+                      profileContent?.display_name ||
+                      profileContent?.name ||
+                      'Unknown';
                     return (
                       <>
                         {(() => {
@@ -2119,34 +2700,52 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                               }}
                             />
                           ) : (
+                            <div
+                              style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '50%',
+                                background: 'var(--bg-primary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'var(--text-secondary)',
+                                fontSize: '16px'
+                              }}
+                            >
+                              {displayName.charAt(0).toUpperCase()}
+                            </div>
+                          );
+                        })()}
+                        <div style={{ flex: 1 }}>
                           <div
                             style={{
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '50%',
-                              background: 'var(--bg-primary)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: 'var(--text-secondary)',
-                              fontSize: '16px'
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              color: 'var(--text-primary)'
                             }}
                           >
-                            {displayName.charAt(0).toUpperCase()}
-                          </div>
-                        );
-                      })()}
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
                             {displayName}
                           </div>
-                          <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          <div
+                            style={{
+                              fontSize: '12px',
+                              color: 'var(--text-secondary)'
+                            }}
+                          >
                             {(() => {
                               try {
-                                const profileContent = typeof detectedNostrProfile?.content === 'string'
-                                  ? JSON.parse(detectedNostrProfile.content)
-                                  : detectedNostrProfile?.content || detectedNostrProfile;
-                                return profileContent?.lud16 || profileContent?.lud06 || 'No Lightning Address';
+                                const profileContent =
+                                  typeof detectedNostrProfile?.content ===
+                                  'string'
+                                    ? JSON.parse(detectedNostrProfile.content)
+                                    : detectedNostrProfile?.content ||
+                                      detectedNostrProfile;
+                                return (
+                                  profileContent?.lud16 ||
+                                  profileContent?.lud06 ||
+                                  'No Lightning Address'
+                                );
                               } catch {
                                 return 'No Lightning Address';
                               }
@@ -2172,21 +2771,45 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 }}
               >
                 {loadingPost ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-secondary)' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px', animation: 'spin 1s linear infinite' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        fontSize: '18px',
+                        animation: 'spin 1s linear infinite'
+                      }}
+                    >
                       refresh
                     </span>
                     <span style={{ fontSize: '14px' }}>Loading post...</span>
                   </div>
                 ) : detectedPostEvent && detectedPostAuthor ? (
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        marginBottom: '8px'
+                      }}
+                    >
                       {(() => {
-                        const authorContent = typeof detectedPostAuthor?.content === 'string'
-                          ? JSON.parse(detectedPostAuthor.content)
-                          : detectedPostAuthor?.content || detectedPostAuthor;
+                        const authorContent =
+                          typeof detectedPostAuthor?.content === 'string'
+                            ? JSON.parse(detectedPostAuthor.content)
+                            : detectedPostAuthor?.content || detectedPostAuthor;
                         const picture = authorContent?.picture;
-                        const displayName = authorContent?.display_name || authorContent?.name || 'Unknown';
+                        const displayName =
+                          authorContent?.display_name ||
+                          authorContent?.name ||
+                          'Unknown';
                         return (
                           <>
                             {(() => {
@@ -2203,31 +2826,37 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                                   }}
                                 />
                               ) : (
+                                <div
+                                  style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    background: 'var(--bg-primary)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    color: 'var(--text-secondary)',
+                                    fontSize: '14px'
+                                  }}
+                                >
+                                  {displayName.charAt(0).toUpperCase()}
+                                </div>
+                              );
+                            })()}
+                            <div style={{ flex: 1 }}>
                               <div
                                 style={{
-                                  width: '32px',
-                                  height: '32px',
-                                  borderRadius: '50%',
-                                  background: 'var(--bg-primary)',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  color: 'var(--text-secondary)',
-                                  fontSize: '14px'
+                                  fontSize: '13px',
+                                  fontWeight: '600',
+                                  color: 'var(--text-primary)'
                                 }}
                               >
-                                {displayName.charAt(0).toUpperCase()}
+                                {displayName}
                               </div>
-                            );
-                          })()}
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                              {displayName}
                             </div>
-                          </div>
-                        </>
-                      );
-                    })()}
+                          </>
+                        );
+                      })()}
                     </div>
                     <div
                       style={{
@@ -2275,13 +2904,20 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                     padding: '8px 12px',
                     borderRadius: '4px',
                     border: 'none',
-                    background: paymentType === 'lightning' ? COLORS.PRIMARY : 'transparent',
-                    color: paymentType === 'lightning' ? COLORS.TEXT_WHITE : 'var(--text-primary)',
-                    cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                    background:
+                      paymentType === 'lightning'
+                        ? COLORS.PRIMARY
+                        : 'transparent',
+                    color:
+                      paymentType === 'lightning'
+                        ? COLORS.TEXT_WHITE
+                        : 'var(--text-primary)',
+                    cursor:
+                      sending || fetchingInvoice ? 'not-allowed' : 'pointer',
                     fontSize: '13px',
                     fontWeight: '500',
                     transition: 'all 0.2s ease',
-                    opacity: (sending || fetchingInvoice) ? 0.5 : 1,
+                    opacity: sending || fetchingInvoice ? 0.5 : 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -2299,13 +2935,18 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                     padding: '8px 12px',
                     borderRadius: '4px',
                     border: 'none',
-                    background: paymentType === 'zap' ? COLORS.PRIMARY : 'transparent',
-                    color: paymentType === 'zap' ? COLORS.TEXT_WHITE : 'var(--text-primary)',
-                    cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                    background:
+                      paymentType === 'zap' ? COLORS.PRIMARY : 'transparent',
+                    color:
+                      paymentType === 'zap'
+                        ? COLORS.TEXT_WHITE
+                        : 'var(--text-primary)',
+                    cursor:
+                      sending || fetchingInvoice ? 'not-allowed' : 'pointer',
                     fontSize: '13px',
                     fontWeight: '500',
                     transition: 'all 0.2s ease',
-                    opacity: (sending || fetchingInvoice) ? 0.5 : 1,
+                    opacity: sending || fetchingInvoice ? 0.5 : 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -2316,20 +2957,34 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 </button>
               </div>
               {/* Anonymous toggle - integrated design when zap is selected */}
-              {paymentType === 'zap' && renderAnonymousToggle(sending || fetchingInvoice)}
+              {paymentType === 'zap' &&
+                renderAnonymousToggle(sending || fetchingInvoice)}
             </div>
           )}
           {/* Anonymous toggle for posts - posts can only be zapped */}
           {detectedType === 'nostr-post' && (
             <div style={{ marginBottom: '12px' }}>
-              {renderAnonymousToggle(sending || fetchingInvoice || loadingPost, '0')}
+              {renderAnonymousToggle(
+                sending || fetchingInvoice || loadingPost,
+                '0'
+              )}
             </div>
           )}
 
           {/* Amount Field (for Lightning Address, LNURL, Nostr User, and Nostr Post) */}
-          {(detectedType === 'lightning-address' || detectedType === 'lnurl' || detectedType === 'nostr-user' || detectedType === 'nostr-post') && (
+          {(detectedType === 'lightning-address' ||
+            detectedType === 'lnurl' ||
+            detectedType === 'nostr-user' ||
+            detectedType === 'nostr-post') && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '8px'
+                }}
+              >
                 <label
                   style={{
                     display: 'block',
@@ -2341,30 +2996,44 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   Amount (sats) <span style={{ color: COLORS.ERROR }}>*</span>
                 </label>
                 {nwcClient && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: '12px',
-                    color: 'var(--text-secondary)'
-                  }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '12px',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
                     {balanceLoading ? (
                       <>
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px', animation: 'spin 1s linear infinite' }}>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{
+                            fontSize: '16px',
+                            animation: 'spin 1s linear infinite'
+                          }}
+                        >
                           hourglass_empty
                         </span>
                         <span>Loading...</span>
                       </>
                     ) : balance !== null && balance !== undefined ? (
                       <>
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: '16px' }}
+                        >
                           account_balance_wallet
                         </span>
                         <span>{balance.toLocaleString()} sats</span>
                       </>
                     ) : (
                       <>
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: '16px' }}
+                        >
                           account_balance_wallet
                         </span>
                         <span>Balance unavailable</span>
@@ -2387,7 +3056,10 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 style={{
                   backgroundColor: 'var(--input-bg)',
                   color: 'var(--text-primary)',
-                  border: lnurlError && !sendInput.trim() ? `2px solid ${COLORS.ERROR}` : '2px solid var(--border-color)',
+                  border:
+                    lnurlError && !sendInput.trim()
+                      ? `2px solid ${COLORS.ERROR}`
+                      : '2px solid var(--border-color)',
                   borderRadius: '6px',
                   padding: '12px 16px',
                   width: '100%',
@@ -2396,60 +3068,73 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 }}
               />
               {/* Comment Field */}
-              {sendInput.trim() && detectedType && (
-                (detectedType === 'lightning-address' && !lnurlError) ||
-                (detectedType === 'lnurl' && lnurlInfo && !lnurlError) ||
-                (detectedType === 'nostr-user' && detectedNostrProfile) ||
-                (detectedType === 'nostr-post' && detectedPostEvent && !loadingPost)
-              ) && (
-                <div style={{ marginTop: '16px' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      marginBottom: '8px',
-                      color: 'var(--text-primary)'
-                    }}
-                  >
-                    Comment (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={sendDescription}
-                    onChange={e => {
-                      // Limit length for LNURL if commentAllowed is set
-                      if (detectedType === 'lnurl' && lnurlInfo?.commentAllowed) {
-                        if (e.target.value.length <= lnurlInfo.commentAllowed) {
+              {sendInput.trim() &&
+                detectedType &&
+                ((detectedType === 'lightning-address' && !lnurlError) ||
+                  (detectedType === 'lnurl' && lnurlInfo && !lnurlError) ||
+                  (detectedType === 'nostr-user' && detectedNostrProfile) ||
+                  (detectedType === 'nostr-post' &&
+                    detectedPostEvent &&
+                    !loadingPost)) && (
+                  <div style={{ marginTop: '16px' }}>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '14px',
+                        marginBottom: '8px',
+                        color: 'var(--text-primary)'
+                      }}
+                    >
+                      Comment (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={sendDescription}
+                      onChange={e => {
+                        // Limit length for LNURL if commentAllowed is set
+                        if (
+                          detectedType === 'lnurl' &&
+                          lnurlInfo?.commentAllowed
+                        ) {
+                          if (
+                            e.target.value.length <= lnurlInfo.commentAllowed
+                          ) {
+                            setSendDescription(e.target.value);
+                          }
+                        } else {
                           setSendDescription(e.target.value);
                         }
-                      } else {
-                        setSendDescription(e.target.value);
+                      }}
+                      placeholder="Add a comment"
+                      disabled={
+                        sending ||
+                        fetchingInvoice ||
+                        (detectedType === 'nostr-post' && loadingPost)
                       }
-                    }}
-                    placeholder="Add a comment"
-                    disabled={sending || fetchingInvoice || (detectedType === 'nostr-post' && loadingPost)}
-                    maxLength={detectedType === 'lnurl' && lnurlInfo?.commentAllowed ? lnurlInfo.commentAllowed : undefined}
-                    style={{
-                      backgroundColor: 'var(--input-bg)',
-                      color: 'var(--text-primary)',
-                      border: '2px solid var(--border-color)',
-                      borderRadius: '6px',
-                      padding: '12px 16px',
-                      width: '100%',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-              )}
+                      maxLength={
+                        detectedType === 'lnurl' && lnurlInfo?.commentAllowed
+                          ? lnurlInfo.commentAllowed
+                          : undefined
+                      }
+                      style={{
+                        backgroundColor: 'var(--input-bg)',
+                        color: 'var(--text-primary)',
+                        border: '2px solid var(--border-color)',
+                        borderRadius: '6px',
+                        padding: '12px 16px',
+                        width: '100%',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                )}
             </div>
           )}
-
         </div>
 
         {/* Fixed Bottom Section - Description and Buttons */}
         <div style={{ flexShrink: 0, marginTop: 'auto' }}>
-
           <div
             style={{
               display: 'flex',
@@ -2464,7 +3149,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
               style={{
                 background: 'transparent',
                 border: 'none',
-                cursor: (sending || fetchingInvoice) ? 'not-allowed' : 'pointer',
+                cursor: sending || fetchingInvoice ? 'not-allowed' : 'pointer',
                 padding: '8px 16px'
               }}
             >
@@ -2477,14 +3162,23 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 sending ||
                 fetchingInvoice ||
                 !detectedType ||
-                (detectedType === 'invoice' && (!!invoiceError || !parsedInvoice)) ||
-                ((detectedType === 'lightning-address' || detectedType === 'lnurl' || detectedType === 'nostr-user' || detectedType === 'nostr-post') && !sendAmount.trim()) ||
-                (detectedType === 'nostr-post' && (!detectedPostEvent || loadingPost))
+                (detectedType === 'invoice' &&
+                  (!!invoiceError || !parsedInvoice)) ||
+                ((detectedType === 'lightning-address' ||
+                  detectedType === 'lnurl' ||
+                  detectedType === 'nostr-user' ||
+                  detectedType === 'nostr-post') &&
+                  !sendAmount.trim()) ||
+                (detectedType === 'nostr-post' &&
+                  (!detectedPostEvent || loadingPost))
               }
             >
               {(() => {
                 if (sending) {
-                  if ((detectedType === 'nostr-user' && paymentType === 'zap') || detectedType === 'nostr-post') {
+                  if (
+                    (detectedType === 'nostr-user' && paymentType === 'zap') ||
+                    detectedType === 'nostr-post'
+                  ) {
                     return anonymousZap ? 'Paying anonymously...' : 'Paying...';
                   }
                   return 'Paying...';
@@ -2501,10 +3195,16 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                 if (detectedType === 'nostr-user' && paymentType === 'zap') {
                   return anonymousZap ? 'Public Pay Anonymously' : 'Public Pay';
                 }
-                if (detectedType === 'nostr-user' && paymentType === 'lightning') {
+                if (
+                  detectedType === 'nostr-user' &&
+                  paymentType === 'lightning'
+                ) {
                   return 'Pay';
                 }
-                if (detectedType === 'lightning-address' || detectedType === 'lnurl') {
+                if (
+                  detectedType === 'lightning-address' ||
+                  detectedType === 'lnurl'
+                ) {
                   return 'Pay';
                 }
                 return 'Pay';
@@ -2516,6 +3216,3 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
     </div>
   );
 };
-
-
-

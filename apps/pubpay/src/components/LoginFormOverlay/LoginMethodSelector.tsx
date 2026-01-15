@@ -77,4 +77,3 @@ export const LoginMethodSelector: React.FC<LoginMethodSelectorProps> = ({
     </div>
   );
 };
-

@@ -24,13 +24,13 @@ export interface LoadPostDataOptions {
    * @default true
    */
   loadZaps?: boolean;
-  
+
   /**
    * Whether to load zap payer profiles
    * @default true
    */
   loadZapPayerProfiles?: boolean;
-  
+
   /**
    * Generic user icon path for fallback
    * @default '/images/gradient_color.gif'
@@ -48,14 +48,11 @@ export async function loadPostData(
   events: Kind1Event[],
   options: LoadPostDataOptions = {}
 ): Promise<PostData> {
-  const {
-    loadZaps = true,
-    loadZapPayerProfiles = true
-  } = options;
-  
+  const { loadZaps = true, loadZapPayerProfiles = true } = options;
+
   // Extract author pubkeys
   const authorPubkeys = Array.from(new Set(events.map(event => event.pubkey)));
-  
+
   // Load author profiles and zaps in parallel
   const [profileMap, zapEvents] = await Promise.all([
     ensureProfiles(queryClient, nostrClient, authorPubkeys),
@@ -67,12 +64,13 @@ export async function loadPostData(
         )
       : Promise.resolve([] as Kind9735Event[])
   ]);
-  
+
   // Extract zap payer pubkeys
-  const zapPayerPubkeys = loadZapPayerProfiles && loadZaps
-    ? extractZapPayerPubkeys(events, zapEvents)
-    : new Set<string>();
-  
+  const zapPayerPubkeys =
+    loadZapPayerProfiles && loadZaps
+      ? extractZapPayerPubkeys(events, zapEvents)
+      : new Set<string>();
+
   // Load zap payer profiles
   const zapPayerProfileMap =
     zapPayerPubkeys.size > 0
@@ -82,13 +80,13 @@ export async function loadPostData(
           Array.from(zapPayerPubkeys)
         )
       : new Map<string, Kind0Event>();
-  
+
   // Combine all profiles into single map
   const allProfiles = new Map(profileMap);
   zapPayerProfileMap.forEach((profile, pubkey) => {
     allProfiles.set(pubkey, profile);
   });
-  
+
   return {
     events,
     profiles: allProfiles,
@@ -96,4 +94,3 @@ export async function loadPostData(
     zapPayerProfiles: zapPayerProfileMap
   };
 }
-

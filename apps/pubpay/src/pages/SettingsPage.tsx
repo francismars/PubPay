@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { DEFAULT_READ_RELAYS, DEFAULT_WRITE_RELAYS, AuthService } from '@pubpay/shared-services';
+import {
+  DEFAULT_READ_RELAYS,
+  DEFAULT_WRITE_RELAYS,
+  AuthService
+} from '@pubpay/shared-services';
 import { useUIStore } from '@pubpay/shared-services';
 import { GenericQR } from '@pubpay/shared-ui';
-import { TOAST_DURATION, STORAGE_KEYS, PROTOCOLS, CONTENT_TYPES, COLORS } from '../constants';
-import { useShowPasswordPrompt, useModalActions } from '../stores/useModalStore';
+import {
+  TOAST_DURATION,
+  STORAGE_KEYS,
+  PROTOCOLS,
+  CONTENT_TYPES,
+  COLORS
+} from '../constants';
+import {
+  useShowPasswordPrompt,
+  useModalActions
+} from '../stores/useModalStore';
 
 interface RelayConfig {
   url: string;
@@ -16,7 +29,9 @@ const SettingsPage: React.FC = () => {
   const [relays, setRelays] = useState<RelayConfig[]>(() => {
     // Initialize with default relays
     // Use DEFAULT_READ_RELAYS for read, DEFAULT_WRITE_RELAYS for write
-    const allDefaultRelays = [...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])];
+    const allDefaultRelays = [
+      ...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])
+    ];
     return allDefaultRelays.map(url => ({
       url,
       read: DEFAULT_READ_RELAYS.includes(url),
@@ -55,7 +70,8 @@ const SettingsPage: React.FC = () => {
 
   useEffect(() => {
     // Load dark mode preference from localStorage
-    const savedDarkMode = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
+    const savedDarkMode =
+      localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
     setDarkMode(savedDarkMode);
 
     // Apply dark mode class on mount
@@ -72,9 +88,16 @@ const SettingsPage: React.FC = () => {
         if (Array.isArray(parsed)) {
           if (parsed.length > 0 && typeof parsed[0] === 'string') {
             // Old format: migrate to new format
-            const migrated = parsed.map((url: string) => ({ url, read: true, write: true }));
+            const migrated = parsed.map((url: string) => ({
+              url,
+              read: true,
+              write: true
+            }));
             setRelays(migrated);
-            localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(migrated));
+            localStorage.setItem(
+              STORAGE_KEYS.CUSTOM_RELAYS,
+              JSON.stringify(migrated)
+            );
             // Dispatch event to update NostrClient
             try {
               window.dispatchEvent(
@@ -91,14 +114,28 @@ const SettingsPage: React.FC = () => {
             const relayConfigs = parsed as RelayConfig[];
             const hasReadRelay = relayConfigs.some(r => r.read);
             const hasWriteRelay = relayConfigs.some(r => r.write);
-            
+
             // If validation fails, reset to default (all enabled)
             if (!hasReadRelay || !hasWriteRelay) {
-              console.warn('Invalid relay configuration detected - resetting to defaults');
-              const fixed = relayConfigs.map(r => ({ url: r.url, read: true, write: true }));
+              console.warn(
+                'Invalid relay configuration detected - resetting to defaults'
+              );
+              const fixed = relayConfigs.map(r => ({
+                url: r.url,
+                read: true,
+                write: true
+              }));
               setRelays(fixed);
-              localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(fixed));
-              useUIStore.getState().openToast('Relay configuration was invalid and has been reset. Please reconfigure your relays.', 'error');
+              localStorage.setItem(
+                STORAGE_KEYS.CUSTOM_RELAYS,
+                JSON.stringify(fixed)
+              );
+              useUIStore
+                .getState()
+                .openToast(
+                  'Relay configuration was invalid and has been reset. Please reconfigure your relays.',
+                  'error'
+                );
               // Dispatch event to update NostrClient
               try {
                 window.dispatchEvent(
@@ -125,7 +162,12 @@ const SettingsPage: React.FC = () => {
         // useHomeFunctionality already initialized, just load it
         try {
           const parsed = JSON.parse(savedRelaysCheck);
-          if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object' && 'url' in parsed[0]) {
+          if (
+            Array.isArray(parsed) &&
+            parsed.length > 0 &&
+            typeof parsed[0] === 'object' &&
+            'url' in parsed[0]
+          ) {
             setRelays(parsed as RelayConfig[]);
           }
         } catch (e) {
@@ -133,14 +175,19 @@ const SettingsPage: React.FC = () => {
         }
       } else {
         // Initialize from constants and save to localStorage
-        const allDefaultRelays = [...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])];
+        const allDefaultRelays = [
+          ...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])
+        ];
         const initialRelays = allDefaultRelays.map(url => ({
           url,
           read: DEFAULT_READ_RELAYS.includes(url),
           write: DEFAULT_WRITE_RELAYS.includes(url)
         }));
         setRelays(initialRelays);
-        localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(initialRelays));
+        localStorage.setItem(
+          STORAGE_KEYS.CUSTOM_RELAYS,
+          JSON.stringify(initialRelays)
+        );
         // Dispatch event to update NostrClient with initial config
         try {
           window.dispatchEvent(
@@ -151,7 +198,7 @@ const SettingsPage: React.FC = () => {
               }
             })
           );
-    } catch {}
+        } catch {}
       }
     }
 
@@ -159,7 +206,7 @@ const SettingsPage: React.FC = () => {
     const loadNsec = async () => {
       try {
         const { encryptedPrivateKey, method } = AuthService.getStoredAuthData();
-        
+
         // Only show nsec if user logged in with nsec method
         if (method !== 'nsec') {
           return;
@@ -172,7 +219,7 @@ const SettingsPage: React.FC = () => {
             setNsec(null);
             return;
           }
-          
+
           // Decrypt using device key (automatic)
           try {
             const decryptedNsec = await AuthService.decryptStoredPrivateKey();
@@ -272,9 +319,15 @@ const SettingsPage: React.FC = () => {
       newRelay.startsWith(PROTOCOLS.WSS) &&
       !relays.some(r => r.url === newRelay)
     ) {
-      const updatedRelays = [...relays, { url: newRelay, read: true, write: true }];
+      const updatedRelays = [
+        ...relays,
+        { url: newRelay, read: true, write: true }
+      ];
       setRelays(updatedRelays);
-      localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(updatedRelays));
+      localStorage.setItem(
+        STORAGE_KEYS.CUSTOM_RELAYS,
+        JSON.stringify(updatedRelays)
+      );
       try {
         window.dispatchEvent(
           new CustomEvent('relaysUpdated', {
@@ -289,46 +342,66 @@ const SettingsPage: React.FC = () => {
   const handleRemoveRelay = (relayToRemove: string) => {
     const updatedRelays = relays.filter(relay => relay.url !== relayToRemove);
     setRelays(updatedRelays);
-    localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(updatedRelays));
+    localStorage.setItem(
+      STORAGE_KEYS.CUSTOM_RELAYS,
+      JSON.stringify(updatedRelays)
+    );
     try {
       window.dispatchEvent(
-        new CustomEvent('relaysUpdated', { 
-          detail: { relays: updatedRelays.map(r => r.url) } 
+        new CustomEvent('relaysUpdated', {
+          detail: { relays: updatedRelays.map(r => r.url) }
         })
       );
     } catch {}
   };
 
-  const handleRelayTypeChange = (relayUrl: string, type: 'read' | 'write', checked: boolean) => {
-    const updatedRelays = relays.map(relay => 
+  const handleRelayTypeChange = (
+    relayUrl: string,
+    type: 'read' | 'write',
+    checked: boolean
+  ) => {
+    const updatedRelays = relays.map(relay =>
       relay.url === relayUrl ? { ...relay, [type]: checked } : relay
     );
-    
+
     // Validation: Ensure at least one relay has read enabled, and at least one has write enabled
     const hasReadRelay = updatedRelays.some(r => r.read);
     const hasWriteRelay = updatedRelays.some(r => r.write);
-    
+
     if (!checked) {
       // If unchecking, check if this would leave us with no read/write relays
       if (type === 'read' && !hasReadRelay) {
-        useUIStore.getState().openToast('At least one relay must be enabled for reading. Cannot disable all read relays.', 'error');
+        useUIStore
+          .getState()
+          .openToast(
+            'At least one relay must be enabled for reading. Cannot disable all read relays.',
+            'error'
+          );
         return;
       }
       if (type === 'write' && !hasWriteRelay) {
-        useUIStore.getState().openToast('At least one relay must be enabled for writing. Cannot disable all write relays.', 'error');
+        useUIStore
+          .getState()
+          .openToast(
+            'At least one relay must be enabled for writing. Cannot disable all write relays.',
+            'error'
+          );
         return;
       }
     }
-    
+
     setRelays(updatedRelays);
-    localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(updatedRelays));
+    localStorage.setItem(
+      STORAGE_KEYS.CUSTOM_RELAYS,
+      JSON.stringify(updatedRelays)
+    );
     try {
       window.dispatchEvent(
-        new CustomEvent('relaysUpdated', { 
-          detail: { 
+        new CustomEvent('relaysUpdated', {
+          detail: {
             relays: updatedRelays.map(r => r.url),
             relayConfig: updatedRelays
-          } 
+          }
         })
       );
     } catch {}
@@ -377,7 +450,9 @@ const SettingsPage: React.FC = () => {
     }
 
     try {
-      const decryptedNsec = await AuthService.decryptStoredPrivateKey(passwordPromptPassword.trim());
+      const decryptedNsec = await AuthService.decryptStoredPrivateKey(
+        passwordPromptPassword.trim()
+      );
       if (decryptedNsec) {
         setNsec(decryptedNsec);
         closePasswordPrompt();
@@ -385,18 +460,22 @@ const SettingsPage: React.FC = () => {
         setPasswordPromptPassword('');
         setPasswordError('');
       } else {
-        setPasswordError('Unable to decrypt your private key. Please try again.');
+        setPasswordError(
+          'Unable to decrypt your private key. Please try again.'
+        );
       }
     } catch (error) {
       console.error('Failed to decrypt nsec with password:', error);
       // Extract user-friendly error message
-      const errorMessage = error instanceof Error 
-        ? (error.message.includes('incorrect') || error.message.includes('password') 
-            ? error.message 
-            : 'Incorrect password. Please check your password and try again.')
-        : 'Incorrect password. Please check your password and try again.';
+      const errorMessage =
+        error instanceof Error
+          ? error.message.includes('incorrect') ||
+            error.message.includes('password')
+            ? error.message
+            : 'Incorrect password. Please check your password and try again.'
+          : 'Incorrect password. Please check your password and try again.';
       setPasswordError(errorMessage);
-      }
+    }
   };
 
   return (
@@ -440,7 +519,10 @@ const SettingsPage: React.FC = () => {
             <div className="featureBlock">
               <h3 className="featureTitle">Connected Relays</h3>
               <p className="featureDescription descriptionWithMargin">
-                Manage your Nostr relay connections. <strong>Read</strong> relays are used to fetch events (posts, profiles, zaps). <strong>Write</strong> relays are used to publish events (when you post or update your profile).
+                Manage your Nostr relay connections. <strong>Read</strong>{' '}
+                relays are used to fetch events (posts, profiles, zaps).{' '}
+                <strong>Write</strong> relays are used to publish events (when
+                you post or update your profile).
               </p>
 
               <div className="relayList">
@@ -460,10 +542,7 @@ const SettingsPage: React.FC = () => {
                           setExpandedRelay(isExpanded ? null : relay.url)
                         }
                       >
-                        <span
-                          className="relayUrl"
-                          title={relay.url}
-                        >
+                        <span className="relayUrl" title={relay.url}>
                           <span
                             className="relayStatusIndicator"
                             style={{
@@ -472,14 +551,23 @@ const SettingsPage: React.FC = () => {
                           />
                           <span className="relayUrlText">{relay.url}</span>
                         </span>
-                        <div className="relayControls" onClick={e => e.stopPropagation()}>
+                        <div
+                          className="relayControls"
+                          onClick={e => e.stopPropagation()}
+                        >
                           <label className="relayToggleLabel">
                             <span className="relayToggleText">Read</span>
                             <label className="toggleSwitch">
                               <input
                                 type="checkbox"
                                 checked={relay.read}
-                                onChange={e => handleRelayTypeChange(relay.url, 'read', e.target.checked)}
+                                onChange={e =>
+                                  handleRelayTypeChange(
+                                    relay.url,
+                                    'read',
+                                    e.target.checked
+                                  )
+                                }
                                 onClick={e => e.stopPropagation()}
                               />
                               <span className="toggleCircle" />
@@ -491,7 +579,13 @@ const SettingsPage: React.FC = () => {
                               <input
                                 type="checkbox"
                                 checked={relay.write}
-                                onChange={e => handleRelayTypeChange(relay.url, 'write', e.target.checked)}
+                                onChange={e =>
+                                  handleRelayTypeChange(
+                                    relay.url,
+                                    'write',
+                                    e.target.checked
+                                  )
+                                }
                                 onClick={e => e.stopPropagation()}
                               />
                               <span className="toggleCircle" />
@@ -622,117 +716,124 @@ const SettingsPage: React.FC = () => {
                 })}
               </div>
 
-
               <div className="featureBlockLast">
-              <h5>Add New Relay</h5>
-              <p className="featureDescription descriptionSmall">
-                {`Add a custom Nostr relay (must start with ${PROTOCOLS.WSS})`}
-              </p>
+                <h5>Add New Relay</h5>
+                <p className="featureDescription descriptionSmall">
+                  {`Add a custom Nostr relay (must start with ${PROTOCOLS.WSS})`}
+                </p>
 
-              <div className="addRelayContainer">
-                <input
-                  type="text"
-                  value={newRelay}
-                  onChange={e => setNewRelay(e.target.value)}
-                  placeholder={`${PROTOCOLS.WSS}relay.example.com`}
-                  className="relayInput"
-                  onKeyPress={e => {
-                    if (e.key === 'Enter') {
-                      handleAddRelay();
-                    }
-                  }}
-                />
-                <button onClick={handleAddRelay} className="addButton">
-                  Add
-                </button>
+                <div className="addRelayContainer">
+                  <input
+                    type="text"
+                    value={newRelay}
+                    onChange={e => setNewRelay(e.target.value)}
+                    placeholder={`${PROTOCOLS.WSS}relay.example.com`}
+                    className="relayInput"
+                    onKeyPress={e => {
+                      if (e.key === 'Enter') {
+                        handleAddRelay();
+                      }
+                    }}
+                  />
+                  <button onClick={handleAddRelay} className="addButton">
+                    Add
+                  </button>
+                </div>
               </div>
             </div>
-            </div>
 
-            {AuthService.isAuthenticated() && AuthService.getStoredAuthData().method === 'nsec' && (
-              <div className="featureBlock">
-                <h3 className="featureTitle">Keys</h3>
-                <p className="featureDescription descriptionWithMargin">
-                  Back up your private key (nsec). You used the nsec login method
-                  to sign in. Keep this key safe and secure!
-                </p>
-                
-                <div style={{ marginBottom: '16px' }}>
-                  <div
-                    style={{
-                      background: COLORS.WARNING_BG,
-                      border: `1px solid ${COLORS.WARNING}`,
-                      borderRadius: '8px',
-                      padding: '12px',
-                      marginBottom: '12px',
-                      fontSize: '13px',
-                      color: COLORS.WARNING_TEXT
-                    }}
-                  >
-                    <strong>⚠️ Security Warning:</strong> Never share your nsec with
-                    anyone! Anyone with access to your nsec can control your
-                    account and steal your funds.
-                  </div>
-                  
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button
-                      onClick={handleRevealNsec}
-                      className="addButton"
-                      style={{ flex: 'none' }}
-                    >
-                      {showNsec ? 'Hide Nsec' : 'Reveal Nsec'}
-                    </button>
-                    
-                    {nsec && (
-                      <button
-                        onClick={() => setShowQRModal(true)}
-                        className="addButton"
-                        style={{ flex: 'none' }}
-                      >
-                        Show QR
-                      </button>
-                    )}
-                    
-                    {showNsec && (
-                      <button
-                        onClick={handleCopyNsec}
-                        className="addButton"
-                        style={{ flex: 'none' }}
-                      >
-                        {copiedNsec ? '✓ Copied' : 'Copy'}
-                      </button>
-                    )}
-                  </div>
-                  
-                  {showNsec && (
+            {AuthService.isAuthenticated() &&
+              AuthService.getStoredAuthData().method === 'nsec' && (
+                <div className="featureBlock">
+                  <h3 className="featureTitle">Keys</h3>
+                  <p className="featureDescription descriptionWithMargin">
+                    Back up your private key (nsec). You used the nsec login
+                    method to sign in. Keep this key safe and secure!
+                  </p>
+
+                  <div style={{ marginBottom: '16px' }}>
                     <div
                       style={{
-                        marginTop: '12px',
+                        background: COLORS.WARNING_BG,
+                        border: `1px solid ${COLORS.WARNING}`,
+                        borderRadius: '8px',
                         padding: '12px',
-                        background: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '6px',
-                        wordBreak: 'break-all',
-                        fontFamily: 'monospace',
-                        fontSize: '12px',
-                        color: 'var(--text-primary)'
+                        marginBottom: '12px',
+                        fontSize: '13px',
+                        color: COLORS.WARNING_TEXT
                       }}
                     >
-                      {nsec}
+                      <strong>⚠️ Security Warning:</strong> Never share your
+                      nsec with anyone! Anyone with access to your nsec can
+                      control your account and steal your funds.
                     </div>
-                  )}
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '8px',
+                        alignItems: 'center',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      <button
+                        onClick={handleRevealNsec}
+                        className="addButton"
+                        style={{ flex: 'none' }}
+                      >
+                        {showNsec ? 'Hide Nsec' : 'Reveal Nsec'}
+                      </button>
+
+                      {nsec && (
+                        <button
+                          onClick={() => setShowQRModal(true)}
+                          className="addButton"
+                          style={{ flex: 'none' }}
+                        >
+                          Show QR
+                        </button>
+                      )}
+
+                      {showNsec && (
+                        <button
+                          onClick={handleCopyNsec}
+                          className="addButton"
+                          style={{ flex: 'none' }}
+                        >
+                          {copiedNsec ? '✓ Copied' : 'Copy'}
+                        </button>
+                      )}
+                    </div>
+
+                    {showNsec && (
+                      <div
+                        style={{
+                          marginTop: '12px',
+                          padding: '12px',
+                          background: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '6px',
+                          wordBreak: 'break-all',
+                          fontFamily: 'monospace',
+                          fontSize: '12px',
+                          color: 'var(--text-primary)'
+                        }}
+                      >
+                        {nsec}
+                      </div>
+                    )}
+                  </div>
+
+                  <p
+                    className="featureDescription"
+                    style={{ fontSize: '12px', opacity: 0.7 }}
+                  >
+                    Store your nsec in a secure password manager or write it
+                    down and keep it in a safe place. You'll need it to restore
+                    your account if you lose access.
+                  </p>
                 </div>
-                
-                <p
-                  className="featureDescription"
-                  style={{ fontSize: '12px', opacity: 0.7 }}
-                >
-                  Store your nsec in a secure password manager or write it down
-                  and keep it in a safe place. You'll need it to restore your
-                  account if you lose access.
-                </p>
-              </div>
-            )}
+              )}
           </section>
         </div>
       </div>
@@ -763,16 +864,17 @@ const SettingsPage: React.FC = () => {
           }}
           onClick={e => e.stopPropagation()}
         >
-          <h3 style={{ margin: '0 0 16px 0' }}>
-            Enter Password
-          </h3>
+          <h3 style={{ margin: '0 0 16px 0' }}>Enter Password</h3>
 
-          <p style={{
-            fontSize: '13px',
-            opacity: 0.8,
-            marginBottom: '24px'
-          }}>
-            Your private key is encrypted with a password. Enter your password to reveal it.
+          <p
+            style={{
+              fontSize: '13px',
+              opacity: 0.8,
+              marginBottom: '24px'
+            }}
+          >
+            Your private key is encrypted with a password. Enter your password
+            to reveal it.
           </p>
 
           <input
@@ -797,17 +899,21 @@ const SettingsPage: React.FC = () => {
           />
 
           {passwordError && (
-            <div style={{
-              color: COLORS.ERROR_DARK,
-              fontSize: '13px',
-              marginBottom: '12px',
-              textAlign: 'left'
-            }}>
+            <div
+              style={{
+                color: COLORS.ERROR_DARK,
+                fontSize: '13px',
+                marginBottom: '12px',
+                textAlign: 'left'
+              }}
+            >
               {passwordError}
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <div
+            style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}
+          >
             <button
               className="addButton"
               onClick={() => {
@@ -818,10 +924,7 @@ const SettingsPage: React.FC = () => {
             >
               Cancel
             </button>
-            <button
-              className="addButton"
-              onClick={handlePasswordPromptSubmit}
-            >
+            <button className="addButton" onClick={handlePasswordPromptSubmit}>
               Reveal
             </button>
           </div>
@@ -830,7 +933,7 @@ const SettingsPage: React.FC = () => {
 
       {/* QR Code Modal */}
       {nsec && (
-        <div 
+        <div
           className="overlayContainer"
           style={{
             display: 'flex',
@@ -844,22 +947,22 @@ const SettingsPage: React.FC = () => {
         >
           <div
             className="overlayInner"
-            style={{ 
-              textAlign: 'center', 
+            style={{
+              textAlign: 'center',
               maxWidth: '400px',
               margin: 'auto'
             }}
             onClick={e => e.stopPropagation()}
           >
-            <h3 style={{ margin: '0 0 16px 0' }}>
-              Nsec QR Code
-            </h3>
-            
-            <p style={{
-              fontSize: '13px',
-              opacity: 0.8,
-              marginBottom: '24px'
-            }}>
+            <h3 style={{ margin: '0 0 16px 0' }}>Nsec QR Code</h3>
+
+            <p
+              style={{
+                fontSize: '13px',
+                opacity: 0.8,
+                marginBottom: '24px'
+              }}
+            >
               Scan this QR code to import your nsec into a compatible wallet
             </p>
 
@@ -887,16 +990,15 @@ const SettingsPage: React.FC = () => {
                 textAlign: 'left'
               }}
             >
-              <strong>⚠️ Warning:</strong> Anyone who scans this QR code will have
-              full access to your account. Only use this in a secure, private
-              location.
+              <strong>⚠️ Warning:</strong> Anyone who scans this QR code will
+              have full access to your account. Only use this in a secure,
+              private location.
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-              <button
-                onClick={handleCopyNsec}
-                className="addButton"
-              >
+            <div
+              style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}
+            >
+              <button onClick={handleCopyNsec} className="addButton">
                 {copiedNsec ? '✓ Copied' : 'Copy Nsec'}
               </button>
               <button

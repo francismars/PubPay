@@ -74,4 +74,3 @@ export function safeTimeout(
 
   return timeoutId;
 }
-
