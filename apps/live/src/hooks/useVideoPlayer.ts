@@ -9,6 +9,23 @@ import {
 } from '../utils/errorHandling';
 import type { HlsInstance, HlsConfig, HlsError } from '../types/global';
 
+/**
+ * useVideoPlayer Hook
+ * 
+ * Manages live video player functionality including:
+ * - HLS.js streaming support
+ * - Native HLS support (Safari)
+ * - Regular video format support (MP4, WebM)
+ * - Automatic reconnection with exponential backoff
+ * - Audio state preservation (volume, mute)
+ * - Video event handling
+ * 
+ * @param options - Configuration options for video player
+ * @param options.videoElementId - ID of the video element (default: 'live-video')
+ * @param options.errorElementId - ID of the error element (default: 'video-error')
+ * @returns Functions for initializing and cleaning up the video player
+ */
+
 // Constants
 const SUBSCRIPTION_TIMEOUT = 30000; // 30 seconds
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -17,11 +34,6 @@ interface UseVideoPlayerOptions {
   videoElementId?: string;
   errorElementId?: string;
 }
-
-/**
- * Hook for managing live video player functionality
- * Handles HLS streaming, regular video formats, reconnection, and audio state preservation
- */
 export const useVideoPlayer = (options: UseVideoPlayerOptions = {}) => {
   const { videoElementId = 'live-video', errorElementId = 'video-error' } = options;
   
@@ -111,7 +123,7 @@ export const useVideoPlayer = (options: UseVideoPlayerOptions = {}) => {
     videoError: HTMLElement | null,
     streamingUrl: string
   ) => {
-    console.log('🎥 Initializing stream...');
+    logger.info('Initializing stream', ErrorCategory.VIDEO, { streamingUrl });
 
     // Handle different streaming formats
     if (streamingUrl.includes('.m3u8') || streamingUrl.includes('hls')) {
@@ -127,7 +139,11 @@ export const useVideoPlayer = (options: UseVideoPlayerOptions = {}) => {
           try {
             hlsInstanceRef.current.destroy();
           } catch (e) {
-            console.warn('Error destroying previous HLS instance:', e);
+            handleErrorSilently(
+              e,
+              'Error destroying previous HLS instance',
+              ErrorCategory.VIDEO
+            );
           }
         }
 
@@ -239,7 +255,7 @@ export const useVideoPlayer = (options: UseVideoPlayerOptions = {}) => {
    * Initializes the live video player with a streaming URL
    */
   const initializeLiveVideoPlayer = useCallback((streamingUrl: string) => {
-    console.log('🎥 Initializing video player with URL:', streamingUrl);
+    logger.info('Initializing video player', ErrorCategory.VIDEO, { streamingUrl });
 
     const video = document.getElementById(videoElementId) as HTMLVideoElement;
     const videoError = document.getElementById(errorElementId);

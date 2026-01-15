@@ -1,5 +1,16 @@
-// Zap handling hook
-// Manages zap processing, display, and top zappers calculation
+/**
+ * useZapHandling Hook
+ * 
+ * Manages zap processing, display, and notifications including:
+ * - Zap receipt processing (Kind 9735)
+ * - Zap display in UI
+ * - Top zappers calculation
+ * - Zap notifications
+ * - Zap totals and statistics
+ * 
+ * @param options - Configuration options for zap handling
+ * @returns Zap state and functions for processing and displaying zaps
+ */
 
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { nip19 } from 'nostr-tools';
@@ -13,6 +24,13 @@ import {
 import { Kind9735Event, Kind0Event } from '@pubpay/shared-types';
 import { ZapNotification } from '@live/types';
 import { sanitizeImageUrl, sanitizeHTML, escapeHtml } from '../utils/sanitization';
+import {
+  handleError,
+  handleErrorSilently,
+  logger,
+  ErrorCategory,
+  ErrorSeverity
+} from '../utils/errorHandling';
 
 export interface UseZapHandlingOptions {
   onSubscribeProfile?: (pubkey: string) => void;
@@ -227,10 +245,9 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
     eventPubkey: string,
     eventIdentifier: string
   ) => {
-    console.log(
-      '🔄 processLiveEventZap called for receipt:',
-      zapReceipt.id.slice(0, 8)
-    );
+    logger.info('Processing live event zap', ErrorCategory.SUBSCRIPTION, {
+      zapId: zapReceipt.id.slice(0, 8)
+    });
 
     try {
       // Use shared helpers to extract zap information
@@ -270,7 +287,13 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
       // Display the zap
       displayLiveEventZap(zapData);
     } catch (error) {
-      console.error('Error processing live event zap:', error);
+      handleError(
+        error,
+        'Error processing live event zap',
+        ErrorCategory.SUBSCRIPTION,
+        ErrorSeverity.MEDIUM,
+        { zapId: zapReceipt.id }
+      );
     }
   }, [onSubscribeProfile, addZapToTotals]);
 
@@ -337,7 +360,9 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
     if (zapData.timestamp) {
       zapDiv.setAttribute('data-timestamp', zapData.timestamp.toString());
     } else {
-      console.log('⚠️ No timestamp found in live event zap data:', zapData);
+      logger.warn('No timestamp found in live event zap data', ErrorCategory.VALIDATION, {
+        zapId: zapData.id
+      });
     }
 
     const timeStr = new Date(zapData.timestamp * 1000).toLocaleString();
@@ -494,7 +519,12 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
     try {
       profileData = JSON.parse(profile.content || '{}');
     } catch (error) {
-      console.warn('Failed to parse profile content:', error);
+      handleErrorSilently(
+        error,
+        'Failed to parse profile content',
+        ErrorCategory.PARSING,
+        { pubkey: profile.pubkey }
+      );
       profileData = {};
     }
     const name =

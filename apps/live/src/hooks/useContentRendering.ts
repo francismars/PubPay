@@ -34,6 +34,21 @@ import {
   ErrorCategory
 } from '../utils/errorHandling';
 
+/**
+ * useContentRendering Hook
+ * 
+ * Handles rendering of Nostr content including:
+ * - Live events (Kind 30311)
+ * - Chat messages (Kind 1311)
+ * - Notes (Kind 1)
+ * - Profiles (Kind 0)
+ * - Content processing (mentions, URLs, media)
+ * - Two-column layout for live events
+ * 
+ * @param options - Configuration options for content rendering
+ * @returns Functions for rendering different content types
+ */
+
 // Constants
 const PROFILE_FETCH_TIMEOUT = 2000; // 2 seconds
 const CONTENT_MONITOR_INTERVAL = 10000; // 10 seconds
