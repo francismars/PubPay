@@ -41,8 +41,8 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
   const [zapNotification, setZapNotification] = useState<ZapNotification | null>(null);
 
   const initialZapsLoadedRef = useRef(false);
-  const pendingZapNotificationsRef = useRef<Map<string, any>>(new Map());
-  const zapperTotalsRef = useRef<Map<string, { amount: number; profile: any }>>(new Map());
+  const pendingZapNotificationsRef = useRef<Map<string, ZapNotification>>(new Map());
+  const zapperTotalsRef = useRef<Map<string, { amount: number; profile: Kind0Event | null }>>(new Map());
   const profilesRef = useRef<Map<string, Kind0Event>>(new Map());
 
   /**
@@ -277,7 +277,17 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
   /**
    * Display a live event zap in the UI
    */
-  const displayLiveEventZap = useCallback((zapData: any) => {
+  interface ZapDisplayData {
+    id: string;
+    pubkey: string;
+    amount: number;
+    content?: string;
+    timestamp: number;
+    bolt11?: string;
+    zapEventID?: string;
+  }
+
+  const displayLiveEventZap = useCallback((zapData: ZapDisplayData) => {
     // Check if this zap is already displayed to prevent duplicates
     const existingZap = document.querySelector(`[data-zap-id="${zapData.id}"]`);
     if (existingZap) {
@@ -288,7 +298,17 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
     if (initialZapsLoadedRef.current) {
       // Store as pending - subscribeChatAuthorProfile already called in processLiveEventZap
       // When profile arrives, updateProfile will trigger the notification
-      pendingZapNotificationsRef.current.set(zapData.pubkey, zapData);
+      // Store minimal zap data - will be converted to ZapNotification when profile arrives
+      const pendingData: ZapNotification = {
+        id: zapData.id,
+        zapperName: '', // Will be filled when profile arrives
+        zapperImage: '', // Will be filled when profile arrives
+        content: zapData.content || '',
+        amount: zapData.amount,
+        timestamp: zapData.timestamp,
+        pubkey: zapData.pubkey // Store pubkey for profile lookup
+      };
+      pendingZapNotificationsRef.current.set(zapData.pubkey, pendingData);
     }
 
     const zapsContainer = document.getElementById('zaps');
@@ -309,8 +329,8 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
     const zapDiv = document.createElement('div');
     zapDiv.className = 'live-event-zap';
     zapDiv.dataset.pubkey = zapData.pubkey;
-    zapDiv.dataset.timestamp = zapData.timestamp;
-    zapDiv.dataset.amount = zapData.amount;
+    zapDiv.dataset.timestamp = zapData.timestamp.toString();
+    zapDiv.dataset.amount = zapData.amount.toString();
     zapDiv.dataset.zapId = zapData.id;
 
     // Add timestamp data attribute for historical price lookup
@@ -377,8 +397,8 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
       const zapOnlyDiv = document.createElement('div');
       zapOnlyDiv.className = 'zap live-event-zap zap-only-item';
       zapOnlyDiv.dataset.pubkey = zapData.pubkey;
-      zapOnlyDiv.dataset.timestamp = zapData.timestamp;
-      zapOnlyDiv.dataset.amount = zapData.amount;
+      zapOnlyDiv.dataset.timestamp = zapData.timestamp.toString();
+      zapOnlyDiv.dataset.amount = zapData.amount.toString();
       zapOnlyDiv.dataset.zapId = zapData.id;
 
       // Add timestamp data attribute for historical price lookup
@@ -524,19 +544,21 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
     // Check for pending zap notifications
     if (pendingZapNotificationsRef.current.has(profile.pubkey)) {
       const zapData = pendingZapNotificationsRef.current.get(profile.pubkey);
-      pendingZapNotificationsRef.current.delete(profile.pubkey);
+      if (zapData) {
+        pendingZapNotificationsRef.current.delete(profile.pubkey);
 
-      // Create notification
-      const notification: ZapNotification = {
-        id: zapData.id,
-        zapperName: name,
-        zapperImage: picture,
-        content: zapData.content || '',
-        amount: zapData.amount,
-        timestamp: zapData.timestamp
-      };
+        // Create notification
+        const notification: ZapNotification = {
+          id: zapData.id,
+          zapperName: name,
+          zapperImage: picture,
+          content: zapData.content || '',
+          amount: zapData.amount,
+          timestamp: zapData.timestamp
+        };
 
-      setZapNotification(notification);
+        setZapNotification(notification);
+      }
     }
   }, [genericUserIcon, updateTopZappers]);
 
@@ -577,7 +599,16 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
   }) => {
     // Only store if initial zaps have loaded (to avoid notifications for historical zaps)
     if (initialZapsLoadedRef.current) {
-      pendingZapNotificationsRef.current.set(zapData.pubkey, zapData);
+      const pendingData: ZapNotification = {
+        id: zapData.id,
+        zapperName: '', // Will be filled when profile arrives
+        zapperImage: '', // Will be filled when profile arrives
+        content: zapData.content || '',
+        amount: zapData.amount,
+        timestamp: zapData.timestamp,
+        pubkey: zapData.pubkey // Store pubkey for profile lookup
+      };
+      pendingZapNotificationsRef.current.set(zapData.pubkey, pendingData);
     }
   }, []);
 
