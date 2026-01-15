@@ -72,56 +72,8 @@ interface WalletStore {
 
 export const useWalletStore = create<WalletStore>()(
   devtools(
-    (set) => ({
-  // Initial state
-  balance: null,
-  balanceLoading: false,
-  balanceError: '',
-  lastBalanceUpdate: null,
-  transactions: [],
-  transactionsLoading: false,
-  transactionsError: '',
-  nwcClient: null,
-  receiveInvoice: null,
-  generatingInvoice: false,
-
-  // Actions - Balance
-  setBalance: (balance) => set({ balance }),
-  setBalanceLoading: (loading) => set({ balanceLoading: loading }),
-  setBalanceError: (error) => set({ balanceError: error }),
-  setLastBalanceUpdate: (date) => set({ lastBalanceUpdate: date }),
-
-  // Actions - Transactions
-  setTransactions: (transactions) => set({ transactions }),
-  setTransactionsLoading: (loading) => set({ transactionsLoading: loading }),
-  setTransactionsError: (error) => set({ transactionsError: error }),
-
-  // Actions - NWC Client
-  setNwcClient: (client) => set({ nwcClient: client }),
-
-  // Actions - Receive Invoice
-  setReceiveInvoice: (invoice) => set({ receiveInvoice: invoice }),
-  setGeneratingInvoice: (generating) => set({ generatingInvoice: generating }),
-
-  // Actions - Clear/Reset
-  clearBalance: () =>
-    set({
-      balance: null,
-      balanceError: '',
-      lastBalanceUpdate: null
-    }),
-  clearTransactions: () =>
-    set({
-      transactions: [],
-      transactionsError: ''
-    }),
-  clearReceiveInvoice: () =>
-    set({
-      receiveInvoice: null,
-      generatingInvoice: false
-    }),
-  resetWallet: () =>
-    set({
+    set => ({
+      // Initial state
       balance: null,
       balanceLoading: false,
       balanceError: '',
@@ -129,9 +81,58 @@ export const useWalletStore = create<WalletStore>()(
       transactions: [],
       transactionsLoading: false,
       transactionsError: '',
+      nwcClient: null,
       receiveInvoice: null,
-      generatingInvoice: false
-    })
+      generatingInvoice: false,
+
+      // Actions - Balance
+      setBalance: balance => set({ balance }),
+      setBalanceLoading: loading => set({ balanceLoading: loading }),
+      setBalanceError: error => set({ balanceError: error }),
+      setLastBalanceUpdate: date => set({ lastBalanceUpdate: date }),
+
+      // Actions - Transactions
+      setTransactions: transactions => set({ transactions }),
+      setTransactionsLoading: loading => set({ transactionsLoading: loading }),
+      setTransactionsError: error => set({ transactionsError: error }),
+
+      // Actions - NWC Client
+      setNwcClient: client => set({ nwcClient: client }),
+
+      // Actions - Receive Invoice
+      setReceiveInvoice: invoice => set({ receiveInvoice: invoice }),
+      setGeneratingInvoice: generating =>
+        set({ generatingInvoice: generating }),
+
+      // Actions - Clear/Reset
+      clearBalance: () =>
+        set({
+          balance: null,
+          balanceError: '',
+          lastBalanceUpdate: null
+        }),
+      clearTransactions: () =>
+        set({
+          transactions: [],
+          transactionsError: ''
+        }),
+      clearReceiveInvoice: () =>
+        set({
+          receiveInvoice: null,
+          generatingInvoice: false
+        }),
+      resetWallet: () =>
+        set({
+          balance: null,
+          balanceLoading: false,
+          balanceError: '',
+          lastBalanceUpdate: null,
+          transactions: [],
+          transactionsLoading: false,
+          transactionsError: '',
+          receiveInvoice: null,
+          generatingInvoice: false
+        })
     }),
     { name: 'WalletStore' }
   )
@@ -215,15 +216,23 @@ export const useWalletActions = (): WalletStoreActions =>
 
 // Individual selector hooks
 export const useBalance = () => useWalletStore(state => state.balance);
-export const useBalanceLoading = () => useWalletStore(state => state.balanceLoading);
-export const useBalanceError = () => useWalletStore(state => state.balanceError);
-export const useLastBalanceUpdate = () => useWalletStore(state => state.lastBalanceUpdate);
-export const useTransactions = () => useWalletStore(state => state.transactions);
-export const useTransactionsLoading = () => useWalletStore(state => state.transactionsLoading);
-export const useTransactionsError = () => useWalletStore(state => state.transactionsError);
+export const useBalanceLoading = () =>
+  useWalletStore(state => state.balanceLoading);
+export const useBalanceError = () =>
+  useWalletStore(state => state.balanceError);
+export const useLastBalanceUpdate = () =>
+  useWalletStore(state => state.lastBalanceUpdate);
+export const useTransactions = () =>
+  useWalletStore(state => state.transactions);
+export const useTransactionsLoading = () =>
+  useWalletStore(state => state.transactionsLoading);
+export const useTransactionsError = () =>
+  useWalletStore(state => state.transactionsError);
 export const useNwcClient = () => useWalletStore(state => state.nwcClient);
-export const useReceiveInvoice = () => useWalletStore(state => state.receiveInvoice);
-export const useGeneratingInvoice = () => useWalletStore(state => state.generatingInvoice);
+export const useReceiveInvoice = () =>
+  useWalletStore(state => state.receiveInvoice);
+export const useGeneratingInvoice = () =>
+  useWalletStore(state => state.generatingInvoice);
 
 // Composite selector hooks
 export const useBalanceState = () =>
@@ -255,4 +264,3 @@ export const useReceiveInvoiceState = () =>
 
 // Export Invoice type for use in other files
 export type { Invoice };
-

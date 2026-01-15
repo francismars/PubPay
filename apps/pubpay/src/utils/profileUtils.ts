@@ -175,7 +175,10 @@ function sanitizeUrlInternal(
       try {
         const withProtocol = `https://${trimmed}`;
         const parsed = new URL(withProtocol);
-        if (parsed.protocol === 'https:' && allowedProtocols.includes('https:')) {
+        if (
+          parsed.protocol === 'https:' &&
+          allowedProtocols.includes('https:')
+        ) {
           return withProtocol;
         }
       } catch {
@@ -203,7 +206,8 @@ export const sanitizeUrl = (url: string | null | undefined): string | null => {
  * @param url - The image URL to sanitize
  * @returns The sanitized URL, or null if the URL is invalid or uses a dangerous protocol
  */
-export const sanitizeImageUrl = (url: string | null | undefined): string | null => {
+export const sanitizeImageUrl = (
+  url: string | null | undefined
+): string | null => {
   return sanitizeUrlInternal(url, ['http:', 'https:']);
 };
-

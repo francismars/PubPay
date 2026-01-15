@@ -151,4 +151,3 @@ export const SideNavigation: React.FC<SideNavigationProps> = ({
     </div>
   );
 };
-

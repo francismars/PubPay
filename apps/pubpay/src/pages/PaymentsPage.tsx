@@ -1,16 +1,49 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo
+} from 'react';
 import { useOutletContext, useNavigate } from 'react-router-dom';
-import { useUIStore, NwcClient, ensureProfiles, getQueryClient } from '@pubpay/shared-services';
+import {
+  useUIStore,
+  NwcClient,
+  ensureProfiles,
+  getQueryClient
+} from '@pubpay/shared-services';
 import { Kind9735Event, Kind0Event } from '@pubpay/shared-types';
 import { nip19 } from 'nostr-tools';
 import { NWCOptionsModal } from '../components/NWCOptionsModal/NWCOptionsModal';
 import { SendPaymentModal } from '../components/SendPaymentModal/SendPaymentModal';
 import { ReceivePaymentModal } from '../components/ReceivePaymentModal/ReceivePaymentModal';
-import { getActiveNWCUri, getActiveNWCConnection, getActiveNWCConnectionId, migrateOldNWCConnection } from '../utils/nwcStorage';
-import { TOAST_DURATION, INTERVAL, LIGHTNING, TIME, COLORS, STORAGE_KEYS, QUERY_LIMITS, DIMENSIONS } from '../constants';
-import { useWalletState, useWalletActions, type Invoice } from '../stores/useWalletStore';
+import {
+  getActiveNWCUri,
+  getActiveNWCConnection,
+  getActiveNWCConnectionId,
+  migrateOldNWCConnection
+} from '../utils/nwcStorage';
+import {
+  TOAST_DURATION,
+  INTERVAL,
+  LIGHTNING,
+  TIME,
+  COLORS,
+  STORAGE_KEYS,
+  QUERY_LIMITS,
+  DIMENSIONS
+} from '../constants';
+import {
+  useWalletState,
+  useWalletActions,
+  type Invoice
+} from '../stores/useWalletStore';
 import { validatePaymentAmount } from '../utils/validation';
-import { extractZapAmount, extractZapPayerPubkey, extractZapContent } from '@pubpay/shared-services';
+import {
+  extractZapAmount,
+  extractZapPayerPubkey,
+  extractZapContent
+} from '@pubpay/shared-services';
 import { sanitizeImageUrl } from '../utils/profileUtils';
 import { genericUserIcon } from '../assets/images';
 import { TransactionCard } from '../components/TransactionCard/TransactionCard';
@@ -36,30 +69,40 @@ interface PublicZap {
 export const formatTimestamp = (timestamp?: number): string => {
   if (!timestamp) return '—';
   const date = new Date(timestamp * TIME.MILLISECONDS_PER_SECOND);
-  
+
   // Format: "Jan 3, 2009 – 06:23pm"
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec'
+  ];
   const month = months[date.getMonth()];
   const day = date.getDate();
   const year = date.getFullYear();
-  
+
   let hours = date.getHours();
   const minutes = date.getMinutes();
   const ampm = hours >= 12 ? 'pm' : 'am';
   hours = hours % 12;
   hours = hours ? hours : 12; // the hour '0' should be '12'
   const minutesStr = minutes < 10 ? `0${minutes}` : minutes;
-  
+
   return `${month} ${day}, ${year} – ${hours}:${minutesStr}${ampm}`;
 };
 
 const PaymentsPage: React.FC = () => {
   const navigate = useNavigate();
   // Get auth state and nostr client from outlet context
-  const {
-    authState,
-    nostrClient
-  } = useOutletContext<{
+  const { authState, nostrClient } = useOutletContext<{
     authState: any;
     nostrClient: any;
   }>();
@@ -109,7 +152,9 @@ const PaymentsPage: React.FC = () => {
   const [showOptionsModal, setShowOptionsModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
-  const [receiveOption, setReceiveOption] = useState<'public-address' | 'create-note' | 'create-invoice'>('create-note');
+  const [receiveOption, setReceiveOption] = useState<
+    'public-address' | 'create-note' | 'create-invoice'
+  >('create-note');
   const [receiveAmount, setReceiveAmount] = useState('');
   const [receiveDescription, setReceiveDescription] = useState('');
   const [visibleTransactionsCount, setVisibleTransactionsCount] = useState(5);
@@ -194,13 +239,19 @@ const PaymentsPage: React.FC = () => {
     const handleActiveConnectionChanged = () => {
       reloadClient();
     };
-    window.addEventListener('nwcActiveConnectionChanged', handleActiveConnectionChanged);
+    window.addEventListener(
+      'nwcActiveConnectionChanged',
+      handleActiveConnectionChanged
+    );
 
     // Also poll for changes (fallback for cases where event doesn't fire)
     const interval = setInterval(reloadClient, INTERVAL.CLIENT_RELOAD);
 
     return () => {
-      window.removeEventListener('nwcActiveConnectionChanged', handleActiveConnectionChanged);
+      window.removeEventListener(
+        'nwcActiveConnectionChanged',
+        handleActiveConnectionChanged
+      );
       clearInterval(interval);
     };
   }, []);
@@ -242,8 +293,12 @@ const PaymentsPage: React.FC = () => {
 
         // According to NIP-47 spec, get_balance MUST return balance in millisats
         // Always convert from millisats to sats by dividing by MILLISATS_PER_SAT
-        const balanceInSats = Math.floor(rawBalance / LIGHTNING.MILLISATS_PER_SAT);
-          console.log(`Converted ${rawBalance} millisats to ${balanceInSats} sats`);
+        const balanceInSats = Math.floor(
+          rawBalance / LIGHTNING.MILLISATS_PER_SAT
+        );
+        console.log(
+          `Converted ${rawBalance} millisats to ${balanceInSats} sats`
+        );
 
         setBalance(balanceInSats);
         setLastBalanceUpdate(new Date());
@@ -257,7 +312,13 @@ const PaymentsPage: React.FC = () => {
     } finally {
       setBalanceLoading(false);
     }
-  }, [nwcClient, setBalance, setBalanceLoading, setBalanceError, setLastBalanceUpdate]);
+  }, [
+    nwcClient,
+    setBalance,
+    setBalanceLoading,
+    setBalanceError,
+    setLastBalanceUpdate
+  ]);
 
   // Load transactions
   const loadTransactions = useCallback(async () => {
@@ -291,48 +352,62 @@ const PaymentsPage: React.FC = () => {
     setTransactionsError('');
     try {
       console.log('Loading transactions...');
-      const response = await nwcClient.listTransactions({ limit: QUERY_LIMITS.TRANSACTION_LIST_LIMIT });
+      const response = await nwcClient.listTransactions({
+        limit: QUERY_LIMITS.TRANSACTION_LIST_LIMIT
+      });
       console.log('listTransactions response:', response);
 
       if (response.error) {
         console.error('listTransactions error:', response.error);
-        setTransactionsError(response.error.message || 'Failed to load transactions');
+        setTransactionsError(
+          response.error.message || 'Failed to load transactions'
+        );
         setTransactions([]);
       } else if (response.result) {
         const transactions = response.result.transactions || [];
-        console.log(`Loaded ${transactions.length} transactions:`, transactions);
+        console.log(
+          `Loaded ${transactions.length} transactions:`,
+          transactions
+        );
         // Map transactions to the Invoice interface format for compatibility
-        const mappedTransactions = transactions.map((tx: {
-          type: 'incoming' | 'outgoing';
-          state?: 'pending' | 'settled' | 'expired' | 'failed';
-          invoice?: string;
-          description?: string;
-          description_hash?: string;
-          preimage?: string;
-          payment_hash: string;
-          amount: number;
-          fees_paid?: number;
-          created_at: number;
-          expires_at?: number;
-          settled_at?: number;
-          metadata?: Record<string, unknown>;
-        }) => {
-          const mapped = {
-            invoice: tx.invoice || '',
-            payment_hash: tx.payment_hash,
-            preimage: tx.preimage,
-            amount: tx.amount,
-            description: tx.description,
-            created_at: tx.created_at,
-            expiry: tx.expires_at ? Math.floor((tx.expires_at - tx.created_at) / TIME.MILLISECONDS_PER_SECOND) : undefined,
-            state: tx.state,
-            type: tx.type,
-            paid_at: tx.settled_at,
-            fees_paid: tx.fees_paid,
-            metadata: tx.metadata as Invoice['metadata']
-          };
-          return mapped;
-        });
+        const mappedTransactions = transactions.map(
+          (tx: {
+            type: 'incoming' | 'outgoing';
+            state?: 'pending' | 'settled' | 'expired' | 'failed';
+            invoice?: string;
+            description?: string;
+            description_hash?: string;
+            preimage?: string;
+            payment_hash: string;
+            amount: number;
+            fees_paid?: number;
+            created_at: number;
+            expires_at?: number;
+            settled_at?: number;
+            metadata?: Record<string, unknown>;
+          }) => {
+            const mapped = {
+              invoice: tx.invoice || '',
+              payment_hash: tx.payment_hash,
+              preimage: tx.preimage,
+              amount: tx.amount,
+              description: tx.description,
+              created_at: tx.created_at,
+              expiry: tx.expires_at
+                ? Math.floor(
+                    (tx.expires_at - tx.created_at) /
+                      TIME.MILLISECONDS_PER_SECOND
+                  )
+                : undefined,
+              state: tx.state,
+              type: tx.type,
+              paid_at: tx.settled_at,
+              fees_paid: tx.fees_paid,
+              metadata: tx.metadata as Invoice['metadata']
+            };
+            return mapped;
+          }
+        );
         setTransactions(mappedTransactions);
         if (transactions.length === 0) {
           setTransactionsError(''); // Clear error if we got an empty list (that's valid)
@@ -351,7 +426,12 @@ const PaymentsPage: React.FC = () => {
     } finally {
       setTransactionsLoading(false);
     }
-  }, [nwcClient, setTransactions, setTransactionsLoading, setTransactionsError]);
+  }, [
+    nwcClient,
+    setTransactions,
+    setTransactionsLoading,
+    setTransactionsError
+  ]);
 
   // Load public zaps
   const loadPublicZaps = useCallback(async () => {
@@ -468,7 +548,11 @@ const PaymentsPage: React.FC = () => {
       });
 
       const queryClient = getQueryClient();
-      const profileMap = await ensureProfiles(queryClient, nostrClient, Array.from(pubkeys));
+      const profileMap = await ensureProfiles(
+        queryClient,
+        nostrClient,
+        Array.from(pubkeys)
+      );
 
       // Attach profiles to zaps
       const zapsWithProfiles = uniqueZaps.map(zap => ({
@@ -481,7 +565,9 @@ const PaymentsPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to load public zaps:', error);
       setPublicZapsError(
-        error instanceof Error ? error.message : 'Failed to load public payments'
+        error instanceof Error
+          ? error.message
+          : 'Failed to load public payments'
       );
       setPublicZaps([]);
     } finally {
@@ -499,7 +585,13 @@ const PaymentsPage: React.FC = () => {
       clearBalance();
       clearTransactions();
     }
-  }, [nwcClient, loadBalance, loadTransactions, clearBalance, clearTransactions]);
+  }, [
+    nwcClient,
+    loadBalance,
+    loadTransactions,
+    clearBalance,
+    clearTransactions
+  ]);
 
   // Load public zaps when switching to public view
   useEffect(() => {
@@ -532,7 +624,9 @@ const PaymentsPage: React.FC = () => {
       return;
     }
 
-    const scannedAddress = sessionStorage.getItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS);
+    const scannedAddress = sessionStorage.getItem(
+      STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS
+    );
     if (scannedAddress) {
       sessionStorage.removeItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS);
       setShowSendModal(true);
@@ -555,12 +649,24 @@ const PaymentsPage: React.FC = () => {
       }
     };
 
-    window.addEventListener('walletScannedInvoice', handleScannedInvoice as EventListener);
-    window.addEventListener('walletScannedLightningAddress', handleScannedLightningAddress as EventListener);
+    window.addEventListener(
+      'walletScannedInvoice',
+      handleScannedInvoice as EventListener
+    );
+    window.addEventListener(
+      'walletScannedLightningAddress',
+      handleScannedLightningAddress as EventListener
+    );
 
     return () => {
-      window.removeEventListener('walletScannedInvoice', handleScannedInvoice as EventListener);
-      window.removeEventListener('walletScannedLightningAddress', handleScannedLightningAddress as EventListener);
+      window.removeEventListener(
+        'walletScannedInvoice',
+        handleScannedInvoice as EventListener
+      );
+      window.removeEventListener(
+        'walletScannedLightningAddress',
+        handleScannedLightningAddress as EventListener
+      );
     };
   }, []);
 
@@ -568,30 +674,33 @@ const PaymentsPage: React.FC = () => {
   const handleGenerateInvoice = async () => {
     if (!nwcClient) {
       useUIStore.getState().openToast('NWC not connected', 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.SHORT
+      );
       return;
     }
 
     // Validate amount is provided
     if (!receiveAmount.trim()) {
-      useUIStore.getState().openToast(
-        'Please enter an amount',
-        'error',
-        false
+      useUIStore.getState().openToast('Please enter an amount', 'error', false);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.SHORT
       );
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
       return;
     }
 
     // Validate amount format and limits
     const amountValidation = validatePaymentAmount(receiveAmount);
     if (!amountValidation.valid) {
-      useUIStore.getState().openToast(
-        amountValidation.error || 'Invalid amount',
-        'error',
-        false
+      useUIStore
+        .getState()
+        .openToast(amountValidation.error || 'Invalid amount', 'error', false);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.SHORT
       );
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
       return;
     }
 
@@ -606,23 +715,26 @@ const PaymentsPage: React.FC = () => {
       });
 
       if (response.error) {
-        useUIStore.getState().updateToast(
-          response.error.message || 'Failed to generate invoice',
-          'error',
-          true
-        );
+        useUIStore
+          .getState()
+          .updateToast(
+            response.error.message || 'Failed to generate invoice',
+            'error',
+            true
+          );
       } else if (response.result) {
         setReceiveInvoice(response.result.invoice);
         useUIStore.getState().openToast('Invoice generated!', 'success', false);
-        setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+        setTimeout(
+          () => useUIStore.getState().closeToast(),
+          TOAST_DURATION.SHORT
+        );
       }
     } catch (error) {
       console.error('Generate invoice error:', error);
-      useUIStore.getState().openToast(
-        'Failed to generate invoice',
-        'error',
-        true
-      );
+      useUIStore
+        .getState()
+        .openToast('Failed to generate invoice', 'error', true);
     } finally {
       setGeneratingInvoice(false);
     }
@@ -773,7 +885,8 @@ const PaymentsPage: React.FC = () => {
                     onMouseLeave={e => {
                       if (!balanceLoading) {
                         e.currentTarget.style.background = 'transparent';
-                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                        e.currentTarget.style.borderColor =
+                          'var(--border-color)';
                         e.currentTarget.style.color = 'var(--text-secondary)';
                       }
                     }}
@@ -783,7 +896,9 @@ const PaymentsPage: React.FC = () => {
                       className="material-symbols-outlined"
                       style={{
                         fontSize: '20px',
-                        animation: balanceLoading ? 'spin 1s linear infinite' : 'none',
+                        animation: balanceLoading
+                          ? 'spin 1s linear infinite'
+                          : 'none',
                         transition: 'transform 0.2s ease'
                       }}
                     >
@@ -850,7 +965,10 @@ const PaymentsPage: React.FC = () => {
                       gap: '8px'
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '18px' }}
+                    >
                       error_outline
                     </span>
                     {balanceError}
@@ -865,7 +983,8 @@ const PaymentsPage: React.FC = () => {
                         color: 'var(--text-primary)'
                       }}
                     >
-                      {formatBalance(balance)} <span style={{ fontSize: '24px' }}>sats</span>
+                      {formatBalance(balance)}{' '}
+                      <span style={{ fontSize: '24px' }}>sats</span>
                     </h2>
                     {lastBalanceUpdate && (
                       <p
@@ -879,11 +998,18 @@ const PaymentsPage: React.FC = () => {
                           gap: '4px'
                         }}
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: '14px' }}
+                        >
                           schedule
                         </span>
-                        Updated {Math.floor((Date.now() - lastBalanceUpdate.getTime()) / TIME.MILLISECONDS_PER_SECOND)}s
-                        ago
+                        Updated{' '}
+                        {Math.floor(
+                          (Date.now() - lastBalanceUpdate.getTime()) /
+                            TIME.MILLISECONDS_PER_SECOND
+                        )}
+                        s ago
                       </p>
                     )}
                   </>
@@ -916,7 +1042,10 @@ const PaymentsPage: React.FC = () => {
                     fontWeight: '500'
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px', fontWeight: '300' }}>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: '18px', fontWeight: '300' }}
+                  >
                     send
                   </span>
                   Send
@@ -935,7 +1064,10 @@ const PaymentsPage: React.FC = () => {
                     fontWeight: '500'
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px', fontWeight: '300' }}>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: '18px', fontWeight: '300' }}
+                  >
                     call_received
                   </span>
                   Receive
@@ -966,7 +1098,7 @@ const PaymentsPage: React.FC = () => {
                 <a
                   href="#"
                   className={`feedSelectorLink ${paymentView === 'public' ? 'active' : ''}`}
-                  onClick={(e) => {
+                  onClick={e => {
                     e.preventDefault();
                     setPaymentView('public');
                   }}
@@ -976,7 +1108,7 @@ const PaymentsPage: React.FC = () => {
                 <a
                   href="#"
                   className={`feedSelectorLink ${paymentView === 'wallet' ? 'active' : ''}`}
-                  onClick={(e) => {
+                  onClick={e => {
                     e.preventDefault();
                     setPaymentView('wallet');
                   }}
@@ -991,7 +1123,14 @@ const PaymentsPage: React.FC = () => {
           {paymentView === 'wallet' ? (
             <section style={{ marginBottom: '24px' }}>
               <div>
-                <h3 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>
+                <h3
+                  style={{
+                    fontSize: '20px',
+                    fontWeight: '600',
+                    marginBottom: '16px',
+                    color: 'var(--text-primary)'
+                  }}
+                >
                   Wallet Payments
                 </h3>
                 {!nwcClient ? (
@@ -1005,7 +1144,12 @@ const PaymentsPage: React.FC = () => {
                       border: '1px solid var(--border-color)'
                     }}
                   >
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    <p
+                      style={{
+                        fontSize: '14px',
+                        color: 'var(--text-secondary)'
+                      }}
+                    >
                       Connect wallet to view payments
                     </p>
                   </div>
@@ -1069,7 +1213,8 @@ const PaymentsPage: React.FC = () => {
                       }}
                       onMouseEnter={e => {
                         if (!transactionsLoading) {
-                          e.currentTarget.style.background = COLORS.PRIMARY_HOVER;
+                          e.currentTarget.style.background =
+                            COLORS.PRIMARY_HOVER;
                           e.currentTarget.style.transform = 'translateY(-1px)';
                         }
                       }}
@@ -1084,7 +1229,9 @@ const PaymentsPage: React.FC = () => {
                         className="material-symbols-outlined"
                         style={{
                           fontSize: '18px',
-                          animation: transactionsLoading ? 'spin 1s linear infinite' : 'none'
+                          animation: transactionsLoading
+                            ? 'spin 1s linear infinite'
+                            : 'none'
                         }}
                       >
                         refresh
@@ -1105,21 +1252,25 @@ const PaymentsPage: React.FC = () => {
                   </p>
                 ) : (
                   <div style={{ marginTop: '16px' }}>
-                    {transactions.slice(0, visibleTransactionsCount).map((tx, idx) => (
-                      <TransactionCard
-                        key={idx}
-                        amount={tx.amount || 0}
-                        type={tx.type || 'incoming'}
-                        created_at={tx.created_at}
-                        paid_at={tx.paid_at}
-                        transaction={tx}
-                        isInvoiceExpired={isInvoiceExpired}
-                        isInvoicePaid={isInvoicePaid}
-                      />
-                    ))}
+                    {transactions
+                      .slice(0, visibleTransactionsCount)
+                      .map((tx, idx) => (
+                        <TransactionCard
+                          key={idx}
+                          amount={tx.amount || 0}
+                          type={tx.type || 'incoming'}
+                          created_at={tx.created_at}
+                          paid_at={tx.paid_at}
+                          transaction={tx}
+                          isInvoiceExpired={isInvoiceExpired}
+                          isInvoicePaid={isInvoicePaid}
+                        />
+                      ))}
                     {transactions.length > visibleTransactionsCount && (
                       <button
-                        onClick={() => setVisibleTransactionsCount(prev => prev + 10)}
+                        onClick={() =>
+                          setVisibleTransactionsCount(prev => prev + 10)
+                        }
                         style={{
                           width: '100%',
                           marginTop: '12px',
@@ -1134,15 +1285,21 @@ const PaymentsPage: React.FC = () => {
                           transition: 'all 0.2s ease'
                         }}
                         onMouseEnter={e => {
-                          e.currentTarget.style.background = 'var(--bg-primary)';
-                          e.currentTarget.style.borderColor = 'var(--text-secondary)';
+                          e.currentTarget.style.background =
+                            'var(--bg-primary)';
+                          e.currentTarget.style.borderColor =
+                            'var(--text-secondary)';
                         }}
                         onMouseLeave={e => {
-                          e.currentTarget.style.background = 'var(--bg-secondary)';
-                          e.currentTarget.style.borderColor = 'var(--border-color)';
+                          e.currentTarget.style.background =
+                            'var(--bg-secondary)';
+                          e.currentTarget.style.borderColor =
+                            'var(--border-color)';
                         }}
                       >
-                        Show More ({transactions.length - visibleTransactionsCount} remaining)
+                        Show More (
+                        {transactions.length - visibleTransactionsCount}{' '}
+                        remaining)
                       </button>
                     )}
                   </div>
@@ -1152,8 +1309,21 @@ const PaymentsPage: React.FC = () => {
           ) : (
             <section style={{ marginBottom: '24px' }}>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3 style={{ fontSize: '20px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '16px'
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: '20px',
+                      fontWeight: '600',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
                     Public Payments
                   </h3>
                   <button
@@ -1176,7 +1346,9 @@ const PaymentsPage: React.FC = () => {
                       className="material-symbols-outlined"
                       style={{
                         fontSize: '18px',
-                        animation: publicZapsLoading ? 'spin 1s linear infinite' : 'none'
+                        animation: publicZapsLoading
+                          ? 'spin 1s linear infinite'
+                          : 'none'
                       }}
                     >
                       refresh
@@ -1195,7 +1367,12 @@ const PaymentsPage: React.FC = () => {
                       border: '1px solid var(--border-color)'
                     }}
                   >
-                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                    <p
+                      style={{
+                        fontSize: '14px',
+                        color: 'var(--text-secondary)'
+                      }}
+                    >
                       Please log in to view public payments
                     </p>
                   </div>
@@ -1262,7 +1439,9 @@ const PaymentsPage: React.FC = () => {
                         className="material-symbols-outlined"
                         style={{
                           fontSize: '18px',
-                          animation: publicZapsLoading ? 'spin 1s linear infinite' : 'none'
+                          animation: publicZapsLoading
+                            ? 'spin 1s linear infinite'
+                            : 'none'
                         }}
                       >
                         refresh
@@ -1287,7 +1466,9 @@ const PaymentsPage: React.FC = () => {
                     visibleCount={visiblePublicZapsCount}
                     getProfileData={getProfileData}
                     navigate={navigate}
-                    onLoadMore={() => setVisiblePublicZapsCount(prev => prev + 20)}
+                    onLoadMore={() =>
+                      setVisiblePublicZapsCount(prev => prev + 20)
+                    }
                   />
                 )}
               </div>
@@ -1366,75 +1547,82 @@ const PaymentsPage: React.FC = () => {
 const PublicZapList = React.memo<{
   zaps: PublicZap[];
   visibleCount: number;
-  getProfileData: (profile: Kind0Event | null) => { name: string; picture: string };
+  getProfileData: (profile: Kind0Event | null) => {
+    name: string;
+    picture: string;
+  };
   navigate: (path: string) => void;
   onLoadMore: () => void;
-}>(({ zaps, visibleCount, getProfileData, navigate, onLoadMore }) => {
+}>(
+  ({ zaps, visibleCount, getProfileData, navigate, onLoadMore }) => {
+    const visibleZaps = useMemo(
+      () => zaps.slice(0, visibleCount),
+      [zaps, visibleCount]
+    );
 
-  const visibleZaps = useMemo(() => zaps.slice(0, visibleCount), [zaps, visibleCount]);
-
-  return (
-    <div style={{ marginTop: '16px' }}>
-      {visibleZaps.map((zap) => (
-        <TransactionCard
-          key={zap.id}
-          amount={zap.amount}
-          type={zap.type}
-          created_at={zap.created_at}
-          zap={zap}
-          getProfileData={getProfileData}
-        />
-      ))}
-      {zaps.length > visibleCount && (
-        <button
-          onClick={onLoadMore}
-          style={{
-            width: '100%',
-            marginTop: '12px',
-            padding: '12px',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '8px',
-            color: 'var(--text-primary)',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'var(--bg-primary)';
-            e.currentTarget.style.borderColor = 'var(--text-secondary)';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'var(--bg-secondary)';
-            e.currentTarget.style.borderColor = 'var(--border-color)';
-          }}
-        >
-          Show More ({zaps.length - visibleCount} remaining)
-        </button>
-      )}
-    </div>
-  );
-}, (prevProps, nextProps) => {
-  // Custom comparison function for React.memo
-  return (
-    prevProps.zaps.length === nextProps.zaps.length &&
-    prevProps.visibleCount === nextProps.visibleCount &&
-    prevProps.zaps.every((zap, index) => {
-      const nextZap = nextProps.zaps[index];
-      return (
-        zap.id === nextZap.id &&
-        zap.amount === nextZap.amount &&
-        zap.type === nextZap.type &&
-        zap.content === nextZap.content &&
-        zap.created_at === nextZap.created_at &&
-        zap.preimage === nextZap.preimage
-      );
-    })
-  );
-});
+    return (
+      <div style={{ marginTop: '16px' }}>
+        {visibleZaps.map(zap => (
+          <TransactionCard
+            key={zap.id}
+            amount={zap.amount}
+            type={zap.type}
+            created_at={zap.created_at}
+            zap={zap}
+            getProfileData={getProfileData}
+          />
+        ))}
+        {zaps.length > visibleCount && (
+          <button
+            onClick={onLoadMore}
+            style={{
+              width: '100%',
+              marginTop: '12px',
+              padding: '12px',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              color: 'var(--text-primary)',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--bg-primary)';
+              e.currentTarget.style.borderColor = 'var(--text-secondary)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'var(--bg-secondary)';
+              e.currentTarget.style.borderColor = 'var(--border-color)';
+            }}
+          >
+            Show More ({zaps.length - visibleCount} remaining)
+          </button>
+        )}
+      </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison function for React.memo
+    return (
+      prevProps.zaps.length === nextProps.zaps.length &&
+      prevProps.visibleCount === nextProps.visibleCount &&
+      prevProps.zaps.every((zap, index) => {
+        const nextZap = nextProps.zaps[index];
+        return (
+          zap.id === nextZap.id &&
+          zap.amount === nextZap.amount &&
+          zap.type === nextZap.type &&
+          zap.content === nextZap.content &&
+          zap.created_at === nextZap.created_at &&
+          zap.preimage === nextZap.preimage
+        );
+      })
+    );
+  }
+);
 
 PublicZapList.displayName = 'PublicZapList';
 
 export default PaymentsPage;
-

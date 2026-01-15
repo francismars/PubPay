@@ -67,15 +67,15 @@ NIP05_DOMAIN=yourdomain.com
 
 ## What Each Variable Does
 
-| Variable | Required | Default | Purpose |
-|----------|----------|---------|---------|
-| `LNBITS_API_KEY` | ✅ Yes | - | Authenticates with LNbits for payments |
-| `WEBHOOK_URL` | ✅ Yes | - | Base URL for payment webhooks |
-| `PORT` | ❌ No | `3002` | Backend server port |
-| `NODE_ENV` | ❌ No | `development` | Environment mode |
-| `LNBITS_URL` | ❌ No | `https://legend.lnbits.com` | LNbits instance URL |
-| `NIP05_DOMAIN` | ❌ No | `yourdomain.com` | Domain for NIP-05 verification |
-| `FRONTEND_URL` | ❌ No | - | CORS origin (production only) |
+| Variable         | Required | Default                     | Purpose                                |
+| ---------------- | -------- | --------------------------- | -------------------------------------- |
+| `LNBITS_API_KEY` | ✅ Yes   | -                           | Authenticates with LNbits for payments |
+| `WEBHOOK_URL`    | ✅ Yes   | -                           | Base URL for payment webhooks          |
+| `PORT`           | ❌ No    | `3002`                      | Backend server port                    |
+| `NODE_ENV`       | ❌ No    | `development`               | Environment mode                       |
+| `LNBITS_URL`     | ❌ No    | `https://legend.lnbits.com` | LNbits instance URL                    |
+| `NIP05_DOMAIN`   | ❌ No    | `yourdomain.com`            | Domain for NIP-05 verification         |
+| `FRONTEND_URL`   | ❌ No    | -                           | CORS origin (production only)          |
 
 ## Quick Setup
 
@@ -88,10 +88,10 @@ NIP05_DOMAIN=yourdomain.com
 ## Testing
 
 After setting up, start the server:
+
 ```bash
 cd packages/backend
 npm run dev
 ```
 
 The server will log which variables are configured. Check the console output for any warnings about missing variables.
-

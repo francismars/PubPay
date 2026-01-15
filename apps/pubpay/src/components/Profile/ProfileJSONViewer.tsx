@@ -40,4 +40,3 @@ export const ProfileJSONViewer: React.FC<ProfileJSONViewerProps> = ({
     </div>
   );
 };
-

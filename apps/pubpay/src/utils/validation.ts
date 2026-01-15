@@ -41,9 +41,12 @@ export interface ValidationResultWithErrors {
  * @param amount - Amount as number or string
  * @returns Validation result with error message if invalid
  */
-export function validatePaymentAmount(amount: number | string): ValidationResult {
+export function validatePaymentAmount(
+  amount: number | string
+): ValidationResult {
   // Convert to number if string (use parseInt for integers)
-  const numAmount = typeof amount === 'string' ? parseInt(amount.trim(), 10) : amount;
+  const numAmount =
+    typeof amount === 'string' ? parseInt(amount.trim(), 10) : amount;
 
   // Check if NaN or not a valid integer
   if (isNaN(numAmount) || !Number.isInteger(numAmount)) {
@@ -148,7 +151,9 @@ export function validateNoteContent(content: string): ValidationResult {
  * @param address - Lightning address string
  * @returns Validation result with error message if invalid
  */
-export function validateLightningAddressFormat(address: string): ValidationResult {
+export function validateLightningAddressFormat(
+  address: string
+): ValidationResult {
   if (!address || typeof address !== 'string') {
     return {
       valid: false,
@@ -224,7 +229,8 @@ export function validateLightningAddressFormat(address: string): ValidationResul
   if (!localPartRegex.test(localPart)) {
     return {
       valid: false,
-      error: 'Username can only contain letters, numbers, dots, hyphens, and underscores'
+      error:
+        'Username can only contain letters, numbers, dots, hyphens, and underscores'
     };
   }
 
@@ -309,13 +315,20 @@ export function validateProfileData(data: unknown): ValidationResultWithErrors {
   const profileData = data as Record<string, unknown>;
 
   // Validate display name
-  if (profileData.display_name !== undefined && profileData.display_name !== null) {
+  if (
+    profileData.display_name !== undefined &&
+    profileData.display_name !== null
+  ) {
     const name = String(profileData.display_name);
     if (name.length > VALIDATION_LIMITS.PROFILE_NAME.MAX) {
-      errors.push(`Display name cannot exceed ${VALIDATION_LIMITS.PROFILE_NAME.MAX} characters`);
+      errors.push(
+        `Display name cannot exceed ${VALIDATION_LIMITS.PROFILE_NAME.MAX} characters`
+      );
     }
     if (name.length > 0 && name.length < VALIDATION_LIMITS.PROFILE_NAME.MIN) {
-      errors.push(`Display name must be at least ${VALIDATION_LIMITS.PROFILE_NAME.MIN} character`);
+      errors.push(
+        `Display name must be at least ${VALIDATION_LIMITS.PROFILE_NAME.MIN} character`
+      );
     }
   }
 
@@ -323,7 +336,9 @@ export function validateProfileData(data: unknown): ValidationResultWithErrors {
   if (profileData.name !== undefined && profileData.name !== null) {
     const name = String(profileData.name);
     if (name.length > VALIDATION_LIMITS.PROFILE_NAME.MAX) {
-      errors.push(`Name cannot exceed ${VALIDATION_LIMITS.PROFILE_NAME.MAX} characters`);
+      errors.push(
+        `Name cannot exceed ${VALIDATION_LIMITS.PROFILE_NAME.MAX} characters`
+      );
     }
   }
 
@@ -331,7 +346,9 @@ export function validateProfileData(data: unknown): ValidationResultWithErrors {
   if (profileData.about !== undefined && profileData.about !== null) {
     const bio = String(profileData.about);
     if (bio.length > VALIDATION_LIMITS.PROFILE_BIO.MAX) {
-      errors.push(`Bio cannot exceed ${VALIDATION_LIMITS.PROFILE_BIO.MAX} characters`);
+      errors.push(
+        `Bio cannot exceed ${VALIDATION_LIMITS.PROFILE_BIO.MAX} characters`
+      );
     }
   }
 
@@ -339,7 +356,9 @@ export function validateProfileData(data: unknown): ValidationResultWithErrors {
   if (profileData.website !== undefined && profileData.website !== null) {
     const website = String(profileData.website);
     if (website.length > VALIDATION_LIMITS.PROFILE_WEBSITE.MAX) {
-      errors.push(`Website URL cannot exceed ${VALIDATION_LIMITS.PROFILE_WEBSITE.MAX} characters`);
+      errors.push(
+        `Website URL cannot exceed ${VALIDATION_LIMITS.PROFILE_WEBSITE.MAX} characters`
+      );
     }
     if (website.length > 0) {
       try {
@@ -352,7 +371,9 @@ export function validateProfileData(data: unknown): ValidationResultWithErrors {
 
   // Validate lightning address
   if (profileData.lud16 !== undefined && profileData.lud16 !== null) {
-    const lud16Result = validateLightningAddressFormat(String(profileData.lud16));
+    const lud16Result = validateLightningAddressFormat(
+      String(profileData.lud16)
+    );
     if (!lud16Result.valid) {
       errors.push(`Lightning address: ${lud16Result.error}`);
     }
@@ -362,7 +383,9 @@ export function validateProfileData(data: unknown): ValidationResultWithErrors {
   if (profileData.nip05 !== undefined && profileData.nip05 !== null) {
     const nip05 = String(profileData.nip05);
     if (nip05.length > VALIDATION_LIMITS.PROFILE_NIP05.MAX_LENGTH) {
-      errors.push(`NIP-05 cannot exceed ${VALIDATION_LIMITS.PROFILE_NIP05.MAX_LENGTH} characters`);
+      errors.push(
+        `NIP-05 cannot exceed ${VALIDATION_LIMITS.PROFILE_NIP05.MAX_LENGTH} characters`
+      );
     }
     // NIP-05 follows email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -375,7 +398,9 @@ export function validateProfileData(data: unknown): ValidationResultWithErrors {
   try {
     const jsonString = JSON.stringify(data);
     if (jsonString.length > VALIDATION_LIMITS.JSON_PAYLOAD.MAX_SIZE) {
-      errors.push(`Profile data is too large (max ${VALIDATION_LIMITS.JSON_PAYLOAD.MAX_SIZE / 1000}KB)`);
+      errors.push(
+        `Profile data is too large (max ${VALIDATION_LIMITS.JSON_PAYLOAD.MAX_SIZE / 1000}KB)`
+      );
     }
   } catch {
     errors.push('Profile data cannot be serialized to JSON');
@@ -458,7 +483,10 @@ export function extractLightningAddresses(
 export function extractNip05s(
   posts: PubPayPost[]
 ): Map<string, { nip05: string; pubkey: string; posts: PubPayPost[] }> {
-  const nip05s = new Map<string, { nip05: string; pubkey: string; posts: PubPayPost[] }>();
+  const nip05s = new Map<
+    string,
+    { nip05: string; pubkey: string; posts: PubPayPost[] }
+  >();
 
   for (const post of posts) {
     if (post.author) {
@@ -498,8 +526,11 @@ export async function validateLightningAddress(
       lightningValid: isValid,
       lightningValidating: false,
       // Update isPayable based on validation result
-      isPayable: !!(isValid && post.hasZapTags &&
-        (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses))
+      isPayable: !!(
+        isValid &&
+        post.hasZapTags &&
+        (post.zapUses === 0 || post.zapUsesCurrent < post.zapUses)
+      )
     }));
 
     return { isValid, updatedPosts };
@@ -547,4 +578,3 @@ export async function validateNip05(
     return { isValid: false, updatedPosts };
   }
 }
-

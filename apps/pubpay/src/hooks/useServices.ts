@@ -1,5 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { NostrClient, LightningService, ZapService, DEFAULT_READ_RELAYS, DEFAULT_WRITE_RELAYS } from '@pubpay/shared-services';
+import {
+  NostrClient,
+  LightningService,
+  ZapService,
+  DEFAULT_READ_RELAYS,
+  DEFAULT_WRITE_RELAYS
+} from '@pubpay/shared-services';
 import { LightningConfig } from '@pubpay/shared-types';
 import { STORAGE_KEYS } from '../constants';
 import { usePostStore, useNostrReady } from '../stores/usePostStore';
@@ -23,14 +29,21 @@ export const useServices = () => {
     const initializeServices = () => {
       try {
         // Initialize Nostr client with user custom relays if present
-        let initialRelays: string[] | Array<{ url: string; read: boolean; write: boolean }> | undefined = undefined;
+        let initialRelays:
+          | string[]
+          | Array<{ url: string; read: boolean; write: boolean }>
+          | undefined = undefined;
         try {
           const savedRelays = localStorage.getItem(STORAGE_KEYS.CUSTOM_RELAYS);
           if (savedRelays) {
             const parsed = JSON.parse(savedRelays);
             if (Array.isArray(parsed)) {
               // Check if it's the new format (RelayConfig[]) or old format (string[])
-              if (parsed.length > 0 && typeof parsed[0] === 'object' && 'url' in parsed[0]) {
+              if (
+                parsed.length > 0 &&
+                typeof parsed[0] === 'object' &&
+                'url' in parsed[0]
+              ) {
                 // New format: RelayConfig[]
                 initialRelays = parsed;
               } else if (parsed.every(r => typeof r === 'string')) {
@@ -41,14 +54,19 @@ export const useServices = () => {
           } else {
             // No saved relays - initialize from constants to ensure correct default read/write config
             // This matches what SettingsPage does, ensuring consistency
-            const allDefaultRelays = [...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])];
+            const allDefaultRelays = [
+              ...new Set([...DEFAULT_READ_RELAYS, ...DEFAULT_WRITE_RELAYS])
+            ];
             initialRelays = allDefaultRelays.map(url => ({
               url,
               read: DEFAULT_READ_RELAYS.includes(url),
               write: DEFAULT_WRITE_RELAYS.includes(url)
             }));
             // Save to localStorage so SettingsPage can load it
-            localStorage.setItem(STORAGE_KEYS.CUSTOM_RELAYS, JSON.stringify(initialRelays));
+            localStorage.setItem(
+              STORAGE_KEYS.CUSTOM_RELAYS,
+              JSON.stringify(initialRelays)
+            );
           }
         } catch {
           // Ignore errors parsing saved relays
@@ -84,10 +102,20 @@ export const useServices = () => {
     const handleRelaysUpdated = (e: Event) => {
       try {
         const detail = (e as CustomEvent).detail as
-          | { relays?: string[]; relayConfig?: Array<{ url: string; read: boolean; write: boolean }> }
+          | {
+              relays?: string[];
+              relayConfig?: Array<{
+                url: string;
+                read: boolean;
+                write: boolean;
+              }>;
+            }
           | undefined;
         // Prefer relayConfig (new format) over relays (old format)
-        let nextRelays: string[] | Array<{ url: string; read: boolean; write: boolean }> | undefined = undefined;
+        let nextRelays:
+          | string[]
+          | Array<{ url: string; read: boolean; write: boolean }>
+          | undefined = undefined;
         if (detail?.relayConfig && Array.isArray(detail.relayConfig)) {
           nextRelays = detail.relayConfig;
         } else if (detail?.relays && Array.isArray(detail.relays)) {
@@ -138,4 +166,3 @@ export const useServices = () => {
     zapServiceRef
   };
 };
-

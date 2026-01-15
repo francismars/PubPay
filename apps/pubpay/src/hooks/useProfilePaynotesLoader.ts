@@ -56,7 +56,7 @@ export const useProfilePaynotesLoader = (
   const validateLightningAddresses = useCallback(
     async (posts: PubPayPost[]) => {
       if (isAborted) return;
-      
+
       // Extract unique lightning addresses from posts
       const lightningAddresses = new Map<string, PubPayPost[]>();
 
@@ -81,7 +81,7 @@ export const useProfilePaynotesLoader = (
       // Validate each unique lightning address (only once per address)
       for (const [lud16, postsWithAddress] of lightningAddresses.entries()) {
         if (isAborted) break;
-        
+
         // Skip if already validating or validated
         if (validatingLightningAddressesRef.current.has(lud16)) {
           continue;
@@ -93,12 +93,12 @@ export const useProfilePaynotesLoader = (
         // Validate asynchronously (fire and forget)
         safeAsync(async () => {
           if (isAborted) return;
-          
+
           try {
             const isValid = await ZapService.validateLightningAddress(lud16);
-            
+
             if (isAborted) return;
-            
+
             // Update all posts with this lightning address using functional updates
             setUserPaynotes(prev =>
               prev.map(post => {
@@ -122,7 +122,10 @@ export const useProfilePaynotesLoader = (
             if (isAbortError(error)) {
               return;
             }
-            console.warn(`Failed to validate lightning address ${lud16}:`, error);
+            console.warn(
+              `Failed to validate lightning address ${lud16}:`,
+              error
+            );
             // Mark as invalid on error
             if (isAborted) return;
             setUserPaynotes(prev =>
@@ -154,7 +157,7 @@ export const useProfilePaynotesLoader = (
   const validateNip05s = useCallback(
     async (posts: PubPayPost[]) => {
       if (isAborted) return;
-      
+
       // Extract unique NIP-05 identifiers from posts with their pubkeys
       const nip05s = new Map<
         string,
@@ -167,14 +170,14 @@ export const useProfilePaynotesLoader = (
           try {
             const authorData = JSON.parse(post.author.content || '{}');
             const nip05 = authorData?.nip05;
-            if (
-              nip05 &&
-              typeof nip05 === 'string' &&
-              post.event.pubkey
-            ) {
+            if (nip05 && typeof nip05 === 'string' && post.event.pubkey) {
               const key = `${nip05}:${post.event.pubkey}`;
               if (!nip05s.has(key)) {
-                nip05s.set(key, { nip05, pubkey: post.event.pubkey, posts: [] });
+                nip05s.set(key, {
+                  nip05,
+                  pubkey: post.event.pubkey,
+                  posts: []
+                });
               }
               nip05s.get(key)!.posts.push(post);
             }
@@ -185,9 +188,12 @@ export const useProfilePaynotesLoader = (
       }
 
       // Validate each unique NIP-05 identifier (only once per identifier:pubkey combo)
-      for (const [key, { nip05, pubkey, posts: postsWithNip05 }] of nip05s.entries()) {
+      for (const [
+        key,
+        { nip05, pubkey, posts: postsWithNip05 }
+      ] of nip05s.entries()) {
         if (isAborted) break;
-        
+
         // Skip if already validating
         if (validatingNip05sRef.current.has(key)) {
           continue;
@@ -210,12 +216,15 @@ export const useProfilePaynotesLoader = (
         // Validate asynchronously (fire and forget)
         safeAsync(async () => {
           if (isAborted) return;
-          
+
           try {
-            const isValid = await Nip05ValidationService.validateNip05(nip05, pubkey);
-            
+            const isValid = await Nip05ValidationService.validateNip05(
+              nip05,
+              pubkey
+            );
+
             if (isAborted) return;
-            
+
             // Update all posts with this NIP-05 using functional updates
             setUserPaynotes(prev =>
               prev.map(post => {
@@ -311,7 +320,9 @@ export const useProfilePaynotesLoader = (
         let deduplicatedEvents = Array.from(uniqueEventsMap.values());
 
         // Sort by created_at (newest first)
-        deduplicatedEvents.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+        deduplicatedEvents.sort(
+          (a, b) => (b.created_at || 0) - (a.created_at || 0)
+        );
 
         // Apply limit (safety check)
         if (!loadMore) {
@@ -401,7 +412,7 @@ export const useProfilePaynotesLoader = (
         // Load profiles, zaps, and zap payer profiles in background (non-blocking)
         safeAsync(async () => {
           if (isAborted) return;
-          
+
           try {
             // Use unified loadPostData utility to load all related data
             const postData = await loadPostData(
@@ -471,7 +482,7 @@ export const useProfilePaynotesLoader = (
             };
 
             if (isAborted) return;
-            
+
             setUserPaynotes(prev => {
               return prev.map(post => {
                 const event = deduplicatedEvents.find(
@@ -486,7 +497,7 @@ export const useProfilePaynotesLoader = (
 
             // Process and update zaps
             if (isAborted) return;
-            
+
             setUserPaynotes(prev => {
               return prev.map(paynote => {
                 const event = deduplicatedEvents.find(
@@ -542,15 +553,18 @@ export const useProfilePaynotesLoader = (
                     }
                   }
 
-                  const zapPayerProfile = zapPayerProfileMap.get(zapPayerPubkey);
+                  const zapPayerProfile =
+                    zapPayerProfileMap.get(zapPayerPubkey);
                   const zapPayerPicture =
                     zapPayerProfile &&
                     zapPayerProfile.content &&
                     zapPayerProfile.content !== '{}'
-                      ? (safeJson<Record<string, unknown>>(
-                          zapPayerProfile.content || '{}',
-                          {}
-                        ) as any).picture || genericUserIcon
+                      ? (
+                          safeJson<Record<string, unknown>>(
+                            zapPayerProfile.content || '{}',
+                            {}
+                          ) as any
+                        ).picture || genericUserIcon
                       : genericUserIcon;
 
                   const zapPayerNpub = nip19.npubEncode(zapPayerPubkey);
@@ -628,14 +642,18 @@ export const useProfilePaynotesLoader = (
             });
 
             // Validate lightning addresses asynchronously
-            safeTimeout(() => {
-              if (isAborted) return;
-              setUserPaynotes(prev => {
-                validateLightningAddresses(prev);
-                validateNip05s(prev);
-                return prev;
-              });
-            }, 100, signal);
+            safeTimeout(
+              () => {
+                if (isAborted) return;
+                setUserPaynotes(prev => {
+                  validateLightningAddresses(prev);
+                  validateNip05s(prev);
+                  return prev;
+                });
+              },
+              100,
+              signal
+            );
           } catch (err) {
             if (isAbortError(err)) {
               return;
@@ -706,7 +724,9 @@ export const useProfilePaynotesLoader = (
         }
       });
       let deduplicatedEvents = Array.from(uniqueEventsMap.values());
-      deduplicatedEvents.sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+      deduplicatedEvents.sort(
+        (a, b) => (b.created_at || 0) - (a.created_at || 0)
+      );
 
       // Check if there are more posts
       if (deduplicatedEvents.length >= displayLimit) {
@@ -765,9 +785,7 @@ export const useProfilePaynotesLoader = (
       // Add to existing paynotes
       setUserPaynotes(prev => {
         const existingIds = new Set(prev.map(p => p.id));
-        const newPosts = formattedPaynotes.filter(
-          p => !existingIds.has(p.id)
-        );
+        const newPosts = formattedPaynotes.filter(p => !existingIds.has(p.id));
         return [...prev, ...newPosts];
       });
 
@@ -776,7 +794,7 @@ export const useProfilePaynotesLoader = (
       // Load profiles and zaps in background (same as initial load)
       safeAsync(async () => {
         if (isAborted) return;
-        
+
         try {
           const authorPubkeys = Array.from(
             new Set(deduplicatedEvents.map((e: any) => e.pubkey))
@@ -867,7 +885,7 @@ export const useProfilePaynotesLoader = (
 
           // Process and update zaps
           if (isAborted) return;
-          
+
           setUserPaynotes(prev => {
             return prev.map(paynote => {
               const event = deduplicatedEvents.find(
@@ -927,10 +945,12 @@ export const useProfilePaynotesLoader = (
                   zapPayerProfile &&
                   zapPayerProfile.content &&
                   zapPayerProfile.content !== '{}'
-                    ? (safeJson<Record<string, unknown>>(
-                        zapPayerProfile.content || '{}',
-                        {}
-                      ) as any).picture || genericUserIcon
+                    ? (
+                        safeJson<Record<string, unknown>>(
+                          zapPayerProfile.content || '{}',
+                          {}
+                        ) as any
+                      ).picture || genericUserIcon
                     : genericUserIcon;
 
                 const zapPayerNpub = nip19.npubEncode(zapPayerPubkey);
@@ -1005,14 +1025,18 @@ export const useProfilePaynotesLoader = (
             });
           });
 
-          safeTimeout(() => {
-            if (isAborted) return;
-            setUserPaynotes(prev => {
-              validateLightningAddresses(prev);
-              validateNip05s(prev);
-              return prev;
-            });
-          }, 100, signal);
+          safeTimeout(
+            () => {
+              if (isAborted) return;
+              setUserPaynotes(prev => {
+                validateLightningAddresses(prev);
+                validateNip05s(prev);
+                return prev;
+              });
+            },
+            100,
+            signal
+          );
         } catch (err) {
           if (isAbortError(err)) {
             return;
@@ -1042,4 +1066,3 @@ export const useProfilePaynotesLoader = (
     loadMorePaynotes
   };
 };
-

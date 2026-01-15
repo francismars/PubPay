@@ -1,5 +1,11 @@
 // import { NostrEvent } from '@/types/nostr'; // Unused import
-import { nip57, nip19, getEventHash, generateSecretKey, finalizeEvent } from 'nostr-tools';
+import {
+  nip57,
+  nip19,
+  getEventHash,
+  generateSecretKey,
+  finalizeEvent
+} from 'nostr-tools';
 import { RELAYS } from '../../utils/constants';
 import { AuthService } from '../AuthService';
 
@@ -16,7 +22,10 @@ export interface ZapEventData {
 export class ZapService {
   private baseUrl: string;
   // In-memory cache for lightning address validation (only during processing, not persistent)
-  private static lightningValidationCache = new Map<string, { valid: boolean; timestamp: number }>();
+  private static lightningValidationCache = new Map<
+    string,
+    { valid: boolean; timestamp: number }
+  >();
   private static readonly VALIDATION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(baseUrl: string = '') {
@@ -41,7 +50,10 @@ export class ZapService {
     // Basic format check
     const ludSplit = lud16.split('@');
     if (ludSplit.length !== 2) {
-      this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
+      this.lightningValidationCache.set(lud16, {
+        valid: false,
+        timestamp: Date.now()
+      });
       return false;
     }
 
@@ -59,7 +71,10 @@ export class ZapService {
       }
 
       // Mark as validating to prevent duplicate calls
-      this.lightningValidationCache.set(validationKey, { valid: false, timestamp: Date.now() });
+      this.lightningValidationCache.set(validationKey, {
+        valid: false,
+        timestamp: Date.now()
+      });
 
       const url = `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`;
       const controller = new AbortController();
@@ -70,7 +85,7 @@ export class ZapService {
           signal: controller.signal,
           method: 'GET',
           headers: {
-            'Accept': 'application/json'
+            Accept: 'application/json'
           }
         });
 
@@ -78,14 +93,20 @@ export class ZapService {
         this.lightningValidationCache.delete(validationKey);
 
         if (!response.ok) {
-          this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
+          this.lightningValidationCache.set(lud16, {
+            valid: false,
+            timestamp: Date.now()
+          });
           return false;
         }
 
         const lnurlinfo = await response.json();
         const isValid = lnurlinfo.allowsNostr === true;
 
-        this.lightningValidationCache.set(lud16, { valid: isValid, timestamp: Date.now() });
+        this.lightningValidationCache.set(lud16, {
+          valid: isValid,
+          timestamp: Date.now()
+        });
         return isValid;
       } catch (fetchError) {
         clearTimeout(timeoutId);
@@ -94,13 +115,19 @@ export class ZapService {
         // Network errors, timeouts, or CORS errors - treat as invalid silently
         // CORS errors are common when servers don't allow cross-origin requests
         // Don't log these as they're expected behavior for many lightning servers
-        this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
+        this.lightningValidationCache.set(lud16, {
+          valid: false,
+          timestamp: Date.now()
+        });
         return false;
       }
     } catch (error) {
       // Handle any other errors silently (including CORS)
       // CORS errors are expected when servers don't allow cross-origin requests
-      this.lightningValidationCache.set(lud16, { valid: false, timestamp: Date.now() });
+      this.lightningValidationCache.set(lud16, {
+        valid: false,
+        timestamp: Date.now()
+      });
       return false;
     }
   }
@@ -131,7 +158,7 @@ export class ZapService {
           (tag: any) => tag[0] === 'zap-lnurl'
         );
       }
-      
+
       let eventCreatorProfileContent: any = {};
       try {
         eventCreatorProfileContent = JSON.parse(
@@ -144,7 +171,8 @@ export class ZapService {
       const lud16 =
         zapLNURL && zapLNURL.length > 0
           ? zapLNURL[1]
-          : eventCreatorProfileContent.lud16 || eventCreatorProfileContent.lud06;
+          : eventCreatorProfileContent.lud16 ||
+            eventCreatorProfileContent.lud06;
 
       if (!lud16) {
         console.error('No LUD16 address found for author');
@@ -165,11 +193,11 @@ export class ZapService {
           `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`
         );
       } catch {
-        errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
+        errorResponse = "CAN'T PAY: Failed to fetch lud16";
       }
 
       if (!response || response === undefined) {
-        errorResponse = 'CAN\'T PAY: Failed to fetch lud16';
+        errorResponse = "CAN'T PAY: Failed to fetch lud16";
       }
 
       if (errorResponse) {
@@ -179,7 +207,7 @@ export class ZapService {
 
       const lnurlinfo = await response!.json();
       if (!(lnurlinfo.allowsNostr === true)) {
-        errorResponse = 'CAN\'T PAY: No nostr support';
+        errorResponse = "CAN'T PAY: No nostr support";
       }
 
       if (errorResponse) {
@@ -193,12 +221,12 @@ export class ZapService {
       };
     } catch (error) {
       // Re-throw errors that we explicitly threw (they have our error messages)
-      if (error instanceof Error && error.message.startsWith('CAN\'T PAY:')) {
+      if (error instanceof Error && error.message.startsWith("CAN'T PAY:")) {
         throw error;
       }
       // For unexpected errors, wrap and throw
       console.error('Error getting invoice callback:', error);
-      throw new Error('CAN\'T PAY: Failed to fetch lud16');
+      throw new Error("CAN'T PAY: Failed to fetch lud16");
     }
   }
 
@@ -328,12 +356,19 @@ export class ZapService {
   ): Promise<boolean> {
     try {
       // Check for authentication state using AuthService
-      const { publicKey, encryptedPrivateKey, method: signInMethod } = AuthService.getStoredAuthData();
+      const {
+        publicKey,
+        encryptedPrivateKey,
+        method: signInMethod
+      } = AuthService.getStoredAuthData();
 
       console.log('Sign in method:', signInMethod);
       console.log('Public key:', publicKey);
       console.log('Has encrypted private key:', !!encryptedPrivateKey);
-      console.log('Has decrypted private key from auth state:', !!decryptedPrivateKey);
+      console.log(
+        'Has decrypted private key from auth state:',
+        !!decryptedPrivateKey
+      );
 
       // Use decrypted private key from auth state if provided (for password-encrypted keys)
       let privateKey: string | null = decryptedPrivateKey || null;
@@ -344,19 +379,34 @@ export class ZapService {
           // Check if password is required
           if (AuthService.requiresPassword()) {
             console.error('Password required to decrypt private key for zap');
-            throw new Error('Your private key is password-protected. Please log in again and enter your password to sign zaps.');
+            throw new Error(
+              'Your private key is password-protected. Please log in again and enter your password to sign zaps.'
+            );
           }
           // Try to decrypt with device key (automatic, no password needed)
           privateKey = await AuthService.decryptStoredPrivateKey();
           // Validate that decrypted key is a string and looks like nsec
-          if (!privateKey || typeof privateKey !== 'string' || !privateKey.startsWith('nsec')) {
-            console.error('Invalid decrypted private key format:', typeof privateKey);
-            throw new Error('Unable to decrypt your private key. The format appears invalid. Please log in again.');
+          if (
+            !privateKey ||
+            typeof privateKey !== 'string' ||
+            !privateKey.startsWith('nsec')
+          ) {
+            console.error(
+              'Invalid decrypted private key format:',
+              typeof privateKey
+            );
+            throw new Error(
+              'Unable to decrypt your private key. The format appears invalid. Please log in again.'
+            );
           }
         } catch (error) {
           console.error('Failed to decrypt private key for zap:', error);
           // Re-throw with clearer message if it's our custom error, otherwise wrap it
-          if (error instanceof Error && !error.message.includes('password') && !error.message.includes('decrypt')) {
+          if (
+            error instanceof Error &&
+            !error.message.includes('password') &&
+            !error.message.includes('decrypt')
+          ) {
             throw new Error(`Unable to sign zap: ${error.message}`);
           }
           throw error;
@@ -367,7 +417,9 @@ export class ZapService {
       // Extension and externalSigner methods don't need a stored private key
       if (signInMethod === 'nsec' && !privateKey) {
         // No private key available for nsec method - user needs to log in again
-        throw new Error('Unable to decrypt your private key. Please log in again to sign zaps.');
+        throw new Error(
+          'Unable to decrypt your private key. Please log in again to sign zaps.'
+        );
       }
 
       console.log('Has private key:', !!privateKey);
@@ -410,10 +462,7 @@ export class ZapService {
           return false;
         }
         const privateKeyBytes = decoded.data as Uint8Array;
-        zapFinalized = finalizeEvent(
-          zapEvent as any,
-          privateKeyBytes
-        );
+        zapFinalized = finalizeEvent(zapEvent as any, privateKeyBytes);
       } else {
         console.log(
           'No valid signing method found, falling back to anonymous zap'
@@ -440,7 +489,7 @@ export class ZapService {
       return true;
     } catch (error) {
       // Re-throw errors that have our error messages (from getInvoiceandPay)
-      if (error instanceof Error && error.message.startsWith('CAN\'T PAY:')) {
+      if (error instanceof Error && error.message.startsWith("CAN'T PAY:")) {
         throw error;
       }
       // For other errors, log and return false
@@ -475,7 +524,7 @@ export class ZapService {
 
       if (!responseFinal.ok) {
         const errorText = await responseFinal.text();
-        const errorMessage = 'CAN\'T PAY: Failed to get invoice';
+        const errorMessage = "CAN'T PAY: Failed to get invoice";
         console.error(
           'Failed to get invoice from callback:',
           responseFinal.status,
@@ -488,24 +537,24 @@ export class ZapService {
       console.log('Lightning service response:', responseData);
 
       if (!responseData.pr) {
-        const errorMessage = 'CAN\'T PAY: Failed to get invoice';
+        const errorMessage = "CAN'T PAY: Failed to get invoice";
         console.error('No invoice (pr) in response:', responseData);
         throw new Error(errorMessage);
       }
 
       const { pr: invoice } = responseData;
-        // Extract zap request ID from the signed zap request event
-        const zapRequestID = (zapFinalized as any)?.id || '';
-        // Pass the zap request event ID (for matching when zap receipt arrives) and post event ID
-        await this.handleFetchedInvoice(invoice, eventID, amount, zapRequestID);
+      // Extract zap request ID from the signed zap request event
+      const zapRequestID = (zapFinalized as any)?.id || '';
+      // Pass the zap request event ID (for matching when zap receipt arrives) and post event ID
+      await this.handleFetchedInvoice(invoice, eventID, amount, zapRequestID);
     } catch (error) {
       // Re-throw errors that we explicitly threw (they have our error messages)
-      if (error instanceof Error && error.message.startsWith('CAN\'T PAY:')) {
+      if (error instanceof Error && error.message.startsWith("CAN'T PAY:")) {
         throw error;
       }
       // For unexpected errors, wrap and throw
       console.error('Error getting invoice and paying:', error);
-      throw new Error('CAN\'T PAY: Failed to get invoice');
+      throw new Error("CAN'T PAY: Failed to get invoice");
     }
   }
 
@@ -528,14 +577,17 @@ export class ZapService {
       // Helper function to get active NWC URI (checks both old and new storage formats)
       const getActiveNWCUri = (): string | null => {
         if (typeof localStorage === 'undefined') return null;
-        
+
         // First check new multi-connection format
         try {
           const activeId = localStorage.getItem('nwcActiveConnectionId');
           if (activeId) {
             const connections = localStorage.getItem('nwcConnections');
             if (connections) {
-              const parsed = JSON.parse(connections) as Array<{ id: string; uri: string }>;
+              const parsed = JSON.parse(connections) as Array<{
+                id: string;
+                uri: string;
+              }>;
               const connection = parsed.find(c => c.id === activeId);
               if (connection?.uri) {
                 return connection.uri;
@@ -545,7 +597,7 @@ export class ZapService {
         } catch {
           // Ignore parse errors
         }
-        
+
         // Fallback to old single connection format
         return (
           localStorage.getItem('nwcConnectionString') ||
@@ -562,7 +614,8 @@ export class ZapService {
         typeof localStorage !== 'undefined'
           ? localStorage.getItem('nwcAutoPay')
           : null;
-      const shouldAutoPay = nwcAutoPayPref === null || nwcAutoPayPref === 'true';
+      const shouldAutoPay =
+        nwcAutoPayPref === null || nwcAutoPayPref === 'true';
 
       if (nwcUri && shouldAutoPay) {
         const { NwcClient } = await import('../nwc/NwcClient');
@@ -653,14 +706,12 @@ export class ZapService {
       const { useUIStore } = await import('../state/uiStore');
       // eventId: post event ID (for finding recipient)
       // zapRequestId: zap request event ID (for closing when payment detected)
-      useUIStore
-        .getState()
-        .openInvoice({
-          bolt11: invoice,
-          amount,
-          eventId: zapEventID, // Post event ID for finding recipient
-          zapRequestId: zapRequestID // Zap request event ID for closing
-        });
+      useUIStore.getState().openInvoice({
+        bolt11: invoice,
+        amount,
+        eventId: zapEventID, // Post event ID for finding recipient
+        zapRequestId: zapRequestID // Zap request event ID for closing
+      });
     } catch (e) {
       console.error('Failed to open invoice overlay via store:', e);
     }
@@ -691,7 +742,7 @@ export class ZapService {
       // Get invoice callback (pass null for eventData since this is a profile zap)
       const callback = await this.getInvoiceCallBack(null, recipientProfile);
       if (!callback) {
-        throw new Error('CAN\'T PAY: Failed to get Lightning callback');
+        throw new Error("CAN'T PAY: Failed to get Lightning callback");
       }
 
       // Create zap request
@@ -700,12 +751,12 @@ export class ZapService {
         recipientPubkey,
         amount,
         callback.lud16ToZap,
-        anonymousZap ? null : (senderPubkey || null),
+        anonymousZap ? null : senderPubkey || null,
         comment
       );
 
       if (!zapEventData) {
-        throw new Error('CAN\'T PAY: Failed to create zap request');
+        throw new Error("CAN'T PAY: Failed to create zap request");
       }
 
       // Sign and send
@@ -721,10 +772,10 @@ export class ZapService {
       );
     } catch (error) {
       console.error('Error sending profile zap:', error);
-      if (error instanceof Error && error.message.startsWith('CAN\'T PAY:')) {
+      if (error instanceof Error && error.message.startsWith("CAN'T PAY:")) {
         throw error;
       }
-      throw new Error('CAN\'T PAY: Failed to send profile zap');
+      throw new Error("CAN'T PAY: Failed to send profile zap");
     }
   }
 }

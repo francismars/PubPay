@@ -59,8 +59,9 @@
       "short_name": "New Request",
       "description": "Create a new payment request",
       "url": "/",
-      "icons": [{ "src": "/images/android-icon-192x192.png", "sizes": "192x192" }]
+      "icons": [
+        { "src": "/images/android-icon-192x192.png", "sizes": "192x192" }
+      ]
     }
   ]
 }
-

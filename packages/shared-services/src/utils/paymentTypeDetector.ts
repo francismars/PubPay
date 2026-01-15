@@ -4,7 +4,13 @@
 import { nip19 } from 'nostr-tools';
 import { LnurlService } from '../services/lightning/LnurlService';
 
-export type PaymentType = 'invoice' | 'lightning-address' | 'lnurl' | 'nostr-user' | 'nostr-post' | null;
+export type PaymentType =
+  | 'invoice'
+  | 'lightning-address'
+  | 'lnurl'
+  | 'nostr-user'
+  | 'nostr-post'
+  | null;
 
 export interface PaymentTypeDetectionResult {
   type: PaymentType;
@@ -31,8 +37,8 @@ export function detectPaymentType(input: string): PaymentTypeDetectionResult {
   if (!trimmed) return { type: null };
 
   // Remove "lightning:" protocol prefix if present (for both invoices and LNURL)
-  const cleanInput = trimmed.toLowerCase().startsWith('lightning:') 
-    ? trimmed.substring(10) 
+  const cleanInput = trimmed.toLowerCase().startsWith('lightning:')
+    ? trimmed.substring(10)
     : trimmed;
 
   // Check for BOLT11 invoice
@@ -46,7 +52,9 @@ export function detectPaymentType(input: string): PaymentTypeDetectionResult {
   }
 
   // Check for Lightning Address
-  const lightningAddressMatch = cleanInput.match(/^([a-z0-9_-]+)@([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,})$/i);
+  const lightningAddressMatch = cleanInput.match(
+    /^([a-z0-9_-]+)@([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,})$/i
+  );
   if (lightningAddressMatch) {
     return { type: 'lightning-address', data: cleanInput };
   }
@@ -55,23 +63,29 @@ export function detectPaymentType(input: string): PaymentTypeDetectionResult {
   try {
     const decoded = nip19.decode(cleanInput);
     if (decoded.type === 'npub') {
-      return { type: 'nostr-user', data: { pubkey: decoded.data as string, npub: cleanInput } };
+      return {
+        type: 'nostr-user',
+        data: { pubkey: decoded.data as string, npub: cleanInput }
+      };
     } else if (decoded.type === 'nprofile') {
       const profile = decoded.data as any;
-      return { type: 'nostr-user', data: { pubkey: profile.pubkey, npub: nip19.npubEncode(profile.pubkey) } };
+      return {
+        type: 'nostr-user',
+        data: { pubkey: profile.pubkey, npub: nip19.npubEncode(profile.pubkey) }
+      };
     } else if (decoded.type === 'note') {
       const eventId = decoded.data as string;
       return { type: 'nostr-post', data: { eventId, identifier: cleanInput } };
     } else if (decoded.type === 'nevent') {
       const neventData = decoded.data as any;
-      return { 
-        type: 'nostr-post', 
-        data: { 
-          eventId: neventData.id, 
+      return {
+        type: 'nostr-post',
+        data: {
+          eventId: neventData.id,
           identifier: cleanInput,
           author: neventData.author,
           relays: neventData.relays
-        } 
+        }
       };
     }
   } catch {
@@ -90,6 +104,3 @@ export function detectPaymentType(input: string): PaymentTypeDetectionResult {
 
   return { type: null };
 }
-
-
-

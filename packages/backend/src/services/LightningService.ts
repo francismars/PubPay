@@ -138,17 +138,14 @@ export class LightningService {
 
     this.logger.info('LNBits request body:', requestBody);
 
-    const response = await fetch(
-      `${this.lnbitsUrl}/lnurlp/api/v1/links`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Api-Key': this.apiKey
-        },
-        body: JSON.stringify(requestBody)
-      }
-    );
+    const response = await fetch(`${this.lnbitsUrl}/lnurlp/api/v1/links`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Api-Key': this.apiKey
+      },
+      body: JSON.stringify(requestBody)
+    });
 
     this.logger.info('LNBits API response:', {
       status: response.status,

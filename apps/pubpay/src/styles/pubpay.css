@@ -1247,7 +1247,7 @@ body.dark-mode .noteAuthor .label a {
 .zapMaxLabel,
 .zapUsesLabel {
   margin: 3px 0;
-  color:var(--text-tertiary);
+  color: var(--text-tertiary);
   font-size: 12px;
   text-align: center;
 }
@@ -2042,7 +2042,7 @@ body.dark-mode .paymentAmountField:focus {
 }
 
 /* Uses label margin-top */
-#newKind1 label[for="zapUses"] {
+#newKind1 label[for='zapUses'] {
   margin-top: 10px;
 }
 
@@ -2059,13 +2059,13 @@ body.dark-mode .paymentAmountField:focus {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .paymentTypeSelect,
   .paymentAmountInput {
     min-width: 100%;
     margin-bottom: 15px;
   }
-  
+
   .paymentAmountInput {
     margin-bottom: 0;
   }
@@ -3005,7 +3005,6 @@ textarea:focus::placeholder {
   opacity: 0.8;
 }
 
-
 .zapSlider {
   width: 100%;
   height: 6px;
@@ -3094,12 +3093,20 @@ textarea:focus::placeholder {
 
 #login .material-symbols-outlined {
   font-size: 20px;
-  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 300,
+    'GRAD' 0,
+    'opsz' 20;
 }
 
 #scanQrCode .material-symbols-outlined {
   font-size: 20px;
-  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 20;
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 300,
+    'GRAD' 0,
+    'opsz' 20;
 }
 
 .disabled {
@@ -5163,14 +5170,14 @@ body.dark-mode .useCaseCode {
     min-height: 24px;
     position: relative;
   }
-  
+
   .toggleSwitch input {
     height: 24px;
     min-height: 24px;
     position: relative;
     display: block;
   }
-  
+
   .toggleSwitch .toggleCircle {
     position: absolute;
     top: 6px;
@@ -5185,7 +5192,7 @@ body.dark-mode .useCaseCode {
     transition: left 0.2s ease;
     -webkit-transition: left 0.2s ease;
   }
-  
+
   .toggleSwitch input:checked + .toggleCircle {
     left: 25px;
     transform: none;
@@ -5278,7 +5285,9 @@ body.dark-mode .relayInput {
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .relayItemCard:hover {
@@ -5311,12 +5320,15 @@ body.dark-mode .relayItemCard:hover {
   display: inline-block;
   margin-right: 8px;
   flex-shrink: 0;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1), 0 0 4px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.1),
+    0 0 4px rgba(0, 0, 0, 0.1);
   animation: pulse 2s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {
@@ -5439,7 +5451,6 @@ body.dark-mode .relayItemBody {
     border-radius: 8px;
     box-shadow: none !important;
   }
-
 
   body.dark-mode .relayToggleLabel {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);

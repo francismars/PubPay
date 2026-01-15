@@ -27,19 +27,12 @@ export const ProfileQRModal: React.FC<ProfileQRModalProps> = ({
         onClick={e => e.stopPropagation()}
       >
         <h3 style={{ margin: '0 0 16px 0', color: COLORS.TEXT_PRIMARY }}>
-          {type === 'npub'
-            ? 'User ID QR Code'
-            : 'Lightning Address QR Code'}
+          {type === 'npub' ? 'User ID QR Code' : 'Lightning Address QR Code'}
         </h3>
 
         <div className="profileQRContainer">
           {data ? (
-            <GenericQR
-              data={data}
-              width={200}
-              height={200}
-              id="npubQR"
-            />
+            <GenericQR data={data} width={200} height={200} id="npubQR" />
           ) : (
             <div
               style={{
@@ -54,7 +47,11 @@ export const ProfileQRModal: React.FC<ProfileQRModalProps> = ({
         </div>
 
         <p
-          style={{ margin: '0 0 16px 0', color: COLORS.TEXT_LIGHT, fontSize: FONT_SIZES.SM }}
+          style={{
+            margin: '0 0 16px 0',
+            color: COLORS.TEXT_LIGHT,
+            fontSize: FONT_SIZES.SM
+          }}
         >
           <code
             style={{
@@ -71,15 +68,17 @@ export const ProfileQRModal: React.FC<ProfileQRModalProps> = ({
         </p>
 
         <p
-          style={{ margin: '0 0 16px 0', color: COLORS.TEXT_LIGHT, fontSize: FONT_SIZES.SM }}
+          style={{
+            margin: '0 0 16px 0',
+            color: COLORS.TEXT_LIGHT,
+            fontSize: FONT_SIZES.SM
+          }}
         >
           {type === 'npub'
             ? 'Scan this QR code with a Nostr client to add this user'
             : 'Scan this QR code with a Lightning wallet to send payment'}
         </p>
-        <div
-          style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}
-        >
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
           <button
             className="profileCopyButton"
             onClick={e => {
@@ -89,14 +88,15 @@ export const ProfileQRModal: React.FC<ProfileQRModalProps> = ({
                 e
               );
             }}
-            style={{ margin: 0, background: COLORS.PRIMARY, color: COLORS.TEXT_WHITE }}
+            style={{
+              margin: 0,
+              background: COLORS.PRIMARY,
+              color: COLORS.TEXT_WHITE
+            }}
           >
             Copy {type === 'npub' ? 'npub' : 'address'}
           </button>
-          <button
-            className="profileCopyButton"
-            onClick={onClose}
-          >
+          <button className="profileCopyButton" onClick={onClose}>
             Close
           </button>
         </div>
@@ -104,4 +104,3 @@ export const ProfileQRModal: React.FC<ProfileQRModalProps> = ({
     </div>
   );
 };
-

@@ -6,7 +6,15 @@ import {
   BlossomService
 } from '@pubpay/shared-services';
 import { nip19, finalizeEvent, getEventHash, verifyEvent } from 'nostr-tools';
-import { TOAST_DURATION, TIMEOUT, STORAGE_KEYS, DIMENSIONS, FONT_SIZES, COLORS, SPACING } from '../constants';
+import {
+  TOAST_DURATION,
+  TIMEOUT,
+  STORAGE_KEYS,
+  DIMENSIONS,
+  FONT_SIZES,
+  COLORS,
+  SPACING
+} from '../constants';
 import { sanitizeUrl, sanitizeImageUrl } from '../utils/profileUtils';
 import { validateProfileData } from '../utils/validation';
 
@@ -71,7 +79,9 @@ const EditProfilePage: React.FC = () => {
   useEffect(() => {
     const handleUploadComplete = (event: CustomEvent) => {
       const { imageUrl } = event.detail;
-      const uploadType = sessionStorage.getItem(STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE);
+      const uploadType = sessionStorage.getItem(
+        STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE
+      );
       sessionStorage.removeItem(STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE);
 
       if (uploadType === 'picture') {
@@ -96,7 +106,9 @@ const EditProfilePage: React.FC = () => {
 
     const handleUploadError = (event: CustomEvent) => {
       const { error } = event.detail;
-      const uploadType = sessionStorage.getItem(STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE);
+      const uploadType = sessionStorage.getItem(
+        STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE
+      );
       sessionStorage.removeItem(STORAGE_KEYS.BLOSSOM_UPLOAD_TYPE);
 
       if (uploadType === 'picture') {
@@ -188,7 +200,10 @@ const EditProfilePage: React.FC = () => {
                 ? 'webp'
                 : null;
 
-      const imageUrl = blossomService.getFileUrl(hash, extFromType || undefined);
+      const imageUrl = blossomService.getFileUrl(
+        hash,
+        extFromType || undefined
+      );
 
       if (target === 'picture') {
         setProfileData(prev => ({ ...prev, picture: imageUrl }));
@@ -196,7 +211,11 @@ const EditProfilePage: React.FC = () => {
         setProfileData(prev => ({ ...prev, banner: imageUrl }));
       }
 
-      updateToast(`${target === 'picture' ? 'Picture' : 'Banner'} uploaded successfully!`, 'success', false);
+      updateToast(
+        `${target === 'picture' ? 'Picture' : 'Banner'} uploaded successfully!`,
+        'success',
+        false
+      );
       setTimeout(() => closeToast(), TOAST_DURATION.SHORT);
       uploadTypeRef.current = null;
     } catch (error) {
@@ -408,9 +427,10 @@ const EditProfilePage: React.FC = () => {
       // Validate profile data before saving
       const profileValidation = validateProfileData(profileDataForNostr);
       if (!profileValidation.valid) {
-        const errorMessage = profileValidation.errors.length > 0
-          ? profileValidation.errors.join('. ')
-          : 'Invalid profile data';
+        const errorMessage =
+          profileValidation.errors.length > 0
+            ? profileValidation.errors.join('. ')
+            : 'Invalid profile data';
         updateToast(errorMessage, 'error', false);
         setIsSaving(false);
         return;
@@ -560,7 +580,11 @@ const EditProfilePage: React.FC = () => {
         </div>
 
         {/* Preview Section */}
-        <div className="profileSection" id="profilePreview" style={{ marginBottom: '30px' }}>
+        <div
+          className="profileSection"
+          id="profilePreview"
+          style={{ marginBottom: '30px' }}
+        >
           {/* Banner Image */}
           <div className="profileBanner">
             {profileData.banner && sanitizeImageUrl(profileData.banner) ? (
@@ -597,25 +621,25 @@ const EditProfilePage: React.FC = () => {
               <div
                 className="profileAvatarFallback"
                 style={{ display: profileData.picture ? 'none' : 'flex' }}
-                >
-                  {profileData.displayName
-                    ? profileData.displayName.charAt(0).toUpperCase()
-                    : 'U'}
-                </div>
+              >
+                {profileData.displayName
+                  ? profileData.displayName.charAt(0).toUpperCase()
+                  : 'U'}
+              </div>
             </div>
             <div className="profileUserDetails">
               <h2>{profileData.displayName || 'Anonymous User'}</h2>
               <p>{profileData.bio || 'No bio provided'}</p>
-                {profileData.website && sanitizeUrl(profileData.website) && (
-                    <a
-                      href={sanitizeUrl(profileData.website)!}
-                      target="_blank"
-                      rel="noopener noreferrer"
+              {profileData.website && sanitizeUrl(profileData.website) && (
+                <a
+                  href={sanitizeUrl(profileData.website)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="profileWebsite"
-                    >
-                      {profileData.website}
-                    </a>
-                )}
+                >
+                  {profileData.website}
+                </a>
+              )}
             </div>
           </div>
         </div>
@@ -677,8 +701,7 @@ const EditProfilePage: React.FC = () => {
                     if (parent) {
                       const errorDiv = document.createElement('div');
                       errorDiv.textContent = 'Failed to load image';
-                      errorDiv.style.cssText =
-                        `color: ${COLORS.ERROR_ALT}; font-size: ${FONT_SIZES.XS}; margin-top: ${SPACING.XS};`;
+                      errorDiv.style.cssText = `color: ${COLORS.ERROR_ALT}; font-size: ${FONT_SIZES.XS}; margin-top: ${SPACING.XS};`;
                       parent.appendChild(errorDiv);
                     }
                   }}
@@ -732,8 +755,7 @@ const EditProfilePage: React.FC = () => {
                     if (parent) {
                       const errorDiv = document.createElement('div');
                       errorDiv.textContent = 'Failed to load image';
-                      errorDiv.style.cssText =
-                        `color: ${COLORS.ERROR_ALT}; font-size: ${FONT_SIZES.XS}; margin-top: ${SPACING.XS};`;
+                      errorDiv.style.cssText = `color: ${COLORS.ERROR_ALT}; font-size: ${FONT_SIZES.XS}; margin-top: ${SPACING.XS};`;
                       parent.appendChild(errorDiv);
                     }
                   }}

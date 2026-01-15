@@ -73,14 +73,15 @@ export const RoomViewerPage: React.FC = () => {
   const slideOutTimerRef = useRef<number | null>(null);
   const clearTimerRef = useRef<number | null>(null);
   const currentPreviousIndexRef = useRef<number | null>(null);
-  
+
   useEffect(() => {
     if (items.length > 0) {
       const normalized = actualIndex % items.length;
-      const prevNormalized = prevActualIndexRef.current !== null 
-        ? prevActualIndexRef.current % items.length 
-        : null;
-      
+      const prevNormalized =
+        prevActualIndexRef.current !== null
+          ? prevActualIndexRef.current % items.length
+          : null;
+
       // If index changed, update previousIndex to the old value
       if (prevNormalized !== null && prevNormalized !== normalized) {
         // Clear any existing timers from previous transitions
@@ -92,13 +93,13 @@ export const RoomViewerPage: React.FC = () => {
           clearTimeout(clearTimerRef.current);
           clearTimerRef.current = null;
         }
-        
+
         // Reset state for new transition
         // The new incoming slide (z-index: 2) will cover the old previous slide anyway
         setPreviousIndex(prevNormalized);
         currentPreviousIndexRef.current = prevNormalized;
         setPreviousShouldSlideOut(false); // Start with previous staying in place
-        
+
         // After new slide finishes sliding in (500ms), start sliding out previous
         slideOutTimerRef.current = window.setTimeout(() => {
           // Double-check we're still on the same transition before sliding out
@@ -107,7 +108,7 @@ export const RoomViewerPage: React.FC = () => {
           }
           slideOutTimerRef.current = null;
         }, 500);
-        
+
         // Clear previousIndex after previous finishes sliding out (500ms slide-in + 500ms slide-out)
         clearTimerRef.current = window.setTimeout(() => {
           // Only clear if this is still the current previous slide
@@ -119,12 +120,12 @@ export const RoomViewerPage: React.FC = () => {
           clearTimerRef.current = null;
         }, 1000);
       }
-      
+
       // Store current as ref for next change
       prevActualIndexRef.current = actualIndex;
     }
   }, [actualIndex, items.length]);
-  
+
   // Cleanup timers on unmount
   useEffect(() => {
     return () => {
@@ -246,7 +247,9 @@ export const RoomViewerPage: React.FC = () => {
   const fetchRoomDetails = useCallback(async () => {
     if (!roomId) return;
     try {
-      const storedPassword = appSessionStorage.getItem<string>(`room_${roomId}_password`);
+      const storedPassword = appSessionStorage.getItem<string>(
+        `room_${roomId}_password`
+      );
       let res;
       if (storedPassword) {
         res = await fetch(`${getApiBase()}/multi/${roomId}`, {
@@ -276,40 +279,47 @@ export const RoomViewerPage: React.FC = () => {
   }, [roomId]);
 
   // Build URL with style parameters
-  const buildStyledUrl = useCallback((baseUrl: string, styles: StyleConfig | null): string => {
-    if (!styles || Object.keys(styles).length === 0) {
-      return baseUrl;
-    }
-    const params = new URLSearchParams();
-    if (styles.textColor) params.set('textColor', styles.textColor);
-    if (styles.bgColor) params.set('bgColor', styles.bgColor);
-    if (styles.bgImage) params.set('bgImage', styles.bgImage);
-    if (styles.opacity !== undefined) params.set('opacity', String(styles.opacity));
-    if (styles.textOpacity !== undefined) params.set('textOpacity', String(styles.textOpacity));
-    if (styles.qrInvert) params.set('qrInvert', 'true');
-    if (styles.qrScreenBlend) params.set('qrScreenBlend', 'true');
-    if (styles.qrMultiplyBlend) params.set('qrMultiplyBlend', 'true');
-    if (styles.qrShowWebLink) params.set('qrShowWebLink', 'true');
-    if (styles.qrShowNevent !== undefined) params.set('qrShowNevent', String(styles.qrShowNevent));
-    if (styles.qrShowNote) params.set('qrShowNote', 'true');
-    if (styles.layoutInvert) params.set('layoutInvert', 'true');
-    if (styles.hideZapperContent) params.set('hideZapperContent', 'true');
-    if (styles.showTopZappers) params.set('showTopZappers', 'true');
-    if (styles.podium) params.set('podium', 'true');
-    if (styles.zapGrid) params.set('zapGrid', 'true');
-    if (styles.sectionLabels) params.set('sectionLabels', 'true');
-    if (styles.qrOnly) params.set('qrOnly', 'true');
-    if (styles.showFiat) params.set('showFiat', 'true');
-    if (styles.showHistoricalPrice) params.set('showHistoricalPrice', 'true');
-    if (styles.showHistoricalChange) params.set('showHistoricalChange', 'true');
-    if (styles.fiatOnly) params.set('fiatOnly', 'true');
-    if (styles.lightning) params.set('lightning', 'true');
-    if (styles.selectedCurrency) params.set('selectedCurrency', styles.selectedCurrency);
-    if (styles.partnerLogo) params.set('partnerLogo', styles.partnerLogo);
-    const queryString = params.toString();
-    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
-  }, []);
-
+  const buildStyledUrl = useCallback(
+    (baseUrl: string, styles: StyleConfig | null): string => {
+      if (!styles || Object.keys(styles).length === 0) {
+        return baseUrl;
+      }
+      const params = new URLSearchParams();
+      if (styles.textColor) params.set('textColor', styles.textColor);
+      if (styles.bgColor) params.set('bgColor', styles.bgColor);
+      if (styles.bgImage) params.set('bgImage', styles.bgImage);
+      if (styles.opacity !== undefined)
+        params.set('opacity', String(styles.opacity));
+      if (styles.textOpacity !== undefined)
+        params.set('textOpacity', String(styles.textOpacity));
+      if (styles.qrInvert) params.set('qrInvert', 'true');
+      if (styles.qrScreenBlend) params.set('qrScreenBlend', 'true');
+      if (styles.qrMultiplyBlend) params.set('qrMultiplyBlend', 'true');
+      if (styles.qrShowWebLink) params.set('qrShowWebLink', 'true');
+      if (styles.qrShowNevent !== undefined)
+        params.set('qrShowNevent', String(styles.qrShowNevent));
+      if (styles.qrShowNote) params.set('qrShowNote', 'true');
+      if (styles.layoutInvert) params.set('layoutInvert', 'true');
+      if (styles.hideZapperContent) params.set('hideZapperContent', 'true');
+      if (styles.showTopZappers) params.set('showTopZappers', 'true');
+      if (styles.podium) params.set('podium', 'true');
+      if (styles.zapGrid) params.set('zapGrid', 'true');
+      if (styles.sectionLabels) params.set('sectionLabels', 'true');
+      if (styles.qrOnly) params.set('qrOnly', 'true');
+      if (styles.showFiat) params.set('showFiat', 'true');
+      if (styles.showHistoricalPrice) params.set('showHistoricalPrice', 'true');
+      if (styles.showHistoricalChange)
+        params.set('showHistoricalChange', 'true');
+      if (styles.fiatOnly) params.set('fiatOnly', 'true');
+      if (styles.lightning) params.set('lightning', 'true');
+      if (styles.selectedCurrency)
+        params.set('selectedCurrency', styles.selectedCurrency);
+      if (styles.partnerLogo) params.set('partnerLogo', styles.partnerLogo);
+      const queryString = params.toString();
+      return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+    },
+    []
+  );
 
   const copyRoomId = useCallback(() => {
     if (!roomId) return;
@@ -975,38 +985,44 @@ export const RoomViewerPage: React.FC = () => {
                   const normalizedIdx = idx % items.length;
                   const normalizedActual = actualIndex % items.length;
                   const isActive = normalizedIdx === normalizedActual;
-                  const isPrevious = previousIndex !== null && normalizedIdx === previousIndex;
-                  
+                  const isPrevious =
+                    previousIndex !== null && normalizedIdx === previousIndex;
+
                   // Determine slide direction and z-index
                   let transform: string;
                   let zIndex: number;
-                  
+
                   if (isActive) {
                     transform = 'translateX(0)'; // Active: slide in from right to center
                     zIndex = 2; // On top during slide-in
                   } else if (isPrevious) {
                     // Previous: stays in place until new slide finishes, then slides out left
-                    transform = previousShouldSlideOut ? 'translateX(-100%)' : 'translateX(0)';
+                    transform = previousShouldSlideOut
+                      ? 'translateX(-100%)'
+                      : 'translateX(0)';
                     zIndex = 1; // Underneath the incoming slide
                   } else {
                     transform = 'translateX(100%)'; // Others: wait off-screen right
                     zIndex = 0;
                   }
-                  
+
                   const base = window.location.origin;
                   // Items are Nostr note IDs - load them via /live/ route
                   const baseUrl = `${base}/live/${encodeURIComponent(item)}`;
                   const styledUrl = buildStyledUrl(baseUrl, styleConfig);
                   // Include style config in key to force reload when styles change
                   // Create a stable hash by sorting keys
-                  const styleHash = styleConfig 
+                  const styleHash = styleConfig
                     ? JSON.stringify(
                         Object.keys(styleConfig)
                           .sort()
-                          .reduce((acc, key) => {
-                            acc[key] = (styleConfig as any)[key];
-                            return acc;
-                          }, {} as Record<string, unknown>)
+                          .reduce(
+                            (acc, key) => {
+                              acc[key] = (styleConfig as any)[key];
+                              return acc;
+                            },
+                            {} as Record<string, unknown>
+                          )
                       )
                     : '';
                   return (
@@ -1024,7 +1040,8 @@ export const RoomViewerPage: React.FC = () => {
                         border: '0',
                         display: 'block',
                         transform,
-                        transition: 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+                        transition:
+                          'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
                         pointerEvents: isActive ? 'auto' : 'none',
                         zIndex
                       }}

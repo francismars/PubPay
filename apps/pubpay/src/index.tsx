@@ -2,17 +2,26 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { SW_UPDATE_NOTIFICATION_DURATION, TIMEOUT, COLORS, STORAGE_KEYS } from './constants';
+import {
+  SW_UPDATE_NOTIFICATION_DURATION,
+  TIMEOUT,
+  COLORS,
+  STORAGE_KEYS
+} from './constants';
 
 // Lazy load pages to reduce initial bundle size
-const FeedsPage = lazy(() => import('./pages/FeedsPage').then(m => ({ default: m.FeedsPage })));
+const FeedsPage = lazy(() =>
+  import('./pages/FeedsPage').then(m => ({ default: m.FeedsPage }))
+);
 const AboutPage = lazy(() => import('./pages/AboutPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const EditProfilePage = lazy(() => import('./pages/EditProfilePage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const PaymentsPage = lazy(() => import('./pages/PaymentsPage'));
-const NotFoundPage = lazy(() => import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
+const NotFoundPage = lazy(() =>
+  import('./pages/NotFoundPage').then(m => ({ default: m.NotFoundPage }))
+);
 
 // Import CSS
 import './styles/pubpay.css';
@@ -53,26 +62,29 @@ import './assets/images/icon/ms-icon-310x310.png';
 const LoadingFallback: React.FC = () => {
   // Initialize dark mode on mount
   useEffect(() => {
-    const savedDarkMode = localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
+    const savedDarkMode =
+      localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true';
     if (savedDarkMode) {
       document.body.classList.add('dark-mode');
     }
   }, []);
 
   return (
-  <div style={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: '100vh',
-    fontSize: '18px',
-      color: 'var(--text-secondary)',
-      backgroundColor: 'var(--bg-primary)',
-      transition: 'background-color 0.3s ease, color 0.3s ease'
-  }}>
-    Loading...
-  </div>
-);
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        fontSize: '18px',
+        color: 'var(--text-secondary)',
+        backgroundColor: 'var(--bg-primary)',
+        transition: 'background-color 0.3s ease, color 0.3s ease'
+      }}
+    >
+      Loading...
+    </div>
+  );
 };
 
 const App: React.FC = () => {
@@ -89,7 +101,8 @@ const App: React.FC = () => {
             <Route path="register" element={<RegisterPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="payments" element={<PaymentsPage />} />
-            <Route path="wallet" element={<PaymentsPage />} /> {/* Redirect to payments for backward compatibility */}
+            <Route path="wallet" element={<PaymentsPage />} />{' '}
+            {/* Redirect to payments for backward compatibility */}
             <Route path="note/:noteId" element={<FeedsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
@@ -108,8 +121,9 @@ if (container) {
 // Register Service Worker for PWA with update handling
 // Works on HTTPS (production) and localhost (development)
 if ('serviceWorker' in navigator) {
-  const isLocalhost = window.location.hostname === 'localhost' ||
-                      window.location.hostname === '127.0.0.1';
+  const isLocalhost =
+    window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1';
   const isSecure = window.location.protocol === 'https:' || isLocalhost;
 
   if (isSecure) {
@@ -118,7 +132,7 @@ if ('serviceWorker' in navigator) {
     // Lightweight update check - browser also checks automatically on navigation
     const checkForUpdates = () => {
       if (registration) {
-        registration.update().catch((error) => {
+        registration.update().catch(error => {
           console.log('[Service Worker] Update check failed:', error);
         });
       }
@@ -185,7 +199,7 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker
         .register('/service-worker.js')
-        .then((reg) => {
+        .then(reg => {
           registration = reg;
           console.log('[Service Worker] Registered successfully:', reg.scope);
 
@@ -203,7 +217,9 @@ if ('serviceWorker' in navigator) {
               } else if (newWorker.state === 'activated') {
                 // New service worker is active (happens with skipWaiting())
                 if (!refreshing) {
-                  console.log('[Service Worker] New version activated, reloading...');
+                  console.log(
+                    '[Service Worker] New version activated, reloading...'
+                  );
                   window.location.reload();
                   refreshing = true;
                 }
@@ -215,7 +231,7 @@ if ('serviceWorker' in navigator) {
           // No need for aggressive polling - browser handles this efficiently
           checkForUpdates();
         })
-        .catch((error) => {
+        .catch(error => {
           console.log('[Service Worker] Registration failed:', error);
         });
     });

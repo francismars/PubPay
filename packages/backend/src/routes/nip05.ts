@@ -50,46 +50,51 @@ export class Nip05Router {
 
   private initializeRoutes(): void {
     // SSE stream for payment/registration updates
-    this.router.get('/stream/:checkingId', (req: Request, res: Response): void => {
-      const { checkingId } = req.params;
-      if (!checkingId) {
-        res.status(400).json({ success: false, error: 'Checking ID is required' });
-        return;
-      }
-
-      res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Connection', 'keep-alive');
-      res.flushHeaders?.();
-
-      // Keep connection alive
-      const keepAlive = setInterval(() => {
-        try {
-          res.write(': keep-alive\n\n');
-        } catch {
-          // ignore
+    this.router.get(
+      '/stream/:checkingId',
+      (req: Request, res: Response): void => {
+        const { checkingId } = req.params;
+        if (!checkingId) {
+          res
+            .status(400)
+            .json({ success: false, error: 'Checking ID is required' });
+          return;
         }
-      }, 25000);
 
-      // Register client
-      if (!this.sseClients.has(checkingId)) {
-        this.sseClients.set(checkingId, new Set());
-      }
-      this.sseClients.get(checkingId)!.add(res);
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders?.();
 
-      req.on('close', () => {
-        clearInterval(keepAlive);
-        const set = this.sseClients.get(checkingId);
-        if (set) {
-          set.delete(res);
-          if (set.size === 0) this.sseClients.delete(checkingId);
+        // Keep connection alive
+        const keepAlive = setInterval(() => {
+          try {
+            res.write(': keep-alive\n\n');
+          } catch {
+            // ignore
+          }
+        }, 25000);
+
+        // Register client
+        if (!this.sseClients.has(checkingId)) {
+          this.sseClients.set(checkingId, new Set());
         }
-      });
+        this.sseClients.get(checkingId)!.add(res);
 
-      // Send initial hello
-      res.write(`event: hello\n`);
-      res.write(`data: ${JSON.stringify({ success: true, checkingId })}\n\n`);
-    });
+        req.on('close', () => {
+          clearInterval(keepAlive);
+          const set = this.sseClients.get(checkingId);
+          if (set) {
+            set.delete(res);
+            if (set.size === 0) this.sseClients.delete(checkingId);
+          }
+        });
+
+        // Send initial hello
+        res.write(`event: hello\n`);
+        res.write(`data: ${JSON.stringify({ success: true, checkingId })}\n\n`);
+      }
+    );
     // Get service info (price, domain)
     this.router.get('/info', (req: Request, res: Response) => {
       try {
@@ -121,7 +126,7 @@ export class Nip05Router {
         }
 
         const validation = this.nip05Service.validateUserChoice(name);
-        
+
         if (!validation.valid) {
           return res.status(400).json({
             success: false,
@@ -171,11 +176,13 @@ export class Nip05Router {
         }
 
         // Check if user already has maximum registrations (5)
-        const existingRegistrations = this.nip05Service.getRegistrationsByPubkey(pubkey);
+        const existingRegistrations =
+          this.nip05Service.getRegistrationsByPubkey(pubkey);
         if (existingRegistrations.length >= 5) {
           return res.status(400).json({
             success: false,
-            error: 'Maximum 5 NIP-05 identifiers per public key. Please use an existing registration.'
+            error:
+              'Maximum 5 NIP-05 identifiers per public key. Please use an existing registration.'
           });
         }
 
@@ -186,7 +193,8 @@ export class Nip05Router {
 
         // Create invoice
         // Normalize webhook URL to avoid double slashes
-        const baseUrl = process.env['WEBHOOK_URL']?.trim().replace(/\/+$/, '') || '';
+        const baseUrl =
+          process.env['WEBHOOK_URL']?.trim().replace(/\/+$/, '') || '';
         const webhookUrl = baseUrl ? `${baseUrl}/nip05/webhook` : undefined;
 
         const invoice = await this.paymentService.createInvoice(
@@ -226,65 +234,74 @@ export class Nip05Router {
     });
 
     // Check payment status
-    this.router.get('/payment/:checkingId', async (req: Request, res: Response) => {
-      // Disable caching for this endpoint to ensure fresh data
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      try {
-        const { checkingId } = req.params;
+    this.router.get(
+      '/payment/:checkingId',
+      async (req: Request, res: Response) => {
+        // Disable caching for this endpoint to ensure fresh data
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        try {
+          const { checkingId } = req.params;
 
-        if (!checkingId) {
-          return res.status(400).json({
-            success: false,
-            error: 'Checking ID is required'
-          });
-        }
+          if (!checkingId) {
+            return res.status(400).json({
+              success: false,
+              error: 'Checking ID is required'
+            });
+          }
 
-        const status = await this.paymentService.checkPaymentStatus(checkingId);
+          const status =
+            await this.paymentService.checkPaymentStatus(checkingId);
 
-        // Check if already registered (webhook may have registered it even if API says not paid yet)
-        let registration = null;
-        const foundReg = this.nip05Service.getRegistrationByPaymentProof(checkingId);
-        if (foundReg) {
-          registration = {
-            fullName: foundReg.fullName,
-            nip05: `${foundReg.fullName}@${foundReg.domain}`
-          };
-        } else {
-          // Also check pending invoice in case registration exists but paymentProof doesn't match
-          const pendingInvoice = this.pendingInvoices.get(checkingId);
-          if (pendingInvoice) {
-            const registrations = this.nip05Service.getRegistrationsByPubkey(pendingInvoice.pubkey);
-            const recentReg = registrations.find(r => r.paymentProof === checkingId);
-            if (recentReg) {
-              registration = {
-                fullName: recentReg.fullName,
-                nip05: `${recentReg.fullName}@${recentReg.domain}`
-              };
+          // Check if already registered (webhook may have registered it even if API says not paid yet)
+          let registration = null;
+          const foundReg =
+            this.nip05Service.getRegistrationByPaymentProof(checkingId);
+          if (foundReg) {
+            registration = {
+              fullName: foundReg.fullName,
+              nip05: `${foundReg.fullName}@${foundReg.domain}`
+            };
+          } else {
+            // Also check pending invoice in case registration exists but paymentProof doesn't match
+            const pendingInvoice = this.pendingInvoices.get(checkingId);
+            if (pendingInvoice) {
+              const registrations = this.nip05Service.getRegistrationsByPubkey(
+                pendingInvoice.pubkey
+              );
+              const recentReg = registrations.find(
+                r => r.paymentProof === checkingId
+              );
+              if (recentReg) {
+                registration = {
+                  fullName: recentReg.fullName,
+                  nip05: `${recentReg.fullName}@${recentReg.domain}`
+                };
+              }
             }
           }
+
+          // If registered, payment is considered paid (webhook confirmed it)
+          const paid = status.paid || !!registration;
+
+          return res.json({
+            success: true,
+            paid: paid,
+            payment_hash: status.payment_hash,
+            checking_id: status.checking_id,
+            registered: !!registration,
+            registration: registration || undefined
+          });
+        } catch (error: any) {
+          this.logger.error('Error checking payment:', error);
+          return res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to check payment'
+          });
         }
-
-        // If registered, payment is considered paid (webhook confirmed it)
-        const paid = status.paid || !!registration;
-
-        return res.json({
-          success: true,
-          paid: paid,
-          payment_hash: status.payment_hash,
-          checking_id: status.checking_id,
-          registered: !!registration,
-          registration: registration || undefined
-        });
-      } catch (error: any) {
-        this.logger.error('Error checking payment:', error);
-        return res.status(500).json({
-          success: false,
-          error: error.message || 'Failed to check payment'
-        });
       }
-    });
+    );
 
     // Register name (after payment verified)
     this.router.post('/register', async (req: Request, res: Response) => {
@@ -299,9 +316,8 @@ export class Nip05Router {
         }
 
         // Verify payment
-        const paymentStatus = await this.paymentService.checkPaymentStatus(
-          paymentProof
-        );
+        const paymentStatus =
+          await this.paymentService.checkPaymentStatus(paymentProof);
 
         if (!paymentStatus.paid) {
           return res.status(402).json({
@@ -346,12 +362,14 @@ export class Nip05Router {
       try {
         const webhookData = req.body;
 
-        this.logger.info('Webhook received:', JSON.stringify(webhookData, null, 2));
+        this.logger.info(
+          'Webhook received:',
+          JSON.stringify(webhookData, null, 2)
+        );
 
         // Extract payment_hash from webhook (BOLT11 invoices use payment_hash)
-        const checkingId = webhookData.payment_hash || 
-                          webhookData.checking_id || 
-                          webhookData.id;
+        const checkingId =
+          webhookData.payment_hash || webhookData.checking_id || webhookData.id;
 
         if (!checkingId) {
           this.logger.warn('Webhook missing payment_hash:', webhookData);
@@ -376,10 +394,17 @@ export class Nip05Router {
         const pendingInvoice = this.pendingInvoices.get(checkingId);
 
         if (!pendingInvoice) {
-          this.logger.warn('No pending invoice found for checking_id:', checkingId);
+          this.logger.warn(
+            'No pending invoice found for checking_id:',
+            checkingId
+          );
           // Still return success - payment was received, registration might happen via polling
           // Notify paid status anyway
-          this.notifySse(checkingId, { type: 'paid', success: true, checkingId });
+          this.notifySse(checkingId, {
+            type: 'paid',
+            success: true,
+            checkingId
+          });
           return res.json({
             success: true,
             message: 'Payment received, but registration info not found'
@@ -391,8 +416,11 @@ export class Nip05Router {
         // The webhook itself is proof of payment
 
         // Check if already registered (to handle duplicate webhook calls)
-        const existingRegistrations = this.nip05Service.getRegistrationsByPubkey(pendingInvoice.pubkey);
-        const alreadyRegistered = existingRegistrations.find(r => r.paymentProof === checkingId);
+        const existingRegistrations =
+          this.nip05Service.getRegistrationsByPubkey(pendingInvoice.pubkey);
+        const alreadyRegistered = existingRegistrations.find(
+          r => r.paymentProof === checkingId
+        );
 
         if (alreadyRegistered) {
           // Already registered - return success
@@ -476,7 +504,8 @@ export class Nip05Router {
           });
         }
 
-        const registrations = this.nip05Service.getRegistrationsByPubkey(pubkey);
+        const registrations =
+          this.nip05Service.getRegistrationsByPubkey(pubkey);
 
         return res.json({
           success: true,
@@ -498,23 +527,26 @@ export class Nip05Router {
     });
 
     // Serve nostr.json (for .well-known/nostr.json)
-    this.router.get('/.well-known/nostr.json', (req: Request, res: Response) => {
-      try {
-        const json = this.nip05Service.getNostrJson();
-        
-        // Set proper headers for NIP-05
-        res.setHeader('Content-Type', 'application/json');
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        
-        return res.json(json);
-      } catch (error) {
-        this.logger.error('Error serving nostr.json:', error);
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to generate nostr.json'
-        });
+    this.router.get(
+      '/.well-known/nostr.json',
+      (req: Request, res: Response) => {
+        try {
+          const json = this.nip05Service.getNostrJson();
+
+          // Set proper headers for NIP-05
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+
+          return res.json(json);
+        } catch (error) {
+          this.logger.error('Error serving nostr.json:', error);
+          return res.status(500).json({
+            success: false,
+            error: 'Failed to generate nostr.json'
+          });
+        }
       }
-    });
+    );
 
     // Get a specific registration
     this.router.get('/registration/:name', (req: Request, res: Response) => {
@@ -565,7 +597,7 @@ export class Nip05Router {
       }
     }
     // If this is a terminal event, close out subscribers
-    if (payload && (payload.type === 'registered')) {
+    if (payload && payload.type === 'registered') {
       const set = this.sseClients.get(checkingId);
       if (set) {
         for (const res of set) {
@@ -582,4 +614,3 @@ export class Nip05Router {
     }
   }
 }
-

@@ -46,9 +46,9 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({
   onCopyNpub,
   onShowQRNpub
 }) => {
-  const shouldShowSkeleton = 
-    isLoading || 
-    isInitialLoad || 
+  const shouldShowSkeleton =
+    isLoading ||
+    isInitialLoad ||
     !profileDataLoaded ||
     (loadStartTime !== null && Date.now() - loadStartTime < 300);
 
@@ -61,7 +61,10 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({
           <label>Lightning Address</label>
           <div className="profileDetailValue">
             {shouldShowSkeleton ? (
-              <div className="skeleton skeleton-text" style={{ width: '180px', height: '20px' }}></div>
+              <div
+                className="skeleton skeleton-text"
+                style={{ width: '180px', height: '20px' }}
+              ></div>
             ) : profileData.lightningAddress ? (
               <>
                 <a
@@ -97,7 +100,10 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({
           <label>Identifier (nip-05)</label>
           <div className="profileDetailValue">
             {shouldShowSkeleton ? (
-              <div className="skeleton skeleton-text" style={{ width: '150px', height: '20px' }}></div>
+              <div
+                className="skeleton skeleton-text"
+                style={{ width: '150px', height: '20px' }}
+              ></div>
             ) : profileData.nip05 ? (
               <>
                 <a
@@ -128,14 +134,13 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({
                   ) : nip05Valid === false ? (
                     <span className="material-symbols-outlined">block</span>
                   ) : nip05Valid === true ? (
-                    <span className="material-symbols-outlined">check_circle</span>
+                    <span className="material-symbols-outlined">
+                      check_circle
+                    </span>
                   ) : null}
                   {profileData.nip05}
                 </a>
-                <button
-                  className="profileCopyButton"
-                  onClick={onCopyNip05}
-                >
+                <button className="profileCopyButton" onClick={onCopyNip05}>
                   Copy
                 </button>
               </>
@@ -160,23 +165,14 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({
         <div className="profileDetailItem">
           <label>User ID (npub)</label>
           <div className="profileDetailValue">
-            <div
-              className="profilePublicKey"
-              title={npub}
-            >
+            <div className="profilePublicKey" title={npub}>
               {trimNpub(npub)}
             </div>
             <div className="profileButtonGroup">
-              <button
-                className="profileCopyButton"
-                onClick={onCopyNpub}
-              >
+              <button className="profileCopyButton" onClick={onCopyNpub}>
                 Copy
               </button>
-              <button
-                className="profileCopyButton"
-                onClick={onShowQRNpub}
-              >
+              <button className="profileCopyButton" onClick={onShowQRNpub}>
                 Show QR
               </button>
             </div>
@@ -186,4 +182,3 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({
     </div>
   );
 };
-

@@ -19,4 +19,3 @@ export const DEFAULT_STYLES = {
   lightning: false,
   selectedCurrency: 'USD' as const
 } as const;
-

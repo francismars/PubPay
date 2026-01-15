@@ -69,33 +69,37 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
       // Force refetch own profile from relays and update local state
       safeAsync(async () => {
         if (isAborted) return;
-        
+
         try {
           // Small delay to ensure relays have the event
           await new Promise<void>(resolve => {
-            const timeoutId = safeTimeout(() => resolve(), TIMEOUT.MEDIUM_DELAY, signal);
+            const timeoutId = safeTimeout(
+              () => resolve(),
+              TIMEOUT.MEDIUM_DELAY,
+              signal
+            );
             if (!timeoutId) resolve();
           });
-          
+
           if (isAborted) return;
-          
+
           const profileMap = await ensureProfiles(
             getQueryClient(),
             nostrClient,
             [publicKey]
           );
-          
+
           if (isAborted) return;
-          
+
           const profileEvent = profileMap.get(publicKey);
           if (profileEvent?.content) {
             const content =
               typeof profileEvent.content === 'string'
                 ? JSON.parse(profileEvent.content)
                 : profileEvent.content;
-            
+
             if (isAborted) return;
-            
+
             setProfileData({
               displayName:
                 content.display_name ||
@@ -139,7 +143,7 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
 
     const loadProfileData = async () => {
       if (isAborted) return;
-      
+
       const startTime = Date.now();
       setLoadStartTime(startTime);
       setProfileDataLoaded(false);
@@ -151,12 +155,16 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
         // Ensure minimum display time for skeletons (300ms)
         const elapsed = Date.now() - startTime;
         const remainingTime = Math.max(0, 300 - elapsed);
-        safeTimeout(() => {
-          if (isAborted) return;
-          setIsInitialLoad(false);
-          setIsLoadingProfile(false);
-          setProfileDataLoaded(true);
-        }, remainingTime, signal);
+        safeTimeout(
+          () => {
+            if (isAborted) return;
+            setIsInitialLoad(false);
+            setIsLoadingProfile(false);
+            setProfileDataLoaded(true);
+          },
+          remainingTime,
+          signal
+        );
       };
 
       if (isOwnProfile) {
@@ -165,11 +173,15 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
         if (isLoggedIn && userProfile === null) {
           // User is logged in but userProfile is null - might still be loading
           // Wait a bit to see if it loads, then mark as loaded
-          waitForProfileTimeout = safeTimeout(() => {
-            if (isAborted) return;
-            // After 500ms, if userProfile is still null, it's confirmed not available
-            markAsLoaded();
-          }, 500, signal);
+          waitForProfileTimeout = safeTimeout(
+            () => {
+              if (isAborted) return;
+              // After 500ms, if userProfile is still null, it's confirmed not available
+              markAsLoaded();
+            },
+            500,
+            signal
+          );
           return; // Exit early, will re-run when userProfile changes
         }
 
@@ -177,14 +189,14 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
         if (userProfile?.content) {
           try {
             if (isAborted) return;
-            
+
             const content =
               typeof userProfile.content === 'string'
                 ? JSON.parse(userProfile.content)
                 : userProfile.content;
 
             if (isAborted) return;
-            
+
             setProfileData({
               displayName:
                 content.display_name ||
@@ -224,16 +236,16 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
         setIsLoadingProfile(true);
         try {
           if (isAborted) return;
-          
+
           console.log('Loading profile for pubkey:', targetPubkey);
           const profileMap = await ensureProfiles(
             getQueryClient(),
             nostrClient,
             [targetPubkey]
           );
-          
+
           if (isAborted) return;
-          
+
           const profileEvent = profileMap.get(targetPubkey);
           console.log('Profile event received:', profileEvent);
 
@@ -244,7 +256,7 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
                 : profileEvent.content;
 
             if (isAborted) return;
-            
+
             setProfileData({
               displayName:
                 content.display_name ||
@@ -261,7 +273,7 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
           } else {
             // Profile not found, show minimal profile
             if (isAborted) return;
-            
+
             setProfileData({
               displayName: '',
               bio: '',
@@ -323,20 +335,20 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
     }
 
     if (isAborted) return;
-    
+
     setNip05Validating(true);
-    
+
     safeAsync(async () => {
       if (isAborted) return;
-      
+
       try {
         const isValid = await Nip05ValidationService.validateNip05(
           profileData.nip05,
           targetPubkey
         );
-        
+
         if (isAborted) return;
-        
+
         setNip05Valid(isValid);
         setNip05Validating(false);
       } catch (error) {
@@ -349,6 +361,12 @@ export const useProfileDataLoader = (options: UseProfileDataLoaderOptions) => {
         setNip05Validating(false);
       }
     }, signal);
-  }, [profileData.nip05, targetPubkey, setNip05Valid, setNip05Validating, signal, isAborted]);
+  }, [
+    profileData.nip05,
+    targetPubkey,
+    setNip05Valid,
+    setNip05Validating,
+    signal,
+    isAborted
+  ]);
 };
-

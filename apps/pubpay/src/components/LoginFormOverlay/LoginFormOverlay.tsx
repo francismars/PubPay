@@ -134,16 +134,10 @@ export const LoginFormOverlay: React.FC<LoginFormOverlayProps> = ({
             </Link>
           </span>
         </div>
-        <a
-          id="cancelLogin"
-          href="#"
-          className="label"
-          onClick={onClose}
-        >
+        <a id="cancelLogin" href="#" className="label" onClick={onClose}>
           cancel
         </a>
       </div>
     </div>
   );
 };
-

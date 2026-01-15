@@ -166,7 +166,9 @@ export class RoomsRouter {
     } catch (error) {
       this.logger.error('Error updating style config', error);
       const message =
-        error instanceof Error ? error.message : 'Failed to update style config';
+        error instanceof Error
+          ? error.message
+          : 'Failed to update style config';
       const status = message === 'Room not found' ? 404 : 500;
       res.status(status).json({ success: false, error: message });
     }

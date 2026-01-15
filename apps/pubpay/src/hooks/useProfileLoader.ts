@@ -14,7 +14,8 @@ interface UseProfileLoaderOptions {
  * Extracted from useFeedLoader for better separation of concerns
  */
 export const useProfileLoader = (options: UseProfileLoaderOptions) => {
-  const { nostrClientRef, profileCacheRef, pendingProfileRequestsRef } = options;
+  const { nostrClientRef, profileCacheRef, pendingProfileRequestsRef } =
+    options;
 
   const loadProfilesBatched = useCallback(
     async (pubkeys: string[]): Promise<Map<string, Kind0Event>> => {
@@ -75,4 +76,3 @@ export const useProfileLoader = (options: UseProfileLoaderOptions) => {
     loadProfilesBatched
   };
 };
-

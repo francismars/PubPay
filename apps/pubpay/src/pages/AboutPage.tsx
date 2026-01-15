@@ -32,9 +32,9 @@ const AboutPage: React.FC = () => {
           Anywhere, anytime.
         </h2>
         <p className="aboutHeroSubtitle">
-        Whether you're collecting donations, splitting bills, or
-        selling services, PubPay lets you create payment requests that can be paid with just
-          a few clicks.
+          Whether you're collecting donations, splitting bills, or selling
+          services, PubPay lets you create payment requests that can be paid
+          with just a few clicks.
         </p>
 
         <div className="aboutContent">
@@ -54,7 +54,8 @@ const AboutPage: React.FC = () => {
             <div className="featureBlock">
               <h3 className="featureTitle">Lightning-Fast Payments</h3>
               <p className="featureDescription">
-                No waiting, no delays. Money arrives in seconds with minimal fees.
+                No waiting, no delays. Money arrives in seconds with minimal
+                fees.
               </p>
             </div>
 
@@ -103,14 +104,15 @@ const AboutPage: React.FC = () => {
               <div className="useCaseCard">
                 <h3 className="useCaseTitle">Donations</h3>
                 <p className="useCaseDescription">
-                  Create public donation requests. Allow supporters to contribute easily.
+                  Create public donation requests. Allow supporters to
+                  contribute easily.
                 </p>
               </div>
 
               <div className="useCaseCard">
                 <h3 className="useCaseTitle">Bill Splitting</h3>
                 <p className="useCaseDescription">
-                 Let everyone contribute their share. 
+                  Let everyone contribute their share.
                 </p>
               </div>
 
@@ -124,8 +126,7 @@ const AboutPage: React.FC = () => {
               <div className="useCaseCard">
                 <h3 className="useCaseTitle">Events</h3>
                 <p className="useCaseDescription">
-                  Use usage limits to control the
-                  number of tickets sold.
+                  Use usage limits to control the number of tickets sold.
                 </p>
               </div>
 
@@ -182,9 +183,7 @@ const AboutPage: React.FC = () => {
           <section className="aboutSection">
             <div className="ctaSection">
               <h3 className="ctaTitle">Ready to Get Started?</h3>
-              <p className="ctaSubtitle">
-                Create your first paynote today.
-              </p>
+              <p className="ctaSubtitle">Create your first paynote today.</p>
               <button className="ctaButton" onClick={handleGetStarted}>
                 Start Using PubPay
               </button>

@@ -10,7 +10,7 @@ import * as bolt11 from 'bolt11';
 export function extractZapAmount(zap: Kind9735Event): number {
   const bolt11Tag = zap.tags.find(tag => tag[0] === 'bolt11');
   if (!bolt11Tag || !bolt11Tag[1]) return 0;
-  
+
   try {
     const decoded = bolt11.decode(bolt11Tag[1]);
     return decoded.satoshis || 0;
@@ -25,7 +25,7 @@ export function extractZapAmount(zap: Kind9735Event): number {
  */
 export function extractZapPayerPubkey(zap: Kind9735Event): string {
   const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
-  
+
   if (descriptionTag && descriptionTag[1]) {
     try {
       const zapData = parseZapDescription(descriptionTag[1]);
@@ -36,7 +36,7 @@ export function extractZapPayerPubkey(zap: Kind9735Event): string {
       // Fall through to anonymous zap
     }
   }
-  
+
   // Anonymous zap: use the zap event's pubkey
   return zap.pubkey;
 }
@@ -47,16 +47,20 @@ export function extractZapPayerPubkey(zap: Kind9735Event): string {
 export function extractZapContent(zap: Kind9735Event): string {
   const descriptionTag = zap.tags.find(tag => tag[0] === 'description');
   if (!descriptionTag || !descriptionTag[1]) return '';
-  
+
   try {
     const zapData = parseZapDescription(descriptionTag[1]);
-    if (zapData && 'content' in zapData && typeof zapData.content === 'string') {
+    if (
+      zapData &&
+      'content' in zapData &&
+      typeof zapData.content === 'string'
+    ) {
       return zapData.content;
     }
   } catch {
     // Return empty string on error
   }
-  
+
   return '';
 }
 
@@ -69,15 +73,17 @@ export function extractZapPayerPubkeys(
   zaps: Kind9735Event[]
 ): Set<string> {
   const zapPayerPubkeys = new Set<string>();
-  
+
   // Extract from note events (zap-payer tag)
   events.forEach(event => {
-    const zapPayerTag = event.tags.find(tag => tag[0] === 'zap-payer' && tag[1]);
+    const zapPayerTag = event.tags.find(
+      tag => tag[0] === 'zap-payer' && tag[1]
+    );
     if (zapPayerTag && zapPayerTag[1]) {
       zapPayerPubkeys.add(zapPayerTag[1]);
     }
   });
-  
+
   // Extract from zap events
   zaps.forEach(zap => {
     const zapPayerPubkey = extractZapPayerPubkey(zap);
@@ -85,7 +91,7 @@ export function extractZapPayerPubkeys(
       zapPayerPubkeys.add(zapPayerPubkey);
     }
   });
-  
+
   return zapPayerPubkeys;
 }
 
@@ -111,22 +117,29 @@ export function processZap(
   const zapAmount = extractZapAmount(zap);
   const zapPayerPubkey = extractZapPayerPubkey(zap);
   const zapContent = extractZapContent(zap);
-  
+
   // Get zap payer profile
   const zapPayerProfile = profiles.get(zapPayerPubkey);
   let zapPayerPicture = genericUserIcon;
-  
-  if (zapPayerProfile && zapPayerProfile.content && zapPayerProfile.content !== '{}') {
+
+  if (
+    zapPayerProfile &&
+    zapPayerProfile.content &&
+    zapPayerProfile.content !== '{}'
+  ) {
     try {
-      const profileData = JSON.parse(zapPayerProfile.content) as Record<string, any>;
+      const profileData = JSON.parse(zapPayerProfile.content) as Record<
+        string,
+        any
+      >;
       zapPayerPicture = profileData.picture || genericUserIcon;
     } catch {
       zapPayerPicture = genericUserIcon;
     }
   }
-  
+
   const zapPayerNpub = zapPayerPubkey ? nip19.npubEncode(zapPayerPubkey) : '';
-  
+
   return {
     ...zap,
     zapAmount,
@@ -147,4 +160,3 @@ export function processZaps(
 ): ProcessedZap[] {
   return zaps.map(zap => processZap(zap, profiles, genericUserIcon));
 }
-

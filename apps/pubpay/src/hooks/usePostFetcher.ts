@@ -1,12 +1,24 @@
 import { useCallback } from 'react';
 import { NostrClient } from '@pubpay/shared-services';
-import { ensurePosts, getQueryClient, loadPostData } from '@pubpay/shared-services';
-import { Kind1Event, Kind0Event, Kind9735Event, NostrFilter } from '@pubpay/shared-types';
+import {
+  ensurePosts,
+  getQueryClient,
+  loadPostData
+} from '@pubpay/shared-services';
+import {
+  Kind1Event,
+  Kind0Event,
+  Kind9735Event,
+  NostrFilter
+} from '@pubpay/shared-types';
 import type { AuthState } from '@pubpay/shared-services';
 import type { PubPayPost, FeedType } from '../types/postTypes';
 import { TIMEOUT, QUERY_LIMITS } from '../constants';
 import { genericUserIcon } from '../assets/images';
-import { calculateReplyLevels, updatePostWithProfileData } from '../utils/postProcessing';
+import {
+  calculateReplyLevels,
+  updatePostWithProfileData
+} from '../utils/postProcessing';
 import { usePostStore } from '../stores/usePostStore';
 import { useAbortController } from './useAbortController';
 import { safeAsync, isAbortError } from '../utils/asyncHelpers';
@@ -21,11 +33,26 @@ interface UsePostFetcherOptions {
   setIsLoading: (loading: boolean) => void;
   setIsLoadingMore: (loading: boolean) => void;
   setNostrReady: (ready: boolean) => void;
-  processPostsBasic: (events: Kind1Event[], profiles: Kind0Event[]) => Promise<PubPayPost[]>;
+  processPostsBasic: (
+    events: Kind1Event[],
+    profiles: Kind0Event[]
+  ) => Promise<PubPayPost[]>;
   processPostsBasicSync: (events: Kind1Event[]) => PubPayPost[];
-  processPosts: (events: Kind1Event[], profiles: Kind0Event[], zaps: Kind9735Event[]) => Promise<PubPayPost[]>;
-  loadZapsForPosts: (events: Kind1Event[], zaps: Kind9735Event[], feed: FeedType, profiles?: Kind0Event[]) => Promise<void>;
-  validateLightningAddresses: (posts: PubPayPost[], feed: FeedType) => Promise<void>;
+  processPosts: (
+    events: Kind1Event[],
+    profiles: Kind0Event[],
+    zaps: Kind9735Event[]
+  ) => Promise<PubPayPost[]>;
+  loadZapsForPosts: (
+    events: Kind1Event[],
+    zaps: Kind9735Event[],
+    feed: FeedType,
+    profiles?: Kind0Event[]
+  ) => Promise<void>;
+  validateLightningAddresses: (
+    posts: PubPayPost[],
+    feed: FeedType
+  ) => Promise<void>;
   validateNip05s: (posts: PubPayPost[], feed: FeedType) => Promise<void>;
   authState: AuthState;
 }
@@ -86,7 +113,12 @@ export const usePostFetcher = (options: UsePostFetcherOptions) => {
         const feedMode = storeState.feedMode;
 
         // Build posts params
-        const params: { until?: number; limit?: number; authors?: string[]; feedMode?: 'pubpay' | 'nostr' } = {
+        const params: {
+          until?: number;
+          limit?: number;
+          authors?: string[];
+          feedMode?: 'pubpay' | 'nostr';
+        } = {
           limit: QUERY_LIMITS.DEFAULT_POSTS,
           feedMode
         };
@@ -105,9 +137,7 @@ export const usePostFetcher = (options: UsePostFetcherOptions) => {
           // Get current state from store (for async safety)
           const storeState = usePostStore.getState();
           const currentPosts =
-            feed === 'following'
-              ? storeState.followingPosts
-              : storeState.posts;
+            feed === 'following' ? storeState.followingPosts : storeState.posts;
           if (currentPosts.length > 0) {
             // Get the oldest post (last in the array since they're sorted newest first)
             const oldestPost = currentPosts[currentPosts.length - 1];
@@ -748,4 +778,3 @@ export const usePostFetcher = (options: UsePostFetcherOptions) => {
     loadReplies
   };
 };
-

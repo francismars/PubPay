@@ -19,7 +19,9 @@ interface AuthStore {
   userProfile: Kind0Event | null;
   displayName: string | null;
   setAuth: (
-    partial: Partial<Omit<AuthStore, 'setAuth' | 'clearAuth' | 'setProfile' | 'setDisplayName'>>
+    partial: Partial<
+      Omit<AuthStore, 'setAuth' | 'clearAuth' | 'setProfile' | 'setDisplayName'>
+    >
   ) => void;
   clearAuth: () => void;
   setProfile: (profile: Kind0Event | null) => void;

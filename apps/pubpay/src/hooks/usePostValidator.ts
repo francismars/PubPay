@@ -1,6 +1,11 @@
 import { useCallback } from 'react';
 import type { PubPayPost, FeedType } from '../types/postTypes';
-import { extractLightningAddresses, extractNip05s, validateLightningAddress, validateNip05 } from '../utils/validation';
+import {
+  extractLightningAddresses,
+  extractNip05s,
+  validateLightningAddress,
+  validateNip05
+} from '../utils/validation';
 import { usePostStore } from '../stores/usePostStore';
 import { useAbortController } from './useAbortController';
 import { safeAsync } from '../utils/asyncHelpers';
@@ -52,7 +57,10 @@ export const usePostValidator = (options: UsePostValidatorOptions) => {
 
         // FIX: Use safeAsync to prevent memory leaks if component unmounts
         safeAsync(async () => {
-          const { updatedPosts } = await validateLightningAddress(lud16, postsWithAddress);
+          const { updatedPosts } = await validateLightningAddress(
+            lud16,
+            postsWithAddress
+          );
 
           // Check if aborted before updating state
           if (isAborted) return;
@@ -71,16 +79,22 @@ export const usePostValidator = (options: UsePostValidatorOptions) => {
           } else {
             setPosts(currentState.posts.map(updatePost));
           }
-        }, signal)
-          .finally(() => {
-            // Remove from validating set (only if not aborted)
-            if (!isAborted) {
-              validatingLightningAddressesRef.current.delete(lud16);
-            }
-          });
+        }, signal).finally(() => {
+          // Remove from validating set (only if not aborted)
+          if (!isAborted) {
+            validatingLightningAddressesRef.current.delete(lud16);
+          }
+        });
       }
     },
-    [setPosts, setFollowingPosts, setReplies, validatingLightningAddressesRef, signal, isAborted]
+    [
+      setPosts,
+      setFollowingPosts,
+      setReplies,
+      validatingLightningAddressesRef,
+      signal,
+      isAborted
+    ]
   );
 
   const validateNip05s = useCallback(
@@ -92,7 +106,10 @@ export const usePostValidator = (options: UsePostValidatorOptions) => {
       const nip05s = extractNip05s(posts);
 
       // Validate each unique NIP-05 identifier (only once per identifier:pubkey combo)
-      for (const [key, { nip05, pubkey, posts: postsWithNip05 }] of nip05s.entries()) {
+      for (const [
+        key,
+        { nip05, pubkey, posts: postsWithNip05 }
+      ] of nip05s.entries()) {
         // Check if aborted before processing each identifier
         if (isAborted) break;
 
@@ -123,7 +140,11 @@ export const usePostValidator = (options: UsePostValidatorOptions) => {
 
         // FIX: Use safeAsync to prevent memory leaks if component unmounts
         safeAsync(async () => {
-          const { updatedPosts } = await validateNip05(nip05, pubkey, postsWithNip05);
+          const { updatedPosts } = await validateNip05(
+            nip05,
+            pubkey,
+            postsWithNip05
+          );
 
           // Check if aborted before updating state
           if (isAborted) return;
@@ -142,16 +163,22 @@ export const usePostValidator = (options: UsePostValidatorOptions) => {
           } else {
             setPosts(currentState.posts.map(updatePost));
           }
-        }, signal)
-          .finally(() => {
-            // Remove from validating set (only if not aborted)
-            if (!isAborted) {
-              validatingNip05sRef.current.delete(key);
-            }
-          });
+        }, signal).finally(() => {
+          // Remove from validating set (only if not aborted)
+          if (!isAborted) {
+            validatingNip05sRef.current.delete(key);
+          }
+        });
       }
     },
-    [setPosts, setFollowingPosts, setReplies, validatingNip05sRef, signal, isAborted]
+    [
+      setPosts,
+      setFollowingPosts,
+      setReplies,
+      validatingNip05sRef,
+      signal,
+      isAborted
+    ]
   );
 
   return {
@@ -159,4 +186,3 @@ export const usePostValidator = (options: UsePostValidatorOptions) => {
     validateNip05s
   };
 };
-

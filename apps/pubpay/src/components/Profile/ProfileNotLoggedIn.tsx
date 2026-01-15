@@ -17,17 +17,13 @@ export const ProfileNotLoggedIn: React.FC<ProfileNotLoggedInProps> = ({
       <div className="profileNotLoggedIn">
         <h2 className="profileNotLoggedInTitle">Not Logged In</h2>
         <p className="profileNotLoggedInText">
-          Please log in to view your profile and manage your account
-          settings.
+          Please log in to view your profile and manage your account settings.
         </p>
         <div className="profileButtonGroup">
           <button className="profileLoginButton" onClick={onLogin}>
             Log In
           </button>
-          <button
-            className="profileRegisterButton"
-            onClick={onRegister}
-          >
+          <button className="profileRegisterButton" onClick={onRegister}>
             Register
           </button>
         </div>
@@ -51,4 +47,3 @@ export const ProfileNotLoggedIn: React.FC<ProfileNotLoggedInProps> = ({
     </div>
   );
 };
-

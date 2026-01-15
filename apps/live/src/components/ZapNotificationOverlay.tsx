@@ -265,7 +265,9 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
         style={{ color: textColor, transform: `scale(${scaleFactor})` }}
       >
         <img
-          src={sanitizeImageUrl(currentNotification.zapperImage) || FALLBACK_IMAGE}
+          src={
+            sanitizeImageUrl(currentNotification.zapperImage) || FALLBACK_IMAGE
+          }
           alt={currentNotification.zapperName || 'Zapper'}
           className="zap-notification-avatar"
           style={{ borderColor: textColor }}

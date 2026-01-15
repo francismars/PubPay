@@ -1,6 +1,11 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { AuthService } from '@pubpay/shared-services';
-import { FollowService, useUIStore, useAuthStore, type AuthState } from '@pubpay/shared-services';
+import {
+  FollowService,
+  useUIStore,
+  useAuthStore,
+  type AuthState
+} from '@pubpay/shared-services';
 import { ensureProfiles } from '@pubpay/shared-services';
 import { getQueryClient } from '@pubpay/shared-services';
 import { Kind0Event } from '@pubpay/shared-types';
@@ -13,7 +18,10 @@ interface UseAuthOptions {
   onProfileLoaded?: (pubkey: string) => void;
 }
 
-export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => {
+export const useAuth = ({
+  nostrClientRef,
+  onProfileLoaded
+}: UseAuthOptions) => {
   // Keep privateKey in local state for security (not in global store)
   const [privateKey, setPrivateKeyLocal] = useState<string | null>(null);
 
@@ -39,32 +47,38 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
   const setDisplayName = useAuthStore(state => state.setDisplayName);
 
   // Wrapper for setAuthState to maintain backward compatibility
-  const setAuthState = useCallback((state: AuthState | ((prev: AuthState) => AuthState)) => {
-    if (typeof state === 'function') {
-      const currentStoreState = useAuthStore.getState();
-      const newState = state({
-        isLoggedIn: currentStoreState.isLoggedIn,
-        publicKey: currentStoreState.publicKey,
-        privateKey, // Use local state
-        signInMethod: currentStoreState.signInMethod,
-        userProfile: currentStoreState.userProfile,
-        displayName: currentStoreState.displayName
-      });
-      // setAuth doesn't allow privateKey, so set it separately
-      const { privateKey: newPrivateKey, ...rest } = newState;
-      setAuth(rest);
-      setPrivateKeyLocal(newPrivateKey);
-    } else {
-      // setAuth doesn't allow privateKey, so set it separately
-      const { privateKey: newPrivateKey, ...rest } = state;
-      setAuth(rest);
-      setPrivateKeyLocal(newPrivateKey);
-    }
-  }, [setAuth, privateKey]);
+  const setAuthState = useCallback(
+    (state: AuthState | ((prev: AuthState) => AuthState)) => {
+      if (typeof state === 'function') {
+        const currentStoreState = useAuthStore.getState();
+        const newState = state({
+          isLoggedIn: currentStoreState.isLoggedIn,
+          publicKey: currentStoreState.publicKey,
+          privateKey, // Use local state
+          signInMethod: currentStoreState.signInMethod,
+          userProfile: currentStoreState.userProfile,
+          displayName: currentStoreState.displayName
+        });
+        // setAuth doesn't allow privateKey, so set it separately
+        const { privateKey: newPrivateKey, ...rest } = newState;
+        setAuth(rest);
+        setPrivateKeyLocal(newPrivateKey);
+      } else {
+        // setAuth doesn't allow privateKey, so set it separately
+        const { privateKey: newPrivateKey, ...rest } = state;
+        setAuth(rest);
+        setPrivateKeyLocal(newPrivateKey);
+      }
+    },
+    [setAuth, privateKey]
+  );
 
-  const checkAuthStatus = async (password?: string): Promise<{ requiresPassword: boolean }> => {
+  const checkAuthStatus = async (
+    password?: string
+  ): Promise<{ requiresPassword: boolean }> => {
     if (AuthService.isAuthenticated()) {
-      const { publicKey, encryptedPrivateKey, method } = AuthService.getStoredAuthData();
+      const { publicKey, encryptedPrivateKey, method } =
+        AuthService.getStoredAuthData();
 
       let privateKey: string | null = null;
       let requiresPassword = false;
@@ -87,7 +101,9 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
               requiresPassword = true;
             } else {
               // Password was provided but incorrect - throw error to indicate wrong password
-              throw new Error('The password you entered is incorrect. Please check your password and try again.');
+              throw new Error(
+                'The password you entered is incorrect. Please check your password and try again.'
+              );
             }
             privateKey = null;
           } else {
@@ -100,7 +116,9 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
         const hadLegacyKeys = AuthService.cleanupLegacyKeys();
         if (hadLegacyKeys) {
           // Legacy keys were found and cleared - user needs to log in again
-          console.warn('Legacy plaintext keys detected and cleared. User must log in again.');
+          console.warn(
+            'Legacy plaintext keys detected and cleared. User must log in again.'
+          );
           // Clear auth state to force re-login
           clearAuth();
           setPrivateKeyLocal(null);
@@ -142,7 +160,10 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
       }
 
       // Return whether password is still required (true if password-protected and no private key)
-      return { requiresPassword: requiresPassword || (AuthService.requiresPassword() && !privateKey) };
+      return {
+        requiresPassword:
+          requiresPassword || (AuthService.requiresPassword() && !privateKey)
+      };
     }
     return { requiresPassword: false };
   };
@@ -282,7 +303,9 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
     AuthService.clearAuthData();
 
     // Check if user wants to clear NWC on logout
-    const clearNwcOnLogout = localStorage.getItem(STORAGE_KEYS.CLEAR_NWC_ON_LOGOUT);
+    const clearNwcOnLogout = localStorage.getItem(
+      STORAGE_KEYS.CLEAR_NWC_ON_LOGOUT
+    );
     if (clearNwcOnLogout === 'true') {
       localStorage.removeItem(STORAGE_KEYS.NWC_CONNECTION_STRING);
       localStorage.removeItem(STORAGE_KEYS.NWC_CAPABILITIES);
@@ -315,4 +338,3 @@ export const useAuth = ({ nostrClientRef, onProfileLoaded }: UseAuthOptions) => 
     handleLogout
   };
 };
-

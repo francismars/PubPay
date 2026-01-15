@@ -11,7 +11,10 @@ interface UseNoteProcessorOptions {
   nostrClientRef: React.MutableRefObject<NostrClient | null>;
   addPost: (post: PubPayPost) => void;
   addFollowingPost: (post: PubPayPost) => void;
-  validateLightningAddresses: (posts: PubPayPost[], feed: FeedType) => Promise<void>;
+  validateLightningAddresses: (
+    posts: PubPayPost[],
+    feed: FeedType
+  ) => Promise<void>;
   validateNip05s: (posts: PubPayPost[], feed: FeedType) => Promise<void>;
   updateZapSubscriptionForNewPost?: (newEventId: string) => void;
 }
@@ -93,13 +96,15 @@ export const useNoteProcessor = (options: UseNoteProcessorOptions) => {
           newPost.zapUses = parseInt(zapUsesTag[1]) || 0; // Only set if tag exists
         }
         if (zapGoalTag && zapGoalTag[1]) {
-          newPost.zapGoal =
-            parseInt(zapGoalTag[1]) / 1000 || undefined; // Convert from millisats to sats
+          newPost.zapGoal = parseInt(zapGoalTag[1]) / 1000 || undefined; // Convert from millisats to sats
         }
 
         // Set hasZapTags based on whether zap tags exist (zap-min, zap-max, zap-uses, zap-goal)
         newPost.hasZapTags = !!(
-          zapMinTag || zapMaxTag || zapUsesTag || zapGoalTag
+          zapMinTag ||
+          zapMaxTag ||
+          zapUsesTag ||
+          zapGoalTag
         );
 
         // Check author data for lightning address and NIP-05
@@ -126,10 +131,7 @@ export const useNoteProcessor = (options: UseNoteProcessorOptions) => {
         const currentPosts = usePostStore.getState().posts;
         const exists = currentPosts.find(post => post.id === noteEvent.id);
         if (exists) {
-          console.log(
-            'Post already exists in state, skipping:',
-            noteEvent.id
-          );
+          console.log('Post already exists in state, skipping:', noteEvent.id);
         } else {
           console.log('Adding new post to feed:', noteEvent.id);
           addPost(newPost);
@@ -208,4 +210,3 @@ export const useNoteProcessor = (options: UseNoteProcessorOptions) => {
     processNewNote
   };
 };
-

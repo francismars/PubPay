@@ -106,28 +106,23 @@ module.exports = {
         },
         // Copy manifest.json in both dev and prod (referenced in HTML)
         {
-          from: path.resolve(
-            __dirname,
-            '../../apps/pubpay/src/manifest.json'
-          ),
+          from: path.resolve(__dirname, '../../apps/pubpay/src/manifest.json'),
           to: 'manifest.json',
           noErrorOnMissing: true
         },
         // Only copy service worker in production
-        ...(
-          isProduction
-            ? [
-                {
-                  from: path.resolve(
-                    __dirname,
-                    '../../apps/pubpay/src/service-worker.js'
-                  ),
-                  to: 'service-worker.js',
-                  noErrorOnMissing: true
-                }
-              ]
-            : []
-        )
+        ...(isProduction
+          ? [
+              {
+                from: path.resolve(
+                  __dirname,
+                  '../../apps/pubpay/src/service-worker.js'
+                ),
+                to: 'service-worker.js',
+                noErrorOnMissing: true
+              }
+            ]
+          : [])
       ]
     }),
     ...(isProduction
@@ -156,7 +151,7 @@ module.exports = {
         errors: true,
         warnings: false,
         // Filter out websocket connection errors from webpack-dev-server overlay
-        runtimeErrors: (error) => {
+        runtimeErrors: error => {
           // Filter out websocket connection errors - these are dev server issues, not app errors
           const errorMessage = error?.message || error?.toString() || '';
           if (

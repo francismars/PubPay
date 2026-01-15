@@ -6,9 +6,7 @@ import { useEffect, useRef } from 'react';
  */
 export const useAbortController = () => {
   // Initialize immediately so signal is available on first render
-  const abortControllerRef = useRef<AbortController>(
-    new AbortController()
-  );
+  const abortControllerRef = useRef<AbortController>(new AbortController());
 
   useEffect(() => {
     // Create new AbortController on mount (in case component remounts)
@@ -27,4 +25,3 @@ export const useAbortController = () => {
     isAborted: abortControllerRef.current.signal.aborted
   };
 };
-

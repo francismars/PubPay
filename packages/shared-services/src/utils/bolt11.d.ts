@@ -3,7 +3,6 @@ declare module 'bolt11' {
     satoshis?: number;
     [key: string]: any;
   }
-  
+
   export function decode(invoice: string): DecodedInvoice;
 }
-

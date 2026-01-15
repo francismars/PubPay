@@ -32,10 +32,7 @@ export const NSECInputForm: React.FC<NSECInputFormProps> = ({
   };
 
   return (
-    <div
-      id="nsecInputGroup"
-      style={{ display: 'block' }}
-    >
+    <div id="nsecInputGroup" style={{ display: 'block' }}>
       <form onSubmit={handleSubmit}>
         <input
           type="text"
@@ -95,13 +92,10 @@ export const NSECInputForm: React.FC<NSECInputFormProps> = ({
             textAlign: 'left'
           }}
         >
-          Optional: Set a password to encrypt your private key. You'll need to enter it each session.
+          Optional: Set a password to encrypt your private key. You'll need to
+          enter it each session.
         </p>
-        <button
-          id="continueWithNsec"
-          className="cta"
-          type="submit"
-        >
+        <button id="continueWithNsec" className="cta" type="submit">
           Continue
         </button>
         <div style={{ textAlign: 'center', marginTop: '16px' }}>
@@ -127,4 +121,3 @@ export const NSECInputForm: React.FC<NSECInputFormProps> = ({
     </div>
   );
 };
-

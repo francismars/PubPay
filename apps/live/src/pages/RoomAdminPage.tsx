@@ -62,8 +62,11 @@ export const RoomAdminPage: React.FC = () => {
   const [showPretalxDebug, setShowPretalxDebug] = useState(true);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showStyleModal, setShowStyleModal] = useState(false);
-  const [roomStyleConfig, setRoomStyleConfig] = useState<StyleConfig | null>(null);
-  const [currentEditingStyles, setCurrentEditingStyles] = useState<StyleConfig | null>(null);
+  const [roomStyleConfig, setRoomStyleConfig] = useState<StyleConfig | null>(
+    null
+  );
+  const [currentEditingStyles, setCurrentEditingStyles] =
+    useState<StyleConfig | null>(null);
   const styleEditorResetRef = React.useRef<(() => void) | null>(null);
   const [showAddSlotModal, setShowAddSlotModal] = useState(false);
   const [newSlotStart, setNewSlotStart] = useState('');
@@ -948,7 +951,9 @@ export const RoomAdminPage: React.FC = () => {
                   🎨
                 </button>
                 <button
-                  onClick={() => window.open(`/live/multi/${createdRoomId}/stats`, '_blank')}
+                  onClick={() =>
+                    window.open(`/live/multi/${createdRoomId}/stats`, '_blank')
+                  }
                   aria-label="Statistics"
                   title="Statistics"
                   style={{
@@ -1631,7 +1636,7 @@ export const RoomAdminPage: React.FC = () => {
             justifyContent: 'center',
             background: 'rgba(0,0,0,0.4)'
           }}
-          onClick={(e) => {
+          onClick={e => {
             if (e.target === e.currentTarget) {
               setShowStyleModal(false);
             }
@@ -1648,29 +1653,36 @@ export const RoomAdminPage: React.FC = () => {
               borderLeft: 'none',
               boxShadow: '0 10px 32px rgba(0,0,0,0.2)'
             }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <div className="style-options-header">
               <h2>STYLE OPTIONS</h2>
-              <button className="close-button" onClick={() => setShowStyleModal(false)}>
+              <button
+                className="close-button"
+                onClick={() => setShowStyleModal(false)}
+              >
                 &times;
               </button>
             </div>
             <div className="style-options-body">
               <StyleEditor
                 initialStyles={roomStyleConfig || undefined}
-                onSave={async (styles) => {
+                onSave={async styles => {
                   setBusy(true);
                   setError(null);
                   setSuccess(null);
                   try {
-                    const res = await fetch(`${getApiBase()}/multi/${createdRoomId}/style`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(styles)
-                    });
+                    const res = await fetch(
+                      `${getApiBase()}/multi/${createdRoomId}/style`,
+                      {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(styles)
+                      }
+                    );
                     const json = await res.json();
-                    if (!json.success) throw new Error(json.error || 'Failed to save styles');
+                    if (!json.success)
+                      throw new Error(json.error || 'Failed to save styles');
                     setRoomStyleConfig(styles);
                     setSuccess('Styles saved successfully');
                     setTimeout(() => {
@@ -1678,14 +1690,16 @@ export const RoomAdminPage: React.FC = () => {
                       setSuccess(null);
                     }, 1500);
                   } catch (e: unknown) {
-                    setError(e instanceof Error ? e.message : 'Error saving styles');
+                    setError(
+                      e instanceof Error ? e.message : 'Error saving styles'
+                    );
                   } finally {
                     setBusy(false);
                   }
                 }}
                 onCancel={() => setShowStyleModal(false)}
                 renderButtons={false}
-                onChange={(styles) => setCurrentEditingStyles(styles)}
+                onChange={styles => setCurrentEditingStyles(styles)}
                 resetRef={styleEditorResetRef}
               />
             </div>
@@ -1715,13 +1729,17 @@ export const RoomAdminPage: React.FC = () => {
                   setError(null);
                   setSuccess(null);
                   try {
-                    const res = await fetch(`${getApiBase()}/multi/${createdRoomId}/style`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(stylesToSave)
-                    });
+                    const res = await fetch(
+                      `${getApiBase()}/multi/${createdRoomId}/style`,
+                      {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(stylesToSave)
+                      }
+                    );
                     const json = await res.json();
-                    if (!json.success) throw new Error(json.error || 'Failed to save styles');
+                    if (!json.success)
+                      throw new Error(json.error || 'Failed to save styles');
                     setRoomStyleConfig(stylesToSave);
                     setSuccess('Styles saved successfully');
                     setTimeout(() => {
@@ -1729,7 +1747,9 @@ export const RoomAdminPage: React.FC = () => {
                       setSuccess(null);
                     }, 1500);
                   } catch (e: unknown) {
-                    setError(e instanceof Error ? e.message : 'Error saving styles');
+                    setError(
+                      e instanceof Error ? e.message : 'Error saving styles'
+                    );
                   } finally {
                     setBusy(false);
                   }

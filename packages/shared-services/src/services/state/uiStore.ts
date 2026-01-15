@@ -58,7 +58,13 @@ type UIState = {
 };
 
 export const useUIStore = create<UIState>(set => ({
-  invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '', zapRequestId: '' },
+  invoiceOverlay: {
+    show: false,
+    bolt11: '',
+    amount: 0,
+    eventId: '',
+    zapRequestId: ''
+  },
   processingOverlay: { show: false, message: '' },
   statusToast: { show: false, message: '', variant: 'info', persist: false },
   followSuggestions: [],
@@ -71,7 +77,13 @@ export const useUIStore = create<UIState>(set => ({
     }),
   closeInvoice: () =>
     set({
-      invoiceOverlay: { show: false, bolt11: '', amount: 0, eventId: '', zapRequestId: '' }
+      invoiceOverlay: {
+        show: false,
+        bolt11: '',
+        amount: 0,
+        eventId: '',
+        zapRequestId: ''
+      }
     }),
   openProcessing: (message = 'Processing payment...') =>
     set({ processingOverlay: { show: true, message } }),

@@ -178,7 +178,8 @@ export class UseLightning {
   // Generate session ID - persist across page refreshes
   private generateSessionId(): string {
     // Try to get existing session ID from localStorage
-    const existingSessionId = appLocalStorage.getItem<string>('lightningSessionId');
+    const existingSessionId =
+      appLocalStorage.getItem<string>('lightningSessionId');
     if (existingSessionId) {
       return existingSessionId;
     }

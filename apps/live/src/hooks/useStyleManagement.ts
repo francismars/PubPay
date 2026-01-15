@@ -17,7 +17,13 @@ export interface UseStyleManagementOptions {
  * Hook for managing styles (save, load, URL parameters, presets)
  */
 export function useStyleManagement(options: UseStyleManagementOptions = {}) {
-  const { lightningEnabled = false, onOrganizeZaps, onCleanupHierarchicalOrganization, onUpdateQRSlideVisibility, onInitializeQRCodePlaceholders } = options;
+  const {
+    lightningEnabled = false,
+    onOrganizeZaps,
+    onCleanupHierarchicalOrganization,
+    onUpdateQRSlideVisibility,
+    onInitializeQRCodePlaceholders
+  } = options;
 
   // Removed unused applyStylesTimeoutRef
 
@@ -69,7 +75,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
    * Update background image
    */
   const updateBackgroundImage = useCallback((url: string) => {
-    const liveZapOverlay = document.querySelector('.liveZapOverlay') as HTMLElement;
+    const liveZapOverlay = document.querySelector(
+      '.liveZapOverlay'
+    ) as HTMLElement;
     if (liveZapOverlay) {
       if (url) {
         liveZapOverlay.style.backgroundImage = `url(${url})`;
@@ -86,8 +94,12 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
    * Update blend mode for QR codes
    */
   const updateBlendMode = useCallback(() => {
-    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
-    const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
+    const qrScreenBlendToggle = document.getElementById(
+      'qrScreenBlendToggle'
+    ) as HTMLInputElement;
+    const qrMultiplyBlendToggle = document.getElementById(
+      'qrMultiplyBlendToggle'
+    ) as HTMLInputElement;
 
     if (qrScreenBlendToggle?.checked) {
       qrMultiplyBlendToggle.checked = false;
@@ -106,7 +118,7 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const qrSwiper = document.querySelector('.qr-swiper');
     if (qrSwiper) {
       const qrCodes = qrSwiper.querySelectorAll('img, canvas');
-      qrCodes.forEach((_qrCode) => {
+      qrCodes.forEach(_qrCode => {
         // Blend mode is now handled by CSS classes on the body element
       });
     }
@@ -118,12 +130,25 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
    * Apply all styles to DOM
    */
   const applyAllStyles = useCallback(() => {
-    const textColorElement = document.getElementById('textColorValue') as HTMLInputElement;
-    const bgColorElement = document.getElementById('bgColorValue') as HTMLInputElement;
-    const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
-    const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
+    const textColorElement = document.getElementById(
+      'textColorValue'
+    ) as HTMLInputElement;
+    const bgColorElement = document.getElementById(
+      'bgColorValue'
+    ) as HTMLInputElement;
+    const opacitySlider = document.getElementById(
+      'opacitySlider'
+    ) as HTMLInputElement;
+    const textOpacitySlider = document.getElementById(
+      'textOpacitySlider'
+    ) as HTMLInputElement;
 
-    if (!textColorElement || !bgColorElement || !opacitySlider || !textOpacitySlider) {
+    if (
+      !textColorElement ||
+      !bgColorElement ||
+      !opacitySlider ||
+      !textOpacitySlider
+    ) {
       return;
     }
 
@@ -193,13 +218,17 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       mainLayout.style.backgroundColor = rgbaColor;
 
       // Update preset preview container background to match selected background color
-      const presetPreviewContainers = document.querySelectorAll('.preset-preview-container');
+      const presetPreviewContainers = document.querySelectorAll(
+        '.preset-preview-container'
+      );
       presetPreviewContainers.forEach(container => {
         (container as HTMLElement).style.backgroundColor = rgbaColor;
       });
 
       // Apply background image
-      const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
+      const bgImageUrl = document.getElementById(
+        'bgImageUrl'
+      ) as HTMLInputElement;
       if (bgImageUrl && bgImageUrl.value) {
         updateBackgroundImage(bgImageUrl.value);
       } else {
@@ -207,10 +236,18 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       }
 
       // Apply partner logo
-      const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-      const partnerLogoImg = document.getElementById('partnerLogo') as HTMLImageElement;
-      const partnerLogoUrl = document.getElementById('partnerLogoUrl') as HTMLInputElement;
-      const partnerLogoPreview = document.getElementById('partnerLogoPreview') as HTMLImageElement;
+      const partnerLogoSelect = document.getElementById(
+        'partnerLogoSelect'
+      ) as HTMLSelectElement;
+      const partnerLogoImg = document.getElementById(
+        'partnerLogo'
+      ) as HTMLImageElement;
+      const partnerLogoUrl = document.getElementById(
+        'partnerLogoUrl'
+      ) as HTMLInputElement;
+      const partnerLogoPreview = document.getElementById(
+        'partnerLogoPreview'
+      ) as HTMLImageElement;
 
       if (partnerLogoSelect && partnerLogoImg) {
         let currentPartnerLogo = '';
@@ -243,7 +280,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     // Apply zap grid layout
     const zapsList = document.getElementById('zaps');
     if (zapsList) {
-      const isGridLayout = (document.getElementById('zapGridToggle') as HTMLInputElement)?.checked;
+      const isGridLayout = (
+        document.getElementById('zapGridToggle') as HTMLInputElement
+      )?.checked;
       zapsList.classList.toggle('grid-layout', isGridLayout);
       if (isGridLayout && onOrganizeZaps) {
         onOrganizeZaps();
@@ -254,22 +293,49 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
 
     // Apply QR blend modes
     updateBlendMode();
-  }, [hexToRgba, updateBackgroundImage, updateBlendMode, onOrganizeZaps, onCleanupHierarchicalOrganization]);
+  }, [
+    hexToRgba,
+    updateBackgroundImage,
+    updateBlendMode,
+    onOrganizeZaps,
+    onCleanupHierarchicalOrganization
+  ]);
 
   /**
    * Save current styles to localStorage
    */
   const saveCurrentStylesToLocalStorage = useCallback(() => {
-    const textColorElement = document.getElementById('textColorValue') as HTMLInputElement;
-    const bgColorElement = document.getElementById('bgColorValue') as HTMLInputElement;
-    const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
-    const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
-    const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-    const partnerLogoUrl = document.getElementById('partnerLogoUrl') as HTMLInputElement;
-    const bgImagePreset = document.getElementById('bgImagePreset') as HTMLSelectElement;
-    const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
+    const textColorElement = document.getElementById(
+      'textColorValue'
+    ) as HTMLInputElement;
+    const bgColorElement = document.getElementById(
+      'bgColorValue'
+    ) as HTMLInputElement;
+    const opacitySlider = document.getElementById(
+      'opacitySlider'
+    ) as HTMLInputElement;
+    const textOpacitySlider = document.getElementById(
+      'textOpacitySlider'
+    ) as HTMLInputElement;
+    const partnerLogoSelect = document.getElementById(
+      'partnerLogoSelect'
+    ) as HTMLSelectElement;
+    const partnerLogoUrl = document.getElementById(
+      'partnerLogoUrl'
+    ) as HTMLInputElement;
+    const bgImagePreset = document.getElementById(
+      'bgImagePreset'
+    ) as HTMLSelectElement;
+    const bgImageUrl = document.getElementById(
+      'bgImageUrl'
+    ) as HTMLInputElement;
 
-    if (!textColorElement || !bgColorElement || !opacitySlider || !textOpacitySlider) {
+    if (
+      !textColorElement ||
+      !bgColorElement ||
+      !opacitySlider ||
+      !textOpacitySlider
+    ) {
       return;
     }
 
@@ -294,15 +360,24 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     // Get all toggle states using consistent property names
     const toggleMapping = [
       { toggleId: 'layoutInvertToggle', propertyName: 'layoutInvert' },
-      { toggleId: 'hideZapperContentToggle', propertyName: 'hideZapperContent' },
+      {
+        toggleId: 'hideZapperContentToggle',
+        propertyName: 'hideZapperContent'
+      },
       { toggleId: 'showTopZappersToggle', propertyName: 'showTopZappers' },
       { toggleId: 'podiumToggle', propertyName: 'podium' },
       { toggleId: 'zapGridToggle', propertyName: 'zapGrid' },
       { toggleId: 'sectionLabelsToggle', propertyName: 'sectionLabels' },
       { toggleId: 'qrOnlyToggle', propertyName: 'qrOnly' },
       { toggleId: 'showFiatToggle', propertyName: 'showFiat' },
-      { toggleId: 'showHistoricalPriceToggle', propertyName: 'showHistoricalPrice' },
-      { toggleId: 'showHistoricalChangeToggle', propertyName: 'showHistoricalChange' },
+      {
+        toggleId: 'showHistoricalPriceToggle',
+        propertyName: 'showHistoricalPrice'
+      },
+      {
+        toggleId: 'showHistoricalChangeToggle',
+        propertyName: 'showHistoricalChange'
+      },
       { toggleId: 'fiatOnlyToggle', propertyName: 'fiatOnly' },
       { toggleId: 'qrInvertToggle', propertyName: 'qrInvert' },
       { toggleId: 'qrScreenBlendToggle', propertyName: 'qrScreenBlend' },
@@ -322,7 +397,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     });
 
     // Get selected currency
-    const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
+    const currencySelector = document.getElementById(
+      'currencySelector'
+    ) as HTMLSelectElement;
     const selectedCurrency = currencySelector ? currencySelector.value : 'USD';
 
     const styles = {
@@ -342,292 +419,333 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
   /**
    * Apply preset styles
    */
-  const applyPreset = useCallback((preset: string) => {
-    const presets: { [key: string]: any } = {
-      lightMode: {
-        textColor: '#000000',
-        bgColor: '#ffffff',
-        bgImage: '',
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        sectionLabels: false,
-        qrOnly: false,
-        opacity: 1.0,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      darkMode: {
-        textColor: '#ffffff',
-        bgColor: '#000000',
-        bgImage: '',
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        opacity: 1.0,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      pubpay: {
-        textColor: '#ffffff',
-        bgColor: '#ffffff',
-        bgImage: '/live/images/gradient_color.gif',
-        qrInvert: true,
-        qrScreenBlend: true,
-        qrMultiplyBlend: false,
-        qrShowWebLink: true,
-        qrShowNevent: true,
-        qrShowNote: true,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        sectionLabels: false,
-        qrOnly: false,
-        opacity: 0,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      cosmic: {
-        textColor: '#ffffff',
-        bgColor: '#0a0a1a',
-        bgImage: '/live/images/bitcoin-space.gif',
-        qrInvert: false,
-        qrScreenBlend: true,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: true,
-        zapGrid: false,
-        sectionLabels: false,
-        qrOnly: false,
-        opacity: 0.4,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      vibrant: {
-        textColor: '#ffd700',
-        bgColor: '#2d1b69',
-        bgImage: '/live/images/nostr-ostriches.gif',
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        sectionLabels: false,
-        qrOnly: false,
-        opacity: 0.6,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      electric: {
-        textColor: '#00ffff',
-        bgColor: '#000033',
-        bgImage: '/live/images/send-zaps.gif',
-        qrInvert: false,
-        qrScreenBlend: true,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        sectionLabels: false,
-        qrOnly: false,
-        opacity: 0.7,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      warm: {
-        textColor: '#ff8c42',
-        bgColor: '#2c1810',
-        bgImage: '/live/images/bitcoin-sunset.gif',
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        sectionLabels: false,
-        qrOnly: false,
-        opacity: 0.8,
-        textOpacity: 1.0,
-        partnerLogo: ''
-      },
-      adopting: {
-        textColor: '#eedb5f',
-        bgColor: '#05051f',
-        bgImage: '/live/images/adopting.webp',
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        sectionLabels: false,
-        qrOnly: false,
-        opacity: 0.7,
-        textOpacity: 1.0,
-        partnerLogo: 'https://adoptingbitcoin.org/images/AB-logo.svg'
-      },
-      bitcoinConf: {
-        textColor: '#ffffff',
-        bgColor: '#000000',
-        bgImage: '/live/images/sky.jpg',
-        qrInvert: false,
-        qrScreenBlend: false,
-        qrMultiplyBlend: false,
-        qrShowWebLink: false,
-        qrShowNevent: true,
-        qrShowNote: false,
-        layoutInvert: false,
-        hideZapperContent: false,
-        showTopZappers: false,
-        podium: false,
-        zapGrid: false,
-        sectionLabels: false,
-        qrOnly: false,
-        opacity: 0.7,
-        textOpacity: 1.0,
-        partnerLogo:
-          'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg'
-      }
-    };
-
-    const presetData = presets[preset];
-    if (presetData) {
-      const textColorPicker = document.getElementById('textColorPicker') as HTMLInputElement;
-      const bgColorPicker = document.getElementById('bgColorPicker') as HTMLInputElement;
-      const textColorValue = document.getElementById('textColorValue') as HTMLInputElement;
-      const bgColorValue = document.getElementById('bgColorValue') as HTMLInputElement;
-      const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
-      const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
-      const textOpacityValue = document.getElementById('textOpacityValue');
-      const opacityValue = document.getElementById('opacityValue');
-
-      if (textColorPicker) textColorPicker.value = presetData.textColor;
-      if (textColorValue) textColorValue.value = presetData.textColor;
-      if (bgColorPicker) bgColorPicker.value = presetData.bgColor;
-      if (bgColorValue) bgColorValue.value = presetData.bgColor;
-      if (textOpacitySlider) textOpacitySlider.value = presetData.textOpacity.toString();
-      if (textOpacityValue)
-        textOpacityValue.textContent = `${Math.round(presetData.textOpacity * 100)}%`;
-      if (opacitySlider) opacitySlider.value = presetData.opacity.toString();
-      if (opacityValue)
-        opacityValue.textContent = `${Math.round(presetData.opacity * 100)}%`;
-
-      // Set background image
-      const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
-      const bgImagePreset = document.getElementById('bgImagePreset') as HTMLSelectElement;
-      if (bgImageUrl) bgImageUrl.value = presetData.bgImage;
-      if (bgImagePreset) {
-        if (presetData.bgImage) {
-          bgImagePreset.value = 'custom';
-        } else {
-          bgImagePreset.value = '';
+  const applyPreset = useCallback(
+    (preset: string) => {
+      const presets: { [key: string]: any } = {
+        lightMode: {
+          textColor: '#000000',
+          bgColor: '#ffffff',
+          bgImage: '',
+          qrInvert: false,
+          qrScreenBlend: false,
+          qrMultiplyBlend: false,
+          qrShowWebLink: false,
+          qrShowNevent: true,
+          qrShowNote: false,
+          layoutInvert: false,
+          hideZapperContent: false,
+          showTopZappers: false,
+          podium: false,
+          zapGrid: false,
+          sectionLabels: false,
+          qrOnly: false,
+          opacity: 1.0,
+          textOpacity: 1.0,
+          partnerLogo: ''
+        },
+        darkMode: {
+          textColor: '#ffffff',
+          bgColor: '#000000',
+          bgImage: '',
+          qrInvert: false,
+          qrScreenBlend: false,
+          qrMultiplyBlend: false,
+          qrShowWebLink: false,
+          qrShowNevent: true,
+          qrShowNote: false,
+          layoutInvert: false,
+          hideZapperContent: false,
+          showTopZappers: false,
+          podium: false,
+          zapGrid: false,
+          opacity: 1.0,
+          textOpacity: 1.0,
+          partnerLogo: ''
+        },
+        pubpay: {
+          textColor: '#ffffff',
+          bgColor: '#ffffff',
+          bgImage: '/live/images/gradient_color.gif',
+          qrInvert: true,
+          qrScreenBlend: true,
+          qrMultiplyBlend: false,
+          qrShowWebLink: true,
+          qrShowNevent: true,
+          qrShowNote: true,
+          layoutInvert: false,
+          hideZapperContent: false,
+          showTopZappers: false,
+          podium: false,
+          zapGrid: false,
+          sectionLabels: false,
+          qrOnly: false,
+          opacity: 0,
+          textOpacity: 1.0,
+          partnerLogo: ''
+        },
+        cosmic: {
+          textColor: '#ffffff',
+          bgColor: '#0a0a1a',
+          bgImage: '/live/images/bitcoin-space.gif',
+          qrInvert: false,
+          qrScreenBlend: true,
+          qrMultiplyBlend: false,
+          qrShowWebLink: false,
+          qrShowNevent: true,
+          qrShowNote: false,
+          layoutInvert: false,
+          hideZapperContent: false,
+          showTopZappers: false,
+          podium: true,
+          zapGrid: false,
+          sectionLabels: false,
+          qrOnly: false,
+          opacity: 0.4,
+          textOpacity: 1.0,
+          partnerLogo: ''
+        },
+        vibrant: {
+          textColor: '#ffd700',
+          bgColor: '#2d1b69',
+          bgImage: '/live/images/nostr-ostriches.gif',
+          qrInvert: false,
+          qrScreenBlend: false,
+          qrMultiplyBlend: false,
+          qrShowWebLink: false,
+          qrShowNevent: true,
+          qrShowNote: false,
+          layoutInvert: false,
+          hideZapperContent: false,
+          showTopZappers: false,
+          podium: false,
+          zapGrid: false,
+          sectionLabels: false,
+          qrOnly: false,
+          opacity: 0.6,
+          textOpacity: 1.0,
+          partnerLogo: ''
+        },
+        electric: {
+          textColor: '#00ffff',
+          bgColor: '#000033',
+          bgImage: '/live/images/send-zaps.gif',
+          qrInvert: false,
+          qrScreenBlend: true,
+          qrMultiplyBlend: false,
+          qrShowWebLink: false,
+          qrShowNevent: true,
+          qrShowNote: false,
+          layoutInvert: false,
+          hideZapperContent: false,
+          showTopZappers: false,
+          podium: false,
+          zapGrid: false,
+          sectionLabels: false,
+          qrOnly: false,
+          opacity: 0.7,
+          textOpacity: 1.0,
+          partnerLogo: ''
+        },
+        warm: {
+          textColor: '#ff8c42',
+          bgColor: '#2c1810',
+          bgImage: '/live/images/bitcoin-sunset.gif',
+          qrInvert: false,
+          qrScreenBlend: false,
+          qrMultiplyBlend: false,
+          qrShowWebLink: false,
+          qrShowNevent: true,
+          qrShowNote: false,
+          layoutInvert: false,
+          hideZapperContent: false,
+          showTopZappers: false,
+          podium: false,
+          zapGrid: false,
+          sectionLabels: false,
+          qrOnly: false,
+          opacity: 0.8,
+          textOpacity: 1.0,
+          partnerLogo: ''
+        },
+        adopting: {
+          textColor: '#eedb5f',
+          bgColor: '#05051f',
+          bgImage: '/live/images/adopting.webp',
+          qrInvert: false,
+          qrScreenBlend: false,
+          qrMultiplyBlend: false,
+          qrShowWebLink: false,
+          qrShowNevent: true,
+          qrShowNote: false,
+          layoutInvert: false,
+          hideZapperContent: false,
+          showTopZappers: false,
+          podium: false,
+          zapGrid: false,
+          sectionLabels: false,
+          qrOnly: false,
+          opacity: 0.7,
+          textOpacity: 1.0,
+          partnerLogo: 'https://adoptingbitcoin.org/images/AB-logo.svg'
+        },
+        bitcoinConf: {
+          textColor: '#ffffff',
+          bgColor: '#000000',
+          bgImage: '/live/images/sky.jpg',
+          qrInvert: false,
+          qrScreenBlend: false,
+          qrMultiplyBlend: false,
+          qrShowWebLink: false,
+          qrShowNevent: true,
+          qrShowNote: false,
+          layoutInvert: false,
+          hideZapperContent: false,
+          showTopZappers: false,
+          podium: false,
+          zapGrid: false,
+          sectionLabels: false,
+          qrOnly: false,
+          opacity: 0.7,
+          textOpacity: 1.0,
+          partnerLogo:
+            'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg'
         }
-      }
+      };
 
-      // Set partner logo
-      const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-      const partnerLogoUrl = document.getElementById('partnerLogoUrl') as HTMLInputElement;
-      if (partnerLogoSelect) {
-        if (presetData.partnerLogo) {
-          // Check if it's a predefined option
-          const matchingOption = Array.from(partnerLogoSelect.options).find(
-            option => option.value === presetData.partnerLogo
-          );
-          if (matchingOption) {
-            partnerLogoSelect.value = presetData.partnerLogo;
+      const presetData = presets[preset];
+      if (presetData) {
+        const textColorPicker = document.getElementById(
+          'textColorPicker'
+        ) as HTMLInputElement;
+        const bgColorPicker = document.getElementById(
+          'bgColorPicker'
+        ) as HTMLInputElement;
+        const textColorValue = document.getElementById(
+          'textColorValue'
+        ) as HTMLInputElement;
+        const bgColorValue = document.getElementById(
+          'bgColorValue'
+        ) as HTMLInputElement;
+        const textOpacitySlider = document.getElementById(
+          'textOpacitySlider'
+        ) as HTMLInputElement;
+        const opacitySlider = document.getElementById(
+          'opacitySlider'
+        ) as HTMLInputElement;
+        const textOpacityValue = document.getElementById('textOpacityValue');
+        const opacityValue = document.getElementById('opacityValue');
+
+        if (textColorPicker) textColorPicker.value = presetData.textColor;
+        if (textColorValue) textColorValue.value = presetData.textColor;
+        if (bgColorPicker) bgColorPicker.value = presetData.bgColor;
+        if (bgColorValue) bgColorValue.value = presetData.bgColor;
+        if (textOpacitySlider)
+          textOpacitySlider.value = presetData.textOpacity.toString();
+        if (textOpacityValue)
+          textOpacityValue.textContent = `${Math.round(presetData.textOpacity * 100)}%`;
+        if (opacitySlider) opacitySlider.value = presetData.opacity.toString();
+        if (opacityValue)
+          opacityValue.textContent = `${Math.round(presetData.opacity * 100)}%`;
+
+        // Set background image
+        const bgImageUrl = document.getElementById(
+          'bgImageUrl'
+        ) as HTMLInputElement;
+        const bgImagePreset = document.getElementById(
+          'bgImagePreset'
+        ) as HTMLSelectElement;
+        if (bgImageUrl) bgImageUrl.value = presetData.bgImage;
+        if (bgImagePreset) {
+          if (presetData.bgImage) {
+            bgImagePreset.value = 'custom';
           } else {
-            partnerLogoSelect.value = 'custom';
-            if (partnerLogoUrl) partnerLogoUrl.value = presetData.partnerLogo;
+            bgImagePreset.value = '';
           }
-        } else {
-          partnerLogoSelect.value = '';
         }
+
+        // Set partner logo
+        const partnerLogoSelect = document.getElementById(
+          'partnerLogoSelect'
+        ) as HTMLSelectElement;
+        const partnerLogoUrl = document.getElementById(
+          'partnerLogoUrl'
+        ) as HTMLInputElement;
+        if (partnerLogoSelect) {
+          if (presetData.partnerLogo) {
+            // Check if it's a predefined option
+            const matchingOption = Array.from(partnerLogoSelect.options).find(
+              option => option.value === presetData.partnerLogo
+            );
+            if (matchingOption) {
+              partnerLogoSelect.value = presetData.partnerLogo;
+            } else {
+              partnerLogoSelect.value = 'custom';
+              if (partnerLogoUrl) partnerLogoUrl.value = presetData.partnerLogo;
+            }
+          } else {
+            partnerLogoSelect.value = '';
+          }
+        }
+
+        // Set all toggles
+        const toggleMapping = [
+          { toggleId: 'qrInvertToggle', value: presetData.qrInvert },
+          { toggleId: 'qrScreenBlendToggle', value: presetData.qrScreenBlend },
+          {
+            toggleId: 'qrMultiplyBlendToggle',
+            value: presetData.qrMultiplyBlend
+          },
+          { toggleId: 'qrShowWebLinkToggle', value: presetData.qrShowWebLink },
+          { toggleId: 'qrShowNeventToggle', value: presetData.qrShowNevent },
+          { toggleId: 'qrShowNoteToggle', value: presetData.qrShowNote },
+          { toggleId: 'layoutInvertToggle', value: presetData.layoutInvert },
+          {
+            toggleId: 'hideZapperContentToggle',
+            value: presetData.hideZapperContent
+          },
+          {
+            toggleId: 'showTopZappersToggle',
+            value: presetData.showTopZappers
+          },
+          { toggleId: 'podiumToggle', value: presetData.podium },
+          { toggleId: 'zapGridToggle', value: presetData.zapGrid },
+          {
+            toggleId: 'sectionLabelsToggle',
+            value:
+              presetData.sectionLabels !== undefined
+                ? presetData.sectionLabels
+                : false
+          },
+          {
+            toggleId: 'qrOnlyToggle',
+            value: presetData.qrOnly !== undefined ? presetData.qrOnly : false
+          }
+        ];
+
+        toggleMapping.forEach(({ toggleId, value }) => {
+          const toggle = document.getElementById(toggleId) as HTMLInputElement;
+          if (toggle) {
+            toggle.checked = value;
+            // Trigger change event to apply visual effects
+            const event = new Event('change', { bubbles: true });
+            toggle.dispatchEvent(event);
+          }
+        });
+
+        // Apply all styles
+        applyAllStyles();
+        saveCurrentStylesToLocalStorage();
+
+        // Update QR slide visibility after applying preset
+        setTimeout(() => {
+          if (onUpdateQRSlideVisibility) {
+            onUpdateQRSlideVisibility(true);
+          }
+        }, 100);
       }
-
-      // Set all toggles
-      const toggleMapping = [
-        { toggleId: 'qrInvertToggle', value: presetData.qrInvert },
-        { toggleId: 'qrScreenBlendToggle', value: presetData.qrScreenBlend },
-        { toggleId: 'qrMultiplyBlendToggle', value: presetData.qrMultiplyBlend },
-        { toggleId: 'qrShowWebLinkToggle', value: presetData.qrShowWebLink },
-        { toggleId: 'qrShowNeventToggle', value: presetData.qrShowNevent },
-        { toggleId: 'qrShowNoteToggle', value: presetData.qrShowNote },
-        { toggleId: 'layoutInvertToggle', value: presetData.layoutInvert },
-        { toggleId: 'hideZapperContentToggle', value: presetData.hideZapperContent },
-        { toggleId: 'showTopZappersToggle', value: presetData.showTopZappers },
-        { toggleId: 'podiumToggle', value: presetData.podium },
-        { toggleId: 'zapGridToggle', value: presetData.zapGrid },
-        { toggleId: 'sectionLabelsToggle', value: presetData.sectionLabels !== undefined ? presetData.sectionLabels : false },
-        { toggleId: 'qrOnlyToggle', value: presetData.qrOnly !== undefined ? presetData.qrOnly : false }
-      ];
-
-      toggleMapping.forEach(({ toggleId, value }) => {
-        const toggle = document.getElementById(toggleId) as HTMLInputElement;
-        if (toggle) {
-          toggle.checked = value;
-          // Trigger change event to apply visual effects
-          const event = new Event('change', { bubbles: true });
-          toggle.dispatchEvent(event);
-        }
-      });
-
-
-      // Apply all styles
-      applyAllStyles();
-      saveCurrentStylesToLocalStorage();
-
-      // Update QR slide visibility after applying preset
-      setTimeout(() => {
-        if (onUpdateQRSlideVisibility) {
-          onUpdateQRSlideVisibility(true);
-        }
-      }, 100);
-    }
-  }, [applyAllStyles, saveCurrentStylesToLocalStorage, onUpdateQRSlideVisibility]);
+    },
+    [applyAllStyles, saveCurrentStylesToLocalStorage, onUpdateQRSlideVisibility]
+  );
 
   /**
    * Reset styles to defaults
@@ -637,11 +755,21 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     appLocalStorage.removeItem('styleOptions');
 
     // Reset fiat options to defaults
-    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
-    const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
-    const showHistoricalPriceToggle = document.getElementById('showHistoricalPriceToggle') as HTMLInputElement;
-    const showHistoricalChangeToggle = document.getElementById('showHistoricalChangeToggle') as HTMLInputElement;
-    const fiatOnlyToggle = document.getElementById('fiatOnlyToggle') as HTMLInputElement;
+    const showFiatToggle = document.getElementById(
+      'showFiatToggle'
+    ) as HTMLInputElement;
+    const currencySelector = document.getElementById(
+      'currencySelector'
+    ) as HTMLSelectElement;
+    const showHistoricalPriceToggle = document.getElementById(
+      'showHistoricalPriceToggle'
+    ) as HTMLInputElement;
+    const showHistoricalChangeToggle = document.getElementById(
+      'showHistoricalChangeToggle'
+    ) as HTMLInputElement;
+    const fiatOnlyToggle = document.getElementById(
+      'fiatOnlyToggle'
+    ) as HTMLInputElement;
 
     if (showFiatToggle) showFiatToggle.checked = false;
     if (currencySelector) currencySelector.value = 'USD';
@@ -650,9 +778,15 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     if (fiatOnlyToggle) fiatOnlyToggle.checked = false;
 
     // Hide fiat-related groups
-    const currencySelectorGroup = document.getElementById('currencySelectorGroup');
-    const historicalPriceGroup = document.getElementById('historicalPriceGroup');
-    const historicalChangeGroup = document.getElementById('historicalChangeGroup');
+    const currencySelectorGroup = document.getElementById(
+      'currencySelectorGroup'
+    );
+    const historicalPriceGroup = document.getElementById(
+      'historicalPriceGroup'
+    );
+    const historicalChangeGroup = document.getElementById(
+      'historicalChangeGroup'
+    );
     const fiatOnlyGroup = document.getElementById('fiatOnlyGroup');
 
     if (currencySelectorGroup) currencySelectorGroup.style.display = 'none';
@@ -672,13 +806,15 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const urlEventId = pathPartsWithoutLive[pathPartsWithoutLive.length - 1];
 
     if (onInitializeQRCodePlaceholders) {
-      onInitializeQRCodePlaceholders(urlEventId).then(() => {
-        // Apply light mode preset after QR codes are initialized
-        applyPreset('lightMode');
-      }).catch(() => {
-        // If initialization fails, still apply preset
-        applyPreset('lightMode');
-      });
+      onInitializeQRCodePlaceholders(urlEventId)
+        .then(() => {
+          // Apply light mode preset after QR codes are initialized
+          applyPreset('lightMode');
+        })
+        .catch(() => {
+          // If initialization fails, still apply preset
+          applyPreset('lightMode');
+        });
     } else {
       // If no callback, just apply preset
       applyPreset('lightMode');
@@ -693,8 +829,12 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     if (!mainLayout) return;
 
     // Get current style values
-    const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-    const partnerLogoUrl = document.getElementById('partnerLogoUrl') as HTMLInputElement;
+    const partnerLogoSelect = document.getElementById(
+      'partnerLogoSelect'
+    ) as HTMLSelectElement;
+    const partnerLogoUrl = document.getElementById(
+      'partnerLogoUrl'
+    ) as HTMLInputElement;
 
     // Get the actual partner logo URL
     let currentPartnerLogo = '';
@@ -822,8 +962,12 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       const color = params.get('textColor');
       if (color) {
         (mainLayout as HTMLElement).style.setProperty('--text-color', color);
-        const textColorInput = document.getElementById('textColorPicker') as HTMLInputElement;
-        const textColorValue = document.getElementById('textColorValue') as HTMLInputElement;
+        const textColorInput = document.getElementById(
+          'textColorPicker'
+        ) as HTMLInputElement;
+        const textColorValue = document.getElementById(
+          'textColorValue'
+        ) as HTMLInputElement;
         if (textColorInput) textColorInput.value = color;
         if (textColorValue) textColorValue.value = color;
       }
@@ -838,8 +982,12 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
           : DEFAULT_STYLES.opacity;
         const rgbaColor = hexToRgba(color, opacity);
         (mainLayout as HTMLElement).style.backgroundColor = rgbaColor;
-        const bgColorInput = document.getElementById('bgColorPicker') as HTMLInputElement;
-        const bgColorValue = document.getElementById('bgColorValue') as HTMLInputElement;
+        const bgColorInput = document.getElementById(
+          'bgColorPicker'
+        ) as HTMLInputElement;
+        const bgColorValue = document.getElementById(
+          'bgColorValue'
+        ) as HTMLInputElement;
         if (bgColorInput) bgColorInput.value = color;
         if (bgColorValue) bgColorValue.value = color;
       }
@@ -849,7 +997,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     if (params.has('bgImage')) {
       const imageUrl = params.get('bgImage');
       if (imageUrl) {
-        const bgImageUrl = document.getElementById('bgImageUrl') as HTMLInputElement;
+        const bgImageUrl = document.getElementById(
+          'bgImageUrl'
+        ) as HTMLInputElement;
         if (bgImageUrl) {
           bgImageUrl.value = imageUrl;
           updateBackgroundImage(imageUrl);
@@ -861,7 +1011,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const qrInvert = params.has('qrInvert')
       ? params.get('qrInvert') === 'true'
       : DEFAULT_STYLES.qrInvert;
-    const qrInvertToggle = document.getElementById('qrInvertToggle') as HTMLInputElement;
+    const qrInvertToggle = document.getElementById(
+      'qrInvertToggle'
+    ) as HTMLInputElement;
     if (qrInvertToggle) qrInvertToggle.checked = qrInvert;
     const qrCodes = [
       document.getElementById('qrCode'),
@@ -884,13 +1036,17 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const qrScreenBlend = params.has('qrScreenBlend')
       ? params.get('qrScreenBlend') === 'true'
       : DEFAULT_STYLES.qrScreenBlend;
-    const qrScreenBlendToggle = document.getElementById('qrScreenBlendToggle') as HTMLInputElement;
+    const qrScreenBlendToggle = document.getElementById(
+      'qrScreenBlendToggle'
+    ) as HTMLInputElement;
     if (qrScreenBlendToggle) qrScreenBlendToggle.checked = qrScreenBlend;
 
     const qrMultiplyBlend = params.has('qrMultiplyBlend')
       ? params.get('qrMultiplyBlend') === 'true'
       : DEFAULT_STYLES.qrMultiplyBlend;
-    const qrMultiplyBlendToggle = document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement;
+    const qrMultiplyBlendToggle = document.getElementById(
+      'qrMultiplyBlendToggle'
+    ) as HTMLInputElement;
     if (qrMultiplyBlendToggle) qrMultiplyBlendToggle.checked = qrMultiplyBlend;
 
     // Update blend mode after setting toggles
@@ -900,26 +1056,34 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const qrShowWebLink = params.has('qrShowWebLink')
       ? params.get('qrShowWebLink') === 'true'
       : DEFAULT_STYLES.qrShowWebLink;
-    const qrShowWebLinkToggle = document.getElementById('qrShowWebLinkToggle') as HTMLInputElement;
+    const qrShowWebLinkToggle = document.getElementById(
+      'qrShowWebLinkToggle'
+    ) as HTMLInputElement;
     if (qrShowWebLinkToggle) qrShowWebLinkToggle.checked = qrShowWebLink;
 
     const qrShowNevent = params.has('qrShowNevent')
       ? params.get('qrShowNevent') === 'true'
       : DEFAULT_STYLES.qrShowNevent;
-    const qrShowNeventToggle = document.getElementById('qrShowNeventToggle') as HTMLInputElement;
+    const qrShowNeventToggle = document.getElementById(
+      'qrShowNeventToggle'
+    ) as HTMLInputElement;
     if (qrShowNeventToggle) qrShowNeventToggle.checked = qrShowNevent;
 
     const qrShowNote = params.has('qrShowNote')
       ? params.get('qrShowNote') === 'true'
       : DEFAULT_STYLES.qrShowNote;
-    const qrShowNoteToggle = document.getElementById('qrShowNoteToggle') as HTMLInputElement;
+    const qrShowNoteToggle = document.getElementById(
+      'qrShowNoteToggle'
+    ) as HTMLInputElement;
     if (qrShowNoteToggle) qrShowNoteToggle.checked = qrShowNote;
 
     // Apply layout invert (set to default if not specified in URL)
     const layoutInvert = params.has('layoutInvert')
       ? params.get('layoutInvert') === 'true'
       : DEFAULT_STYLES.layoutInvert;
-    const layoutInvertToggle = document.getElementById('layoutInvertToggle') as HTMLInputElement;
+    const layoutInvertToggle = document.getElementById(
+      'layoutInvertToggle'
+    ) as HTMLInputElement;
     if (layoutInvertToggle) layoutInvertToggle.checked = layoutInvert;
     document.body.classList.toggle('flex-direction-invert', layoutInvert);
 
@@ -927,7 +1091,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const hideZapperContent = params.has('hideZapperContent')
       ? params.get('hideZapperContent') === 'true'
       : DEFAULT_STYLES.hideZapperContent;
-    const hideZapperContentToggle = document.getElementById('hideZapperContentToggle') as HTMLInputElement;
+    const hideZapperContentToggle = document.getElementById(
+      'hideZapperContentToggle'
+    ) as HTMLInputElement;
     if (hideZapperContentToggle)
       hideZapperContentToggle.checked = hideZapperContent;
     document.body.classList.toggle('hide-zapper-content', hideZapperContent);
@@ -936,7 +1102,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const showTopZappers = params.has('showTopZappers')
       ? params.get('showTopZappers') === 'true'
       : DEFAULT_STYLES.showTopZappers;
-    const showTopZappersToggle = document.getElementById('showTopZappersToggle') as HTMLInputElement;
+    const showTopZappersToggle = document.getElementById(
+      'showTopZappersToggle'
+    ) as HTMLInputElement;
     if (showTopZappersToggle) showTopZappersToggle.checked = showTopZappers;
     document.body.classList.toggle('show-top-zappers', showTopZappers);
 
@@ -944,7 +1112,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const podium = params.has('podium')
       ? params.get('podium') === 'true'
       : DEFAULT_STYLES.podium;
-    const podiumToggle = document.getElementById('podiumToggle') as HTMLInputElement;
+    const podiumToggle = document.getElementById(
+      'podiumToggle'
+    ) as HTMLInputElement;
     if (podiumToggle) podiumToggle.checked = podium;
     document.body.classList.toggle('podium-enabled', podium);
 
@@ -952,7 +1122,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const zapGrid = params.has('zapGrid')
       ? params.get('zapGrid') === 'true'
       : DEFAULT_STYLES.zapGrid;
-    const zapGridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+    const zapGridToggle = document.getElementById(
+      'zapGridToggle'
+    ) as HTMLInputElement;
     if (zapGridToggle) zapGridToggle.checked = zapGrid;
     const zapsList = document.getElementById('zaps');
     if (zapsList) {
@@ -981,16 +1153,33 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
             clearInterval((window as any).gridPeriodicCheckInterval);
           }
           (window as any).gridPeriodicCheckInterval = setInterval(() => {
-            const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+            const gridToggle = document.getElementById(
+              'zapGridToggle'
+            ) as HTMLInputElement;
             const container = document.getElementById('zaps-only-list');
-            if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
+            if (
+              gridToggle &&
+              gridToggle.checked &&
+              container &&
+              container.classList.contains('grid-layout')
+            ) {
               // Check if there are zaps outside of .zap-row containers
-              const allZaps = container.querySelectorAll('.zap, .live-event-zap, .zap-only-item');
-              const zapsInRows = container.querySelectorAll('.zap-row .zap, .zap-row .live-event-zap, .zap-row .zap-only-item');
+              const allZaps = container.querySelectorAll(
+                '.zap, .live-event-zap, .zap-only-item'
+              );
+              const zapsInRows = container.querySelectorAll(
+                '.zap-row .zap, .zap-row .live-event-zap, .zap-row .zap-only-item'
+              );
 
               if (allZaps.length !== zapsInRows.length) {
                 // Some zaps are not in rows, re-organize
-                console.log('Re-organizing grid on load: found zaps outside rows', allZaps.length, 'total vs', zapsInRows.length, 'in rows');
+                console.log(
+                  'Re-organizing grid on load: found zaps outside rows',
+                  allZaps.length,
+                  'total vs',
+                  zapsInRows.length,
+                  'in rows'
+                );
                 if (onOrganizeZaps) {
                   onOrganizeZaps();
                 }
@@ -1017,7 +1206,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
             }
             // Also ensure .zaps-list doesn't have grid-layout
             const zapsListElements = document.querySelectorAll('.zaps-list');
-            zapsListElements.forEach(list => list.classList.remove('grid-layout'));
+            zapsListElements.forEach(list =>
+              list.classList.remove('grid-layout')
+            );
           }, 10);
         }
       } else {
@@ -1037,16 +1228,29 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
             clearInterval((window as any).gridPeriodicCheckInterval);
           }
           (window as any).gridPeriodicCheckInterval = setInterval(() => {
-            const gridToggle = document.getElementById('zapGridToggle') as HTMLInputElement;
+            const gridToggle = document.getElementById(
+              'zapGridToggle'
+            ) as HTMLInputElement;
             const container = document.getElementById('zaps');
-            if (gridToggle && gridToggle.checked && container && container.classList.contains('grid-layout')) {
+            if (
+              gridToggle &&
+              gridToggle.checked &&
+              container &&
+              container.classList.contains('grid-layout')
+            ) {
               // Check if there are zaps outside of .zap-row containers
               const allZaps = container.querySelectorAll('.zap');
               const zapsInRows = container.querySelectorAll('.zap-row .zap');
 
               if (allZaps.length !== zapsInRows.length) {
                 // Some zaps are not in rows, re-organize
-                console.log('Re-organizing grid on load: found zaps outside rows', allZaps.length, 'total vs', zapsInRows.length, 'in rows');
+                console.log(
+                  'Re-organizing grid on load: found zaps outside rows',
+                  allZaps.length,
+                  'total vs',
+                  zapsInRows.length,
+                  'in rows'
+                );
                 if (onOrganizeZaps) {
                   onOrganizeZaps();
                 }
@@ -1071,7 +1275,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
             void zapsList.offsetHeight;
             // Also ensure .zaps-list doesn't have grid-layout
             const zapsListElements = document.querySelectorAll('.zaps-list');
-            zapsListElements.forEach(list => list.classList.remove('grid-layout'));
+            zapsListElements.forEach(list =>
+              list.classList.remove('grid-layout')
+            );
           }, 10);
         }
       }
@@ -1081,13 +1287,17 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const lightning = params.has('lightning')
       ? params.get('lightning') === 'true'
       : DEFAULT_STYLES.lightning;
-    const lightningToggle = document.getElementById('lightningToggle') as HTMLInputElement;
+    const lightningToggle = document.getElementById(
+      'lightningToggle'
+    ) as HTMLInputElement;
     if (lightningToggle) lightningToggle.checked = lightning;
 
     // Apply opacity
     if (params.has('opacity')) {
       const opacity = parseFloat(params.get('opacity') || '1');
-      const opacitySlider = document.getElementById('opacitySlider') as HTMLInputElement;
+      const opacitySlider = document.getElementById(
+        'opacitySlider'
+      ) as HTMLInputElement;
       const opacityValue = document.getElementById('opacityValue');
       if (opacitySlider) opacitySlider.value = opacity.toString();
       if (opacityValue)
@@ -1097,7 +1307,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     // Apply text opacity
     if (params.has('textOpacity')) {
       const textOpacity = parseFloat(params.get('textOpacity') || '1');
-      const textOpacitySlider = document.getElementById('textOpacitySlider') as HTMLInputElement;
+      const textOpacitySlider = document.getElementById(
+        'textOpacitySlider'
+      ) as HTMLInputElement;
       const textOpacityValue = document.getElementById('textOpacityValue');
       if (textOpacitySlider) textOpacitySlider.value = textOpacity.toString();
       if (textOpacityValue)
@@ -1109,11 +1321,21 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       const partnerLogoUrl = decodeURIComponent(
         params.get('partnerLogo') || ''
       );
-      const partnerLogoSelect = document.getElementById('partnerLogoSelect') as HTMLSelectElement;
-      const partnerLogoImg = document.getElementById('partnerLogo') as HTMLImageElement;
-      const partnerLogoUrlInput = document.getElementById('partnerLogoUrl') as HTMLInputElement;
-      const customPartnerLogoGroup = document.getElementById('customPartnerLogoGroup');
-      const partnerLogoPreview = document.getElementById('partnerLogoPreview') as HTMLImageElement;
+      const partnerLogoSelect = document.getElementById(
+        'partnerLogoSelect'
+      ) as HTMLSelectElement;
+      const partnerLogoImg = document.getElementById(
+        'partnerLogo'
+      ) as HTMLImageElement;
+      const partnerLogoUrlInput = document.getElementById(
+        'partnerLogoUrl'
+      ) as HTMLInputElement;
+      const customPartnerLogoGroup = document.getElementById(
+        'customPartnerLogoGroup'
+      );
+      const partnerLogoPreview = document.getElementById(
+        'partnerLogoPreview'
+      ) as HTMLImageElement;
 
       if (partnerLogoUrl) {
         // Check if it's one of the predefined options
@@ -1164,7 +1386,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const sectionLabels = params.has('sectionLabels')
       ? params.get('sectionLabels') === 'true'
       : DEFAULT_STYLES.sectionLabels;
-    const sectionLabelsToggle = document.getElementById('sectionLabelsToggle') as HTMLInputElement;
+    const sectionLabelsToggle = document.getElementById(
+      'sectionLabelsToggle'
+    ) as HTMLInputElement;
     if (sectionLabelsToggle) sectionLabelsToggle.checked = sectionLabels;
     const sectionLabelsElements = document.querySelectorAll('.section-label');
     const totalLabelsElements = document.querySelectorAll('.total-label');
@@ -1190,7 +1414,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const qrOnly = params.has('qrOnly')
       ? params.get('qrOnly') === 'true'
       : false;
-    const qrOnlyToggle = document.getElementById('qrOnlyToggle') as HTMLInputElement;
+    const qrOnlyToggle = document.getElementById(
+      'qrOnlyToggle'
+    ) as HTMLInputElement;
     if (qrOnlyToggle) qrOnlyToggle.checked = qrOnly;
     if (qrOnly) {
       document.body.classList.add('qr-only-mode');
@@ -1202,9 +1428,15 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const showFiat = params.has('showFiat')
       ? params.get('showFiat') === 'true'
       : DEFAULT_STYLES.showFiat;
-    const showFiatToggle = document.getElementById('showFiatToggle') as HTMLInputElement;
-    const currencySelectorGroup = document.getElementById('currencySelectorGroup');
-    const historicalPriceGroup = document.getElementById('historicalPriceGroup');
+    const showFiatToggle = document.getElementById(
+      'showFiatToggle'
+    ) as HTMLInputElement;
+    const currencySelectorGroup = document.getElementById(
+      'currencySelectorGroup'
+    );
+    const historicalPriceGroup = document.getElementById(
+      'historicalPriceGroup'
+    );
     if (showFiatToggle) showFiatToggle.checked = showFiat;
     if (showFiat) {
       document.body.classList.add('show-fiat-amounts');
@@ -1220,7 +1452,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const showHistoricalPrice = params.has('showHistoricalPrice')
       ? params.get('showHistoricalPrice') === 'true'
       : DEFAULT_STYLES.showHistoricalPrice;
-    const showHistoricalPriceToggle = document.getElementById('showHistoricalPriceToggle') as HTMLInputElement;
+    const showHistoricalPriceToggle = document.getElementById(
+      'showHistoricalPriceToggle'
+    ) as HTMLInputElement;
     if (showHistoricalPriceToggle)
       showHistoricalPriceToggle.checked = showHistoricalPrice;
 
@@ -1228,8 +1462,12 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const showHistoricalChange = params.has('showHistoricalChange')
       ? params.get('showHistoricalChange') === 'true'
       : DEFAULT_STYLES.showHistoricalChange;
-    const showHistoricalChangeToggle = document.getElementById('showHistoricalChangeToggle') as HTMLInputElement;
-    const historicalChangeGroup = document.getElementById('historicalChangeGroup');
+    const showHistoricalChangeToggle = document.getElementById(
+      'showHistoricalChangeToggle'
+    ) as HTMLInputElement;
+    const historicalChangeGroup = document.getElementById(
+      'historicalChangeGroup'
+    );
     if (showHistoricalChangeToggle)
       showHistoricalChangeToggle.checked = showHistoricalChange;
 
@@ -1244,7 +1482,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const fiatOnly = params.has('fiatOnly')
       ? params.get('fiatOnly') === 'true'
       : DEFAULT_STYLES.fiatOnly;
-    const fiatOnlyToggle = document.getElementById('fiatOnlyToggle') as HTMLInputElement;
+    const fiatOnlyToggle = document.getElementById(
+      'fiatOnlyToggle'
+    ) as HTMLInputElement;
     const fiatOnlyGroup = document.getElementById('fiatOnlyGroup');
     if (fiatOnlyToggle) fiatOnlyToggle.checked = fiatOnly;
 
@@ -1259,7 +1499,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const selectedCurrency = params.has('selectedCurrency')
       ? params.get('selectedCurrency') || 'USD'
       : 'USD';
-    const currencySelector = document.getElementById('currencySelector') as HTMLSelectElement;
+    const currencySelector = document.getElementById(
+      'currencySelector'
+    ) as HTMLSelectElement;
     if (currencySelector) currencySelector.value = selectedCurrency;
 
     // Apply all styles to ensure everything is synchronized
@@ -1289,7 +1531,18 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     // Save the URL-applied styles to localStorage first, then clean URL
     saveCurrentStylesToLocalStorage();
     updateStyleURL();
-  }, [hexToRgba, updateBackgroundImage, updateBlendMode, applyAllStyles, saveCurrentStylesToLocalStorage, updateStyleURL, lightningEnabled, onOrganizeZaps, onCleanupHierarchicalOrganization, onUpdateQRSlideVisibility]);
+  }, [
+    hexToRgba,
+    updateBackgroundImage,
+    updateBlendMode,
+    applyAllStyles,
+    saveCurrentStylesToLocalStorage,
+    updateStyleURL,
+    lightningEnabled,
+    onOrganizeZaps,
+    onCleanupHierarchicalOrganization,
+    onUpdateQRSlideVisibility
+  ]);
 
   /**
    * Copy style URL with parameters
@@ -1360,7 +1613,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
         if (styles.showHistoricalPrice !== DEFAULT_STYLES.showHistoricalPrice) {
           params.set('showHistoricalPrice', styles.showHistoricalPrice);
         }
-        if (styles.showHistoricalChange !== DEFAULT_STYLES.showHistoricalChange) {
+        if (
+          styles.showHistoricalChange !== DEFAULT_STYLES.showHistoricalChange
+        ) {
           params.set('showHistoricalChange', styles.showHistoricalChange);
         }
         if (styles.fiatOnly !== DEFAULT_STYLES.fiatOnly) {
@@ -1375,10 +1630,16 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
         if (styles.textOpacity !== DEFAULT_STYLES.textOpacity) {
           params.set('textOpacity', styles.textOpacity.toString());
         }
-        if (styles.partnerLogo && styles.partnerLogo !== DEFAULT_STYLES.partnerLogo) {
+        if (
+          styles.partnerLogo &&
+          styles.partnerLogo !== DEFAULT_STYLES.partnerLogo
+        ) {
           params.set('partnerLogo', encodeURIComponent(styles.partnerLogo));
         }
-        if (styles.selectedCurrency && styles.selectedCurrency !== DEFAULT_STYLES.selectedCurrency) {
+        if (
+          styles.selectedCurrency &&
+          styles.selectedCurrency !== DEFAULT_STYLES.selectedCurrency
+        ) {
           params.set('selectedCurrency', styles.selectedCurrency);
         }
 

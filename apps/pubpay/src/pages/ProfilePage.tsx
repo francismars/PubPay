@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  useNavigate,
-  useOutletContext,
-  useParams
-} from 'react-router-dom';
+import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import {
   useUIStore,
   ensureProfiles,
@@ -47,12 +43,12 @@ import {
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { pubkey } = useParams<{ pubkey?: string }>();
-  
+
   // Use reusable selector hooks
   const nostrReady = useNostrReady();
   const paymentErrors = usePaymentErrors();
   const openLogin = useUIStore(s => s.openLogin);
-  
+
   // Get authState and handlers from Layout context (authState includes privateKey from local state)
   const {
     authState,
@@ -156,13 +152,12 @@ const ProfilePage: React.FC = () => {
         } else {
           alert(
             `Failed to sign in with recovered keys: ${
-              signInResult.error || 'Unknown error'}`
+              signInResult.error || 'Unknown error'
+            }`
           );
         }
       } else {
-        alert(
-          `Failed to recover keys: ${  result.error || 'Invalid mnemonic'}`
-        );
+        alert(`Failed to recover keys: ${result.error || 'Invalid mnemonic'}`);
       }
     } catch (error) {
       console.error('Recovery failed:', error);
@@ -184,27 +179,18 @@ const ProfilePage: React.FC = () => {
     isInitialLoad,
     profileDataLoaded
   } = useProfileLoadingStates();
-  
-  const {
-    profileData,
-    nip05Valid,
-    nip05Validating
-  } = useProfileDataWithValidation();
-  
-  const {
-    userPaynotes,
-    hasMorePaynotes
-  } = useUserPaynotesWithPagination();
-  
-  const {
-    isFollowing,
-    followBusy,
-    setIsFollowing,
-    setFollowBusy
-  } = useFollowState();
-  
+
+  const { profileData, nip05Valid, nip05Validating } =
+    useProfileDataWithValidation();
+
+  const { userPaynotes, hasMorePaynotes } = useUserPaynotesWithPagination();
+
+  const { isFollowing, followBusy, setIsFollowing, setFollowBusy } =
+    useFollowState();
+
   // Get remaining state that's not in composite hooks
-  const { activityStats, loadStartTime, currentProfilePubkey } = useProfileState();
+  const { activityStats, loadStartTime, currentProfilePubkey } =
+    useProfileState();
 
   // Use composite hooks for actions
   const { setProfileData, setCurrentProfile } = useProfileManagementActions();
@@ -279,10 +265,9 @@ const ProfilePage: React.FC = () => {
   });
 
   useProfileZapSubscription({
-              nostrClient,
+    nostrClient,
     nostrReady
   });
-
 
   // Copy to clipboard function with tooltip
   const handleCopyToClipboard = (
@@ -334,7 +319,6 @@ const ProfilePage: React.FC = () => {
     setShowQRModal(true);
   };
 
-
   return (
     <div className="profilePage">
       <h1 className="profilePageTitle">
@@ -344,10 +328,8 @@ const ProfilePage: React.FC = () => {
       {(() => {
         // Show skeletons if: loading, initial load, or data not confirmed loaded yet
         // Only hide skeleton when data is confirmed loaded (profileDataLoaded = true)
-        const shouldShowSkeleton = 
-          isLoadingProfile || 
-          isInitialLoad || 
-          !profileDataLoaded;
+        const shouldShowSkeleton =
+          isLoadingProfile || isInitialLoad || !profileDataLoaded;
         return shouldShowSkeleton;
       })() ? (
         <ProfileHeaderSkeleton
@@ -394,12 +376,34 @@ const ProfilePage: React.FC = () => {
               isInitialLoad={isInitialLoad}
               profileDataLoaded={profileDataLoaded}
               loadStartTime={loadStartTime}
-              onCopyLightning={e => handleCopyToClipboard(profileData.lightningAddress, 'Lightning Address', e)}
-              onShowQRLightning={() => handleShowQRCode(profileData.lightningAddress, 'lightning')}
-              onCopyNip05={e => handleCopyToClipboard(profileData.nip05, 'Identifier (nip-05)', e)}
+              onCopyLightning={e =>
+                handleCopyToClipboard(
+                  profileData.lightningAddress,
+                  'Lightning Address',
+                  e
+                )
+              }
+              onShowQRLightning={() =>
+                handleShowQRCode(profileData.lightningAddress, 'lightning')
+              }
+              onCopyNip05={e =>
+                handleCopyToClipboard(
+                  profileData.nip05,
+                  'Identifier (nip-05)',
+                  e
+                )
+              }
               onPurchaseNip05={() => setShowNip05Purchase(true)}
-              onCopyNpub={e => handleCopyToClipboard(getNpubFromPublicKey(pubkey, publicKey), 'Public Key', e)}
-              onShowQRNpub={() => handleShowQRCode(getNpubFromPublicKey(pubkey, publicKey))}
+              onCopyNpub={e =>
+                handleCopyToClipboard(
+                  getNpubFromPublicKey(pubkey, publicKey),
+                  'Public Key',
+                  e
+                )
+              }
+              onShowQRNpub={() =>
+                handleShowQRCode(getNpubFromPublicKey(pubkey, publicKey))
+              }
             />
           </ProfileHeader>
 
@@ -414,13 +418,21 @@ const ProfilePage: React.FC = () => {
             <h2 className="profileStatsTitle">Paynotes</h2>
             {isLoadingPaynotes && userPaynotes.length === 0 ? (
               <div
-                style={{ textAlign: 'center', padding: '40px', color: COLORS.TEXT_LIGHT }}
+                style={{
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: COLORS.TEXT_LIGHT
+                }}
               >
                 Loading paynotes...
               </div>
             ) : userPaynotes.length === 0 ? (
               <div
-                style={{ textAlign: 'center', padding: '40px', color: COLORS.TEXT_LIGHT }}
+                style={{
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: COLORS.TEXT_LIGHT
+                }}
               >
                 No paynotes found
               </div>
@@ -449,7 +461,9 @@ const ProfilePage: React.FC = () => {
                       style={{
                         padding: '10px 20px',
                         fontSize: '16px',
-                        backgroundColor: isLoadingPaynotes ? COLORS.GRAY_LIGHT : COLORS.PRIMARY,
+                        backgroundColor: isLoadingPaynotes
+                          ? COLORS.GRAY_LIGHT
+                          : COLORS.PRIMARY,
                         color: COLORS.TEXT_WHITE,
                         border: 'none',
                         borderRadius: '8px',
@@ -493,7 +507,7 @@ const ProfilePage: React.FC = () => {
       {/* QR Code Modal */}
       <ProfileQRModal
         show={showQRModal}
-                  data={qrCodeData}
+        data={qrCodeData}
         type={qrCodeType}
         onClose={() => setShowQRModal(false)}
         onCopy={handleCopyToClipboard}
@@ -506,9 +520,9 @@ const ProfilePage: React.FC = () => {
         onMnemonicChange={setRecoveryMnemonic}
         onRecover={handleRecoveryFromMnemonic}
         onClose={() => {
-                  setShowRecoveryModal(false);
-                  setRecoveryMnemonic('');
-                }}
+          setShowRecoveryModal(false);
+          setRecoveryMnemonic('');
+        }}
       />
 
       {/* JSON Viewer Overlay */}
@@ -526,9 +540,14 @@ const ProfilePage: React.FC = () => {
             setShowNip05Purchase(false);
             // Update profile data to show the new NIP-05
             setProfileData(prev => ({ ...prev, nip05 }));
-            
+
             // Update kind 0 profile event with new NIP-05
-            if (nostrClient && publicKey && authState?.privateKey && authState?.signInMethod === 'nsec') {
+            if (
+              nostrClient &&
+              publicKey &&
+              authState?.privateKey &&
+              authState?.signInMethod === 'nsec'
+            ) {
               try {
                 // Get existing profile content
                 const queryClient = getQueryClient();
@@ -538,7 +557,7 @@ const ProfilePage: React.FC = () => {
                   [publicKey]
                 );
                 const profileEvent = profileMap.get(publicKey);
-                
+
                 let existingProfile: Record<string, any> = {};
                 if (profileEvent?.content) {
                   try {
@@ -560,7 +579,10 @@ const ProfilePage: React.FC = () => {
 
                 // Remove empty strings
                 Object.keys(profileDataForNostr).forEach(key => {
-                  if (profileDataForNostr[key] === '' || profileDataForNostr[key] === null) {
+                  if (
+                    profileDataForNostr[key] === '' ||
+                    profileDataForNostr[key] === null
+                  ) {
                     delete profileDataForNostr[key];
                   }
                 });
@@ -569,7 +591,9 @@ const ProfilePage: React.FC = () => {
                 const eventTemplate = {
                   kind: 0,
                   pubkey: publicKey,
-                  created_at: Math.floor(Date.now() / TIME.MILLISECONDS_PER_SECOND),
+                  created_at: Math.floor(
+                    Date.now() / TIME.MILLISECONDS_PER_SECOND
+                  ),
                   tags: [],
                   content: JSON.stringify(profileDataForNostr)
                 };
@@ -589,34 +613,42 @@ const ProfilePage: React.FC = () => {
 
                 // Clear cache to force fresh fetch
                 queryClient.removeQueries({ queryKey: ['profile', publicKey] });
-                queryClient.invalidateQueries({ queryKey: ['profile', publicKey] });
+                queryClient.invalidateQueries({
+                  queryKey: ['profile', publicKey]
+                });
 
-                useUIStore.getState().openToast(
-                  `NIP-05 registered and profile updated: ${nip05}`,
-                  'success',
-                  false
-                );
+                useUIStore
+                  .getState()
+                  .openToast(
+                    `NIP-05 registered and profile updated: ${nip05}`,
+                    'success',
+                    false
+                  );
               } catch (error) {
                 console.error('Failed to update profile with NIP-05:', error);
-                useUIStore.getState().openToast(
-                  `NIP-05 registered: ${nip05}. Please update your profile manually to include it.`,
-                  'info',
-                  false
-                );
+                useUIStore
+                  .getState()
+                  .openToast(
+                    `NIP-05 registered: ${nip05}. Please update your profile manually to include it.`,
+                    'info',
+                    false
+                  );
               }
             } else {
               // Extension sign-in or no private key - just show success
-              useUIStore.getState().openToast(
-                `NIP-05 registered: ${nip05}. Please update your profile to include it.`,
-                'success',
-                false
-              );
+              useUIStore
+                .getState()
+                .openToast(
+                  `NIP-05 registered: ${nip05}. Please update your profile to include it.`,
+                  'success',
+                  false
+                );
             }
-            
+
             setTimeout(() => {
               useUIStore.getState().closeToast();
             }, 3000);
-            
+
             // Refresh profile data
             if (nostrClient && publicKey) {
               try {

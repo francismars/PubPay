@@ -1,4 +1,10 @@
-import { nip19, getPublicKey, generateSecretKey, finalizeEvent, verifyEvent } from 'nostr-tools';
+import {
+  nip19,
+  getPublicKey,
+  generateSecretKey,
+  finalizeEvent,
+  verifyEvent
+} from 'nostr-tools';
 import { NostrClient } from './nostr/NostrClient';
 import { RELAYS } from '../utils/constants';
 
@@ -2441,7 +2447,10 @@ export class NostrRegistrationService {
       const profileEvent = this.createProfileEvent(privateKey, profileData);
 
       // Load user's relay configuration from localStorage if available
-      let relayConfig: string[] | Array<{ url: string; read: boolean; write: boolean }> | undefined = undefined;
+      let relayConfig:
+        | string[]
+        | Array<{ url: string; read: boolean; write: boolean }>
+        | undefined = undefined;
 
       if (relays) {
         // If relays parameter provided, use it (legacy support)
@@ -2455,7 +2464,11 @@ export class NostrRegistrationService {
               const parsed = JSON.parse(savedRelays);
               if (Array.isArray(parsed)) {
                 // Check if it's new format (RelayConfig[]) or old format (string[])
-                if (parsed.length > 0 && typeof parsed[0] === 'object' && 'url' in parsed[0]) {
+                if (
+                  parsed.length > 0 &&
+                  typeof parsed[0] === 'object' &&
+                  'url' in parsed[0]
+                ) {
                   // New format: RelayConfig[] - use as is
                   relayConfig = parsed;
                 } else if (parsed.every((r: any) => typeof r === 'string')) {
@@ -2466,7 +2479,10 @@ export class NostrRegistrationService {
             }
           }
         } catch (e) {
-          console.warn('Failed to load relay configuration from localStorage:', e);
+          console.warn(
+            'Failed to load relay configuration from localStorage:',
+            e
+          );
         }
 
         // Fallback to default relays if no configuration found

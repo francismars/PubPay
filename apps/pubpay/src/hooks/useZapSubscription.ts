@@ -138,7 +138,9 @@ export const useZapSubscription = (options: UseZapSubscriptionOptions) => {
   } = options;
 
   // Store the function in ref so it's stable across renders
-  const processZapBatchRef = useRef<((zapEvents: Kind9735Event[]) => Promise<void>) | null>(null);
+  const processZapBatchRef = useRef<
+    ((zapEvents: Kind9735Event[]) => Promise<void>) | null
+  >(null);
   processZapBatchRef.current = processZapBatch;
 
   // Watch for posts changes and update zap subscription when posts are first loaded
@@ -204,10 +206,7 @@ export const useZapSubscription = (options: UseZapSubscriptionOptions) => {
           try {
             zapSubscriptionRef.current.unsubscribe();
           } catch (e) {
-            console.warn(
-              'Error unsubscribing from old zap subscription:',
-              e
-            );
+            console.warn('Error unsubscribing from old zap subscription:', e);
           }
         }
 
@@ -238,10 +237,7 @@ export const useZapSubscription = (options: UseZapSubscriptionOptions) => {
             );
             // Type guard to ensure this is a zap event
             if (zapEvent.kind !== 9735) {
-              console.log(
-                'Zap event rejected: wrong kind',
-                zapEvent.kind
-              );
+              console.log('Zap event rejected: wrong kind', zapEvent.kind);
               return;
             }
             await zapBatchProcessor(zapEvent as Kind9735Event);
@@ -285,7 +281,7 @@ export const useZapSubscription = (options: UseZapSubscriptionOptions) => {
           ? storeState.followingPosts
           : storeState.posts;
       const postIds = currentPosts.map(post => post.id).join(',');
-      
+
       const currentRelevantState = {
         postIds,
         activeFeed: storeState.activeFeed,
@@ -374,10 +370,7 @@ export const useZapSubscription = (options: UseZapSubscriptionOptions) => {
         try {
           zapSubscriptionRef.current.unsubscribe();
         } catch (e) {
-          console.warn(
-            'Error unsubscribing from old zap subscription:',
-            e
-          );
+          console.warn('Error unsubscribing from old zap subscription:', e);
         }
       }
 
@@ -465,4 +458,3 @@ export const useZapSubscription = (options: UseZapSubscriptionOptions) => {
     processZapBatch
   ]);
 };
-

@@ -18,15 +18,18 @@ const STATIC_ASSETS = [
 ];
 
 // Install event - cache static assets
-self.addEventListener('install', (event) => {
+self.addEventListener('install', event => {
   console.log('[Service Worker] Installing new version...');
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
+    caches
+      .open(CACHE_NAME)
+      .then(cache => {
         console.log('[Service Worker] Caching static assets');
-        return cache.addAll(STATIC_ASSETS.map(url => new Request(url, { cache: 'reload' })));
+        return cache.addAll(
+          STATIC_ASSETS.map(url => new Request(url, { cache: 'reload' }))
+        );
       })
-      .catch((error) => {
+      .catch(error => {
         console.error('[Service Worker] Cache failed:', error);
       })
   );
@@ -35,17 +38,17 @@ self.addEventListener('install', (event) => {
 });
 
 // Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', event => {
   console.log('[Service Worker] Activating new version...');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then(cacheNames => {
       return Promise.all([
         // Delete old caches
         ...cacheNames
-          .filter((cacheName) => {
+          .filter(cacheName => {
             return cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE;
           })
-          .map((cacheName) => {
+          .map(cacheName => {
             console.log('[Service Worker] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }),
@@ -58,15 +61,17 @@ self.addEventListener('activate', (event) => {
 
 // Note: skipWaiting() in install handler already forces immediate activation
 // This message handler is kept for manual update triggers if needed in future
-self.addEventListener('message', (event) => {
+self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log('[Service Worker] Received SKIP_WAITING message, forcing activation');
+    console.log(
+      '[Service Worker] Received SKIP_WAITING message, forcing activation'
+    );
     self.skipWaiting();
   }
 });
 
 // Fetch event - serve from cache, fallback to network
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', event => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') {
     return;
@@ -81,50 +86,54 @@ self.addEventListener('fetch', (event) => {
   // Note: /live/ is a frontend route (SPA), not an API endpoint
   // Backend API endpoints are proxied through Nginx
   const url = new URL(event.request.url);
-  
+
   // Skip backend API endpoints (these are proxied to port 3002)
-  if (url.pathname.startsWith('/api/') || 
-      url.pathname.startsWith('/lightning/') ||
-      (url.pathname.startsWith('/live/'))) {
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/lightning/') ||
+    url.pathname.startsWith('/live/')
+  ) {
     // Skip caching - always fetch fresh from network
     return;
   }
 
   event.respondWith(
-    caches.match(event.request)
-      .then((cachedResponse) => {
-        // Return cached version if available
-        if (cachedResponse) {
-          return cachedResponse;
-        }
+    caches.match(event.request).then(cachedResponse => {
+      // Return cached version if available
+      if (cachedResponse) {
+        return cachedResponse;
+      }
 
-        // Fetch from network
-        return fetch(event.request)
-          .then((response) => {
-            // Don't cache if not a valid response
-            const HTTP_OK = 200;
-            if (!response || response.status !== HTTP_OK || response.type !== 'basic') {
-              return response;
-            }
-
-            // Clone the response for caching
-            const responseToCache = response.clone();
-
-            // Cache in runtime cache (for JS/CSS with contenthash)
-            caches.open(RUNTIME_CACHE).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-
+      // Fetch from network
+      return fetch(event.request)
+        .then(response => {
+          // Don't cache if not a valid response
+          const HTTP_OK = 200;
+          if (
+            !response ||
+            response.status !== HTTP_OK ||
+            response.type !== 'basic'
+          ) {
             return response;
-          })
-          .catch(() => {
-            // If network fails and we have a cached version, return it
-            // For navigation requests, return cached index.html
-            if (event.request.mode === 'navigate') {
-              return caches.match('/index.html');
-            }
+          }
+
+          // Clone the response for caching
+          const responseToCache = response.clone();
+
+          // Cache in runtime cache (for JS/CSS with contenthash)
+          caches.open(RUNTIME_CACHE).then(cache => {
+            cache.put(event.request, responseToCache);
           });
-      })
+
+          return response;
+        })
+        .catch(() => {
+          // If network fails and we have a cached version, return it
+          // For navigation requests, return cached index.html
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+        });
+    })
   );
 });
-

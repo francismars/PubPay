@@ -70,74 +70,108 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
     ...initialStyles
   }));
   const [urlImport, setUrlImport] = useState('');
-  const [showCustomBg, setShowCustomBg] = useState(!!styles.bgImage && !bgImagePresets.includes(styles.bgImage));
-  const [showCustomLogo, setShowCustomLogo] = useState(!!styles.partnerLogo && !partnerLogoPresets.includes(styles.partnerLogo));
+  const [showCustomBg, setShowCustomBg] = useState(
+    !!styles.bgImage && !bgImagePresets.includes(styles.bgImage)
+  );
+  const [showCustomLogo, setShowCustomLogo] = useState(
+    !!styles.partnerLogo && !partnerLogoPresets.includes(styles.partnerLogo)
+  );
 
-  const updateStyle = useCallback((key: keyof StyleConfig, value: unknown) => {
-    setStyles(prev => {
-      const updated = { ...prev, [key]: value };
-      if (onChange) {
-        // Only include non-default values when calling onChange
-        const cleaned: StyleConfig = {};
-        Object.entries(updated).forEach(([k, v]) => {
-          const kk = k as keyof StyleConfig;
-          if (v !== DEFAULT_STYLES[kk]) {
-            (cleaned as any)[kk] = v;
-          }
-        });
-        onChange(cleaned);
-      }
-      return updated;
-    });
-  }, [onChange]);
+  const updateStyle = useCallback(
+    (key: keyof StyleConfig, value: unknown) => {
+      setStyles(prev => {
+        const updated = { ...prev, [key]: value };
+        if (onChange) {
+          // Only include non-default values when calling onChange
+          const cleaned: StyleConfig = {};
+          Object.entries(updated).forEach(([k, v]) => {
+            const kk = k as keyof StyleConfig;
+            if (v !== DEFAULT_STYLES[kk]) {
+              (cleaned as any)[kk] = v;
+            }
+          });
+          onChange(cleaned);
+        }
+        return updated;
+      });
+    },
+    [onChange]
+  );
 
   const importFromUrl = useCallback(() => {
     if (!urlImport.trim()) return;
-    
+
     try {
       const url = new URL(urlImport);
       const params = new URLSearchParams(url.search);
       const imported: StyleConfig = {};
-      
+
       // Parse all style parameters
-      if (params.has('textColor')) imported.textColor = params.get('textColor') || undefined;
-      if (params.has('bgColor')) imported.bgColor = params.get('bgColor') || undefined;
+      if (params.has('textColor'))
+        imported.textColor = params.get('textColor') || undefined;
+      if (params.has('bgColor'))
+        imported.bgColor = params.get('bgColor') || undefined;
       if (params.has('bgImage')) {
         const bgImg = params.get('bgImage') || '';
         imported.bgImage = bgImg;
         setShowCustomBg(!bgImagePresets.includes(bgImg) && bgImg !== '');
       }
-      if (params.has('opacity')) imported.opacity = parseFloat(params.get('opacity') || '1');
-      if (params.has('textOpacity')) imported.textOpacity = parseFloat(params.get('textOpacity') || '1');
-      if (params.has('qrInvert')) imported.qrInvert = params.get('qrInvert') === 'true';
-      if (params.has('qrScreenBlend')) imported.qrScreenBlend = params.get('qrScreenBlend') === 'true';
-      if (params.has('qrMultiplyBlend')) imported.qrMultiplyBlend = params.get('qrMultiplyBlend') === 'true';
-      if (params.has('qrShowWebLink')) imported.qrShowWebLink = params.get('qrShowWebLink') === 'true';
-      if (params.has('qrShowNevent')) imported.qrShowNevent = params.get('qrShowNevent') === 'true';
-      if (params.has('qrShowNote')) imported.qrShowNote = params.get('qrShowNote') === 'true';
-      if (params.has('layoutInvert')) imported.layoutInvert = params.get('layoutInvert') === 'true';
-      if (params.has('hideZapperContent')) imported.hideZapperContent = params.get('hideZapperContent') === 'true';
-      if (params.has('showTopZappers')) imported.showTopZappers = params.get('showTopZappers') === 'true';
-      if (params.has('podium')) imported.podium = params.get('podium') === 'true';
-      if (params.has('zapGrid')) imported.zapGrid = params.get('zapGrid') === 'true';
-      if (params.has('sectionLabels')) imported.sectionLabels = params.get('sectionLabels') === 'true';
-      if (params.has('qrOnly')) imported.qrOnly = params.get('qrOnly') === 'true';
-      if (params.has('showFiat')) imported.showFiat = params.get('showFiat') === 'true';
-      if (params.has('showHistoricalPrice')) imported.showHistoricalPrice = params.get('showHistoricalPrice') === 'true';
-      if (params.has('showHistoricalChange')) imported.showHistoricalChange = params.get('showHistoricalChange') === 'true';
-      if (params.has('fiatOnly')) imported.fiatOnly = params.get('fiatOnly') === 'true';
-      if (params.has('lightning')) imported.lightning = params.get('lightning') === 'true';
-      if (params.has('selectedCurrency')) imported.selectedCurrency = params.get('selectedCurrency') || undefined;
+      if (params.has('opacity'))
+        imported.opacity = parseFloat(params.get('opacity') || '1');
+      if (params.has('textOpacity'))
+        imported.textOpacity = parseFloat(params.get('textOpacity') || '1');
+      if (params.has('qrInvert'))
+        imported.qrInvert = params.get('qrInvert') === 'true';
+      if (params.has('qrScreenBlend'))
+        imported.qrScreenBlend = params.get('qrScreenBlend') === 'true';
+      if (params.has('qrMultiplyBlend'))
+        imported.qrMultiplyBlend = params.get('qrMultiplyBlend') === 'true';
+      if (params.has('qrShowWebLink'))
+        imported.qrShowWebLink = params.get('qrShowWebLink') === 'true';
+      if (params.has('qrShowNevent'))
+        imported.qrShowNevent = params.get('qrShowNevent') === 'true';
+      if (params.has('qrShowNote'))
+        imported.qrShowNote = params.get('qrShowNote') === 'true';
+      if (params.has('layoutInvert'))
+        imported.layoutInvert = params.get('layoutInvert') === 'true';
+      if (params.has('hideZapperContent'))
+        imported.hideZapperContent = params.get('hideZapperContent') === 'true';
+      if (params.has('showTopZappers'))
+        imported.showTopZappers = params.get('showTopZappers') === 'true';
+      if (params.has('podium'))
+        imported.podium = params.get('podium') === 'true';
+      if (params.has('zapGrid'))
+        imported.zapGrid = params.get('zapGrid') === 'true';
+      if (params.has('sectionLabels'))
+        imported.sectionLabels = params.get('sectionLabels') === 'true';
+      if (params.has('qrOnly'))
+        imported.qrOnly = params.get('qrOnly') === 'true';
+      if (params.has('showFiat'))
+        imported.showFiat = params.get('showFiat') === 'true';
+      if (params.has('showHistoricalPrice'))
+        imported.showHistoricalPrice =
+          params.get('showHistoricalPrice') === 'true';
+      if (params.has('showHistoricalChange'))
+        imported.showHistoricalChange =
+          params.get('showHistoricalChange') === 'true';
+      if (params.has('fiatOnly'))
+        imported.fiatOnly = params.get('fiatOnly') === 'true';
+      if (params.has('lightning'))
+        imported.lightning = params.get('lightning') === 'true';
+      if (params.has('selectedCurrency'))
+        imported.selectedCurrency = params.get('selectedCurrency') || undefined;
       if (params.has('partnerLogo')) {
         const logo = params.get('partnerLogo') || '';
         imported.partnerLogo = logo;
         setShowCustomLogo(!partnerLogoPresets.includes(logo) && logo !== '');
       }
-      
+
       setStyles(prev => ({ ...DEFAULT_STYLES, ...prev, ...imported }));
       setUrlImport('');
     } catch (e) {
-      alert('Invalid URL format. Please paste a valid LivePage URL with style parameters.');
+      alert(
+        'Invalid URL format. Please paste a valid LivePage URL with style parameters.'
+      );
     }
   }, [urlImport, bgImagePresets, partnerLogoPresets]);
 
@@ -326,41 +360,50 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
       zapGrid: false,
       opacity: 0.7,
       textOpacity: 1.0,
-      partnerLogo: 'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg'
+      partnerLogo:
+        'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg'
     }
   };
 
-  const applyPreset = useCallback((presetName: string) => {
-    const preset = presets[presetName];
-    if (preset) {
-      // Start with DEFAULT_STYLES, then apply preset values (preset overrides defaults)
-      const updatedStyles = { ...DEFAULT_STYLES, ...preset };
-      setStyles(updatedStyles);
-      setShowCustomBg(!!preset.bgImage && !bgImagePresets.includes(preset.bgImage || ''));
-      setShowCustomLogo(!!preset.partnerLogo && !partnerLogoPresets.includes(preset.partnerLogo || ''));
-      
-      // Notify parent component of the change immediately
-      if (onChange) {
-        // For presets, include all preset values explicitly, even if they match defaults
-        // This ensures that previous non-default values are properly overridden
-        const cleaned: StyleConfig = {};
-        // Include all preset values
-        Object.entries(preset).forEach(([k, v]) => {
-          const kk = k as keyof StyleConfig;
-          // Only include if value is not undefined
-          if (v !== undefined) {
-            // For empty strings, include them to clear the value
-            if (v === '' || v === null) {
-              (cleaned as any)[kk] = undefined;
-            } else {
-              (cleaned as any)[kk] = v;
+  const applyPreset = useCallback(
+    (presetName: string) => {
+      const preset = presets[presetName];
+      if (preset) {
+        // Start with DEFAULT_STYLES, then apply preset values (preset overrides defaults)
+        const updatedStyles = { ...DEFAULT_STYLES, ...preset };
+        setStyles(updatedStyles);
+        setShowCustomBg(
+          !!preset.bgImage && !bgImagePresets.includes(preset.bgImage || '')
+        );
+        setShowCustomLogo(
+          !!preset.partnerLogo &&
+            !partnerLogoPresets.includes(preset.partnerLogo || '')
+        );
+
+        // Notify parent component of the change immediately
+        if (onChange) {
+          // For presets, include all preset values explicitly, even if they match defaults
+          // This ensures that previous non-default values are properly overridden
+          const cleaned: StyleConfig = {};
+          // Include all preset values
+          Object.entries(preset).forEach(([k, v]) => {
+            const kk = k as keyof StyleConfig;
+            // Only include if value is not undefined
+            if (v !== undefined) {
+              // For empty strings, include them to clear the value
+              if (v === '' || v === null) {
+                (cleaned as any)[kk] = undefined;
+              } else {
+                (cleaned as any)[kk] = v;
+              }
             }
-          }
-        });
-        onChange(cleaned);
+          });
+          onChange(cleaned);
+        }
       }
-    }
-  }, [onChange]);
+    },
+    [onChange]
+  );
 
   return (
     <div>
@@ -374,7 +417,13 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
               onClick={() => applyPreset(name)}
               className="preset-btn"
             >
-              {name === 'bitcoinConf' ? 'Bitcoin Conf' : name === 'lightMode' ? 'Light Mode' : name === 'darkMode' ? 'Dark Mode' : name.charAt(0).toUpperCase() + name.slice(1)}
+              {name === 'bitcoinConf'
+                ? 'Bitcoin Conf'
+                : name === 'lightMode'
+                  ? 'Light Mode'
+                  : name === 'darkMode'
+                    ? 'Dark Mode'
+                    : name.charAt(0).toUpperCase() + name.slice(1)}
             </button>
           ))}
         </div>
@@ -391,13 +440,13 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                 type="color"
                 id="textColorPicker"
                 value={styles.textColor || DEFAULT_STYLES.textColor}
-                onChange={(e) => updateStyle('textColor', e.target.value)}
+                onChange={e => updateStyle('textColor', e.target.value)}
               />
               <input
                 type="text"
                 id="textColorValue"
                 value={styles.textColor || DEFAULT_STYLES.textColor}
-                onChange={(e) => updateStyle('textColor', e.target.value)}
+                onChange={e => updateStyle('textColor', e.target.value)}
                 placeholder="#000000"
               />
             </div>
@@ -409,13 +458,13 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                 type="color"
                 id="bgColorPicker"
                 value={styles.bgColor || DEFAULT_STYLES.bgColor}
-                onChange={(e) => updateStyle('bgColor', e.target.value)}
+                onChange={e => updateStyle('bgColor', e.target.value)}
               />
               <input
                 type="text"
                 id="bgColorValue"
                 value={styles.bgColor || DEFAULT_STYLES.bgColor}
-                onChange={(e) => updateStyle('bgColor', e.target.value)}
+                onChange={e => updateStyle('bgColor', e.target.value)}
                 placeholder="#ffffff"
               />
             </div>
@@ -432,9 +481,16 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                 max="1.0"
                 step="0.1"
                 value={styles.textOpacity ?? DEFAULT_STYLES.textOpacity}
-                onChange={(e) => updateStyle('textOpacity', parseFloat(e.target.value))}
+                onChange={e =>
+                  updateStyle('textOpacity', parseFloat(e.target.value))
+                }
               />
-              <span id="textOpacityValue">{Math.round((styles.textOpacity ?? DEFAULT_STYLES.textOpacity) * 100)}%</span>
+              <span id="textOpacityValue">
+                {Math.round(
+                  (styles.textOpacity ?? DEFAULT_STYLES.textOpacity) * 100
+                )}
+                %
+              </span>
             </div>
           </div>
           <div className="style-option-group">
@@ -447,9 +503,13 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                 max="1.0"
                 step="0.1"
                 value={styles.opacity ?? DEFAULT_STYLES.opacity}
-                onChange={(e) => updateStyle('opacity', parseFloat(e.target.value))}
+                onChange={e =>
+                  updateStyle('opacity', parseFloat(e.target.value))
+                }
               />
-              <span id="opacityValue">{Math.round((styles.opacity ?? DEFAULT_STYLES.opacity) * 100)}%</span>
+              <span id="opacityValue">
+                {Math.round((styles.opacity ?? DEFAULT_STYLES.opacity) * 100)}%
+              </span>
             </div>
           </div>
         </div>
@@ -465,8 +525,14 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
               <select
                 id="bgImagePreset"
                 className="bg-preset-select"
-                value={bgImagePresets.includes(styles.bgImage || '') ? styles.bgImage : showCustomBg ? 'custom' : ''}
-                onChange={(e) => {
+                value={
+                  bgImagePresets.includes(styles.bgImage || '')
+                    ? styles.bgImage
+                    : showCustomBg
+                      ? 'custom'
+                      : ''
+                }
+                onChange={e => {
                   if (e.target.value === 'custom') {
                     setShowCustomBg(true);
                   } else {
@@ -476,28 +542,48 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                 }}
               >
                 <option value="">No Background (Default)</option>
-                <option value="/live/images/adopting.webp">Adopting Bitcoin</option>
+                <option value="/live/images/adopting.webp">
+                  Adopting Bitcoin
+                </option>
                 <option value="/live/images/sky.jpg">Sky</option>
                 <option value="/live/images/lightning.gif">Lightning</option>
-                <option value="/live/images/bitcoin-rocket.gif">Bitcoin Rocket</option>
-                <option value="/live/images/bitcoin-astronaut.gif">Bitcoin Astronaut</option>
-                <option value="/live/images/bitcoin-space.gif">Bitcoin Space</option>
-                <option value="/live/images/bitcoin-sunset.gif">Bitcoin Sunset</option>
-                <option value="/live/images/bitcoin-rotating.gif">Bitcoin Rotating</option>
-                <option value="/live/images/nostr-ostriches.gif">Nostr Ostriches</option>
+                <option value="/live/images/bitcoin-rocket.gif">
+                  Bitcoin Rocket
+                </option>
+                <option value="/live/images/bitcoin-astronaut.gif">
+                  Bitcoin Astronaut
+                </option>
+                <option value="/live/images/bitcoin-space.gif">
+                  Bitcoin Space
+                </option>
+                <option value="/live/images/bitcoin-sunset.gif">
+                  Bitcoin Sunset
+                </option>
+                <option value="/live/images/bitcoin-rotating.gif">
+                  Bitcoin Rotating
+                </option>
+                <option value="/live/images/nostr-ostriches.gif">
+                  Nostr Ostriches
+                </option>
                 <option value="/live/images/send-zaps.gif">Send Zaps</option>
                 <option value="/live/images/gm-nostr.gif">GM Nostr</option>
                 <option value="custom">Custom URL</option>
               </select>
               <div
                 className="url-input-container"
-                style={{ display: showCustomBg ? 'flex' : 'none', flexDirection: 'row', gap: 8 }}
+                style={{
+                  display: showCustomBg ? 'flex' : 'none',
+                  flexDirection: 'row',
+                  gap: 8
+                }}
               >
                 <input
                   type="text"
                   id="bgImageUrl"
                   value={styles.bgImage || ''}
-                  onChange={(e) => updateStyle('bgImage', e.target.value || undefined)}
+                  onChange={e =>
+                    updateStyle('bgImage', e.target.value || undefined)
+                  }
                   placeholder="Enter image URL"
                   style={{
                     flex: 1,
@@ -541,8 +627,14 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
               <select
                 id="partnerLogoSelect"
                 className="partner-logo-select"
-                value={partnerLogoPresets.includes(styles.partnerLogo || '') ? styles.partnerLogo : showCustomLogo ? 'custom' : ''}
-                onChange={(e) => {
+                value={
+                  partnerLogoPresets.includes(styles.partnerLogo || '')
+                    ? styles.partnerLogo
+                    : showCustomLogo
+                      ? 'custom'
+                      : ''
+                }
+                onChange={e => {
                   if (e.target.value === 'custom') {
                     setShowCustomLogo(true);
                   } else {
@@ -552,19 +644,29 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                 }}
               >
                 <option value="">None (Default)</option>
-                <option value="https://adoptingbitcoin.org/images/AB-logo.svg">Adopting Bitcoin</option>
-                <option value="https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg">Bitcoin Conference</option>
+                <option value="https://adoptingbitcoin.org/images/AB-logo.svg">
+                  Adopting Bitcoin
+                </option>
+                <option value="https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg">
+                  Bitcoin Conference
+                </option>
                 <option value="custom">Custom URL</option>
               </select>
               <div
                 className="url-input-container"
-                style={{ display: showCustomLogo ? 'flex' : 'none', flexDirection: 'row', gap: 8 }}
+                style={{
+                  display: showCustomLogo ? 'flex' : 'none',
+                  flexDirection: 'row',
+                  gap: 8
+                }}
               >
                 <input
                   type="text"
                   id="partnerLogoUrl"
                   value={styles.partnerLogo || ''}
-                  onChange={(e) => updateStyle('partnerLogo', e.target.value || undefined)}
+                  onChange={e =>
+                    updateStyle('partnerLogo', e.target.value || undefined)
+                  }
                   placeholder="Enter logo URL"
                   style={{
                     flex: 1,
@@ -622,7 +724,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                   <input
                     type="checkbox"
                     checked={styles[key] ?? DEFAULT_STYLES[key]}
-                    onChange={(e) => updateStyle(key, e.target.checked)}
+                    onChange={e => updateStyle(key, e.target.checked)}
                   />
                   <span className="toggle-slider"></span>
                 </div>
@@ -639,8 +741,14 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
         <div className="toggles-container">
           {[
             { key: 'showFiat' as const, label: 'Show Fiat Amounts' },
-            { key: 'showHistoricalPrice' as const, label: 'Show Historical Prices' },
-            { key: 'showHistoricalChange' as const, label: 'Show Historical Change %' },
+            {
+              key: 'showHistoricalPrice' as const,
+              label: 'Show Historical Prices'
+            },
+            {
+              key: 'showHistoricalChange' as const,
+              label: 'Show Historical Change %'
+            },
             { key: 'fiatOnly' as const, label: 'Fiat Only' }
           ].map(({ key, label }) => (
             <div key={key} className="style-option-group toggle-group">
@@ -649,7 +757,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                   <input
                     type="checkbox"
                     checked={styles[key] ?? DEFAULT_STYLES[key]}
-                    onChange={(e) => updateStyle(key, e.target.checked)}
+                    onChange={e => updateStyle(key, e.target.checked)}
                   />
                   <span className="toggle-slider"></span>
                 </div>
@@ -664,7 +772,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
             <select
               id="currencySelector"
               value={styles.selectedCurrency || DEFAULT_STYLES.selectedCurrency}
-              onChange={(e) => updateStyle('selectedCurrency', e.target.value)}
+              onChange={e => updateStyle('selectedCurrency', e.target.value)}
             >
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>
@@ -693,7 +801,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                   <input
                     type="checkbox"
                     checked={styles[key] ?? DEFAULT_STYLES[key]}
-                    onChange={(e) => updateStyle(key, e.target.checked)}
+                    onChange={e => updateStyle(key, e.target.checked)}
                   />
                   <span className="toggle-slider"></span>
                 </div>
@@ -720,7 +828,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                   <input
                     type="checkbox"
                     checked={styles[key] ?? DEFAULT_STYLES[key]}
-                    onChange={(e) => updateStyle(key, e.target.checked)}
+                    onChange={e => updateStyle(key, e.target.checked)}
                   />
                   <span className="toggle-slider"></span>
                 </div>
@@ -741,7 +849,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
               id="urlImportInput"
               type="text"
               value={urlImport}
-              onChange={(e) => setUrlImport(e.target.value)}
+              onChange={e => setUrlImport(e.target.value)}
               placeholder="Paste a styled LivePage URL here..."
               style={{
                 flex: 1,
@@ -770,13 +878,15 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
       {renderButtons && (
         <>
           {/* Action Buttons */}
-          <div style={{ 
-            display: 'flex', 
-            gap: 12, 
-            marginTop: 24, 
-            paddingTop: 16, 
-            borderTop: '1px solid #e5e7eb'
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 12,
+              marginTop: 24,
+              paddingTop: 16,
+              borderTop: '1px solid #e5e7eb'
+            }}
+          >
             <button
               onClick={resetToDefaults}
               style={{
@@ -831,4 +941,3 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
     </div>
   );
 };
-

@@ -137,7 +137,9 @@ export class EventManager {
         this.profileCache.set(event.pubkey, user);
         this.profileEventTimestamps.set(event.pubkey, event.created_at);
       } else {
-        const existingTimestamp = this.profileEventTimestamps.get(event.pubkey)!;
+        const existingTimestamp = this.profileEventTimestamps.get(
+          event.pubkey
+        )!;
         if (event.created_at > existingTimestamp) {
           // This event is newer, update cache
           this.profileCache.set(event.pubkey, user);
@@ -147,7 +149,7 @@ export class EventManager {
           return existing;
         }
       }
-      
+
       return user;
     } catch (error) {
       console.error('Error handling profile event:', error);

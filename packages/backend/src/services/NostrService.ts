@@ -66,14 +66,18 @@ export class NostrService {
       this.logger.info('✅ Event ID decoded:', {
         original: eventId,
         decoded: rawEventId,
-        authorFromNevent: authorFromNevent ? authorFromNevent.substring(0, 16) + '...' : 'none',
-        relaysFromNevent: relaysFromNevent.length > 0 ? relaysFromNevent : 'none'
+        authorFromNevent: authorFromNevent
+          ? authorFromNevent.substring(0, 16) + '...'
+          : 'none',
+        relaysFromNevent:
+          relaysFromNevent.length > 0 ? relaysFromNevent : 'none'
       });
 
       // Get recipient public key from event
       // Use author from nevent1 if available, otherwise query relays
       this.logger.info('🔍 Getting recipient public key from event...');
-      const recipientPubkey = authorFromNevent || await this.getRecipientPubkey(rawEventId);
+      const recipientPubkey =
+        authorFromNevent || (await this.getRecipientPubkey(rawEventId));
       if (!recipientPubkey) {
         this.logger.error('❌ Could not determine recipient public key');
         throw new Error('Could not determine recipient public key');
@@ -86,36 +90,55 @@ export class NostrService {
       // Try nevent1 relays FIRST (where event was published) - profile more likely to be there
       // If that fails, fall back to default relays
       let lightningAddress: string | null = null;
-      
+
       if (relaysFromNevent.length > 0) {
         this.logger.info('🔍 Trying nevent1 relays first for profile lookup', {
           neventRelays: relaysFromNevent,
           pubkey: recipientPubkey.substring(0, 16) + '...'
         });
-        lightningAddress = await this.getLightningAddress(recipientPubkey, relaysFromNevent);
-        
+        lightningAddress = await this.getLightningAddress(
+          recipientPubkey,
+          relaysFromNevent
+        );
+
         if (!lightningAddress) {
-          this.logger.info('⚠️ Profile not found on nevent1 relays, trying default relays', {
-            defaultRelays: this.relays
-          });
-          lightningAddress = await this.getLightningAddress(recipientPubkey, this.relays);
+          this.logger.info(
+            '⚠️ Profile not found on nevent1 relays, trying default relays',
+            {
+              defaultRelays: this.relays
+            }
+          );
+          lightningAddress = await this.getLightningAddress(
+            recipientPubkey,
+            this.relays
+          );
         } else {
           this.logger.info('✅ Profile found on nevent1 relays');
         }
       } else {
-        this.logger.info('🔍 No nevent1 relays, using default relays for profile lookup', {
-          defaultRelays: this.relays
-        });
-        lightningAddress = await this.getLightningAddress(recipientPubkey, this.relays);
+        this.logger.info(
+          '🔍 No nevent1 relays, using default relays for profile lookup',
+          {
+            defaultRelays: this.relays
+          }
+        );
+        lightningAddress = await this.getLightningAddress(
+          recipientPubkey,
+          this.relays
+        );
       }
       if (!lightningAddress) {
-        const relaysQueried = relaysFromNevent.length > 0 
-          ? [...relaysFromNevent, ...this.relays] 
-          : this.relays;
-        this.logger.error('❌ No Lightning address found in recipient profile', {
-          pubkey: recipientPubkey.substring(0, 16) + '...',
-          relaysQueried: relaysQueried
-        });
+        const relaysQueried =
+          relaysFromNevent.length > 0
+            ? [...relaysFromNevent, ...this.relays]
+            : this.relays;
+        this.logger.error(
+          '❌ No Lightning address found in recipient profile',
+          {
+            pubkey: recipientPubkey.substring(0, 16) + '...',
+            relaysQueried: relaysQueried
+          }
+        );
         throw new Error('Recipient has no Lightning address configured');
       }
       this.logger.info('✅ Lightning address found:', lightningAddress);
@@ -187,10 +210,10 @@ export class NostrService {
    * Decode event ID from note1... or nevent1... format
    * Returns the event ID, author, and relays (if available from nevent1)
    */
-  private decodeEventId(eventId: string): { 
-    eventId: string; 
-    author?: string; 
-    relays?: string[] 
+  private decodeEventId(eventId: string): {
+    eventId: string;
+    author?: string;
+    relays?: string[];
   } {
     this.logger.info('🔍 Decoding event ID:', eventId);
 
@@ -219,7 +242,10 @@ export class NostrService {
                 normalized = normalized.slice(0, -1);
               }
               // Ensure it starts with wss:// or ws://
-              if (!normalized.startsWith('wss://') && !normalized.startsWith('ws://')) {
+              if (
+                !normalized.startsWith('wss://') &&
+                !normalized.startsWith('ws://')
+              ) {
                 normalized = `wss://${normalized}`;
               }
               return normalized;
@@ -345,7 +371,7 @@ export class NostrService {
    * Get Lightning address from profile
    */
   private async getLightningAddress(
-    pubkey: string, 
+    pubkey: string,
     relays?: string[]
   ): Promise<string | null> {
     const relaysToUse = relays || this.relays;
@@ -380,87 +406,104 @@ export class NostrService {
             relayCount: relaysToUse.length,
             relayList: relaysToUse
           });
-          
+
           // Track connection status per relay
-          const relayStatus: Record<string, { connected: boolean; eventsReceived: number; errors: string[] }> = {};
+          const relayStatus: Record<
+            string,
+            { connected: boolean; eventsReceived: number; errors: string[] }
+          > = {};
           relaysToUse.forEach(relay => {
-            relayStatus[relay] = { connected: false, eventsReceived: 0, errors: [] };
+            relayStatus[relay] = {
+              connected: false,
+              eventsReceived: 0,
+              errors: []
+            };
           });
-          
-          const sub = this.pool.subscribe(relaysToUse, {
-            kinds: [0],
-            authors: [pubkey]
-          }, {
-            onevent(event: any) {
-              const relayUrl = (event as any)?._relay || 'unknown';
-              if (relayStatus[relayUrl]) {
-                relayStatus[relayUrl].eventsReceived++;
-                relayStatus[relayUrl].connected = true;
-              }
-              logger.info('📥 Profile event received', {
-                pubkey: pubkey.substring(0, 16) + '...',
-                eventPubkey: event?.pubkey?.substring(0, 16) + '...',
-                relay: relayUrl,
-                totalEvents: events.length + 1
-              });
-              // Collect events and take the first matching profile event
-              if (event && event.pubkey === pubkey) {
-                events.push(event);
-                // Take the first (and should be only) profile event
-                if (!resolved) {
-                  resolved = true;
-                  sub.close();
-                  resolve(event);
-                }
-              }
+
+          const sub = this.pool.subscribe(
+            relaysToUse,
+            {
+              kinds: [0],
+              authors: [pubkey]
             },
-            oneose() {
-              const timeSinceStart = Date.now() - subscriptionStartTime;
-              logger.info('✅ Profile subscription EOSE (end of stream)', {
-                pubkey: pubkey.substring(0, 16) + '...',
-                eventsFound: events.length,
-                relaysQueried: relaysToUse.length,
-                timeSinceStart: `${timeSinceStart}ms`,
-                relayList: relaysToUse,
-                relayStatus: relayStatus
-              });
-              // End of stream - check if we got any events
-              // If EOSE came very quickly (< 100ms), wait longer as relays might still be connecting
-              const minWaitTime = timeSinceStart < 100 ? 2000 : 500;
-              logger.info('⏳ Waiting additional time after EOSE', {
-                minWaitTime: `${minWaitTime}ms`,
-                reason: timeSinceStart < 100 ? 'EOSE came too quickly, waiting for relay responses' : 'Normal wait'
-              });
-              if (!resolved) {
-                setTimeout(() => {
+            {
+              onevent(event: any) {
+                const relayUrl = (event as any)?._relay || 'unknown';
+                if (relayStatus[relayUrl]) {
+                  relayStatus[relayUrl].eventsReceived++;
+                  relayStatus[relayUrl].connected = true;
+                }
+                logger.info('📥 Profile event received', {
+                  pubkey: pubkey.substring(0, 16) + '...',
+                  eventPubkey: event?.pubkey?.substring(0, 16) + '...',
+                  relay: relayUrl,
+                  totalEvents: events.length + 1
+                });
+                // Collect events and take the first matching profile event
+                if (event && event.pubkey === pubkey) {
+                  events.push(event);
+                  // Take the first (and should be only) profile event
                   if (!resolved) {
                     resolved = true;
                     sub.close();
-                    logger.info('🏁 Finalizing profile fetch after EOSE wait', {
-                      eventsFound: events.length,
-                      totalTime: `${Date.now() - subscriptionStartTime}ms`
-                    });
-                    // Return the most recent event if any, otherwise null
-                    resolve(events.length > 0 ? events[0] : null);
+                    resolve(event);
                   }
-                }, minWaitTime);
-              }
-            },
-            onclose() {
-              logger.info('🔌 Profile subscription closed', {
-                pubkey: pubkey.substring(0, 16) + '...',
-                eventsFound: events.length,
-                resolved,
-                relayStatus: relayStatus
-              });
-              // Only resolve if we haven't already and we have events
-              // Don't resolve with null on close - wait for oneose() instead
-              if (!resolved && events.length > 0) {
-                resolved = true;
-                resolve(events[0]);
+                }
+              },
+              oneose() {
+                const timeSinceStart = Date.now() - subscriptionStartTime;
+                logger.info('✅ Profile subscription EOSE (end of stream)', {
+                  pubkey: pubkey.substring(0, 16) + '...',
+                  eventsFound: events.length,
+                  relaysQueried: relaysToUse.length,
+                  timeSinceStart: `${timeSinceStart}ms`,
+                  relayList: relaysToUse,
+                  relayStatus: relayStatus
+                });
+                // End of stream - check if we got any events
+                // If EOSE came very quickly (< 100ms), wait longer as relays might still be connecting
+                const minWaitTime = timeSinceStart < 100 ? 2000 : 500;
+                logger.info('⏳ Waiting additional time after EOSE', {
+                  minWaitTime: `${minWaitTime}ms`,
+                  reason:
+                    timeSinceStart < 100
+                      ? 'EOSE came too quickly, waiting for relay responses'
+                      : 'Normal wait'
+                });
+                if (!resolved) {
+                  setTimeout(() => {
+                    if (!resolved) {
+                      resolved = true;
+                      sub.close();
+                      logger.info(
+                        '🏁 Finalizing profile fetch after EOSE wait',
+                        {
+                          eventsFound: events.length,
+                          totalTime: `${Date.now() - subscriptionStartTime}ms`
+                        }
+                      );
+                      // Return the most recent event if any, otherwise null
+                      resolve(events.length > 0 ? events[0] : null);
+                    }
+                  }, minWaitTime);
+                }
+              },
+              onclose() {
+                logger.info('🔌 Profile subscription closed', {
+                  pubkey: pubkey.substring(0, 16) + '...',
+                  eventsFound: events.length,
+                  resolved,
+                  relayStatus: relayStatus
+                });
+                // Only resolve if we haven't already and we have events
+                // Don't resolve with null on close - wait for oneose() instead
+                if (!resolved && events.length > 0) {
+                  resolved = true;
+                  resolve(events[0]);
+                }
               }
             }
-          });
+          );
 
           // Add timeout
           setTimeout(() => {
@@ -473,13 +516,13 @@ export class NostrService {
         });
 
         const timeoutPromise = new Promise<null>((_, reject) =>
-          setTimeout(() => reject(new Error('Profile fetch timeout after 15 seconds')), 15000)
+          setTimeout(
+            () => reject(new Error('Profile fetch timeout after 15 seconds')),
+            15000
+          )
         );
 
-        profile = await Promise.race([
-          profilePromise,
-          timeoutPromise
-        ]) as any;
+        profile = (await Promise.race([profilePromise, timeoutPromise])) as any;
       } catch (error) {
         fetchError = error instanceof Error ? error : new Error(String(error));
         this.logger.warn('⚠️ Profile fetch error:', {
@@ -526,7 +569,10 @@ export class NostrService {
           }
         } catch (fallbackError) {
           this.logger.warn('⚠️ Fallback pool.get() also failed', {
-            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+            error:
+              fallbackError instanceof Error
+                ? fallbackError.message
+                : String(fallbackError)
           });
         }
 
@@ -554,7 +600,10 @@ export class NostrService {
         profileData = JSON.parse(profile.content);
       } catch (parseError) {
         this.logger.error('❌ Failed to parse profile JSON:', {
-          error: parseError instanceof Error ? parseError.message : String(parseError),
+          error:
+            parseError instanceof Error
+              ? parseError.message
+              : String(parseError),
           contentPreview: profile.content.substring(0, 100)
         });
         return null;

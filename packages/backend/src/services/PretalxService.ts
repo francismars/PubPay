@@ -421,21 +421,23 @@ export class PretalxService {
     // Fetch all answers with question expanded, then filter by question ID
     // Note: person field is typically just a string code, not an object
     const path = `/api/events/${this.eventSlug}/answers/?expand=question`;
-    this.logger.info(`Fetching answers for question ${questionId} from: ${path}`);
+    this.logger.info(
+      `Fetching answers for question ${questionId} from: ${path}`
+    );
     try {
       const answers = await this.paginate<{
         person?: string | { code?: string } | number;
         answer?: string;
         question?: number | { id?: number };
       }>(path);
-      
+
       this.logger.info(`Fetched ${answers.length} total answers from API`);
-      
+
       const speakerAnswerMap = new Map<string, string>();
       let matchedQuestions = 0;
       let validSpeakerCodes = 0;
       let validAnswers = 0;
-      
+
       for (const answer of answers) {
         // Check if this answer is for the target question
         let isTargetQuestion = false;
@@ -444,55 +446,71 @@ export class PretalxService {
         } else if (answer.question && typeof answer.question === 'object') {
           isTargetQuestion = answer.question.id === questionId;
         }
-        
+
         if (!isTargetQuestion) continue;
         matchedQuestions++;
-        
+
         // Extract speaker code from person field (usually just a string code like "T8J8BP")
         let speakerCode: string | null = null;
         if (typeof answer.person === 'string') {
           speakerCode = answer.person;
         } else if (typeof answer.person === 'number') {
           // If person is just an ID, we can't use it (we need code)
-          this.logger.debug(`Answer has person as number ID, skipping: ${answer.person}`);
+          this.logger.debug(
+            `Answer has person as number ID, skipping: ${answer.person}`
+          );
           continue;
         } else if (answer.person && typeof answer.person === 'object') {
           speakerCode = answer.person.code || null;
         }
-        
+
         if (!speakerCode) {
-          this.logger.debug(`Answer missing speaker code, person field: ${JSON.stringify(answer.person)}`);
+          this.logger.debug(
+            `Answer missing speaker code, person field: ${JSON.stringify(answer.person)}`
+          );
           continue;
         }
         validSpeakerCodes++;
-        
+
         // Extract answer value (note1 or nevent1)
         const answerValue = answer.answer;
         if (!answerValue || typeof answerValue !== 'string') {
-          this.logger.debug(`Answer missing or invalid answer value for speaker ${speakerCode}`);
+          this.logger.debug(
+            `Answer missing or invalid answer value for speaker ${speakerCode}`
+          );
           continue;
         }
-        
+
         const trimmedValue = answerValue.trim();
-        if (trimmedValue.startsWith('note1') || trimmedValue.startsWith('nevent1')) {
+        if (
+          trimmedValue.startsWith('note1') ||
+          trimmedValue.startsWith('nevent1')
+        ) {
           speakerAnswerMap.set(speakerCode, trimmedValue);
           validAnswers++;
           this.logger.debug(`Mapped speaker ${speakerCode} -> ${trimmedValue}`);
         } else {
-          this.logger.debug(`Answer for speaker ${speakerCode} doesn't start with note1/nevent1: ${trimmedValue.substring(0, 50)}`);
+          this.logger.debug(
+            `Answer for speaker ${speakerCode} doesn't start with note1/nevent1: ${trimmedValue.substring(0, 50)}`
+          );
         }
       }
-      
+
       this.logger.info(
         `Answer processing: ${matchedQuestions} matched question ${questionId}, ${validSpeakerCodes} had valid speaker codes, ${validAnswers} valid note/nevent answers. Map size: ${speakerAnswerMap.size}`
       );
-      
+
       // Log first few mappings for debugging
       if (speakerAnswerMap.size > 0) {
-        const sampleEntries = Array.from(speakerAnswerMap.entries()).slice(0, 5);
-        this.logger.info(`Sample speaker->answer mappings: ${JSON.stringify(sampleEntries)}`);
+        const sampleEntries = Array.from(speakerAnswerMap.entries()).slice(
+          0,
+          5
+        );
+        this.logger.info(
+          `Sample speaker->answer mappings: ${JSON.stringify(sampleEntries)}`
+        );
       }
-      
+
       return speakerAnswerMap;
     } catch (error) {
       this.logger.error(
@@ -582,7 +600,7 @@ export class PretalxService {
       const speakerNames: string[] = [];
       let foundFromAnswers = 0;
       let foundFromHeuristic = 0;
-      
+
       for (const sp of speakers) {
         // First try to get answer from question 6269 by speaker code
         const speakerCode = sp?.code;
@@ -591,16 +609,22 @@ export class PretalxService {
             const answer = speakerAnswerMap.get(speakerCode)!;
             noteSet.add(answer);
             foundFromAnswers++;
-            this.logger.debug(`Slot speaker ${speakerCode} (${sp?.name}) found answer: ${answer}`);
+            this.logger.debug(
+              `Slot speaker ${speakerCode} (${sp?.name}) found answer: ${answer}`
+            );
           } else {
             // Fallback to heuristic extraction if no answer found for question 6269
             const note = this.extractNoteFromSpeaker(sp);
             if (note) {
               noteSet.add(note);
               foundFromHeuristic++;
-              this.logger.debug(`Slot speaker ${speakerCode} (${sp?.name}) using heuristic: ${note}`);
+              this.logger.debug(
+                `Slot speaker ${speakerCode} (${sp?.name}) using heuristic: ${note}`
+              );
             } else {
-              this.logger.debug(`Slot speaker ${speakerCode} (${sp?.name}) has no note/nevent`);
+              this.logger.debug(
+                `Slot speaker ${speakerCode} (${sp?.name}) has no note/nevent`
+              );
             }
           }
         } else {
@@ -608,10 +632,13 @@ export class PretalxService {
         }
         if (sp?.name) speakerNames.push(sp.name);
       }
-      
+
       if (speakers.length > 0 && noteSet.size === 0) {
         this.logger.warn(
-          `Slot "${rec.submission?.title}" has ${speakers.length} speaker(s) but no notes found. Speaker codes: ${speakers.map(s => s?.code).filter(Boolean).join(', ')}`
+          `Slot "${rec.submission?.title}" has ${speakers.length} speaker(s) but no notes found. Speaker codes: ${speakers
+            .map(s => s?.code)
+            .filter(Boolean)
+            .join(', ')}`
         );
       }
       const title = (rec.submission?.title as string | undefined) || undefined;

@@ -81,7 +81,10 @@ export interface SwiperInstance {
 }
 
 export interface SwiperConstructor {
-  new (container: string | HTMLElement, options?: SwiperOptions): SwiperInstance;
+  new (
+    container: string | HTMLElement,
+    options?: SwiperOptions
+  ): SwiperInstance;
   isSupported(): boolean;
 }
 
@@ -132,10 +135,10 @@ declare global {
   interface Window {
     // Swiper.js
     Swiper?: SwiperConstructor;
-    
+
     // HLS.js
     Hls?: HlsConstructor;
-    
+
     // Global state
     profiles?: ProfilesMap;
     zaps?: ProcessedZapData[];
@@ -143,7 +146,7 @@ declare global {
     currentEventType?: 'live-event' | 'note' | 'profile';
     currentLiveEventInfo?: LiveEventInfo;
     reconnectionAttempts?: ReconnectionAttempts;
-    
+
     // Global functions
     setupStyleOptions?: () => void;
     organizeZapsHierarchically?: () => void;
@@ -155,15 +158,15 @@ declare global {
     recalculateTotalZaps?: () => void;
     updateFiatAmounts?: () => void;
     cleanupLiveVideoPlayer?: () => void;
-    
+
     // Lightning-related
     frontendSessionId?: string | null;
     lightningQRSlide?: string | null;
     lightningEnabled?: boolean;
-    
+
     // Grid organization
     gridPeriodicCheckInterval?: NodeJS.Timeout | null;
-    
+
     // Style management
     loadInitialStylesCalled?: boolean;
   }

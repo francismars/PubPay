@@ -55,4 +55,3 @@ export interface AuthState {
  * Feed type for post loading
  */
 export type FeedType = 'global' | 'following' | 'replies';
-

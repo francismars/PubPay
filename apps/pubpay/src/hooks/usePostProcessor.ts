@@ -9,7 +9,10 @@ import {
   getAuthorPaymentInfo
 } from '@pubpay/shared-services';
 import type { PubPayPost } from '../types/postTypes';
-import { processPostsBasic, processPostsBasicSync } from '../utils/postProcessing';
+import {
+  processPostsBasic,
+  processPostsBasicSync
+} from '../utils/postProcessing';
 import { isZapWithinLimits } from '../utils/zapProcessing';
 import { genericUserIcon } from '../assets/images';
 
@@ -64,7 +67,9 @@ export const usePostProcessor = (options: UsePostProcessorOptions) => {
       for (const event of kind1Events) {
         const author = profileMap.get(event.pubkey) || null;
         const zaps = zapEvents
-          .filter(z => z.tags.some(tag => tag[0] === 'e' && tag[1] === event.id))
+          .filter(z =>
+            z.tags.some(tag => tag[0] === 'e' && tag[1] === event.id)
+          )
           .reverse();
 
         // Process zaps using utility function
@@ -141,4 +146,3 @@ export const usePostProcessor = (options: UsePostProcessorOptions) => {
     processPosts
   };
 };
-

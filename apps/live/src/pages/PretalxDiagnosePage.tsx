@@ -84,7 +84,8 @@ const getVersionFilteredEndpoints = (version?: string): ApiEndpoint[] => {
 const renderValue = (value: unknown): string => {
   if (value === null || value === undefined) return 'N/A';
   if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'number' || typeof value === 'boolean')
+    return String(value);
   if (typeof value === 'object') {
     // Handle multilingual objects like {en: "...", es: "..."}
     if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -126,10 +127,12 @@ export const PretalxDiagnosePage: React.FC = () => {
   const [selectedVersion, setSelectedVersion] = useState<string>('');
   const [selectedRoomId, setSelectedRoomId] = useState<string>('');
   const [roomPreview, setRoomPreview] = useState<unknown | null>(null);
-  
+
   // Speaker answers section
   const [speakerAnswers, setSpeakerAnswers] = useState<unknown | null>(null);
-  const [speakerAnswersError, setSpeakerAnswersError] = useState<string | null>(null);
+  const [speakerAnswersError, setSpeakerAnswersError] = useState<string | null>(
+    null
+  );
   const [filterByQuestionId, setFilterByQuestionId] = useState<boolean>(true);
   const [questionIdFilter, setQuestionIdFilter] = useState<string>('6269');
   const [speakerCache, setSpeakerCache] = useState<Record<string, any>>({});
@@ -339,61 +342,74 @@ export const PretalxDiagnosePage: React.FC = () => {
     setSpeakerAnswers(null);
     try {
       // Fetch answers first
-      const answersRes = await fetch(`${getApiBase()}/multi/pretalx/call?${new URLSearchParams({
-        ...(baseUrl && { baseUrl }),
-        ...(event && { event }),
-        ...(token && { token }),
-        endpoint: `/api/events/{event}/answers/`,
-        expand: 'submission,speaker,question'
-      }).toString()}`);
+      const answersRes = await fetch(
+        `${getApiBase()}/multi/pretalx/call?${new URLSearchParams({
+          ...(baseUrl && { baseUrl }),
+          ...(event && { event }),
+          ...(token && { token }),
+          endpoint: `/api/events/{event}/answers/`,
+          expand: 'submission,speaker,question'
+        }).toString()}`
+      );
 
       const answersJson = await answersRes.json();
 
       if (!answersRes.ok || !answersJson?.success)
-        throw new Error(answersJson?.error || 'Failed to fetch speaker answers');
+        throw new Error(
+          answersJson?.error || 'Failed to fetch speaker answers'
+        );
 
       const answers = Array.isArray(answersJson.data) ? answersJson.data : [];
-      
+
       // Check if we need to fetch speakers (only if cache doesn't have all needed speakers)
       const personCodes = new Set<string>();
       answers.forEach((answer: any) => {
         if (!answer?.speaker && answer?.person) {
-          const personCode = typeof answer.person === 'string' 
-            ? answer.person 
-            : answer.person?.code || answer.person;
-          if (personCode && typeof personCode === 'string' && !speakerCache[personCode]) {
+          const personCode =
+            typeof answer.person === 'string'
+              ? answer.person
+              : answer.person?.code || answer.person;
+          if (
+            personCode &&
+            typeof personCode === 'string' &&
+            !speakerCache[personCode]
+          ) {
             personCodes.add(personCode);
           }
         }
       });
-      
+
       // Create speakers map starting with cached speakers
       const speakersMap = new Map<string, any>();
       Object.entries(speakerCache).forEach(([code, speaker]) => {
         speakersMap.set(code, speaker);
       });
-      
+
       // Only fetch speakers if we have missing ones
       if (personCodes.size > 0) {
-        const speakersRes = await fetch(`${getApiBase()}/multi/pretalx/call?${new URLSearchParams({
-          ...(baseUrl && { baseUrl }),
-          ...(event && { event }),
-          ...(token && { token }),
-          endpoint: `/api/events/{event}/speakers/`
-        }).toString()}`);
+        const speakersRes = await fetch(
+          `${getApiBase()}/multi/pretalx/call?${new URLSearchParams({
+            ...(baseUrl && { baseUrl }),
+            ...(event && { event }),
+            ...(token && { token }),
+            endpoint: `/api/events/{event}/speakers/`
+          }).toString()}`
+        );
 
         const speakersJson = await speakersRes.json();
-        
+
         if (speakersRes.ok && speakersJson?.success) {
-          const speakers = Array.isArray(speakersJson.data) ? speakersJson.data : [];
-          
+          const speakers = Array.isArray(speakersJson.data)
+            ? speakersJson.data
+            : [];
+
           // Add all speakers to map
           speakers.forEach((speaker: any) => {
             if (speaker?.code) {
               speakersMap.set(speaker.code, speaker);
             }
           });
-          
+
           // Update cache with all speakers
           const newCache: Record<string, any> = {};
           speakersMap.forEach((speaker, code) => {
@@ -402,14 +418,15 @@ export const PretalxDiagnosePage: React.FC = () => {
           setSpeakerCache(prev => ({ ...prev, ...newCache }));
         }
       }
-      
+
       // Merge speaker data directly into answer objects
       const enrichedAnswers = answers.map((answer: any) => {
         // If answer doesn't have speaker but has person code, merge it
         if (!answer?.speaker && answer?.person) {
-          const personCode = typeof answer.person === 'string' 
-            ? answer.person 
-            : answer.person?.code || answer.person;
+          const personCode =
+            typeof answer.person === 'string'
+              ? answer.person
+              : answer.person?.code || answer.person;
           if (personCode && typeof personCode === 'string') {
             const speaker = speakersMap.get(personCode);
             if (speaker) {
@@ -419,7 +436,7 @@ export const PretalxDiagnosePage: React.FC = () => {
         }
         return answer;
       });
-      
+
       setSpeakerAnswers(enrichedAnswers);
     } catch (e: unknown) {
       setSpeakerAnswersError(e instanceof Error ? e.message : 'Error');
@@ -580,7 +597,11 @@ export const PretalxDiagnosePage: React.FC = () => {
         <p style={{ fontSize: '0.9em', color: '#666', marginBottom: 12 }}>
           Fetch all answers provided by each speaker
         </p>
-        <button onClick={fetchSpeakerAnswers} disabled={busy} style={{ marginBottom: 12 }}>
+        <button
+          onClick={fetchSpeakerAnswers}
+          disabled={busy}
+          style={{ marginBottom: 12 }}
+        >
           Fetch All Speaker Answers
         </button>
         {speakerAnswersError && (
@@ -598,19 +619,34 @@ export const PretalxDiagnosePage: React.FC = () => {
         )}
         {speakerAnswers !== null && (
           <div style={{ marginTop: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                marginBottom: 12,
+                flexWrap: 'wrap'
+              }}
+            >
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  cursor: 'pointer'
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={filterByQuestionId}
-                  onChange={(e) => setFilterByQuestionId(e.target.checked)}
+                  onChange={e => setFilterByQuestionId(e.target.checked)}
                 />
                 <span>Filter by Question ID:</span>
               </label>
               <input
                 type="text"
                 value={questionIdFilter}
-                onChange={(e) => setQuestionIdFilter(e.target.value)}
+                onChange={e => setQuestionIdFilter(e.target.value)}
                 placeholder="6269"
                 disabled={!filterByQuestionId}
                 style={{
@@ -622,131 +658,183 @@ export const PretalxDiagnosePage: React.FC = () => {
               />
             </div>
             {(() => {
-              const allAnswers = Array.isArray(speakerAnswers) ? speakerAnswers : [];
-              const filteredAnswers = filterByQuestionId && questionIdFilter
-                ? allAnswers.filter((answer: any) => {
-                    const questionId = answer?.question?.id;
-                    return questionId && String(questionId) === String(questionIdFilter);
-                  })
-                : allAnswers;
-              
+              const allAnswers = Array.isArray(speakerAnswers)
+                ? speakerAnswers
+                : [];
+              const filteredAnswers =
+                filterByQuestionId && questionIdFilter
+                  ? allAnswers.filter((answer: any) => {
+                      const questionId = answer?.question?.id;
+                      return (
+                        questionId &&
+                        String(questionId) === String(questionIdFilter)
+                      );
+                    })
+                  : allAnswers;
+
               return (
                 <>
                   <h4 style={{ margin: '8px 0' }}>
-                    Answers ({filteredAnswers.length} {filterByQuestionId && questionIdFilter ? 'filtered' : 'total'}
-                    {filterByQuestionId && questionIdFilter && filteredAnswers.length !== allAnswers.length
+                    Answers ({filteredAnswers.length}{' '}
+                    {filterByQuestionId && questionIdFilter
+                      ? 'filtered'
+                      : 'total'}
+                    {filterByQuestionId &&
+                    questionIdFilter &&
+                    filteredAnswers.length !== allAnswers.length
                       ? ` of ${allAnswers.length} total`
-                      : ''})
+                      : ''}
+                    )
                   </h4>
                   {filteredAnswers.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12
+                      }}
+                    >
                       {filteredAnswers.map((answer: any, idx: number) => {
                         const speaker = answer?.speaker;
                         const personCode = answer?.person;
                         const question = answer?.question;
                         const submission = answer?.submission;
-                        
+
                         // Determine speaker display
                         let speakerDisplay = 'Unknown';
                         let speakerCode = '';
-                        
+
                         if (speaker && typeof speaker === 'object') {
                           // Speaker is expanded object (either from API or merged by us)
-                          speakerDisplay = renderValue(speaker?.name || speaker?.code || 'Unknown');
+                          speakerDisplay = renderValue(
+                            speaker?.name || speaker?.code || 'Unknown'
+                          );
                           speakerCode = speaker?.code || '';
                         } else if (personCode) {
                           // Fallback: Only have person code - show it
-                          const code = typeof personCode === 'string' ? personCode : personCode?.code || personCode;
+                          const code =
+                            typeof personCode === 'string'
+                              ? personCode
+                              : personCode?.code || personCode;
                           speakerCode = String(code);
                           // Try cache as last resort
                           if (speakerCache[code]) {
-                            speakerDisplay = renderValue(speakerCache[code]?.name || code);
+                            speakerDisplay = renderValue(
+                              speakerCache[code]?.name || code
+                            );
                           } else {
                             speakerDisplay = `Speaker Code: ${code}`;
                           }
                         }
-                        
+
                         return (
-                    <div
-                      key={idx}
-                      style={{
-                        border: '1px solid #ddd',
-                        borderRadius: 4,
-                        padding: 12,
-                        background: '#fafafa'
-                      }}
-                    >
-                      <div style={{ marginBottom: 8 }}>
-                        <strong style={{ color: '#333' }}>Speaker:</strong>{' '}
-                        <span style={{ color: '#666' }}>
-                          {speakerDisplay}
-                          {speakerCode && speakerDisplay !== speakerCode && ` (${speakerCode})`}
-                        </span>
-                      </div>
-                      {question && (
-                        <div style={{ marginBottom: 8 }}>
-                          <strong style={{ color: '#333' }}>Question:</strong>{' '}
-                          <span style={{ color: '#666' }}>
-                            {renderValue(question?.question || question?.slug || 'Unknown question')}
-                          </span>
-                        </div>
-                      )}
-                      {submission && (
-                        <div style={{ marginBottom: 8 }}>
-                          <strong style={{ color: '#333' }}>Submission:</strong>{' '}
-                          <span style={{ color: '#666' }}>
-                            {renderValue(submission?.title || submission?.code || 'Unknown submission')}
-                          </span>
-                        </div>
-                      )}
-                      <div style={{ marginBottom: 8 }}>
-                        <strong style={{ color: '#333' }}>Answer:</strong>
-                        <div
-                          style={{
-                            marginTop: 4,
-                            padding: 8,
-                            background: '#fff',
-                            borderRadius: 4,
-                            border: '1px solid #eee',
-                            whiteSpace: 'pre-wrap',
-                            color: '#333'
-                          }}
-                        >
-                          {renderValue(answer?.answer || answer?.answer_file || 'No answer')}
-                        </div>
-                      </div>
-                      <details style={{ marginTop: 8 }}>
-                        <summary
-                          style={{
-                            cursor: 'pointer',
-                            fontSize: '0.85em',
-                            color: '#666'
-                          }}
-                        >
-                          View Raw Data
-                        </summary>
-                        <pre
-                          style={{
-                            whiteSpace: 'pre-wrap',
-                            background: '#fff',
-                            padding: 8,
-                            borderRadius: 4,
-                            fontSize: '0.75em',
-                            maxHeight: '200px',
-                            overflow: 'auto',
-                            marginTop: 8,
-                            border: '1px solid #ddd'
-                          }}
-                        >
-                          {JSON.stringify(answer, null, 2)}
-                        </pre>
-                      </details>
-                    </div>
+                          <div
+                            key={idx}
+                            style={{
+                              border: '1px solid #ddd',
+                              borderRadius: 4,
+                              padding: 12,
+                              background: '#fafafa'
+                            }}
+                          >
+                            <div style={{ marginBottom: 8 }}>
+                              <strong style={{ color: '#333' }}>
+                                Speaker:
+                              </strong>{' '}
+                              <span style={{ color: '#666' }}>
+                                {speakerDisplay}
+                                {speakerCode &&
+                                  speakerDisplay !== speakerCode &&
+                                  ` (${speakerCode})`}
+                              </span>
+                            </div>
+                            {question && (
+                              <div style={{ marginBottom: 8 }}>
+                                <strong style={{ color: '#333' }}>
+                                  Question:
+                                </strong>{' '}
+                                <span style={{ color: '#666' }}>
+                                  {renderValue(
+                                    question?.question ||
+                                      question?.slug ||
+                                      'Unknown question'
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                            {submission && (
+                              <div style={{ marginBottom: 8 }}>
+                                <strong style={{ color: '#333' }}>
+                                  Submission:
+                                </strong>{' '}
+                                <span style={{ color: '#666' }}>
+                                  {renderValue(
+                                    submission?.title ||
+                                      submission?.code ||
+                                      'Unknown submission'
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                            <div style={{ marginBottom: 8 }}>
+                              <strong style={{ color: '#333' }}>Answer:</strong>
+                              <div
+                                style={{
+                                  marginTop: 4,
+                                  padding: 8,
+                                  background: '#fff',
+                                  borderRadius: 4,
+                                  border: '1px solid #eee',
+                                  whiteSpace: 'pre-wrap',
+                                  color: '#333'
+                                }}
+                              >
+                                {renderValue(
+                                  answer?.answer ||
+                                    answer?.answer_file ||
+                                    'No answer'
+                                )}
+                              </div>
+                            </div>
+                            <details style={{ marginTop: 8 }}>
+                              <summary
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '0.85em',
+                                  color: '#666'
+                                }}
+                              >
+                                View Raw Data
+                              </summary>
+                              <pre
+                                style={{
+                                  whiteSpace: 'pre-wrap',
+                                  background: '#fff',
+                                  padding: 8,
+                                  borderRadius: 4,
+                                  fontSize: '0.75em',
+                                  maxHeight: '200px',
+                                  overflow: 'auto',
+                                  marginTop: 8,
+                                  border: '1px solid #ddd'
+                                }}
+                              >
+                                {JSON.stringify(answer, null, 2)}
+                              </pre>
+                            </details>
+                          </div>
                         );
                       })}
                     </div>
                   ) : (
-                    <div style={{ padding: 12, background: '#f7f7f7', borderRadius: 4, color: '#666' }}>
+                    <div
+                      style={{
+                        padding: 12,
+                        background: '#f7f7f7',
+                        borderRadius: 4,
+                        color: '#666'
+                      }}
+                    >
                       No answers found
                     </div>
                   )}

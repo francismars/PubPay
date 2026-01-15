@@ -10,7 +10,14 @@ import {
   migrateOldNWCConnection,
   type NWCConnection
 } from '../../utils/nwcStorage';
-import { TOAST_DURATION, COLORS, Z_INDEX, PROTOCOLS, STORAGE_KEYS, DIMENSIONS } from '../../constants';
+import {
+  TOAST_DURATION,
+  COLORS,
+  Z_INDEX,
+  PROTOCOLS,
+  STORAGE_KEYS,
+  DIMENSIONS
+} from '../../constants';
 
 interface NWCOptionsModalProps {
   isVisible: boolean;
@@ -36,10 +43,10 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
   // Load connections and migrate old format on mount
   useEffect(() => {
     if (!isVisible) return;
-    
+
     // Migrate old single connection format
     migrateOldNWCConnection();
-    
+
     // Load connections
     const conns = getNWCConnections();
     setConnections(conns);
@@ -125,13 +132,19 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
       setNewUri('');
       setShowAddForm(false);
       useUIStore.getState().openToast('Connection added!', 'success', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.SHORT
+      );
     } catch (e) {
       console.error('NWC validation failed:', e);
       const message = e instanceof Error ? e.message : 'Invalid NWC URI';
       setError(message);
       useUIStore.getState().openToast(message, 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.MEDIUM
+      );
     } finally {
       setValidating(false);
     }
@@ -186,7 +199,8 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
         label: newLabel.trim(),
         uri: newUri.trim(),
         capabilities,
-        createdAt: connections.find(c => c.id === editingId)?.createdAt || Date.now()
+        createdAt:
+          connections.find(c => c.id === editingId)?.createdAt || Date.now()
       };
 
       saveNWCConnection(connection);
@@ -199,13 +213,19 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
       setNewUri('');
       setShowAddForm(false);
       useUIStore.getState().openToast('Connection updated!', 'success', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.SHORT
+      );
     } catch (e) {
       console.error('NWC validation failed:', e);
       const message = e instanceof Error ? e.message : 'Invalid NWC URI';
       setError(message);
       useUIStore.getState().openToast(message, 'error', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.MEDIUM);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.MEDIUM
+      );
     } finally {
       setValidating(false);
     }
@@ -217,15 +237,15 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
 
   const confirmDelete = () => {
     if (!deleteConfirmId) return;
-    
+
     deleteNWCConnection(deleteConfirmId);
     const updated = getNWCConnections();
     setConnections(updated);
-    
+
     // Update active ID if needed
     const newActiveId = getActiveNWCConnectionId();
     setActiveId(newActiveId);
-    
+
     setDeleteConfirmId(null);
     useUIStore.getState().openToast('Connection deleted', 'success', false);
     setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
@@ -238,11 +258,17 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
   const handleSetActive = (id: string) => {
     setActiveNWCConnection(id);
     setActiveId(id);
-    useUIStore.getState().openToast('Active connection changed', 'success', false);
+    useUIStore
+      .getState()
+      .openToast('Active connection changed', 'success', false);
     setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
-    
+
     // Dispatch custom event to notify other components
-    window.dispatchEvent(new CustomEvent('nwcActiveConnectionChanged', { detail: { connectionId: id } }));
+    window.dispatchEvent(
+      new CustomEvent('nwcActiveConnectionChanged', {
+        detail: { connectionId: id }
+      })
+    );
   };
 
   const handleDeactivate = () => {
@@ -250,9 +276,13 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
     setActiveId(null);
     useUIStore.getState().openToast('Connection deactivated', 'success', false);
     setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
-    
+
     // Dispatch custom event to notify other components
-    window.dispatchEvent(new CustomEvent('nwcActiveConnectionChanged', { detail: { connectionId: null } }));
+    window.dispatchEvent(
+      new CustomEvent('nwcActiveConnectionChanged', {
+        detail: { connectionId: null }
+      })
+    );
   };
 
   const handleCancelEdit = () => {
@@ -302,7 +332,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
         width: '100vw',
         boxSizing: 'border-box'
       }}
-      onClick={(e) => {
+      onClick={e => {
         // Don't close settings modal if delete confirmation is open
         if (!deleteConfirmId) {
           onClose();
@@ -375,7 +405,10 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: '16px' }}
+                >
                   add
                 </span>
                 Add
@@ -403,8 +436,15 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
               >
                 account_balance_wallet
               </span>
-              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                No connections yet. Add your first wallet connection to get started.
+              <p
+                style={{
+                  fontSize: '14px',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '20px'
+                }}
+              >
+                No connections yet. Add your first wallet connection to get
+                started.
               </p>
               <button
                 onClick={handleOpenAddForm}
@@ -431,7 +471,10 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: '20px' }}
+                >
                   add_circle
                 </span>
                 Add Connection
@@ -455,8 +498,22 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                     marginBottom: '20px'
                   }}
                 >
-                  <h3 style={{ fontSize: '16px', fontWeight: '600', margin: 0, color: 'var(--text-primary)' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }}>
+                  <h3
+                    style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      margin: 0,
+                      color: 'var(--text-primary)'
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        fontSize: '20px',
+                        verticalAlign: 'middle',
+                        marginRight: '8px'
+                      }}
+                    >
                       add_circle
                     </span>
                     Add New Connection
@@ -484,7 +541,10 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                     }}
                     title="Close"
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '20px' }}
+                    >
                       close
                     </span>
                   </button>
@@ -502,7 +562,10 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       color: 'var(--text-primary)'
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '18px' }}
+                    >
                       label
                     </span>
                     Label
@@ -545,7 +608,10 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       color: 'var(--text-primary)'
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '18px' }}
+                    >
                       link
                     </span>
                     NWC Connection URI
@@ -575,7 +641,14 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       e.currentTarget.style.borderColor = 'var(--border-color)';
                     }}
                   />
-                  <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '6px', marginBottom: 0 }}>
+                  <p
+                    style={{
+                      fontSize: '11px',
+                      color: 'var(--text-tertiary)',
+                      marginTop: '6px',
+                      marginBottom: 0
+                    }}
+                  >
                     Paste your complete NWC connection string here
                   </p>
                 </div>
@@ -595,14 +668,19 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       color: COLORS.ERROR
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '18px' }}
+                    >
                       error_outline
                     </span>
                     {error}
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+                <div
+                  style={{ display: 'flex', gap: '12px', marginTop: '20px' }}
+                >
                   <button
                     onClick={handleAddConnection}
                     disabled={validating || !newLabel.trim() || !newUri.trim()}
@@ -613,11 +691,17 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       justifyContent: 'center',
                       gap: '8px',
                       padding: '12px 20px',
-                      background: validating || !newLabel.trim() || !newUri.trim() ? COLORS.BG_DISABLED : COLORS.PRIMARY,
+                      background:
+                        validating || !newLabel.trim() || !newUri.trim()
+                          ? COLORS.BG_DISABLED
+                          : COLORS.PRIMARY,
                       color: COLORS.TEXT_WHITE,
                       border: 'none',
                       borderRadius: '8px',
-                      cursor: validating || !newLabel.trim() || !newUri.trim() ? 'not-allowed' : 'pointer',
+                      cursor:
+                        validating || !newLabel.trim() || !newUri.trim()
+                          ? 'not-allowed'
+                          : 'pointer',
                       fontSize: '14px',
                       fontWeight: '500',
                       transition: 'all 0.2s ease'
@@ -637,14 +721,23 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                   >
                     {validating ? (
                       <>
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px', animation: 'spin 1s linear infinite' }}>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{
+                            fontSize: '18px',
+                            animation: 'spin 1s linear infinite'
+                          }}
+                        >
                           refresh
                         </span>
                         Validating...
                       </>
                     ) : (
                       <>
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: '18px' }}
+                        >
                           add_circle
                         </span>
                         Add Connection
@@ -665,7 +758,10 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                     borderRadius: '8px',
                     marginBottom: '12px',
                     background: 'transparent',
-                    borderColor: activeId === conn.id ? COLORS.PRIMARY : 'var(--border-color)'
+                    borderColor:
+                      activeId === conn.id
+                        ? COLORS.PRIMARY
+                        : 'var(--border-color)'
                   }}
                 >
                   <div
@@ -710,7 +806,9 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                             )}
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                        <div
+                          style={{ display: 'flex', gap: '6px', flexShrink: 0 }}
+                        >
                           {activeId !== conn.id ? (
                             <button
                               onClick={() => handleSetActive(conn.id)}
@@ -732,10 +830,12 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                                 justifyContent: 'center'
                               }}
                               onMouseEnter={e => {
-                                e.currentTarget.style.background = COLORS.PRIMARY_HOVER;
+                                e.currentTarget.style.background =
+                                  COLORS.PRIMARY_HOVER;
                               }}
                               onMouseLeave={e => {
-                                e.currentTarget.style.background = COLORS.PRIMARY;
+                                e.currentTarget.style.background =
+                                  COLORS.PRIMARY;
                               }}
                             >
                               Set Active
@@ -761,10 +861,12 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                                 justifyContent: 'center'
                               }}
                               onMouseEnter={e => {
-                                e.currentTarget.style.background = 'var(--bg-primary)';
+                                e.currentTarget.style.background =
+                                  'var(--bg-primary)';
                               }}
                               onMouseLeave={e => {
-                                e.currentTarget.style.background = 'transparent';
+                                e.currentTarget.style.background =
+                                  'transparent';
                               }}
                             >
                               Deactivate
@@ -788,7 +890,8 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                               transition: 'all 0.2s ease'
                             }}
                             onMouseEnter={e => {
-                              e.currentTarget.style.background = 'var(--bg-primary)';
+                              e.currentTarget.style.background =
+                                'var(--bg-primary)';
                             }}
                             onMouseLeave={e => {
                               e.currentTarget.style.background = 'transparent';
@@ -814,7 +917,8 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                               transition: 'all 0.2s ease'
                             }}
                             onMouseEnter={e => {
-                              e.currentTarget.style.background = 'var(--bg-primary)';
+                              e.currentTarget.style.background =
+                                'var(--bg-primary)';
                             }}
                             onMouseLeave={e => {
                               e.currentTarget.style.background = 'transparent';
@@ -835,24 +939,25 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                       >
                         {conn.uri.substring(0, 60)}...
                       </div>
-                      {conn.capabilities?.methods && conn.capabilities.methods.length > 0 && (
-                        <div
-                          style={{
-                            fontSize: '11px',
-                            color: 'var(--text-tertiary)',
-                            marginTop: '4px'
-                          }}
-                        >
-                          Methods: {conn.capabilities.methods.join(', ')}
-                        </div>
-                      )}
+                      {conn.capabilities?.methods &&
+                        conn.capabilities.methods.length > 0 && (
+                          <div
+                            style={{
+                              fontSize: '11px',
+                              color: 'var(--text-tertiary)',
+                              marginTop: '4px'
+                            }}
+                          >
+                            Methods: {conn.capabilities.methods.join(', ')}
+                          </div>
+                        )}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           ) : null}
-          
+
           {/* Add/Edit Connection Form */}
           {((showAddForm && connections.length > 0) || editingId) && (
             <div
@@ -864,180 +969,317 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                 background: 'var(--bg-secondary)'
               }}
             >
-            {/* Form (shown when adding or editing) */}
-            <div style={{ padding: '20px' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '20px'
-                }}
-              >
-                <h3 style={{ fontSize: '16px', fontWeight: '600', margin: 0, color: 'var(--text-primary)' }}>
-                  {editingId ? (
-                    <>
-                      <span className="material-symbols-outlined" style={{ fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }}>
-                        edit
-                      </span>
-                      Edit Connection
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined" style={{ fontSize: '20px', verticalAlign: 'middle', marginRight: '8px' }}>
-                        add_circle
-                      </span>
-                      Add New Connection
-                    </>
-                  )}
-                </h3>
-                <button
-                  onClick={handleCancelEdit}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: 'var(--text-secondary)',
-                    padding: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    borderRadius: '4px',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.background = 'var(--bg-primary)';
-                    e.currentTarget.style.color = 'var(--text-primary)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                  }}
-                  title="Close"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-                    close
-                  </span>
-                </button>
-              </div>
-
-              <div style={{ marginBottom: '16px' }}>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    marginBottom: '8px',
-                    color: 'var(--text-primary)'
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                    label
-                  </span>
-                  Label
-                </label>
-                <input
-                  type="text"
-                  value={newLabel}
-                  onChange={e => setNewLabel(e.target.value)}
-                  placeholder="e.g., My Wallet, Work Wallet, etc."
-                  className="inputField"
-                  style={{
-                    backgroundColor: 'var(--input-bg)',
-                    color: 'var(--text-primary)',
-                    border: '2px solid var(--border-color)',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    width: '100%',
-                    fontSize: '14px',
-                    boxSizing: 'border-box',
-                    transition: 'border-color 0.2s ease'
-                  }}
-                  onFocus={e => {
-                    e.currentTarget.style.borderColor = COLORS.PRIMARY;
-                  }}
-                  onBlur={e => {
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                  }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '16px' }}>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    marginBottom: '8px',
-                    color: 'var(--text-primary)'
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                    link
-                  </span>
-                  NWC Connection URI
-                </label>
-                <textarea
-                  value={newUri}
-                  onChange={e => setNewUri(e.target.value)}
-                  placeholder="nostr+walletconnect://..."
-                  style={{
-                    backgroundColor: 'var(--input-bg)',
-                    color: 'var(--text-primary)',
-                    border: '2px solid var(--border-color)',
-                    borderRadius: '8px',
-                    padding: '12px 16px',
-                    width: '100%',
-                    fontSize: '12px',
-                    boxSizing: 'border-box',
-                    fontFamily: 'monospace',
-                    minHeight: '80px',
-                    resize: 'vertical',
-                    transition: 'border-color 0.2s ease'
-                  }}
-                  onFocus={e => {
-                    e.currentTarget.style.borderColor = COLORS.PRIMARY;
-                  }}
-                  onBlur={e => {
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                  }}
-                />
-                <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginTop: '6px', marginBottom: 0 }}>
-                  Paste your complete NWC connection string here
-                </p>
-              </div>
-
-              {error && (
+              {/* Form (shown when adding or editing) */}
+              <div style={{ padding: '20px' }}>
                 <div
                   style={{
-                    marginBottom: '16px',
-                    padding: '12px',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    borderRadius: '8px',
                     display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '13px',
-                    color: COLORS.ERROR
+                    marginBottom: '20px'
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                    error_outline
-                  </span>
-                  {error}
+                  <h3
+                    style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      margin: 0,
+                      color: 'var(--text-primary)'
+                    }}
+                  >
+                    {editingId ? (
+                      <>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{
+                            fontSize: '20px',
+                            verticalAlign: 'middle',
+                            marginRight: '8px'
+                          }}
+                        >
+                          edit
+                        </span>
+                        Edit Connection
+                      </>
+                    ) : (
+                      <>
+                        <span
+                          className="material-symbols-outlined"
+                          style={{
+                            fontSize: '20px',
+                            verticalAlign: 'middle',
+                            marginRight: '8px'
+                          }}
+                        >
+                          add_circle
+                        </span>
+                        Add New Connection
+                      </>
+                    )}
+                  </h3>
+                  <button
+                    onClick={handleCancelEdit}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-secondary)',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      borderRadius: '4px',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'var(--bg-primary)';
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                    }}
+                    title="Close"
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '20px' }}
+                    >
+                      close
+                    </span>
+                  </button>
                 </div>
-              )}
 
-              <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-                {editingId ? (
-                  <>
+                <div style={{ marginBottom: '16px' }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      marginBottom: '8px',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '18px' }}
+                    >
+                      label
+                    </span>
+                    Label
+                  </label>
+                  <input
+                    type="text"
+                    value={newLabel}
+                    onChange={e => setNewLabel(e.target.value)}
+                    placeholder="e.g., My Wallet, Work Wallet, etc."
+                    className="inputField"
+                    style={{
+                      backgroundColor: 'var(--input-bg)',
+                      color: 'var(--text-primary)',
+                      border: '2px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      width: '100%',
+                      fontSize: '14px',
+                      boxSizing: 'border-box',
+                      transition: 'border-color 0.2s ease'
+                    }}
+                    onFocus={e => {
+                      e.currentTarget.style.borderColor = COLORS.PRIMARY;
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '16px' }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      marginBottom: '8px',
+                      color: 'var(--text-primary)'
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '18px' }}
+                    >
+                      link
+                    </span>
+                    NWC Connection URI
+                  </label>
+                  <textarea
+                    value={newUri}
+                    onChange={e => setNewUri(e.target.value)}
+                    placeholder="nostr+walletconnect://..."
+                    style={{
+                      backgroundColor: 'var(--input-bg)',
+                      color: 'var(--text-primary)',
+                      border: '2px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      width: '100%',
+                      fontSize: '12px',
+                      boxSizing: 'border-box',
+                      fontFamily: 'monospace',
+                      minHeight: '80px',
+                      resize: 'vertical',
+                      transition: 'border-color 0.2s ease'
+                    }}
+                    onFocus={e => {
+                      e.currentTarget.style.borderColor = COLORS.PRIMARY;
+                    }}
+                    onBlur={e => {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                    }}
+                  />
+                  <p
+                    style={{
+                      fontSize: '11px',
+                      color: 'var(--text-tertiary)',
+                      marginTop: '6px',
+                      marginBottom: 0
+                    }}
+                  >
+                    Paste your complete NWC connection string here
+                  </p>
+                </div>
+
+                {error && (
+                  <div
+                    style={{
+                      marginBottom: '16px',
+                      padding: '12px',
+                      background: 'rgba(239, 68, 68, 0.1)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '13px',
+                      color: COLORS.ERROR
+                    }}
+                  >
+                    <span
+                      className="material-symbols-outlined"
+                      style={{ fontSize: '18px' }}
+                    >
+                      error_outline
+                    </span>
+                    {error}
+                  </div>
+                )}
+
+                <div
+                  style={{ display: 'flex', gap: '12px', marginTop: '20px' }}
+                >
+                  {editingId ? (
+                    <>
+                      <button
+                        onClick={handleUpdateConnection}
+                        disabled={
+                          validating || !newLabel.trim() || !newUri.trim()
+                        }
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          padding: '12px 20px',
+                          background:
+                            validating || !newLabel.trim() || !newUri.trim()
+                              ? COLORS.BG_DISABLED
+                              : COLORS.PRIMARY,
+                          color: COLORS.TEXT_WHITE,
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor:
+                            validating || !newLabel.trim() || !newUri.trim()
+                              ? 'not-allowed'
+                              : 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={e => {
+                          if (!validating && newLabel.trim() && newUri.trim()) {
+                            e.currentTarget.style.background =
+                              COLORS.PRIMARY_HOVER;
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          if (!validating && newLabel.trim() && newUri.trim()) {
+                            e.currentTarget.style.background = COLORS.PRIMARY;
+                          }
+                        }}
+                      >
+                        {validating ? (
+                          <>
+                            <span
+                              className="material-symbols-outlined"
+                              style={{
+                                fontSize: '18px',
+                                animation: 'spin 1s linear infinite'
+                              }}
+                            >
+                              refresh
+                            </span>
+                            Validating...
+                          </>
+                        ) : (
+                          <>
+                            <span
+                              className="material-symbols-outlined"
+                              style={{ fontSize: '18px' }}
+                            >
+                              check_circle
+                            </span>
+                            Update Connection
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        disabled={validating}
+                        style={{
+                          padding: '12px 20px',
+                          background: 'transparent',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px',
+                          cursor: validating ? 'not-allowed' : 'pointer',
+                          color: 'var(--text-primary)',
+                          fontSize: '14px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={e => {
+                          if (!validating) {
+                            e.currentTarget.style.background =
+                              'var(--bg-primary)';
+                          }
+                        }}
+                        onMouseLeave={e => {
+                          if (!validating) {
+                            e.currentTarget.style.background = 'transparent';
+                          }
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
                     <button
-                      onClick={handleUpdateConnection}
-                      disabled={validating || !newLabel.trim() || !newUri.trim()}
+                      onClick={handleAddConnection}
+                      disabled={
+                        validating || !newLabel.trim() || !newUri.trim()
+                      }
                       style={{
                         flex: 1,
                         display: 'flex',
@@ -1045,121 +1287,63 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                         justifyContent: 'center',
                         gap: '8px',
                         padding: '12px 20px',
-                        background: validating || !newLabel.trim() || !newUri.trim() ? COLORS.BG_DISABLED : COLORS.PRIMARY,
+                        background:
+                          validating || !newLabel.trim() || !newUri.trim()
+                            ? COLORS.BG_DISABLED
+                            : COLORS.PRIMARY,
                         color: COLORS.TEXT_WHITE,
                         border: 'none',
                         borderRadius: '8px',
-                        cursor: validating || !newLabel.trim() || !newUri.trim() ? 'not-allowed' : 'pointer',
+                        cursor:
+                          validating || !newLabel.trim() || !newUri.trim()
+                            ? 'not-allowed'
+                            : 'pointer',
                         fontSize: '14px',
                         fontWeight: '500',
                         transition: 'all 0.2s ease'
                       }}
                       onMouseEnter={e => {
                         if (!validating && newLabel.trim() && newUri.trim()) {
-                          e.currentTarget.style.background = COLORS.PRIMARY_HOVER;
+                          e.currentTarget.style.background =
+                            COLORS.PRIMARY_HOVER;
+                          e.currentTarget.style.transform = 'translateY(-1px)';
                         }
                       }}
                       onMouseLeave={e => {
                         if (!validating && newLabel.trim() && newUri.trim()) {
                           e.currentTarget.style.background = COLORS.PRIMARY;
+                          e.currentTarget.style.transform = 'translateY(0)';
                         }
                       }}
                     >
                       {validating ? (
                         <>
-                          <span className="material-symbols-outlined" style={{ fontSize: '18px', animation: 'spin 1s linear infinite' }}>
+                          <span
+                            className="material-symbols-outlined"
+                            style={{
+                              fontSize: '18px',
+                              animation: 'spin 1s linear infinite'
+                            }}
+                          >
                             refresh
                           </span>
                           Validating...
                         </>
                       ) : (
                         <>
-                          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                            check_circle
+                          <span
+                            className="material-symbols-outlined"
+                            style={{ fontSize: '18px' }}
+                          >
+                            add_circle
                           </span>
-                          Update Connection
+                          Add Connection
                         </>
                       )}
                     </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      disabled={validating}
-                      style={{
-                        padding: '12px 20px',
-                        background: 'transparent',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '8px',
-                        cursor: validating ? 'not-allowed' : 'pointer',
-                        color: 'var(--text-primary)',
-                        fontSize: '14px',
-                        transition: 'all 0.2s ease'
-                      }}
-                      onMouseEnter={e => {
-                        if (!validating) {
-                          e.currentTarget.style.background = 'var(--bg-primary)';
-                        }
-                      }}
-                      onMouseLeave={e => {
-                        if (!validating) {
-                          e.currentTarget.style.background = 'transparent';
-                        }
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={handleAddConnection}
-                    disabled={validating || !newLabel.trim() || !newUri.trim()}
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '8px',
-                      padding: '12px 20px',
-                      background: validating || !newLabel.trim() || !newUri.trim() ? COLORS.BG_DISABLED : COLORS.PRIMARY,
-                      color: COLORS.TEXT_WHITE,
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: validating || !newLabel.trim() || !newUri.trim() ? 'not-allowed' : 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseEnter={e => {
-                      if (!validating && newLabel.trim() && newUri.trim()) {
-                        e.currentTarget.style.background = COLORS.PRIMARY_HOVER;
-                        e.currentTarget.style.transform = 'translateY(-1px)';
-                      }
-                    }}
-                    onMouseLeave={e => {
-                      if (!validating && newLabel.trim() && newUri.trim()) {
-                        e.currentTarget.style.background = COLORS.PRIMARY;
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }
-                    }}
-                  >
-                    {validating ? (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px', animation: 'spin 1s linear infinite' }}>
-                          refresh
-                        </span>
-                        Validating...
-                      </>
-                    ) : (
-                      <>
-                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                          add_circle
-                        </span>
-                        Add Connection
-                      </>
-                    )}
-                  </button>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
             </div>
           )}
         </div>
@@ -1190,7 +1374,8 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                   marginBottom: 0
                 }}
               >
-                Skip the invoice overlay and pay directly with the active NWC connection.
+                Skip the invoice overlay and pay directly with the active NWC
+                connection.
               </p>
             </div>
             <label className="toggleSwitch">
@@ -1263,7 +1448,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
             top: 0,
             left: 0
           }}
-          onClick={(e) => {
+          onClick={e => {
             e.stopPropagation();
             cancelDelete();
           }}
@@ -1286,7 +1471,7 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
               PUB<span className="logoPay">PAY</span>
               <span className="logoMe">.me</span>
             </div>
-            
+
             <div style={{ marginBottom: '24px', textAlign: 'center' }}>
               <span
                 className="material-symbols-outlined"
@@ -1299,11 +1484,26 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
               >
                 warning
               </span>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', margin: '0 0 12px 0', color: 'var(--text-primary)' }}>
+              <h3
+                style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  margin: '0 0 12px 0',
+                  color: 'var(--text-primary)'
+                }}
+              >
                 Delete Connection?
               </h3>
-              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.5' }}>
-                Are you sure you want to delete this connection? This action cannot be undone.
+              <p
+                style={{
+                  fontSize: '14px',
+                  color: 'var(--text-secondary)',
+                  margin: 0,
+                  lineHeight: '1.5'
+                }}
+              >
+                Are you sure you want to delete this connection? This action
+                cannot be undone.
               </p>
             </div>
 
@@ -1356,7 +1556,10 @@ export const NWCOptionsModal: React.FC<NWCOptionsModalProps> = ({
                   e.currentTarget.style.background = COLORS.ERROR;
                 }}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ fontSize: '18px' }}
+                >
                   delete
                 </span>
                 Delete

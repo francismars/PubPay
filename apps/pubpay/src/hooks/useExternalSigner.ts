@@ -1,5 +1,13 @@
 import { useEffect, useRef } from 'react';
-import { AuthService, BlossomService, FollowService, useUIStore, getQueryClient, useAuthStore, type AuthState } from '@pubpay/shared-services';
+import {
+  AuthService,
+  BlossomService,
+  FollowService,
+  useUIStore,
+  getQueryClient,
+  useAuthStore,
+  type AuthState
+} from '@pubpay/shared-services';
 import { verifyEvent } from 'nostr-tools';
 import { STORAGE_KEYS, TIMEOUT } from '../constants';
 import type { NostrClient, ZapService } from '@pubpay/shared-services';
@@ -26,7 +34,11 @@ export const useExternalSigner = ({
         // First, process sign-in return (npub from clipboard)
         const result = await AuthService.handleExternalSignerReturn();
         if (result.success && result.publicKey) {
-          await AuthService.storeAuthData(result.publicKey, null, 'externalSigner');
+          await AuthService.storeAuthData(
+            result.publicKey,
+            null,
+            'externalSigner'
+          );
 
           setAuth({
             isLoggedIn: true,
@@ -54,7 +66,9 @@ export const useExternalSigner = ({
         try {
           // Ensure page has focus to allow clipboard reads
           while (!document.hasFocus()) {
-            await new Promise(resolve => setTimeout(resolve, TIMEOUT.SHORT_DELAY));
+            await new Promise(resolve =>
+              setTimeout(resolve, TIMEOUT.SHORT_DELAY)
+            );
           }
 
           // Helper to read signature from clipboard with retries and prompt fallback
@@ -68,7 +82,9 @@ export const useExternalSigner = ({
               } catch {
                 // Ignore clipboard read errors
               }
-              await new Promise(resolve => setTimeout(resolve, TIMEOUT.SHORT_DELAY));
+              await new Promise(resolve =>
+                setTimeout(resolve, TIMEOUT.SHORT_DELAY)
+              );
             }
             // Last resort: prompt user to paste manually (non-blocking UX is preferred, but this ensures progress)
             try {
@@ -155,7 +171,9 @@ export const useExternalSigner = ({
 
           // Handle SignProfileUpdate: finalize and publish profile update
           try {
-            const profileRaw = sessionStorage.getItem(STORAGE_KEYS.SIGN_PROFILE_UPDATE);
+            const profileRaw = sessionStorage.getItem(
+              STORAGE_KEYS.SIGN_PROFILE_UPDATE
+            );
             if (profileRaw) {
               console.log(
                 'Found SignProfileUpdate data, processing profile update...'
@@ -183,9 +201,8 @@ export const useExternalSigner = ({
                   sig?.substring(0, 40)
                 );
                 try {
-                  const { useUIStore } = await import(
-                    '@pubpay/shared-services'
-                  );
+                  const { useUIStore } =
+                    await import('@pubpay/shared-services');
                   useUIStore
                     .getState()
                     .updateToast(
@@ -204,9 +221,8 @@ export const useExternalSigner = ({
               if (!verified) {
                 console.error('Invalid signed event (profile update)');
                 try {
-                  const { useUIStore } = await import(
-                    '@pubpay/shared-services'
-                  );
+                  const { useUIStore } =
+                    await import('@pubpay/shared-services');
                   useUIStore
                     .getState()
                     .updateToast(
@@ -227,9 +243,8 @@ export const useExternalSigner = ({
 
                 // Show success toast
                 try {
-                  const { useUIStore } = await import(
-                    '@pubpay/shared-services'
-                  );
+                  const { useUIStore } =
+                    await import('@pubpay/shared-services');
                   useUIStore
                     .getState()
                     .updateToast(
@@ -263,7 +278,9 @@ export const useExternalSigner = ({
                 }
 
                 // Wait a bit for profile to reload, then navigate
-                await new Promise(resolve => setTimeout(resolve, TIMEOUT.PROFILE_LOAD_DELAY));
+                await new Promise(resolve =>
+                  setTimeout(resolve, TIMEOUT.PROFILE_LOAD_DELAY)
+                );
                 // Navigate using pushState to avoid page reload
                 window.history.pushState({}, '', '/profile');
                 // Trigger popstate to reload the page component
@@ -288,7 +305,9 @@ export const useExternalSigner = ({
 
           // Handle BlossomAuth: complete file upload
           try {
-            const blossomData = sessionStorage.getItem(STORAGE_KEYS.BLOSSOM_AUTH);
+            const blossomData = sessionStorage.getItem(
+              STORAGE_KEYS.BLOSSOM_AUTH
+            );
             if (blossomData) {
               console.log('Found BlossomAuth data, processing upload...');
 
@@ -404,4 +423,3 @@ export const useExternalSigner = ({
     };
   }, [nostrClientRef, zapServiceRef, loadUserProfile]);
 };
-

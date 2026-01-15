@@ -20,9 +20,20 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
       <h2 className="profileStatsTitle">Activity Stats</h2>
       <div className="profileStatsGrid">
         <div className="profileStatCard">
-          <div className="profileStatValue" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '32px' }}>
+          <div
+            className="profileStatValue"
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '32px'
+            }}
+          >
             {activityLoading ? (
-              <div className="skeleton skeleton-value" style={{ width: '50px', height: '28px' }}></div>
+              <div
+                className="skeleton skeleton-value"
+                style={{ width: '50px', height: '28px' }}
+              ></div>
             ) : (
               activityStats.paynotesCreated
             )}
@@ -30,9 +41,20 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
           <div className="profileStatLabel">Paynotes Created</div>
         </div>
         <div className="profileStatCard">
-          <div className="profileStatValue" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '32px' }}>
+          <div
+            className="profileStatValue"
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '32px'
+            }}
+          >
             {activityLoading ? (
-              <div className="skeleton skeleton-value" style={{ width: '50px', height: '28px' }}></div>
+              <div
+                className="skeleton skeleton-value"
+                style={{ width: '50px', height: '28px' }}
+              ></div>
             ) : (
               activityStats.pubpaysReceived
             )}
@@ -40,9 +62,20 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
           <div className="profileStatLabel">PubPays Received</div>
         </div>
         <div className="profileStatCard">
-          <div className="profileStatValue" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '32px' }}>
+          <div
+            className="profileStatValue"
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              minHeight: '32px'
+            }}
+          >
             {activityLoading ? (
-              <div className="skeleton skeleton-value" style={{ width: '50px', height: '28px' }}></div>
+              <div
+                className="skeleton skeleton-value"
+                style={{ width: '50px', height: '28px' }}
+              ></div>
             ) : (
               activityStats.zapsReceived
             )}
@@ -53,4 +86,3 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
     </div>
   );
 };
-

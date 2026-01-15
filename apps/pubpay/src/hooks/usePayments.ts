@@ -140,7 +140,9 @@ export const usePayments = ({
       } catch (signError) {
         // signZapEvent can throw errors from getInvoiceandPay
         const errorMessage =
-          signError instanceof Error ? signError.message : "CAN'T PAY: Payment failed";
+          signError instanceof Error
+            ? signError.message
+            : "CAN'T PAY: Payment failed";
         setPaymentErrors(prev => {
           const next = new Map(prev);
           next.set(post.id, errorMessage);
@@ -257,7 +259,8 @@ export const usePayments = ({
             return next;
           });
         } else {
-          const errorMessage = "CAN'T PAY: Failed to initiate anonymous zap payment";
+          const errorMessage =
+            "CAN'T PAY: Failed to initiate anonymous zap payment";
           setPaymentErrors(prev => {
             const next = new Map(prev);
             next.set(post.id, errorMessage);
@@ -268,7 +271,9 @@ export const usePayments = ({
       } catch (signError) {
         // signZapEvent can throw errors from getInvoiceandPay
         const errorMessage =
-          signError instanceof Error ? signError.message : "CAN'T PAY: Payment failed";
+          signError instanceof Error
+            ? signError.message
+            : "CAN'T PAY: Payment failed";
         setPaymentErrors(prev => {
           const next = new Map(prev);
           next.set(post.id, errorMessage);
@@ -316,4 +321,3 @@ export const usePayments = ({
     handleCopyInvoice
   };
 };
-

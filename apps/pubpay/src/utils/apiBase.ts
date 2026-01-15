@@ -62,4 +62,3 @@ export const getApiBase = (): string => {
   cachedApiBase = result;
   return result;
 };
-

@@ -36,10 +36,7 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
     <div id="nav">
       <div id="navInner">
         <div className="navLeft">
-          <button
-            className="hamburger"
-            onClick={handleMobileMenuToggle}
-          >
+          <button className="hamburger" onClick={handleMobileMenuToggle}>
             <span></span>
             <span></span>
             <span></span>
@@ -68,33 +65,24 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
           >
             <span className="material-symbols-outlined">settings</span>
           </a>
-          <a
-            id="login"
-            href="#"
-            className="topAction"
-            onClick={onLoginOpen}
-          >
+          <a id="login" href="#" className="topAction" onClick={onLoginOpen}>
             {authState.isLoggedIn && authState.userProfile ? (
               <img
                 className="userImg currentUserImg"
-                src={
-                  (() => {
-                    try {
-                      const picture = JSON.parse(
-                        authState.userProfile.content || '{}'
-                      ).picture;
-                      return sanitizeImageUrl(picture) || genericUserIcon;
-                    } catch {
-                      return genericUserIcon;
-                    }
-                  })()
-                }
+                src={(() => {
+                  try {
+                    const picture = JSON.parse(
+                      authState.userProfile.content || '{}'
+                    ).picture;
+                    return sanitizeImageUrl(picture) || genericUserIcon;
+                  } catch {
+                    return genericUserIcon;
+                  }
+                })()}
                 alt="Profile"
               />
             ) : (
-              <span className="material-symbols-outlined">
-                account_circle
-              </span>
+              <span className="material-symbols-outlined">account_circle</span>
             )}
           </a>
         </div>
@@ -102,4 +90,3 @@ export const TopNavigation: React.FC<TopNavigationProps> = ({
     </div>
   );
 };
-

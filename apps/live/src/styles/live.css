@@ -112,9 +112,6 @@ body.livestream .live-event-status .status-indicator.status-live {
     position: relative;
   }
 
-
-  
-
   /* Ensure no horizontal overflow */
   .live #noteLoader * {
     max-width: 100%;
@@ -986,7 +983,10 @@ body {
   width: 60%;
 }
 
-.author-section .noteLNAddress.label.text-truncate a .material-symbols-outlined {
+.author-section
+  .noteLNAddress.label.text-truncate
+  a
+  .material-symbols-outlined {
   display: inline-block;
   vertical-align: middle;
   margin-right: 3px;
@@ -1072,15 +1072,14 @@ body {
   max-width: 50vw;
   max-height: 50vh;
   height: auto;
-  
+
   display: block;
   margin-left: auto;
   margin-right: auto;
   object-fit: contain;
 }
 
-
-body.qr-only-mode .qr-code{
+body.qr-only-mode .qr-code {
   max-width: 100vw;
   max-height: 100vh;
 }
@@ -3613,7 +3612,6 @@ body.qr-only-mode .right-side {
   z-index: 1000;
 }
 
-
 body.qr-only-mode .right-side .zaps-header {
   justify-content: flex-end;
   padding: 0;
@@ -3625,14 +3623,13 @@ body.qr-only-mode .right-side #partnerLogo {
 }
 
 body.qr-only-mode .right-side #styleToggleBtn {
-  margin-left:-5vw;
+  margin-left: -5vw;
   opacity: 0.1;
 }
 
 body.qr-only-mode .right-side #styleToggleBtn:hover {
   opacity: 1;
 }
-
 
 body.qr-only-mode .right-side .zaps-header-right {
   margin: 0;
@@ -3643,11 +3640,9 @@ body.qr-only-mode .right-side .powered-by {
   display: flex;
 }
 
-
-body.qr-only-mode .right-side  img {
+body.qr-only-mode .right-side img {
   height: 2vh;
 }
-
 
 body.qr-only-mode .left-side {
   width: 100%;

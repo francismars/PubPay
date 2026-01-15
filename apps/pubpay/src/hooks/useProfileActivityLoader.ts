@@ -50,9 +50,9 @@ export const useProfileActivityLoader = (
               hasMore = false;
               break;
             }
-            
+
             batchCount++;
-            
+
             // Add delay between batches to prevent overwhelming relays (except for first batch)
             if (batchCount > 1) {
               await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay between batches
@@ -61,7 +61,7 @@ export const useProfileActivityLoader = (
                 break;
               }
             }
-            
+
             try {
               const batchFilter = {
                 ...filter,
@@ -69,9 +69,10 @@ export const useProfileActivityLoader = (
                 ...(until ? { until } : {})
               };
 
-              const batch = (await nostrClient.getEvents([
-                batchFilter
-              ], signal)) as any[]; // Pass signal to getEvents
+              const batch = (await nostrClient.getEvents(
+                [batchFilter],
+                signal
+              )) as any[]; // Pass signal to getEvents
 
               // Check if aborted after async operation
               if (isAborted) {
@@ -142,7 +143,9 @@ export const useProfileActivityLoader = (
             'all notes'
           );
           allNoteIds = allNotes;
-          console.log(`[stats] Fetched ${allNoteIds.size} total kind:1 event IDs`);
+          console.log(
+            `[stats] Fetched ${allNoteIds.size} total kind:1 event IDs`
+          );
         } catch (error) {
           console.error('Error fetching all note IDs:', error);
         }
@@ -160,7 +163,9 @@ export const useProfileActivityLoader = (
             'paynotes (with filter)'
           );
           paynoteIds = paynotesWithFilter;
-          console.log(`[stats] Found ${paynoteIds.size} paynotes (with relay filter)`);
+          console.log(
+            `[stats] Found ${paynoteIds.size} paynotes (with relay filter)`
+          );
         } catch (error) {
           console.warn('Relay-side filtering failed, using all notes:', error);
           // Fallback: if relay doesn't support #t filter, we'd need to fetch all and filter
@@ -183,9 +188,16 @@ export const useProfileActivityLoader = (
           // Query zaps received by this user (p tag = targetPubkey)
           try {
             // Get zaps where p tag matches targetPubkey
-            const receipts = (await nostrClient.getEvents([
-              { kinds: [9735], '#p': [targetPubkey], limit: LIMITS.ZAP_QUERY_LIMIT }
-            ], signal)) as any[]; // Pass signal to getEvents
+            const receipts = (await nostrClient.getEvents(
+              [
+                {
+                  kinds: [9735],
+                  '#p': [targetPubkey],
+                  limit: LIMITS.ZAP_QUERY_LIMIT
+                }
+              ],
+              signal
+            )) as any[]; // Pass signal to getEvents
 
             // Check if aborted after async operation
             if (isAborted) return 0;
@@ -250,6 +262,12 @@ export const useProfileActivityLoader = (
     };
 
     safeAsync(loadActivityStats, signal);
-  }, [targetPubkey, nostrClient, setActivityLoading, setActivityStats, signal, isAborted]);
+  }, [
+    targetPubkey,
+    nostrClient,
+    setActivityLoading,
+    setActivityStats,
+    signal,
+    isAborted
+  ]);
 };
-

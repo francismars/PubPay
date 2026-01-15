@@ -19,8 +19,8 @@ export const handleQRCodeContent = async (
 ): Promise<QRCodeHandlerResult> => {
   try {
     // Remove "lightning:" protocol prefix if present
-    const cleanText = decodedText.toLowerCase().startsWith('lightning:') 
-      ? decodedText.substring(10) 
+    const cleanText = decodedText.toLowerCase().startsWith('lightning:')
+      ? decodedText.substring(10)
       : decodedText;
 
     // Check if it's a BOLT11 invoice
@@ -31,11 +31,16 @@ export const handleQRCodeContent = async (
       // Dispatch event after a short delay to ensure PaymentsPage is mounted
       setTimeout(() => {
         window.dispatchEvent(
-          new CustomEvent('walletScannedInvoice', { detail: { invoice: cleanText } })
+          new CustomEvent('walletScannedInvoice', {
+            detail: { invoice: cleanText }
+          })
         );
       }, TIMEOUT.SHORT_DELAY);
       useUIStore.getState().openToast('Invoice scanned!', 'success', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.SHORT
+      );
       return { handled: true, shouldCloseScanner: true };
     }
 
@@ -53,7 +58,10 @@ export const handleQRCodeContent = async (
         );
       }, TIMEOUT.SHORT_DELAY);
       useUIStore.getState().openToast('LNURL scanned!', 'success', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.SHORT
+      );
       return { handled: true, shouldCloseScanner: true };
     }
 
@@ -63,7 +71,10 @@ export const handleQRCodeContent = async (
     );
     if (lightningAddressMatch) {
       // Store in sessionStorage so PaymentsPage can pick it up after navigation
-      sessionStorage.setItem(STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS, decodedText);
+      sessionStorage.setItem(
+        STORAGE_KEYS.SCANNED_LIGHTNING_ADDRESS,
+        decodedText
+      );
       navigate('/payments');
       // Dispatch event after a short delay to ensure PaymentsPage is mounted
       setTimeout(() => {
@@ -73,8 +84,13 @@ export const handleQRCodeContent = async (
           })
         );
       }, TIMEOUT.SHORT_DELAY);
-      useUIStore.getState().openToast('Lightning Address scanned!', 'success', false);
-      setTimeout(() => useUIStore.getState().closeToast(), TOAST_DURATION.SHORT);
+      useUIStore
+        .getState()
+        .openToast('Lightning Address scanned!', 'success', false);
+      setTimeout(
+        () => useUIStore.getState().closeToast(),
+        TOAST_DURATION.SHORT
+      );
       return { handled: true, shouldCloseScanner: true };
     }
 
@@ -87,7 +103,7 @@ export const handleQRCodeContent = async (
           // Return nsec info - parent component will handle opening login form
           return {
             handled: true,
-            shouldCloseScanner: true,
+            shouldCloseScanner: true
             // We'll use a custom event or callback for nsec handling
           };
         }
@@ -126,7 +142,7 @@ export const handleQRCodeContent = async (
       return { handled: true, shouldCloseScanner: true };
     } else {
       console.error(
-        'Invalid QR code content. Expected \'note\', \'nevent\', \'npub\' or \'nprofile\'.'
+        "Invalid QR code content. Expected 'note', 'nevent', 'npub' or 'nprofile'."
       );
       return { handled: false };
     }
@@ -154,4 +170,3 @@ export const extractNsecFromQR = (decodedText: string): string | null => {
   }
   return null;
 };
-

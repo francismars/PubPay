@@ -28,7 +28,11 @@ export const ProcessingOverlay: React.FC = () => {
         </div>
         <p
           className="label"
-          style={{ fontSize: FONT_SIZES.LG, fontWeight: 'bold', color: COLORS.PRIMARY }}
+          style={{
+            fontSize: FONT_SIZES.LG,
+            fontWeight: 'bold',
+            color: COLORS.PRIMARY
+          }}
         >
           {processingMessage || 'Processing payment...'}
         </p>
@@ -50,4 +54,3 @@ export const ProcessingOverlay: React.FC = () => {
     </div>
   );
 };
-

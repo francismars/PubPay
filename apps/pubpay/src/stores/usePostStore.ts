@@ -66,143 +66,148 @@ interface PostStore {
 export const usePostStore = create<PostStore>()(
   devtools(
     (set, get) => ({
-  // Initial state
-  posts: [],
-  followingPosts: [],
-  replies: [],
-  activeFeed: 'global',
-  feedMode: 'pubpay',
-  isLoading: false,
-  isLoadingMore: false,
-  nostrReady: false,
-  paymentErrors: new Map(),
-  singleNoteMode: false,
-  singleNoteId: '',
-
-  // Actions - Posts
-  setPosts: posts => set({ posts }),
-  setFollowingPosts: posts => set({ followingPosts: posts }),
-  setReplies: replies => set({ replies }),
-
-  addPost: post =>
-    set(state => ({
-      posts: [post, ...state.posts]
-    })),
-
-  addFollowingPost: post =>
-    set(state => ({
-      followingPosts: [post, ...state.followingPosts]
-    })),
-
-  addReply: reply =>
-    set(state => ({
-      replies: [...state.replies, reply]
-    })),
-
-  updatePost: (postId, updates) =>
-    set(state => ({
-      posts: state.posts.map(post =>
-        post.id === postId ? { ...post, ...updates } : post
-      )
-    })),
-
-  updateFollowingPost: (postId, updates) =>
-    set(state => ({
-      followingPosts: state.followingPosts.map(post =>
-        post.id === postId ? { ...post, ...updates } : post
-      )
-    })),
-
-  updateReply: (replyId, updates) =>
-    set(state => ({
-      replies: state.replies.map(reply =>
-        reply.id === replyId ? { ...reply, ...updates } : reply
-      )
-    })),
-
-  removePost: postId =>
-    set(state => ({
-      posts: state.posts.filter(post => post.id !== postId)
-    })),
-
-  removeFollowingPost: postId =>
-    set(state => ({
-      followingPosts: state.followingPosts.filter(post => post.id !== postId)
-    })),
-
-  removeReply: replyId =>
-    set(state => ({
-      replies: state.replies.filter(reply => reply.id !== replyId)
-    })),
-
-  clearPosts: () => set({ posts: [] }),
-  clearFollowingPosts: () => set({ followingPosts: [] }),
-  clearReplies: () => set({ replies: [] }),
-  clearAllPosts: () =>
-    set({
+      // Initial state
       posts: [],
       followingPosts: [],
-      replies: []
-    }),
+      replies: [],
+      activeFeed: 'global',
+      feedMode: 'pubpay',
+      isLoading: false,
+      isLoadingMore: false,
+      nostrReady: false,
+      paymentErrors: new Map(),
+      singleNoteMode: false,
+      singleNoteId: '',
 
-  // Actions - Feed
-  setActiveFeed: feed => set({ activeFeed: feed }),
-  setFeedMode: mode => set({ feedMode: mode }),
+      // Actions - Posts
+      setPosts: posts => set({ posts }),
+      setFollowingPosts: posts => set({ followingPosts: posts }),
+      setReplies: replies => set({ replies }),
 
-  // Actions - Loading
-  setIsLoading: loading => set({ isLoading: loading }),
-  setIsLoadingMore: loading => set({ isLoadingMore: loading }),
-  setNostrReady: ready => set({ nostrReady: ready }),
+      addPost: post =>
+        set(state => ({
+          posts: [post, ...state.posts]
+        })),
 
-  // Actions - Payment Errors
-  setPaymentError: (postId, error) =>
-    set(state => {
-      const newErrors = new Map(state.paymentErrors);
-      if (error) {
-        newErrors.set(postId, error);
-      } else {
-        newErrors.delete(postId);
+      addFollowingPost: post =>
+        set(state => ({
+          followingPosts: [post, ...state.followingPosts]
+        })),
+
+      addReply: reply =>
+        set(state => ({
+          replies: [...state.replies, reply]
+        })),
+
+      updatePost: (postId, updates) =>
+        set(state => ({
+          posts: state.posts.map(post =>
+            post.id === postId ? { ...post, ...updates } : post
+          )
+        })),
+
+      updateFollowingPost: (postId, updates) =>
+        set(state => ({
+          followingPosts: state.followingPosts.map(post =>
+            post.id === postId ? { ...post, ...updates } : post
+          )
+        })),
+
+      updateReply: (replyId, updates) =>
+        set(state => ({
+          replies: state.replies.map(reply =>
+            reply.id === replyId ? { ...reply, ...updates } : reply
+          )
+        })),
+
+      removePost: postId =>
+        set(state => ({
+          posts: state.posts.filter(post => post.id !== postId)
+        })),
+
+      removeFollowingPost: postId =>
+        set(state => ({
+          followingPosts: state.followingPosts.filter(
+            post => post.id !== postId
+          )
+        })),
+
+      removeReply: replyId =>
+        set(state => ({
+          replies: state.replies.filter(reply => reply.id !== replyId)
+        })),
+
+      clearPosts: () => set({ posts: [] }),
+      clearFollowingPosts: () => set({ followingPosts: [] }),
+      clearReplies: () => set({ replies: [] }),
+      clearAllPosts: () =>
+        set({
+          posts: [],
+          followingPosts: [],
+          replies: []
+        }),
+
+      // Actions - Feed
+      setActiveFeed: feed => set({ activeFeed: feed }),
+      setFeedMode: mode => set({ feedMode: mode }),
+
+      // Actions - Loading
+      setIsLoading: loading => set({ isLoading: loading }),
+      setIsLoadingMore: loading => set({ isLoadingMore: loading }),
+      setNostrReady: ready => set({ nostrReady: ready }),
+
+      // Actions - Payment Errors
+      setPaymentError: (postId, error) =>
+        set(state => {
+          const newErrors = new Map(state.paymentErrors);
+          if (error) {
+            newErrors.set(postId, error);
+          } else {
+            newErrors.delete(postId);
+          }
+          return { paymentErrors: newErrors };
+        }),
+
+      clearPaymentError: postId =>
+        set(state => {
+          const newErrors = new Map(state.paymentErrors);
+          newErrors.delete(postId);
+          return { paymentErrors: newErrors };
+        }),
+
+      clearPaymentErrors: () => set({ paymentErrors: new Map() }),
+
+      // Actions - Single Note Mode
+      setSingleNoteMode: (mode: boolean, noteId = '') =>
+        set({ singleNoteMode: mode, singleNoteId: noteId }),
+      clearSingleNoteMode: () =>
+        set({ singleNoteMode: false, singleNoteId: '' }),
+
+      // Computed/derived state helpers
+      getAllPosts: () => {
+        const state = get();
+        return [...state.posts, ...state.followingPosts, ...state.replies];
+      },
+
+      getCurrentFeedPosts: () => {
+        const state = get();
+        return state.activeFeed === 'following'
+          ? state.followingPosts
+          : state.posts;
+      },
+
+      getPostById: postId => {
+        const state = get();
+        return (
+          state.posts.find(p => p.id === postId) ||
+          state.followingPosts.find(p => p.id === postId)
+        );
+      },
+
+      getReplyById: replyId => {
+        const state = get();
+        return state.replies.find(r => r.id === replyId);
       }
-      return { paymentErrors: newErrors };
-    }),
-
-  clearPaymentError: postId =>
-    set(state => {
-      const newErrors = new Map(state.paymentErrors);
-      newErrors.delete(postId);
-      return { paymentErrors: newErrors };
-    }),
-
-  clearPaymentErrors: () => set({ paymentErrors: new Map() }),
-
-  // Actions - Single Note Mode
-  setSingleNoteMode: (mode: boolean, noteId = '') =>
-    set({ singleNoteMode: mode, singleNoteId: noteId }),
-  clearSingleNoteMode: () => set({ singleNoteMode: false, singleNoteId: '' }),
-
-  // Computed/derived state helpers
-  getAllPosts: () => {
-    const state = get();
-    return [...state.posts, ...state.followingPosts, ...state.replies];
-  },
-
-  getCurrentFeedPosts: () => {
-    const state = get();
-    return state.activeFeed === 'following' ? state.followingPosts : state.posts;
-  },
-
-  getPostById: postId => {
-    const state = get();
-    return (
-      state.posts.find(p => p.id === postId) ||
-      state.followingPosts.find(p => p.id === postId)
-    );
-  },
-
-  getReplyById: replyId => {
-    const state = get();
-    return state.replies.find(r => r.id === replyId);
-  }
     }),
     { name: 'PostStore' }
   )
@@ -341,14 +346,18 @@ export const usePostActions = (): PostStoreActions =>
  * These are still optimized as they only subscribe to one field
  */
 export const usePostsList = () => usePostStore(state => state.posts);
-export const useFollowingPostsList = () => usePostStore(state => state.followingPosts);
+export const useFollowingPostsList = () =>
+  usePostStore(state => state.followingPosts);
 export const useRepliesList = () => usePostStore(state => state.replies);
 export const useActiveFeed = () => usePostStore(state => state.activeFeed);
 export const useIsLoading = () => usePostStore(state => state.isLoading);
-export const useIsLoadingMore = () => usePostStore(state => state.isLoadingMore);
+export const useIsLoadingMore = () =>
+  usePostStore(state => state.isLoadingMore);
 export const useNostrReady = () => usePostStore(state => state.nostrReady);
-export const usePaymentErrors = () => usePostStore(state => state.paymentErrors);
-export const useSingleNoteMode = () => usePostStore(state => state.singleNoteMode);
+export const usePaymentErrors = () =>
+  usePostStore(state => state.paymentErrors);
+export const useSingleNoteMode = () =>
+  usePostStore(state => state.singleNoteMode);
 export const useSingleNoteId = () => usePostStore(state => state.singleNoteId);
 
 /**
@@ -417,4 +426,3 @@ export const useSingleNoteState = () =>
       singleNoteId: state.singleNoteId
     }))
   );
-

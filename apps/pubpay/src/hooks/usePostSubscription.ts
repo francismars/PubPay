@@ -69,9 +69,7 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
       let newestTimestamp = 0;
       if (currentPosts.length > 0) {
         // Get the newest post's timestamp from the actual posts array
-        newestTimestamp = Math.max(
-          ...currentPosts.map(post => post.createdAt)
-        );
+        newestTimestamp = Math.max(...currentPosts.map(post => post.createdAt));
       } else {
         // If no posts, use the ref or current time
         newestTimestamp =
@@ -289,7 +287,7 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
           ? storeState.followingPosts
           : storeState.posts;
       const postIds = currentPosts.map(post => post.id).join(',');
-      
+
       const currentRelevantState = {
         postIds,
         activeFeed: storeState.activeFeed,
@@ -368,6 +366,11 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
         }
       }
     };
-  }, [nostrClientRef, followingPubkeysRef, newestPostTimestampRef, subscriptionRef, processNewNote]);
+  }, [
+    nostrClientRef,
+    followingPubkeysRef,
+    newestPostTimestampRef,
+    subscriptionRef,
+    processNewNote
+  ]);
 };
-

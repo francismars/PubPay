@@ -14,7 +14,7 @@ export function processNewZapWithProfiles(
   try {
     // Use the shared utility function to process the zap
     const processedZap = processZap(zapEvent, profiles, genericUserIcon);
-    
+
     // Add the isNewZap flag for UI lightning effect
     return {
       ...processedZap,
@@ -54,7 +54,7 @@ export function isZapWithinLimits(
 /**
  * Create a zap batch processor callback function
  * Extracted to utility to remove duplication across hooks
- * 
+ *
  * @param zapBatchRef - Ref to the zap batch array
  * @param zapBatchTimeoutRef - Ref to the timeout for delayed processing
  * @param processZapBatchRef - Ref to the processZapBatch function
@@ -63,7 +63,9 @@ export function isZapWithinLimits(
 export function createZapBatchProcessor(
   zapBatchRef: React.MutableRefObject<Kind9735Event[]>,
   zapBatchTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>,
-  processZapBatchRef: React.MutableRefObject<((zapEvents: Kind9735Event[]) => Promise<void>) | null>
+  processZapBatchRef: React.MutableRefObject<
+    ((zapEvents: Kind9735Event[]) => Promise<void>) | null
+  >
 ): (zapEvent: Kind9735Event) => Promise<void> {
   return async (zapEvent: Kind9735Event) => {
     // Add to batch for processing
@@ -122,4 +124,3 @@ export function createZapBatchProcessor(
     }
   };
 }
-
