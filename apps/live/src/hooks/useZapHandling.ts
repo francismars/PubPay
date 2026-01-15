@@ -564,6 +564,23 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
     initialZapsLoadedRef.current = true;
   }, []);
 
+  /**
+   * Store pending zap notification (for regular notes, not live events)
+   * This is called when a new zap arrives and we're waiting for the profile
+   */
+  const storePendingZapNotification = useCallback((zapData: {
+    id: string;
+    pubkey: string;
+    amount: number;
+    content: string;
+    timestamp: number;
+  }) => {
+    // Only store if initial zaps have loaded (to avoid notifications for historical zaps)
+    if (initialZapsLoadedRef.current) {
+      pendingZapNotificationsRef.current.set(zapData.pubkey, zapData);
+    }
+  }, []);
+
   return {
     zaps,
     totalZaps,
@@ -579,6 +596,7 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
     resetZapperTotals,
     markInitialZapsLoaded,
     setZapNotification,
-    setZaps
+    setZaps,
+    storePendingZapNotification
   };
 }
