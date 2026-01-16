@@ -40,12 +40,7 @@ export const LivePage: React.FC = () => {
   // This will parse the URL properly, normalize it if needed, and return the parsed eventId
   // When URL is normalized, React Router will update and useParams will return the new eventId
   // on the next render, causing useLiveFunctionality to re-run with the correct eventId
-  const { eventId: parsedEventId, showNoteLoader, showMainLayout } = useLiveUrl(showLoadingError);
-
-  // Ensure useLiveFunctionality uses the parsed eventId
-  // When useLiveUrl normalizes the URL, React Router updates and routeEventId will change
-  // on the next render, so useLiveFunctionality will automatically get the updated eventId
-  // via its useEffect dependency on eventId parameter
+  const { showNoteLoader, showMainLayout } = useLiveUrl(showLoadingError);
 
   // Set body class to 'live' for proper CSS styling
   useEffect(() => {

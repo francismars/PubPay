@@ -9,6 +9,11 @@ import {
 } from './eventIdParser';
 
 /**
+ * Valid Nostr identifier prefixes
+ */
+const VALID_NOSTR_PREFIXES = ['note1', 'nevent1', 'naddr1', 'nprofile1'] as const;
+
+/**
  * Result of parsing a live page URL
  */
 export interface ParsedLiveUrl {
@@ -42,10 +47,9 @@ export function parseLiveUrl(
   // This matches the original behavior where route params are checked before query params
   if (routeEventId) {
     const candidate = stripNostrPrefix(routeEventId);
-    const validPrefixes = ['note1', 'nevent1', 'naddr1', 'nprofile1'];
 
     // Check if it has a valid prefix
-    if (validPrefixes.some(p => candidate.startsWith(p))) {
+    if (VALID_NOSTR_PREFIXES.some(p => candidate.startsWith(p))) {
       const validation = validateNostrIdentifierSafe(candidate);
       if (validation.isValid) {
         // Valid identifier from route - show main layout
@@ -168,8 +172,7 @@ export function parseLiveUrl(
   if (!validation.isValid) {
     // Determine if we should show error or just loader
     // Only show error if candidate looks like it might be valid (has valid prefix)
-    const validPrefixes = ['note1', 'nevent1', 'naddr1', 'nprofile1'];
-    const hasValidPrefix = validPrefixes.some(p => candidate.startsWith(p));
+    const hasValidPrefix = VALID_NOSTR_PREFIXES.some(p => candidate.startsWith(p));
 
     if (hasValidPrefix) {
       // Looks like a valid identifier but failed validation - show error
