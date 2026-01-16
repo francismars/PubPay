@@ -1,22 +1,51 @@
 // Live page component - matches original live.html design exactly
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveFunctionality } from '@live/hooks/useLiveFunctionality';
+import { useLiveUrl } from '@live/hooks/useLiveUrl';
 import { ZapNotificationOverlay } from '@live/components/ZapNotificationOverlay';
 import '../styles/live.css';
-import { nip19 } from 'nostr-tools';
 import { sanitizeImageUrl } from '../utils/sanitization';
 
 export const LivePage: React.FC = () => {
-  const { eventId } = useParams<{ eventId?: string }>();
   const navigate = useNavigate();
-  // With explicit routes, eventId should never be "live" but filter it out just in case
-  const validEventId =
-    eventId && eventId.trim() !== '' && eventId.trim() !== 'live'
-      ? eventId
+
+  // Get initial eventId from URL params for first render
+  const { eventId: routeEventId } = useParams<{ eventId?: string }>();
+  const initialValidEventId =
+    routeEventId && routeEventId.trim() !== '' && routeEventId.trim() !== 'live'
+      ? routeEventId
       : undefined;
-  const [showNoteLoader, setShowNoteLoader] = useState(!validEventId);
-  const [showMainLayout, setShowMainLayout] = useState(!!validEventId);
+
+  // Call useLiveFunctionality with initial eventId to get showLoadingError callback
+  // Note: This will be updated when URL is normalized by useLiveUrl
+  const {
+    noteContent,
+    authorName,
+    authorImage,
+    authorNip05,
+    authorLud16,
+    totalZaps,
+    totalAmount,
+    handleStyleOptionsToggle,
+    handleStyleOptionsClose,
+    showLoadingError,
+    resetToDefaults,
+    copyStyleUrl,
+    zapNotification,
+    handleNotificationDismiss
+  } = useLiveFunctionality(initialValidEventId);
+
+  // Parse URL and manage UI state using the extracted hook
+  // This will parse the URL properly, normalize it if needed, and return the parsed eventId
+  // When URL is normalized, React Router will update and useParams will return the new eventId
+  // on the next render, causing useLiveFunctionality to re-run with the correct eventId
+  const { eventId: parsedEventId, showNoteLoader, showMainLayout } = useLiveUrl(showLoadingError);
+
+  // Ensure useLiveFunctionality uses the parsed eventId
+  // When useLiveUrl normalizes the URL, React Router updates and routeEventId will change
+  // on the next render, so useLiveFunctionality will automatically get the updated eventId
+  // via its useEffect dependency on eventId parameter
 
   // Set body class to 'live' for proper CSS styling
   useEffect(() => {
@@ -34,23 +63,6 @@ export const LivePage: React.FC = () => {
       document.body.classList.remove('livestream');
     };
   }, []);
-
-  const {
-    noteContent,
-    authorName,
-    authorImage,
-    authorNip05,
-    authorLud16,
-    totalZaps,
-    totalAmount,
-    handleStyleOptionsToggle,
-    handleStyleOptionsClose,
-    showLoadingError,
-    resetToDefaults,
-    copyStyleUrl,
-    zapNotification,
-    handleNotificationDismiss
-  } = useLiveFunctionality(validEventId);
 
   // Handle style toggle button click
   const handleStyleToggle = () => {
@@ -84,416 +96,6 @@ export const LivePage: React.FC = () => {
   useEffect(() => {
     console.log('📱 LivePage: zapNotification changed:', zapNotification);
   }, [zapNotification]);
-
-  // Legacy-style URL parsing/validation: support compound nprofile/.../live/:id and invalid IDs
-  useEffect(() => {
-    // Helper to strip nostr: prefix
-    const stripNostrPrefix = (id: string) => id?.replace(/^nostr:/, '') ?? '';
-
-    try {
-      // If we have a valid eventId from the route, use it directly and skip path parsing
-      if (validEventId) {
-        const candidate = stripNostrPrefix(validEventId);
-        const validPrefixes = ['note1', 'nevent1', 'naddr1', 'nprofile1'];
-
-        // Validate the prefix
-        if (validPrefixes.some(p => candidate.startsWith(p))) {
-          try {
-            // Decode to ensure the identifier is a valid NIP-19 bech32
-            nip19.decode(candidate);
-            // Valid identifier from route - show main layout
-            setShowNoteLoader(false);
-            setShowMainLayout(true);
-            return;
-          } catch {
-            // Invalid bech32 format - show error
-            setShowNoteLoader(true);
-            setShowMainLayout(false);
-            showLoadingError(
-              'Invalid nostr identifier format. Please check the note ID and try again.'
-            );
-            return;
-          }
-        } else {
-          // Invalid prefix - show error
-          setShowNoteLoader(true);
-          setShowMainLayout(false);
-          showLoadingError(
-            'Invalid format. Please enter a valid nostr identifier (note1/nevent1/naddr1/nprofile1).'
-          );
-          return;
-        }
-      }
-
-      // Check for ?note= query parameter (from pubpay "View on live" link)
-      const urlParams = new URLSearchParams(window.location.search);
-      const noteParam = urlParams.get('note');
-      if (noteParam) {
-        let noteId = noteParam.trim();
-
-        // If it's a hex string (64 chars), convert to note1 bech32
-        if (/^[0-9a-f]{64}$/i.test(noteId)) {
-          try {
-            noteId = nip19.noteEncode(noteId);
-          } catch (error) {
-            console.error('Failed to encode note ID:', error);
-            // Remove query param and show loader
-            const newUrl = window.location.pathname;
-            window.history.replaceState({}, '', newUrl);
-            setShowNoteLoader(true);
-            setShowMainLayout(false);
-            return;
-          }
-        }
-
-        // Navigate to /live/{noteId}
-        const newUrl = `/live/${noteId}`;
-        window.history.replaceState({}, '', newUrl);
-        // The component will re-render with the new path, so we can return here
-        return;
-      }
-
-      const currentPath = window.location.pathname;
-
-      // CRITICAL: If we're not under /live/, redirect to /live/ immediately
-      // This prevents the app from loading at root or other paths
-      if (!currentPath.startsWith('/live')) {
-        window.history.replaceState({}, '', '/live/');
-        setShowNoteLoader(true);
-        setShowMainLayout(false);
-        return;
-      }
-
-      // If we're at exactly /live/ (with or without trailing slash), show note loader
-      // Also handle /live with any trailing path segments that are just "live"
-      if (
-        currentPath === '/live' ||
-        currentPath === '/live/' ||
-        currentPath === '/live/live' ||
-        currentPath === '/live/live/'
-      ) {
-        // Ensure trailing slash and redirect to /live/
-        if (currentPath !== '/live/') {
-          window.history.replaceState({}, '', '/live/');
-        }
-        setShowNoteLoader(true);
-        setShowMainLayout(false);
-        // CRITICAL: Clear any input field that might have "live" in it
-        setTimeout(() => {
-          const input = document.getElementById(
-            'note1LoaderInput'
-          ) as HTMLInputElement | null;
-          if (
-            input &&
-            (input.value === 'live' || input.value.trim() === 'live')
-          ) {
-            input.value = '';
-          }
-        }, 10);
-        return;
-      }
-
-      const pathParts = currentPath.split('/').filter(Boolean);
-
-      // Try compound form: /{nprofile...}/live/{event-id} → build naddr(kind 30311) and normalize URL
-      // If any legacy '/live' segment is present, normalize away from it
-      if (pathParts.includes('live')) {
-        const possibleNprofile = pathParts[pathParts.length - 3];
-        const liveIdentifier = pathParts[pathParts.length - 1];
-        if (possibleNprofile && liveIdentifier) {
-          try {
-            const decoded = nip19.decode(possibleNprofile as string) as {
-              type: string;
-              data?: { pubkey?: string };
-            };
-            if (decoded && decoded.type === 'nprofile') {
-              const pubkey: string = decoded.data?.pubkey as string;
-              if (pubkey) {
-                const naddr = nip19.naddrEncode({
-                  identifier: liveIdentifier as string,
-                  pubkey,
-                  kind: 30311,
-                  relays: []
-                });
-                const cleanUrl = `/live/${naddr}`;
-                if (window.location.pathname !== cleanUrl) {
-                  window.history.replaceState({}, '', cleanUrl);
-                }
-                setShowNoteLoader(false);
-                setShowMainLayout(true);
-                return; // URL normalized; hook will use updated param on next render
-              }
-            }
-          } catch {
-            // Fall through to standard handling
-          }
-        }
-      }
-
-      // Standard handling: last path segment or router param
-      // Filter out 'live' from path parts to get the actual identifier
-      const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
-      const lastPart = (
-        pathPartsWithoutLive[pathPartsWithoutLive.length - 1] || ''
-      ).trim();
-
-      // Get candidate from either path or eventId param
-      // If eventId exists and is valid, use it; otherwise use path
-      const candidateFromPath = stripNostrPrefix(lastPart);
-      const candidateFromParam = validEventId
-        ? stripNostrPrefix(validEventId)
-        : '';
-      const candidate = candidateFromParam || candidateFromPath;
-
-      // If we're at /live/ with no identifier, just show the note loader
-      if (!candidate || candidate === 'live' || candidate.trim() === '') {
-        // Ensure we're at /live/ and show loader
-        if (window.location.pathname !== '/live/') {
-          window.history.replaceState({}, '', '/live/');
-        }
-        setShowNoteLoader(true);
-        setShowMainLayout(false);
-        return;
-      }
-
-      // Basic prefix validation first
-      const validPrefixes = ['note1', 'nevent1', 'naddr1', 'nprofile1'];
-      if (!validPrefixes.some(p => candidate.startsWith(p))) {
-        // Don't show error if candidate is empty or "live" - just show loader
-        if (candidate && candidate !== 'live' && candidate.trim() !== '') {
-          setShowNoteLoader(true);
-          setShowMainLayout(false);
-          showLoadingError(
-            'Invalid format. Please enter a valid nostr identifier (note1/nevent1/naddr1/nprofile1).'
-          );
-          // Ensure URL stays at /live/
-          if (window.location.pathname !== '/live/') {
-            window.history.replaceState({}, '', '/live/');
-          }
-          // Don't put invalid candidate in input unless it looks like it might be valid
-          return;
-        } else {
-          // Just show loader, no error, no input prefill
-          setShowNoteLoader(true);
-          setShowMainLayout(false);
-          if (window.location.pathname !== '/live/') {
-            window.history.replaceState({}, '', '/live/');
-          }
-          return;
-        }
-      }
-
-      // Bech32/NIP-19 validation
-      try {
-        // Decode to ensure the identifier is a valid NIP-19 bech32
-        nip19.decode(candidate as string);
-        // Normalize URL to clean "/live/:identifier" (keep under /live/ base)
-        const cleanUrl = `/live/${candidate}`;
-        if (window.location.pathname !== cleanUrl) {
-          window.history.replaceState({}, '', cleanUrl);
-        }
-        setShowNoteLoader(false);
-        setShowMainLayout(true);
-      } catch {
-        setShowNoteLoader(true);
-        setShowMainLayout(false);
-        // CRITICAL: Never show error or prefill if candidate is "live" or empty
-        // Only show error for candidates that look like they might be valid but failed validation
-        if (
-          candidate &&
-          candidate !== 'live' &&
-          candidate.trim() !== '' &&
-          (candidate.startsWith('note') ||
-            candidate.startsWith('nevent') ||
-            candidate.startsWith('naddr') ||
-            candidate.startsWith('nprofile'))
-        ) {
-          // Delay until after the note loader mounts so the DOM nodes exist
-          setTimeout(() => {
-            // Legacy-style messages based on intended type
-            let msg =
-              'Invalid nostr identifier format. Please check the note ID and try again.';
-            if (candidate.startsWith('naddr1')) {
-              msg =
-                'Failed to load live event. Please check the identifier and try again.';
-            } else if (candidate.startsWith('nprofile1')) {
-              msg =
-                'Failed to load profile. Please check the identifier and try again.';
-            }
-            showLoadingError(msg);
-            const input = document.getElementById(
-              'note1LoaderInput'
-            ) as HTMLInputElement | null;
-            if (input) {
-              input.value = candidate;
-              input.focus();
-              input.select();
-            }
-          }, 50);
-        }
-        // Ensure URL stays at /live/ and clear any invalid state
-        if (window.location.pathname !== '/live/') {
-          window.history.replaceState({}, '', '/live/');
-        }
-      }
-    } catch {
-      // If anything unexpected happens, fall back to note loader with error
-      setShowNoteLoader(true);
-      setShowMainLayout(false);
-      showLoadingError(
-        'Failed to parse URL. Please enter a valid nostr identifier.'
-      );
-    }
-    // We want this to run on initial mount and when eventId changes from the router
-  }, [validEventId, showLoadingError]);
-
-  useEffect(() => {
-    // Only validate if validEventId exists
-    if (validEventId) {
-      // Wait for NostrTools to be available before validating
-      const validateEventId = async () => {
-        // Wait for NostrTools to load
-        const waitForNostrTools = () => {
-          return new Promise<void>(resolve => {
-            const checkNostrTools = () => {
-              if ((window as any).NostrTools) {
-                resolve();
-              } else {
-                setTimeout(checkNostrTools, 100);
-              }
-            };
-            checkNostrTools();
-          });
-        };
-
-        await waitForNostrTools();
-
-        // Validate if the validEventId is a valid Nostr identifier
-        const isValidNostrId = (id: string): boolean => {
-          if (!id) return false;
-
-          // Check if it starts with valid Nostr prefixes
-          const validPrefixes = ['note1', 'nevent1', 'naddr1', 'nprofile1'];
-          if (!validPrefixes.some(prefix => id.startsWith(prefix))) {
-            return false;
-          }
-
-          // Try to decode the identifier to make sure it's valid
-          try {
-            (window as any).NostrTools.nip19.decode(id);
-            return true;
-          } catch {
-            // Debug log removed
-            return false;
-          }
-        };
-
-        if (isValidNostrId(validEventId)) {
-          setShowNoteLoader(false);
-          setShowMainLayout(true);
-        } else {
-          // Invalid note ID, show error in note loader (like original behavior)
-          // Debug log removed
-          setShowNoteLoader(true);
-          setShowMainLayout(false);
-
-          // Show error message in the note loader
-          setTimeout(() => {
-            showLoadingError(
-              'Invalid nostr identifier format. Please check the note ID and try again.'
-            );
-          }, 100);
-        }
-      };
-
-      validateEventId();
-    } else {
-      setShowNoteLoader(true);
-      setShowMainLayout(false);
-    }
-  }, [validEventId]);
-
-  // Listen for URL changes to handle note loader submissions
-  useEffect(() => {
-    const handlePopState = () => {
-      const pathParts = window.location.pathname.split('/').filter(Boolean);
-      // Filter out 'live' from path parts
-      const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
-      const currentEventId =
-        pathPartsWithoutLive[pathPartsWithoutLive.length - 1];
-
-      if (
-        currentEventId &&
-        currentEventId.trim() !== '' &&
-        currentEventId !== 'live'
-      ) {
-        setShowNoteLoader(false);
-        setShowMainLayout(true);
-      } else {
-        setShowNoteLoader(true);
-        setShowMainLayout(false);
-        // Ensure we're at /live/ if somehow we're not
-        if (window.location.pathname !== '/live/') {
-          window.history.replaceState({}, '', '/live/');
-        }
-      }
-    };
-
-    const handleNoteLoaderSubmitted = () => {
-      // Debug log removed
-      setShowNoteLoader(false);
-      setShowMainLayout(true);
-
-      // Force a re-render by updating the eventId
-      const pathParts = window.location.pathname.split('/').filter(Boolean);
-      // Filter out 'live' from path parts
-      const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
-      const newEventId = pathPartsWithoutLive[pathPartsWithoutLive.length - 1];
-      if (newEventId && newEventId.trim() !== '' && newEventId !== 'live') {
-        // Trigger a re-render by updating the URL in a way React Router will notice
-        window.history.replaceState({}, '', window.location.pathname);
-        // Force component to re-render with new eventId
-        window.location.reload();
-      } else {
-        // If somehow "live" is in there, just show loader
-        setShowNoteLoader(true);
-        setShowMainLayout(false);
-        if (window.location.pathname !== '/live/') {
-          window.history.replaceState({}, '', '/live/');
-        }
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    window.addEventListener('noteLoaderSubmitted', handleNoteLoaderSubmitted);
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener(
-        'noteLoaderSubmitted',
-        handleNoteLoaderSubmitted
-      );
-    };
-  }, []);
-
-  useEffect(() => {
-    // Wait for NostrTools to be available
-    const waitForNostrTools = () => {
-      return new Promise<void>(resolve => {
-        const checkNostrTools = () => {
-          if ((window as any).NostrTools) {
-            // Debug log removed
-            resolve();
-          } else {
-            setTimeout(checkNostrTools, 100);
-          }
-        };
-        checkNostrTools();
-      });
-    };
-
-    waitForNostrTools();
-  }, []);
 
   useEffect(() => {
     // Set up event listeners with a small delay to ensure DOM is ready

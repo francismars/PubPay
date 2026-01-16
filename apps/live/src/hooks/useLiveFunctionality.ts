@@ -1051,11 +1051,41 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
 
         // Show loading animations
-        const noteContent = querySelector('.note-content');
-        const zapsList = getElementById('zaps');
+        // Try immediately first (in case DOM is already ready)
+        const noteContentImmediate = querySelector('.note-content');
+        const zapsListImmediate = getElementById('zaps');
+        
+        if (noteContentImmediate) {
+          showElementLoadingState(noteContentImmediate, 'Loading note content...');
+        }
+        if (zapsListImmediate) {
+          showElementLoadingState(zapsListImmediate, 'Loading zaps...');
+        } else {
+          // If element doesn't exist yet, use double requestAnimationFrame
+          // First RAF: waits for React to commit changes
+          // Second RAF: waits for browser to paint (DOM definitely exists)
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              const noteContent = querySelector('.note-content');
+              const zapsList = getElementById('zaps');
 
-        showElementLoadingState(noteContent, 'Loading note content...');
-        showElementLoadingState(zapsList, 'Loading zaps...');
+              if (noteContent && !noteContentImmediate) {
+                showElementLoadingState(noteContent, 'Loading note content...');
+              }
+              if (zapsList) {
+                showElementLoadingState(zapsList, 'Loading zaps...');
+              } else {
+                // Final fallback: try once more after a brief delay
+                setTimeout(() => {
+                  const zapsListRetry = getElementById('zaps');
+                  if (zapsListRetry) {
+                    showElementLoadingState(zapsListRetry, 'Loading zaps...');
+                  }
+                }, 100);
+              }
+            });
+          });
+        }
 
         subscribeKind1(kind1ID);
         const noteLoaderContainer = getElementById('noteLoaderContainer');

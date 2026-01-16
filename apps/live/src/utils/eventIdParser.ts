@@ -157,3 +157,126 @@ export function getContentType(
 
   throw new Error('Unknown identifier type');
 }
+
+/**
+ * Convert hex string (64 characters) to note1 bech32 if valid
+ * Used for handling hex event IDs from query parameters
+ * @param hexString - 64-character hex string
+ * @returns note1 bech32 string or null if invalid
+ */
+export function normalizeToNote1(hexString: string): string | null {
+  if (!hexString || typeof hexString !== 'string') {
+    return null;
+  }
+
+  // Check if it's a valid 64-character hex string
+  if (!/^[0-9a-f]{64}$/i.test(hexString)) {
+    return null;
+  }
+
+  try {
+    return nip19.noteEncode(hexString);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build naddr from nprofile and identifier
+ * Used for compound URL form: /{nprofile}/live/{identifier}
+ * @param nprofile - nprofile1 bech32 string
+ * @param identifier - Event identifier string
+ * @returns naddr1 bech32 string or null if invalid
+ */
+export function buildNaddrFromNprofile(
+  nprofile: string,
+  identifier: string
+): string | null {
+  if (!nprofile || !identifier) {
+    return null;
+  }
+
+  try {
+    const decoded = parseEventId(nprofile);
+    if (decoded.type !== 'nprofile') {
+      return null;
+    }
+
+    const profileData = decoded.data as { pubkey: string; relays?: string[] };
+    if (!profileData.pubkey) {
+      return null;
+    }
+
+    return nip19.naddrEncode({
+      identifier,
+      pubkey: profileData.pubkey,
+      kind: 30311,
+      relays: profileData.relays || []
+    });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Non-throwing validation wrapper
+ * Returns result object instead of throwing errors
+ * Useful for URL parsing where we want to handle errors gracefully
+ * @param identifier - The identifier to validate
+ * @returns Validation result with type and error info
+ */
+export function validateNostrIdentifierSafe(identifier: string): {
+  isValid: boolean;
+  type?: 'note' | 'nevent' | 'naddr' | 'nprofile';
+  error?: string;
+} {
+  if (!identifier || identifier.trim() === '') {
+    return { isValid: false, error: 'Please enter a note ID' };
+  }
+
+  const clean = stripNostrPrefix(identifier.trim());
+
+  try {
+    const decoded = parseEventId(clean);
+    return { isValid: true, type: decoded.type };
+  } catch (error) {
+    // Extract error message
+    let errorMsg =
+      'Invalid nostr identifier format. Please check the note ID and try again.';
+
+    if (error instanceof Error) {
+      // Use the error message from validateNoteId if it's one of our custom errors
+      if (
+        error.message.includes('Invalid') ||
+        error.message.includes('Please enter') ||
+        error.message.includes('Unsupported')
+      ) {
+        errorMsg = error.message;
+      }
+
+      // Match existing error message patterns from LivePage.tsx
+      // These are more user-friendly for specific identifier types
+      if (clean.startsWith('naddr1')) {
+        errorMsg =
+          'Failed to load live event. Please check the identifier and try again.';
+      } else if (clean.startsWith('nprofile1')) {
+        errorMsg =
+          'Failed to load profile. Please check the identifier and try again.';
+      }
+    }
+
+    // Determine type from prefix even if invalid (for error handling context)
+    let type: 'note' | 'nevent' | 'naddr' | 'nprofile' | undefined;
+    if (clean.startsWith('note1')) {
+      type = 'note';
+    } else if (clean.startsWith('nevent1')) {
+      type = 'nevent';
+    } else if (clean.startsWith('naddr1')) {
+      type = 'naddr';
+    } else if (clean.startsWith('nprofile1')) {
+      type = 'nprofile';
+    }
+
+    return { isValid: false, type, error: errorMsg };
+  }
+}
