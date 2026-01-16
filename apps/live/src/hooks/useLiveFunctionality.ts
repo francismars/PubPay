@@ -1090,32 +1090,15 @@ export const useLiveFunctionality = (eventId?: string) => {
         subscribeKind1(kind1ID);
         const noteLoaderContainer = getElementById('noteLoaderContainer');
         hideElement(noteLoaderContainer);
-      } catch (e) {
+      } catch {
         // If decoding fails, try to use the input directly as a note ID
 
-        // Show loading animations
-        const noteContent = document.querySelector('.note-content');
-        const zapsList = document.getElementById('zaps');
+        // Show loading animations using the same helper function for consistency
+        const noteContent = querySelector('.note-content');
+        const zapsList = getElementById('zaps');
 
-        if (noteContent) {
-          noteContent.classList.add('loading');
-          if (!noteContent.querySelector('.loading-text')) {
-            const loadingText = document.createElement('div');
-            loadingText.className = 'loading-text';
-            loadingText.textContent = 'Loading note content...';
-            noteContent.appendChild(loadingText);
-          }
-        }
-
-        if (zapsList) {
-          zapsList.classList.add('loading');
-          if (!zapsList.querySelector('.loading-text')) {
-            const loadingText = document.createElement('div');
-            loadingText.className = 'loading-text';
-            loadingText.textContent = 'Loading zaps...';
-            zapsList.appendChild(loadingText);
-          }
-        }
+        showElementLoadingState(noteContent, 'Loading note content...');
+        showElementLoadingState(zapsList, 'Loading zaps...');
 
         subscribeKind1(noteId);
         const noteLoaderContainer = getElementById('noteLoaderContainer');

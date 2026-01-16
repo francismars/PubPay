@@ -1,7 +1,7 @@
 // React hook for parsing and managing Live page URLs
 // Handles route params, query params, path parsing, and event listeners
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { parseLiveUrl } from '../utils/urlParser';
 
@@ -38,7 +38,11 @@ export function useLiveUrl(
   const { eventId: routeEventId } = useParams<{ eventId?: string }>();
   const location = useLocation();
   const navigate = useNavigate();
-  const searchParams = new URLSearchParams(location.search);
+  // Memoize searchParams to avoid recreating on every render
+  const searchParams = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
+  );
 
   const [showNoteLoader, setShowNoteLoader] = useState(true);
   const [showMainLayout, setShowMainLayout] = useState(false);
@@ -46,6 +50,14 @@ export function useLiveUrl(
   const [parsedEventId, setParsedEventId] = useState<string | undefined>(
     undefined
   );
+
+  // Helper function to clear error display
+  const clearNoteLoaderError = () => {
+    const errorElement = document.getElementById('noteLoaderError');
+    if (errorElement) {
+      errorElement.style.display = 'none';
+    }
+  };
 
   // Parse URL and update state
   useEffect(() => {
@@ -78,23 +90,20 @@ export function useLiveUrl(
 
         // Prefill input if candidate looks valid (for error display)
         if (parsed.eventId) {
+          const eventIdToPrefill = parsed.eventId; // Store in const to satisfy type checker
           setTimeout(() => {
             const input = document.getElementById(
               'note1LoaderInput'
             ) as HTMLInputElement | null;
-            if (input && parsed.eventId) {
-              input.value = parsed.eventId;
+            if (input) {
+              input.value = eventIdToPrefill;
               input.focus();
               input.select();
             }
           }, 50);
         }
       } else {
-        // Clear any previous error
-        const errorElement = document.getElementById('noteLoaderError');
-        if (errorElement) {
-          errorElement.style.display = 'none';
-        }
+        clearNoteLoaderError();
       }
     } catch {
       // Fallback on any error
@@ -138,11 +147,7 @@ export function useLiveUrl(
       if (parsed.error) {
         showLoadingError(parsed.error);
       } else {
-        // Clear error on successful navigation
-        const errorElement = document.getElementById('noteLoaderError');
-        if (errorElement) {
-          errorElement.style.display = 'none';
-        }
+        clearNoteLoaderError();
       }
     };
 
@@ -162,10 +167,7 @@ export function useLiveUrl(
 
       // Clear any errors
       setError(null);
-      const errorElement = document.getElementById('noteLoaderError');
-      if (errorElement) {
-        errorElement.style.display = 'none';
-      }
+      clearNoteLoaderError();
 
       // The URL has already been updated by useLiveFunctionality
       // We just need to update the UI state
