@@ -2,6 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
+const { scureAliases } = require('./scureAliases');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -17,6 +18,7 @@ module.exports = {
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
     alias: {
+      ...scureAliases(),
       '@pubpay/shared-services': path.resolve(
         __dirname,
         '../../packages/shared-services/src'
@@ -142,7 +144,7 @@ module.exports = {
       }
     ],
     compress: true,
-    port: 3000,
+    port: Number(process.env.PORT) || 3010,
     //for ngrok
     allowedHosts: 'all',
     hot: true,

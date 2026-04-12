@@ -5,13 +5,15 @@
     "baseUrl": "../../",
     "noEmit": false,
     "jsx": "react-jsx",
-    "moduleResolution": "node",
     "paths": {
       "@pubpay/shared-services": ["packages/shared-services/src"],
       "@pubpay/shared-ui": ["packages/shared-ui/src"],
       "@pubpay/shared-types": ["packages/shared-types/src"],
       "@pubpay/shared-utils": ["packages/shared-utils/src"],
-      "@live/*": ["apps/live/src/*"]
+      "@live/*": ["apps/live/src/*"],
+      "@scure/bip32": ["apps/live/node_modules/@scure/bip32"],
+      "@scure/bip39": ["apps/live/node_modules/@scure/bip39"],
+      "@scure/bip39/*": ["apps/live/node_modules/@scure/bip39/*"]
     },
     "typeRoots": [
       "../../node_modules/@types",

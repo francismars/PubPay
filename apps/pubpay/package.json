@@ -10,6 +10,8 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@scure/bip32": "1.3.1",
+    "@scure/bip39": "1.2.1",
     "@pubpay/shared-services": "workspace:*",
     "@pubpay/shared-types": "workspace:*",
     "@pubpay/shared-ui": "workspace:*",
