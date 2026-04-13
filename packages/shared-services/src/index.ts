@@ -1,5 +1,6 @@
 // Export all services
 export * from './services/AuthService';
+export * from './services/Nip46Service';
 export * from './services/ErrorService';
 export * from './services/BlossomService';
 export * from './services/index';

@@ -2,6 +2,7 @@ import { nip19, finalizeEvent } from 'nostr-tools';
 import { ensureProfiles } from '../query/profileQueries';
 import { getQueryClient } from '../query/queryClient';
 import { AuthService } from '../AuthService';
+import { Nip46Service } from '../Nip46Service';
 
 export type FollowSuggestion = {
   pubkey: string;
@@ -142,6 +143,18 @@ export class FollowService {
     } else if (method === 'externalSigner') {
       alert('Following via external signer is not yet supported.');
       return false;
+    } else if (method === 'nip46') {
+      try {
+        signed = await Nip46Service.signNostrEvent({
+          kind: event.kind,
+          created_at: event.created_at,
+          tags: event.tags,
+          content: event.content,
+          pubkey: authUserPubkey
+        });
+      } catch {
+        return false;
+      }
     }
     if (!signed) return false;
     await nostrClient.publishEvent(signed);
@@ -200,6 +213,18 @@ export class FollowService {
     } else if (method === 'externalSigner') {
       alert('Unfollow via external signer is not yet supported.');
       return false;
+    } else if (method === 'nip46') {
+      try {
+        signed = await Nip46Service.signNostrEvent({
+          kind: event.kind,
+          created_at: event.created_at,
+          tags: event.tags,
+          content: event.content,
+          pubkey: authUserPubkey
+        });
+      } catch {
+        return false;
+      }
     }
     if (!signed) return false;
     await nostrClient.publishEvent(signed);

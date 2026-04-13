@@ -135,7 +135,11 @@ export const useAuth = ({
         setAuth({
           isLoggedIn: true,
           publicKey,
-          signInMethod: method as 'extension' | 'nsec' | 'externalSigner',
+          signInMethod: method as
+            | 'extension'
+            | 'nsec'
+            | 'externalSigner'
+            | 'nip46',
           userProfile: null,
           displayName: null
         });
@@ -265,6 +269,31 @@ export const useAuth = ({
     }
   };
 
+  const handleCompleteNip46Login = async (publicKey: string) => {
+    await AuthService.storeAuthData(publicKey, null, 'nip46');
+    setAuth({
+      isLoggedIn: true,
+      publicKey,
+      signInMethod: 'nip46',
+      userProfile: null,
+      displayName: null
+    });
+    setPrivateKeyLocal(null);
+    await loadUserProfile(publicKey);
+    try {
+      const client = nostrClientRef.current;
+      if (client) {
+        const suggestions = await FollowService.getFollowSuggestions(
+          client,
+          publicKey
+        );
+        useUIStore.getState().setFollowSuggestions(suggestions);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const handleContinueWithNsec = async (nsec: string, password?: string) => {
     try {
       const result = await AuthService.signInWithNsec(nsec);
@@ -334,6 +363,7 @@ export const useAuth = ({
     loadUserProfile,
     handleSignInExtension,
     handleSignInExternalSigner,
+    handleCompleteNip46Login,
     handleContinueWithNsec,
     handleLogout
   };

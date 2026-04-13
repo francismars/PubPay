@@ -44,6 +44,7 @@ export const Layout: React.FC = () => {
     useExtensionAvailability();
 
   const {
+    showNip46Group,
     showNsecGroup,
     nsecInput,
     nsecPassword,
@@ -74,6 +75,8 @@ export const Layout: React.FC = () => {
   } = useModalActions();
 
   const {
+    openNip46Group,
+    closeNip46Group,
     openNsecGroup,
     closeNsecGroup,
     setNsecInput,
@@ -119,6 +122,7 @@ export const Layout: React.FC = () => {
     handleNewPayNote,
     handleSignInExtension,
     handleSignInExternalSigner,
+    handleCompleteNip46Login,
     handleContinueWithNsec,
     handleLogout,
     handlePayWithExtension,
@@ -325,6 +329,16 @@ export const Layout: React.FC = () => {
     }
   };
 
+  const handleCompleteNip46LoginWrapper = async (publicKey: string) => {
+    try {
+      await handleCompleteNip46Login(publicKey);
+      closeNip46Group();
+      closeLogin();
+    } catch (error) {
+      console.error('NIP-46 login failed:', error);
+    }
+  };
+
   // Handler functions for FeedsPage
   const handleSharePost = async (post: PubPayPost) => {
     // Use note1 format (NIP-19) for share links - matches the /note/:noteId route
@@ -502,6 +516,7 @@ export const Layout: React.FC = () => {
           resetLoginForm();
           closeLogin();
         }}
+        showNip46Group={showNip46Group}
         showNsecGroup={showNsecGroup}
         showRecoveryGroup={showRecoveryGroup}
         extensionAvailable={extensionAvailable}
@@ -510,16 +525,19 @@ export const Layout: React.FC = () => {
         onSignInExtension={handleSignInExtensionWrapper}
         onSignInExternalSigner={handleSignInExternalSignerWrapper}
         onShowNsecGroup={openNsecGroup}
+        onShowNip46Group={openNip46Group}
         onShowRecoveryGroup={() => {
           closeNsecGroup();
           openRecoveryGroup();
         }}
         onHideNsecGroup={closeNsecGroup}
+        onHideNip46Group={closeNip46Group}
         onHideRecoveryGroup={() => {
           closeRecoveryGroup();
           openNsecGroup();
         }}
         onContinueWithNsec={handleNsecContinue}
+        onCompleteNip46Login={handleCompleteNip46LoginWrapper}
         onRecoverFromMnemonic={handleRecoveryFromMnemonic}
         nsecInput={nsecInput}
         nsecPassword={nsecPassword}

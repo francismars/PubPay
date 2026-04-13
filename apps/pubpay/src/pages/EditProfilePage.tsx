@@ -3,7 +3,8 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import {
   useUIStore,
   getQueryClient,
-  BlossomService
+  BlossomService,
+  Nip46Service
 } from '@pubpay/shared-services';
 import { nip19, finalizeEvent, getEventHash, verifyEvent } from 'nostr-tools';
 import {
@@ -461,6 +462,14 @@ const EditProfilePage: React.FC = () => {
           eventTemplate,
           decoded.data as unknown as Uint8Array
         );
+      } else if (authState.signInMethod === 'nip46') {
+        signedEvent = (await Nip46Service.signNostrEvent({
+          kind: eventTemplate.kind,
+          created_at: eventTemplate.created_at,
+          tags: eventTemplate.tags,
+          content: eventTemplate.content,
+          pubkey: authState.publicKey
+        })) as any;
       } else if (authState.signInMethod === 'externalSigner') {
         // For external signer, compute event ID first, then store event and redirect
         eventTemplate.id = getEventHash(eventTemplate);

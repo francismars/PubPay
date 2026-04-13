@@ -8,6 +8,7 @@ import {
 } from 'nostr-tools';
 import { RELAYS } from '../../utils/constants';
 import { AuthService } from '../AuthService';
+import { Nip46Service } from '../Nip46Service';
 
 export interface ZapCallback {
   callbackToZap: string;
@@ -414,7 +415,7 @@ export class ZapService {
       }
 
       // Only require private key for nsec sign-in method
-      // Extension and externalSigner methods don't need a stored private key
+      // Extension, NIP-46, and externalSigner methods don't need a stored private key
       if (signInMethod === 'nsec' && !privateKey) {
         // No private key available for nsec method - user needs to log in again
         throw new Error(
@@ -444,6 +445,16 @@ export class ZapService {
         );
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
         return true;
+      } else if (signInMethod === 'nip46') {
+        console.log('Using NIP-46 remote signer');
+        const z = zapEvent as Record<string, unknown>;
+        zapFinalized = (await Nip46Service.signNostrEvent({
+          kind: z.kind as number,
+          created_at: z.created_at as number,
+          tags: z.tags as string[][],
+          content: z.content as string,
+          pubkey: (z.pubkey as string) || publicKey || ''
+        })) as any;
       } else if (signInMethod === 'extension') {
         console.log('Using extension signing');
         if ((window as any).nostr !== null) {

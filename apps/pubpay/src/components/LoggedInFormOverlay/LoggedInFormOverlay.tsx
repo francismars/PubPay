@@ -1,6 +1,12 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { nip19 } from 'nostr-tools';
+import type { Kind0Event } from '@pubpay/shared-types';
+import { safeJson } from '@pubpay/shared-utils';
+import {
+  getNpubFromPublicKey,
+  sanitizeImageUrl,
+  trimNpub
+} from '../../utils/profileUtils';
 
 interface LoggedInFormOverlayProps {
   isVisible: boolean;
@@ -8,10 +14,28 @@ interface LoggedInFormOverlayProps {
   authState: {
     isLoggedIn: boolean;
     publicKey: string | null;
-    signInMethod: 'extension' | 'externalSigner' | 'nsec' | null;
+    signInMethod: 'extension' | 'externalSigner' | 'nsec' | 'nip46' | null;
     displayName: string | null;
+    userProfile: Kind0Event | null;
   };
   onLogout: () => void;
+}
+
+function signInMethodLabel(
+  method: 'extension' | 'externalSigner' | 'nsec' | 'nip46' | null
+): string {
+  switch (method) {
+    case 'extension':
+      return 'Browser extension';
+    case 'externalSigner':
+      return 'External signer';
+    case 'nip46':
+      return 'Nostr Connect (NIP-46)';
+    case 'nsec':
+      return 'nsec key';
+    default:
+      return 'Unknown';
+  }
 }
 
 export const LoggedInFormOverlay: React.FC<LoggedInFormOverlayProps> = ({
@@ -20,6 +44,33 @@ export const LoggedInFormOverlay: React.FC<LoggedInFormOverlayProps> = ({
   authState,
   onLogout
 }) => {
+  const npub = useMemo(
+    () => getNpubFromPublicKey(undefined, authState.publicKey),
+    [authState.publicKey]
+  );
+
+  const pictureUrl = useMemo(() => {
+    if (!authState.userProfile?.content) return null;
+    const data = safeJson<Record<string, unknown>>(
+      authState.userProfile.content,
+      {}
+    );
+    const raw = typeof data.picture === 'string' ? data.picture : '';
+    return raw ? sanitizeImageUrl(raw) : null;
+  }, [authState.userProfile]);
+
+  const [avatarFailed, setAvatarFailed] = useState(false);
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [pictureUrl]);
+
+  const displayName = authState.displayName?.trim() || null;
+  const avatarInitial = displayName
+    ? displayName.charAt(0).toUpperCase()
+    : 'N';
+
+  const showAvatarImage = Boolean(pictureUrl) && !avatarFailed;
+
   return (
     <div
       className="overlayContainer"
@@ -48,25 +99,68 @@ export const LoggedInFormOverlay: React.FC<LoggedInFormOverlayProps> = ({
           PUB<span className="logoPay">PAY</span>
           <span className="logoMe">.me</span>
         </div>
-        <p className="label">You are logged in as:</p>
-        <p id="loggedInPublicKey">
-          {authState.publicKey ? (
-            <Link to="/profile" className="userMention">
-              {authState.displayName ||
-                (authState.publicKey
-                  ? nip19.npubEncode(authState.publicKey)
-                  : '')}
-            </Link>
-          ) : (
-            'Unknown'
-          )}
-        </p>
-        <p className="label">Sign-in Method:</p>
-        <span id="loggedInMethod">{authState.signInMethod || 'Unknown'}</span>
-        <a href="" id="logoutButton" className="cta" onClick={onLogout}>
+        <p className="label">You are logged in as</p>
+        {authState.publicKey ? (
+          <Link
+            to="/profile"
+            className="loggedInIdentityCard"
+            title={npub || undefined}
+          >
+            <div className="loggedInAvatar">
+              {showAvatarImage ? (
+                <img
+                  src={pictureUrl!}
+                  alt=""
+                  className="loggedInAvatarImage"
+                  onError={() => setAvatarFailed(true)}
+                />
+              ) : null}
+              <span
+                className="loggedInAvatarFallback"
+                style={{ display: showAvatarImage ? 'none' : 'flex' }}
+                aria-hidden
+              >
+                {avatarInitial}
+              </span>
+            </div>
+            <div className="loggedInIdentityText">
+              {displayName ? (
+                <span className="loggedInDisplayName">{displayName}</span>
+              ) : null}
+              <span id="loggedInPublicKey" className="loggedInNpub">
+                {trimNpub(npub)}
+              </span>
+            </div>
+          </Link>
+        ) : (
+          <p id="loggedInPublicKey" className="loggedInNpub">
+            Unknown
+          </p>
+        )}
+        <p className="label">Sign-in method</p>
+        <span id="loggedInMethod" className="loggedInMethodValue">
+          {signInMethodLabel(authState.signInMethod)}
+        </span>
+        <a
+          href="#"
+          id="logoutButton"
+          className="cta loggedInLogout"
+          onClick={e => {
+            e.preventDefault();
+            onLogout();
+          }}
+        >
           Logout
         </a>
-        <a id="cancelLoggedin" href="#" className="label" onClick={onClose}>
+        <a
+          id="cancelLoggedin"
+          href="#"
+          className="label"
+          onClick={e => {
+            e.preventDefault();
+            onClose();
+          }}
+        >
           cancel
         </a>
       </div>

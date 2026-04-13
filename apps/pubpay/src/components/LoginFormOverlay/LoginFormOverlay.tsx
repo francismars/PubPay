@@ -4,10 +4,12 @@ import { COLORS } from '../../constants';
 import { LoginMethodSelector } from './LoginMethodSelector';
 import { NSECInputForm } from './NSECInputForm';
 import { RecoveryForm } from './RecoveryForm';
+import { Nip46LoginForm } from './Nip46LoginForm';
 
 interface LoginFormOverlayProps {
   isVisible: boolean;
   onClose: () => void;
+  showNip46Group: boolean;
   showNsecGroup: boolean;
   showRecoveryGroup: boolean;
   extensionAvailable: boolean;
@@ -16,10 +18,13 @@ interface LoginFormOverlayProps {
   onSignInExtension: () => Promise<void>;
   onSignInExternalSigner: () => Promise<void>;
   onShowNsecGroup: () => void;
+  onShowNip46Group: () => void;
   onShowRecoveryGroup: () => void;
   onHideNsecGroup: () => void;
+  onHideNip46Group: () => void;
   onHideRecoveryGroup: () => void;
   onContinueWithNsec: (nsec: string, password?: string) => Promise<void>;
+  onCompleteNip46Login: (publicKey: string) => Promise<void>;
   onRecoverFromMnemonic: (mnemonic: string, password?: string) => Promise<void>;
   nsecInput: string;
   nsecPassword: string;
@@ -34,6 +39,7 @@ interface LoginFormOverlayProps {
 export const LoginFormOverlay: React.FC<LoginFormOverlayProps> = ({
   isVisible,
   onClose,
+  showNip46Group,
   showNsecGroup,
   showRecoveryGroup,
   extensionAvailable,
@@ -42,10 +48,13 @@ export const LoginFormOverlay: React.FC<LoginFormOverlayProps> = ({
   onSignInExtension,
   onSignInExternalSigner,
   onShowNsecGroup,
+  onShowNip46Group,
   onShowRecoveryGroup,
   onHideNsecGroup,
+  onHideNip46Group,
   onHideRecoveryGroup,
   onContinueWithNsec,
+  onCompleteNip46Login,
   onRecoverFromMnemonic,
   nsecInput,
   nsecPassword,
@@ -89,13 +98,24 @@ export const LoginFormOverlay: React.FC<LoginFormOverlayProps> = ({
         </p>
 
         <LoginMethodSelector
-          isVisible={!showNsecGroup && !showRecoveryGroup}
+          isVisible={
+            !showNsecGroup && !showRecoveryGroup && !showNip46Group
+          }
           extensionAvailable={extensionAvailable}
           externalSignerAvailable={externalSignerAvailable}
           externalSignerLoading={externalSignerLoading}
           onSignInExtension={onSignInExtension}
           onSignInExternalSigner={onSignInExternalSigner}
           onShowNsecGroup={onShowNsecGroup}
+          onShowNip46Group={onShowNip46Group}
+        />
+
+        <Nip46LoginForm
+          isVisible={showNip46Group}
+          onBack={onHideNip46Group}
+          onComplete={async pubkey => {
+            await onCompleteNip46Login(pubkey);
+          }}
         />
 
         <NSECInputForm

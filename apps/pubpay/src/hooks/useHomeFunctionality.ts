@@ -1,7 +1,10 @@
 // React hook for home functionality integration
 import { useEffect, useRef } from 'react';
-import { NostrUtil } from '@pubpay/shared-services';
-import { AuthService } from '@pubpay/shared-services';
+import {
+  NostrUtil,
+  AuthService,
+  Nip46Service
+} from '@pubpay/shared-services';
 import { Kind0Event, Kind9735Event } from '@pubpay/shared-types';
 import { TIMEOUT, LIGHTNING, STORAGE_KEYS, TOAST_DURATION } from '../constants';
 import {
@@ -64,6 +67,7 @@ export const useHomeFunctionality = () => {
     loadUserProfile,
     handleSignInExtension,
     handleSignInExternalSigner,
+    handleCompleteNip46Login,
     handleContinueWithNsec,
     handleLogout
   } = useAuth({
@@ -492,6 +496,14 @@ export const useHomeFunctionality = () => {
         );
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
         return;
+      } else if (authState.signInMethod === 'nip46') {
+        signedEvent = (await Nip46Service.signNostrEvent({
+          kind: event.kind,
+          created_at: event.created_at,
+          tags: event.tags,
+          content: event.content,
+          pubkey: authState.publicKey || ''
+        })) as any;
       } else {
         console.error('Invalid sign-in method');
         return;
@@ -540,6 +552,7 @@ export const useHomeFunctionality = () => {
     handleNewPayNote,
     handleSignInExtension,
     handleSignInExternalSigner,
+    handleCompleteNip46Login,
     handleSignInNsec,
     handleContinueWithNsec,
     handleLogout: handleLogoutExtended,

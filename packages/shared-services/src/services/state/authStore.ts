@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Kind0Event } from '@pubpay/shared-types';
 
-export type SignInMethod = 'extension' | 'externalSigner' | 'nsec' | null;
+export type SignInMethod = 'extension' | 'externalSigner' | 'nsec' | 'nip46' | null;
 
 export interface AuthState {
   isLoggedIn: boolean;

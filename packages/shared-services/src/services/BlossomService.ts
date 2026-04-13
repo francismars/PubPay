@@ -1,6 +1,7 @@
 // BlossomService - Handles blob storage on Blossom servers
 import { nip19, finalizeEvent, getEventHash, verifyEvent } from 'nostr-tools';
 import { AuthService } from './AuthService';
+import { Nip46Service } from './Nip46Service';
 
 export interface BlobDescriptor {
   hash: string;
@@ -104,6 +105,14 @@ export class BlossomService {
       }
       const privateKeyBytes = decoded.data as Uint8Array;
       signedEvent = finalizeEvent(authEvent, privateKeyBytes);
+    } else if (signInMethod === 'nip46') {
+      signedEvent = await Nip46Service.signNostrEvent({
+        kind: authEvent.kind,
+        created_at: authEvent.created_at,
+        tags: authEvent.tags,
+        content: authEvent.content,
+        pubkey: publicKey
+      });
     } else if (signInMethod === 'externalSigner') {
       // For external signer, set pubkey and hash first
       authEvent.pubkey = publicKey;
