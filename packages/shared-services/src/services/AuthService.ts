@@ -1,11 +1,12 @@
 // AuthService - Handles authentication methods
 import { nip19, getPublicKey } from 'nostr-tools';
+import { Nip46Service } from './Nip46Service';
 
 export interface AuthResult {
   success: boolean;
   publicKey?: string;
   privateKey?: string;
-  method?: 'extension' | 'externalSigner' | 'nsec';
+  method?: 'extension' | 'externalSigner' | 'nsec' | 'nip46';
   error?: string;
 }
 
@@ -20,7 +21,8 @@ export class AuthService {
   private static readonly METHODS = [
     'extension',
     'externalSigner',
-    'nsec'
+    'nsec',
+    'nip46'
   ] as const;
 
   // In-memory cache for decrypted private key (cleared on page reload)
@@ -740,6 +742,7 @@ export class AuthService {
     localStorage.removeItem('publicKey');
     localStorage.removeItem('privateKey');
     localStorage.removeItem('signInMethod');
+    Nip46Service.clearPersistedSession();
     sessionStorage.removeItem('publicKey');
     sessionStorage.removeItem('privateKey');
     sessionStorage.removeItem('signInMethod');

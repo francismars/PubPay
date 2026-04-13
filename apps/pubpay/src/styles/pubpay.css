@@ -2116,6 +2116,150 @@ legend {
   margin-top: 30px;
 }
 
+/* NIP-46 login (Nostr Connect) */
+.nip46ModeTabs {
+  margin-top: 8px;
+}
+
+.nip46Tab {
+  flex: 1;
+  min-width: 120px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.nip46Tab:hover {
+  border-color: #4a75ff;
+}
+
+.nip46Tab.active {
+  border-color: #4a75ff;
+  background: rgba(74, 117, 255, 0.1);
+  font-weight: 600;
+}
+
+body.dark-mode .nip46Tab.active {
+  background: rgba(74, 117, 255, 0.15);
+}
+
+/* Logged-in overlay: identity card + red logout */
+#loggedInForm .loggedInIdentityCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 8px 0 4px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: rgba(74, 117, 255, 0.06);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+body.dark-mode #loggedInForm .loggedInIdentityCard {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+#loggedInForm .loggedInIdentityCard:hover {
+  border-color: #4a75ff;
+  box-shadow: 0 2px 12px rgba(74, 117, 255, 0.15);
+}
+
+#loggedInForm .loggedInAvatar {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, #4a75ff 0%, #3b5bdb 100%);
+}
+
+#loggedInForm .loggedInAvatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#loggedInForm .loggedInAvatarFallback {
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+#loggedInForm .loggedInIdentityText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  text-align: left;
+}
+
+#loggedInForm .loggedInDisplayName {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+#loggedInForm .loggedInNpub {
+  font-family:
+    ui-monospace,
+    'Cascadia Code',
+    'Source Code Pro',
+    Menlo,
+    Consolas,
+    monospace;
+  font-size: 13px;
+  color: #6b7280;
+  word-break: break-all;
+  line-height: 1.35;
+}
+
+body.dark-mode #loggedInForm .loggedInNpub {
+  color: #9ca3af;
+}
+
+#loggedInForm .loggedInMethodValue {
+  display: block;
+  margin-top: 4px;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+#logoutButton.loggedInLogout {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+}
+
+#logoutButton.loggedInLogout:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.45);
+  transform: translateY(-1px);
+}
+
+#logoutButton.loggedInLogout:active {
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
+}
+
 /* Camera Controls - Brand Style */
 .camera-controls-container {
   display: flex;

@@ -20,6 +20,11 @@ interface ModalStore {
   closeNewPayNoteForm: () => void;
   setIsPublishing: (publishing: boolean) => void;
 
+  // Login Form - NIP-46 (Nostr Connect)
+  showNip46Group: boolean;
+  openNip46Group: () => void;
+  closeNip46Group: () => void;
+
   // Login Form - NSEC Group
   showNsecGroup: boolean;
   nsecInput: string;
@@ -79,22 +84,47 @@ export const useModalStore = create<ModalStore>()(
       setIsPublishing: (publishing: boolean) =>
         set({ isPublishing: publishing }),
 
+      // NIP-46 login
+      showNip46Group: false,
+      openNip46Group: () =>
+        set({
+          showNip46Group: true,
+          showNsecGroup: false,
+          showRecoveryGroup: false
+        }),
+      closeNip46Group: () => set({ showNip46Group: false }),
+
       // NSEC Group
       showNsecGroup: false,
       nsecInput: '',
       nsecPassword: '',
-      openNsecGroup: () => set({ showNsecGroup: true }),
+      openNsecGroup: () =>
+        set({
+          showNsecGroup: true,
+          showNip46Group: false,
+          showRecoveryGroup: false
+        }),
       closeNsecGroup: () => set({ showNsecGroup: false }),
       setNsecInput: (input: string) => set({ nsecInput: input }),
       setNsecPassword: (password: string) => set({ nsecPassword: password }),
       resetNsecForm: () =>
-        set({ nsecInput: '', nsecPassword: '', showNsecGroup: false }),
+        set({
+          nsecInput: '',
+          nsecPassword: '',
+          showNsecGroup: false,
+          showNip46Group: false
+        }),
 
       // Recovery Group
       showRecoveryGroup: false,
       recoveryMnemonic: '',
       recoveryPassword: '',
-      openRecoveryGroup: () => set({ showRecoveryGroup: true }),
+      openRecoveryGroup: () =>
+        set({
+          showRecoveryGroup: true,
+          showNip46Group: false,
+          showNsecGroup: false
+        }),
       closeRecoveryGroup: () => set({ showRecoveryGroup: false }),
       setRecoveryMnemonic: (mnemonic: string) =>
         set({ recoveryMnemonic: mnemonic }),
@@ -104,7 +134,8 @@ export const useModalStore = create<ModalStore>()(
         set({
           recoveryMnemonic: '',
           recoveryPassword: '',
-          showRecoveryGroup: false
+          showRecoveryGroup: false,
+          showNip46Group: false
         }),
 
       // Password Prompt
@@ -130,6 +161,7 @@ export const useModalStore = create<ModalStore>()(
           showLoggedInForm: false,
           showNewPayNoteForm: false,
           isPublishing: false,
+          showNip46Group: false,
           showNsecGroup: false,
           nsecInput: '',
           nsecPassword: '',
@@ -151,6 +183,7 @@ export const useModalState = () =>
       showLoggedInForm: state.showLoggedInForm,
       showNewPayNoteForm: state.showNewPayNoteForm,
       isPublishing: state.isPublishing,
+      showNip46Group: state.showNip46Group,
       showNsecGroup: state.showNsecGroup,
       nsecInput: state.nsecInput,
       nsecPassword: state.nsecPassword,
@@ -174,6 +207,8 @@ export const useModalActions = () =>
       openNewPayNoteForm: state.openNewPayNoteForm,
       closeNewPayNoteForm: state.closeNewPayNoteForm,
       setIsPublishing: state.setIsPublishing,
+      openNip46Group: state.openNip46Group,
+      closeNip46Group: state.closeNip46Group,
       openNsecGroup: state.openNsecGroup,
       closeNsecGroup: state.closeNsecGroup,
       setNsecInput: state.setNsecInput,
@@ -213,6 +248,7 @@ export const useModalVisibility = () =>
       showQRScanner: state.showQRScanner,
       showLoggedInForm: state.showLoggedInForm,
       showNewPayNoteForm: state.showNewPayNoteForm,
+      showNip46Group: state.showNip46Group,
       showNsecGroup: state.showNsecGroup,
       showRecoveryGroup: state.showRecoveryGroup,
       showPasswordPrompt: state.showPasswordPrompt
@@ -223,6 +259,7 @@ export const useModalVisibility = () =>
 export const useLoginFormState = () =>
   useModalStore(
     useShallow(state => ({
+      showNip46Group: state.showNip46Group,
       showNsecGroup: state.showNsecGroup,
       nsecInput: state.nsecInput,
       nsecPassword: state.nsecPassword,
@@ -236,6 +273,8 @@ export const useLoginFormState = () =>
 export const useLoginFormActions = () =>
   useModalStore(
     useShallow(state => ({
+      openNip46Group: state.openNip46Group,
+      closeNip46Group: state.closeNip46Group,
       openNsecGroup: state.openNsecGroup,
       closeNsecGroup: state.closeNsecGroup,
       setNsecInput: state.setNsecInput,

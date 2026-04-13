@@ -8,6 +8,7 @@ interface LoginMethodSelectorProps {
   onSignInExtension: () => Promise<void>;
   onSignInExternalSigner: () => Promise<void>;
   onShowNsecGroup: () => void;
+  onShowNip46Group: () => void;
 }
 
 export const LoginMethodSelector: React.FC<LoginMethodSelectorProps> = ({
@@ -17,7 +18,8 @@ export const LoginMethodSelector: React.FC<LoginMethodSelectorProps> = ({
   externalSignerLoading,
   onSignInExtension,
   onSignInExternalSigner,
-  onShowNsecGroup
+  onShowNsecGroup,
+  onShowNip46Group
 }) => {
   if (!isVisible) {
     return null;
@@ -28,7 +30,10 @@ export const LoginMethodSelector: React.FC<LoginMethodSelectorProps> = ({
       className="formFieldGroup"
       id="loginFormGroup"
       style={{
-        display: 'flex'
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 10,
+        justifyContent: 'center'
       }}
     >
       <a
@@ -62,6 +67,17 @@ export const LoginMethodSelector: React.FC<LoginMethodSelectorProps> = ({
           : externalSignerLoading
             ? 'Loading...'
             : 'Signer'}
+      </a>
+      <a
+        href="#"
+        id="signInNip46"
+        className="cta"
+        onClick={e => {
+          e.preventDefault();
+          onShowNip46Group();
+        }}
+      >
+        Nostr Connect
       </a>
       <a
         href="#"

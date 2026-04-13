@@ -46,7 +46,7 @@ export interface AuthState {
   isLoggedIn: boolean;
   publicKey: string | null;
   privateKey: string | null;
-  signInMethod: 'extension' | 'externalSigner' | 'nsec' | null;
+  signInMethod: 'extension' | 'externalSigner' | 'nsec' | 'nip46' | null;
   userProfile: Kind0Event | null;
   displayName: string | null;
 }

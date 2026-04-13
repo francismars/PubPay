@@ -61,7 +61,7 @@ const ProfilePage: React.FC = () => {
       isLoggedIn: boolean;
       publicKey: string | null;
       privateKey: string | null;
-      signInMethod: 'extension' | 'externalSigner' | 'nsec' | null;
+      signInMethod: 'extension' | 'externalSigner' | 'nsec' | 'nip46' | null;
       userProfile: any;
       displayName: string | null;
     };
