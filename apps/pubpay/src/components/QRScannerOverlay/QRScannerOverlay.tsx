@@ -30,7 +30,8 @@ export const QRScannerOverlay: React.FC<QRScannerOverlayProps> = ({
     toggleTorch
   } = useQRScanner({
     isVisible,
-    onNsecScanned
+    onNsecScanned,
+    onCloseScanner: onClose
   });
 
   return (
