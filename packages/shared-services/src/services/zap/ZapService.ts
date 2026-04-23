@@ -20,6 +20,9 @@ export interface ZapEventData {
   amountPay: number;
 }
 
+/** Result of signing + payment initiation: completed, failed, or still in user hands (invoice / external signer). */
+export type ZapSignResult = boolean | 'pending';
+
 export class ZapService {
   private baseUrl: string;
   // In-memory cache for lightning address validation (only during processing, not persistent)
@@ -354,7 +357,7 @@ export class ZapService {
     eventoToZapID: string,
     anonymousZap: boolean = false,
     decryptedPrivateKey?: string | null // Optional: decrypted private key from auth state
-  ): Promise<boolean> {
+  ): Promise<ZapSignResult> {
     try {
       // Check for authentication state using AuthService
       const {
@@ -444,7 +447,8 @@ export class ZapService {
           })
         );
         window.location.href = `nostrsigner:${eventString}?compressionType=none&returnType=signature&type=sign_event`;
-        return true;
+        // Payment completes when the user returns from the signer (see useExternalSigner).
+        return 'pending';
       } else if (signInMethod === 'nip46') {
         console.log('Using NIP-46 remote signer');
         const z = zapEvent as Record<string, unknown>;
@@ -488,8 +492,8 @@ export class ZapService {
         return false;
       }
 
-      // Get invoice and handle payment
-      await this.getInvoiceandPay(
+      // Get invoice and handle payment (awaits NWC auto-pay when enabled)
+      const paymentOutcome = await this.getInvoiceandPay(
         callbackToZap,
         amountPay,
         zapFinalized,
@@ -497,7 +501,9 @@ export class ZapService {
         eventoToZapID
       );
 
-      return true;
+      if (paymentOutcome === 'paid') return true;
+      if (paymentOutcome === 'invoice_pending') return 'pending';
+      return false;
     } catch (error) {
       // Re-throw errors that have our error messages (from getInvoiceandPay)
       if (error instanceof Error && error.message.startsWith("CAN'T PAY:")) {
@@ -518,11 +524,11 @@ export class ZapService {
     zapFinalized: unknown,
     lud16: string,
     eventID: string
-  ): Promise<void> {
+  ): Promise<'paid' | 'invoice_pending'> {
     try {
       if (!zapFinalized) {
         console.error('Cannot get invoice - zapFinalized is undefined');
-        return;
+        throw new Error("CAN'T PAY: Failed to sign zap event");
       }
 
       const eventFinal = JSON.stringify(zapFinalized);
@@ -557,7 +563,12 @@ export class ZapService {
       // Extract zap request ID from the signed zap request event
       const zapRequestID = (zapFinalized as any)?.id || '';
       // Pass the zap request event ID (for matching when zap receipt arrives) and post event ID
-      await this.handleFetchedInvoice(invoice, eventID, amount, zapRequestID);
+      return await this.handleFetchedInvoice(
+        invoice,
+        eventID,
+        amount,
+        zapRequestID
+      );
     } catch (error) {
       // Re-throw errors that we explicitly threw (they have our error messages)
       if (error instanceof Error && error.message.startsWith("CAN'T PAY:")) {
@@ -577,7 +588,7 @@ export class ZapService {
     zapEventID: string,
     amount: number = 0,
     zapRequestID: string = ''
-  ): Promise<void> {
+  ): Promise<'paid' | 'invoice_pending'> {
     console.log('handleFetchedInvoice called with:', {
       invoice: `${invoice.substring(0, 50)}...`,
       zapEventID,
@@ -639,7 +650,6 @@ export class ZapService {
           void 0; // no-op: UI store not available in this environment
         }
         const client = new NwcClient(nwcUri);
-        // Fire-and-forget; don't show overlays, don't fallback
         try {
           const { useUIStore } = await import('../state/uiStore');
           useUIStore
@@ -662,48 +672,37 @@ export class ZapService {
           }, timeoutMs);
         });
 
-        Promise.race([client.payInvoice(invoice), timeoutPromise as any])
-          .then(resp => {
-            try {
-              const { useUIStore } = require('../state/uiStore');
-              if (resp && !resp.error && resp.result) {
-                useUIStore
-                  .getState()
-                  .updateToast('Paid via NWC', 'success', false);
-                setTimeout(() => {
-                  try {
-                    useUIStore.getState().closeToast();
-                  } catch {
-                    void 0; // no-op
-                  }
-                }, 2000);
-                console.log(
-                  'Paid via NWC. Preimage:',
-                  (resp.result as any).preimage
-                );
-              } else {
-                const msg =
-                  resp && resp.error && resp.error.message
-                    ? resp.error.message
-                    : 'NWC payment error';
-                useUIStore.getState().updateToast(msg, 'error', true);
+        const resp = await Promise.race([
+          client.payInvoice(invoice),
+          timeoutPromise
+        ]);
+
+        try {
+          const { useUIStore } = await import('../state/uiStore');
+          if (resp && !resp.error && resp.result) {
+            useUIStore.getState().updateToast('Paid via NWC', 'success', false);
+            setTimeout(() => {
+              try {
+                useUIStore.getState().closeToast();
+              } catch {
+                void 0; // no-op
               }
-            } catch {
-              void 0; // no-op: UI store not available
-            }
-          })
-          .catch(err => {
-            console.warn('NWC payment exception:', err);
-            try {
-              const { useUIStore } = require('../state/uiStore');
-              useUIStore
-                .getState()
-                .updateToast('NWC payment failed', 'error', true);
-            } catch {
-              void 0; // no-op
-            }
-          });
-        return;
+            }, 2000);
+            console.log(
+              'Paid via NWC. Preimage:',
+              (resp.result as any).preimage
+            );
+            return 'paid';
+          }
+          const msg =
+            resp && resp.error && resp.error.message
+              ? resp.error.message
+              : 'NWC payment error';
+          useUIStore.getState().updateToast(msg, 'error', true);
+        } catch {
+          void 0; // no-op: UI store not available
+        }
+        // Fall through to invoice overlay so user can pay manually after NWC failure
       }
     } catch (e) {
       console.warn('NWC flow error:', e);
@@ -726,6 +725,7 @@ export class ZapService {
     } catch (e) {
       console.error('Failed to open invoice overlay via store:', e);
     }
+    return 'invoice_pending';
   }
 
   /**
@@ -738,7 +738,7 @@ export class ZapService {
    * @param senderPubkey - Optional sender pubkey (for non-anonymous zaps)
    * @param decryptedPrivateKey - Optional decrypted private key from auth state
    * @param anonymousZap - Whether this is an anonymous zap (default: false)
-   * @returns Promise<boolean> - true if successful
+   * @returns Same as signZapEvent: true when paid, pending when invoice/signer still needed
    */
   async sendProfileZap(
     recipientPubkey: string,
@@ -748,7 +748,7 @@ export class ZapService {
     senderPubkey?: string | null,
     decryptedPrivateKey?: string | null,
     anonymousZap: boolean = false
-  ): Promise<boolean> {
+  ): Promise<ZapSignResult> {
     try {
       // Get invoice callback (pass null for eventData since this is a profile zap)
       const callback = await this.getInvoiceCallBack(null, recipientProfile);

@@ -119,7 +119,7 @@ export const usePayments = ({
           authState.privateKey // Pass decrypted private key from auth state
         );
 
-        if (success) {
+        if (success === true || success === 'pending') {
           console.log('Zap payment initiated successfully');
           // The ZapService will trigger the payment UI via custom event
           // Clear error on success
@@ -249,7 +249,7 @@ export const usePayments = ({
           null // No private key for anonymous zaps
         );
 
-        if (success) {
+        if (success === true || success === 'pending') {
           console.log('Anonymous zap payment initiated successfully');
           // The ZapService will trigger the payment UI via custom event
           // Clear error on success

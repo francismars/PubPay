@@ -676,7 +676,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
         }
 
         // Sign and send zap
-        const success = await zapService.signZapEvent(
+        const zapResult = await zapService.signZapEvent(
           zapEventData.zapEvent,
           callback.callbackToZap,
           zapEventData.amountPay,
@@ -686,19 +686,16 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           anonymousZap ? null : authState?.privateKey || null
         );
 
-        if (success) {
-          useUIStore
-            .getState()
-            .updateToast(
-              anonymousZap ? 'Anonymous zap sent!' : 'Zap sent!',
-              'success',
-              false
-            );
+        if (zapResult === true) {
+          // NWC auto-pay already showed success ("Paid via NWC"); avoid overwriting with "Zap sent!"
           setTimeout(async () => {
-            useUIStore.getState().closeToast();
+            try {
+              useUIStore.getState().closeToast();
+            } catch {
+              void 0;
+            }
             handleClose();
             onPaymentSent();
-            // Navigate to post page after zap
             try {
               const { nip19 } = await import('nostr-tools');
               const nevent = nip19.noteEncode(detectedPostEvent.id);
@@ -706,7 +703,28 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
             } catch (error) {
               console.error('Failed to navigate to post:', error);
             }
-          }, 2000);
+          }, 2100);
+        } else if (zapResult === 'pending') {
+          // NWC already shows progress for auto-pay; external signer / invoice still in progress
+          useUIStore
+            .getState()
+            .updateToast(
+              'Zap is not finished yet — complete payment in your wallet, signer, or the invoice screen.',
+              'info',
+              false
+            );
+          setTimeout(async () => {
+            useUIStore.getState().closeToast();
+            handleClose();
+            onPaymentSent();
+            try {
+              const { nip19 } = await import('nostr-tools');
+              const nevent = nip19.noteEncode(detectedPostEvent.id);
+              navigate(`/note/${nevent}`);
+            } catch (error) {
+              console.error('Failed to navigate to post:', error);
+            }
+          }, 2500);
         } else {
           useUIStore
             .getState()
@@ -848,7 +866,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
           const zapService = new ZapService();
 
           // Send profile zap - pass null for pubkey/private key if anonymous
-          const success = await zapService.sendProfileZap(
+          const profileZapResult = await zapService.sendProfileZap(
             detectedNostrPubkey!,
             detectedNostrProfile,
             amount,
@@ -858,19 +876,15 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
             anonymousZap // Pass anonymous flag
           );
 
-          if (success) {
-            useUIStore
-              .getState()
-              .updateToast(
-                anonymousZap ? 'Anonymous zap sent!' : 'Zap sent!',
-                'success',
-                false
-              );
+          if (profileZapResult === true) {
             setTimeout(() => {
-              useUIStore.getState().closeToast();
+              try {
+                useUIStore.getState().closeToast();
+              } catch {
+                void 0;
+              }
               handleClose();
               onPaymentSent();
-              // Navigate to recipient's profile page after public payment
               if (detectedNostrPubkey) {
                 try {
                   navigate(`/profile/${detectedNostrPubkey}`);
@@ -878,7 +892,27 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
                   console.error('Failed to navigate to profile:', error);
                 }
               }
-            }, 2000);
+            }, 2100);
+          } else if (profileZapResult === 'pending') {
+            useUIStore
+              .getState()
+              .updateToast(
+                'Zap is not finished yet — complete payment in your wallet, signer, or the invoice screen.',
+                'info',
+                false
+              );
+            setTimeout(() => {
+              useUIStore.getState().closeToast();
+              handleClose();
+              onPaymentSent();
+              if (detectedNostrPubkey) {
+                try {
+                  navigate(`/profile/${detectedNostrPubkey}`);
+                } catch (error) {
+                  console.error('Failed to navigate to profile:', error);
+                }
+              }
+            }, 2500);
           } else {
             useUIStore
               .getState()
