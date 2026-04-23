@@ -80,35 +80,10 @@ export class AuthService {
         JSON.stringify({ flow: 'externalSigner' })
       );
 
-      const nostrSignerURL =
-        'nostrsigner:?compressionType=none&returnType=signature&type=get_public_key';
-
-      // Navigate synchronously inside the Promise constructor to keep the user
-      // gesture context alive, then wait up to 15 s for the page to become hidden
-      // (confirming the signer app opened). A longer timeout handles slow devices.
-      const signerOpened = await new Promise<boolean>(resolve => {
-        const onHidden = () => {
-          if (document.visibilityState === 'hidden') {
-            document.removeEventListener('visibilitychange', onHidden);
-            clearTimeout(timer);
-            resolve(true);
-          }
-        };
-        document.addEventListener('visibilitychange', onHidden);
-        window.location.href = nostrSignerURL;
-        const timer = setTimeout(() => {
-          document.removeEventListener('visibilitychange', onHidden);
-          resolve(false);
-        }, 15000);
-      });
-
-      if (!signerOpened) {
-        sessionStorage.removeItem('signIn');
-        return {
-          success: false,
-          error: 'Signer app not found or did not open.'
-        };
-      }
+      // Action must be in the path for Amber to recognise it as get_public_key.
+      // returnType=signature means "return via clipboard" (not the data format).
+      window.location.href =
+        'nostrsigner:get_public_key?compressionType=none&returnType=signature';
 
       return { success: true, method: 'externalSigner' };
     } catch (error) {
