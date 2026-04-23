@@ -29,9 +29,25 @@ export const useExternalSigner = ({
   // Get store actions (privateKey is in authState prop, not in store)
   const setAuth = useAuthStore(state => state.setAuth);
   useEffect(() => {
-    // Handle external signer return
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
+    // Handle external signer return.
+    // visibilitychange is not reliable for Android intent-based app switches, so
+    // we also listen on focus and pageshow as fallbacks. A processing guard
+    // prevents duplicate handling when multiple events fire at once.
+    let processing = false;
+    const handleReturn = async () => {
+      if (document.visibilityState !== 'visible') return;
+      if (processing) return;
+      processing = true;
+      try {
+        await handleSignerReturn();
+      } finally {
+        processing = false;
+      }
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') handleReturn();
+    };
+    const handleSignerReturn = async () => {
         // First, process sign-in return (npub from clipboard)
         const result = await AuthService.handleExternalSignerReturn();
         if (result.success && result.publicKey) {
@@ -383,10 +399,14 @@ export const useExternalSigner = ({
         } catch (e) {
           console.warn('External signer return processing error:', e);
         }
-      }
     };
 
+    // visibilitychange alone is unreliable on Android Chrome when the signer app
+    // is opened via a custom URL scheme intent. Register focus and pageshow as
+    // fallbacks; a processing guard prevents duplicate calls when events overlap.
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleReturn);
+    window.addEventListener('pageshow', handleReturn);
 
     // Respond to NewPayNoteOverlay follow suggestions request
     const handleRequestFollowSuggestions = async () => {
@@ -422,6 +442,8 @@ export const useExternalSigner = ({
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleReturn);
+      window.removeEventListener('pageshow', handleReturn);
       window.removeEventListener(
         'requestFollowSuggestions',
         handleRequestFollowSuggestions
