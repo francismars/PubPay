@@ -54,9 +54,11 @@ interface ModalStore {
   extensionAvailable: boolean;
   externalSignerAvailable: boolean;
   externalSignerLoading: boolean;
+  externalSignerAwaitingPaste: boolean;
   setExtensionAvailable: (available: boolean) => void;
   setExternalSignerAvailable: (available: boolean) => void;
   setExternalSignerLoading: (loading: boolean) => void;
+  setExternalSignerAwaitingPaste: (awaiting: boolean) => void;
 
   // Reset all modals
   resetAllModals: () => void;
@@ -147,12 +149,15 @@ export const useModalStore = create<ModalStore>()(
       extensionAvailable: true,
       externalSignerAvailable: true,
       externalSignerLoading: false,
+      externalSignerAwaitingPaste: false,
       setExtensionAvailable: (available: boolean) =>
         set({ extensionAvailable: available }),
       setExternalSignerAvailable: (available: boolean) =>
         set({ externalSignerAvailable: available }),
       setExternalSignerLoading: (loading: boolean) =>
         set({ externalSignerLoading: loading }),
+      setExternalSignerAwaitingPaste: (awaiting: boolean) =>
+        set({ externalSignerAwaitingPaste: awaiting }),
 
       // Reset all modals
       resetAllModals: () =>
@@ -193,7 +198,8 @@ export const useModalState = () =>
       showPasswordPrompt: state.showPasswordPrompt,
       extensionAvailable: state.extensionAvailable,
       externalSignerAvailable: state.externalSignerAvailable,
-      externalSignerLoading: state.externalSignerLoading
+      externalSignerLoading: state.externalSignerLoading,
+      externalSignerAwaitingPaste: state.externalSignerAwaitingPaste
     }))
   );
 
@@ -224,6 +230,7 @@ export const useModalActions = () =>
       setExtensionAvailable: state.setExtensionAvailable,
       setExternalSignerAvailable: state.setExternalSignerAvailable,
       setExternalSignerLoading: state.setExternalSignerLoading,
+      setExternalSignerAwaitingPaste: state.setExternalSignerAwaitingPaste,
       resetAllModals: state.resetAllModals
     }))
   );
@@ -294,7 +301,8 @@ export const useExtensionAvailability = () =>
     useShallow(state => ({
       extensionAvailable: state.extensionAvailable,
       externalSignerAvailable: state.externalSignerAvailable,
-      externalSignerLoading: state.externalSignerLoading
+      externalSignerLoading: state.externalSignerLoading,
+      externalSignerAwaitingPaste: state.externalSignerAwaitingPaste
     }))
   );
 

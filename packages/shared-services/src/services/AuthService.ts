@@ -162,7 +162,7 @@ export class AuthService {
         if (!clipboardText) {
           return {
             success: false,
-            error: 'No public key found in clipboard'
+            error: 'clipboard_empty'
           };
         }
 
@@ -253,13 +253,7 @@ export class AuthService {
         }
       }
 
-      // Final fallback: prompt the user to paste manually
-      try {
-        const manual = window.prompt('Paste data from signer');
-        if (manual && manual.trim()) return manual.trim();
-      } catch (promptError) {
-        console.warn('Prompt failed:', promptError);
-      }
+      // Clipboard unavailable — caller will show the paste overlay
 
       return null;
     } catch (error) {
