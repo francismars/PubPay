@@ -11,6 +11,7 @@ import { usePostStoreData } from '../stores/usePostStore';
 import {
   useModalState,
   useModalActions,
+  useModalStore,
   useExtensionAvailability,
   useLoginFormState,
   useLoginFormActions,
@@ -322,6 +323,29 @@ export const Layout: React.FC = () => {
         // Signer opened — keep modal in "Loading..." state.
         // Login completes on return from the signer app (visibilitychange handler
         // in useExternalSigner will close the modal and set auth state).
+        // On desktop/web the custom URL scheme often won't open; avoid infinite loading.
+        window.setTimeout(() => {
+          try {
+            // If we're still visible and still "loading", assume the deep-link failed.
+            if (document.visibilityState === 'visible') {
+              const { externalSignerLoading: stillLoading } =
+                useModalStore.getState();
+              if (stillLoading) {
+                setExternalSignerLoading(false);
+                setExternalSignerAwaitingPaste(false);
+                useUIStore
+                  .getState()
+                  .openToast(
+                    'Could not open signer app.',
+                    'error',
+                    true
+                  );
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }, 10000);
       } else {
         // Signer not found or timed out — disable the button.
         setExternalSignerAvailable(false);
