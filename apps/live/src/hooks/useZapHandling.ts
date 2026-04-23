@@ -363,6 +363,17 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
           pubkey: zapData.pubkey // Store pubkey for profile lookup
         };
         pendingZapNotificationsRef.current.set(zapData.pubkey, pendingData);
+
+        // Show the same overlay animation immediately, then upgrade if/when a profile arrives.
+        setZapNotification({
+          id: pendingData.id,
+          zapperName: 'Anonymous',
+          zapperImage: genericUserIcon,
+          content: pendingData.content || '',
+          amount: pendingData.amount,
+          timestamp: pendingData.timestamp,
+          pubkey: pendingData.pubkey
+        });
       }
 
       const zapsContainer = document.getElementById('zaps');
@@ -549,7 +560,13 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
         }, 50);
       }
     },
-    [numberWithCommas, onUpdateZapTotal, onOrganizeZaps, onUpdateFiatAmounts]
+    [
+      numberWithCommas,
+      onUpdateZapTotal,
+      onOrganizeZaps,
+      onUpdateFiatAmounts,
+      genericUserIcon
+    ]
   );
 
   /**
@@ -640,6 +657,8 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
    * Reset zapper totals
    */
   const resetZapperTotals = useCallback(() => {
+    pendingZapNotificationsRef.current.clear();
+
     setTotalZaps(0);
     setTotalAmount(0);
     setZaps([]);
@@ -684,9 +703,53 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
           pubkey: zapData.pubkey // Store pubkey for profile lookup
         };
         pendingZapNotificationsRef.current.set(zapData.pubkey, pendingData);
+
+        // Prefer showing a real profile immediately when it's already available on window.profiles.
+        // Otherwise show the same overlay animation with an anonymous placeholder, then upgrade
+        // when the profile subscription delivers kind 0.
+        try {
+          const profiles = (window as any).profiles as
+            | Record<string, Kind0Event>
+            | undefined;
+          const kind0 = profiles?.[zapData.pubkey];
+          if (kind0?.content) {
+            const profileData = JSON.parse(kind0.content || '{}') as any;
+            const name =
+              profileData.display_name ||
+              profileData.displayName ||
+              profileData.name ||
+              `${zapData.pubkey.slice(0, 8)}...`;
+            const picture =
+              sanitizeImageUrl(profileData.picture) || genericUserIcon;
+
+            // We already have enough to show a "real" notification; don't leave a stale pending entry.
+            pendingZapNotificationsRef.current.delete(zapData.pubkey);
+            setZapNotification({
+              id: pendingData.id,
+              zapperName: name,
+              zapperImage: picture,
+              content: pendingData.content || '',
+              amount: pendingData.amount,
+              timestamp: pendingData.timestamp
+            });
+            return;
+          }
+        } catch {
+          // fall through to anonymous placeholder
+        }
+
+        setZapNotification({
+          id: pendingData.id,
+          zapperName: 'Anonymous',
+          zapperImage: genericUserIcon,
+          content: pendingData.content || '',
+          amount: pendingData.amount,
+          timestamp: pendingData.timestamp,
+          pubkey: pendingData.pubkey
+        });
       }
     },
-    []
+    [genericUserIcon]
   );
 
   return {
