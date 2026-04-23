@@ -32,6 +32,7 @@ import {
   extractZapAmount,
   extractZapPayerPubkey,
   extractZapContent,
+  processZap,
   ProcessedZap as SharedProcessedZap,
   BitcoinPriceService,
   LiveEventService
@@ -343,6 +344,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     },
     onZapProfileUpdate: (profile: Kind0Event) => {
       updateZapProfile(profile);
+      refreshNoteZapListRowsForPubkey(profile);
       const callback = updateProfileRef.current;
       if (callback) {
         callback(profile);
@@ -1151,40 +1153,6 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // subscribeKind0fromKind1 is now provided by useNostrSubscriptions hook
 
-  const processNewZapForNotification = async (kind9735: Kind9735Event) => {
-    try {
-      // Use utility functions to extract zap data
-      const amount = extractZapAmount(kind9735);
-      if (amount === 0) {
-        logger.warn('No amount found in zap', ErrorCategory.VALIDATION, {
-          zapId: kind9735.id
-        });
-        return;
-      }
-
-      const zapperPubkey = extractZapPayerPubkey(kind9735);
-      const zapContent = extractZapContent(kind9735);
-
-      // Store zap data as pending notification - subscribeKind0fromKinds9735 will fetch profile
-      // When profile arrives, updateZapProfile will trigger the notification
-      storePendingZapNotification({
-        id: kind9735.id,
-        pubkey: zapperPubkey,
-        amount,
-        content: zapContent,
-        timestamp: kind9735.created_at
-      });
-    } catch (error) {
-      handleError(
-        error,
-        'Error processing new zap for notification',
-        ErrorCategory.SUBSCRIPTION,
-        ErrorSeverity.MEDIUM,
-        { zapId: kind9735.id }
-      );
-    }
-  };
-
   // subscribeKind9735fromKind1 is now provided by useNostrSubscriptions hook
   // subscribeKind9735fromKind1 is now provided by useNostrSubscriptions hook
 
@@ -1442,6 +1410,169 @@ export const useLiveFunctionality = (eventId?: string) => {
       }, 100);
     }
   };
+
+  const NOTE_ZAP_GENERIC_USER_ICON = '/live/images/gradient_color.gif';
+
+  /**
+   * Append a newly received kind-9735 zap receipt to the kind-1 note UI list.
+   *
+   * Important: the initial historical zaps are rendered via `createkinds9735JSON` → `drawKinds9735`,
+   * but live receipts after that were previously only handled for notifications.
+   */
+  function appendNewKind1ZapToUi(kind9735: Kind9735Event) {
+    if (processedZapIDs.has(kind9735.id)) {
+      return;
+    }
+
+    const amount = extractZapAmount(kind9735);
+    if (amount === 0) {
+      return;
+    }
+
+    const pubkey9735 = extractZapPayerPubkey(kind9735);
+    const profiles = (window as any).profiles as Record<string, Kind0Event> | undefined;
+    const profileMap = new Map<string, Kind0Event>();
+    if (profiles && pubkey9735 && profiles[pubkey9735]) {
+      profileMap.set(pubkey9735, profiles[pubkey9735]);
+    }
+
+    const processed = processZap(kind9735, profileMap, NOTE_ZAP_GENERIC_USER_ICON);
+
+    const kind1from9735 =
+      kind9735.tags.find((tag: string[]) => tag[0] === 'e')?.[1] || '';
+    const kind9735id = nip19.noteEncode(kind9735.id) || kind9735.id;
+
+    let kind0Profile: Record<string, unknown> | null = null;
+    try {
+      if (processed.zapPayerPubkey && profiles?.[processed.zapPayerPubkey]?.content) {
+        kind0Profile = JSON.parse(profiles[processed.zapPayerPubkey].content || '{}') as Record<
+          string,
+          unknown
+        >;
+      }
+    } catch {
+      kind0Profile = null;
+    }
+
+    const displayName =
+      (processed as any).zapPayerName ||
+      (kind0Profile?.display_name as string | undefined) ||
+      (kind0Profile?.displayName as string | undefined) ||
+      (kind0Profile?.name as string | undefined) ||
+      '';
+
+    const payerPubkeyInReceipt = kind9735.pubkey;
+    const payerPubkeyFromZapRequest = processed.zapPayerPubkey;
+    const isLikelyAnonymousZap =
+      !!payerPubkeyInReceipt &&
+      !!payerPubkeyFromZapRequest &&
+      payerPubkeyInReceipt === payerPubkeyFromZapRequest;
+
+    const fallbackDisplay =
+      processed.zapPayerPubkey && processed.zapPayerPubkey.length >= 8
+        ? `${processed.zapPayerPubkey.slice(0, 8)}...`
+        : 'Unknown';
+
+    const json9735: ProcessedZapData = {
+      e: kind1from9735,
+      amount: processed.zapAmount,
+      picture: processed.zapPayerPicture || '',
+      npubPayer: processed.zapPayerNpub || '',
+      pubKey: processed.zapPayerPubkey,
+      zapEventID: kind9735id,
+      kind9735content: processed.content || '',
+      kind1Name: displayName
+        ? displayName
+        : isLikelyAnonymousZap
+          ? 'Anonymous'
+          : fallbackDisplay,
+      kind0Profile,
+      created_at: kind9735.created_at,
+      timestamp: kind9735.created_at,
+      id: kind9735.id
+    };
+
+    processedZapIDs.add(kind9735.id);
+    json9735List.push(json9735);
+
+    json9735List.sort((a, b) => b.amount - a.amount);
+    drawKinds9735(json9735List);
+  }
+
+  function refreshNoteZapListRowsForPubkey(profile: Kind0Event) {
+    if (!profile?.pubkey) return;
+
+    let profileData: Record<string, unknown> = {};
+    try {
+      profileData = JSON.parse(profile.content || '{}') as Record<string, unknown>;
+    } catch {
+      profileData = {};
+    }
+
+    const displayName =
+      (profileData.display_name as string | undefined) ||
+      (profileData.displayName as string | undefined) ||
+      (profileData.name as string | undefined) ||
+      `${profile.pubkey.slice(0, 8)}...`;
+
+    const picture =
+      sanitizeImageUrl((profileData.picture as string | undefined) || '') ||
+      NOTE_ZAP_GENERIC_USER_ICON;
+
+    let changed = false;
+    for (const zap of json9735List) {
+      if (zap.pubKey !== profile.pubkey) continue;
+
+      const next: ProcessedZapData = {
+        ...zap,
+        picture,
+        kind1Name: displayName,
+        kind0Profile: profileData
+      };
+
+      // Replace object in-place to keep array identity stable
+      Object.assign(zap, next);
+      changed = true;
+    }
+
+    if (changed) {
+      json9735List.sort((a, b) => b.amount - a.amount);
+      drawKinds9735(json9735List);
+    }
+  }
+
+  async function processNewZapForNotification(kind9735: Kind9735Event) {
+    try {
+      const amount = extractZapAmount(kind9735);
+      if (amount === 0) {
+        logger.warn('No amount found in zap', ErrorCategory.VALIDATION, {
+          zapId: kind9735.id
+        });
+        return;
+      }
+
+      const zapperPubkey = extractZapPayerPubkey(kind9735);
+      const zapContent = extractZapContent(kind9735);
+
+      appendNewKind1ZapToUi(kind9735);
+
+      storePendingZapNotification({
+        id: kind9735.id,
+        pubkey: zapperPubkey,
+        amount,
+        content: zapContent,
+        timestamp: kind9735.created_at
+      });
+    } catch (error) {
+      handleError(
+        error,
+        'Error processing new zap for notification',
+        ErrorCategory.SUBSCRIPTION,
+        ErrorSeverity.MEDIUM,
+        { zapId: kind9735.id }
+      );
+    }
+  }
 
   // calculateTopZappersFromZaps is now provided by useZapHandling hook
 

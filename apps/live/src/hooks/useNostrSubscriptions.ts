@@ -82,7 +82,10 @@ export interface UseNostrSubscriptionsReturn {
   subscribeKind1: (kind1ID: string) => Promise<unknown>;
   subscribeKind0fromKind1: (kind1: Kind1Event) => Promise<unknown>;
   subscribeKind9735fromKind1: (kind1: Kind1Event) => Promise<unknown>;
-  subscribeKind0fromKinds9735: (kinds9735: Kind9735Event[]) => unknown;
+  subscribeKind0fromKinds9735: (
+    kinds9735: Kind9735Event[],
+    options?: { emitZapsLoaded?: boolean }
+  ) => unknown;
 }
 
 export function useNostrSubscriptions(
@@ -349,7 +352,11 @@ export function useNostrSubscriptions(
 
   // Subscribe to profiles from zap events (must be defined before subscribeKind9735fromKind1)
   const subscribeKind0fromKinds9735 = useCallback(
-    (kinds9735: Kind9735Event[]) => {
+    (
+      kinds9735: Kind9735Event[],
+      options: { emitZapsLoaded?: boolean } = {}
+    ) => {
+      const emitZapsLoaded = options.emitZapsLoaded !== false;
       const kind9734PKs: string[] = [];
       // Map to track newest event per pubkey (by created_at)
       const kind0fromkind9735Map = new Map<string, Kind0Event>();
@@ -395,7 +402,7 @@ export function useNostrSubscriptions(
             clearTimeout(profileProcessingTimeoutId);
             profileProcessingTimeoutId = null;
           }
-          if (onZapsLoaded) {
+          if (emitZapsLoaded && onZapsLoaded) {
             onZapsLoaded(kinds9735);
           }
         };
@@ -455,7 +462,7 @@ export function useNostrSubscriptions(
         return subscription;
       } else {
         // No profiles to fetch, but we still have zaps - process them immediately
-        if (onZapsLoaded && kinds9735.length > 0) {
+        if (emitZapsLoaded && onZapsLoaded && kinds9735.length > 0) {
           onZapsLoaded(kinds9735);
         }
       }
@@ -583,7 +590,11 @@ export function useNostrSubscriptions(
               if (onNewZap) {
                 onNewZap(kind9735Event);
               }
-              subscribeKind0fromKinds9735([kind9735Event]);
+              // Fetch payer profile(s) for UI updates (list + overlays) without re-running the
+              // initial `onZapsLoaded` ingestion path (which resets totals / rebuilds from scratch).
+              subscribeKind0fromKinds9735([kind9735Event], {
+                emitZapsLoaded: false
+              });
             } else {
               // For initial zaps, debounce processing to batch them together
               // Clear existing timeout
