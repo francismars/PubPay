@@ -47,7 +47,13 @@ module.exports = {
     rules: [
       {
         test: /\.tsx?$/,
-        use: 'ts-loader',
+        use: {
+          loader: 'ts-loader',
+          options: {
+            // Ensure TypeScript uses the app tsconfig (paths -> workspace packages)
+            configFile: path.resolve(__dirname, '../../apps/pubpay/tsconfig.json')
+          }
+        },
         exclude: /node_modules/
       },
       {

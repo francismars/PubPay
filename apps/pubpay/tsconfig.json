@@ -3,17 +3,17 @@
   "compilerOptions": {
     "rootDir": "../../",
     "outDir": "./dist",
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "noEmit": false,
     "paths": {
       "@pubpay/shared-services": ["../../packages/shared-services/src"],
       "@pubpay/shared-ui": ["../../packages/shared-ui/src"],
       "@pubpay/shared-types": ["../../packages/shared-types/src"],
       "@pubpay/shared-utils": ["../../packages/shared-utils/src"],
-      "@homepage/*": ["./*"],
-      "@scure/bip32": ["../node_modules/@scure/bip32"],
-      "@scure/bip39": ["../node_modules/@scure/bip39"],
-      "@scure/bip39/*": ["../node_modules/@scure/bip39/*"]
+      "@homepage/*": ["src/*"],
+      "@scure/bip32": ["../../node_modules/@scure/bip32"],
+      "@scure/bip39": ["../../node_modules/@scure/bip39"],
+      "@scure/bip39/*": ["../../node_modules/@scure/bip39/*"]
     },
     "typeRoots": ["./src/types", "../../node_modules/@types"]
   },
