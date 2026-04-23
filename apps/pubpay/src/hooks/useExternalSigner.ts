@@ -50,6 +50,12 @@ export const useExternalSigner = ({
     const handleSignerReturn = async () => {
         // First, process sign-in return (npub from clipboard)
         const result = await AuthService.handleExternalSignerReturn();
+        if (!result.success && result.error === 'clipboard_empty') {
+          // Automatic clipboard read failed — show the paste overlay so the
+          // user can complete sign-in with a button tap (user gesture).
+          useModalStore.getState().setExternalSignerAwaitingPaste(true);
+          return;
+        }
         if (result.success && result.publicKey) {
           await AuthService.storeAuthData(
             result.publicKey,
