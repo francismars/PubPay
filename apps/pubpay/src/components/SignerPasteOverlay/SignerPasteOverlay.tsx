@@ -32,20 +32,14 @@ export const SignerPasteOverlay: React.FC<SignerPasteOverlayProps> = ({
         onClick={e => e.stopPropagation()}
         style={{ transform: 'none', animation: 'none', maxWidth: 340 }}
       >
-        <span
-          className="material-symbols-outlined"
-          style={{ fontSize: 48, color: COLORS.PRIMARY, marginBottom: 8 }}
-        >
-          content_paste
-        </span>
-
         <p
           className="label"
           style={{
             fontSize: FONT_SIZES.LG,
             fontWeight: 'bold',
             color: COLORS.TEXT_PRIMARY,
-            marginBottom: 8
+            marginBottom: 8,
+            textAlign: 'center'
           }}
         >
           Complete Sign-in
@@ -84,7 +78,7 @@ export const SignerPasteOverlay: React.FC<SignerPasteOverlayProps> = ({
         <a
           href="#"
           className="label"
-          style={{ marginTop: 16, color: COLORS.TEXT_SECONDARY }}
+          style={{ marginTop: 16, color: COLORS.TEXT_SECONDARY, textAlign: 'center', display: 'block' }}
           onClick={e => {
             e.preventDefault();
             onCancel();
