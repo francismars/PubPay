@@ -11,6 +11,7 @@ import {
 import { verifyEvent } from 'nostr-tools';
 import { STORAGE_KEYS, TIMEOUT } from '../constants';
 import type { NostrClient, ZapService } from '@pubpay/shared-services';
+import { useModalStore } from '../stores/useModalStore';
 
 interface UseExternalSignerParams {
   nostrClientRef: React.MutableRefObject<NostrClient | null>;
@@ -48,6 +49,11 @@ export const useExternalSigner = ({
             displayName: null
           });
           // Note: privateKey is managed in useAuth local state, not here
+
+          // Close the login modal and reset signer button state
+          useUIStore.getState().closeLogin();
+          useModalStore.getState().setExternalSignerLoading(false);
+          useModalStore.getState().setExternalSignerAvailable(true);
 
           await loadUserProfile(result.publicKey);
           // Load follow suggestions after login via external signer

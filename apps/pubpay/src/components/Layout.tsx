@@ -316,9 +316,11 @@ export const Layout: React.FC = () => {
       const result = await handleSignInExternalSigner();
       // Only close the form if sign in was successful
       if (result && result.success) {
-        closeLogin();
+        // Signer opened — keep modal in "Loading..." state.
+        // Login completes on return from the signer app (visibilitychange handler
+        // in useExternalSigner will close the modal and set auth state).
       } else {
-        // If external signer failed, disable the button
+        // Signer not found or timed out — disable the button.
         setExternalSignerAvailable(false);
         setExternalSignerLoading(false);
       }
@@ -435,7 +437,8 @@ export const Layout: React.FC = () => {
   useEffect(() => {
     setExtensionAvailable(true);
     setExternalSignerAvailable(true);
-  }, [setExtensionAvailable, setExternalSignerAvailable]);
+    setExternalSignerLoading(false);
+  }, [setExtensionAvailable, setExternalSignerAvailable, setExternalSignerLoading]);
 
   // Initialize dark mode on mount
   useEffect(() => {
