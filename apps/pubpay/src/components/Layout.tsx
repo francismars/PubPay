@@ -29,7 +29,9 @@ import { TopNavigation } from './TopNavigation/TopNavigation';
 import { SideNavigation } from './SideNavigation/SideNavigation';
 import { LoginFormOverlay } from './LoginFormOverlay/LoginFormOverlay';
 import { QRScannerOverlay } from './QRScannerOverlay/QRScannerOverlay';
+import { SignerPasteOverlay } from './SignerPasteOverlay/SignerPasteOverlay';
 import { TOAST_DURATION, STORAGE_KEYS } from '../constants';
+import { useAuthStore } from '@pubpay/shared-services';
 
 export const Layout: React.FC = () => {
   // Use composite hooks for optimized state access
@@ -40,7 +42,7 @@ export const Layout: React.FC = () => {
   const { showLoggedInForm } = useModalState();
 
   // Use composite hooks for grouped state
-  const { extensionAvailable, externalSignerAvailable, externalSignerLoading } =
+  const { extensionAvailable, externalSignerAvailable, externalSignerLoading, externalSignerAwaitingPaste } =
     useExtensionAvailability();
 
   const {
@@ -71,7 +73,8 @@ export const Layout: React.FC = () => {
     closePasswordPrompt,
     setExtensionAvailable,
     setExternalSignerAvailable,
-    setExternalSignerLoading
+    setExternalSignerLoading,
+    setExternalSignerAwaitingPaste
   } = useModalActions();
 
   const {
@@ -331,6 +334,48 @@ export const Layout: React.FC = () => {
     }
   };
 
+  const handlePasteFromSigner = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const trimmed = (text || '').trim();
+      if (!trimmed) return;
+
+      let publicKey: string | null = null;
+      const clean = trimmed.replace(/^nostr:/i, '');
+      if (/^npub1[0-9a-z]+$/i.test(clean)) {
+        const decoded = nip19.decode(clean);
+        publicKey = decoded.data as string;
+      } else if (/^[0-9a-f]{64}$/i.test(clean)) {
+        publicKey = clean.toLowerCase();
+      }
+
+      if (!publicKey || publicKey.length !== 64) return;
+
+      await AuthService.storeAuthData(publicKey, null, 'externalSigner');
+      useAuthStore.getState().setAuth({
+        isLoggedIn: true,
+        publicKey,
+        signInMethod: 'externalSigner',
+        userProfile: null,
+        displayName: null
+      });
+
+      setExternalSignerAwaitingPaste(false);
+      setExternalSignerLoading(false);
+      closeLogin();
+
+      await loadUserProfile(publicKey);
+    } catch (error) {
+      console.error('Paste from signer failed:', error);
+    }
+  };
+
+  const handleCancelSignerPaste = () => {
+    setExternalSignerAwaitingPaste(false);
+    setExternalSignerLoading(false);
+    setExternalSignerAvailable(true);
+  };
+
   const handleCompleteNip46LoginWrapper = async (publicKey: string) => {
     try {
       await handleCompleteNip46Login(publicKey);
@@ -575,6 +620,13 @@ export const Layout: React.FC = () => {
           handleLogout();
           closePasswordPrompt();
         }}
+      />
+
+      {/* Signer Paste Overlay */}
+      <SignerPasteOverlay
+        isVisible={externalSignerAwaitingPaste}
+        onPaste={handlePasteFromSigner}
+        onCancel={handleCancelSignerPaste}
       />
 
       {/* Processing Overlay */}
