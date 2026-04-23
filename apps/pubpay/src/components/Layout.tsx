@@ -599,10 +599,13 @@ export const Layout: React.FC = () => {
 
       {/* Logged In Form Overlay */}
       <LoggedInFormOverlay
-        isVisible={showLoggedInForm}
+        isVisible={showLoggedInForm && authState.isLoggedIn}
         onClose={closeLoggedInForm}
         authState={authState}
-        onLogout={handleLogout}
+        onLogout={() => {
+          handleLogout();
+          closeLoggedInForm();
+        }}
       />
 
       {/* Invoice Overlay */}
