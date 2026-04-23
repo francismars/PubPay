@@ -6,11 +6,13 @@ import { handleQRCodeContent, extractNsecFromQR } from '../utils/qrCodeHandler';
 interface UseQRScannerOptions {
   isVisible: boolean;
   onNsecScanned?: (nsec: string) => void;
+  onCloseScanner?: () => void;
 }
 
 export const useQRScanner = ({
   isVisible,
-  onNsecScanned
+  onNsecScanned,
+  onCloseScanner
 }: UseQRScannerOptions) => {
   const navigate = useNavigate();
   const [qrScanner, setQrScanner] = useState<any>(null);
@@ -102,7 +104,13 @@ export const useQRScanner = ({
                   // Handle other QR code formats
                   handleQRCodeContent(decodedText, navigate).then(result => {
                     if (result.handled && result.shouldCloseScanner) {
-                      safelyStopScanner();
+                      safelyStopScanner().finally(() => {
+                        try {
+                          onCloseScanner?.();
+                        } catch {
+                          // ignore
+                        }
+                      });
                     }
                   });
                 },
@@ -190,7 +198,13 @@ export const useQRScanner = ({
           // Handle other QR code formats
           handleQRCodeContent(decodedText, navigate).then(result => {
             if (result.handled && result.shouldCloseScanner) {
-              safelyStopScanner();
+              safelyStopScanner().finally(() => {
+                try {
+                  onCloseScanner?.();
+                } catch {
+                  // ignore
+                }
+              });
             }
           });
         },
