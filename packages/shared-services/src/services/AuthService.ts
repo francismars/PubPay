@@ -28,6 +28,10 @@ export class AuthService {
   // In-memory cache for decrypted private key (cleared on page reload)
   private static decryptedKeyCache: string | null = null;
 
+  // External signer flow is clipboard-based on return; only consider it "fresh"
+  // for a short window to avoid prompting users who never actually left the page.
+  private static readonly EXTERNAL_SIGNER_MAX_AGE_MS = 2 * 60 * 1000;
+
   /**
    * Sign in with Nostr extension
    */
@@ -77,7 +81,7 @@ export class AuthService {
       // Store sign in data for when user returns
       sessionStorage.setItem(
         'signIn',
-        JSON.stringify({ flow: 'externalSigner' })
+        JSON.stringify({ flow: 'externalSigner', initiatedAt: Date.now() })
       );
 
       // returnType=signature tells Amber to return via clipboard.
@@ -155,6 +159,20 @@ export class AuthService {
         (signInData.flow === 'externalSigner' ||
           signInData.rememberMe !== undefined)
       ) {
+        // If the attempt is stale (e.g. user never left the page), don't prompt
+        // for clipboard; clear state and let the UI reset.
+        const initiatedAt =
+          typeof signInData.initiatedAt === 'number' ? signInData.initiatedAt : 0;
+        if (
+          initiatedAt > 0 &&
+          Date.now() - initiatedAt > this.EXTERNAL_SIGNER_MAX_AGE_MS
+        ) {
+          sessionStorage.removeItem('signIn');
+          return {
+            success: false,
+            error: 'external_signer_stale'
+          };
+        }
         sessionStorage.removeItem('signIn');
 
         // Get the public key from clipboard
