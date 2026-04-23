@@ -80,10 +80,9 @@ export class AuthService {
         JSON.stringify({ flow: 'externalSigner' })
       );
 
-      // Action must be in the path for Amber to recognise it as get_public_key.
-      // returnType=signature means "return via clipboard" (not the data format).
+      // returnType=signature tells Amber to return via clipboard.
       window.location.href =
-        'nostrsigner:get_public_key?compressionType=none&returnType=signature';
+        'nostrsigner:?compressionType=none&returnType=signature&type=get_public_key';
 
       return { success: true, method: 'externalSigner' };
     } catch (error) {
