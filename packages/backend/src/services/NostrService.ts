@@ -22,8 +22,6 @@ export class NostrService {
       'wss://relay.damus.io',
       'wss://relay.primal.net',
       'wss://nos.lol',
-      'wss://relay.snort.social',
-      'wss://relay.nostr.band',
       'wss://nostr.mom',
       'wss://nostr.bitcoiner.social',
       'wss://relay.nostr.bg'

@@ -31,7 +31,7 @@ export const useJukeboxFunctionality = () => {
   const relaysRef = useRef<string[]>([
     'wss://relay.damus.io',
     'wss://relay.primal.net',
-    'wss://relay.nostr.band/',
+    'wss://nostr.mom',
     'wss://relay.nostr.nu/'
   ]);
   const json9735ListRef = useRef<any[]>([]);

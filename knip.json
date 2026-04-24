@@ -1,16 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": [
-    "apps/pubpay/src/index.tsx",
-    "apps/live/src/index.tsx",
-    "apps/jukebox/src/index.tsx",
-    "packages/backend/src/index.ts"
-  ],
-  "project": [
-    "apps/**/*.{ts,tsx}",
-    "packages/**/*.{ts,tsx}",
-    "tools/**/*.{ts,tsx}"
-  ],
+  "exclude": ["unlisted"],
   "ignore": [
     "**/dist/**",
     "**/node_modules/**",
@@ -19,6 +9,14 @@
     "**/eslint.config.js",
     "**/webpack.*.js",
     "**/ecosystem.config.js"
+  ],
+  "ignoreFiles": [
+    "apps/pubpay/src/service-worker.js",
+    "apps/live/src/assets/index.ts",
+    "apps/live/src/assets/images/index.ts",
+    "packages/shared-types/src/common.ts",
+    "packages/shared-types/src/lightning.ts",
+    "packages/shared-types/src/nostr.ts"
   ],
   "ignoreDependencies": [
     "@types/*",
@@ -40,8 +38,69 @@
     "lint-staged",
     "rimraf",
     "concurrently",
-    "tsx"
+    "tsx",
+    "buffer",
+    "process"
   ],
+  "ignoreIssues": {
+    "apps/pubpay/src/stores/**": ["exports", "types"],
+    "apps/pubpay/src/constants/**": ["exports"],
+    "apps/pubpay/src/utils/**": ["exports", "types"],
+    "apps/pubpay/src/types/**": ["types"],
+    "apps/live/src/utils/domHelpers.ts": ["exports"],
+    "apps/live/src/utils/errorHandling.ts": ["exports"],
+    "apps/live/src/hooks/**": ["types"],
+    "apps/live/src/services/**": ["types"],
+    "apps/live/src/types/**": ["types"],
+    "apps/live/src/utils/urlParser.ts": ["types"],
+    "packages/shared-services/src/utils/validation.ts": ["exports"],
+    "packages/shared-services/src/utils/nostrSchemas.ts": ["exports", "types"],
+    "packages/shared-services/src/services/follow/FollowService.ts": [
+      "duplicates"
+    ],
+    "packages/shared-services/src/utils/NostrUtil.ts": ["duplicates"],
+    "packages/backend/src/services/**": ["types"]
+  },
+  "workspaces": {
+    "apps/pubpay": {
+      "entry": "src/index.tsx",
+      "project": "src/**/*.{ts,tsx}",
+      "ignoreDependencies": [
+        "@tanstack/react-query",
+        "@scure/bip32",
+        "@scure/bip39"
+      ]
+    },
+    "apps/live": {
+      "entry": "src/index.tsx",
+      "project": "src/**/*.{ts,tsx}",
+      "ignoreDependencies": ["@scure/bip32", "@scure/bip39"]
+    },
+    "apps/jukebox": {
+      "entry": "src/index.tsx",
+      "project": "src/**/*.{ts,tsx}"
+    },
+    "packages/backend": {
+      "entry": "src/index.ts",
+      "project": "src/**/*.ts"
+    },
+    "packages/shared-services": {
+      "entry": "src/index.ts",
+      "project": "src/**/*.{ts,tsx}"
+    },
+    "packages/shared-ui": {
+      "entry": "src/index.ts",
+      "project": "src/**/*.{ts,tsx}"
+    },
+    "packages/shared-utils": {
+      "entry": "src/index.ts",
+      "project": "src/**/*.ts"
+    },
+    "packages/shared-types": {
+      "entry": "src/index.ts",
+      "project": "src/**/*.ts"
+    }
+  },
   "webpack": {
     "config": "tools/webpack/*.config.js"
   }

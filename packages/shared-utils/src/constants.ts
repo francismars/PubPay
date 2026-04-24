@@ -1,13 +1,5 @@
 // Application constants
 
-export const RELAYS = [
-  'wss://relay.damus.io',
-  'wss://relay.primal.net',
-  'wss://relay.snort.social'
-  //'wss://relay.nostr.band' Duplicate pubkey issue
-  //'wss://nos.lol' PoW issue
-];
-
 export const DEFAULT_STYLES = {
   textColor: '#000000',
   bgColor: '#ffffff',

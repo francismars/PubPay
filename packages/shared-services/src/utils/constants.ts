@@ -6,9 +6,7 @@ export const DEFAULT_READ_RELAYS = [
   'wss://nos.lol',
   'wss://relay.primal.net',
   'wss://nostr.bitcoiner.social',
-  'wss://relay.snort.social',
-  'wss://relay.damus.io',
-  'wss://relay.nostr.band'
+  'wss://relay.damus.io'
 ];
 
 // Default relays for writing (publishing events)
@@ -16,9 +14,7 @@ export const DEFAULT_WRITE_RELAYS = [
   'wss://nostr.mom',
   'wss://relay.primal.net',
   'wss://nostr.bitcoiner.social',
-  'wss://relay.snort.social',
-  'wss://relay.damus.io',
-  'wss://relay.nostr.band'
+  'wss://relay.damus.io'
 ];
 
 // Legacy constant: union of all default relays (for backward compatibility)
