@@ -11,6 +11,9 @@ config.env
 # Node modules
 node_modules/
 
+# pnpm content-addressable store when store-dir is inside the repo (e.g. WSL / CI)
+.pnpm-store/
+
 # Logs
 logs
 *.log

@@ -18,7 +18,6 @@
     "baseUrl": "./src",
     "jsx": "react-jsx",
     "paths": {
-      "@pubpay/shared-types": ["../../packages/shared-types/src"],
       "@pubpay/shared-services": ["../../packages/shared-services/src"]
     }
   },

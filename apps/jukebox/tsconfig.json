@@ -17,10 +17,7 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@scure/bip32": ["node_modules/@scure/bip32"],
-      "@scure/bip39": ["node_modules/@scure/bip39"],
-      "@scure/bip39/*": ["node_modules/@scure/bip39/*"]
+      "@/*": ["src/*"]
     }
   },
   "include": ["src/**/*"],

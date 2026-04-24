@@ -15,10 +15,7 @@
     "declaration": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "baseUrl": "./src",
-    "paths": {
-      "@pubpay/shared-types": ["../shared-types/src"]
-    }
+    "baseUrl": "./src"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
