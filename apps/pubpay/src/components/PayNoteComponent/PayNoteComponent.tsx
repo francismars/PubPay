@@ -862,7 +862,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       title="Validating NIP-05 identifier..."
                     >
                       <span className="material-symbols-outlined validating-icon">
-                        hourglass_empty
+                        autorenew
                       </span>
                       {nip05}
                     </a>
@@ -923,7 +923,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                       title="Validating lightning address..."
                     >
                       <span className="material-symbols-outlined validating-icon">
-                        hourglass_empty
+                        autorenew
                       </span>
                       {lud16}
                     </a>

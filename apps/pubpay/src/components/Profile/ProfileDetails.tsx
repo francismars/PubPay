@@ -129,7 +129,7 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({
                 >
                   {nip05Validating ? (
                     <span className="material-symbols-outlined validating-icon">
-                      hourglass_empty
+                      autorenew
                     </span>
                   ) : nip05Valid === false ? (
                     <span className="material-symbols-outlined">block</span>
