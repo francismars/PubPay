@@ -1324,7 +1324,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           {isPubpayPost && (
             <div className="noteCTA">
               <button
-                className={`noteMainCTA cta ${paymentError ? 'disabled red' : restrictionsMet ? 'paid' : ''}`}
+                className={`noteMainCTA cta ${paymentError || !isPayable ? 'disabled red' : restrictionsMet ? 'paid' : ''}`}
                 onMouseDown={handleLongPressStart}
                 onMouseUp={handleLongPressEnd}
                 onMouseLeave={handleLongPressEnd}
@@ -1398,7 +1398,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                     setIsPaying(false);
                   }
                 }}
-                disabled={isPaying || !!paymentError}
+                disabled={isPaying || !!paymentError || !isPayable}
                 title={
                   paymentError
                     ? paymentError

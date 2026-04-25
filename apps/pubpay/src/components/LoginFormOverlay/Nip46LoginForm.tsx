@@ -1,8 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import QRCode from 'qrcode';
 import { Nip46Service } from '@pubpay/shared-services';
-
-type Nip46Mode = 'qr' | 'bunker';
 
 interface Nip46LoginFormProps {
   isVisible: boolean;
@@ -17,190 +15,300 @@ export const Nip46LoginForm: React.FC<Nip46LoginFormProps> = ({
   onBack,
   onComplete
 }) => {
-  const [mode, setMode] = useState<Nip46Mode>('qr');
-  const [bunkerInput, setBunkerInput] = useState('');
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [qrUri, setQrUri] = useState<string | null>(null);
+  const [mobileQrVisible, setMobileQrVisible] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>(
+    'idle'
+  );
   const [waiting, setWaiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoStartedDesktopQrRef = useRef(false);
+  const waitTokenRef = useRef(0);
+
+  const isMobileDevice = () => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+    const ua = window.navigator.userAgent;
+    return (
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        ua
+      ) ||
+      window.matchMedia('(pointer: coarse)').matches
+    );
+  };
+
+  const mobileDevice = isMobileDevice();
+
+  const resetQr = () => {
+    waitTokenRef.current += 1;
+    autoStartedDesktopQrRef.current = false;
+    setQrDataUrl(null);
+    setQrUri(null);
+    setMobileQrVisible(false);
+    setCopyStatus('idle');
+    setError(null);
+    setWaiting(false);
+  };
+
+  const startQrPairing = async (options?: {
+    showQr?: boolean;
+    openSignerApp?: boolean;
+  }) => {
+    setError(null);
+    setWaiting(true);
+    const waitToken = waitTokenRef.current + 1;
+    waitTokenRef.current = waitToken;
+    try {
+      const { uri, clientSecretKey } = Nip46Service.createNostrConnectPairingRequest({
+        includeCallbackRedirects: Boolean(options?.openSignerApp)
+      });
+      if (options?.showQr) {
+        const dataUrl = await QRCode.toDataURL(uri, {
+          width: 220,
+          margin: 2,
+          color: { dark: '#1a1a1a', light: '#ffffff' }
+        });
+        setQrDataUrl(dataUrl);
+        setQrUri(uri);
+        setMobileQrVisible(true);
+      } else {
+        setQrDataUrl(null);
+        setQrUri(null);
+        setMobileQrVisible(false);
+      }
+      if (options?.openSignerApp) {
+        Nip46Service.savePendingPairing(clientSecretKey, uri);
+        Nip46Service.openSignerApp(uri);
+      } else {
+        Nip46Service.clearPendingPairing();
+      }
+      const { publicKey } = await Nip46Service.waitForNostrConnectPairing(
+        clientSecretKey,
+        uri
+      );
+      if (waitToken !== waitTokenRef.current) {
+        return;
+      }
+      Nip46Service.clearPendingPairing();
+      await onComplete(publicKey);
+    } catch (e) {
+      if (waitToken !== waitTokenRef.current) {
+        return;
+      }
+      setError(
+        e instanceof Error ? e.message : 'Nostr Connect pairing failed'
+      );
+    } finally {
+      if (waitToken === waitTokenRef.current) {
+        setWaiting(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (
+      !isVisible ||
+      mobileDevice ||
+      waiting ||
+      qrDataUrl ||
+      autoStartedDesktopQrRef.current
+    ) {
+      return;
+    }
+    autoStartedDesktopQrRef.current = true;
+    void startQrPairing({ showQr: true });
+  }, [isVisible, mobileDevice, waiting, qrDataUrl]);
 
   if (!isVisible) {
     return null;
   }
 
-  const resetQr = () => {
-    setQrDataUrl(null);
-    setError(null);
-    setWaiting(false);
-  };
-
-  const startQrPairing = async () => {
-    setError(null);
-    setWaiting(true);
-    try {
-      const { uri, clientSecretKey } =
-        Nip46Service.createNostrConnectPairingRequest();
-      const dataUrl = await QRCode.toDataURL(uri, {
-        width: 220,
-        margin: 2,
-        color: { dark: '#1a1a1a', light: '#ffffff' }
-      });
-      setQrDataUrl(dataUrl);
-      const { publicKey } = await Nip46Service.waitForNostrConnectPairing(
-        clientSecretKey,
-        uri
-      );
-      await onComplete(publicKey);
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : 'Nostr Connect pairing failed'
-      );
-    } finally {
-      setWaiting(false);
+  const copyQrUri = async () => {
+    if (!qrUri) {
+      return;
     }
-  };
-
-  const submitBunker = async () => {
-    setError(null);
-    setWaiting(true);
     try {
-      const { publicKey } = await Nip46Service.pairWithBunkerInput(bunkerInput);
-      await onComplete(publicKey);
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : 'Could not connect to bunker URL'
-      );
-    } finally {
-      setWaiting(false);
+      await navigator.clipboard.writeText(qrUri);
+      setCopyStatus('copied');
+      window.setTimeout(() => setCopyStatus('idle'), 2000);
+    } catch {
+      setCopyStatus('failed');
     }
   };
 
   return (
     <div className="nip46LoginForm">
-      <p className="label" id="titleNip46">
-        Nostr Connect (NIP-46)
-      </p>
-      <p
-        className="nip46LoginHint"
-        style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}
-      >
-        Remote signing (NIP-46) with Primal, Amber, nsec.app, or a{' '}
-        <code>bunker://</code> URL. Default app relays are used for the QR
-        handshake — see <code>NIP46-GUIDE.md</code> in the repo for flows and
-        troubleshooting.
-      </p>
-
-      <div className="nip46ModeTabs" style={{ display: 'flex', gap: 8 }}>
-        <button
-          type="button"
-          className={`nip46Tab ${mode === 'qr' ? 'active' : ''}`}
-          onClick={() => {
-            setMode('qr');
-            resetQr();
-          }}
-        >
-          QR code
-        </button>
-        <button
-          type="button"
-          className={`nip46Tab ${mode === 'bunker' ? 'active' : ''}`}
-          onClick={() => {
-            setMode('bunker');
-            resetQr();
-          }}
-        >
-          Bunker / NIP-05
-        </button>
-      </div>
-
       {error ? (
         <p
           className="nip46Error"
-          style={{ color: '#b91c1c', fontSize: 13, marginTop: 12 }}
+          style={{ color: '#b91c1c', fontSize: 13, marginTop: 8 }}
         >
           {error}
         </p>
       ) : null}
 
-      {mode === 'qr' ? (
-        <div className="nip46QrSection" style={{ marginTop: 16 }}>
-          {!qrDataUrl ? (
-            <button
-              type="button"
-              className="cta"
-              disabled={waiting}
-              onClick={() => void startQrPairing()}
-            >
-              {waiting ? 'Starting…' : 'Show QR & wait for signer'}
-            </button>
-          ) : (
-            <>
-              <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                <img src={qrDataUrl} alt="Nostr Connect QR" />
-              </div>
-              <p
-                className="label"
-                style={{ textAlign: 'center', fontSize: 13, lineHeight: 1.4 }}
-              >
-                Scan with your signer app, approve the connection, then keep
-                this page open. Pairing can take up to several minutes.
-              </p>
-              {waiting ? (
-                <p
-                  className="label"
-                  style={{ textAlign: 'center', marginTop: 8 }}
-                >
-                  Waiting for signer…
-                </p>
-              ) : null}
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="nip46BunkerSection" style={{ marginTop: 16 }}>
-          <label className="label" htmlFor="nip46BunkerInput">
-            Bunker URL or NIP-05 (e.g. user@domain.com)
-          </label>
-          <textarea
-            id="nip46BunkerInput"
-            rows={3}
-            value={bunkerInput}
-            onChange={e => setBunkerInput(e.target.value)}
-            placeholder="bunker://… or name@domain.com"
-            style={{
-              width: '100%',
-              marginTop: 8,
-              boxSizing: 'border-box',
-              backgroundColor: 'var(--input-bg)',
-              color: 'var(--text-primary)',
-              border: '2px solid var(--border-color)',
-              borderRadius: 6,
-              padding: '12px 16px',
-              fontFamily: 'inherit',
-              fontSize: 14,
-              resize: 'vertical'
-            }}
-          />
+      <div className="nip46QrSection" style={{ marginTop: 10 }}>
+        {mobileDevice ? (
           <button
             type="button"
             className="cta"
-            style={{ marginTop: 16 }}
-            disabled={waiting || !bunkerInput.trim()}
-            onClick={() => void submitBunker()}
+            disabled={waiting}
+            onClick={() =>
+              void startQrPairing({ showQr: false, openSignerApp: true })
+            }
           >
-            {waiting ? 'Connecting…' : 'Connect'}
+            {waiting ? 'Opening signer app…' : 'Open signer app'}
           </button>
-        </div>
-      )}
+        ) : null}
+        {!mobileDevice && qrDataUrl ? (
+          <>
+            <div style={{ textAlign: 'center', marginBottom: 8 }}>
+              <img src={qrDataUrl} alt="Nostr Connect QR" />
+            </div>
+            {qrUri ? (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ textAlign: 'center', marginBottom: 6 }}>
+                  <button
+                    type="button"
+                    className="label"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--accent-color)',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                    onClick={() => void copyQrUri()}
+                  >
+                    {copyStatus === 'copied'
+                      ? 'Copied'
+                      : copyStatus === 'failed'
+                        ? 'Copy failed'
+                        : 'Copy'}
+                  </button>
+                </div>
+                <textarea
+                  value={qrUri}
+                  readOnly
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 6,
+                    padding: '6px 10px',
+                    fontSize: 12,
+                    marginBottom: 0,
+                    resize: 'none'
+                  }}
+                />
+              </div>
+            ) : null}
+          </>
+        ) : null}
+        {mobileDevice ? (
+          <div style={{ marginTop: 8 }}>
+            <button
+              type="button"
+              className="label"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--accent-color)',
+                cursor: waiting ? 'default' : 'pointer',
+                textDecoration: 'underline',
+                padding: 0
+              }}
+              onClick={() => {
+                if (qrDataUrl) {
+                  setMobileQrVisible(prev => !prev);
+                  return;
+                }
+                void startQrPairing({ showQr: true });
+              }}
+            >
+              {qrDataUrl && mobileQrVisible
+                ? 'Hide QR code'
+                : 'Use QR code instead'}
+            </button>
+          </div>
+        ) : null}
+        {mobileDevice && qrDataUrl && mobileQrVisible ? (
+          <>
+            <div style={{ textAlign: 'center', marginTop: 8, marginBottom: 8 }}>
+              <img src={qrDataUrl} alt="Nostr Connect QR" />
+            </div>
+            <p
+              className="label"
+              style={{ textAlign: 'center', fontSize: 13, lineHeight: 1.4 }}
+            >
+              If app opening fails, scan this QR in your signer app to connect.
+            </p>
+            {qrUri ? (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ textAlign: 'center', marginBottom: 6 }}>
+                  <button
+                    type="button"
+                    className="label"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--accent-color)',
+                      textDecoration: 'underline',
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                    onClick={() => void copyQrUri()}
+                  >
+                    {copyStatus === 'copied'
+                      ? 'Copied'
+                      : copyStatus === 'failed'
+                        ? 'Copy failed'
+                        : 'Copy'}
+                  </button>
+                </div>
+                <textarea
+                  value={qrUri}
+                  readOnly
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    backgroundColor: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 6,
+                    padding: '6px 10px',
+                    fontSize: 12,
+                    marginBottom: 0,
+                    resize: 'none'
+                  }}
+                />
+              </div>
+            ) : null}
+          </>
+        ) : null}
+        {waiting ? (
+          <p className="label" style={{ textAlign: 'center', marginTop: 8 }}>
+            Waiting for signer…
+          </p>
+        ) : null}
+      </div>
 
       <a
         href="#"
         className="label"
         id="backFromNip46"
-        style={{ display: 'block', marginTop: 24, textAlign: 'center' }}
+        style={{ display: 'block', marginTop: 10, textAlign: 'center' }}
         onClick={e => {
           e.preventDefault();
           resetQr();
-          setBunkerInput('');
+          Nip46Service.clearPendingPairing();
           setError(null);
           onBack();
         }}

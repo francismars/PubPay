@@ -104,13 +104,12 @@ export const useQRScanner = ({
                   // Handle other QR code formats
                   handleQRCodeContent(decodedText, navigate).then(result => {
                     if (result.handled && result.shouldCloseScanner) {
-                      safelyStopScanner().finally(() => {
-                        try {
-                          onCloseScanner?.();
-                        } catch {
-                          // ignore
-                        }
-                      });
+                      try {
+                        onCloseScanner?.();
+                      } catch {
+                        // ignore
+                      }
+                      void safelyStopScanner();
                     }
                   });
                 },
@@ -198,13 +197,12 @@ export const useQRScanner = ({
           // Handle other QR code formats
           handleQRCodeContent(decodedText, navigate).then(result => {
             if (result.handled && result.shouldCloseScanner) {
-              safelyStopScanner().finally(() => {
-                try {
-                  onCloseScanner?.();
-                } catch {
-                  // ignore
-                }
-              });
+              try {
+                onCloseScanner?.();
+              } catch {
+                // ignore
+              }
+              void safelyStopScanner();
             }
           });
         },

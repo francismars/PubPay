@@ -94,7 +94,7 @@ export const LoginFormOverlay: React.FC<LoginFormOverlayProps> = ({
           <span className="logoMe">.me</span>
         </div>
         <p className="label" id="titleSignin">
-          Choose Sign-in Method
+          {showNip46Group ? 'Nostr Connect (NIP-46)' : 'Choose Sign-in Method'}
         </p>
 
         <LoginMethodSelector
