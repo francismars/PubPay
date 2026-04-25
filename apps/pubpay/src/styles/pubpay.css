@@ -707,7 +707,11 @@ body.dark-mode #sideNav .sideNavLink.active::after {
 #sideNav .sideNavLink.cta {
   background: #4a75ff;
   color: white;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
   margin-top: 28px;
   padding: 14px 24px 14px 16px;
   border-radius: 6px;
@@ -858,7 +862,7 @@ a.feedSelectorLink.active {
   border: 1px solid var(--border-light);
   border-radius: 4px;
   color: #888;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   padding: 10px 10px;
   cursor: pointer;
@@ -917,6 +921,9 @@ a.feedSelectorLink.active {
   height: 100%;
   display: flex;
   align-items: center;
+  text-transform: uppercase;
+  font-weight: 300;
+  letter-spacing: 0.04em;
 }
 
 .paynote {
@@ -1475,7 +1482,7 @@ button.cta {
   box-sizing: border-box;
   text-decoration: none;
   text-align: center;
-  font-size: 15px;
+  font-size: 14px;
   letter-spacing: 0.02em;
   font-weight: 600;
   border: none;
@@ -1508,7 +1515,9 @@ button.cta:active {
   box-shadow: 0 1px 0px #00000000;
   font-weight: 100;
   /* letter-spacing: 0.08rem; */
-  font-weight: 600;
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   border: #b2c4ff 1px solid;
   margin: 10px 0px 20px 0px;
 }
@@ -2094,6 +2103,18 @@ legend {
   font-size: 14px;
   text-decoration: none;
   transition: color 0.2s ease;
+}
+
+#postNote {
+  text-transform: uppercase;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+}
+
+#cancelNewNote {
+  text-transform: uppercase;
+  font-weight: 300;
+  letter-spacing: 0.05em;
 }
 
 #cancelNewNote:hover,
@@ -2695,12 +2716,14 @@ textarea {
 .previewButton,
 .uploadButton {
   padding: 8px 16px;
-  font-size: 14px;
+  font-size: 12px;
   cursor: pointer;
   background-color: #f0f0f0;
   border: 1px solid #ddd;
   border-radius: 6px;
-  font-weight: 500;
+  font-weight: 300;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
