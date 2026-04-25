@@ -10,6 +10,8 @@ import { bytesToHex, hexToBytes } from 'nostr-tools/utils';
 import { DEFAULT_WRITE_RELAYS } from '../utils/constants';
 
 const STORAGE_KEY = 'nip46_session';
+const PENDING_PAIRING_KEY = 'nip46_pending_pairing';
+const PENDING_PAIRING_MAX_AGE_MS = 10 * 60 * 1000;
 
 export type Nip46PersistedSession = {
   clientSkHex: string;
@@ -23,12 +25,81 @@ export type Nip46PersistedSession = {
   skipConnectRpc?: boolean;
 };
 
+type Nip46PendingPairing = {
+  clientSkHex: string;
+  uri: string;
+  createdAtMs: number;
+};
+
 export class Nip46Service {
   static readonly STORAGE_KEY = STORAGE_KEY;
+  static readonly PENDING_PAIRING_KEY = PENDING_PAIRING_KEY;
+  private static readonly APP_NAME = 'PUBPAY.me';
+  private static readonly DEFAULT_ICON_PATH = '/images/favicon-96x96.png';
+
+  static openSignerApp(uri: string): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    window.location.assign(uri);
+  }
 
   static clearPersistedSession(): void {
     try {
       localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }
+
+  static savePendingPairing(clientSecretKey: Uint8Array, uri: string): void {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+    const payload: Nip46PendingPairing = {
+      clientSkHex: bytesToHex(clientSecretKey),
+      uri,
+      createdAtMs: Date.now()
+    };
+    localStorage.setItem(PENDING_PAIRING_KEY, JSON.stringify(payload));
+  }
+
+  static loadPendingPairing(): { clientSecretKey: Uint8Array; uri: string } | null {
+    if (typeof localStorage === 'undefined') {
+      return null;
+    }
+    try {
+      const raw = localStorage.getItem(PENDING_PAIRING_KEY);
+      if (!raw) {
+        return null;
+      }
+      const parsed = JSON.parse(raw) as Nip46PendingPairing;
+      if (
+        !parsed?.clientSkHex ||
+        !parsed?.uri ||
+        typeof parsed.createdAtMs !== 'number'
+      ) {
+        return null;
+      }
+      if (Date.now() - parsed.createdAtMs > PENDING_PAIRING_MAX_AGE_MS) {
+        this.clearPendingPairing();
+        return null;
+      }
+      return {
+        clientSecretKey: hexToBytes(parsed.clientSkHex),
+        uri: parsed.uri
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  static clearPendingPairing(): void {
+    if (typeof localStorage === 'undefined') {
+      return;
+    }
+    try {
+      localStorage.removeItem(PENDING_PAIRING_KEY);
     } catch {
       // ignore
     }
@@ -69,7 +140,9 @@ export class Nip46Service {
   /**
    * Build a Nostr Connect URI for QR / deep-link pairing (see NIP-46).
    */
-  static createNostrConnectPairingRequest(): {
+  static createNostrConnectPairingRequest(options?: {
+    includeCallbackRedirects?: boolean;
+  }): {
     uri: string;
     clientSecretKey: Uint8Array;
   } {
@@ -77,13 +150,72 @@ export class Nip46Service {
     const clientSecretKey = generateSecretKey();
     const clientPubkey = getPublicKey(clientSecretKey);
     const secret = bytesToHex(crypto.getRandomValues(new Uint8Array(32)));
+    const metadata = this.buildNip46Metadata();
     const uri = createNostrConnectURI({
       clientPubkey,
       relays,
       secret,
-      name: 'PUBPAY.me'
+      name: this.APP_NAME
     });
-    return { uri, clientSecretKey };
+    const callback = options?.includeCallbackRedirects
+      ? this.buildNip46CallbackUrl()
+      : undefined;
+    const enhancedUri = this.appendNip46QueryParams(uri, {
+      callback,
+      return: callback,
+      redirect: callback,
+      redirect_url: callback,
+      perms: 'sign_event:1,get_public_key',
+      metadata: metadata ? JSON.stringify(metadata) : undefined
+    });
+    return { uri: enhancedUri, clientSecretKey };
+  }
+
+  private static buildNip46CallbackUrl(): string | undefined {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set('nip46_cb', '1');
+    return url.toString();
+  }
+
+  private static buildNip46Metadata():
+    | {
+        name: string;
+        url: string;
+        description: string;
+        icons: string[];
+        image: string;
+      }
+    | undefined {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const iconUrl = new URL(this.DEFAULT_ICON_PATH, window.location.origin).toString();
+    return {
+      name: this.APP_NAME,
+      url: window.location.origin,
+      description: 'PUBPAY.me Nostr Connect Sign-In',
+      icons: [iconUrl],
+      image: iconUrl
+    };
+  }
+
+  private static appendNip46QueryParams(
+    uri: string,
+    params: Record<string, string | undefined>
+  ): string {
+    const [base, query = ''] = uri.split('?');
+    const search = new URLSearchParams(query);
+    for (const [key, value] of Object.entries(params)) {
+      if (!value) {
+        continue;
+      }
+      search.set(key, value);
+    }
+    const serialized = search.toString();
+    return serialized ? `${base}?${serialized}` : base;
   }
 
   /**

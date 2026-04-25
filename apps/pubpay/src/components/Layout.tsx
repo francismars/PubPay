@@ -3,7 +3,8 @@ import { Outlet } from 'react-router-dom';
 import {
   useUIStore,
   NostrRegistrationService,
-  AuthService
+  AuthService,
+  Nip46Service
 } from '@pubpay/shared-services';
 import { useHomeFunctionality } from '../hooks/useHomeFunctionality';
 import { PubPayPost } from '../hooks/useHomeFunctionality';
@@ -35,6 +36,7 @@ import { TOAST_DURATION, STORAGE_KEYS } from '../constants';
 import { useAuthStore } from '@pubpay/shared-services';
 
 export const Layout: React.FC = () => {
+  const nip46CallbackHandledRef = React.useRef(false);
   // Use composite hooks for optimized state access
   const showQRScanner = useShowQRScanner();
   const showPasswordPrompt = useShowPasswordPrompt();
@@ -409,6 +411,41 @@ export const Layout: React.FC = () => {
       console.error('NIP-46 login failed:', error);
     }
   };
+
+  useEffect(() => {
+    const resumeNip46FromCallback = async () => {
+      if (nip46CallbackHandledRef.current) {
+        return;
+      }
+      if (authState.isLoggedIn) {
+        Nip46Service.clearPendingPairing();
+        return;
+      }
+      const url = new URL(window.location.href);
+      const hasCallbackMarker = url.searchParams.get('nip46_cb') === '1';
+      const pending = Nip46Service.loadPendingPairing();
+      if (!pending || !hasCallbackMarker) {
+        return;
+      }
+      nip46CallbackHandledRef.current = true;
+      try {
+        const { publicKey } = await Nip46Service.waitForNostrConnectPairing(
+          pending.clientSecretKey,
+          pending.uri
+        );
+        Nip46Service.clearPendingPairing();
+        await handleCompleteNip46LoginWrapper(publicKey);
+        url.searchParams.delete('nip46_cb');
+        window.history.replaceState({}, '', url.toString());
+      } catch (error) {
+        console.error('Failed to resume NIP-46 callback login:', error);
+      }
+    };
+    void resumeNip46FromCallback();
+  }, [
+    authState.isLoggedIn,
+    handleCompleteNip46LoginWrapper
+  ]);
 
   // Handler functions for FeedsPage
   const handleSharePost = async (post: PubPayPost) => {

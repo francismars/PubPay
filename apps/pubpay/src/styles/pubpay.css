@@ -1568,12 +1568,12 @@ button.cta:active {
 a.noteMainCTA.cta.disabled.red,
 button.noteMainCTA.cta.disabled.red,
 .cta.disabled.red {
-  background: #c80000;
+  background: #e4e7ec;
   opacity: 1;
   filter: unset;
-  color: #ffffffba;
+  color: #8b9098;
   border: none;
-  cursor: none;
+  cursor: not-allowed;
 }
 
 #invoiceQR,
