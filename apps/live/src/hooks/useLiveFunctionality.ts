@@ -15,6 +15,7 @@
  * @returns Hook state and functions for managing live functionality
  */
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import { useQRCode } from './useQRCode';
 import { useLightningIntegration } from './useLightningIntegration';
@@ -100,6 +101,7 @@ const MAX_RECONNECT_ATTEMPTS = 3;
 import type { ProcessedZapData } from '../types/global';
 
 export const useLiveFunctionality = (eventId?: string) => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [noteContent, setNoteContent] = useState<string>('');
@@ -1048,6 +1050,21 @@ export const useLiveFunctionality = (eventId?: string) => {
           }
 
           return; // Exit early for live events
+        } else if (decoded.type === 'nprofile') {
+          const { pubkey } = decoded.data;
+
+          showElementLoadingState(
+            querySelector('.note-content'),
+            'Loading profile...'
+          );
+          showElementLoadingState(getElementById('zaps'), 'Loading profile activity...');
+
+          if (subscribeChatAuthorProfile) {
+            subscribeChatAuthorProfile(pubkey);
+          }
+
+          hideElement(getElementById('noteLoaderContainer'));
+          return;
         } else {
           throw new Error('Invalid nostr identifier format.');
         }
@@ -1115,15 +1132,15 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // validateNoteId and stripNostrPrefix are now imported from '../utils/eventIdParser'
 
-  const showNoteLoaderError = (message: string) => {
+  const showNoteLoaderError = useCallback((message: string) => {
     showErrorHelper('noteLoaderError', message);
-  };
+  }, []);
 
-  const hideNoteLoaderError = () => {
+  const hideNoteLoaderError = useCallback(() => {
     hideErrorHelper('noteLoaderError');
-  };
+  }, []);
 
-  const showLoadingError = (message: string) => {
+  const showLoadingError = useCallback((message: string) => {
     showErrorHelper('noteLoaderError', message);
 
     // Ensure noteLoader is visible and main layout is hidden when there's an error
@@ -1132,7 +1149,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     showElement(noteLoaderContainer, 'flex');
     hideElement(mainLayout);
-  };
+  }, []);
 
   // resetToDefaults is now provided by useStyleManagement hook
 
@@ -1904,113 +1921,33 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // getMentionUserName and processNoteContent are now provided by useContentRendering hook
 
-  // Helper function to show loading state
-  const showLoadingState = (noteContentText: string, zapsText: string) => {
-    const noteContent = querySelector('.note-content');
-    const zapsList = getElementById('zaps');
-
-    showElementLoadingState(noteContent, noteContentText);
-    showElementLoadingState(zapsList, zapsText);
-  };
-
-  const handleNoteLoaderSubmit = async () => {
+  const handleNoteLoaderSubmit = useCallback(() => {
     const inputField = getElementById<HTMLInputElement>('note1LoaderInput');
     const noteId = inputField?.value?.trim();
 
-    // Debug log removed
-
     if (!noteId) {
-      // Debug log removed
       showNoteLoaderError('Please enter a note ID');
       return;
     }
 
-    // Strip nostr: protocol prefix if present
-    const originalNoteId = noteId;
     const cleanNoteId = stripNostrPrefix(noteId);
 
-    // Validate and decode the note ID
-    let decoded;
     try {
-      decoded = parseEventId(cleanNoteId);
+      parseEventId(cleanNoteId);
       hideNoteLoaderError();
+      resetZapList();
+      navigate(`/live/${cleanNoteId}`);
     } catch (error) {
       showNoteLoaderError(
         error instanceof Error ? error.message : 'Invalid note ID'
       );
-      return;
     }
-
-    try {
-      // Route to appropriate handler
-
-      // Update URL with the identifier under /live/ base path
-      const newUrl = `/live/${cleanNoteId}`;
-      window.history.pushState({}, '', newUrl);
-
-      // Trigger a custom event to notify the React component
-      window.dispatchEvent(
-        new CustomEvent('noteLoaderSubmitted', {
-          detail: { noteId: cleanNoteId, decoded }
-        })
-      );
-
-      // Show loading state
-      setIsLoading(true);
-      setError(null);
-
-      if (decoded.type === 'naddr') {
-        // Handle live events
-        const { identifier, pubkey, kind } = decoded.data;
-
-        // Show loading animations
-        showLoadingState('Loading live event...', 'Loading live activity...');
-
-        // Subscribe to live event, chat, and zaps
-        await subscribeLiveEvent(pubkey, identifier, kind);
-        await subscribeLiveChat(pubkey, identifier);
-        await subscribeLiveEventZaps(pubkey, identifier);
-      } else if (decoded.type === 'nprofile') {
-        // Handle profiles
-        const { pubkey } = decoded.data;
-
-        // Show loading animations
-        showLoadingState('Loading profile...', 'Loading profile activity...');
-
-        // Subscribe to profile updates
-        if (subscribeChatAuthorProfile) {
-          subscribeChatAuthorProfile(pubkey);
-        }
-      } else if (decoded.type === 'nevent') {
-        // Handle note events
-        const kind1ID = decoded.data.id;
-
-        // Show loading animations
-        showLoadingState('Loading note content...', 'Loading zaps...');
-
-        // Subscribe to kind1 note
-        await subscribeKind1(kind1ID);
-      } else if (decoded.type === 'note') {
-        // Handle direct note IDs
-        const kind1ID = decoded.data;
-
-        // Show loading animations
-        showLoadingState('Loading note content...', 'Loading zaps...');
-
-        // Subscribe to kind1 note
-        await subscribeKind1(kind1ID);
-      } else {
-        throw new Error(
-          'Invalid identifier format. Please enter a valid nostr identifier.'
-        );
-      }
-    } catch (e) {
-      showNoteLoaderError(
-        'Invalid nostr identifier. Please enter a valid note ID (note1...), event ID (nevent1...), live event (naddr1...), or profile (nprofile1...).'
-      );
-      setIsLoading(false);
-    }
-  };
+  }, [
+    hideNoteLoaderError,
+    navigate,
+    resetZapList,
+    showNoteLoaderError
+  ]);
 
   // Setup note loader event listeners
   const setupNoteLoaderListeners = (retryCount = 0) => {
@@ -2023,16 +1960,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       setupNoteLoaderListenersInProgress = true;
     }
 
-    const submitButton = document.getElementById('note1LoaderSubmit');
     const inputField = document.getElementById('note1LoaderInput');
 
-    // Debug log removed
-
-    // Debug log removed
-    // Debug log removed
-    // Debug log removed
-
-    if (!inputField || !submitButton) {
+    if (!inputField) {
       // Only retry up to 50 times (5 seconds) and only log warning every 10 retries
       if (retryCount < 50) {
         if (retryCount % 10 === 0) {
@@ -2045,37 +1975,11 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     }
 
-    if (submitButton) {
-      // Remove any existing listeners first
-      submitButton.removeEventListener('click', handleNoteLoaderSubmit);
-
-      submitButton.addEventListener('click', e => {
-        e.preventDefault();
-        handleNoteLoaderSubmit();
-      });
-      // Debug log removed
-
-      // Debug log removed
-    }
-
     if (inputField) {
-      // Add Enter key support for the input field
-      inputField.addEventListener('keypress', (e: KeyboardEvent) => {
-        // Debug log removed
-        if (e.key === 'Enter') {
-          // Debug log removed
-          e.preventDefault();
-          handleNoteLoaderSubmit();
-        }
-      });
-
-      // Clear error message when user starts typing
-      inputField.addEventListener('input', e => {
-        // Debug log removed
+      // Clear error message when user starts typing (submit handled via React)
+      inputField.addEventListener('input', () => {
         hideNoteLoaderError();
       });
-
-      // Debug log removed
     }
 
     // Reset the flag when function completes successfully

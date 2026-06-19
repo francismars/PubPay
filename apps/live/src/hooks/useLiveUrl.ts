@@ -157,29 +157,6 @@ export function useLiveUrl(
     };
   }, [showLoadingError]);
 
-  // Handle noteLoaderSubmitted custom event from useLiveFunctionality
-  // This event is fired when user submits a note ID from the input field
-  useEffect(() => {
-    const handleNoteLoaderSubmitted = () => {
-      // Update state to show main layout
-      setShowNoteLoader(false);
-      setShowMainLayout(true);
-
-      // Clear any errors
-      setError(null);
-      clearNoteLoaderError();
-
-      // The URL has already been updated by useLiveFunctionality
-      // We just need to update the UI state
-      // Note: React Router will handle the re-render when the URL changes
-    };
-
-    window.addEventListener('noteLoaderSubmitted', handleNoteLoaderSubmitted);
-    return () => {
-      window.removeEventListener('noteLoaderSubmitted', handleNoteLoaderSubmitted);
-    };
-  }, []);
-
   // Clear input field if it contains "live" keyword (edge case)
   // This prevents the input from showing "live" when navigating to /live/
   useEffect(() => {

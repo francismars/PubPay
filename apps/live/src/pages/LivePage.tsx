@@ -29,6 +29,7 @@ export const LivePage: React.FC = () => {
     totalAmount,
     handleStyleOptionsToggle,
     handleStyleOptionsClose,
+    handleNoteLoaderSubmit,
     showLoadingError,
     resetToDefaults,
     copyStyleUrl,
@@ -198,6 +199,12 @@ export const LivePage: React.FC = () => {
                 id="note1LoaderInput"
                 name="note1LoaderInput"
                 placeholder="note1abc123... or nevent1xyz789... or naddr1def456... or nprofile1ghi789..."
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleNoteLoaderSubmit();
+                  }
+                }}
               />
               <div
                 id="noteLoaderError"
@@ -205,7 +212,12 @@ export const LivePage: React.FC = () => {
                 style={{ display: 'none' }}
               ></div>
               <div className="button-container">
-                <button id="note1LoaderSubmit" className="button">
+                <button
+                  type="button"
+                  id="note1LoaderSubmit"
+                  className="button"
+                  onClick={handleNoteLoaderSubmit}
+                >
                   Load
                 </button>
                 <button
