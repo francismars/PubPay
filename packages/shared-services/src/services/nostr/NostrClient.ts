@@ -18,15 +18,21 @@ interface RelayConfig {
   write: boolean;
 }
 
+export interface NostrClientOptions {
+  /** Relays for kind-9735 zap receipt queries; defaults to read relays. */
+  zapRelays?: string[];
+}
+
 export class NostrClient {
   private pool!: SimplePool; // Initialized in initializePool()
   private readRelays: string[];
   private writeRelays: string[];
+  private zapReadRelays: string[];
   private connections: Map<string, RelayConnection> = new Map();
   private subscriptions: Map<string, Subscription> = new Map();
   private inFlightRequests: Map<string, Promise<NostrEvent[]>> = new Map();
 
-  constructor(relays?: string[] | RelayConfig[]) {
+  constructor(relays?: string[] | RelayConfig[], options?: NostrClientOptions) {
     if (!relays || relays.length === 0) {
       // Default: use DEFAULT_READ_RELAYS for reading and DEFAULT_WRITE_RELAYS for writing
       this.readRelays = [...DEFAULT_READ_RELAYS];
@@ -44,7 +50,20 @@ export class NostrClient {
       // No fallback - if user disables all relays, respect their choice
       // Validation in SettingsPage prevents this from happening
     }
+    this.zapReadRelays = options?.zapRelays?.length
+      ? [...options.zapRelays]
+      : [...this.readRelays];
     this.initializePool();
+  }
+
+  /** Use the wider zap relay set when every filter targets kind 9735 only. */
+  private relaysForFilters(filters: NostrFilter[]): string[] {
+    const zapKind = 9735;
+    const isZapQuery = filters.every(
+      filter =>
+        filter.kinds?.length === 1 && filter.kinds[0] === zapKind
+    );
+    return isZapQuery ? this.zapReadRelays : this.readRelays;
   }
 
   private initializePool(): void {
@@ -114,14 +133,15 @@ export class NostrClient {
       timeoutId = setTimeout(() => {}, options.timeout);
     }
 
+    const readRelays = this.relaysForFilters(filters);
+
     // Subscribe to each filter individually to avoid subscribeMany issues
     const subscriptions: any[] = [];
     filters.forEach(filter => {
       // Convert NostrFilter to compatible format for SimplePool
       // SimplePool.subscribe expects a single Filter, not an array
       const poolFilter = filter as any; // Type assertion for index signatures
-      // Use read relays for subscribing/fetching events
-      const sub = this.pool.subscribe(this.readRelays, poolFilter, {
+      const sub = this.pool.subscribe(readRelays, poolFilter, {
         onevent: (event: NostrEvent) => {
           if (timeoutId) {
             clearTimeout(timeoutId);
@@ -418,7 +438,9 @@ export class NostrClient {
           throw new Error('Nostr pool not initialized');
         }
 
-        if (!this.readRelays || this.readRelays.length === 0) {
+        const readRelays = this.relaysForFilters(filters);
+
+        if (!readRelays || readRelays.length === 0) {
           throw new Error('No read relays configured. Cannot fetch events.');
         }
 
@@ -502,8 +524,7 @@ export class NostrClient {
         // SimplePool.subscribe expects a single Filter, not an array
         const subscriptions = cleanFilters.map(filter => {
           const poolFilter = filter as any; // Type assertion for index signatures
-          // Use read relays for fetching events
-          return this.pool.subscribe(this.readRelays, poolFilter, {
+          return this.pool.subscribe(readRelays, poolFilter, {
             onevent(event: NostrEvent) {
               events.push(event);
             },
@@ -615,6 +636,11 @@ export class NostrClient {
    */
   getReadRelays(): string[] {
     return [...this.readRelays];
+  }
+
+  /** Relays used for kind-9735 zap receipt queries. */
+  getZapReadRelays(): string[] {
+    return [...this.zapReadRelays];
   }
 
   /**

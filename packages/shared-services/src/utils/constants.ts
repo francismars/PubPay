@@ -1,11 +1,15 @@
 // Application constants
 
+/** Deduplicate relay URL lists while preserving order. */
+export function uniqueRelays(...lists: string[][]): string[] {
+  return [...new Set(lists.flat())];
+}
+
 // Default relays for reading (fetching events)
 export const DEFAULT_READ_RELAYS = [
   'wss://nostr.mom',
   'wss://nos.lol',
   'wss://relay.primal.net',
-  'wss://nostr.bitcoiner.social',
   'wss://relay.damus.io'
 ];
 
@@ -13,9 +17,34 @@ export const DEFAULT_READ_RELAYS = [
 export const DEFAULT_WRITE_RELAYS = [
   'wss://nostr.mom',
   'wss://relay.primal.net',
-  'wss://nostr.bitcoiner.social',
   'wss://relay.damus.io'
 ];
+
+/** PubPay Live: notes, profiles, live events (kind 0/1/30311). */
+export const LIVE_CONTENT_RELAYS = uniqueRelays([
+  ...DEFAULT_READ_RELAYS,
+  'wss://relay.snort.social'
+]);
+
+/**
+ * PubPay Live: indexers where zap wallets commonly publish kind-9735 receipts.
+ * Kept separate from content relays — zaps often land here, not on the author's outbox.
+ */
+export const LIVE_ZAP_INDEX_RELAYS = [
+  'wss://relay.primal.net',
+  'wss://premium.primal.net',
+  'wss://relay.zapstore.dev',
+  'wss://nos.lol',
+  'wss://relay.damus.io',
+  'wss://relay.nostr.net',
+  'wss://nostr.mom'
+];
+
+/** PubPay Live: union used for kind-9735 subscriptions and batch zap fetches. */
+export const LIVE_ZAP_RELAYS = uniqueRelays(
+  LIVE_CONTENT_RELAYS,
+  LIVE_ZAP_INDEX_RELAYS
+);
 
 // Legacy constant: union of all default relays (for backward compatibility)
 export const RELAYS = [

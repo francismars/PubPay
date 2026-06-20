@@ -6,7 +6,8 @@ import {
   ensureZaps,
   ensureProfiles,
   getQueryClient,
-  DEFAULT_READ_RELAYS,
+  LIVE_CONTENT_RELAYS,
+  LIVE_ZAP_RELAYS,
   extractZapAmount,
   extractZapPayerPubkey,
   extractZapContent
@@ -119,7 +120,9 @@ export const MultiStatsPage: React.FC = () => {
   // Initialize Nostr client
   useEffect(() => {
     if (!nostrClientRef.current) {
-      nostrClientRef.current = new NostrClient(DEFAULT_READ_RELAYS);
+      nostrClientRef.current = new NostrClient(LIVE_CONTENT_RELAYS, {
+        zapRelays: LIVE_ZAP_RELAYS
+      });
     }
     return () => {
       // Cleanup on unmount

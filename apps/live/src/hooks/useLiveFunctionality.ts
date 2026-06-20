@@ -27,7 +27,8 @@ import { useContentRendering } from './useContentRendering';
 import { useVideoPlayer } from './useVideoPlayer';
 // Zap handling imports removed - now using useZapHandling hook
 import {
-  DEFAULT_READ_RELAYS,
+  LIVE_CONTENT_RELAYS,
+  LIVE_ZAP_RELAYS,
   NostrClient,
   EVENT_KINDS,
   extractZapAmount,
@@ -118,7 +119,10 @@ export const useLiveFunctionality = (eventId?: string) => {
   const _liveDisplayRef = useRef<HTMLElement | null>(null);
 
   // Initialize NostrClient - replaces window.pool
-  const nostrClient = useMemo(() => new NostrClient(DEFAULT_READ_RELAYS), []);
+  const nostrClient = useMemo(
+    () => new NostrClient(LIVE_CONTENT_RELAYS, { zapRelays: LIVE_ZAP_RELAYS }),
+    []
+  );
 
   // Initialize BitcoinPriceService
   const bitcoinPriceService = useMemo(() => new BitcoinPriceService(), []);
