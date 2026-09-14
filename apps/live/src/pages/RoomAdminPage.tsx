@@ -395,7 +395,7 @@ export const RoomAdminPage: React.FC = () => {
             slots?: Array<Partial<Slot> & { items?: Array<{ ref: string }> }>;
           } | null;
           const savedSlots = schedule?.slots;
-          if (Array.isArray(savedSlots) && savedSlots.length > 0) {
+          if (schedule && Array.isArray(savedSlots) && savedSlots.length > 0) {
             setScheduleJson(normalizeScheduleJson(schedule));
           } else {
             // No schedule uploaded yet — show the example so new rooms
