@@ -28,6 +28,7 @@ type ViewPayload = {
   policy: { type: 'round_robin' | 'random' | 'weighted'; intervalSec: number };
   index: number;
   nextSwitchAt: string;
+  nextSwitchType?: 'rotation' | 'slot';
   defaultItems: string[];
   upcomingSlots?: Array<{ startAt: string; endAt: string; items: string[] }>;
   previousSlots?: Array<{ startAt: string; endAt: string; items: string[] }>;
@@ -630,9 +631,9 @@ export const RoomViewerPage: React.FC = () => {
     return new Date(simTime).getTime();
   };
   // Calculate countdown - recalculates when tick updates
-  const nextSwitchIn = useMemo(() => {
-    if (!view?.nextSwitchAt) return null;
-    const ms = new Date(view.nextSwitchAt).getTime() - getCurrentTime();
+  const formatCountdown = (iso?: string | null) => {
+    if (!iso) return null;
+    const ms = new Date(iso).getTime() - getCurrentTime();
     if (isNaN(ms)) return null;
     const s = Math.max(0, Math.floor(ms / 1000));
     const mm = Math.floor(s / 60)
@@ -640,7 +641,25 @@ export const RoomViewerPage: React.FC = () => {
       .padStart(2, '0');
     const ss = (s % 60).toString().padStart(2, '0');
     return `${mm}:${ss}`;
-  }, [view?.nextSwitchAt, isSimulating, simTime, tick]);
+  };
+  const nextSwitchIn = useMemo(
+    () => formatCountdown(view?.nextSwitchAt),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [view?.nextSwitchAt, isSimulating, simTime, tick]
+  );
+  const nextSlotIn = useMemo(
+    () => formatCountdown(view?.active?.slotEnd),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [view?.active?.slotEnd, isSimulating, simTime, tick]
+  );
+  const nextSwitchType: 'rotation' | 'slot' = useMemo(() => {
+    if (view?.nextSwitchType) return view.nextSwitchType;
+    if (!view?.nextSwitchAt) return 'slot';
+    if (!view.active) return 'rotation';
+    const nextMs = new Date(view.nextSwitchAt).getTime();
+    const slotEndMs = new Date(view.active.slotEnd).getTime();
+    return nextMs < slotEndMs - 500 ? 'rotation' : 'slot';
+  }, [view?.nextSwitchType, view?.nextSwitchAt, view?.active]);
 
   // In simulation mode, switch items locally at the exact simulated nextSwitchAt
   useEffect(() => {
@@ -1098,6 +1117,11 @@ export const RoomViewerPage: React.FC = () => {
                     }}
                   >
                     <strong>Current item:</strong>
+                    {items.length > 1 && (
+                      <span style={{ color: pubPayStyle.textSecondary }}>
+                        {actualIndex % items.length + 1} of {items.length}
+                      </span>
+                    )}
                     <div
                       style={{
                         display: 'inline-flex',
@@ -1161,19 +1185,48 @@ export const RoomViewerPage: React.FC = () => {
                       fontSize: '12px',
                       color: pubPayStyle.textPrimary,
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      flexWrap: 'wrap'
+                      flexDirection: 'column',
+                      gap: 4
                     }}
                   >
-                    <strong>Next switch:</strong>{' '}
-                    <span>
-                      {nextSwitchIn
-                        ? nextSwitchIn
-                        : view?.nextSwitchAt
-                          ? new Date(view.nextSwitchAt).toLocaleString()
-                          : '—'}
-                    </span>
+                    {nextSwitchType === 'rotation' && (
+                      <div>
+                        <strong>Next rotation:</strong>{' '}
+                        <span>
+                          {nextSwitchIn
+                            ? `in ${nextSwitchIn}`
+                            : view?.nextSwitchAt
+                              ? new Date(view.nextSwitchAt).toLocaleString()
+                              : '—'}
+                        </span>
+                        <span
+                          style={{
+                            marginLeft: 6,
+                            color: pubPayStyle.textSecondary
+                          }}
+                        >
+                          (same slot)
+                        </span>
+                      </div>
+                    )}
+                    {(nextSwitchType === 'slot' || view?.active) && (
+                      <div>
+                        <strong>Next slot:</strong>{' '}
+                        <span>
+                          {nextSwitchType === 'slot'
+                            ? nextSwitchIn
+                              ? `in ${nextSwitchIn}`
+                              : view?.nextSwitchAt
+                                ? new Date(view.nextSwitchAt).toLocaleString()
+                                : '—'
+                            : nextSlotIn
+                              ? `in ${nextSlotIn}`
+                              : view?.active?.slotEnd
+                                ? new Date(view.active.slotEnd).toLocaleString()
+                                : '—'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1752,11 +1805,31 @@ export const RoomViewerPage: React.FC = () => {
                     }}
                   >
                     <strong style={{ color: pubPayStyle.textPrimary }}>
-                      Next switch at (UTC):
+                      {nextSwitchType === 'rotation'
+                        ? 'Next rotation (UTC):'
+                        : 'Next slot (UTC):'}
                     </strong>{' '}
                     {formatUTC(view.nextSwitchAt)}
                     {nextSwitchIn ? ` (in ${nextSwitchIn})` : ''}
+                    {nextSwitchType === 'rotation'
+                      ? ' — same slot'
+                      : ' — new time'}
                   </div>
+                  {nextSwitchType === 'rotation' && view.active && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        fontSize: '13px',
+                        color: pubPayStyle.textSecondary
+                      }}
+                    >
+                      <strong style={{ color: pubPayStyle.textPrimary }}>
+                        Next slot (UTC):
+                      </strong>{' '}
+                      {formatUTC(view.active.slotEnd)}
+                      {nextSlotIn ? ` (in ${nextSlotIn})` : ''}
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -73,6 +73,7 @@ export interface ViewPayload {
   policy: { type: RotationPolicy; intervalSec: number };
   index: number; // current item index for rotation
   nextSwitchAt: string; // ISO
+  nextSwitchType: 'rotation' | 'slot';
   defaultItems: string[];
   upcomingSlots?: Array<{ startAt: string; endAt: string; items: string[] }>; // optional preview
   previousSlots?: Array<{ startAt: string; endAt: string; items: string[] }>; // optional previous slots
@@ -305,17 +306,23 @@ export class RoomsService {
     const nextTickSec = (ticksPassed + 1) * intervalSec;
     const nextRotationTick = new Date(anchor.getTime() + nextTickSec * 1000);
     let nextSwitchDate: Date;
+    let nextSwitchType: 'rotation' | 'slot';
     if (activeSlot) {
       const slotEnd = new Date(activeSlot.endAt);
       if (flattenedItems.length <= 1) {
         nextSwitchDate = slotEnd;
+        nextSwitchType = 'slot';
+      } else if (nextRotationTick < slotEnd) {
+        nextSwitchDate = nextRotationTick;
+        nextSwitchType = 'rotation';
       } else {
-        nextSwitchDate =
-          nextRotationTick < slotEnd ? nextRotationTick : slotEnd;
+        nextSwitchDate = slotEnd;
+        nextSwitchType = 'slot';
       }
     } else {
-      // No active slot - use rotation tick for default items
+      // No active slot - rotating default items (if any)
       nextSwitchDate = nextRotationTick;
+      nextSwitchType = 'rotation';
     }
 
     // Build upcoming slots list (next 5)
@@ -369,6 +376,7 @@ export class RoomsService {
       policy: { type: policy, intervalSec },
       index: flattenedItems.length ? rotationIndex % flattenedItems.length : 0,
       nextSwitchAt: nextSwitchDate.toISOString(),
+      nextSwitchType,
       defaultItems: room.config.defaultItems,
       upcomingSlots,
       previousSlots,
