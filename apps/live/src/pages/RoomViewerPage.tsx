@@ -8,7 +8,6 @@ import React, {
 import { useNavigate, useParams } from 'react-router-dom';
 import { getApiBase } from '../utils/apiBase';
 import { StyleConfig } from '../components/StyleEditor';
-import { appSessionStorage } from '../utils/storage';
 
 // Fullscreen vendor typings
 type VendorFullscreenElement = HTMLElement & {
@@ -32,6 +31,8 @@ type ViewPayload = {
   defaultItems: string[];
   upcomingSlots?: Array<{ startAt: string; endAt: string; items: string[] }>;
   previousSlots?: Array<{ startAt: string; endAt: string; items: string[] }>;
+  styleConfig?: StyleConfig;
+  name?: string;
 };
 
 export const RoomViewerPage: React.FC = () => {
@@ -46,6 +47,7 @@ export const RoomViewerPage: React.FC = () => {
   const [roomName, setRoomName] = useState<string>('');
   const [showIdCopied, setShowIdCopied] = useState(false);
   const [styleConfig, setStyleConfig] = useState<StyleConfig | null>(null);
+  const [stylesReady, setStylesReady] = useState(false);
   const esRef = useRef<EventSource | null>(null);
   const navigate = useNavigate();
 
@@ -234,6 +236,9 @@ export const RoomViewerPage: React.FC = () => {
         const payload: ViewPayload = json.data;
         setView(payload);
         setCurrentIndex(typeof payload.index === 'number' ? payload.index : 0);
+        setStyleConfig(payload.styleConfig || null);
+        setStylesReady(true);
+        if (payload.name) setRoomName(payload.name);
         setError(null);
       } catch {
         setError('Network error');
@@ -243,80 +248,67 @@ export const RoomViewerPage: React.FC = () => {
     [roomId, navigate]
   );
 
-  // Fetch room details (name and style config)
-  const fetchRoomDetails = useCallback(async () => {
-    if (!roomId) return;
-    try {
-      const storedPassword = appSessionStorage.getItem<string>(
-        `room_${roomId}_password`
-      );
-      let res;
-      if (storedPassword) {
-        res = await fetch(`${getApiBase()}/multi/${roomId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: storedPassword })
-        });
-      } else {
-        res = await fetch(`${getApiBase()}/multi/${roomId}`);
-      }
-      if (res.ok) {
-        const json = await res.json();
-        if (json?.success && json?.data?.config) {
-          if (json.data.config.name) {
-            setRoomName(json.data.config.name);
-          }
-          if (json.data.config.styleConfig) {
-            setStyleConfig(json.data.config.styleConfig);
-          } else {
-            setStyleConfig(null);
-          }
-        }
-      }
-    } catch {
-      // Ignore errors - room name and style config are optional
-    }
-  }, [roomId]);
-
-  // Build URL with style parameters
+  // Build URL with style parameters. Always mark Multi iframes so Live
+  // does not fall back to this browser's personal localStorage styles.
   const buildStyledUrl = useCallback(
     (baseUrl: string, styles: StyleConfig | null): string => {
-      if (!styles || Object.keys(styles).length === 0) {
-        return baseUrl;
-      }
       const params = new URLSearchParams();
-      if (styles.textColor) params.set('textColor', styles.textColor);
-      if (styles.bgColor) params.set('bgColor', styles.bgColor);
-      if (styles.bgImage) params.set('bgImage', styles.bgImage);
-      if (styles.opacity !== undefined)
-        params.set('opacity', String(styles.opacity));
-      if (styles.textOpacity !== undefined)
-        params.set('textOpacity', String(styles.textOpacity));
-      if (styles.qrInvert) params.set('qrInvert', 'true');
-      if (styles.qrScreenBlend) params.set('qrScreenBlend', 'true');
-      if (styles.qrMultiplyBlend) params.set('qrMultiplyBlend', 'true');
-      if (styles.qrShowWebLink) params.set('qrShowWebLink', 'true');
-      if (styles.qrShowNevent !== undefined)
-        params.set('qrShowNevent', String(styles.qrShowNevent));
-      if (styles.qrShowNote) params.set('qrShowNote', 'true');
-      if (styles.layoutInvert) params.set('layoutInvert', 'true');
-      if (styles.hideZapperContent) params.set('hideZapperContent', 'true');
-      if (styles.showTopZappers) params.set('showTopZappers', 'true');
-      if (styles.podium) params.set('podium', 'true');
-      if (styles.zapGrid) params.set('zapGrid', 'true');
-      if (styles.sectionLabels) params.set('sectionLabels', 'true');
-      if (styles.qrOnly) params.set('qrOnly', 'true');
-      if (styles.showFiat) params.set('showFiat', 'true');
-      if (styles.showHistoricalPrice) params.set('showHistoricalPrice', 'true');
-      if (styles.showHistoricalChange)
-        params.set('showHistoricalChange', 'true');
-      if (styles.fiatOnly) params.set('fiatOnly', 'true');
-      if (styles.lightning) params.set('lightning', 'true');
-      if (styles.selectedCurrency)
-        params.set('selectedCurrency', styles.selectedCurrency);
-      if (styles.partnerLogo) params.set('partnerLogo', styles.partnerLogo);
-      const queryString = params.toString();
-      return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+      params.set('fromMulti', '1');
+      if (styles) {
+        const setIfDefined = (key: string, value: unknown) => {
+          if (value === undefined || value === null || value === '') return;
+          params.set(key, String(value));
+        };
+        setIfDefined('textColor', styles.textColor);
+        setIfDefined('bgColor', styles.bgColor);
+        setIfDefined('bgImage', styles.bgImage);
+        if (styles.opacity !== undefined)
+          params.set('opacity', String(styles.opacity));
+        if (styles.textOpacity !== undefined)
+          params.set('textOpacity', String(styles.textOpacity));
+        if (styles.qrInvert !== undefined)
+          params.set('qrInvert', String(styles.qrInvert));
+        if (styles.qrScreenBlend !== undefined)
+          params.set('qrScreenBlend', String(styles.qrScreenBlend));
+        if (styles.qrMultiplyBlend !== undefined)
+          params.set('qrMultiplyBlend', String(styles.qrMultiplyBlend));
+        if (styles.qrShowWebLink !== undefined)
+          params.set('qrShowWebLink', String(styles.qrShowWebLink));
+        if (styles.qrShowNevent !== undefined)
+          params.set('qrShowNevent', String(styles.qrShowNevent));
+        if (styles.qrShowNote !== undefined)
+          params.set('qrShowNote', String(styles.qrShowNote));
+        if (styles.layoutInvert !== undefined)
+          params.set('layoutInvert', String(styles.layoutInvert));
+        if (styles.hideZapperContent !== undefined)
+          params.set('hideZapperContent', String(styles.hideZapperContent));
+        if (styles.showTopZappers !== undefined)
+          params.set('showTopZappers', String(styles.showTopZappers));
+        if (styles.podium !== undefined)
+          params.set('podium', String(styles.podium));
+        if (styles.zapGrid !== undefined)
+          params.set('zapGrid', String(styles.zapGrid));
+        if (styles.sectionLabels !== undefined)
+          params.set('sectionLabels', String(styles.sectionLabels));
+        if (styles.qrOnly !== undefined)
+          params.set('qrOnly', String(styles.qrOnly));
+        if (styles.showFiat !== undefined)
+          params.set('showFiat', String(styles.showFiat));
+        if (styles.showHistoricalPrice !== undefined)
+          params.set('showHistoricalPrice', String(styles.showHistoricalPrice));
+        if (styles.showHistoricalChange !== undefined)
+          params.set(
+            'showHistoricalChange',
+            String(styles.showHistoricalChange)
+          );
+        if (styles.fiatOnly !== undefined)
+          params.set('fiatOnly', String(styles.fiatOnly));
+        if (styles.lightning !== undefined)
+          params.set('lightning', String(styles.lightning));
+        setIfDefined('selectedCurrency', styles.selectedCurrency);
+        setIfDefined('partnerLogo', styles.partnerLogo);
+      }
+      return `${baseUrl}?${params.toString()}`;
     },
     []
   );
@@ -339,8 +331,7 @@ export const RoomViewerPage: React.FC = () => {
     } else {
       fetchView();
     }
-    fetchRoomDetails();
-  }, [roomId, fetchView, fetchRoomDetails]);
+  }, [roomId, fetchView]);
 
   // SSE connection - only when NOT simulating
   useEffect(() => {
@@ -365,6 +356,9 @@ export const RoomViewerPage: React.FC = () => {
         const payload: ViewPayload = data.view;
         setView(payload);
         setCurrentIndex(typeof payload.index === 'number' ? payload.index : 0);
+        setStyleConfig(payload.styleConfig || null);
+        setStylesReady(true);
+        if (payload.name) setRoomName(payload.name);
       } catch {
         void 0;
       }
@@ -383,9 +377,19 @@ export const RoomViewerPage: React.FC = () => {
     es.addEventListener('schedule-updated', () => {
       // no refetch needed; server will emit a fresh snapshot right after update
     });
-    es.addEventListener('config-updated', () => {
-      // Refetch room details to get updated styleConfig
-      fetchRoomDetails();
+    es.addEventListener('config-updated', (e: MessageEvent) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data?.config?.name) {
+          setRoomName(data.config.name);
+        }
+        if (data?.config && 'styleConfig' in data.config) {
+          setStyleConfig(data.config.styleConfig || null);
+          setStylesReady(true);
+        }
+      } catch {
+        void 0;
+      }
     });
     es.onerror = () => {
       // Let EventSource auto-reconnect
@@ -396,7 +400,7 @@ export const RoomViewerPage: React.FC = () => {
       es.close();
       esRef.current = null;
     };
-  }, [roomId, isSimulating, fetchRoomDetails]);
+  }, [roomId, isSimulating]);
 
   // Simulation controls
   const stepTime = useCallback(
@@ -583,6 +587,10 @@ export const RoomViewerPage: React.FC = () => {
             setCurrentIndex(
               typeof payload.index === 'number' ? payload.index : 0
             );
+            if (payload.styleConfig !== undefined) {
+              setStyleConfig(payload.styleConfig || null);
+            }
+            if (payload.name) setRoomName(payload.name);
           }
         }
       } catch {
@@ -980,7 +988,7 @@ export const RoomViewerPage: React.FC = () => {
                   ⤢
                 </button>
               )}
-              {items.length > 0 ? (
+              {items.length > 0 && stylesReady ? (
                 items.map((item, idx) => {
                   const normalizedIdx = idx % items.length;
                   const normalizedActual = actualIndex % items.length;

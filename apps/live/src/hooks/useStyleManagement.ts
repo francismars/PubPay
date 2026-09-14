@@ -1,9 +1,19 @@
 // Style management hook
 // Handles style saving, loading, URL parameters, and presets
 
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { DEFAULT_STYLES } from '../constants/styles';
 import { appLocalStorage } from '../utils/storage';
+
+export function isEmbeddedLive(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (window.self !== window.top) return true;
+  } catch {
+    return true;
+  }
+  return new URLSearchParams(window.location.search).get('fromMulti') === '1';
+}
 
 export interface UseStyleManagementOptions {
   lightningEnabled?: boolean;
@@ -825,6 +835,10 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
    * Update style URL - saves styles to localStorage and cleans URL
    */
   const updateStyleURL = useCallback(() => {
+    // Multi viewer iframes must keep style query params and must not
+    // overwrite the user's personal Live page localStorage.
+    if (isEmbeddedLive()) return;
+
     const mainLayout = document.querySelector('.main-layout');
     if (!mainLayout) return;
 
@@ -955,7 +969,7 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     if (!mainLayout) return;
 
     const params = new URLSearchParams(window.location.search);
-    if (params.toString() === '') return; // No URL parameters
+    if (params.toString() === '' && !isEmbeddedLive()) return;
 
     // Apply text color
     if (params.has('textColor')) {
@@ -1528,9 +1542,12 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       }
     }, 500); // Longer delay to ensure QR codes are generated first
 
-    // Save the URL-applied styles to localStorage first, then clean URL
-    saveCurrentStylesToLocalStorage();
-    updateStyleURL();
+    // Save the URL-applied styles to localStorage first, then clean URL.
+    // Skip when embedded in Multi — those styles belong to the room, not this browser.
+    if (!isEmbeddedLive()) {
+      saveCurrentStylesToLocalStorage();
+      updateStyleURL();
+    }
   }, [
     hexToRgba,
     updateBackgroundImage,

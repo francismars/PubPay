@@ -77,9 +77,13 @@ export function useLiveUrl(
       setShowMainLayout(parsed.shouldShowMainLayout);
       setError(parsed.error || null);
 
-      // Normalize URL if needed (using React Router instead of window.history)
+      // Normalize URL if needed (using React Router instead of window.history).
+      // Keep search params — Multi viewer iframes pass style settings in the query string.
       if (parsed.normalizedPath && window.location.pathname !== parsed.normalizedPath) {
-        navigate(parsed.normalizedPath, { replace: true });
+        navigate(
+          { pathname: parsed.normalizedPath, search: location.search },
+          { replace: true }
+        );
         // State is already updated above, so the DOM will be ready
         return;
       }

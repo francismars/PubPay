@@ -20,7 +20,7 @@ import { nip19 } from 'nostr-tools';
 import { useQRCode } from './useQRCode';
 import { useLightningIntegration } from './useLightningIntegration';
 import { useZapHandling } from './useZapHandling';
-import { useStyleManagement } from './useStyleManagement';
+import { isEmbeddedLive, useStyleManagement } from './useStyleManagement';
 import { useFiatConversion } from './useFiatConversion';
 import { useNostrSubscriptions } from './useNostrSubscriptions';
 import { useContentRendering } from './useContentRendering';
@@ -2912,29 +2912,32 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // toHexColor and hexToRgba are now provided by useStyleManagement hook
 
-  // Load initial styles from localStorage or apply defaults
-  const loadInitialStyles = () => {
-    // Load initial styles from localStorage or apply defaults
-
-    // Prevent multiple calls during the same session
-    if (window.loadInitialStylesCalled) {
-      // loadInitialStyles already called, skipping
-      return;
-    }
-    window.loadInitialStylesCalled = true;
-
-    // Check if there are URL parameters first
+  // Load initial styles from URL (Multi iframe), localStorage, or defaults
+  const loadInitialStyles = (attempt = 0) => {
     const params = new URLSearchParams(window.location.search);
-    if (params.toString() !== '') {
+    const useServerOrUrlStyles = isEmbeddedLive() || params.toString() !== '';
+
+    if (useServerOrUrlStyles) {
+      const mainLayout = document.querySelector('.main-layout');
+      if (!mainLayout && attempt < 20) {
+        setTimeout(() => loadInitialStyles(attempt + 1), 100);
+        return;
+      }
+
+      window.loadInitialStylesCalled = true;
       applyStylesFromURL();
-      // Ensure QR codes are visible after applying styles from URL
       setTimeout(() => {
         if (updateQRSlideVisibilityRef.current) {
           updateQRSlideVisibilityRef.current(true);
         }
       }, 600);
-      return; // URL parameters take precedence, skip localStorage
+      return;
     }
+
+    if (window.loadInitialStylesCalled) {
+      return;
+    }
+    window.loadInitialStylesCalled = true;
 
     // Load saved styles from localStorage if no URL parameters
     const savedStyles = appLocalStorage.getStyleOptions();

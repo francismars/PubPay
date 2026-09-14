@@ -36,6 +36,7 @@ interface StyleEditorProps {
   renderButtons?: boolean;
   onChange?: (styles: StyleConfig) => void;
   resetRef?: React.MutableRefObject<(() => void) | null>;
+  saveRef?: React.MutableRefObject<(() => void) | null>;
 }
 
 const bgImagePresets = [
@@ -63,7 +64,8 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
   onCancel,
   renderButtons = true,
   onChange,
-  resetRef
+  resetRef,
+  saveRef
 }) => {
   const [styles, setStyles] = useState<StyleConfig>(() => ({
     ...DEFAULT_STYLES,
@@ -166,14 +168,31 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
         setShowCustomLogo(!partnerLogoPresets.includes(logo) && logo !== '');
       }
 
-      setStyles(prev => ({ ...DEFAULT_STYLES, ...prev, ...imported }));
+      setStyles({ ...DEFAULT_STYLES, ...imported });
+      const merged = { ...DEFAULT_STYLES, ...imported };
+      setShowCustomBg(
+        !!merged.bgImage && !bgImagePresets.includes(merged.bgImage)
+      );
+      setShowCustomLogo(
+        !!merged.partnerLogo && !partnerLogoPresets.includes(merged.partnerLogo)
+      );
       setUrlImport('');
+      if (onChange) {
+        const cleaned: StyleConfig = {};
+        Object.entries(merged).forEach(([k, v]) => {
+          const kk = k as keyof StyleConfig;
+          if (v !== DEFAULT_STYLES[kk]) {
+            (cleaned as any)[kk] = v;
+          }
+        });
+        onChange(cleaned);
+      }
     } catch (e) {
       alert(
         'Invalid URL format. Please paste a valid LivePage URL with style parameters.'
       );
     }
-  }, [urlImport, bgImagePresets, partnerLogoPresets]);
+  }, [urlImport, bgImagePresets, partnerLogoPresets, onChange]);
 
   const resetToDefaults = useCallback(() => {
     setStyles({ ...DEFAULT_STYLES });
@@ -208,6 +227,34 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
     });
     onSave(cleaned);
   }, [styles, onSave]);
+
+  React.useEffect(() => {
+    if (saveRef) {
+      saveRef.current = handleSave;
+    }
+    return () => {
+      if (saveRef) {
+        saveRef.current = null;
+      }
+    };
+  }, [saveRef, handleSave]);
+
+  // Sync cleaned styles to the parent as soon as the editor mounts
+  React.useEffect(() => {
+    if (!onChange) return;
+    const cleaned: StyleConfig = {};
+    Object.entries({ ...DEFAULT_STYLES, ...initialStyles }).forEach(
+      ([key, value]) => {
+        const k = key as keyof StyleConfig;
+        if (value !== DEFAULT_STYLES[k]) {
+          (cleaned as any)[k] = value;
+        }
+      }
+    );
+    onChange(cleaned);
+    // Only on mount — later edits go through updateStyle/applyPreset
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const presets: Record<string, Partial<StyleConfig>> = {
     lightMode: {

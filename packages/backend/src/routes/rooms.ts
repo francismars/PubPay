@@ -30,8 +30,45 @@ export class RoomsRouter {
     this.router.get('/:roomId', this.getRoom.bind(this));
     this.router.post('/:roomId', this.getRoom.bind(this)); // POST for password authentication
     this.router.get('/:roomId/view', this.getView.bind(this));
+    this.router.get('/:roomId/display', this.getPublicDisplay.bind(this));
     this.router.get('/:roomId/events', this.sseEvents.bind(this));
   }
+
+  private getProvidedPassword(req: Request): string | undefined {
+    const header = req.header('x-room-password');
+    if (header && header.trim()) return header.trim();
+    const bodyPassword = (req.body as { password?: unknown } | undefined)
+      ?.password;
+    if (typeof bodyPassword === 'string' && bodyPassword.trim()) {
+      return bodyPassword.trim();
+    }
+    const queryPassword = req.query?.password;
+    if (typeof queryPassword === 'string' && queryPassword.trim()) {
+      return queryPassword.trim();
+    }
+    return undefined;
+  }
+
+  private authorizeRoomWrite(
+    req: Request,
+    res: Response
+  ): ReturnType<RoomsService['getRoom']> {
+    const { roomId } = req.params;
+    const room = this.rooms.getRoom(roomId);
+    if (!room) {
+      res.status(404).json({ success: false, error: 'Room not found' });
+      return null;
+    }
+    if (room.config.password) {
+      const password = this.getProvidedPassword(req);
+      if (!password || password !== room.config.password) {
+        res.status(401).json({ success: false, error: 'Invalid password' });
+        return null;
+      }
+    }
+    return room;
+  }
+
   private async pretalxSchedules(req: Request, res: Response): Promise<void> {
     try {
       const {
@@ -99,7 +136,7 @@ export class RoomsRouter {
         return;
       }
       const room = this.rooms.createRoom({ name, slug, timezone, password });
-      res.json({ success: true, data: room });
+      res.json({ success: true, data: this.rooms.toPublicConfig(room) });
     } catch (error) {
       this.logger.error('Error creating room', error);
       res.status(500).json({ success: false, error: 'Failed to create room' });
@@ -108,6 +145,8 @@ export class RoomsRouter {
 
   private updateRoom(req: Request, res: Response): void {
     try {
+      const room = this.authorizeRoomWrite(req, res);
+      if (!room) return;
       const { roomId } = req.params;
       const {
         name,
@@ -125,9 +164,9 @@ export class RoomsRouter {
         rotationIntervalSec,
         defaultItems
       });
-      res.json({ success: true, data: updated });
-      // Broadcast config update and fresh snapshot
-      this.broadcast(roomId, 'config-updated', { config: updated });
+      const publicConfig = this.rooms.toPublicConfig(updated);
+      res.json({ success: true, data: publicConfig });
+      this.broadcast(roomId, 'config-updated', { config: publicConfig });
       try {
         const view = this.rooms.getView(roomId);
         this.broadcast(roomId, 'snapshot', {
@@ -148,12 +187,14 @@ export class RoomsRouter {
 
   private updateStyleConfig(req: Request, res: Response): void {
     try {
+      const room = this.authorizeRoomWrite(req, res);
+      if (!room) return;
       const { roomId } = req.params;
       const styleConfig = req.body || {};
       const updated = this.rooms.updateStyleConfig(roomId, styleConfig);
-      res.json({ success: true, data: updated });
-      // Broadcast config update
-      this.broadcast(roomId, 'config-updated', { config: updated });
+      const publicConfig = this.rooms.toPublicConfig(updated);
+      res.json({ success: true, data: publicConfig });
+      this.broadcast(roomId, 'config-updated', { config: publicConfig });
       try {
         const view = this.rooms.getView(roomId);
         this.broadcast(roomId, 'snapshot', {
@@ -176,6 +217,8 @@ export class RoomsRouter {
 
   private setSchedule(req: Request, res: Response): void {
     try {
+      const room = this.authorizeRoomWrite(req, res);
+      if (!room) return;
       const { roomId } = req.params;
       const schedule = req.body;
 
@@ -228,6 +271,8 @@ export class RoomsRouter {
 
   private async importPretalx(req: Request, res: Response): Promise<void> {
     try {
+      const authorized = this.authorizeRoomWrite(req, res);
+      if (!authorized) return;
       const { roomId } = req.params;
       const {
         baseUrl: bodyBase,
@@ -611,26 +656,27 @@ export class RoomsRouter {
   private getRoom(req: Request, res: Response): void {
     try {
       const { roomId } = req.params;
-      const password =
-        req.body?.password || (req.query?.password as string | undefined);
+      const password = this.getProvidedPassword(req);
       const room = this.rooms.getRoom(roomId);
       if (!room) {
         res.status(404).json({ success: false, error: 'Room not found' });
         return;
       }
-      // Check password if room has one set
+      // Admin login: password required when the room has one
       if (room.config.password) {
-        // Password is required - check if provided and matches
-        if (
-          !password ||
-          (typeof password === 'string' && password.trim() === '') ||
-          password !== room.config.password
-        ) {
+        if (!password || password !== room.config.password) {
           res.status(401).json({ success: false, error: 'Invalid password' });
           return;
         }
       }
-      res.json({ success: true, data: room });
+      res.json({
+        success: true,
+        data: {
+          config: this.rooms.toPublicConfig(room.config),
+          schedule: room.schedule,
+          version: room.version
+        }
+      });
     } catch (error) {
       this.logger.error('Error getting room', error);
       res.status(500).json({ success: false, error: 'Failed to get room' });
@@ -649,6 +695,28 @@ export class RoomsRouter {
         error instanceof Error ? error.message : 'Failed to get view';
       const status = message === 'Room not found' ? 404 : 500;
       res.status(status).json({ success: false, error: message });
+    }
+  }
+
+  private getPublicDisplay(req: Request, res: Response): void {
+    try {
+      const { roomId } = req.params;
+      const room = this.rooms.getRoom(roomId);
+      if (!room) {
+        res.status(404).json({ success: false, error: 'Room not found' });
+        return;
+      }
+      res.json({
+        success: true,
+        data: {
+          config: this.rooms.toPublicConfig(room.config),
+          schedule: room.schedule,
+          version: room.version
+        }
+      });
+    } catch (error) {
+      this.logger.error('Error getting public display', error);
+      res.status(500).json({ success: false, error: 'Failed to load room' });
     }
   }
 

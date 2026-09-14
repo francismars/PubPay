@@ -76,7 +76,13 @@ export interface ViewPayload {
   defaultItems: string[];
   upcomingSlots?: Array<{ startAt: string; endAt: string; items: string[] }>; // optional preview
   previousSlots?: Array<{ startAt: string; endAt: string; items: string[] }>; // optional previous slots
+  styleConfig?: RoomStyleConfig;
+  name: string;
 }
+
+export type PublicRoomConfig = Omit<RoomConfig, 'password'> & {
+  hasPassword: boolean;
+};
 
 export class RoomsService {
   private static instance: RoomsService;
@@ -243,6 +249,14 @@ export class RoomsService {
     return this.rooms.get(roomId) || null;
   }
 
+  public toPublicConfig(config: RoomConfig): PublicRoomConfig {
+    const { password: _password, ...rest } = config;
+    return {
+      ...rest,
+      hasPassword: Boolean(config.password)
+    };
+  }
+
   public getView(roomId: string, at?: string): ViewPayload {
     const room = this.rooms.get(roomId);
     if (!room) throw new Error('Room not found');
@@ -357,7 +371,9 @@ export class RoomsService {
       nextSwitchAt: nextSwitchDate.toISOString(),
       defaultItems: room.config.defaultItems,
       upcomingSlots,
-      previousSlots
+      previousSlots,
+      styleConfig: room.config.styleConfig,
+      name: room.config.name
     };
   }
 

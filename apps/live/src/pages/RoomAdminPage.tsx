@@ -5,6 +5,7 @@ import { StyleEditor, StyleConfig } from '../components/StyleEditor';
 
 import { getApiBase } from '../utils/apiBase';
 import { appSessionStorage } from '../utils/storage';
+import { roomAuthHeaders } from '../utils/roomAuth';
 
 export const RoomAdminPage: React.FC = () => {
   const { roomId } = useParams<{ roomId?: string }>();
@@ -65,9 +66,8 @@ export const RoomAdminPage: React.FC = () => {
   const [roomStyleConfig, setRoomStyleConfig] = useState<StyleConfig | null>(
     null
   );
-  const [currentEditingStyles, setCurrentEditingStyles] =
-    useState<StyleConfig | null>(null);
   const styleEditorResetRef = React.useRef<(() => void) | null>(null);
+  const styleEditorSaveRef = React.useRef<(() => void) | null>(null);
   const [showAddSlotModal, setShowAddSlotModal] = useState(false);
   const [newSlotStart, setNewSlotStart] = useState('');
   const [newSlotEnd, setNewSlotEnd] = useState('');
@@ -473,7 +473,7 @@ export const RoomAdminPage: React.FC = () => {
         `${getApiBase()}/multi/${createdRoomId}/schedule`,
         {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: roomAuthHeaders(createdRoomId),
           body: JSON.stringify(normalizedSchedule)
         }
       );
@@ -509,7 +509,7 @@ export const RoomAdminPage: React.FC = () => {
       };
       const res = await fetch(`${getApiBase()}/multi/${createdRoomId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: roomAuthHeaders(createdRoomId),
         body: JSON.stringify(payload)
       });
       const json = await res.json();
@@ -930,7 +930,6 @@ export const RoomAdminPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
-                    setCurrentEditingStyles(roomStyleConfig);
                     setShowStyleModal(true);
                   }}
                   aria-label="Style Settings"
@@ -1676,7 +1675,7 @@ export const RoomAdminPage: React.FC = () => {
                       `${getApiBase()}/multi/${createdRoomId}/style`,
                       {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: roomAuthHeaders(createdRoomId),
                         body: JSON.stringify(styles)
                       }
                     );
@@ -1699,8 +1698,8 @@ export const RoomAdminPage: React.FC = () => {
                 }}
                 onCancel={() => setShowStyleModal(false)}
                 renderButtons={false}
-                onChange={styles => setCurrentEditingStyles(styles)}
                 resetRef={styleEditorResetRef}
+                saveRef={styleEditorSaveRef}
               />
             </div>
             {/* Action Buttons - Always Visible */}
@@ -1723,35 +1722,9 @@ export const RoomAdminPage: React.FC = () => {
                 Cancel
               </button>
               <button
-                onClick={async () => {
-                  const stylesToSave = currentEditingStyles || {};
-                  setBusy(true);
-                  setError(null);
-                  setSuccess(null);
-                  try {
-                    const res = await fetch(
-                      `${getApiBase()}/multi/${createdRoomId}/style`,
-                      {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(stylesToSave)
-                      }
-                    );
-                    const json = await res.json();
-                    if (!json.success)
-                      throw new Error(json.error || 'Failed to save styles');
-                    setRoomStyleConfig(stylesToSave);
-                    setSuccess('Styles saved successfully');
-                    setTimeout(() => {
-                      setShowStyleModal(false);
-                      setSuccess(null);
-                    }, 1500);
-                  } catch (e: unknown) {
-                    setError(
-                      e instanceof Error ? e.message : 'Error saving styles'
-                    );
-                  } finally {
-                    setBusy(false);
+                onClick={() => {
+                  if (styleEditorSaveRef.current) {
+                    styleEditorSaveRef.current();
                   }
                 }}
                 disabled={busy}
