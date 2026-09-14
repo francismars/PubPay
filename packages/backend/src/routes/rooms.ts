@@ -669,6 +669,7 @@ export class RoomsRouter {
           return;
         }
       }
+      res.setHeader('Cache-Control', 'no-store');
       res.json({
         success: true,
         data: {

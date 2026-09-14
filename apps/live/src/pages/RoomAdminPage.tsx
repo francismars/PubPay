@@ -7,6 +7,38 @@ import { getApiBase } from '../utils/apiBase';
 import { appSessionStorage } from '../utils/storage';
 import { roomAuthHeaders } from '../utils/roomAuth';
 
+const EMPTY_SCHEDULE_JSON = `{
+  "slots": []
+}`;
+
+function getExampleScheduleJson(): string {
+  return `{
+  "slots": [
+    {
+      "startAt": "${new Date(Date.now() + 5 * 60 * 1000).toISOString()}",
+      "endAt": "${new Date(Date.now() + 35 * 60 * 1000).toISOString()}",
+      "lives": [ { "ref": "nevent1qqsq5rk25y4th65h92qqkm825d9a943az3hs4cnajvl2mspvlyz2dss3npprf" }, { "ref": "nevent1qqspkmsxj6mq0s6n4xdephwscj7qh8py84e8q765r77aqez7srx57lqflrceu" } ]
+    }
+  ]
+}`;
+}
+
+function normalizeScheduleJson(schedule: {
+  slots?: Array<Partial<Slot> & { items?: Array<{ ref: string }> }>;
+}): string {
+  const slots = Array.isArray(schedule.slots) ? schedule.slots : [];
+  return JSON.stringify(
+    {
+      slots: slots.map(slot => ({
+        ...slot,
+        lives: slot.lives || slot.items || []
+      }))
+    },
+    null,
+    2
+  );
+}
+
 export const RoomAdminPage: React.FC = () => {
   const { roomId } = useParams<{ roomId?: string }>();
   const navigate = useNavigate();
@@ -16,15 +48,11 @@ export const RoomAdminPage: React.FC = () => {
     'round_robin' | 'random' | 'weighted'
   >('round_robin');
   const [defaultItems, setDefaultItems] = useState('');
-  const [scheduleJson, setScheduleJson] = useState<string>(`{
-  "slots": [
-    {
-      "startAt": "${new Date(Date.now() + 5 * 60 * 1000).toISOString()}",
-      "endAt": "${new Date(Date.now() + 35 * 60 * 1000).toISOString()}",
-      "lives": [ { "ref": "nevent1qqsq5rk25y4th65h92qqkm825d9a943az3hs4cnajvl2mspvlyz2dss3npprf" }, { "ref": "nevent1qqspkmsxj6mq0s6n4xdephwscj7qh8py84e8q765r77aqez7srx57lqflrceu" } ]
-    }
-  ]
-}`);
+  // Existing rooms start empty until the server schedule loads. The example
+  // JSON is only used for new rooms that do not have a saved schedule yet.
+  const [scheduleJson, setScheduleJson] = useState<string>(() =>
+    roomId ? EMPTY_SCHEDULE_JSON : getExampleScheduleJson()
+  );
   const [createdRoomId, setCreatedRoomId] = useState<string | null>(
     roomId || null
   );
@@ -322,15 +350,17 @@ export const RoomAdminPage: React.FC = () => {
         let res;
 
         if (storedPassword) {
-          // Use POST with password if we have one stored
           res = await fetch(`${getApiBase()}/multi/${roomId}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: storedPassword })
+            headers: roomAuthHeaders(roomId),
+            body: JSON.stringify({ password: storedPassword }),
+            cache: 'no-store'
           });
         } else {
-          // Use GET if no password
-          res = await fetch(`${getApiBase()}/multi/${roomId}`);
+          res = await fetch(`${getApiBase()}/multi/${roomId}`, {
+            headers: roomAuthHeaders(roomId),
+            cache: 'no-store'
+          });
         }
 
         if (cancelled) return;
@@ -361,9 +391,16 @@ export const RoomAdminPage: React.FC = () => {
           setIntervalSec(cfg.rotationIntervalSec || 60);
           setDefaultItems((cfg.defaultItems || []).join('\n'));
           setRoomStyleConfig(cfg.styleConfig || null);
-          // Preload schedule JSON if present
-          if (json.data.schedule) {
-            setScheduleJson(JSON.stringify(json.data.schedule, null, 2));
+          const schedule = json.data.schedule as {
+            slots?: Array<Partial<Slot> & { items?: Array<{ ref: string }> }>;
+          } | null;
+          const savedSlots = schedule?.slots;
+          if (Array.isArray(savedSlots) && savedSlots.length > 0) {
+            setScheduleJson(normalizeScheduleJson(schedule));
+          } else {
+            // No schedule uploaded yet — show the example so new rooms
+            // can see how to fill in the JSON.
+            setScheduleJson(getExampleScheduleJson());
           }
         } else {
           throw new Error('Invalid room response');
