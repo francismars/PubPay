@@ -424,7 +424,11 @@ export const useLiveFunctionality = (eventId?: string) => {
         const zapsContainer = getElementById('zaps');
         if (zapsContainer) {
           hideLoadingState(zapsContainer);
-          showEmptyZapsState(zapsContainer);
+          showEmptyZapsState(
+            zapsContainer,
+            'Couldn’t load zaps. The relays returned no receipts for this post.',
+            nostrClient.getZapReadRelays()
+          );
         }
       }
     },
@@ -522,6 +526,11 @@ export const useLiveFunctionality = (eventId?: string) => {
   }, [zaps, userWantsTopZappers]);
 
   useEffect(() => {
+    let cancelled = false;
+    if (window.__pubpayLiveStyleSearch == null) {
+      window.__pubpayLiveStyleSearch = window.location.search;
+    }
+
     // IMMEDIATELY hide QR swiper container to prevent flash when no QR codes are toggled
     const qrSwiperContainer = document.querySelector(
       '.qr-swiper'
@@ -658,22 +667,17 @@ export const useLiveFunctionality = (eventId?: string) => {
           await initializeQRCodePlaceholders(undefined);
         }
 
+        if (cancelled) return;
+
         // Load initial styles and setup event listeners on page load
         setTimeout(() => {
+          if (cancelled) return;
           // Prevent original JavaScript from setting up duplicate event listeners
           window.setupStyleOptions = () => {
             // Original setupStyleOptions disabled - using React hook instead
           };
 
-          // Load initial styles first with a delay to ensure DOM is ready
-          setTimeout(() => {
-            loadInitialStyles();
-          }, 100);
-
-          // Setup style options after styles are loaded to prevent event listeners from overriding
-          setTimeout(() => {
-            setupStyleOptions();
-          }, 200);
+          loadInitialStyles();
 
           // Setup note loader event listeners with a delay to ensure DOM is ready
           setTimeout(() => {
@@ -689,7 +693,7 @@ export const useLiveFunctionality = (eventId?: string) => {
           if (showTopZappersToggle?.checked) {
             displayTopZappers();
           }
-        }, 500);
+        }, 0);
 
         setIsLoading(false);
       } catch (err) {
@@ -769,6 +773,11 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
       }, 300);
     }
+
+    return () => {
+      cancelled = true;
+      window.loadInitialStylesCalled = false;
+    };
   }, [eventId]);
 
   // Initialize Lightning payment variables
@@ -1626,8 +1635,17 @@ export const useLiveFunctionality = (eventId?: string) => {
     // Remove all row containers and move zaps back to the main container
     const existingRows = container.querySelectorAll('.zap-row');
     existingRows.forEach(row => {
+      // Placeholder rows live inside the zap loader. Lifting them out leaves
+      // the skeleton stuck in the list after loading finishes.
+      if (row.closest('.zap-loader') || row.classList.contains('is-skeleton')) {
+        return;
+      }
       // Move all zaps from this row back to the main container
-      const zapsInRow = Array.from(row.children);
+      const zapsInRow = Array.from(row.children).filter(
+        zap =>
+          !zap.classList.contains('is-skeleton') &&
+          !zap.querySelector('.zap-bone')
+      );
       zapsInRow.forEach(zap => {
         const zapElement = zap as HTMLElement;
         // Remove row classes and global podium classes from individual zaps
@@ -1750,7 +1768,12 @@ export const useLiveFunctionality = (eventId?: string) => {
       ? '.zap, .live-event-zap, .zap-only-item' // zaps-only-list: only zaps
       : '.live-event-zap'; // activity-list: only zaps (not chat messages)
 
-    const zaps = Array.from(container.querySelectorAll(selector));
+    const zaps = Array.from(container.querySelectorAll(selector)).filter(
+      zap =>
+        !zap.closest('.zap-loader') &&
+        !zap.classList.contains('is-skeleton') &&
+        !zap.querySelector('.zap-bone')
+    );
     if (zaps.length === 0) return;
 
     // Clear inline styles from all zaps so CSS grid layout can take over
@@ -1789,9 +1812,14 @@ export const useLiveFunctionality = (eventId?: string) => {
       zap.className = zap.className.replace(/podium-global-\d+/g, '');
     });
 
-    // Remove existing row containers
+    // Remove existing row containers. Leave the loader's placeholder rows alone.
     const existingRows = container.querySelectorAll('.zap-row');
-    existingRows.forEach(row => row.remove());
+    existingRows.forEach(row => {
+      if (row.closest('.zap-loader') || row.classList.contains('is-skeleton')) {
+        return;
+      }
+      row.remove();
+    });
 
     // Sort zaps by amount (highest first) or by timestamp (newest first)
     const sortedZaps = [...zaps].sort((a, b) => {
@@ -2375,12 +2403,20 @@ export const useLiveFunctionality = (eventId?: string) => {
                 container.classList.contains('grid-layout')
               ) {
                 // Check if there are zaps outside of .zap-row containers
-                const allZaps = container.querySelectorAll(
-                  '.zap, .live-event-zap, .zap-only-item'
-                );
-                const zapsInRows = container.querySelectorAll(
-                  '.zap-row .zap, .zap-row .live-event-zap, .zap-row .zap-only-item'
-                );
+                const realZap = (node: Element) =>
+                  !node.closest('.zap-loader') &&
+                  !node.classList.contains('is-skeleton') &&
+                  !node.querySelector('.zap-bone');
+                const allZaps = Array.from(
+                  container.querySelectorAll(
+                    '.zap, .live-event-zap, .zap-only-item'
+                  )
+                ).filter(realZap);
+                const zapsInRows = Array.from(
+                  container.querySelectorAll(
+                    '.zap-row .zap, .zap-row .live-event-zap, .zap-row .zap-only-item'
+                  )
+                ).filter(realZap);
 
                 if (allZaps.length !== zapsInRows.length) {
                   // Some zaps are not in rows, re-organize
@@ -2438,8 +2474,16 @@ export const useLiveFunctionality = (eventId?: string) => {
                 container.classList.contains('grid-layout')
               ) {
                 // Check if there are zaps outside of .zap-row containers
-                const allZaps = container.querySelectorAll('.zap');
-                const zapsInRows = container.querySelectorAll('.zap-row .zap');
+                const realZap = (node: Element) =>
+                  !node.closest('.zap-loader') &&
+                  !node.classList.contains('is-skeleton') &&
+                  !node.querySelector('.zap-bone');
+                const allZaps = Array.from(
+                  container.querySelectorAll('.zap')
+                ).filter(realZap);
+                const zapsInRows = Array.from(
+                  container.querySelectorAll('.zap-row .zap')
+                ).filter(realZap);
 
                 if (allZaps.length !== zapsInRows.length) {
                   // Some zaps are not in rows, re-organize
@@ -2527,6 +2571,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       qrAttentionSelect.addEventListener('change', () => {
         applyQrAttention(qrAttentionSelect.value);
         saveCurrentStylesToLocalStorage();
+        updateStyleURL();
       });
     }
 
@@ -2613,6 +2658,7 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (typeof (window as any).refreshQrPrefix === 'function') {
         (window as any).refreshQrPrefix();
       }
+      updateStyleURL();
     });
     setupToggle('qrShowNoteToggle', () => {
       // Debug log removed
@@ -2624,30 +2670,8 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     });
     setupToggle('sectionLabelsToggle', (checked: boolean) => {
-      const sectionLabels = document.querySelectorAll('.section-label');
-      const totalLabels = document.querySelectorAll('.total-label');
-
-      if (checked) {
-        // Show section labels, hide total labels
-        sectionLabels.forEach(label => {
-          (label as HTMLElement).style.display = 'block';
-        });
-        totalLabels.forEach(label => {
-          (label as HTMLElement).style.display = 'none';
-        });
-        // Remove class to control zaps-header alignment
-        document.body.classList.remove('show-total-labels');
-      } else {
-        // Hide section labels, show total labels
-        sectionLabels.forEach(label => {
-          (label as HTMLElement).style.display = 'none';
-        });
-        totalLabels.forEach(label => {
-          (label as HTMLElement).style.display = 'inline';
-        });
-        // Add class to control zaps-header alignment
-        document.body.classList.add('show-total-labels');
-      }
+      document.body.classList.toggle('show-section-labels', checked);
+      document.body.classList.toggle('show-total-labels', !checked);
     });
 
     setupToggle('qrOnlyToggle', (checked: boolean) => {
@@ -2939,10 +2963,22 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // toHexColor and hexToRgba are now provided by useStyleManagement hook
 
+  const markLayoutReady = () => {
+    document.getElementById('mainLayout')?.classList.remove('layout-pending');
+  };
+
   // Load initial styles from URL (Multi iframe), localStorage, or defaults
   const loadInitialStyles = (attempt = 0) => {
-    const params = new URLSearchParams(window.location.search);
-    const useServerOrUrlStyles = isEmbeddedLive() || params.toString() !== '';
+    const params = new URLSearchParams(
+      window.__pubpayLiveStyleSearch ?? window.location.search
+    );
+    // These settings live on the shared link by themselves. They must not
+    // make the rest of the page fall back to default styles.
+    const linkOnlyStyleParams = new Set(['qrAttention', 'qrStripPrefix']);
+    const hasFullStyleParams = [...params.keys()].some(
+      key => !linkOnlyStyleParams.has(key)
+    );
+    const useServerOrUrlStyles = isEmbeddedLive() || hasFullStyleParams;
 
     if (useServerOrUrlStyles) {
       const mainLayout = document.querySelector('.main-layout');
@@ -2953,6 +2989,8 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       window.loadInitialStylesCalled = true;
       applyStylesFromURL();
+      setupStyleOptions();
+      markLayoutReady();
       setTimeout(() => {
         if (updateQRSlideVisibilityRef.current) {
           updateQRSlideVisibilityRef.current(true);
@@ -2962,6 +3000,7 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     if (window.loadInitialStylesCalled) {
+      markLayoutReady();
       return;
     }
     window.loadInitialStylesCalled = true;
@@ -3098,7 +3137,9 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
       }
 
-      applyQrAttention(styles.qrAttention);
+      applyQrAttention(
+        params.has('qrAttention') ? params.get('qrAttention') : styles.qrAttention
+      );
 
       if (styles.selectedCurrency) {
         const currencySelector = document.getElementById(
@@ -3361,30 +3402,8 @@ export const useLiveFunctionality = (eventId?: string) => {
               }
             },
             sectionLabelsToggle: (checked: boolean) => {
-              const sectionLabels = document.querySelectorAll('.section-label');
-              const totalLabels = document.querySelectorAll('.total-label');
-
-              if (checked) {
-                // Show section labels, hide total labels
-                sectionLabels.forEach(label => {
-                  (label as HTMLElement).style.display = 'block';
-                });
-                totalLabels.forEach(label => {
-                  (label as HTMLElement).style.display = 'none';
-                });
-                // Remove class to control zaps-header alignment
-                document.body.classList.remove('show-total-labels');
-              } else {
-                // Hide section labels, show total labels
-                sectionLabels.forEach(label => {
-                  (label as HTMLElement).style.display = 'none';
-                });
-                totalLabels.forEach(label => {
-                  (label as HTMLElement).style.display = 'inline';
-                });
-                // Add class to control zaps-header alignment
-                document.body.classList.add('show-total-labels');
-              }
+              document.body.classList.toggle('show-section-labels', checked);
+              document.body.classList.toggle('show-total-labels', !checked);
             },
             qrOnlyToggle: (checked: boolean) => {
               if (checked) {
@@ -3602,18 +3621,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         'sectionLabelsToggle'
       ) as HTMLInputElement;
       if (sectionLabelsToggle) {
-        // Default state: section labels hidden (toggle should be OFF)
-        // First hide the labels immediately to prevent flash
-        const sectionLabels = document.querySelectorAll('.section-label');
-        const totalLabels = document.querySelectorAll('.total-label');
-        sectionLabels.forEach(label => {
-          (label as HTMLElement).style.display = 'none';
-        });
-        totalLabels.forEach(label => {
-          (label as HTMLElement).style.display = 'inline';
-        });
+        document.body.classList.remove('show-section-labels');
         document.body.classList.add('show-total-labels');
-        // Then set the toggle state
         sectionLabelsToggle.checked = false;
       }
 
@@ -3640,9 +3649,28 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
     }
 
+    if (params.has('qrAttention')) {
+      applyQrAttention(params.get('qrAttention'));
+    }
+
+    if (params.has('qrStripPrefix')) {
+      const qrStripPrefixToggle = document.getElementById(
+        'qrStripPrefixToggle'
+      ) as HTMLInputElement | null;
+      if (qrStripPrefixToggle) {
+        qrStripPrefixToggle.checked = params.get('qrStripPrefix') === 'true';
+      }
+      if (typeof (window as any).refreshQrPrefix === 'function') {
+        (window as any).refreshQrPrefix();
+      }
+    }
+
     // Apply all styles after loading (with small delay to ensure DOM is ready)
     setTimeout(() => {
       applyAllStyles();
+      setupStyleOptions();
+      markLayoutReady();
+      if (!isEmbeddedLive()) updateStyleURL();
 
       // Update QR slide visibility after all styles and toggles are loaded
       setTimeout(() => {
