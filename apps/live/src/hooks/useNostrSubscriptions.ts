@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useRef } from 'react';
+import { showEmptyZapsState } from '../utils/domHelpers';
 import {
   NostrClient,
   LiveEventService,
@@ -532,29 +533,20 @@ export function useNostrSubscriptions(
       const zapTimeoutId = setTimeout(() => {
         // Zap subscription timeout - no zaps received after 15 seconds
         if (kinds9735.length === 0 && isFirstStream) {
-          // No zaps found for this note
-          if (zapsContainer) {
-            zapsContainer.classList.remove('loading');
-            const loadingText = zapsContainer.querySelector('.loading-text');
-            if (loadingText) loadingText.remove();
-
-            const emptyStateDiv = document.createElement('div');
-            emptyStateDiv.className = 'empty-zaps-state';
-            emptyStateDiv.innerHTML = `
-            <div class="empty-zaps-message">
-              Be the first to support
-            </div>
-          `;
-            zapsContainer.appendChild(emptyStateDiv);
-          }
-          // Mark initial zaps as loaded (empty state)
+          isFirstStream = false;
+          // Mark initial zaps as loaded (empty state).
+          // The empty message is rendered once by onZapsLoaded.
           if (markInitialZapsLoaded) {
             markInitialZapsLoaded();
           }
           if (onZapsLoaded) {
             onZapsLoaded([]);
+          } else if (zapsContainer) {
+            zapsContainer.classList.remove('loading');
+            const loadingText = zapsContainer.querySelector('.loading-text');
+            if (loadingText) loadingText.remove();
+            showEmptyZapsState(zapsContainer);
           }
-          isFirstStream = false;
         }
       }, ZAP_SUBSCRIPTION_TIMEOUT);
 
