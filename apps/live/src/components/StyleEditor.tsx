@@ -10,9 +10,11 @@ export interface StyleConfig {
   qrInvert?: boolean;
   qrScreenBlend?: boolean;
   qrMultiplyBlend?: boolean;
+  qrAttention?: string;
   qrShowWebLink?: boolean;
   qrShowNevent?: boolean;
   qrShowNote?: boolean;
+  qrStripPrefix?: boolean;
   layoutInvert?: boolean;
   hideZapperContent?: boolean;
   showTopZappers?: boolean;
@@ -25,8 +27,11 @@ export interface StyleConfig {
   showHistoricalChange?: boolean;
   fiatOnly?: boolean;
   lightning?: boolean;
+  contentSlideshow?: boolean;
+  contentMediaOnly?: boolean;
   selectedCurrency?: string;
   partnerLogo?: string;
+  typeScale?: number;
 }
 
 interface StyleEditorProps {
@@ -55,7 +60,10 @@ const bgImagePresets = [
 
 const partnerLogoPresets = [
   'https://adoptingbitcoin.org/images/AB-logo.svg',
-  'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg'
+  'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg',
+  '/live/images/bitcoin-amsterdam-white.jpg',
+  '/live/images/bitcoin-amsterdam-orange.png',
+  '/live/images/bitcoin-historico.png'
 ];
 
 export const StyleEditor: React.FC<StyleEditorProps> = ({
@@ -122,18 +130,33 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
         imported.opacity = parseFloat(params.get('opacity') || '1');
       if (params.has('textOpacity'))
         imported.textOpacity = parseFloat(params.get('textOpacity') || '1');
+      if (params.has('typeScale'))
+        imported.typeScale = parseFloat(params.get('typeScale') || '1');
       if (params.has('qrInvert'))
         imported.qrInvert = params.get('qrInvert') === 'true';
       if (params.has('qrScreenBlend'))
         imported.qrScreenBlend = params.get('qrScreenBlend') === 'true';
       if (params.has('qrMultiplyBlend'))
         imported.qrMultiplyBlend = params.get('qrMultiplyBlend') === 'true';
+      if (params.has('qrAttention')) {
+        const attention = params.get('qrAttention') || '';
+        imported.qrAttention =
+          attention === 'true'
+            ? 'pulse'
+            : attention === 'pulse' ||
+                attention === 'shine' ||
+                attention === 'spring'
+              ? attention
+              : '';
+      }
       if (params.has('qrShowWebLink'))
         imported.qrShowWebLink = params.get('qrShowWebLink') === 'true';
       if (params.has('qrShowNevent'))
         imported.qrShowNevent = params.get('qrShowNevent') === 'true';
       if (params.has('qrShowNote'))
         imported.qrShowNote = params.get('qrShowNote') === 'true';
+      if (params.has('qrStripPrefix'))
+        imported.qrStripPrefix = params.get('qrStripPrefix') === 'true';
       if (params.has('layoutInvert'))
         imported.layoutInvert = params.get('layoutInvert') === 'true';
       if (params.has('hideZapperContent'))
@@ -160,6 +183,10 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
         imported.fiatOnly = params.get('fiatOnly') === 'true';
       if (params.has('lightning'))
         imported.lightning = params.get('lightning') === 'true';
+      if (params.has('contentSlideshow'))
+        imported.contentSlideshow = params.get('contentSlideshow') === 'true';
+      if (params.has('contentMediaOnly'))
+        imported.contentMediaOnly = params.get('contentMediaOnly') === 'true';
       if (params.has('selectedCurrency'))
         imported.selectedCurrency = params.get('selectedCurrency') || undefined;
       if (params.has('partnerLogo')) {
@@ -697,6 +724,15 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                 <option value="https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg">
                   Bitcoin Conference
                 </option>
+                <option value="/live/images/bitcoin-amsterdam-white.jpg">
+                  Bitcoin Amsterdam (white)
+                </option>
+                <option value="/live/images/bitcoin-amsterdam-orange.png">
+                  Bitcoin Amsterdam (orange)
+                </option>
+                <option value="/live/images/bitcoin-historico.png">
+                  Bitcoin Histórico
+                </option>
                 <option value="custom">Custom URL</option>
               </select>
               <div
@@ -755,6 +791,26 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
       {/* Layout Section */}
       <div className="style-section">
         <h3 className="section-title">LAYOUT</h3>
+        <div className="style-option-group" style={{ marginBottom: 16 }}>
+          <label htmlFor="typeScaleSlider">Type Size</label>
+          <div className="slider-container">
+            <input
+              type="range"
+              id="typeScaleSlider"
+              min="0.6"
+              max="2"
+              step="0.1"
+              value={styles.typeScale ?? DEFAULT_STYLES.typeScale}
+              onChange={e =>
+                updateStyle('typeScale', parseFloat(e.target.value))
+              }
+            />
+            <span>
+              {Math.round((styles.typeScale ?? DEFAULT_STYLES.typeScale) * 100)}
+              %
+            </span>
+          </div>
+        </div>
         <div className="toggles-container">
           {[
             { key: 'layoutInvert' as const, label: 'Invert Layout' },
@@ -763,7 +819,9 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
             { key: 'podium' as const, label: 'Top 3 Podium' },
             { key: 'zapGrid' as const, label: 'Grid Layout' },
             { key: 'sectionLabels' as const, label: 'Show Section Labels' },
-            { key: 'qrOnly' as const, label: 'QR Only (Hide Everything Else)' }
+            { key: 'qrOnly' as const, label: 'QR Only (Hide Everything Else)' },
+            { key: 'contentSlideshow' as const, label: 'Slideshow' },
+            { key: 'contentMediaOnly' as const, label: 'Media Only (Hide Text)' }
           ].map(({ key, label }) => (
             <div key={key} className="style-option-group toggle-group">
               <label className="toggle-label">
@@ -857,6 +915,19 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
             </div>
           ))}
         </div>
+        <div className="style-option-group" style={{ marginTop: 15 }}>
+          <label htmlFor="qrAttentionSelect">Attention</label>
+          <select
+            id="qrAttentionSelect"
+            value={styles.qrAttention || ''}
+            onChange={e => updateStyle('qrAttention', e.target.value)}
+          >
+            <option value="">Off</option>
+            <option value="pulse">Pulse</option>
+            <option value="shine">Shine</option>
+            <option value="spring">Spring</option>
+          </select>
+        </div>
       </div>
 
       {/* QR Slide Visibility Section */}
@@ -867,6 +938,7 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
             { key: 'qrShowWebLink' as const, label: 'Show Web Link' },
             { key: 'qrShowNevent' as const, label: 'Show Nostr Event' },
             { key: 'qrShowNote' as const, label: 'Show Note ID' },
+            { key: 'qrStripPrefix' as const, label: 'Remove QR Prefix' },
             { key: 'lightning' as const, label: 'Enable Lightning Payments' }
           ].map(({ key, label }) => (
             <div key={key} className="style-option-group toggle-group">

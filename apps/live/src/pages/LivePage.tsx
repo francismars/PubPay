@@ -1,11 +1,52 @@
 // Live page component - matches original live.html design exactly
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveFunctionality } from '@live/hooks/useLiveFunctionality';
 import { useLiveUrl } from '@live/hooks/useLiveUrl';
 import { ZapNotificationOverlay } from '@live/components/ZapNotificationOverlay';
 import '../styles/live.css';
 import { sanitizeImageUrl } from '../utils/sanitization';
+import { NoteContentView } from '../components/NoteContentView';
+
+function AuthorIdentityRow({ children }: { children: React.ReactNode }) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const groupRef = useRef<HTMLDivElement>(null);
+  const [marquee, setMarquee] = useState(false);
+
+  useEffect(() => {
+    const outer = outerRef.current;
+    const group = groupRef.current;
+    if (!outer || !group) return;
+
+    const measure = () => {
+      setMarquee(group.scrollWidth > outer.clientWidth + 1);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(outer);
+    observer.observe(group);
+    return () => observer.disconnect();
+  }, [children]);
+
+  return (
+    <div
+      ref={outerRef}
+      className={`author-identities${marquee ? ' is-marquee' : ''}`}
+    >
+      <div className="author-identities-track">
+        <div ref={groupRef} className="author-identities-group">
+          {children}
+        </div>
+        {marquee && (
+          <div className="author-identities-group" aria-hidden="true" inert>
+            {children}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export const LivePage: React.FC = () => {
   const navigate = useNavigate();
@@ -360,58 +401,56 @@ export const LivePage: React.FC = () => {
                     {authorName}
                   </div>
 
-                  {/* NIP-05 Verification */}
-                  <div className="noteNIP05 label">
-                    {authorNip05 ? (
-                      <a
-                        href={`https://${authorNip05.split('@')[1]}/.well-known/nostr.json?name=${authorNip05.split('@')[0]}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="verified-link inherit-colors"
-                      >
-                        <span className="material-symbols-outlined">
-                          check_circle
+                  <AuthorIdentityRow>
+                    {/* NIP-05 Verification */}
+                    <div className="noteNIP05 label">
+                      {authorNip05 ? (
+                        <a
+                          href={`https://${authorNip05.split('@')[1]}/.well-known/nostr.json?name=${authorNip05.split('@')[0]}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="verified-link inherit-colors"
+                        >
+                          <span className="material-symbols-outlined">
+                            check_circle
+                          </span>
+                          {authorNip05}
+                        </a>
+                      ) : (
+                        <span className="unverified label">
+                          <span className="material-symbols-outlined">block</span>
+                          Unverified
                         </span>
-                        {authorNip05}
-                      </a>
-                    ) : (
-                      <span className="unverified label">
-                        <span className="material-symbols-outlined">block</span>
-                        Unverified
-                      </span>
-                    )}
-                  </div>
+                      )}
+                    </div>
 
-                  {/* Lightning Address */}
-                  <div className="noteLNAddress label text-truncate">
-                    {authorLud16 ? (
-                      <a
-                        href={`https://${authorLud16.split('@')[1]}/.well-known/lnurlp/${authorLud16.split('@')[0]}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="verified-link inherit-colors"
-                      >
-                        <span className="material-symbols-outlined">bolt</span>
-                        {authorLud16}
-                      </a>
-                    ) : (
-                      <span className="unverified label">
-                        <span className="material-symbols-outlined">block</span>
-                        Not Payable
-                      </span>
-                    )}
-                  </div>
+                    {/* Lightning Address */}
+                    <div className="noteLNAddress label">
+                      {authorLud16 ? (
+                        <a
+                          href={`https://${authorLud16.split('@')[1]}/.well-known/lnurlp/${authorLud16.split('@')[0]}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="verified-link inherit-colors"
+                        >
+                          <span className="material-symbols-outlined">bolt</span>
+                          {authorLud16}
+                        </a>
+                      ) : (
+                        <span className="unverified label">
+                          <span className="material-symbols-outlined">block</span>
+                          Not Payable
+                        </span>
+                      )}
+                    </div>
+                  </AuthorIdentityRow>
                 </div>
               </div>
 
               {/* Note Content Section */}
               <div className="note-section">
                 <div id="noteContent" className="note-content">
-                  {noteContent ? (
-                    <div dangerouslySetInnerHTML={{ __html: noteContent }} />
-                  ) : (
-                    ''
-                  )}
+                  <NoteContentView html={noteContent} />
                 </div>
               </div>
 
@@ -511,8 +550,20 @@ export const LivePage: React.FC = () => {
                   id="styleToggleBtn"
                   className="style-toggle-btn"
                   onClick={handleStyleToggle}
+                  aria-label="Style settings"
                 >
-                  ⚙️
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
                 </button>
 
                 <div className="powered-by">
@@ -803,6 +854,15 @@ export const LivePage: React.FC = () => {
                       <option value="https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg">
                         Bitcoin Conference
                       </option>
+                      <option value="/live/images/bitcoin-amsterdam-white.jpg">
+                        Bitcoin Amsterdam (white)
+                      </option>
+                      <option value="/live/images/bitcoin-amsterdam-orange.png">
+                        Bitcoin Amsterdam (orange)
+                      </option>
+                      <option value="/live/images/bitcoin-historico.png">
+                        Bitcoin Histórico
+                      </option>
                       <option value="custom">Custom URL</option>
                     </select>
                     <div
@@ -840,6 +900,20 @@ export const LivePage: React.FC = () => {
             {/* Layout Section */}
             <div className="style-section">
               <h3 className="section-title">LAYOUT</h3>
+              <div className="style-option-group" style={{ marginBottom: 16 }}>
+                <label htmlFor="typeScaleSlider">Type Size</label>
+                <div className="slider-container">
+                  <input
+                    type="range"
+                    id="typeScaleSlider"
+                    min="0.6"
+                    max="2"
+                    step="0.1"
+                    defaultValue="1"
+                  />
+                  <span id="typeScaleValue">100%</span>
+                </div>
+              </div>
               <div className="toggles-container">
                 <div className="style-option-group toggle-group">
                   <label className="toggle-label">
@@ -902,6 +976,30 @@ export const LivePage: React.FC = () => {
                       <span className="toggle-slider"></span>
                     </div>
                     <span>QR Only (Hide Everything Else)</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="style-section">
+              <h3 className="section-title">NOTE CONTENT</h3>
+              <div className="toggles-container">
+                <div className="style-option-group toggle-group">
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="contentSlideshowToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Slideshow</span>
+                  </label>
+                </div>
+                <div className="style-option-group toggle-group">
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="contentMediaOnlyToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Media Only (Hide Text)</span>
                   </label>
                 </div>
               </div>
@@ -1020,6 +1118,15 @@ export const LivePage: React.FC = () => {
                     <span>Multiply Blend Mode</span>
                   </label>
                 </div>
+                <div className="style-option-group" style={{ marginTop: 15 }}>
+                  <label htmlFor="qrAttentionSelect">Attention</label>
+                  <select id="qrAttentionSelect">
+                    <option value="">Off</option>
+                    <option value="pulse">Pulse</option>
+                    <option value="shine">Shine</option>
+                    <option value="spring">Spring</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -1052,6 +1159,15 @@ export const LivePage: React.FC = () => {
                       <span className="toggle-slider"></span>
                     </div>
                     <span>Show Note ID</span>
+                  </label>
+                </div>
+                <div className="style-option-group toggle-group">
+                  <label className="toggle-label">
+                    <div className="toggle-switch">
+                      <input type="checkbox" id="qrStripPrefixToggle" />
+                      <span className="toggle-slider"></span>
+                    </div>
+                    <span>Remove QR Prefix</span>
                   </label>
                 </div>
                 <div className="style-option-group toggle-group">

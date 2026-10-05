@@ -28,6 +28,7 @@ import { useVideoPlayer } from './useVideoPlayer';
 // Zap handling imports removed - now using useZapHandling hook
 import {
   LIVE_CONTENT_RELAYS,
+  LIVE_PROFILE_RELAYS,
   LIVE_ZAP_RELAYS,
   NostrClient,
   EVENT_KINDS,
@@ -53,7 +54,7 @@ import {
   sanitizeUrl,
   escapeHtml
 } from '../utils/sanitization';
-import { DEFAULT_STYLES } from '../constants/styles';
+import { applyQrAttention } from '../utils/qrAttention';
 import { appLocalStorage } from '../utils/storage';
 import {
   validateNoteId,
@@ -70,6 +71,7 @@ import {
   hideError as hideErrorHelper,
   showLoadingState as showElementLoadingState,
   hideLoadingState,
+  showEmptyZapsState,
   createElement,
   setTextContent,
   appendChild,
@@ -120,7 +122,11 @@ export const useLiveFunctionality = (eventId?: string) => {
 
   // Initialize NostrClient - replaces window.pool
   const nostrClient = useMemo(
-    () => new NostrClient(LIVE_CONTENT_RELAYS, { zapRelays: LIVE_ZAP_RELAYS }),
+    () =>
+      new NostrClient(LIVE_CONTENT_RELAYS, {
+        zapRelays: LIVE_ZAP_RELAYS,
+        profileRelays: LIVE_PROFILE_RELAYS
+      }),
     []
   );
 
@@ -418,16 +424,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         const zapsContainer = getElementById('zaps');
         if (zapsContainer) {
           hideLoadingState(zapsContainer);
-
-          const emptyStateDiv = createElement('div', {
-            className: 'empty-zaps-state',
-            innerHTML: `
-            <div class="empty-zaps-message">
-              Be the first to support
-            </div>
-          `
-          });
-          appendChild(zapsContainer, emptyStateDiv);
+          showEmptyZapsState(zapsContainer);
         }
       }
     },
@@ -1310,14 +1307,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     // Check if there are no zaps
     if (json9735List.length === 0) {
-      const emptyStateDiv = document.createElement('div');
-      emptyStateDiv.className = 'empty-zaps-state';
-      emptyStateDiv.innerHTML = `
-        <div class="empty-zaps-message">
-          Be the first to support
-        </div>
-      `;
-      zapsContainer.appendChild(emptyStateDiv);
+      showEmptyZapsState(zapsContainer);
       return;
     }
 
@@ -2530,6 +2520,16 @@ export const useLiveFunctionality = (eventId?: string) => {
       updateBlendModeFromHook();
     });
 
+    const qrAttentionSelect = document.getElementById(
+      'qrAttentionSelect'
+    ) as HTMLSelectElement;
+    if (qrAttentionSelect) {
+      qrAttentionSelect.addEventListener('change', () => {
+        applyQrAttention(qrAttentionSelect.value);
+        saveCurrentStylesToLocalStorage();
+      });
+    }
+
     setupToggle('qrMultiplyBlendToggle', () => {
       const qrScreenBlendToggle = document.getElementById(
         'qrScreenBlendToggle'
@@ -2576,6 +2576,20 @@ export const useLiveFunctionality = (eventId?: string) => {
       });
     }
 
+    const typeScaleSlider = document.getElementById(
+      'typeScaleSlider'
+    ) as HTMLInputElement;
+    const typeScaleValue = document.getElementById('typeScaleValue');
+    if (typeScaleSlider && typeScaleValue) {
+      typeScaleSlider.addEventListener('input', (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        const value = parseFloat(target.value);
+        typeScaleValue.textContent = `${Math.round(value * 100)}%`;
+        debouncedApplyAllStyles();
+        saveCurrentStylesToLocalStorage();
+      });
+    }
+
     // Setup QR slide visibility toggles
     setupToggle('qrShowWebLinkToggle', () => {
       // Debug log removed
@@ -2593,6 +2607,11 @@ export const useLiveFunctionality = (eventId?: string) => {
         updateQRSlideVisibility();
       } else {
         // Debug log removed
+      }
+    });
+    setupToggle('qrStripPrefixToggle', () => {
+      if (typeof (window as any).refreshQrPrefix === 'function') {
+        (window as any).refreshQrPrefix();
       }
     });
     setupToggle('qrShowNoteToggle', () => {
@@ -2637,6 +2656,14 @@ export const useLiveFunctionality = (eventId?: string) => {
       } else {
         document.body.classList.remove('qr-only-mode');
       }
+    });
+
+    setupToggle('contentSlideshowToggle', (checked: boolean) => {
+      document.body.classList.toggle('content-slideshow', checked);
+    });
+
+    setupToggle('contentMediaOnlyToggle', (checked: boolean) => {
+      document.body.classList.toggle('content-media-only', checked);
     });
 
     setupToggle('showFiatToggle', (checked: boolean) => {
@@ -3019,6 +3046,19 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
       }
 
+      if (styles.typeScale !== undefined) {
+        const typeScaleSlider = document.getElementById(
+          'typeScaleSlider'
+        ) as HTMLInputElement;
+        const typeScaleValue = document.getElementById('typeScaleValue');
+        if (typeScaleSlider) {
+          typeScaleSlider.value = String(styles.typeScale);
+        }
+        if (typeScaleValue) {
+          typeScaleValue.textContent = `${Math.round(Number(styles.typeScale) * 100)}%`;
+        }
+      }
+
       // Apply saved partner logo
       if (styles.partnerLogo !== undefined) {
         const partnerLogoSelect = document.getElementById(
@@ -3058,7 +3098,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         }
       }
 
-      // Apply saved currency selection
+      applyQrAttention(styles.qrAttention);
+
       if (styles.selectedCurrency) {
         const currencySelector = document.getElementById(
           'currencySelector'
@@ -3145,6 +3186,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         'zapGridToggle',
         'sectionLabelsToggle',
         'qrOnlyToggle',
+        'contentSlideshowToggle',
+        'contentMediaOnlyToggle',
         'showFiatToggle',
         'showHistoricalPriceToggle',
         'showHistoricalChangeToggle',
@@ -3155,6 +3198,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         'qrShowWebLinkToggle',
         'qrShowNeventToggle',
         'qrShowNoteToggle',
+        'qrStripPrefixToggle',
         'lightningToggle'
       ];
 
@@ -3163,6 +3207,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         qrShowWebLink: 'qrShowWebLinkToggle',
         qrShowNevent: 'qrShowNeventToggle',
         qrShowNote: 'qrShowNoteToggle',
+        qrStripPrefix: 'qrStripPrefixToggle',
         qrInvert: 'qrInvertToggle',
         qrScreenBlend: 'qrScreenBlendToggle',
         qrMultiplyBlend: 'qrMultiplyBlendToggle',
@@ -3173,6 +3218,8 @@ export const useLiveFunctionality = (eventId?: string) => {
         zapGrid: 'zapGridToggle',
         sectionLabels: 'sectionLabelsToggle',
         qrOnly: 'qrOnlyToggle',
+        contentSlideshow: 'contentSlideshowToggle',
+        contentMediaOnly: 'contentMediaOnlyToggle',
         showFiat: 'showFiatToggle',
         showHistoricalPrice: 'showHistoricalPriceToggle',
         showHistoricalChange: 'showHistoricalChangeToggle',
@@ -3346,6 +3393,12 @@ export const useLiveFunctionality = (eventId?: string) => {
                 document.body.classList.remove('qr-only-mode');
               }
             },
+            contentSlideshowToggle: (checked: boolean) => {
+              document.body.classList.toggle('content-slideshow', checked);
+            },
+            contentMediaOnlyToggle: (checked: boolean) => {
+              document.body.classList.toggle('content-media-only', checked);
+            },
             showFiatToggle: (checked: boolean) => {
               const currencySelectorGroup = document.getElementById(
                 'currencySelectorGroup'
@@ -3471,6 +3524,11 @@ export const useLiveFunctionality = (eventId?: string) => {
               // Debug log removed
               // Don't call updateQRSlideVisibility here - will be called at end of loadInitialStyles
             },
+            qrStripPrefixToggle: () => {
+              if (typeof (window as any).refreshQrPrefix === 'function') {
+                (window as any).refreshQrPrefix();
+              }
+            },
             lightningToggle: async (checked: boolean) => {
               const lightningToggle = document.getElementById(
                 'lightningToggle'
@@ -3532,6 +3590,12 @@ export const useLiveFunctionality = (eventId?: string) => {
         textOpacitySlider.value = defaultTextOpacity.toString();
       if (textOpacityValue)
         textOpacityValue.textContent = `${Math.round(defaultTextOpacity * 100)}%`;
+      const typeScaleSlider = document.getElementById(
+        'typeScaleSlider'
+      ) as HTMLInputElement;
+      const typeScaleValue = document.getElementById('typeScaleValue');
+      if (typeScaleSlider) typeScaleSlider.value = '1';
+      if (typeScaleValue) typeScaleValue.textContent = '100%';
 
       // Set default toggle states
       const sectionLabelsToggle = document.getElementById(

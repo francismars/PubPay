@@ -7,6 +7,7 @@ import {
   ensureProfiles,
   getQueryClient,
   LIVE_CONTENT_RELAYS,
+  LIVE_PROFILE_RELAYS,
   LIVE_ZAP_RELAYS,
   extractZapAmount,
   extractZapPayerPubkey,
@@ -121,7 +122,8 @@ export const MultiStatsPage: React.FC = () => {
   useEffect(() => {
     if (!nostrClientRef.current) {
       nostrClientRef.current = new NostrClient(LIVE_CONTENT_RELAYS, {
-        zapRelays: LIVE_ZAP_RELAYS
+        zapRelays: LIVE_ZAP_RELAYS,
+        profileRelays: LIVE_PROFILE_RELAYS
       });
     }
     return () => {

@@ -3,6 +3,7 @@
 
 import { useCallback } from 'react';
 import { DEFAULT_STYLES } from '../constants/styles';
+import { applyQrAttention, normalizeQrAttention } from '../utils/qrAttention';
 import { appLocalStorage } from '../utils/storage';
 
 export function isEmbeddedLive(): boolean {
@@ -79,6 +80,25 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const b = parseInt(hex.substring(4, 6), 16);
 
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }, []);
+
+  const isDarkColor = useCallback((color: string): boolean => {
+    const hex = color.replace('#', '').trim();
+    const full =
+      hex.length === 3
+        ? hex
+            .split('')
+            .map(channel => channel + channel)
+            .join('')
+        : hex;
+    if (full.length < 6) return false;
+
+    const r = parseInt(full.substring(0, 2), 16);
+    const g = parseInt(full.substring(2, 4), 16);
+    const b = parseInt(full.substring(4, 6), 16);
+    if ([r, g, b].some(Number.isNaN)) return false;
+
+    return (r * 299 + g * 587 + b * 114) / 1000 < 150;
   }, []);
 
   /**
@@ -167,12 +187,26 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const opacity = parseFloat(opacitySlider.value);
     const textOpacity = parseFloat(textOpacitySlider.value);
 
+    const styleOptionsModal = document.getElementById('styleOptionsModal');
+    if (styleOptionsModal) {
+      styleOptionsModal.classList.toggle('panel-dark', isDarkColor(bgColor));
+    }
+
     const mainLayout = document.querySelector('.main-layout') as HTMLElement;
 
     if (mainLayout) {
       // Apply text color with opacity
       const rgbaTextColor = hexToRgba(textColor, textOpacity);
       mainLayout.style.setProperty('--text-color', rgbaTextColor);
+
+      const typeScale = parseFloat(
+        (document.getElementById('typeScaleSlider') as HTMLInputElement)
+          ?.value || '1'
+      );
+      mainLayout.style.setProperty(
+        '--type-scale',
+        String(Number.isFinite(typeScale) ? typeScale : 1)
+      );
 
       // Apply color to specific elements that need hardcoded color overrides
       const hardcodedElements = mainLayout.querySelectorAll(`
@@ -305,6 +339,7 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     updateBlendMode();
   }, [
     hexToRgba,
+    isDarkColor,
     updateBackgroundImage,
     updateBlendMode,
     onOrganizeZaps,
@@ -379,6 +414,8 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       { toggleId: 'zapGridToggle', propertyName: 'zapGrid' },
       { toggleId: 'sectionLabelsToggle', propertyName: 'sectionLabels' },
       { toggleId: 'qrOnlyToggle', propertyName: 'qrOnly' },
+      { toggleId: 'contentSlideshowToggle', propertyName: 'contentSlideshow' },
+      { toggleId: 'contentMediaOnlyToggle', propertyName: 'contentMediaOnly' },
       { toggleId: 'showFiatToggle', propertyName: 'showFiat' },
       {
         toggleId: 'showHistoricalPriceToggle',
@@ -395,6 +432,7 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       { toggleId: 'qrShowWebLinkToggle', propertyName: 'qrShowWebLink' },
       { toggleId: 'qrShowNeventToggle', propertyName: 'qrShowNevent' },
       { toggleId: 'qrShowNoteToggle', propertyName: 'qrShowNote' },
+      { toggleId: 'qrStripPrefixToggle', propertyName: 'qrStripPrefix' },
       { toggleId: 'lightningToggle', propertyName: 'lightning' }
     ];
 
@@ -420,6 +458,10 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       partnerLogo: currentPartnerLogo,
       bgImage: currentBackgroundImage,
       selectedCurrency,
+      typeScale: parseFloat(
+        (document.getElementById('typeScaleSlider') as HTMLInputElement)
+          ?.value || '1'
+      ),
       ...toggleStates
     };
 
@@ -656,6 +698,12 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
         if (opacitySlider) opacitySlider.value = presetData.opacity.toString();
         if (opacityValue)
           opacityValue.textContent = `${Math.round(presetData.opacity * 100)}%`;
+        const typeScaleSlider = document.getElementById(
+          'typeScaleSlider'
+        ) as HTMLInputElement;
+        const typeScaleValue = document.getElementById('typeScaleValue');
+        if (typeScaleSlider) typeScaleSlider.value = '1';
+        if (typeScaleValue) typeScaleValue.textContent = '100%';
 
         // Set background image
         const bgImageUrl = document.getElementById(
@@ -729,6 +777,20 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
           {
             toggleId: 'qrOnlyToggle',
             value: presetData.qrOnly !== undefined ? presetData.qrOnly : false
+          },
+          {
+            toggleId: 'contentSlideshowToggle',
+            value:
+              presetData.contentSlideshow !== undefined
+                ? presetData.contentSlideshow
+                : false
+          },
+          {
+            toggleId: 'contentMediaOnlyToggle',
+            value:
+              presetData.contentMediaOnly !== undefined
+                ? presetData.contentMediaOnly
+                : false
           }
         ];
 
@@ -881,6 +943,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       qrMultiplyBlend:
         (document.getElementById('qrMultiplyBlendToggle') as HTMLInputElement)
           ?.checked || false,
+      qrAttention:
+        (document.getElementById('qrAttentionSelect') as HTMLSelectElement)
+          ?.value || '',
       qrShowWebLink:
         (document.getElementById('qrShowWebLinkToggle') as HTMLInputElement)
           ?.checked ?? true,
@@ -890,6 +955,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       qrShowNote:
         (document.getElementById('qrShowNoteToggle') as HTMLInputElement)
           ?.checked ?? true,
+      qrStripPrefix:
+        (document.getElementById('qrStripPrefixToggle') as HTMLInputElement)
+          ?.checked || false,
       layoutInvert:
         (document.getElementById('layoutInvertToggle') as HTMLInputElement)
           ?.checked || false,
@@ -910,6 +978,12 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
           ?.checked ?? true,
       qrOnly:
         (document.getElementById('qrOnlyToggle') as HTMLInputElement)
+          ?.checked || false,
+      contentSlideshow:
+        (document.getElementById('contentSlideshowToggle') as HTMLInputElement)
+          ?.checked || false,
+      contentMediaOnly:
+        (document.getElementById('contentMediaOnlyToggle') as HTMLInputElement)
           ?.checked || false,
       showFiat:
         (document.getElementById('showFiatToggle') as HTMLInputElement)
@@ -943,7 +1017,11 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       partnerLogo: currentPartnerLogo,
       selectedCurrency:
         (document.getElementById('currencySelector') as HTMLSelectElement)
-          ?.value || 'USD'
+          ?.value || 'USD',
+      typeScale: parseFloat(
+        (document.getElementById('typeScaleSlider') as HTMLInputElement)
+          ?.value || '1'
+      )
     };
 
     // Store styles in localStorage instead of URL
@@ -1063,6 +1141,12 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     ) as HTMLInputElement;
     if (qrMultiplyBlendToggle) qrMultiplyBlendToggle.checked = qrMultiplyBlend;
 
+    applyQrAttention(
+      params.has('qrAttention')
+        ? params.get('qrAttention')
+        : DEFAULT_STYLES.qrAttention
+    );
+
     // Update blend mode after setting toggles
     updateBlendMode();
 
@@ -1090,6 +1174,17 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       'qrShowNoteToggle'
     ) as HTMLInputElement;
     if (qrShowNoteToggle) qrShowNoteToggle.checked = qrShowNote;
+
+    const qrStripPrefix = params.has('qrStripPrefix')
+      ? params.get('qrStripPrefix') === 'true'
+      : DEFAULT_STYLES.qrStripPrefix;
+    const qrStripPrefixToggle = document.getElementById(
+      'qrStripPrefixToggle'
+    ) as HTMLInputElement;
+    if (qrStripPrefixToggle) qrStripPrefixToggle.checked = qrStripPrefix;
+    if (typeof (window as any).refreshQrPrefix === 'function') {
+      (window as any).refreshQrPrefix();
+    }
 
     // Apply layout invert (set to default if not specified in URL)
     const layoutInvert = params.has('layoutInvert')
@@ -1319,6 +1414,20 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     }
 
     // Apply text opacity
+    if (params.has('typeScale')) {
+      const typeScale = parseFloat(params.get('typeScale') || '1');
+      const typeScaleSlider = document.getElementById(
+        'typeScaleSlider'
+      ) as HTMLInputElement;
+      const typeScaleValue = document.getElementById('typeScaleValue');
+      if (typeScaleSlider && Number.isFinite(typeScale)) {
+        typeScaleSlider.value = typeScale.toString();
+      }
+      if (typeScaleValue && Number.isFinite(typeScale)) {
+        typeScaleValue.textContent = `${Math.round(typeScale * 100)}%`;
+      }
+    }
+
     if (params.has('textOpacity')) {
       const textOpacity = parseFloat(params.get('textOpacity') || '1');
       const textOpacitySlider = document.getElementById(
@@ -1437,6 +1546,26 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     } else {
       document.body.classList.remove('qr-only-mode');
     }
+
+    const contentSlideshow = params.has('contentSlideshow')
+      ? params.get('contentSlideshow') === 'true'
+      : DEFAULT_STYLES.contentSlideshow;
+    const contentSlideshowToggle = document.getElementById(
+      'contentSlideshowToggle'
+    ) as HTMLInputElement;
+    if (contentSlideshowToggle)
+      contentSlideshowToggle.checked = contentSlideshow;
+    document.body.classList.toggle('content-slideshow', contentSlideshow);
+
+    const contentMediaOnly = params.has('contentMediaOnly')
+      ? params.get('contentMediaOnly') === 'true'
+      : DEFAULT_STYLES.contentMediaOnly;
+    const contentMediaOnlyToggle = document.getElementById(
+      'contentMediaOnlyToggle'
+    ) as HTMLInputElement;
+    if (contentMediaOnlyToggle)
+      contentMediaOnlyToggle.checked = contentMediaOnly;
+    document.body.classList.toggle('content-media-only', contentMediaOnly);
 
     // Apply fiat toggle (set to default if not specified in URL)
     const showFiat = params.has('showFiat')
@@ -1594,6 +1723,12 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
         if (styles.qrMultiplyBlend !== DEFAULT_STYLES.qrMultiplyBlend) {
           params.set('qrMultiplyBlend', styles.qrMultiplyBlend);
         }
+        if (
+          normalizeQrAttention(styles.qrAttention) !==
+          DEFAULT_STYLES.qrAttention
+        ) {
+          params.set('qrAttention', styles.qrAttention);
+        }
         if (styles.qrShowWebLink !== DEFAULT_STYLES.qrShowWebLink) {
           params.set('qrShowWebLink', styles.qrShowWebLink);
         }
@@ -1602,6 +1737,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
         }
         if (styles.qrShowNote !== DEFAULT_STYLES.qrShowNote) {
           params.set('qrShowNote', styles.qrShowNote);
+        }
+        if (styles.qrStripPrefix !== DEFAULT_STYLES.qrStripPrefix) {
+          params.set('qrStripPrefix', styles.qrStripPrefix);
         }
         if (styles.layoutInvert !== DEFAULT_STYLES.layoutInvert) {
           params.set('layoutInvert', styles.layoutInvert);
@@ -1623,6 +1761,12 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
         }
         if (styles.qrOnly !== DEFAULT_STYLES.qrOnly) {
           params.set('qrOnly', styles.qrOnly);
+        }
+        if (styles.contentSlideshow !== DEFAULT_STYLES.contentSlideshow) {
+          params.set('contentSlideshow', styles.contentSlideshow);
+        }
+        if (styles.contentMediaOnly !== DEFAULT_STYLES.contentMediaOnly) {
+          params.set('contentMediaOnly', styles.contentMediaOnly);
         }
         if (styles.showFiat !== DEFAULT_STYLES.showFiat) {
           params.set('showFiat', styles.showFiat);
@@ -1646,6 +1790,12 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
         }
         if (styles.textOpacity !== DEFAULT_STYLES.textOpacity) {
           params.set('textOpacity', styles.textOpacity.toString());
+        }
+        if (
+          styles.typeScale !== undefined &&
+          styles.typeScale !== DEFAULT_STYLES.typeScale
+        ) {
+          params.set('typeScale', String(styles.typeScale));
         }
         if (
           styles.partnerLogo &&

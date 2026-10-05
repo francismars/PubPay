@@ -273,12 +273,16 @@ export const RoomViewerPage: React.FC = () => {
           params.set('qrScreenBlend', String(styles.qrScreenBlend));
         if (styles.qrMultiplyBlend !== undefined)
           params.set('qrMultiplyBlend', String(styles.qrMultiplyBlend));
+        if (styles.qrAttention !== undefined)
+          params.set('qrAttention', String(styles.qrAttention));
         if (styles.qrShowWebLink !== undefined)
           params.set('qrShowWebLink', String(styles.qrShowWebLink));
         if (styles.qrShowNevent !== undefined)
           params.set('qrShowNevent', String(styles.qrShowNevent));
         if (styles.qrShowNote !== undefined)
           params.set('qrShowNote', String(styles.qrShowNote));
+        if (styles.qrStripPrefix !== undefined)
+          params.set('qrStripPrefix', String(styles.qrStripPrefix));
         if (styles.layoutInvert !== undefined)
           params.set('layoutInvert', String(styles.layoutInvert));
         if (styles.hideZapperContent !== undefined)
@@ -293,6 +297,10 @@ export const RoomViewerPage: React.FC = () => {
           params.set('sectionLabels', String(styles.sectionLabels));
         if (styles.qrOnly !== undefined)
           params.set('qrOnly', String(styles.qrOnly));
+        if (styles.contentSlideshow !== undefined)
+          params.set('contentSlideshow', String(styles.contentSlideshow));
+        if (styles.contentMediaOnly !== undefined)
+          params.set('contentMediaOnly', String(styles.contentMediaOnly));
         if (styles.showFiat !== undefined)
           params.set('showFiat', String(styles.showFiat));
         if (styles.showHistoricalPrice !== undefined)
@@ -308,6 +316,8 @@ export const RoomViewerPage: React.FC = () => {
           params.set('lightning', String(styles.lightning));
         setIfDefined('selectedCurrency', styles.selectedCurrency);
         setIfDefined('partnerLogo', styles.partnerLogo);
+        if (styles.typeScale !== undefined)
+          params.set('typeScale', String(styles.typeScale));
       }
       return `${baseUrl}?${params.toString()}`;
     },
