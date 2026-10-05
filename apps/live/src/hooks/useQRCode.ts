@@ -1,6 +1,7 @@
 // QR code generation and management hook
 import { useCallback, useRef } from 'react';
 import { nip19 } from 'nostr-tools';
+import { formatQrPreview, stripQrPrefix } from '../utils/qrPrefix';
 
 const QRious = require('qrious') as any;
 
@@ -48,10 +49,12 @@ export function useQRCode() {
           targetElement = canvas;
         }
 
+        element.dataset.qrFull = value;
+
         new QRious({
           element: targetElement,
           size: size * 0.9,
-          value
+          value: stripQrPrefix(value)
         });
 
         if (originalDisplay) {
@@ -95,19 +98,12 @@ export function useQRCode() {
       const qrDataPreview2 = document.getElementById('qrDataPreview2');
       const qrDataPreview3 = document.getElementById('qrDataPreview3');
 
-      // Set preview text in uppercase (max 60 chars to prevent overflow)
-      const truncate = (text: string, maxLength: number = 60) => {
-        return text.length > maxLength
-          ? `${text.substring(0, maxLength)}...`
-          : text;
-      };
-
       if (qrDataPreview1)
-        qrDataPreview1.textContent = truncate(njumpUrl.toUpperCase());
+        qrDataPreview1.textContent = formatQrPreview(njumpUrl);
       if (qrDataPreview2)
-        qrDataPreview2.textContent = truncate(nostrNaddr.toUpperCase());
+        qrDataPreview2.textContent = formatQrPreview(nostrNaddr);
       if (qrDataPreview3)
-        qrDataPreview3.textContent = truncate(naddrId.toUpperCase());
+        qrDataPreview3.textContent = formatQrPreview(naddrId);
     },
     []
   );
@@ -256,13 +252,6 @@ export function useQRCode() {
         }
       ];
 
-      // Truncate function for preview text
-      const truncate = (text: string, maxLength: number = 60) => {
-        return text.length > maxLength
-          ? `${text.substring(0, maxLength)}...`
-          : text;
-      };
-
       qrcodeContainers.forEach(({ element, value, link, preview }) => {
         if (element && QRious) {
           generateQRCode(element.id, value, qrSize);
@@ -272,7 +261,7 @@ export function useQRCode() {
           }
 
           if (preview) {
-            preview.textContent = truncate(value.toUpperCase());
+            preview.textContent = formatQrPreview(value);
           }
         }
       });
@@ -662,6 +651,29 @@ export function useQRCode() {
 
   // Store the function in ref so it can be called by functions defined earlier
   initializeQRSwiperRef.current = initializeQRSwiper;
+
+  const refreshQrPrefix = useCallback(() => {
+    const pairs: Array<[string, string]> = [
+      ['qrCode', 'qrDataPreview1'],
+      ['qrCodeNevent', 'qrDataPreview2'],
+      ['qrCodeNote', 'qrDataPreview3'],
+      ['lightningQRCode', 'qrDataPreview4']
+    ];
+    const qrSize = Math.min(window.innerWidth * 0.6, window.innerHeight * 0.7);
+
+    pairs.forEach(([elementId, previewId]) => {
+      const element = document.getElementById(elementId);
+      const full = element?.dataset.qrFull;
+      if (!element || !full) return;
+      generateQRCode(elementId, full, qrSize);
+      const preview = document.getElementById(previewId);
+      if (preview) preview.textContent = formatQrPreview(full);
+    });
+  }, [generateQRCode]);
+
+  if (typeof window !== 'undefined') {
+    (window as any).refreshQrPrefix = refreshQrPrefix;
+  }
 
   return {
     generateQRCode,

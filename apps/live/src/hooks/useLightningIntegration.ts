@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from 'react';
 import { UseLightning } from './useLightning';
 import { useQRCode } from './useQRCode';
 import { escapeHtml } from '../utils/sanitization';
+import { formatQrPreview } from '../utils/qrPrefix';
 
 export interface UseLightningIntegrationOptions {
   eventId?: string;
@@ -116,9 +117,7 @@ export function useLightningIntegration(
         // Set QR data preview text (uppercase, max 60 chars)
         const qrDataPreview4 = document.getElementById('qrDataPreview4');
         if (qrDataPreview4) {
-          const previewText =
-            lnurl.length > 60 ? `${lnurl.substring(0, 60)}...` : lnurl;
-          qrDataPreview4.textContent = previewText.toUpperCase();
+          qrDataPreview4.textContent = formatQrPreview(lnurl);
         }
 
         // Ensure slide is visible and in swiper
