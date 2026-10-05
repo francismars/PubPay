@@ -300,24 +300,24 @@ export function createLoadingElement(
  * Keeps the `loading-text` class so hideLoadingState still removes it.
  */
 /**
- * Match loaded zap ranks: 15vw, 10vw, 5vw, then the default 3vw.
- * Later rows stay at that floor instead of growing again.
+ * Match the first three loaded ranks, then keep shrinking and fading.
+ * A hard floor made every later row look the same size and weight.
  */
 function zapBoneVars(index: number): string {
-  const avatars = [15, 10, 5];
-  const nameSizes = ['max(3.2vw, 24px)', 'max(2.6vw, 20px)', 'max(2vw, 18px)'];
-  const amounts = [3.6, 2.6, 1.8];
-  const amountHeights = [1.8, 1.3, 0.95];
-  const avatar = avatars[index] ?? 3;
-  const nameSize = nameSizes[index] ?? 'max(1vw, 14px)';
-  const amount = amounts[index] ?? 1.4;
-  const amountHeight = amountHeights[index] ?? 0.7;
-  const fade = Math.max(0.42, 1 - index * 0.08).toFixed(2);
-  return `--bone:${avatar}vw;--name-size:${nameSize};--amt:${amount}vw;--amt-h:${amountHeight}vw;--fade:${fade}`;
+  const step = Math.max(0, index - 2);
+  const avatar = index < 3 ? [15, 10, 5][index] : Math.max(1.7, 4.2 - step * 0.5);
+  const nameVw = index < 3 ? [3.2, 2.6, 2][index] : Math.max(0.75, 1.7 - step * 0.16);
+  const namePx = index < 3 ? [24, 20, 18][index] : Math.max(11, 16 - step);
+  const amount = index < 3 ? [3.6, 2.6, 1.8][index] : Math.max(0.7, 1.55 - step * 0.14);
+  const amountHeight =
+    index < 3 ? [1.8, 1.3, 0.95][index] : Math.max(0.38, 0.82 - step * 0.07);
+  const fade = Math.max(0.16, 1 - index * 0.12).toFixed(2);
+  const shimmerDelay = (index * 0.12).toFixed(2);
+  return `--bone:${avatar.toFixed(2)}vw;--name-size:max(${nameVw.toFixed(2)}vw, ${namePx}px);--amt:${amount.toFixed(2)}vw;--amt-h:${amountHeight.toFixed(2)}vw;--fade:${fade};--shimmer-delay:${shimmerDelay}s`;
 }
 
 function zapSkeletonRow(index: number, extraClass = '', style = zapBoneVars(index)): string {
-  const cls = extraClass ? `zap ${extraClass}` : 'zap';
+  const cls = extraClass ? `zap is-skeleton ${extraClass}` : 'zap is-skeleton';
   return `
         <div class="${cls}" style="${style}">
           <div class="zapperProfile">
@@ -342,14 +342,14 @@ export function createZapLoadingElement(): HTMLElement {
       <div class="zap-loader-list" aria-hidden="true">
         ${Array.from({ length: 8 }, (_, index) => zapSkeletonRow(index)).join('')}
       </div>
-      <div class="zap-loader-grid" aria-hidden="true">
-        <div class="zap-row row-1">
+      <div class="zap-loader-grid" aria-hidden="true" hidden>
+        <div class="zap-row is-skeleton row-1">
           ${zapSkeletonRow(0, 'row-1', '--bone:6vw;--name-size:1.5vw;--amt:2.2vw;--amt-h:1.1vw;--fade:1')}
         </div>
-        <div class="zap-row row-2">
+        <div class="zap-row is-skeleton row-2">
           ${[0, 1].map(() => zapSkeletonRow(0, 'row-2', '--bone:4vw;--name-size:1.3vw;--amt:1.6vw;--amt-h:0.85vw;--fade:0.72')).join('')}
         </div>
-        <div class="zap-row row-3">
+        <div class="zap-row is-skeleton row-3">
           ${[0, 1, 2, 3].map(() => zapSkeletonRow(0, 'row-3', '--bone:3vw;--name-size:1vw;--amt:1.3vw;--amt-h:0.7vw;--fade:0.48')).join('')}
         </div>
       </div>
@@ -394,29 +394,59 @@ export function showLoadingState(
  * Replaces any copies already in the container so overlapping
  * subscription timeouts and empty callbacks cannot stack it.
  */
-export function showEmptyZapsState(element: HTMLElement | null): void {
+function isPlaceholderZap(node: Element): boolean {
+  return (
+    node.classList.contains('is-skeleton') ||
+    !!node.closest('.zap-loader, .is-skeleton') ||
+    !!node.querySelector('.zap-bone')
+  );
+}
+
+export function showEmptyZapsState(
+  element: HTMLElement | null,
+  message = 'Be the first to support',
+  relays?: string[]
+): void {
   if (!element) return;
 
+  // Skeleton rows use `.zap` too, and grid cleanup can lift them out of the loader.
+  const hasRealZap = Array.from(
+    element.querySelectorAll('.zap, .live-event-zap, .live-chat-message')
+  ).some(node => !isPlaceholderZap(node));
+
   // Zaps already rendered — a late empty callback must not cover them.
-  if (element.querySelector('.zap')) {
+  if (hasRealZap) {
     element.querySelectorAll('.empty-zaps-state').forEach(node => {
       node.remove();
     });
     return;
   }
 
-  element.querySelectorAll('.empty-zaps-state').forEach(node => {
+  element.classList.remove('loading');
+  element.querySelectorAll('.loading-text, .zap-loader, .empty-zaps-state, .is-skeleton').forEach(node => {
     node.remove();
+  });
+  element.querySelectorAll('.zap').forEach(node => {
+    if (isPlaceholderZap(node)) node.remove();
   });
 
   const emptyStateDiv = createElement('div', {
-    className: 'empty-zaps-state',
-    innerHTML: `
-      <div class="empty-zaps-message">
-        Be the first to support
-      </div>
-    `
+    className: 'empty-zaps-state'
   });
+  appendChild(
+    emptyStateDiv,
+    createElement('div', {
+      className: 'empty-zaps-message',
+      textContent: message
+    })
+  );
+  if (relays?.length) {
+    const list = createElement('ul', { className: 'empty-zaps-relays' });
+    for (const relay of relays) {
+      appendChild(list, createElement('li', { textContent: relay }));
+    }
+    appendChild(emptyStateDiv, list);
+  }
   appendChild(element, emptyStateDiv);
 }
 
