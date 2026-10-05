@@ -206,17 +206,21 @@ export class NostrClient {
     eventId: string,
     eventHandler: EventHandler,
     options: {
+      oneose?: () => void;
       onclosed?: () => void;
       timeout?: number;
     } = {}
   ): Subscription {
     const filter: NostrFilter = {
       kinds: [9735], // Zap receipt kind
-      '#e': [eventId]
+      '#e': [eventId],
+      // Relays such as Primal return nothing for an unbounded REQ.
+      limit: 500
     };
 
     return this.subscribeToEvents([filter], eventHandler, {
       timeout: options.timeout || 30000,
+      oneose: options.oneose,
       onclosed: options.onclosed
     });
   }
@@ -252,6 +256,7 @@ export class NostrClient {
     pubkeys: string[],
     eventHandler: EventHandler,
     options: {
+      oneose?: () => void;
       onclosed?: () => void;
       timeout?: number;
     } = {}
@@ -263,6 +268,7 @@ export class NostrClient {
 
     return this.subscribeToEvents([filter], eventHandler, {
       timeout: options.timeout || 30000,
+      oneose: options.oneose,
       onclosed: options.onclosed
     });
   }

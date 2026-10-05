@@ -41,11 +41,14 @@ export const LIVE_PROFILE_RELAYS = uniqueRelays(LIVE_CONTENT_RELAYS, [
 export const LIVE_ZAP_INDEX_RELAYS = [
   'wss://relay.primal.net',
   'wss://premium.primal.net',
+  'wss://relay.nostr.band',
   'wss://relay.zapstore.dev',
   'wss://nos.lol',
+  'wss://nostr.wine',
   'wss://relay.damus.io',
   'wss://relay.nostr.net',
-  'wss://nostr.mom'
+  'wss://nostr.mom',
+  'wss://nostr.oxtr.dev'
 ];
 
 /** PubPay Live: union used for kind-9735 subscriptions and batch zap fetches. */
