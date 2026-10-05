@@ -661,6 +661,31 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
           textOpacity: 1.0,
           partnerLogo:
             'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg'
+        },
+        bitcoinAmsterdam: {
+          textColor: '#ffffff',
+          bgColor: '#000000',
+          bgImage: '/live/images/sky.jpg',
+          qrInvert: false,
+          qrScreenBlend: false,
+          qrMultiplyBlend: false,
+          qrAttention: 'spring',
+          qrShowWebLink: false,
+          qrShowNevent: true,
+          qrShowNote: true,
+          qrStripPrefix: true,
+          layoutInvert: false,
+          hideZapperContent: false,
+          showTopZappers: false,
+          podium: false,
+          zapGrid: false,
+          sectionLabels: false,
+          qrOnly: false,
+          contentSlideshow: true,
+          contentMediaOnly: false,
+          opacity: 0.7,
+          textOpacity: 1.0,
+          partnerLogo: '/live/images/bitcoin-amsterdam-orange.png'
         }
       };
 
@@ -756,6 +781,10 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
           { toggleId: 'qrShowWebLinkToggle', value: presetData.qrShowWebLink },
           { toggleId: 'qrShowNeventToggle', value: presetData.qrShowNevent },
           { toggleId: 'qrShowNoteToggle', value: presetData.qrShowNote },
+          {
+            toggleId: 'qrStripPrefixToggle',
+            value: presetData.qrStripPrefix === true
+          },
           { toggleId: 'layoutInvertToggle', value: presetData.layoutInvert },
           {
             toggleId: 'hideZapperContentToggle',
@@ -803,6 +832,14 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
             toggle.dispatchEvent(event);
           }
         });
+
+        const qrAttentionSelect = document.getElementById(
+          'qrAttentionSelect'
+        ) as HTMLSelectElement;
+        if (qrAttentionSelect) {
+          qrAttentionSelect.value = presetData.qrAttention || '';
+          qrAttentionSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
 
         // Apply all styles
         applyAllStyles();
@@ -1027,15 +1064,22 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     // Store styles in localStorage instead of URL
     appLocalStorage.setStyleOptions(styles);
 
-    // Keep URL clean - no style parameters
+    // Keep the URL free of style parameters except QR attention and the
+    // prefix strip, which are meant to travel with a shared live link.
     const pathParts = window.location.pathname.split('/').filter(Boolean);
     const pathPartsWithoutLive = pathParts.filter(p => p !== 'live');
     const noteId = pathPartsWithoutLive[pathPartsWithoutLive.length - 1];
-    const cleanUrl =
+    const cleanPath =
       noteId && noteId.trim() !== '' ? `/live/${noteId}` : '/live/';
+    const shareParams = new URLSearchParams();
+    const qrAttention = normalizeQrAttention(styles.qrAttention);
+    if (qrAttention) shareParams.set('qrAttention', qrAttention);
+    if (styles.qrStripPrefix) shareParams.set('qrStripPrefix', 'true');
+    const shareQuery = shareParams.toString();
+    const nextUrl = shareQuery ? `${cleanPath}?${shareQuery}` : cleanPath;
 
-    if (window.location.href !== window.location.origin + cleanUrl) {
-      window.history.replaceState({}, '', cleanUrl);
+    if (window.location.pathname + window.location.search !== nextUrl) {
+      window.history.replaceState({}, '', nextUrl);
     }
   }, [toHexColor]);
 
@@ -1046,7 +1090,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
     const mainLayout = document.querySelector('.main-layout');
     if (!mainLayout) return;
 
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(
+      window.__pubpayLiveStyleSearch ?? window.location.search
+    );
     if (params.toString() === '' && !isEmbeddedLive()) return;
 
     // Apply text color
@@ -1513,25 +1559,8 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       'sectionLabelsToggle'
     ) as HTMLInputElement;
     if (sectionLabelsToggle) sectionLabelsToggle.checked = sectionLabels;
-    const sectionLabelsElements = document.querySelectorAll('.section-label');
-    const totalLabelsElements = document.querySelectorAll('.total-label');
-    if (sectionLabels) {
-      sectionLabelsElements.forEach(
-        label => ((label as HTMLElement).style.display = 'block')
-      );
-      totalLabelsElements.forEach(
-        label => ((label as HTMLElement).style.display = 'none')
-      );
-      document.body.classList.remove('show-total-labels');
-    } else {
-      sectionLabelsElements.forEach(
-        label => ((label as HTMLElement).style.display = 'none')
-      );
-      totalLabelsElements.forEach(
-        label => ((label as HTMLElement).style.display = 'inline')
-      );
-      document.body.classList.add('show-total-labels');
-    }
+    document.body.classList.toggle('show-section-labels', sectionLabels);
+    document.body.classList.toggle('show-total-labels', !sectionLabels);
 
     // Apply QR only toggle (set to default if not specified in URL)
     const qrOnly = params.has('qrOnly')
@@ -1677,6 +1706,7 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       saveCurrentStylesToLocalStorage();
       updateStyleURL();
     }
+    delete window.__pubpayLiveStyleSearch;
   }, [
     hexToRgba,
     updateBackgroundImage,

@@ -149,6 +149,7 @@ declare global {
 
     // Global functions
     setupStyleOptions?: () => void;
+    __pubpayLiveStyleSearch?: string;
     organizeZapsHierarchically?: () => void;
     cleanupHierarchicalOrganization?: () => void;
     updateQRSlideVisibility?: (skipUrlUpdate?: boolean) => void;

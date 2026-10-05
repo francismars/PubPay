@@ -1,5 +1,5 @@
 // Live page component - matches original live.html design exactly
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveFunctionality } from '@live/hooks/useLiveFunctionality';
 import { useLiveUrl } from '@live/hooks/useLiveUrl';
@@ -48,6 +48,11 @@ function AuthorIdentityRow({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Imperative zap rows live in this node. A parent re-render must not reconcile it. */
+const ZapListMount = React.memo(function ZapListMount() {
+  return <div id="zaps" className="zaps-list" />;
+});
+
 export const LivePage: React.FC = () => {
   const navigate = useNavigate();
 
@@ -84,15 +89,27 @@ export const LivePage: React.FC = () => {
   // on the next render, causing useLiveFunctionality to re-run with the correct eventId
   const { showNoteLoader, showMainLayout } = useLiveUrl(showLoadingError);
 
-  // Set body class to 'live' for proper CSS styling
-  useEffect(() => {
-    document.body.className = 'live';
+  // Apply live styling before paint so the first frame is not the default page.
+  useLayoutEffect(() => {
+    document.body.classList.add('live', 'show-total-labels');
 
-    // Cleanup: remove live class when component unmounts
     return () => {
-      document.body.className = '';
+      document.body.classList.remove(
+        'live',
+        'show-total-labels',
+        'show-section-labels'
+      );
     };
   }, []);
+
+  // If style loading never finishes, still show the layout.
+  useEffect(() => {
+    if (!showMainLayout) return;
+    const timeoutId = window.setTimeout(() => {
+      document.getElementById('mainLayout')?.classList.remove('layout-pending');
+    }, 3000);
+    return () => window.clearTimeout(timeoutId);
+  }, [showMainLayout]);
 
   // Cleanup: remove livestream class when component unmounts
   useEffect(() => {
@@ -377,7 +394,7 @@ export const LivePage: React.FC = () => {
 
       {/* Main two-column layout */}
       {showMainLayout && (
-        <div id="mainLayout" className="main-layout">
+        <div id="mainLayout" className="main-layout layout-pending">
           {/* Background image overlay for the entire layout */}
           <div className="liveZapOverlay"></div>
 
@@ -653,9 +670,7 @@ export const LivePage: React.FC = () => {
 
             <div className="zaps-container">
               <h3 className="section-label">top zaps</h3>
-              <div id="zaps" className="zaps-list">
-                {/* Zaps will be populated here */}
-              </div>
+              <ZapListMount />
             </div>
           </div>
         </div>
@@ -698,6 +713,9 @@ export const LivePage: React.FC = () => {
                 </button>
                 <button className="preset-btn" data-preset="bitcoinConf">
                   Bitcoin Conf
+                </button>
+                <button className="preset-btn" data-preset="bitcoinAmsterdam">
+                  Bitcoin Amsterdam
                 </button>
               </div>
             </div>

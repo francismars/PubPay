@@ -883,10 +883,15 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.9;
-  display: block;
+  display: none;
   width: 100%;
   text-align: justify;
   opacity: 0.5;
+}
+
+/* Section labels stay hidden until settings explicitly turn them on. */
+body.show-section-labels .section-label {
+  display: block;
 }
 
 /* Author Section */
@@ -905,7 +910,7 @@ body {
   border-radius: 50%;
   object-fit: cover;
   margin: 0 0.5vw 0 0;
-  border: 3px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
   flex-shrink: 0;
   aspect-ratio: 1 / 1;
@@ -1571,16 +1576,18 @@ body.qr-blend-active .left-side {
 }
 
 /* Section Labels Toggle States */
-/* When section labels are visible (toggle OFF) */
+/* Hidden section labels: totals sit on the baseline. */
 .main-layout .zaps-header,
-.live .zaps-header {
-  align-items: flex-start;
-}
-
-/* When section labels are hidden (toggle ON) */
+.live .zaps-header,
 .main-layout.show-total-labels .zaps-header,
 .live.show-total-labels .zaps-header {
   align-items: flex-end;
+}
+
+/* Visible section labels: header aligns to the top. */
+body.show-section-labels .main-layout .zaps-header,
+body.show-section-labels .live .zaps-header {
+  align-items: flex-start;
 }
 
 /* Fiat Amount Styling */
@@ -1679,8 +1686,21 @@ body.qr-blend-active .left-side {
 .total-label {
   font-size: calc((max(1.2vw, 14px)) * var(--type-scale, 1));
   color: var(--text-color);
-  display: none;
+  display: inline;
   padding-right: 0.5vw;
+}
+
+body.show-section-labels .total-label {
+  display: none;
+}
+
+/* Hold the live layout until colors, labels, and other settings are applied. */
+.main-layout.layout-pending {
+  visibility: hidden;
+}
+
+body.live:has(.main-layout.layout-pending) {
+  background: #111;
 }
 
 .total-amount {
@@ -1722,7 +1742,7 @@ body.qr-blend-active .left-side {
 
 .style-toggle-btn {
   background: transparent;
-  color: #fff;
+  color: var(--text-color);
   border: none;
   padding: 0;
   width: 1.35vw;
@@ -1840,6 +1860,30 @@ body.style-panel-open .style-toggle-btn {
   margin: 0;
 }
 
+.empty-zaps-state {
+  text-align: left;
+}
+
+.empty-zaps-message {
+  white-space: normal;
+  text-align: left;
+  line-height: 1.4;
+  max-width: 36rem;
+  margin: 0;
+}
+
+.empty-zaps-relays {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  max-width: 36rem;
+  text-align: left;
+  font-size: 0.85em;
+  line-height: 1.5;
+  opacity: 0.75;
+  word-break: break-all;
+}
+
 .livestream .zaps-container {
   overflow: hidden;
 }
@@ -1887,41 +1931,51 @@ body.style-panel-open .style-toggle-btn {
   display: none;
 }
 
-.zap-loader-grid {
-  display: none;
+.zap-loader-grid,
+.zap-loader-grid[hidden] {
+  display: none !important;
 }
 
 .zaps-list.grid-layout .zap-loader-grid,
 .zaps-only-list.grid-layout .zap-loader-grid,
-.activity-list.grid-layout .zap-loader-grid {
-  display: block;
+.activity-list.grid-layout .zap-loader-grid,
+.zaps-list.grid-layout .zap-loader-grid[hidden],
+.zaps-only-list.grid-layout .zap-loader-grid[hidden],
+.activity-list.grid-layout .zap-loader-grid[hidden] {
+  display: block !important;
 }
 
 .zap-loader .zap {
   border-radius: 8px;
+  opacity: var(--fade, 1);
 }
 
 .zap-loader .zap .zap-bone {
-  opacity: var(--fade, 1);
+  opacity: 1;
 }
 
 .zap-bone {
   display: block;
   border-radius: 4px;
   opacity: var(--fade, 1);
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--text-color) 14%, transparent),
-    color-mix(in srgb, var(--text-color) 32%, transparent),
-    color-mix(in srgb, var(--text-color) 14%, transparent)
+  background-color: color-mix(in srgb, var(--text-color) 14%, transparent);
+  background-image: linear-gradient(
+    105deg,
+    transparent 0%,
+    transparent 35%,
+    color-mix(in srgb, var(--text-color) 22%, transparent) 50%,
+    transparent 65%,
+    transparent 100%
   );
+  background-repeat: no-repeat;
   background-size: 220% 100%;
-  animation: zap-shimmer 2.8s ease-in-out infinite;
+  animation: zap-shimmer 1.8s linear infinite;
 }
 
-/* Beat .live .zap:nth-child(n), which only sizes the first three rows. */
-.live .zap-loader .zap .zapperProfileImg.zap-bone,
-.zap-loader .zap .zapperProfileImg.zap-bone {
+/* Beat .live .zap:nth-child(n), which only sizes the first three rows
+   and would repaint a later first-child (the grid placeholder) at rank-1 size. */
+.live .zap-loader .zap:nth-child(n) .zapperProfileImg.zap-bone,
+.zap-loader .zap:nth-child(n) .zapperProfileImg.zap-bone {
   display: block;
   border-radius: 50%;
   flex: 0 0 auto;
@@ -1931,8 +1985,8 @@ body.style-panel-open .style-toggle-btn {
   height: var(--bone, 3vw);
 }
 
-.live .zap-loader .zap .zapperName.zap-bone,
-.zap-loader .zap .zapperName.zap-bone {
+.live .zap-loader .zap:nth-child(n) .zapperName.zap-bone,
+.zap-loader .zap:nth-child(n) .zapperName.zap-bone {
   display: block;
   flex: 0 0 auto;
   box-sizing: border-box;
@@ -1946,8 +2000,8 @@ body.style-panel-open .style-toggle-btn {
   margin-top: 0;
 }
 
-.live .zap-loader .zap .zapperAmountSats.zap-bone,
-.zap-loader .zap .zapperAmountSats.zap-bone {
+.live .zap-loader .zap:nth-child(n) .zapperAmountSats.zap-bone,
+.zap-loader .zap:nth-child(n) .zapperAmountSats.zap-bone {
   display: inline-block;
   flex: 0 0 auto;
   height: var(--amt-h, 0.7vw);
@@ -1962,7 +2016,7 @@ body.style-panel-open .style-toggle-btn {
   height: 0.65em;
   width: 2.2em;
   margin-left: 0.35em;
-  opacity: calc(var(--fade, 1) * 0.7);
+  opacity: 0.7;
   vertical-align: middle;
 }
 
@@ -1972,24 +2026,21 @@ body.style-panel-open .style-toggle-btn {
   margin: 0.35em auto 0;
 }
 
-.zap-loader-list .zap:nth-child(2) .zap-bone {
-  animation-delay: 0.12s;
+.zap-loader-list .zap .zap-bone {
+  animation-delay: var(--shimmer-delay, 0s);
 }
 
-.zap-loader-list .zap:nth-child(3) .zap-bone {
-  animation-delay: 0.24s;
-}
-
-.zap-loader-list .zap:nth-child(4) .zap-bone {
-  animation-delay: 0.36s;
+.zap-loader-list .zap .zapperAmountSats.zap-bone,
+.zap-loader-list .zap .zapperAmountLabel.zap-bone {
+  animation-delay: calc(var(--shimmer-delay, 0s) + 0.45s);
 }
 
 @keyframes zap-shimmer {
   0% {
-    background-position: 120% 0;
+    background-position: 160% 0;
   }
   100% {
-    background-position: -120% 0;
+    background-position: -160% 0;
   }
 }
 

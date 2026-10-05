@@ -436,6 +436,29 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
       textOpacity: 1.0,
       partnerLogo:
         'https://cdn.prod.website-files.com/6488b0b0fcd2d95f6b83c9d4/653bd44cf83c3b0498c2e622_bitcoin_conference.svg'
+    },
+    bitcoinAmsterdam: {
+      textColor: '#ffffff',
+      bgColor: '#000000',
+      bgImage: '/live/images/sky.jpg',
+      qrInvert: false,
+      qrScreenBlend: false,
+      qrMultiplyBlend: false,
+      qrAttention: 'spring',
+      qrShowWebLink: false,
+      qrShowNevent: true,
+      qrShowNote: true,
+      qrStripPrefix: true,
+      layoutInvert: false,
+      hideZapperContent: false,
+      showTopZappers: false,
+      podium: false,
+      zapGrid: false,
+      contentSlideshow: true,
+      contentMediaOnly: false,
+      opacity: 0.7,
+      textOpacity: 1.0,
+      partnerLogo: '/live/images/bitcoin-amsterdam-orange.png'
     }
   };
 
@@ -493,6 +516,8 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
             >
               {name === 'bitcoinConf'
                 ? 'Bitcoin Conf'
+                : name === 'bitcoinAmsterdam'
+                  ? 'Bitcoin Amsterdam'
                 : name === 'lightMode'
                   ? 'Light Mode'
                   : name === 'darkMode'
