@@ -395,10 +395,13 @@ export function useNostrSubscriptions(
           (window as any).profiles = {};
         }
 
+        let settled = false;
         let profileProcessingTimeoutId: NodeJS.Timeout | null = null;
         const receivedProfiles = new Set<string>();
 
         const processZapsWithProfiles = () => {
+          if (settled) return;
+          settled = true;
           if (profileProcessingTimeoutId) {
             clearTimeout(profileProcessingTimeoutId);
             profileProcessingTimeoutId = null;
@@ -407,6 +410,13 @@ export function useNostrSubscriptions(
             onZapsLoaded(kinds9735);
           }
         };
+
+        // Always draw zaps, even when no profile events arrive.
+        // The old fallback only ran after a profile event had already
+        // scheduled this timer, so a quiet profile relay left the skeleton up.
+        profileProcessingTimeoutId = setTimeout(() => {
+          processZapsWithProfiles();
+        }, PROFILE_FETCH_TIMEOUT);
 
         const subscription = nostrClient.subscribeToProfiles(
           uniquePKs,
@@ -427,38 +437,19 @@ export function useNostrSubscriptions(
               // If we've received all profiles, process zaps immediately
               if (receivedProfiles.size >= uniquePKs.length) {
                 processZapsWithProfiles();
-              } else {
-                // Otherwise, set a timeout to process after a short delay
-                // This handles cases where some profiles might not be available
-                if (profileProcessingTimeoutId) {
-                  clearTimeout(profileProcessingTimeoutId);
-                }
-                profileProcessingTimeoutId = setTimeout(() => {
-                  processZapsWithProfiles();
-                }, PROFILE_FETCH_TIMEOUT);
               }
             }
           },
           {
             timeout: SUBSCRIPTION_TIMEOUT,
+            oneose: () => {
+              processZapsWithProfiles();
+            },
             onclosed: () => {
-              // If subscription closes, process zaps with whatever profiles we have
-              if (profileProcessingTimeoutId) {
-                clearTimeout(profileProcessingTimeoutId);
-              }
               processZapsWithProfiles();
             }
           }
         );
-
-        // Fallback: if no profiles arrive after timeout, process zaps anyway
-        // This handles cases where profiles might not be available
-        setTimeout(() => {
-          if (profileProcessingTimeoutId) {
-            clearTimeout(profileProcessingTimeoutId);
-            processZapsWithProfiles();
-          }
-        }, PROFILE_FETCH_TIMEOUT);
 
         return subscription;
       } else {
@@ -526,48 +517,48 @@ export function useNostrSubscriptions(
 
       let isFirstStream = true;
       let initialZapProcessingTimeoutId: NodeJS.Timeout | null = null;
+      let zapTimeoutId: NodeJS.Timeout | null = null;
 
       const zapsContainer = document.getElementById('zaps');
 
-      // Add a timeout for zap subscription (for empty state)
-      const zapTimeoutId = setTimeout(() => {
-        // Zap subscription timeout - no zaps received after 15 seconds
-        if (kinds9735.length === 0 && isFirstStream) {
-          isFirstStream = false;
-          // Mark initial zaps as loaded (empty state).
-          // The empty message is rendered once by onZapsLoaded.
-          if (markInitialZapsLoaded) {
-            markInitialZapsLoaded();
-          }
-          if (onZapsLoaded) {
-            onZapsLoaded([]);
-          } else if (zapsContainer) {
-            zapsContainer.classList.remove('loading');
-            const loadingText = zapsContainer.querySelector('.loading-text');
-            if (loadingText) loadingText.remove();
-            showEmptyZapsState(zapsContainer);
-          }
+      const showNoZaps = () => {
+        if (onZapsLoaded) {
+          onZapsLoaded([]);
+          return;
         }
-      }, ZAP_SUBSCRIPTION_TIMEOUT);
+        if (!zapsContainer) return;
+        zapsContainer.classList.remove('loading');
+        zapsContainer.querySelector('.loading-text')?.remove();
+        showEmptyZapsState(zapsContainer);
+      };
 
-      // Function to process initial zaps
-      const processInitialZaps = () => {
-        if (isFirstStream) {
-          isFirstStream = false;
-          // Mark that initial zaps have loaded
-          if (markInitialZapsLoaded) {
-            markInitialZapsLoaded();
-          }
-          // Process initial zaps
-          if (kinds9735.length === 0) {
-            if (onZapsLoaded) {
-              onZapsLoaded([]);
-            }
-          } else {
-            subscribeKind0fromKinds9735(kinds9735);
-          }
+      // Leaves the skeleton only after the first batch is drawn or the list is empty.
+      // Relay close used to cancel the empty timer and then do nothing when no zaps
+      // had arrived yet, so the loader stayed up.
+      const finishInitialZaps = () => {
+        if (!isFirstStream) return;
+        isFirstStream = false;
+        if (zapTimeoutId) clearTimeout(zapTimeoutId);
+        if (initialZapProcessingTimeoutId) {
+          clearTimeout(initialZapProcessingTimeoutId);
+          initialZapProcessingTimeoutId = null;
+        }
+        if (markInitialZapsLoaded) {
+          markInitialZapsLoaded();
+        }
+        if (kinds9735.length === 0) {
+          showNoZaps();
+        } else {
+          subscribeKind0fromKinds9735(kinds9735);
         }
       };
+
+      // Add a timeout for zap subscription (for empty state)
+      zapTimeoutId = setTimeout(() => {
+        if (kinds9735.length === 0) {
+          finishInitialZaps();
+        }
+      }, ZAP_SUBSCRIPTION_TIMEOUT);
 
       const subscription = nostrClient.subscribeToZaps(
         kind1id,
@@ -595,21 +586,25 @@ export function useNostrSubscriptions(
               }
               // Set a new timeout - process after a short delay to batch initial zaps
               initialZapProcessingTimeoutId = setTimeout(() => {
-                processInitialZaps();
+                finishInitialZaps();
               }, INITIAL_ZAP_PROCESSING_DELAY);
             }
           }
         },
         {
           timeout: SUBSCRIPTION_TIMEOUT,
-          onclosed: () => {
-            clearTimeout(zapTimeoutId);
-            if (initialZapProcessingTimeoutId) {
-              clearTimeout(initialZapProcessingTimeoutId);
+          // EOSE means this relay has finished its stored results, not that
+          // every relay has delivered. Ending the batch on the first empty
+          // EOSE painted "Be the first to support" and then ignored receipts
+          // that arrived afterwards (they were treated as post-load events).
+          oneose: () => {
+            if (kinds9735.length > 0) {
+              finishInitialZaps();
             }
-            // If subscription closes and we still have initial zaps to process, process them now
-            if (isFirstStream && kinds9735.length > 0) {
-              processInitialZaps();
+          },
+          onclosed: () => {
+            if (kinds9735.length > 0) {
+              finishInitialZaps();
             }
           }
         }
