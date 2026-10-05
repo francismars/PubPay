@@ -17,5 +17,8 @@ export const DEFAULT_STYLES = {
   showHistoricalChange: false, // Default to hiding historical change percentage
   fiatOnly: false, // Default to showing sats amounts
   lightning: false,
-  selectedCurrency: 'USD' as const
+  selectedCurrency: 'USD' as const,
+  typeScale: 1,
+  contentSlideshow: false,
+  contentMediaOnly: false
 } as const;

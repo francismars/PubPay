@@ -7,6 +7,7 @@ import {
   Kind30311Event,
   NostrEvent
 } from '@pubpay/shared-types';
+import { formatQrPreview } from '../utils/qrPrefix';
 import {
   sanitizeHTML,
   sanitizeImageUrl,
@@ -551,9 +552,8 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
       const processedContent = await processNoteContent(kind1.content);
 
       if (noteContent) {
-        noteContent.innerHTML = processedContent;
-
-        // Hide note content loading animation
+        // Leave the node to React. Writing innerHTML here removes NoteContentView,
+        // so slideshow and media-only never apply.
         noteContent.classList.remove('loading');
         const loadingText = noteContent.querySelector('.loading-text');
         if (loadingText) loadingText.remove();
@@ -613,14 +613,8 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
           // Set link href
           if (link) (link as HTMLAnchorElement).href = value;
 
-          // Set data preview (uppercase, max 60 chars)
           if (preview) {
-            const truncate = (text: string, maxLength: number = 60) => {
-              return text.length > maxLength
-                ? `${text.substring(0, maxLength)}...`
-                : text;
-            };
-            setTextContent(preview, truncate(value.toUpperCase()));
+            setTextContent(preview, formatQrPreview(value));
           }
         }
       });
