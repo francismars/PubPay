@@ -20,10 +20,18 @@ export const DEFAULT_WRITE_RELAYS = [
   'wss://relay.damus.io'
 ];
 
-/** PubPay Live: notes, profiles, live events (kind 0/1/30311). */
+/** PubPay Live: notes and live events (kind 1/30311). */
 export const LIVE_CONTENT_RELAYS = uniqueRelays([
   ...DEFAULT_READ_RELAYS,
   'wss://relay.snort.social'
+]);
+
+/**
+ * PubPay Live: kind 0 profile lookups.
+ * Many authors publish metadata only to purplepag.es, not to the content relays.
+ */
+export const LIVE_PROFILE_RELAYS = uniqueRelays(LIVE_CONTENT_RELAYS, [
+  'wss://purplepag.es'
 ]);
 
 /**

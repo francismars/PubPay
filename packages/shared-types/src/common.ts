@@ -58,9 +58,11 @@ export interface StyleOptions {
   qrInvert: boolean;
   qrScreenBlend: boolean;
   qrMultiplyBlend: boolean;
+  qrAttention: string;
   qrShowWebLink: boolean;
   qrShowNevent: boolean;
   qrShowNote: boolean;
+  qrStripPrefix: boolean;
   layoutInvert: boolean;
   hideZapperContent: boolean;
   showTopZappers: boolean;

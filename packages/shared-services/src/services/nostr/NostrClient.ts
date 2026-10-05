@@ -21,6 +21,8 @@ interface RelayConfig {
 export interface NostrClientOptions {
   /** Relays for kind-9735 zap receipt queries; defaults to read relays. */
   zapRelays?: string[];
+  /** Relays for kind-0 profile queries; defaults to read relays. */
+  profileRelays?: string[];
 }
 
 export class NostrClient {
@@ -28,6 +30,7 @@ export class NostrClient {
   private readRelays: string[];
   private writeRelays: string[];
   private zapReadRelays: string[];
+  private profileReadRelays: string[];
   private connections: Map<string, RelayConnection> = new Map();
   private subscriptions: Map<string, Subscription> = new Map();
   private inFlightRequests: Map<string, Promise<NostrEvent[]>> = new Map();
@@ -53,17 +56,21 @@ export class NostrClient {
     this.zapReadRelays = options?.zapRelays?.length
       ? [...options.zapRelays]
       : [...this.readRelays];
+    this.profileReadRelays = options?.profileRelays?.length
+      ? [...options.profileRelays]
+      : [...this.readRelays];
     this.initializePool();
   }
 
-  /** Use the wider zap relay set when every filter targets kind 9735 only. */
+  /** Use the wider zap or profile relay set when every filter targets that kind only. */
   private relaysForFilters(filters: NostrFilter[]): string[] {
-    const zapKind = 9735;
-    const isZapQuery = filters.every(
-      filter =>
-        filter.kinds?.length === 1 && filter.kinds[0] === zapKind
-    );
-    return isZapQuery ? this.zapReadRelays : this.readRelays;
+    const onlyKind = (kind: number) =>
+      filters.every(
+        filter => filter.kinds?.length === 1 && filter.kinds[0] === kind
+      );
+    if (onlyKind(9735)) return this.zapReadRelays;
+    if (onlyKind(0)) return this.profileReadRelays;
+    return this.readRelays;
   }
 
   private initializePool(): void {
