@@ -2091,8 +2091,7 @@ body.style-panel-open .style-toggle-btn {
   font-size: calc((max(1vw, 14px)) * var(--type-scale, 1));
   font-weight: 600;
   color: var(--text-color);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   white-space: nowrap;
   min-width: 0;
   max-width: 200px;
@@ -2197,7 +2196,13 @@ body.style-panel-open .style-toggle-btn {
   font-size: max(1.8vw, 16px);
 }
 
-.live .zapperName,
+.live .zapperName {
+  max-width: 200px;
+  overflow: visible;
+  white-space: nowrap;
+  min-width: 0;
+}
+
 .live .zapperMessage {
   max-width: 200px;
   overflow: hidden;
@@ -2223,6 +2228,7 @@ body.style-panel-open .style-toggle-btn {
 .live .zap .zapperName {
   font-weight: 800;
   line-height: 0.9em;
+  overflow: visible;
 }
 
 .live .zap:nth-child(1) .zapperProfileImg {
@@ -2298,6 +2304,7 @@ body.style-panel-open .style-toggle-btn {
 .live .zap .zapperName {
   font-weight: 800;
   line-height: 0.9em;
+  overflow: visible;
 }
 
 .live .zap:nth-child(1) {
@@ -2345,7 +2352,13 @@ body.style-panel-open .style-toggle-btn {
 }
 
 /* Responsive max-width for zapperName and zapperMessage */
-.live .zapperName,
+.live .zapperName {
+  max-width: 200px;
+  overflow: visible;
+  white-space: nowrap;
+  min-width: 0;
+}
+
 .live .zapperMessage {
   max-width: 200px;
   overflow: hidden;
@@ -2485,6 +2498,28 @@ body.style-panel-open .style-toggle-btn {
   background: rgba(0, 0, 0, 0.1);
   color: #333;
   opacity: 1;
+}
+
+.post-debug {
+  margin: 0;
+  padding: 10px 12px;
+  max-height: 420px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  text-align: left;
+  color: #1a1d26;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+#styleOptionsModal.panel-dark .post-debug {
+  color: #e8eaed;
+  background: #161922;
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .style-options-body {
@@ -4457,8 +4492,7 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 .zaps-list.grid-layout .zapperName {
   font-weight: 600;
   color: var(--text-color);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   white-space: nowrap;
   min-width: 0;
 }
@@ -4818,8 +4852,7 @@ body.podium-enabled .zaps-list.grid-layout .zap.podium-global-3::before {
 .activity-list.grid-layout .zapperName {
   font-weight: 600;
   color: var(--text-color);
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
   white-space: nowrap;
   min-width: 0;
 }

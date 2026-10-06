@@ -534,6 +534,76 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
     }, CONTENT_MONITOR_INTERVAL); // Check every 10 seconds
   }, [setupLiveEventTwoColumnLayout]);
 
+  const renderPostDebug = useCallback(
+    (event: NostrEvent) => {
+      const write = () => {
+        const el = document.getElementById('postDebug');
+        if (!el || !event?.id) return;
+        const seen = nostrClient.getSeenRelays(event.id);
+        const zapFilter = {
+          kinds: [9735],
+          '#e': [event.id],
+          limit: 500
+        };
+        const noteFilter = {
+          ids: [event.id],
+          kinds: [event.kind]
+        };
+        const rawZaps = window.zaps;
+        const zapEvents: Array<{ id?: string }> = Array.isArray(rawZaps)
+          ? rawZaps
+          : [];
+        const zapSeen = [
+          ...new Set(
+            zapEvents.flatMap(zap =>
+              zap.id ? nostrClient.getSeenRelays(zap.id) : []
+            )
+          )
+        ];
+        let noteId = event.id;
+        try {
+          noteId = nip19.noteEncode(event.id);
+        } catch {
+          noteId = event.id;
+        }
+        const when = new Date(event.created_at * 1000).toISOString();
+        el.textContent = [
+          `note ${noteId}`,
+          `id ${event.id}`,
+          `pubkey ${event.pubkey}`,
+          `created_at ${event.created_at}`,
+          `date ${when}`,
+          '',
+          'note query',
+          JSON.stringify(noteFilter, null, 2),
+          ...nostrClient.getReadRelays(),
+          'seen on',
+          ...(seen.length ? seen : ['(none recorded yet)']),
+          '',
+          'zaps query',
+          JSON.stringify(zapFilter, null, 2),
+          ...nostrClient.getZapReadRelays(),
+          `receipts ${zapEvents.length}`,
+          'seen on',
+          ...(zapSeen.length ? zapSeen : ['(none recorded yet)']),
+          '',
+          JSON.stringify(event, null, 2)
+        ].join('\n');
+      };
+      const safeWrite = () => {
+        try {
+          write();
+        } catch {
+          // Debug output must not stop the note from rendering.
+        }
+      };
+      safeWrite();
+      window.setTimeout(safeWrite, 2500);
+      window.setTimeout(safeWrite, 8000);
+    },
+    [nostrClient]
+  );
+
   /**
    * Renders a Kind 1 event (note) to the DOM
    */
@@ -541,6 +611,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
     async (kind1: Kind1Event) => {
       // Store note ID globally for QR regeneration
       (window as any).currentNoteId = kind1.id;
+      renderPostDebug(kind1);
 
       // Set event type to regular note and remove livestream class
       (window as any).currentEventType = 'note';
@@ -645,7 +716,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
 
       // QR visibility will be handled by loadInitialStyles() after all styles are loaded
     },
-    [processNoteContent, generateQRCode, setNoteContent]
+    [processNoteContent, generateQRCode, setNoteContent, renderPostDebug]
   );
 
   /**
@@ -784,6 +855,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
       // Store event info globally at the beginning to prevent duplicate calls
       window.currentLiveEvent = liveEvent;
       window.currentEventType = 'live-event';
+      renderPostDebug(liveEvent);
 
       // Add livestream class to body for livestream events
       document.body.classList.add('livestream');
@@ -1028,7 +1100,8 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
       subscribeLiveEventHostProfile,
       updateQRSlideVisibility,
       initializeLiveVideoPlayer,
-      startContentMonitoring
+      startContentMonitoring,
+      renderPostDebug
     ]
   );
 

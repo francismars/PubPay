@@ -76,6 +76,8 @@ export class NostrClient {
   private initializePool(): void {
     // Initialize SimplePool using npm package
     this.pool = new SimplePool();
+    // Remember which relay delivered each event so the live debug panel can list them.
+    (this.pool as { trackRelays?: boolean }).trackRelays = true;
 
     // Add error handling to the pool's internal relay connections
     this.setupPoolErrorHandling();
@@ -654,6 +656,17 @@ export class NostrClient {
   /** Relays used for kind-9735 zap receipt queries. */
   getZapReadRelays(): string[] {
     return [...this.zapReadRelays];
+  }
+
+  /** Relays that have delivered this event during the current session. */
+  getSeenRelays(eventId: string): string[] {
+    const seenOn = (this.pool as { seenOn?: Map<string, Set<{ url?: string } | string>> })
+      .seenOn;
+    const seen = seenOn?.get(eventId);
+    if (!seen) return [];
+    return [...seen]
+      .map(relay => (typeof relay === 'string' ? relay : relay.url))
+      .filter((url): url is string => !!url);
   }
 
   /**
