@@ -3,7 +3,7 @@ import { User } from '@pubpay/shared-types';
 import { Kind0Event } from '@pubpay/shared-types';
 import { NostrClient } from './NostrClient';
 import { EventManager } from './EventManager';
-import { isValidPublicKey } from '../../utils/validation';
+import { isValidPublicKey } from '@pubpay/shared-utils';
 
 export class ProfileService {
   private nostrClient: NostrClient;

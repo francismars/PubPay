@@ -20,6 +20,14 @@ LNBITS_API_KEY=your_lnbits_api_key_here
 # WEBHOOK_URL=https://yourdomain.com
 # NOTE: localhost won't work because LNbits (on the internet) can't reach it!
 # Use a tunneling service like ngrok for development: https://ngrok.com
+
+# Webhook shared secret - REQUIRED in production
+# Appended as ?secret=… on webhook URLs registered with LNbits
+# Generate with: openssl rand -hex 32
+WEBHOOK_SECRET=replace_with_long_random_secret
+
+# Optional cap on outbound zap amount in sats (default 1000000)
+# MAX_ZAP_SATS=1000000
 ```
 
 ### Optional (Have defaults)
@@ -57,6 +65,7 @@ LNBITS_API_KEY=your_lnbits_api_key_here
 # Webhook Configuration (REQUIRED)
 WEBHOOK_URL=http://localhost:3002
 # Production: WEBHOOK_URL=https://yourdomain.com
+WEBHOOK_SECRET=replace_with_long_random_secret
 
 # NIP-05 Configuration
 NIP05_DOMAIN=yourdomain.com
@@ -71,6 +80,8 @@ NIP05_DOMAIN=yourdomain.com
 | ---------------- | -------- | --------------------------- | -------------------------------------- |
 | `LNBITS_API_KEY` | ✅ Yes   | -                           | Authenticates with LNbits for payments |
 | `WEBHOOK_URL`    | ✅ Yes   | -                           | Base URL for payment webhooks          |
+| `WEBHOOK_SECRET` | ✅ Prod  | -                           | Shared secret on webhook URLs          |
+| `MAX_ZAP_SATS`   | ❌ No    | `1000000`                   | Cap on outbound zap amount             |
 | `PORT`           | ❌ No    | `3002`                      | Backend server port                    |
 | `NODE_ENV`       | ❌ No    | `development`               | Environment mode                       |
 | `LNBITS_URL`     | ❌ No    | `https://legend.lnbits.com` | LNbits instance URL                    |

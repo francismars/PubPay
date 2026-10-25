@@ -360,23 +360,6 @@ export const FeedsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Debug info for infinite scroll */}
-        {!singleNoteMode && posts.length > 0 && (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '10px',
-              fontSize: '12px',
-              color: '#999',
-              borderTop: '1px solid #eee',
-              marginTop: '20px'
-            }}
-          >
-            Posts loaded: {posts.length} | Scroll to load more (100px from
-            bottom)
-          </div>
-        )}
-
         {/* Render replies when in single note mode */}
         {singleNoteMode &&
           replies.map((reply: PubPayPost) => (

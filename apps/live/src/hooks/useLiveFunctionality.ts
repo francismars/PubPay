@@ -51,6 +51,7 @@ import {
 import {
   sanitizeHTML,
   sanitizeImageUrl,
+  escapeAttr,
   sanitizeUrl,
   escapeHtml
 } from '../utils/sanitization';
@@ -1355,7 +1356,7 @@ export const useLiveFunctionality = (eventId?: string) => {
 
       zapDiv.innerHTML = `
         <div class="zapperProfile">
-          <img class="zapperProfileImg" src="${profileImage}" />
+          <img class="zapperProfileImg" src="${escapeAttr(profileImage)}" />
           <div class="zapperInfo">
             <div class="zapperName">
               ${sanitizedZapName}

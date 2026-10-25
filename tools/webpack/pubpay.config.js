@@ -8,6 +8,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 module.exports = {
   mode: isProduction ? 'production' : 'development',
+  // No eval-based devtool so the CSP in index.html doesn't need 'unsafe-eval'
+  devtool: isProduction ? false : 'cheap-module-source-map',
   entry: './src/index.tsx',
   output: {
     path: path.resolve(__dirname, '../../dist/pubpay'),
@@ -93,8 +95,13 @@ module.exports = {
           }
         : false
     }),
-    new webpack.DefinePlugin({
-      'process.env': JSON.stringify(process.env)
+        new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+      ...Object.fromEntries(
+        Object.entries(process.env)
+          .filter(([key]) => key.startsWith('REACT_APP_'))
+          .map(([key, value]) => [`process.env.${key}`, JSON.stringify(value ?? '')])
+      )
     }),
     new webpack.ProvidePlugin({
       Buffer: ['buffer', 'Buffer'],

@@ -8,6 +8,12 @@ import {
 import { generateSecretKey, getPublicKey } from 'nostr-tools/pure';
 import { bytesToHex, hexToBytes } from 'nostr-tools/utils';
 import { DEFAULT_WRITE_RELAYS } from '../utils/constants';
+import {
+  encryptWithDeviceKey,
+  decryptWithDeviceKey,
+  isEncryptedPayload,
+  type EncryptedPayload
+} from './DeviceKeyCrypto';
 
 const STORAGE_KEY = 'nip46_session';
 const PENDING_PAIRING_KEY = 'nip46_pending_pairing';
@@ -31,6 +37,42 @@ type Nip46PendingPairing = {
   createdAtMs: number;
 };
 
+/**
+ * On-disk envelope. The client secret key (and the rest of the session) is
+ * encrypted with the device key, which is obfuscation-only (see
+ * DeviceKeyCrypto) but keeps the secret out of plaintext storage dumps.
+ * Legacy plaintext records (no `enc` field) are still readable and are
+ * re-written encrypted on first load.
+ */
+type EncryptedEnvelope = { v: 1; enc: EncryptedPayload };
+
+async function sealJson(value: unknown): Promise<string> {
+  const enc = await encryptWithDeviceKey(JSON.stringify(value));
+  const envelope: EncryptedEnvelope = { v: 1, enc };
+  return JSON.stringify(envelope);
+}
+
+/**
+ * Parse a stored record. Returns the plaintext object and whether it was a
+ * legacy plaintext record (so callers can migrate it).
+ */
+async function openJson<T>(
+  raw: string
+): Promise<{ value: T; legacy: boolean } | null> {
+  const parsed = JSON.parse(raw) as unknown;
+  if (
+    parsed &&
+    typeof parsed === 'object' &&
+    isEncryptedPayload((parsed as Partial<EncryptedEnvelope>).enc)
+  ) {
+    const plaintext = await decryptWithDeviceKey(
+      (parsed as EncryptedEnvelope).enc
+    );
+    return { value: JSON.parse(plaintext) as T, legacy: false };
+  }
+  return { value: parsed as T, legacy: true };
+}
+
 export class Nip46Service {
   static readonly STORAGE_KEY = STORAGE_KEY;
   static readonly PENDING_PAIRING_KEY = PENDING_PAIRING_KEY;
@@ -52,7 +94,10 @@ export class Nip46Service {
     }
   }
 
-  static savePendingPairing(clientSecretKey: Uint8Array, uri: string): void {
+  static async savePendingPairing(
+    clientSecretKey: Uint8Array,
+    uri: string
+  ): Promise<void> {
     if (typeof localStorage === 'undefined') {
       return;
     }
@@ -61,10 +106,13 @@ export class Nip46Service {
       uri,
       createdAtMs: Date.now()
     };
-    localStorage.setItem(PENDING_PAIRING_KEY, JSON.stringify(payload));
+    localStorage.setItem(PENDING_PAIRING_KEY, await sealJson(payload));
   }
 
-  static loadPendingPairing(): { clientSecretKey: Uint8Array; uri: string } | null {
+  static async loadPendingPairing(): Promise<{
+    clientSecretKey: Uint8Array;
+    uri: string;
+  } | null> {
     if (typeof localStorage === 'undefined') {
       return null;
     }
@@ -73,7 +121,8 @@ export class Nip46Service {
       if (!raw) {
         return null;
       }
-      const parsed = JSON.parse(raw) as Nip46PendingPairing;
+      const opened = await openJson<Nip46PendingPairing>(raw);
+      const parsed = opened?.value;
       if (
         !parsed?.clientSkHex ||
         !parsed?.uri ||
@@ -105,31 +154,41 @@ export class Nip46Service {
     }
   }
 
-  static savePersistedSession(
+  static async savePersistedSession(
     clientSecretKey: Uint8Array,
     bunkerPointer: BunkerPointer,
     meta?: { skipConnectRpc?: boolean }
-  ): void {
+  ): Promise<void> {
     const payload: Nip46PersistedSession = {
       clientSkHex: bytesToHex(clientSecretKey),
       bunkerPointer,
       ...(meta?.skipConnectRpc === true ? { skipConnectRpc: true } : {})
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(STORAGE_KEY, await sealJson(payload));
   }
 
-  static loadPersistedSession(): Nip46PersistedSession | null {
+  static async loadPersistedSession(): Promise<Nip46PersistedSession | null> {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
-      const parsed = JSON.parse(raw) as Nip46PersistedSession;
+      const opened = await openJson<Nip46PersistedSession>(raw);
+      const parsed = opened?.value;
       if (
+        !parsed ||
         !parsed.clientSkHex ||
         !parsed.bunkerPointer?.pubkey ||
         !Array.isArray(parsed.bunkerPointer.relays) ||
         parsed.bunkerPointer.relays.length === 0
       ) {
         return null;
+      }
+      if (opened?.legacy) {
+        // Migrate legacy plaintext session to the encrypted format.
+        try {
+          localStorage.setItem(STORAGE_KEY, await sealJson(parsed));
+        } catch {
+          // best effort; keep working with the plaintext copy
+        }
       }
       return parsed;
     } catch {
@@ -235,7 +294,7 @@ export class Nip46Service {
         maxWaitMs
       );
       const publicKey = await signer.getPublicKey();
-      this.savePersistedSession(clientSecretKey, signer.bp, {
+      await this.savePersistedSession(clientSecretKey, signer.bp, {
         skipConnectRpc: true
       });
       await signer.close();
@@ -267,7 +326,7 @@ export class Nip46Service {
       const signer = BunkerSigner.fromBunker(clientSecretKey, bp, { pool });
       await signer.connect();
       const publicKey = await signer.getPublicKey();
-      this.savePersistedSession(clientSecretKey, signer.bp);
+      await this.savePersistedSession(clientSecretKey, signer.bp);
       await signer.close();
       return { publicKey };
     } finally {
@@ -289,7 +348,7 @@ export class Nip46Service {
     content: string;
     pubkey?: string;
   }): Promise<Record<string, unknown>> {
-    const persisted = this.loadPersistedSession();
+    const persisted = await this.loadPersistedSession();
     if (!persisted) {
       throw new Error(
         'NIP-46 session missing. Please sign out and connect your signer again.'

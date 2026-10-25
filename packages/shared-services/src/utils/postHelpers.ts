@@ -1,5 +1,5 @@
 import { Kind1Event, Kind0Event } from '@pubpay/shared-types';
-import { safeJson } from './nostrSchemas';
+import { safeJson } from '@pubpay/shared-utils';
 
 /**
  * Extracted zap-related tags from a post event

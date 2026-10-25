@@ -6,20 +6,6 @@ export interface LightningApiResponse<T = any> {
   message?: string;
 }
 
-export interface LightningConfig {
-  enabled: boolean;
-  lnbitsUrl: string;
-  apiKey: string;
-  webhookUrl: string;
-}
-
-export interface LightningStatus {
-  enabled: boolean;
-  lnurl?: string;
-  sessionId?: string;
-  config: LightningConfig;
-}
-
 export interface LightningPayment {
   paymentHash: string;
   amount: number;
@@ -102,40 +88,6 @@ export class LightningApiService {
         })
       });
 
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Network error'
-      };
-    }
-  }
-
-  // Get Lightning status
-  async getStatus(): Promise<LightningApiResponse<LightningStatus>> {
-    try {
-      const response = await fetch(`${this.baseUrl}/lightning/status`);
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Network error'
-      };
-    }
-  }
-
-  // Get payment history
-  async getPaymentHistory(
-    eventId?: string
-  ): Promise<LightningApiResponse<LightningPayment[]>> {
-    try {
-      const url = eventId
-        ? `${this.baseUrl}/lightning/payments?eventId=${eventId}`
-        : `${this.baseUrl}/lightning/payments`;
-
-      const response = await fetch(url);
       const data = await response.json();
       return data;
     } catch (error) {

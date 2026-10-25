@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { getApiBase } from '../utils/apiBase';
-import { appSessionStorage } from '../utils/storage';
+import { storeRoomCredentials } from '../utils/roomAuth';
 
 export const RoomCreatePage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,10 +28,10 @@ export const RoomCreatePage: React.FC = () => {
       if (!json.success)
         throw new Error(json.error || 'Failed to create Multi LIVE');
 
-      // Store password in sessionStorage if provided, so admin page can load room data
-      if (password && password.trim()) {
-        appSessionStorage.setItem(`room_${json.data.id}_password`, password);
-      }
+      storeRoomCredentials(json.data.id, {
+        password: password || undefined,
+        adminToken: json.data.adminToken
+      });
 
       navigate(`/live/multi/${json.data.id}/admin`);
     } catch (e: unknown) {

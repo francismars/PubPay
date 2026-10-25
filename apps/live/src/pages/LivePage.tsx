@@ -1210,12 +1210,14 @@ export const LivePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="style-section">
-              <h3 className="section-title">POST INFO</h3>
-              <pre id="postDebug" className="post-debug">
-                Waiting for the note…
-              </pre>
-            </div>
+            {process.env.NODE_ENV !== 'production' && (
+              <div className="style-section">
+                <h3 className="section-title">POST INFO</h3>
+                <pre id="postDebug" className="post-debug">
+                  Waiting for the note…
+                </pre>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}

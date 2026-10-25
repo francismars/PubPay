@@ -12,6 +12,47 @@ declare global {
   }
 }
 
+// --- XSS helpers: all relay/tag-derived strings must pass through these before
+// being interpolated into innerHTML templates.
+const HTML_ENTITY_MAP: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+};
+
+const escapeHtml = (text: unknown): string =>
+  String(text ?? '').replace(/[&<>"']/g, ch => HTML_ENTITY_MAP[ch]);
+
+const escapeAttr = (text: unknown): string =>
+  String(text ?? '').replace(/[&<>"'`]/g, ch =>
+    ch === '`' ? '&#96;' : HTML_ENTITY_MAP[ch]
+  );
+
+/** Returns a normalized http(s) URL or null (rejects javascript:, data:, etc.) */
+const safeHttpUrl = (url: unknown): string | null => {
+  if (typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed.startsWith('//')) return null;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+      ? parsed.href
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+const safeVideoId = (id: unknown): string =>
+  typeof id === 'string' && /^[\w-]{1,32}$/.test(id) ? id : '';
+
+const safeNumber = (n: unknown): number => {
+  const v = Number(n);
+  return Number.isFinite(v) ? v : 0;
+};
+
 export const useJukeboxFunctionality = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1013,16 +1054,16 @@ export const useJukeboxFunctionality = () => {
       // Use the same structure as live.js for consistency
       if (!zap.picture) zap.picture = '';
       const profileImage =
-        zap.picture == '' ? '/images/gradient_color.gif' : zap.picture;
+        safeHttpUrl(zap.picture) || '/images/gradient_color.gif';
 
       zapsHTML += `
         <div class="zap" data-index="${index}">
           <div class="zapperProfile">
-            <img class="zapperProfileImg" src="${profileImage}" alt="Avatar">
-            <div class="zapperName">${zap.kind1Name || 'Unknown'}</div>
+            <img class="zapperProfileImg" src="${escapeAttr(profileImage)}" alt="Avatar">
+            <div class="zapperName">${escapeHtml(zap.kind1Name || 'Unknown')}</div>
           </div>
           <div class="zapperAmount">
-            <div class="zapperAmountSats">${zap.amount} sats</div>
+            <div class="zapperAmountSats">${safeNumber(zap.amount)} sats</div>
           </div>
         </div>
       `;
@@ -1203,7 +1244,7 @@ export const useJukeboxFunctionality = () => {
         // Fallback to iframe if player not ready
         currentVideo.innerHTML = `
           <div class="videoWrapper youtube">
-            <iframe src="https://www.youtube.com/embed/${songInfo.videoId}?autoplay=1" 
+            <iframe src="https://www.youtube.com/embed/${escapeAttr(safeVideoId(songInfo.videoId))}?autoplay=1" 
                     frameborder="0" 
                     allowfullscreen
                     allow="autoplay; encrypted-media">
@@ -1214,6 +1255,7 @@ export const useJukeboxFunctionality = () => {
     } else if (songInfo.type === 'search') {
       console.log('Displaying search term:', songInfo.searchTerm);
       // For search terms, show a search result display
+      const safeSearchUrl = safeHttpUrl(songInfo.searchUrl);
       currentVideo.innerHTML = `
         <div class="search-result-display">
           <div class="search-header">
@@ -1221,10 +1263,10 @@ export const useJukeboxFunctionality = () => {
             <div class="search-title">Search Request</div>
           </div>
           <div class="search-content">
-            <div class="search-term-display">"${songInfo.searchTerm}"</div>
+            <div class="search-term-display">"${escapeHtml(songInfo.searchTerm)}"</div>
             <div class="search-description">This is a search request for YouTube</div>
             <div class="search-actions">
-              <a href="${songInfo.searchUrl}" target="_blank" class="search-button">
+              <a href="${escapeAttr(safeSearchUrl || '#')}" target="_blank" rel="noopener noreferrer" class="search-button">
                 🔍 Search YouTube
               </a>
               <div class="search-note">Click to search for this term on YouTube</div>
@@ -1247,22 +1289,22 @@ export const useJukeboxFunctionality = () => {
     currentSongInfo.innerHTML = `
       <div class="current-song-details">
         <div class="song-requester">
-          <strong>🎤 Requested by:</strong> ${currentlyPlayingRef.current.kind1Name || 'Unknown'}
+          <strong>🎤 Requested by:</strong> ${escapeHtml(currentlyPlayingRef.current.kind1Name || 'Unknown')}
         </div>
         <div class="song-zap-amount">
-          <strong>⚡ Zap amount:</strong> ${currentlyPlayingRef.current.amount} sats
+          <strong>⚡ Zap amount:</strong> ${safeNumber(currentlyPlayingRef.current.amount)} sats
         </div>
         <div class="song-request-time">
           <strong>🕐 Requested:</strong> ${new Date(currentlyPlayingRef.current.timestamp).toLocaleTimeString()}
         </div>
         <div class="song-original-content">
-          <strong>💬 Request:</strong> "${songInfo.originalContent}"
+          <strong>💬 Request:</strong> "${escapeHtml(songInfo.originalContent)}"
         </div>
         ${
           songInfo.searchResult
             ? `
         <div class="song-search-result">
-          <strong>🔍 Found:</strong> "${songInfo.searchResult.title}" by ${songInfo.searchResult.channelTitle}
+          <strong>🔍 Found:</strong> "${escapeHtml(songInfo.searchResult.title)}" by ${escapeHtml(songInfo.searchResult.channelTitle)}
         </div>
         `
             : ''
@@ -1287,15 +1329,15 @@ export const useJukeboxFunctionality = () => {
       <div class="queue-item" data-index="${index}">
         <div class="queue-position">#${index + 1}</div>
         <div class="queue-song-info">
-          <div class="queue-requester">${item.kind1Name || 'Unknown'}</div>
+          <div class="queue-requester">${escapeHtml(item.kind1Name || 'Unknown')}</div>
           <div class="queue-song-details">
             ${
               item.songInfo.type === 'youtube'
-                ? `🎥 YouTube: ${item.songInfo.videoId}`
-                : `🔍 Search: "${item.songInfo.searchTerm}"`
+                ? `🎥 YouTube: ${escapeHtml(item.songInfo.videoId)}`
+                : `🔍 Search: "${escapeHtml(item.songInfo.searchTerm)}"`
             }
           </div>
-          <div class="queue-zap-amount">⚡ ${item.amount} sats</div>
+          <div class="queue-zap-amount">⚡ ${safeNumber(item.amount)} sats</div>
           <div class="queue-time">🕐 ${new Date(item.timestamp).toLocaleTimeString()}</div>
         </div>
       </div>
@@ -1319,15 +1361,15 @@ export const useJukeboxFunctionality = () => {
         (item, index) => `
       <div class="played-song-item">
         <div class="played-song-info">
-          <div class="played-requester">${item.kind1Name || 'Unknown'}</div>
+          <div class="played-requester">${escapeHtml(item.kind1Name || 'Unknown')}</div>
           <div class="played-song-details">
             ${
               item.songInfo.type === 'youtube'
-                ? `🎥 YouTube: ${item.songInfo.videoId}`
-                : `🔍 Search: "${item.songInfo.searchTerm}"`
+                ? `🎥 YouTube: ${escapeHtml(item.songInfo.videoId)}`
+                : `🔍 Search: "${escapeHtml(item.songInfo.searchTerm)}"`
             }
           </div>
-          <div class="played-zap-amount">⚡ ${item.amount} sats</div>
+          <div class="played-zap-amount">⚡ ${safeNumber(item.amount)} sats</div>
           <div class="played-time">🕐 ${new Date(item.playedAt).toLocaleTimeString()}</div>
         </div>
       </div>
@@ -1358,7 +1400,7 @@ export const useJukeboxFunctionality = () => {
     if (queueStatsElement) {
       queueStatsElement.innerHTML = `
         <span class="queue-count">${songQueueRef.current.length} songs in queue</span>
-        <span class="queue-total">Total: ${queueTotal} sats</span>
+        <span class="queue-total">Total: ${safeNumber(queueTotal)} sats</span>
       `;
     }
   };

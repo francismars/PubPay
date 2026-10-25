@@ -12,7 +12,8 @@ import {
   sanitizeHTML,
   sanitizeImageUrl,
   sanitizeUrl,
-  escapeHtml
+  escapeHtml,
+  escapeAttr
 } from '../utils/sanitization';
 import {
   getElementById,
@@ -224,7 +225,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
           const sanitizedUrl = sanitizeUrl(match);
           if (!sanitizedUrl) return escapeHtml(match); // Escape if URL is invalid
           return `<div class="video-container" style="position: relative; width: 100%; max-width: 600px; margin: 12px 0;">
-          <video src="${sanitizedUrl}" controls style="width: 100%; border-radius: 8px; background: #000;">
+          <video src="${escapeAttr(sanitizedUrl)}" controls style="width: 100%; border-radius: 8px; background: #000;">
             Your browser does not support the video tag.
           </video>
         </div>`;
@@ -238,7 +239,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
           const sanitizedUrl = sanitizeImageUrl(match);
           if (!sanitizedUrl) return escapeHtml(match); // Escape if URL is invalid
           return `<div class="image-container" style="margin: 12px 0;">
-          <img src="${sanitizedUrl}" style="max-width: 100%; border-radius: 8px;" alt="Image" />
+          <img src="${escapeAttr(sanitizedUrl)}" style="max-width: 100%; border-radius: 8px;" alt="Image" />
         </div>`;
         }
       );
@@ -271,7 +272,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
         }
 
         const displayName = await getMentionUserName(match);
-        const replacement = `<a href="/profile/${match}" class="nostrMention" target="_blank">${displayName}</a>`;
+        const replacement = `<a href="/profile/${match}" class="nostrMention" target="_blank">${escapeHtml(displayName)}</a>`;
         processedRanges.push({
           start: offset,
           end: offset + match.length,
@@ -338,7 +339,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
             const displayName = await getMentionUserName(cleanMatch);
             return {
               match,
-              replacement: `<a href="/profile/${cleanMatch}" class="nostrMention" target="_blank">${displayName}</a>`
+              replacement: `<a href="/profile/${cleanMatch}" class="nostrMention" target="_blank">${escapeHtml(displayName)}</a>`
             };
           })
         );
@@ -381,7 +382,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
             const displayName = await getMentionUserName(cleanMatch);
             return {
               match,
-              replacement: `<a href="/profile/${cleanMatch}" class="nostrMention" target="_blank">${displayName}</a>`
+              replacement: `<a href="/profile/${cleanMatch}" class="nostrMention" target="_blank">${escapeHtml(displayName)}</a>`
             };
           })
         );
@@ -417,13 +418,13 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
         /(?:^|\s)(https?:\/\/[^\s<>]+)/g,
         (match, url) => {
           // Skip if this URL was already processed as video or image
-          if (processed.includes(`src="${url}"`)) {
+          if (processed.includes(`src="${escapeAttr(url)}"`)) {
             return match;
           }
           const sanitizedUrl = sanitizeUrl(url);
           if (!sanitizedUrl) return match; // Skip if URL is invalid
           const leadingSpace = match.startsWith(' ') ? ' ' : '';
-          return `${leadingSpace}<a href="${sanitizedUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`;
+          return `${leadingSpace}<a href="${escapeAttr(sanitizedUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>`;
         }
       );
 
@@ -536,6 +537,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
 
   const renderPostDebug = useCallback(
     (event: NostrEvent) => {
+      if (process.env.NODE_ENV === 'production') return;
       const write = () => {
         const el = document.getElementById('postDebug');
         if (!el || !event?.id) return;
@@ -771,6 +773,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
       '/live/images/gradient_color.gif';
 
     // Update chat messages from this author (zaps are handled by useZapHandling hook)
+    if (!/^[0-9a-f]{64}$/i.test(String(profile.pubkey))) return;
     const authorElements = querySelectorAll<HTMLElement>(
       `.chat-author-img[data-pubkey="${profile.pubkey}"], .chat-author-name[data-pubkey="${profile.pubkey}"]`
     );
@@ -876,7 +879,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
       const {
         title,
         summary,
-        status,
+        status: rawStatus,
         streaming,
         recording,
         starts,
@@ -885,6 +888,15 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
         totalParticipants,
         participants
       } = metadata;
+
+      // Whitelist status (tag-derived) - anything else becomes 'unknown'
+      const ALLOWED_STATUSES = ['live', 'planned', 'ended'];
+      const status = ALLOWED_STATUSES.includes(String(rawStatus))
+        ? String(rawStatus)
+        : 'unknown';
+      const safeSummary = summary ? escapeHtml(String(summary)) : '';
+      const safeCurrentParticipants = Number(currentParticipants) || 0;
+      const safeTotalParticipants = Number(totalParticipants) || 0;
 
       logger.info('Streaming URL found', ErrorCategory.VIDEO, {
         streamingUrl: streaming
@@ -916,7 +928,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
                             ${(() => {
                               const sanitized = sanitizeUrl(streaming);
                               return sanitized
-                                ? `<a href="${sanitized}" target="_blank" class="streaming-link" rel="noopener noreferrer">
+                                ? `<a href="${escapeAttr(sanitized)}" target="_blank" class="streaming-link" rel="noopener noreferrer">
                                 📺 Watch in External Player
                             </a>`
                                 : '<span>Streaming URL unavailable</span>';
@@ -929,18 +941,18 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
             }
 
             <div class="live-event-content">
-                ${summary ? `<p class="live-event-summary">${summary}</p>` : ''}
+                ${safeSummary ? `<p class="live-event-summary">${safeSummary}</p>` : ''}
           
                 <div class="live-event-status">
                     <span class="status-indicator status-${status}">
-                        ${status === 'live' ? '🔴 LIVE' : status === 'planned' ? '📅 PLANNED' : status === 'ended' ? '✅ ENDED' : status.toUpperCase()}
+                        ${status === 'live' ? '🔴 LIVE' : status === 'planned' ? '📅 PLANNED' : status === 'ended' ? '✅ ENDED' : 'UNKNOWN'}
               </span>
                 </div>
                 
                 ${
                   starts
                     ? `<div class="live-event-time">
-                    <strong>Starts:</strong> ${formatTime(starts)}
+                    <strong>Starts:</strong> ${escapeHtml(String(formatTime(starts)))}
           </div>`
                     : ''
                 }
@@ -948,14 +960,14 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
                 ${
                   ends
                     ? `<div class="live-event-time">
-                    <strong>Ends:</strong> ${formatTime(ends)}
+                    <strong>Ends:</strong> ${escapeHtml(String(formatTime(ends)))}
           </div>`
                     : ''
                 }
 
                 <div class="live-event-participants">
                     <div class="participants-count">
-                        <strong>Participants:</strong> ${currentParticipants}/${totalParticipants}
+                        <strong>Participants:</strong> ${safeCurrentParticipants}/${safeTotalParticipants}
               </div>
                     ${
                       participants.length > 0
@@ -963,11 +975,14 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
                         <div class="participants-list">
                             ${participants
                               .slice(0, 10)
+                              .filter((p: { pubkey: string; role?: string }) =>
+                                /^[0-9a-f]{64}$/i.test(String(p.pubkey))
+                              )
                               .map(
                                 (p: { pubkey: string; role?: string }) => `
-                                <div class="participant" data-pubkey="${p.pubkey}">
-                                    <span class="participant-role">${p.role || 'Participant'}</span>: 
-                                    <span class="participant-pubkey">${p.pubkey.slice(0, 8)}...</span>
+                                <div class="participant" data-pubkey="${escapeAttr(p.pubkey)}">
+                                    <span class="participant-role">${escapeHtml(p.role || 'Participant')}</span>: 
+                                    <span class="participant-pubkey">${escapeHtml(p.pubkey.slice(0, 8))}...</span>
                                 </div>
                             `
                               )
@@ -986,7 +1001,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
                         ${(() => {
                           const sanitized = sanitizeUrl(recording);
                           return sanitized
-                            ? `<a href="${sanitized}" target="_blank" class="recording-link" rel="noopener noreferrer">
+                            ? `<a href="${escapeAttr(sanitized)}" target="_blank" class="recording-link" rel="noopener noreferrer">
                             🎥 Watch Recording
                         </a>`
                             : '<span>Recording URL unavailable</span>';
@@ -1016,11 +1031,11 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
                 ? '📅 PLANNED'
                 : status === 'ended'
                   ? '✅ ENDED'
-                  : status.toUpperCase();
+                  : 'UNKNOWN';
         }
 
         if (participantsCountElement) {
-          participantsCountElement.innerHTML = `<strong>Participants:</strong> ${currentParticipants}/${totalParticipants}`;
+          participantsCountElement.innerHTML = `<strong>Participants:</strong> ${safeCurrentParticipants}/${safeTotalParticipants}`;
         }
       }
 
@@ -1112,7 +1127,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
     (chatMessage: NostrEvent) => {
       // Check if this chat message is already displayed to prevent duplicates
       const existingMessage = querySelector(
-        `[data-chat-id="${chatMessage.id}"]`
+        `[data-chat-id="${CSS.escape(String(chatMessage.id))}"]`
       );
       if (existingMessage) {
         return;
@@ -1140,6 +1155,11 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
 
       const timeStr = new Date(chatMessage.created_at * 1000).toLocaleString();
 
+      // Validate pubkey before using it in attributes / selectors
+      const safePubkey = /^[0-9a-f]{64}$/i.test(String(chatMessage.pubkey))
+        ? chatMessage.pubkey
+        : '';
+
       // Sanitize chat message content to prevent XSS
       const sanitizedContent = escapeHtml(chatMessage.content).replace(
         /\n/g,
@@ -1150,10 +1170,10 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
         chatDiv,
         `
         <div class="chat-message-header">
-            <img class="chat-author-img" src="/live/images/gradient_color.gif" data-pubkey="${chatMessage.pubkey}" />
+            <img class="chat-author-img" src="/live/images/gradient_color.gif" data-pubkey="${escapeAttr(safePubkey)}" />
             <div class="chat-message-info">
-                <div class="chat-author-name" data-pubkey="${chatMessage.pubkey}">
-                    ${chatMessage.pubkey.slice(0, 8)}...
+                <div class="chat-author-name" data-pubkey="${escapeAttr(safePubkey)}">
+                    ${escapeHtml(chatMessage.pubkey.slice(0, 8))}...
                 </div>
                 <div class="chat-message-time">${timeStr}</div>
             </div>

@@ -2,6 +2,7 @@
 import { Logger } from '../utils/logger.js';
 import { SimplePool, finalizeEvent, nip19, getPublicKey } from 'nostr-tools';
 import * as crypto from 'crypto';
+import bolt11 from 'bolt11';
 
 export interface ZapResult {
   success: boolean;
@@ -235,20 +236,35 @@ export class NostrService {
           const relays = rawRelays
             .map((r: string) => {
               let normalized = r.trim();
-              // Remove trailing slash
               if (normalized.endsWith('/')) {
                 normalized = normalized.slice(0, -1);
               }
-              // Ensure it starts with wss:// or ws://
-              if (
-                !normalized.startsWith('wss://') &&
-                !normalized.startsWith('ws://')
-              ) {
+              if (!normalized.startsWith('wss://')) {
+                // Only allow encrypted websocket relays
+                if (normalized.startsWith('ws://')) return '';
                 normalized = `wss://${normalized}`;
+              }
+              try {
+                const u = new URL(normalized);
+                // Block obvious local/private hosts
+                const host = u.hostname.toLowerCase();
+                if (
+                  host === 'localhost' ||
+                  host.endsWith('.local') ||
+                  host === '127.0.0.1' ||
+                  host.startsWith('10.') ||
+                  host.startsWith('192.168.') ||
+                  host.startsWith('169.254.')
+                ) {
+                  return '';
+                }
+              } catch {
+                return '';
               }
               return normalized;
             })
-            .filter((r: string) => r.length > 0);
+            .filter((r: string) => r.length > 0)
+            .slice(0, 5);
           this.logger.info('📝 nevent1 decoded to:', {
             id: rawId,
             author: author ? author.substring(0, 16) + '...' : 'none',
@@ -640,10 +656,25 @@ export class NostrService {
     if (ludSplit.length !== 2) {
       throw new Error(`Invalid Lightning address format: ${lightningAddress}`);
     }
+    const [name, domain] = ludSplit;
+    // Strict lud16: local-part + hostname only (no ports/paths/userinfo)
+    if (
+      !name ||
+      !domain ||
+      !/^[a-zA-Z0-9_.-]+$/.test(name) ||
+      !/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(domain) ||
+      domain.includes(':') ||
+      domain.includes('/')
+    ) {
+      throw new Error('Invalid Lightning address');
+    }
 
-    const lnurlDiscoveryUrl = `https://${ludSplit[1]}/.well-known/lnurlp/${ludSplit[0]}`;
+    const lnurlDiscoveryUrl = `https://${domain}/.well-known/lnurlp/${encodeURIComponent(name)}`;
 
-    const response = await fetch(lnurlDiscoveryUrl);
+    const response = await fetch(lnurlDiscoveryUrl, {
+      redirect: 'error',
+      signal: AbortSignal.timeout(10_000)
+    });
     if (!response.ok) {
       throw new Error(`LNURL discovery failed: ${response.status}`);
     }
@@ -652,11 +683,21 @@ export class NostrService {
       callback?: string;
       reason?: string;
     };
-    if (!data.callback) {
+    if (!data.callback || typeof data.callback !== 'string') {
       throw new Error('No callback URL found in LNURL discovery');
     }
 
-    return data.callback;
+    let callbackUrl: URL;
+    try {
+      callbackUrl = new URL(data.callback);
+    } catch {
+      throw new Error('Invalid LNURL callback URL');
+    }
+    if (callbackUrl.protocol !== 'https:') {
+      throw new Error('LNURL callback must be https');
+    }
+
+    return callbackUrl.toString();
   }
 
   /**
@@ -667,20 +708,24 @@ export class NostrService {
     callbackUrl: string,
     amount: number
   ): Promise<any> {
-    const zapRequestUrl = `${callbackUrl}?nostr=${encodeURIComponent(JSON.stringify(zapRequest))}&amount=${amount}`;
+    // amount for LNURL is millisats
+    const amountMsats = Math.round(amount * 1000);
+    const callback = new URL(callbackUrl);
+    callback.searchParams.set('nostr', JSON.stringify(zapRequest));
+    callback.searchParams.set('amount', String(amountMsats));
 
     this.logger.info('📡 Sending zap request to LNURL callback:', {
-      url: zapRequestUrl,
-      amount: amount
+      host: callback.host,
+      amountSats: amount
     });
 
-    const response = await fetch(zapRequestUrl);
+    const response = await fetch(callback.toString(), {
+      redirect: 'error',
+      signal: AbortSignal.timeout(15_000)
+    });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `LNURL callback error: ${response.status} - ${errorText}`
-      );
+      throw new Error(`LNURL callback error: ${response.status}`);
     }
 
     const responseData = (await response.json()) as {
@@ -693,12 +738,32 @@ export class NostrService {
       );
     }
 
+    // Verify BOLT11 amount matches requested sats before paying
+    try {
+      const decoded = bolt11.decode(responseData.pr);
+      const invoiceSats =
+        decoded.satoshis != null
+          ? decoded.satoshis
+          : decoded.millisatoshis != null
+            ? Math.round(Number(decoded.millisatoshis) / 1000)
+            : null;
+      if (invoiceSats == null || invoiceSats !== amount) {
+        throw new Error(
+          `Invoice amount mismatch: expected ${amount} sats, got ${invoiceSats}`
+        );
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.startsWith('Invoice amount')) {
+        throw e;
+      }
+      throw new Error('Failed to decode BOLT11 invoice from LNURL callback');
+    }
+
     this.logger.info('✅ Received Lightning invoice from LNURL callback:', {
       invoice: responseData.pr.substring(0, 50) + '...',
       amount: amount
     });
 
-    // Pay the invoice using LNBits API (this is the missing step!)
     this.logger.info('💳 Paying Lightning invoice using LNBits...');
 
     const lnbitsConfig = {

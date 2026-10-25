@@ -3,53 +3,31 @@ import { nip19 } from 'nostr-tools';
 import { getQueryClient } from '@pubpay/shared-services';
 import { ensureProfiles } from '@pubpay/shared-services';
 import DOMPurify from 'isomorphic-dompurify';
-import { sanitizeImageUrl, sanitizeUrl } from './profileUtils';
+import {
+  sanitizeImageUrl,
+  sanitizeUrl,
+  escapeHtml,
+  escapeAttr
+} from './profileUtils';
 
 /**
- * Sanitize HTML content to prevent XSS attacks
- * Allows safe HTML tags and attributes needed for formatting
+ * Sanitize HTML content to prevent XSS attacks.
+ *
+ * Strict allowlist: only text-formatting tags and links. Raw <iframe>, <img>,
+ * <video>, <style> and the style/sandbox/allow attributes from note content are
+ * stripped. Trusted media/embeds (images, videos, YouTube) are generated in code
+ * from validated URLs and re-inserted AFTER sanitization via placeholders.
  */
-function sanitizeHTML(html: string): string {
+export function sanitizeHTML(html: string): string {
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
-      'a',
-      'br',
-      'img',
-      'video',
-      'div',
-      'iframe',
-      'p',
-      'span',
-      'strong',
-      'em',
-      'u',
-      'b',
-      'i'
-    ],
-    ALLOWED_ATTR: [
-      'href',
-      'target',
-      'rel',
-      'class',
-      'src',
-      'style',
-      'controls',
-      'frameborder',
-      'allowfullscreen',
-      'alt',
-      'loading',
-      'referrerpolicy',
-      'sandbox',
-      'allow',
-      'title',
-      'preload'
-    ],
+    ALLOWED_TAGS: ['a', 'br', 'div', 'p', 'span', 'strong', 'em', 'u', 'b', 'i'],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
     ALLOWED_URI_REGEXP:
       /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-    // Allow style attribute but sanitize it
     ALLOW_DATA_ATTR: false,
-    // Keep relative URLs for profile links
-    ALLOW_UNKNOWN_PROTOCOLS: false
+    ALLOW_UNKNOWN_PROTOCOLS: false,
+    FORBID_TAGS: ['iframe', 'style', 'script', 'object', 'embed', 'form'],
+    FORBID_ATTR: ['style', 'sandbox', 'srcdoc']
   });
 }
 
@@ -130,6 +108,15 @@ export async function formatContent(
   // Process mentions in order: bare npub first (before adding HTML), then prefixed versions
   // Use position-based replacement to handle duplicate mentions correctly
 
+  // Trusted, code-generated HTML (media/embeds) is stashed behind unguessable
+  // placeholders and restored after DOMPurify has run on the user-controlled text.
+  const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const trustedHtml: string[] = [];
+  const stash = (html: string): string => {
+    trustedHtml.push(html);
+    return `PPTRUSTED${nonce}X${trustedHtml.length - 1}X`;
+  };
+
   const processedRanges: Array<{
     start: number;
     end: number;
@@ -154,7 +141,7 @@ export async function formatContent(
     }
 
     const displayName = await getMentionUserName(match, nostrClient);
-    const replacement = `<a href="/profile/${match}" class="nostrMention">${displayName}</a>`;
+    const replacement = `<a href="/profile/${match}" class="nostrMention">${escapeHtml(displayName)}</a>`;
     processedRanges.push({
       start: offset,
       end: offset + match.length,
@@ -174,7 +161,7 @@ export async function formatContent(
     const offset = matchObj.index || 0;
     const cleanMatch = match.replace(/^nostr:/i, '');
     const displayName = await getMentionUserName(cleanMatch, nostrClient);
-    const replacement = `<a href="/profile/${cleanMatch}" class="nostrMention">${displayName}</a>`;
+    const replacement = `<a href="/profile/${cleanMatch}" class="nostrMention">${escapeHtml(displayName)}</a>`;
     processedRanges.push({
       start: offset,
       end: offset + match.length,
@@ -194,7 +181,7 @@ export async function formatContent(
     const offset = matchObj.index || 0;
     const cleanMatch = match.replace(/^@/i, '');
     const displayName = await getMentionUserName(cleanMatch, nostrClient);
-    const replacement = `<a href="/profile/${cleanMatch}" class="nostrMention">${displayName}</a>`;
+    const replacement = `<a href="/profile/${cleanMatch}" class="nostrMention">${escapeHtml(displayName)}</a>`;
     processedRanges.push({
       start: offset,
       end: offset + match.length,
@@ -226,7 +213,7 @@ export async function formatContent(
         const displayName = await getMentionUserName(match, nostrClient);
         return {
           match,
-          replacement: `<a href="/profile/${npub}" class="nostrMention">${displayName}</a>`
+          replacement: `<a href="/profile/${npub}" class="nostrMention">${escapeHtml(displayName)}</a>`
         };
       })
     );
@@ -243,7 +230,9 @@ export async function formatContent(
       const validatedUrl = sanitizeImageUrl(match);
       if (!validatedUrl) return match; // Return original if invalid
 
-      return `<img src="${validatedUrl}" alt="" loading="lazy" referrerpolicy="no-referrer" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;">`;
+      return stash(
+        `<img src="${escapeAttr(validatedUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" style="max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0;">`
+      );
     }
   );
 
@@ -254,7 +243,9 @@ export async function formatContent(
       const validatedUrl = sanitizeImageUrl(match); // Use same function, validates http/https
       if (!validatedUrl) return match;
 
-      return `<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 8px 0;"><video src="${validatedUrl}" controls preload="metadata" referrerpolicy="no-referrer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;">Your browser does not support the video tag.</video></div>`;
+      return stash(
+        `<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 8px 0;"><video src="${escapeAttr(validatedUrl)}" controls preload="metadata" referrerpolicy="no-referrer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;">Your browser does not support the video tag.</video></div>`
+      );
     }
   );
 
@@ -269,7 +260,9 @@ export async function formatContent(
         return match; // Return original if invalid
       }
 
-      return `<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 8px 0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation" referrerpolicy="strict-origin-when-cross-origin" loading="lazy" title="YouTube video player"></iframe></div>`;
+      return stash(
+        `<div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; margin: 8px 0;"><iframe src="https://www.youtube.com/embed/${videoId}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px;" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation" referrerpolicy="strict-origin-when-cross-origin" loading="lazy" title="YouTube video player"></iframe></div>`
+      );
     }
   );
 
@@ -279,9 +272,9 @@ export async function formatContent(
     match => {
       // Skip if already processed as image, video, npub, or Blossom
       if (
+        match.startsWith('PPTRUSTED') ||
         content.includes(`src="${match}"`) ||
         content.includes(`href="/profile/`) ||
-        content.includes(`href="https://www.youtube.com/embed/`) ||
         match.includes('blossom.')
       ) {
         return match;
@@ -292,13 +285,18 @@ export async function formatContent(
       const validatedUrl = sanitizeUrl(url);
       if (!validatedUrl) return match; // Return original if invalid
 
-      return `<a href="${validatedUrl}" target="_blank" rel="noopener noreferrer" class="nostrMention">${match}</a>`;
+      return `<a href="${escapeAttr(validatedUrl)}" target="_blank" rel="noopener noreferrer" class="nostrMention">${escapeHtml(match)}</a>`;
     }
   );
 
   // Convert newlines to breaks
   content = content.replace(/\n/g, '<br />');
 
-  // Sanitize the final HTML before returning
-  return sanitizeHTML(content);
+  // Sanitize the user-controlled HTML, then restore trusted generated media
+  const sanitized = sanitizeHTML(content);
+  const restoreRe = new RegExp(`PPTRUSTED${nonce}X(\\d+)X`, 'g');
+  return sanitized.replace(
+    restoreRe,
+    (_m, idx) => trustedHtml[Number(idx)] ?? ''
+  );
 }

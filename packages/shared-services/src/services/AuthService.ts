@@ -1,6 +1,19 @@
 // AuthService - Handles authentication methods
 import { nip19, getPublicKey } from 'nostr-tools';
 import { Nip46Service } from './Nip46Service';
+import {
+  encryptWithDeviceKey,
+  decryptWithDeviceKey
+} from './DeviceKeyCrypto';
+
+/**
+ * PBKDF2 iteration count for password-protected private keys (OWASP 2023
+ * guidance for PBKDF2-HMAC-SHA256). Stored alongside the ciphertext so the
+ * count can be raised again later without breaking existing data.
+ */
+const PASSWORD_PBKDF2_ITERATIONS = 600000;
+/** Iteration count used before `iterations` was persisted with the key. */
+const LEGACY_PASSWORD_PBKDF2_ITERATIONS = 100000;
 
 export interface AuthResult {
   success: boolean;
@@ -15,6 +28,8 @@ export interface EncryptedPrivateKey {
   salt: string;
   iv: string;
   hasPassword: boolean;
+  /** PBKDF2 iterations (password mode). Missing => legacy 100000. */
+  iterations?: number;
 }
 
 export class AuthService {
@@ -281,63 +296,12 @@ export class AuthService {
   }
 
   /**
-   * Get or create device key for encryption
-   */
-  private static async getOrCreateDeviceKey(): Promise<string> {
-    let deviceKey = localStorage.getItem('_dk'); // device key
-
-    if (!deviceKey) {
-      // Generate random 256-bit key and store as base64
-      const keyBytes = crypto.getRandomValues(new Uint8Array(32));
-      deviceKey = btoa(String.fromCharCode(...keyBytes));
-      localStorage.setItem('_dk', deviceKey);
-    }
-
-    return deviceKey;
-  }
-
-  /**
-   * Derive encryption key from device key
-   */
-  private static async deriveDeviceEncryptionKey(): Promise<CryptoKey> {
-    const deviceKey = await this.getOrCreateDeviceKey();
-
-    // Import device key as raw key material
-    const keyMaterial = await crypto.subtle.importKey(
-      'raw',
-      new TextEncoder().encode(deviceKey),
-      { name: 'PBKDF2' },
-      false,
-      ['deriveKey']
-    );
-
-    // Derive encryption key using PBKDF2
-    const saltBytes = new TextEncoder().encode('pubpay-device-salt');
-    const saltArray = new Uint8Array(saltBytes);
-    const saltBuffer = saltArray.buffer;
-
-    const encryptionKey = await crypto.subtle.deriveKey(
-      {
-        name: 'PBKDF2',
-        salt: saltBuffer, // Fixed salt for device key
-        iterations: 100000,
-        hash: 'SHA-256'
-      },
-      keyMaterial,
-      { name: 'AES-GCM', length: 256 },
-      false,
-      ['encrypt', 'decrypt']
-    );
-
-    return encryptionKey;
-  }
-
-  /**
    * Derive encryption key from password
    */
   private static async derivePasswordEncryptionKey(
     password: string,
-    salt: Uint8Array
+    salt: Uint8Array,
+    iterations: number
   ): Promise<CryptoKey> {
     const keyMaterial = await crypto.subtle.importKey(
       'raw',
@@ -355,7 +319,7 @@ export class AuthService {
       {
         name: 'PBKDF2',
         salt: saltBuffer,
-        iterations: 100000,
+        iterations,
         hash: 'SHA-256'
       },
       keyMaterial,
@@ -368,39 +332,18 @@ export class AuthService {
   }
 
   /**
-   * Encrypt data with device key
+   * Encrypt data with the per-browser device key.
+   *
+   * OBFUSCATION ONLY: the device key (`_dk`) is stored in localStorage next to
+   * the ciphertext, so this does not protect against anything that can read
+   * localStorage (XSS, malicious extensions, disk access). Password mode is
+   * strongly recommended; device-key mode is kept so existing users and
+   * password-less sign-ins keep working.
    */
   private static async encryptWithDeviceKey(
     data: string
   ): Promise<EncryptedPrivateKey> {
-    const encryptionKey = await this.deriveDeviceEncryptionKey();
-
-    // Generate random IV
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-
-    // Encrypt
-    const encrypted = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv },
-      encryptionKey,
-      new TextEncoder().encode(data)
-    );
-
-    // Convert to base64
-    const encryptedBase64 = btoa(
-      String.fromCharCode(...new Uint8Array(encrypted))
-    );
-    const ivBase64 = btoa(String.fromCharCode(...iv));
-
-    // Use a dummy salt for device key mode (not used, but consistent structure)
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const saltBase64 = btoa(String.fromCharCode(...salt));
-
-    return {
-      encrypted: encryptedBase64,
-      salt: saltBase64,
-      iv: ivBase64,
-      hasPassword: false
-    };
+    return encryptWithDeviceKey(data);
   }
 
   /**
@@ -414,7 +357,8 @@ export class AuthService {
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const encryptionKey = await this.derivePasswordEncryptionKey(
       password,
-      salt
+      salt,
+      PASSWORD_PBKDF2_ITERATIONS
     );
 
     // Generate random IV
@@ -438,32 +382,19 @@ export class AuthService {
       encrypted: encryptedBase64,
       salt: saltBase64,
       iv: ivBase64,
-      hasPassword: true
+      hasPassword: true,
+      iterations: PASSWORD_PBKDF2_ITERATIONS
     };
   }
 
   /**
-   * Decrypt data with device key
+   * Decrypt data with the per-browser device key (obfuscation-only, see
+   * encryptWithDeviceKey).
    */
   private static async decryptWithDeviceKey(
     encryptedData: EncryptedPrivateKey
   ): Promise<string> {
-    const encryptionKey = await this.deriveDeviceEncryptionKey();
-
-    // Decode from base64
-    const encrypted = Uint8Array.from(atob(encryptedData.encrypted), c =>
-      c.charCodeAt(0)
-    );
-    const iv = Uint8Array.from(atob(encryptedData.iv), c => c.charCodeAt(0));
-
-    // Decrypt
-    const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv },
-      encryptionKey,
-      encrypted
-    );
-
-    return new TextDecoder().decode(decrypted);
+    return decryptWithDeviceKey(encryptedData);
   }
 
   /**
@@ -483,7 +414,8 @@ export class AuthService {
       // Derive encryption key from password
       const encryptionKey = await this.derivePasswordEncryptionKey(
         password,
-        salt
+        salt,
+        encryptedData.iterations ?? LEGACY_PASSWORD_PBKDF2_ITERATIONS
       );
 
       // Decode encrypted data
@@ -513,7 +445,12 @@ export class AuthService {
   }
 
   /**
-   * Store authentication data with encryption
+   * Store authentication data with encryption.
+   *
+   * Passing `password` (recommended) encrypts the private key with a
+   * PBKDF2-derived key that is never persisted. Without a password the key is
+   * only obfuscated with a device key stored in localStorage (see
+   * DeviceKeyCrypto) and offers no protection against XSS or storage access.
    */
   static async storeAuthData(
     publicKey: string,
@@ -532,7 +469,7 @@ export class AuthService {
         // Password mode: encrypt with password
         encryptedData = await this.encryptWithPassword(privateKey, password);
       } else {
-        // Default mode: encrypt with device key
+        // Device-key mode (obfuscation only; password mode is recommended)
         encryptedData = await this.encryptWithDeviceKey(privateKey);
       }
 
@@ -658,6 +595,25 @@ export class AuthService {
         // Cache the decrypted key in memory for this session
         if (decryptedKey) {
           this.decryptedKeyCache = decryptedKey;
+
+          // Transparently upgrade keys stored with the legacy (weaker) KDF
+          // iteration count now that we hold both the plaintext and password.
+          if (
+            (encryptedPrivateKey.iterations ?? 0) <
+              PASSWORD_PBKDF2_ITERATIONS &&
+            localStorage.getItem('privateKey') !== null
+          ) {
+            try {
+              const upgraded = await this.encryptWithPassword(
+                decryptedKey,
+                password!
+              );
+              localStorage.setItem('privateKey', JSON.stringify(upgraded));
+              sessionStorage.removeItem('privateKey');
+            } catch (upgradeError) {
+              console.warn('Failed to upgrade key KDF iterations:', upgradeError);
+            }
+          }
         }
 
         return decryptedKey;

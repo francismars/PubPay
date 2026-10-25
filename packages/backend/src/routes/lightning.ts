@@ -4,7 +4,7 @@ import { LightningService } from '../services/LightningService.js';
 import { WebhookService } from '../services/WebhookService.js';
 import { SessionService } from '../services/SessionService.js';
 import { Logger } from '../utils/logger.js';
-// import { ApiResponse } from '@pubpay/shared-types'; // Unused for now
+import { verifyWebhookSecret } from '../utils/webhookAuth.js';
 
 export class LightningRouter {
   private router: Router;
@@ -30,11 +30,13 @@ export class LightningRouter {
     // Disable Lightning payments
     this.router.post('/disable', this.disableLightningPayments.bind(this));
 
-    // Webhook endpoint for payment notifications
+    // Webhook endpoint for payment notifications (requires WEBHOOK_SECRET)
     this.router.post('/webhook', this.processWebhook.bind(this));
 
-    // Debug endpoint
-    this.router.get('/debug/sessions', this.debugSessions.bind(this));
+    // Debug endpoint — non-production only
+    if (process.env['NODE_ENV'] !== 'production') {
+      this.router.get('/debug/sessions', this.debugSessions.bind(this));
+    }
 
     // Health check for Lightning service
     this.router.get('/health', this.healthCheck.bind(this));
@@ -243,43 +245,37 @@ export class LightningRouter {
 
   private async processWebhook(req: Request, res: Response): Promise<void> {
     try {
+      const auth = verifyWebhookSecret(req);
+      if (!auth.ok) {
+        this.logger.warn('Rejected lightning webhook: invalid secret');
+        res.status(401).json({ success: false, error: auth.error });
+        return;
+      }
+
       const paymentData = req.body || {};
       this.logger.info('🔔 Webhook received:', {
         lnurlpId: paymentData.lnurlp,
-        amount: paymentData.amount,
-        comment: paymentData.comment,
-        timestamp: new Date().toISOString(),
-        userAgent: req.get('User-Agent'),
-        ip: req.ip,
-        headers: req.headers,
-        fullPayload: paymentData
+        hasPaymentHash: !!(paymentData.payment_hash || paymentData.checking_id),
+        timestamp: new Date().toISOString()
       });
 
-      // Process webhook through WebhookService
-      this.logger.info('🔄 Processing webhook through WebhookService...');
       const result = await this.webhookService.processWebhook(paymentData);
 
-      this.logger.info('📥 WebhookService result:', result);
-
       if (result.success) {
-        this.logger.info('✅ Webhook processed successfully:', result.message);
-        this.logger.info('📤 Sending success response:', result);
         res.json(result);
       } else {
         this.logger.error('❌ Webhook processing failed:', result.error);
-        this.logger.info('📤 Sending error response:', result);
-        res.status(400).json(result);
+        res.status(400).json({
+          success: false,
+          error: result.error || 'Webhook processing failed'
+        });
       }
     } catch (error) {
       this.logger.error('💥 Error in processWebhook:', error);
-      const errorResponse = {
+      res.status(500).json({
         success: false,
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      };
-
-      this.logger.info('📤 Sending error response:', errorResponse);
-      res.status(500).json(errorResponse);
+        error: 'Internal server error'
+      });
     }
   }
 

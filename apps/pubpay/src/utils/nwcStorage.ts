@@ -1,3 +1,9 @@
+import {
+  hydrateNwcConnections,
+  getCachedNwcConnections,
+  setCachedNwcConnections,
+  flushNwcConnections
+} from '@pubpay/shared-services';
 import { STORAGE_KEYS } from '../constants';
 
 export interface NWCConnection {
@@ -11,31 +17,32 @@ export interface NWCConnection {
   createdAt: number;
 }
 
-const STORAGE_KEY = 'nwcConnections';
+// Connections (which embed wallet secrets) are stored encrypted at rest by
+// NwcSecureStorage in @pubpay/shared-services. The sync functions below read
+// from its decrypted in-memory cache, so `initNWCStorage()` must have resolved
+// before first use (it is awaited before the app renders).
 const ACTIVE_KEY = 'nwcActiveConnectionId';
+
+/**
+ * Decrypt saved connections into memory. Call once at startup, and with
+ * `force` after cross-tab `storage` events.
+ */
+export function initNWCStorage(options?: { force?: boolean }): Promise<void> {
+  return hydrateNwcConnections(options);
+}
 
 /**
  * Get all saved NWC connections
  */
 export function getNWCConnections(): NWCConnection[] {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return [];
-    return JSON.parse(stored) as NWCConnection[];
-  } catch {
-    return [];
-  }
+  return getCachedNwcConnections() as NWCConnection[];
 }
 
 /**
- * Save NWC connections
+ * Save NWC connections (cache updates immediately, encrypted write is queued)
  */
 export function saveNWCConnections(connections: NWCConnection[]): void {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(connections));
-  } catch (error) {
-    console.error('Failed to save NWC connections:', error);
-  }
+  void setCachedNwcConnections(connections);
 }
 
 /**
@@ -159,9 +166,18 @@ export function migrateOldNWCConnection(): void {
     saveNWCConnection(connection);
     setActiveNWCConnection(connection.id);
 
-    // Optionally clear old keys (keep them for now for safety)
-    // localStorage.removeItem('nwcConnectionString');
-    // localStorage.removeItem('nwcCapabilities');
+    // Remove the legacy plaintext connection string, but only once the
+    // encrypted copy has been written.
+    void flushNwcConnections().then(() => {
+      try {
+        if (getNWCConnections().some(c => c.id === connection.id)) {
+          localStorage.removeItem(STORAGE_KEYS.NWC_CONNECTION_STRING);
+          sessionStorage.removeItem(STORAGE_KEYS.NWC_CONNECTION_STRING);
+        }
+      } catch {
+        // ignore
+      }
+    });
   } catch (error) {
     console.error('Failed to migrate old NWC connection:', error);
   }

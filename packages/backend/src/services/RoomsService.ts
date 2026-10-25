@@ -1,5 +1,11 @@
 // RoomsService - In-memory rooms, schedules, and rotation logic (MVP)
 import { Logger } from '../utils/logger.js';
+import {
+  generateAdminToken,
+  generateRoomId,
+  hashSecret,
+  verifySecret
+} from '../utils/roomSecrets.js';
 
 export type RotationPolicy = 'round_robin' | 'random' | 'weighted';
 
@@ -38,7 +44,10 @@ export interface RoomConfig {
   name: string;
   slug?: string;
   timezone?: string;
+  /** scrypt hash of room password (never returned to clients) */
   password?: string;
+  /** scrypt hash of admin token (never returned to clients) */
+  adminTokenHash?: string;
   rotationPolicy: RotationPolicy;
   rotationIntervalSec: number;
   defaultItems: string[]; // note1/nevent1 refs
@@ -83,7 +92,10 @@ export interface ViewPayload {
   name: string;
 }
 
-export type PublicRoomConfig = Omit<RoomConfig, 'password'> & {
+export type PublicRoomConfig = Omit<
+  RoomConfig,
+  'password' | 'adminTokenHash'
+> & {
   hasPassword: boolean;
 };
 
@@ -97,24 +109,59 @@ export class RoomsService {
     return RoomsService.instance;
   }
 
-  public createRoom(
-    configInput: Partial<RoomConfig> & { name: string }
-  ): RoomConfig {
-    const id = configInput.id || this.generateId();
+  /**
+   * Create a room. Always issues a one-time plaintext adminToken (returned only here).
+   * Password (if provided) is stored as a scrypt hash.
+   */
+  public async createRoom(
+    configInput: Partial<RoomConfig> & { name: string; password?: string }
+  ): Promise<{ config: RoomConfig; adminToken: string }> {
+    const id = configInput.id || generateRoomId();
+    const adminToken = generateAdminToken();
+    const adminTokenHash = await hashSecret(adminToken);
+    let passwordHash: string | undefined;
+    if (
+      typeof configInput.password === 'string' &&
+      configInput.password.trim()
+    ) {
+      passwordHash = await hashSecret(configInput.password.trim());
+    }
+
+    const interval = Number(configInput.rotationIntervalSec) || 60;
     const config: RoomConfig = {
       id,
       name: configInput.name,
       slug: configInput.slug,
       timezone: configInput.timezone || 'UTC',
-      password: configInput.password,
+      password: passwordHash,
+      adminTokenHash,
       rotationPolicy: configInput.rotationPolicy || 'round_robin',
-      rotationIntervalSec: configInput.rotationIntervalSec || 60,
+      rotationIntervalSec: Math.max(5, Math.min(3600, interval)),
       defaultItems: configInput.defaultItems || []
     };
 
     this.rooms.set(id, { config, schedule: null, version: 1 });
     this.logger.info(`Created room ${id}`);
-    return config;
+    return { config, adminToken };
+  }
+
+  public async verifyRoomCredential(
+    room: RoomState,
+    password?: string,
+    adminToken?: string
+  ): Promise<boolean> {
+    if (adminToken && room.config.adminTokenHash) {
+      if (await verifySecret(adminToken, room.config.adminTokenHash)) {
+        return true;
+      }
+    }
+    if (password && room.config.password) {
+      if (await verifySecret(password, room.config.password)) {
+        return true;
+      }
+    }
+    // Legacy rooms with neither credential: deny writes
+    return false;
   }
 
   public setSchedule(roomId: string, schedule: Schedule): { version: number } {
@@ -221,14 +268,29 @@ export class RoomsService {
 
   public updateConfig(
     roomId: string,
-    updates: Partial<Omit<RoomConfig, 'id'>>
+    updates: Partial<Omit<RoomConfig, 'id' | 'password' | 'adminTokenHash'>>
   ): RoomConfig {
     const room = this.rooms.get(roomId);
     if (!room) throw new Error('Room not found');
+    const safe: Partial<RoomConfig> = { ...updates };
+    delete (safe as { password?: string }).password;
+    delete (safe as { adminTokenHash?: string }).adminTokenHash;
+    delete (safe as { id?: string }).id;
+    if (
+      typeof safe.rotationIntervalSec === 'number' &&
+      Number.isFinite(safe.rotationIntervalSec)
+    ) {
+      safe.rotationIntervalSec = Math.max(
+        5,
+        Math.min(3600, safe.rotationIntervalSec)
+      );
+    }
     room.config = {
       ...room.config,
-      ...updates,
-      id: room.config.id
+      ...safe,
+      id: room.config.id,
+      password: room.config.password,
+      adminTokenHash: room.config.adminTokenHash
     };
     room.version += 1;
     return room.config;
@@ -253,7 +315,11 @@ export class RoomsService {
   }
 
   public toPublicConfig(config: RoomConfig): PublicRoomConfig {
-    const { password: _password, ...rest } = config;
+    const {
+      password: _password,
+      adminTokenHash: _adminTokenHash,
+      ...rest
+    } = config;
     return {
       ...rest,
       hasPassword: Boolean(config.password)
@@ -435,10 +501,6 @@ export class RoomsService {
       if (pseudo <= acc) return i;
     }
     return 0;
-  }
-
-  private generateId(): string {
-    return Math.random().toString(36).slice(2, 10);
   }
 
   private hash(s: string): number {

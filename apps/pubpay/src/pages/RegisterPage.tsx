@@ -158,20 +158,14 @@ const RegisterPage: React.FC = () => {
   const convertToHex = (encodedKey: string): string => {
     try {
       const decoded = nip19.decode(encodedKey);
-      console.log('Decoded key:', decoded); // Debug log
-
       if (decoded && decoded.data) {
-        const hexString = Array.from(decoded.data as Uint8Array)
+        return Array.from(decoded.data as Uint8Array)
           .map(byte => byte.toString(16).padStart(2, '0'))
           .join('');
-        console.log('Converted to hex:', hexString); // Debug log
-        return hexString;
       }
-      console.warn('Failed to decode');
-      return encodedKey; // Fallback if decode fails
-    } catch (error) {
-      console.error('Failed to convert to hex:', error);
-      return encodedKey; // Fallback on error
+      return encodedKey;
+    } catch {
+      return encodedKey;
     }
   };
 

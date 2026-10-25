@@ -8,7 +8,7 @@ import {
 } from '@pubpay/shared-types';
 import { LiveEvent, Zap, User } from '@pubpay/shared-types';
 import { NostrClient } from './NostrClient';
-import { validateEventData } from '../../utils/validation';
+import { validateEventData } from '@pubpay/shared-utils';
 
 export class EventManager {
   private nostrClient: NostrClient;

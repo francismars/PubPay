@@ -59,36 +59,26 @@ export class PretalxService {
     this.token = token;
   }
 
+  private static readonly MAX_PAGES = 50;
+  private static readonly FETCH_TIMEOUT_MS = 20_000;
+
   private async apiGet<T>(path: string): Promise<T> {
-    const url = `${this.baseUrl.replace(/\/$/, '')}${path}`;
-    // Debug log (URL only, token masked)
+    const base = this.baseUrl.replace(/\/$/, '');
+    const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
     this.logger.info(`GET ${url}`);
     const res = await fetch(url, {
       headers: {
         Authorization: `Token ${this.token}`,
         Accept: 'application/json'
-      }
+      },
+      redirect: 'error',
+      signal: AbortSignal.timeout(PretalxService.FETCH_TIMEOUT_MS)
     } as RequestInit);
     if (!res.ok) {
-      const body = await res.text();
-      this.logger.error(
-        `Pretalx API error ${res.status} for ${url}: ${body.substring(0, 500)}`
-      );
-      throw new Error(
-        `Pretalx API error ${res.status}: ${body.substring(0, 200)}`
-      );
+      this.logger.error(`Pretalx API error ${res.status} for ${url}`);
+      throw new Error(`Pretalx API error ${res.status}`);
     }
-    const data = (await res.json()) as T;
-    // Log response structure for debugging
-    if (Array.isArray(data)) {
-      this.logger.debug(`API returned array with ${data.length} items`);
-    } else if (data && typeof data === 'object' && 'results' in data) {
-      const results = (data as { results?: unknown[] }).results || [];
-      this.logger.debug(
-        `API returned paginated response with ${results.length} results`
-      );
-    }
-    return data;
+    return (await res.json()) as T;
   }
 
   private async paginate<T>(
@@ -98,30 +88,27 @@ export class PretalxService {
     const results: T[] = [];
     let urlPath: string | null = path;
     let pageNum = 1;
-    while (urlPath) {
-      this.logger.debug(`Fetching page ${pageNum} from ${urlPath}`);
+    const base = this.baseUrl.replace(/\/$/, '');
+    while (urlPath && pageNum <= PretalxService.MAX_PAGES) {
       const page = await this.apiGet<Record<string, unknown> | T[]>(urlPath);
       if (Array.isArray(page)) {
-        this.logger.debug(
-          `Page ${pageNum}: got array with ${page.length} items`
-        );
         (page as T[]).forEach(x => results.push(x));
         break;
       }
       const items = (page as Record<string, unknown>)[key] as T[] | undefined;
       if (items?.length) {
-        this.logger.debug(
-          `Page ${pageNum}: got ${items.length} items in '${key}' field`
-        );
         items.forEach(x => results.push(x));
-      } else {
-        this.logger.warn(`Page ${pageNum}: no items found in '${key}' field`);
       }
       const next = (page as Record<string, unknown>)['next'] as
         | string
         | undefined;
       if (next) {
-        urlPath = next.replace(this.baseUrl.replace(/\/$/, ''), '');
+        // Only follow next if it stays on the configured host
+        if (!next.startsWith(base) && !next.startsWith('/')) {
+          this.logger.warn('Refusing Pretalx pagination next URL off-host');
+          break;
+        }
+        urlPath = next.startsWith(base) ? next.slice(base.length) : next;
         pageNum++;
       } else {
         urlPath = null;

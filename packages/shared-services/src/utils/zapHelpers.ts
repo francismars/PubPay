@@ -1,5 +1,5 @@
 import { Kind9735Event, Kind0Event, Kind1Event } from '@pubpay/shared-types';
-import { parseZapDescription } from './nostrSchemas';
+import { parseZapDescription } from '@pubpay/shared-utils';
 import { nip19 } from 'nostr-tools';
 // @ts-ignore - bolt11 types are declared in bolt11.d.ts
 import * as bolt11 from 'bolt11';

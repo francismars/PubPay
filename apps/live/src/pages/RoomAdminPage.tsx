@@ -5,7 +5,11 @@ import { StyleEditor, StyleConfig } from '../components/StyleEditor';
 
 import { getApiBase } from '../utils/apiBase';
 import { appSessionStorage } from '../utils/storage';
-import { roomAuthHeaders } from '../utils/roomAuth';
+import {
+  clearRoomCredentials,
+  roomAuthHeaders,
+  storeRoomCredentials
+} from '../utils/roomAuth';
 
 const EMPTY_SCHEDULE_JSON = `{
   "slots": []
@@ -370,7 +374,7 @@ export const RoomAdminPage: React.FC = () => {
         }
         if (res.status === 401) {
           // Password invalid or expired - clear and redirect to login
-          appSessionStorage.removeItem(`room_${roomId}_password`);
+          clearRoomCredentials(roomId);
           navigate('/live/multi', { replace: true });
           return;
         }
@@ -428,6 +432,9 @@ export const RoomAdminPage: React.FC = () => {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Failed to create room');
+      storeRoomCredentials(json.data.id, {
+        adminToken: json.data.adminToken
+      });
       setCreatedRoomId(json.data.id);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error');

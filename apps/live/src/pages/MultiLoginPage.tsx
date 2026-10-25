@@ -62,9 +62,8 @@ export const MultiLoginPage: React.FC = () => {
         return;
       }
 
-      // Store password in sessionStorage temporarily for authenticated requests
       if (password && password.trim()) {
-        appSessionStorage.setItem(`room_${roomId}_password`, password);
+        appSessionStorage.setItem(`room_${roomId}_password`, password.trim());
       }
 
       // Navigate to admin page after successful login

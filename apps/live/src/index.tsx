@@ -1,8 +1,15 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router';
+import Swiper from 'swiper/bundle';
+import Hls from 'hls.js';
+import 'swiper/css/bundle';
 import { LiveApp } from './LiveApp';
 import './styles/live.css';
+
+// Bundle pinned Swiper/HLS instead of CDN @latest (was supply-chain risk)
+(window as unknown as { Swiper: typeof Swiper }).Swiper = Swiper;
+(window as unknown as { Hls: typeof Hls }).Hls = Hls;
 
 // Import images so webpack bundles them
 import './assets/images/lightning.gif';

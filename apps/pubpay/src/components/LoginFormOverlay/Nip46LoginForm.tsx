@@ -79,7 +79,7 @@ export const Nip46LoginForm: React.FC<Nip46LoginFormProps> = ({
         setMobileQrVisible(false);
       }
       if (options?.openSignerApp) {
-        Nip46Service.savePendingPairing(clientSecretKey, uri);
+        await Nip46Service.savePendingPairing(clientSecretKey, uri);
         Nip46Service.openSignerApp(uri);
       } else {
         Nip46Service.clearPendingPairing();

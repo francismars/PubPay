@@ -423,7 +423,7 @@ export const Layout: React.FC = () => {
       }
       const url = new URL(window.location.href);
       const hasCallbackMarker = url.searchParams.get('nip46_cb') === '1';
-      const pending = Nip46Service.loadPendingPairing();
+      const pending = await Nip46Service.loadPendingPairing();
       if (!pending || !hasCallbackMarker) {
         return;
       }

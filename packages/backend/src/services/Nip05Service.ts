@@ -28,6 +28,8 @@ interface Nip05Json {
 export class Nip05Service {
   private logger: Logger;
   private registrations: Map<string, Nip05Registration> = new Map();
+  // Tail of the serialized write queue used by saveRegistrations()
+  private saveQueue: Promise<void> = Promise.resolve();
   private storagePath: string;
   private readonly PRICE_SATS = 1000;
   private readonly DOMAIN: string;
@@ -292,7 +294,7 @@ export class Nip05Service {
       await fs.mkdir(wellKnownDir, { recursive: true });
 
       // Write file
-      await fs.writeFile(nostrJsonPath, jsonString, 'utf-8');
+      await this.atomicWriteFile(nostrJsonPath, jsonString);
 
       this.logger.info(
         `✅ Updated nostr.json with ${Object.keys(json.names).length} names`
@@ -360,20 +362,57 @@ export class Nip05Service {
   }
 
   /**
-   * Save registrations to file
+   * Write a file atomically: write to a unique temp file in the same directory,
+   * fsync it, then rename over the target (rename is atomic on POSIX), so
+   * readers never observe a partially written file.
    */
-  private async saveRegistrations(): Promise<void> {
+  private async atomicWriteFile(
+    targetPath: string,
+    contents: string
+  ): Promise<void> {
+    const tmpPath = `${targetPath}.${process.pid}.${Date.now()}.${Math.random()
+      .toString(36)
+      .slice(2, 8)}.tmp`;
     try {
-      const registrations = Array.from(this.registrations.values());
-      await fs.writeFile(
-        this.storagePath,
-        JSON.stringify(registrations, null, 2),
-        'utf-8'
-      );
+      const handle = await fs.open(tmpPath, 'w');
+      try {
+        await handle.writeFile(contents, 'utf-8');
+        await handle.sync();
+      } finally {
+        await handle.close();
+      }
+      await fs.rename(tmpPath, targetPath);
     } catch (error) {
-      this.logger.error('Failed to save registrations:', error);
+      await fs.rm(tmpPath, { force: true }).catch(() => undefined);
       throw error;
     }
+  }
+
+  /**
+   * Save registrations to file.
+   *
+   * Writes are serialized through a promise queue so concurrent callers can't
+   * interleave. The registrations are snapshotted when each queued write runs,
+   * so the last write always persists the latest state. A failed write rejects
+   * only its own caller and does not block later saves.
+   */
+  private saveRegistrations(): Promise<void> {
+    const run = async (): Promise<void> => {
+      try {
+        const registrations = Array.from(this.registrations.values());
+        await this.atomicWriteFile(
+          this.storagePath,
+          JSON.stringify(registrations, null, 2)
+        );
+      } catch (error) {
+        this.logger.error('Failed to save registrations:', error);
+        throw error;
+      }
+    };
+    const result = this.saveQueue.then(run, run);
+    // Keep the queue alive regardless of this write's outcome
+    this.saveQueue = result.catch(() => undefined);
+    return result;
   }
 
   /**

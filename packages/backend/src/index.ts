@@ -4,6 +4,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 import { Request, Response, NextFunction } from 'express';
 import { LightningRouter } from './routes/lightning.js';
 import { ErrorHandler } from './middleware/errorHandler.js';
@@ -11,6 +12,7 @@ import { RoomsRouter } from './routes/rooms.js';
 import { Nip05Router } from './routes/nip05.js';
 import { Logger } from './utils/logger.js';
 import { asOptionalString } from './utils/requestParams.js';
+import { getWebhookSecret } from './utils/webhookAuth.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -20,6 +22,31 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Load environment variables from backend folder
 const envPath = path.resolve(__dirname, '../.env');
 dotenv.config({ path: envPath });
+
+function resolveCorsOrigin():
+  | boolean
+  | string
+  | string[]
+  | ((
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void
+    ) => void) {
+  if (process.env['NODE_ENV'] !== 'production') {
+    return [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3010',
+      'http://localhost:3002',
+      'http://localhost:8080'
+    ];
+  }
+  const raw = process.env['FRONTEND_URL']?.trim();
+  if (!raw) {
+    // Fail closed: never reflect arbitrary Origin when misconfigured
+    return false;
+  }
+  return raw.split(',').map(s => s.trim()).filter(Boolean);
+}
 
 export class BackendServer {
   private app: express.Application;
@@ -31,51 +58,92 @@ export class BackendServer {
     this.port = parseInt(process.env['PORT'] || '3002', 10);
     this.logger = new Logger('BackendServer');
 
+    if (
+      process.env['NODE_ENV'] === 'production' &&
+      !process.env['FRONTEND_URL']?.trim()
+    ) {
+      this.logger.error(
+        'FRONTEND_URL is required in production (CORS fail-closed)'
+      );
+    }
+    if (
+      process.env['NODE_ENV'] === 'production' &&
+      !getWebhookSecret()
+    ) {
+      this.logger.error(
+        'WEBHOOK_SECRET is required in production — webhooks will be rejected'
+      );
+    }
+
     this.initializeMiddleware();
     this.initializeRoutes();
     this.initializeErrorHandling();
   }
 
   private initializeMiddleware(): void {
-    // Security middleware
+    if (process.env['TRUST_PROXY'] === '1' || process.env['TRUST_PROXY'] === 'true') {
+      this.app.set('trust proxy', 1);
+    }
+
     this.app.use(
       helmet({
-        contentSecurityPolicy: false, // Disable CSP for development
+        contentSecurityPolicy: process.env['NODE_ENV'] === 'production',
         crossOriginEmbedderPolicy: false
       })
     );
 
-    // CORS configuration
     this.app.use(
       cors({
-        origin:
-          process.env['NODE_ENV'] === 'production'
-            ? process.env['FRONTEND_URL']
-            : [
-                'http://localhost:3000',
-                'http://localhost:3001',
-                'http://localhost:3010',
-                'http://localhost:3002',
-                'http://localhost:8080'
-              ],
+        origin: resolveCorsOrigin(),
         credentials: true,
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowedHeaders: [
           'Content-Type',
           'Authorization',
           'X-Requested-With',
-          'X-Room-Password'
+          'X-Room-Password',
+          'X-Room-Admin-Token',
+          'X-Webhook-Secret'
         ]
       })
     );
 
-    // Compression and logging
-    // this.app.use(compression()); // Temporarily disabled due to type issues
+    // Strip query strings from access logs (passwords/tokens must not appear)
+    morgan.token('url', req => (req.url || '').split('?')[0] || '');
     this.app.use(morgan('combined'));
 
-    // Body parsing
-    this.app.use(express.json({ limit: '10mb' }));
-    this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+    this.app.use(
+      rateLimit({
+        windowMs: 60_000,
+        max: 120,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { success: false, error: 'Too many requests' }
+      })
+    );
+
+    this.app.use(
+      '/lightning',
+      rateLimit({
+        windowMs: 60_000,
+        max: 30,
+        standardHeaders: true,
+        legacyHeaders: false
+      })
+    );
+    this.app.use(
+      '/nip05',
+      rateLimit({
+        windowMs: 60_000,
+        max: 40,
+        standardHeaders: true,
+        legacyHeaders: false
+      })
+    );
+
+    // 1mb default (down from 10mb). Schedule imports stay well under this.
+    this.app.use(express.json({ limit: '1mb' }));
+    this.app.use(express.urlencoded({ extended: true, limit: '1mb' }));
   }
 
   private initializeRoutes(): void {

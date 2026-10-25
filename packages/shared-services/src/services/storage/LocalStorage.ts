@@ -127,51 +127,6 @@ export class LocalStorage {
   }
 
   /**
-   * Set user data
-   */
-  setUserData(data: {
-    publicKey?: string;
-    privateKey?: string;
-    signInMethod?: string;
-  }): boolean {
-    if (data.publicKey) {
-      this.setItem(STORAGE_KEYS.PUBLIC_KEY, data.publicKey);
-    }
-    if (data.privateKey) {
-      this.setItem(STORAGE_KEYS.PRIVATE_KEY, data.privateKey);
-    }
-    if (data.signInMethod) {
-      this.setItem(STORAGE_KEYS.SIGN_IN_METHOD, data.signInMethod);
-    }
-    return true;
-  }
-
-  /**
-   * Get user data
-   */
-  getUserData(): {
-    publicKey: string | null;
-    privateKey: string | null;
-    signInMethod: string | null;
-  } {
-    return {
-      publicKey: this.getItem(STORAGE_KEYS.PUBLIC_KEY),
-      privateKey: this.getItem(STORAGE_KEYS.PRIVATE_KEY),
-      signInMethod: this.getItem(STORAGE_KEYS.SIGN_IN_METHOD)
-    };
-  }
-
-  /**
-   * Clear user data
-   */
-  clearUserData(): boolean {
-    this.removeItem(STORAGE_KEYS.PUBLIC_KEY);
-    this.removeItem(STORAGE_KEYS.PRIVATE_KEY);
-    this.removeItem(STORAGE_KEYS.SIGN_IN_METHOD);
-    return true;
-  }
-
-  /**
    * Set style options
    */
   setStyleOptions(options: any): boolean {

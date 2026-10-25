@@ -1,6 +1,7 @@
 // LightningService - Backend implementation for Lightning payments
 import { Logger } from '../utils/logger.js';
 import { LightningConfig } from '@pubpay/shared-types';
+import { buildWebhookUrl } from '../utils/webhookAuth.js';
 
 export interface LNURLResult {
   success: boolean;
@@ -122,13 +123,12 @@ export class LightningService {
   private async createLNBitsLNURL(
     eventId: string
   ): Promise<{ lnurl: string; id: string }> {
-    // Construct webhook URL: base URL + /lightning/webhook
-    const baseUrl = this.webhookUrl.trim().replace(/\/+$/, '');
-    const webhookUrl = baseUrl ? `${baseUrl}/lightning/webhook` : undefined;
+    // WEBHOOK_URL + /lightning/webhook + ?secret=WEBHOOK_SECRET
+    const webhookUrl = buildWebhookUrl('/lightning/webhook');
 
     const requestBody = {
       description: 'PubPay Live - Real-time Tip Tracker',
-      min: 1000, // 1 sat minimum
+      min: 1000, // 1 sat minimum (msats when currency is sat in some LNBits versions)
       max: 100000000, // 1M sats maximum
       comment_chars: 200,
       webhook_url: webhookUrl,

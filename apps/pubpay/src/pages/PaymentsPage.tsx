@@ -21,7 +21,8 @@ import {
   getActiveNWCUri,
   getActiveNWCConnection,
   getActiveNWCConnectionId,
-  migrateOldNWCConnection
+  migrateOldNWCConnection,
+  initNWCStorage
 } from '../utils/nwcStorage';
 import {
   TOAST_DURATION,
@@ -196,7 +197,7 @@ const PaymentsPage: React.FC = () => {
     // Listen for storage changes (when active connection changes in other tabs)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'nwcActiveConnectionId' || e.key === 'nwcConnections') {
-        initializeClient();
+        void initNWCStorage({ force: true }).then(initializeClient);
       }
     };
 

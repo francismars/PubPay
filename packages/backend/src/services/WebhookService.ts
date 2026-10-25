@@ -3,6 +3,12 @@ import { Logger } from '../utils/logger.js';
 import { NostrService } from './NostrService.js';
 import { SessionService } from './SessionService.js';
 import { WebhookData } from '@pubpay/shared-types';
+import {
+  claimPaymentHash,
+  maxZapSats,
+  verifyIncomingPayment
+} from '../utils/lnbitsClient.js';
+import { isValidPaymentId } from '../utils/webhookAuth.js';
 
 export interface WebhookResult {
   success: boolean;
@@ -29,18 +35,12 @@ export class WebhookService {
   }
 
   /**
-   * Process incoming webhook data from LNBits
+   * Process incoming webhook data from LNBits.
+   * Caller must already have verified WEBHOOK_SECRET.
+   * Amount and paid status are confirmed via LNBits API — body is not trusted.
    */
   async processWebhook(webhookData: WebhookData): Promise<WebhookResult> {
     try {
-      this.logger.info('Processing webhook:', {
-        lnurlpId: webhookData.lnurlp,
-        amount: webhookData.amount,
-        comment: webhookData.comment,
-        timestamp: new Date().toISOString()
-      });
-
-      // Validate webhook data
       const validation = this.validateWebhookData(webhookData);
       if (!validation.valid) {
         this.logger.error('Invalid webhook data:', validation.errors);
@@ -50,7 +50,62 @@ export class WebhookService {
         };
       }
 
-      // Find matching session
+      const paymentId =
+        (webhookData as { payment_hash?: string; checking_id?: string })
+          .payment_hash ||
+        (webhookData as { checking_id?: string }).checking_id;
+
+      if (!paymentId || !isValidPaymentId(paymentId)) {
+        return {
+          success: false,
+          error: 'Missing or invalid payment_hash'
+        };
+      }
+
+      // Confirm with LNBits before spending
+      const verified = await verifyIncomingPayment(paymentId);
+      if (!verified || !verified.paid) {
+        this.logger.warn('LNBits did not confirm inbound payment', {
+          paymentId: paymentId.slice(0, 16)
+        });
+        return {
+          success: false,
+          error: 'Payment not confirmed'
+        };
+      }
+
+      if (!claimPaymentHash(verified.paymentHash)) {
+        this.logger.info('Duplicate webhook ignored', {
+          paymentHash: verified.paymentHash.slice(0, 16)
+        });
+        return {
+          success: true,
+          message: 'Payment already processed'
+        };
+      }
+
+      let amountSats = verified.amountSats;
+      // Fallback: some LNBits lnurlp webhooks put msats in body.amount when API omits amount
+      if (amountSats <= 0 && typeof webhookData.amount === 'number') {
+        // Prefer treating body amount as msats if large; else sats
+        amountSats =
+          webhookData.amount >= 1000
+            ? Math.round(webhookData.amount / 1000)
+            : Math.round(webhookData.amount);
+      }
+
+      const cap = maxZapSats();
+      if (amountSats <= 0) {
+        return { success: false, error: 'Could not determine payment amount' };
+      }
+      if (amountSats > cap) {
+        this.logger.error('Payment exceeds MAX_ZAP_SATS', {
+          amountSats,
+          cap
+        });
+        return { success: false, error: 'Payment amount exceeds limit' };
+      }
+
       const mapping = this.sessionService.getLNURLMapping(webhookData.lnurlp);
       if (!mapping) {
         this.logger.error(
@@ -65,55 +120,43 @@ export class WebhookService {
       }
 
       const { frontendSessionId, eventId } = mapping;
-      this.logger.info(
-        `Found mapping: ${webhookData.lnurlp} -> ${frontendSessionId}/${eventId}`
-      );
 
-      // Verify session is active
       const session = this.sessionService.getSession(frontendSessionId);
       if (
         !session ||
         !session.events[eventId] ||
         !session.events[eventId].active
       ) {
-        this.logger.error('Invalid or inactive session:', {
-          frontendSessionId,
-          eventId,
-          sessionExists: !!session,
-          eventExists: session?.events?.[eventId] ? true : false,
-          eventActive: session?.events?.[eventId]?.active
-        });
-
         return {
           success: false,
-          error: 'Invalid or inactive session',
-          message:
-            'The payment session is either not found, inactive, or does not match the event ID'
+          error: 'Invalid or inactive session'
         };
       }
 
-      // Update last seen
       this.sessionService.updateLastSeen(frontendSessionId, eventId);
 
-      // Process payment and create zap
-      const amount = webhookData.amount || 1000; // Default to 1 sat if not provided
-      const comment = webhookData.comment || '';
+      let comment = webhookData.comment || '';
+      if (Array.isArray(comment)) {
+        comment = comment.join(' ');
+      } else if (typeof comment !== 'string') {
+        comment = String(comment);
+      }
+      // Cap comment length
+      if (comment.length > 200) {
+        comment = comment.slice(0, 200);
+      }
 
       this.logger.info(
-        `⚡ Processing Lightning payment: ${amount} sats for event ${eventId}${comment ? ` with comment: "${comment}"` : ' (no comment)'}`
+        `⚡ Processing Lightning payment: ${amountSats} sats for event ${eventId}`
       );
 
       try {
-        await this.nostrService.sendAnonymousZap(eventId, amount, comment);
-        this.logger.info(
-          `✅ Successfully published anonymous zap: ${amount} sats for event ${eventId}`
-        );
-
+        await this.nostrService.sendAnonymousZap(eventId, amountSats, comment);
         return {
           success: true,
           message: 'Payment processed and zap published successfully',
           paymentInfo: {
-            amount,
+            amount: amountSats,
             comment,
             eventId,
             frontendSessionId
@@ -124,12 +167,12 @@ export class WebhookService {
         this.logger.error(
           `❌ Failed to publish zap: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
-        // Don't fail the webhook response, just log the error
+        // Payment was real; report success so LNBits does not endlessly retry
         return {
           success: true,
           message: 'Payment received but zap publishing failed',
           paymentInfo: {
-            amount,
+            amount: amountSats,
             comment,
             eventId,
             frontendSessionId
@@ -139,22 +182,16 @@ export class WebhookService {
       }
     } catch (error) {
       this.logger.error('💥 Error processing webhook:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        webhookData,
-        stack: error instanceof Error ? error.stack : undefined
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
 
       return {
         success: false,
-        error: 'Failed to process webhook',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Failed to process webhook'
       };
     }
   }
 
-  /**
-   * Validate webhook data structure
-   */
   private validateWebhookData(webhookData: any): {
     valid: boolean;
     errors: string[];
@@ -170,46 +207,9 @@ export class WebhookService {
       errors.push('Missing LNURL-pay ID');
     }
 
-    if (
-      webhookData.amount &&
-      (typeof webhookData.amount !== 'number' || webhookData.amount < 0)
-    ) {
-      errors.push('Invalid amount');
-    }
-
-    // Handle comments flexibly like legacy - convert arrays to strings, allow any format
-    if (webhookData.comment) {
-      if (Array.isArray(webhookData.comment)) {
-        // Convert array to string (join with spaces)
-        webhookData.comment = webhookData.comment.join(' ');
-      } else if (typeof webhookData.comment !== 'string') {
-        // Convert other types to string
-        webhookData.comment = String(webhookData.comment);
-      }
-    }
-
     return {
       valid: errors.length === 0,
       errors
-    };
-  }
-
-  /**
-   * Get webhook processing statistics
-   */
-  getStats(): {
-    totalProcessed: number;
-    successfulZaps: number;
-    failedZaps: number;
-    averageAmount: number;
-  } {
-    // This would be implemented with proper metrics collection
-    // For now, return placeholder data
-    return {
-      totalProcessed: 0,
-      successfulZaps: 0,
-      failedZaps: 0,
-      averageAmount: 0
     };
   }
 }

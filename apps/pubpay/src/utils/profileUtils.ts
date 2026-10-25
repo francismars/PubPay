@@ -154,8 +154,15 @@ function sanitizeUrlInternal(
   const trimmed = url.trim();
   if (!trimmed) return null;
 
+  // Reject protocol-relative URLs (//host, /\host)
+  if (trimmed.startsWith('//') || trimmed.startsWith('/\\')) {
+    return null;
+  }
+
   // Handle relative URLs (starting with /)
   if (trimmed.startsWith('/')) {
+    // eslint-disable-next-line no-control-regex
+    if (/[\\\u0000-\u001f\u007f]/.test(trimmed)) return null;
     return trimmed;
   }
 
@@ -168,7 +175,8 @@ function sanitizeUrlInternal(
       return null;
     }
 
-    return trimmed;
+    // Return the normalized href, not the raw input
+    return parsed.href;
   } catch {
     // If URL parsing fails, try to add https:// if it looks like a domain
     if (/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed)) {
@@ -179,7 +187,7 @@ function sanitizeUrlInternal(
           parsed.protocol === 'https:' &&
           allowedProtocols.includes('https:')
         ) {
-          return withProtocol;
+          return parsed.href;
         }
       } catch {
         // Invalid even with https://
@@ -211,3 +219,25 @@ export const sanitizeImageUrl = (
 ): string | null => {
   return sanitizeUrlInternal(url, ['http:', 'https:']);
 };
+
+const HTML_ENTITY_MAP: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+};
+
+/**
+ * Escape text for safe interpolation into HTML (text or quoted attribute context)
+ */
+export const escapeHtml = (text: string): string =>
+  String(text ?? '').replace(/[&<>"']/g, ch => HTML_ENTITY_MAP[ch]);
+
+/**
+ * Escape a value for use inside an HTML attribute
+ */
+export const escapeAttr = (text: string): string =>
+  String(text ?? '').replace(/[&<>"'`]/g, ch =>
+    ch === '`' ? '&#96;' : HTML_ENTITY_MAP[ch]
+  );

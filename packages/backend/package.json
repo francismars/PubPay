@@ -13,9 +13,11 @@
   },
   "dependencies": {
     "@pubpay/shared-types": "workspace:*",
+    "bolt11": "1.4.2",
     "cors": "^2.8.6",
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
+    "express-rate-limit": "^7.5.1",
     "helmet": "^8.3.0",
     "morgan": "^1.9.1",
     "nostr-tools": "^2.25.2"

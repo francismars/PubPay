@@ -7,6 +7,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 module.exports = {
   mode: isProduction ? 'production' : 'development',
+  // No eval-based devtool so the CSP in index.html doesn't need 'unsafe-eval'
+  devtool: isProduction ? false : 'cheap-module-source-map',
   entry: '../../apps/live/src/index.tsx',
   output: {
     path: path.resolve(__dirname, '../../dist/live'),
@@ -86,8 +88,13 @@ module.exports = {
           }
         : false
     }),
-    new (require('webpack').DefinePlugin)({
-      'process.env': JSON.stringify(process.env)
+        new (require('webpack').DefinePlugin)({
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+      ...Object.fromEntries(
+        Object.entries(process.env)
+          .filter(([key]) => key.startsWith('REACT_APP_'))
+          .map(([key, value]) => [`process.env.${key}`, JSON.stringify(value ?? '')])
+      )
     }),
     new (require('webpack').ProvidePlugin)({
       Buffer: ['buffer', 'Buffer'],

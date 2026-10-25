@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { AuthService } from '@pubpay/shared-services';
+import { AuthService, clearNwcConnections } from '@pubpay/shared-services';
 import {
   FollowService,
   useUIStore,
@@ -338,6 +338,8 @@ export const useAuth = ({
     if (clearNwcOnLogout === 'true') {
       localStorage.removeItem(STORAGE_KEYS.NWC_CONNECTION_STRING);
       localStorage.removeItem(STORAGE_KEYS.NWC_CAPABILITIES);
+      localStorage.removeItem(STORAGE_KEYS.NWC_ACTIVE_CONNECTION_ID);
+      clearNwcConnections();
     }
 
     clearAuth();

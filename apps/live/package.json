@@ -9,17 +9,19 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@scure/bip32": "^2.4.0",
-    "@scure/bip39": "^2.4.0",
     "@pubpay/shared-services": "workspace:*",
     "@pubpay/shared-types": "workspace:*",
     "@pubpay/shared-utils": "workspace:*",
+    "@scure/bip32": "^2.4.0",
+    "@scure/bip39": "^2.4.0",
+    "hls.js": "1.5.20",
     "isomorphic-dompurify": "^4.6.0",
     "nostr-tools": "^2.25.2",
     "qrious": "^4.0.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-router": "^7.18.0"
+    "react-router": "^7.18.0",
+    "swiper": "11.2.6"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

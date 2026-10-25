@@ -1,7 +1,13 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router';
+import { Html5Qrcode } from 'html5-qrcode';
 import { Layout } from './components/Layout';
+import { initNWCStorage } from './utils/nwcStorage';
+
+// Expose for useQRScanner (was previously loaded from unpkg CDN)
+(window as unknown as { Html5Qrcode: typeof Html5Qrcode }).Html5Qrcode =
+  Html5Qrcode;
 import {
   SW_UPDATE_NOTIFICATION_DURATION,
   TIMEOUT,
@@ -115,7 +121,11 @@ const App: React.FC = () => {
 const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);
-  root.render(<App />);
+  // Decrypt NWC connections into memory before first render so sync readers
+  // (nwcStorage) see them.
+  void initNWCStorage()
+    .catch(error => console.error('Failed to init NWC storage:', error))
+    .then(() => root.render(<App />));
 }
 
 // Register Service Worker for PWA with update handling

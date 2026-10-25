@@ -17,7 +17,7 @@ import {
   LnurlService,
   detectPaymentType
 } from '@pubpay/shared-services';
-import { formatContent } from '../../utils/contentFormatter';
+import { formatContent, sanitizeHTML } from '../../utils/contentFormatter';
 import { sanitizeImageUrl } from '../../utils/profileUtils';
 import {
   TOAST_DURATION,
@@ -1311,7 +1311,9 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       } catch (error) {
         console.error('Failed to format post content:', error);
         if (!cancelled)
-          setFormattedPostContent(detectedPostEvent.content || '');
+          setFormattedPostContent(
+            sanitizeHTML(detectedPostEvent.content || '')
+          );
       }
     };
 

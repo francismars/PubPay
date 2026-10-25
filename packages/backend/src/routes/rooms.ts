@@ -23,16 +23,26 @@ export class RoomsRouter {
     this.router.put('/:roomId/schedule', this.setSchedule.bind(this));
     this.router.put('/:roomId/style', this.updateStyleConfig.bind(this));
     this.router.post('/:roomId/import/pretalx', this.importPretalx.bind(this));
-    this.router.get('/pretalx/health', this.pretalxHealth.bind(this));
     this.router.get('/pretalx/schedules', this.pretalxSchedules.bind(this));
     this.router.get('/pretalx/preview', this.pretalxPreview.bind(this));
-    this.router.get('/pretalx/diagnose', this.pretalxDiagnose.bind(this));
-    this.router.get('/pretalx/call', this.pretalxCall.bind(this));
     this.router.get('/:roomId', this.getRoom.bind(this));
     this.router.post('/:roomId', this.getRoom.bind(this)); // POST for password authentication
     this.router.get('/:roomId/view', this.getView.bind(this));
     this.router.get('/:roomId/display', this.getPublicDisplay.bind(this));
     this.router.get('/:roomId/events', this.sseEvents.bind(this));
+  }
+
+  /** Pretalx credentials come from env only — never from the client (SSRF / token leak). */
+  private getPretalxEnvConfig(): {
+    baseUrl: string;
+    event: string;
+    token: string;
+  } | null {
+    const baseUrl = process.env['PRETALX_BASE_URL']?.trim();
+    const event = process.env['PRETALX_EVENT']?.trim();
+    const token = process.env['PRETALX_TOKEN']?.trim();
+    if (!baseUrl || !event || !token) return null;
+    return { baseUrl, event, token };
   }
 
   private getProvidedPassword(req: Request): string | undefined {
@@ -43,110 +53,115 @@ export class RoomsRouter {
     if (typeof bodyPassword === 'string' && bodyPassword.trim()) {
       return bodyPassword.trim();
     }
-    const queryPassword = req.query?.password;
-    if (typeof queryPassword === 'string' && queryPassword.trim()) {
-      return queryPassword.trim();
+    return undefined;
+  }
+
+  private getProvidedAdminToken(req: Request): string | undefined {
+    const header = req.header('x-room-admin-token');
+    if (header && header.trim()) return header.trim();
+    const bodyToken = (req.body as { adminToken?: unknown } | undefined)
+      ?.adminToken;
+    if (typeof bodyToken === 'string' && bodyToken.trim()) {
+      return bodyToken.trim();
     }
     return undefined;
   }
 
-  private authorizeRoomWrite(
+  private async authorizeRoomWrite(
     req: Request,
     res: Response
-  ): ReturnType<RoomsService['getRoom']> {
+  ): Promise<ReturnType<RoomsService['getRoom']>> {
     const roomId = routeParam(req, 'roomId');
     const room = this.rooms.getRoom(roomId);
     if (!room) {
       res.status(404).json({ success: false, error: 'Room not found' });
       return null;
     }
-    if (room.config.password) {
-      const password = this.getProvidedPassword(req);
-      if (!password || password !== room.config.password) {
-        res.status(401).json({ success: false, error: 'Invalid password' });
-        return null;
-      }
+    const ok = await this.rooms.verifyRoomCredential(
+      room,
+      this.getProvidedPassword(req),
+      this.getProvidedAdminToken(req)
+    );
+    if (!ok) {
+      res.status(401).json({ success: false, error: 'Unauthorized' });
+      return null;
     }
     return room;
   }
 
-  private async pretalxSchedules(req: Request, res: Response): Promise<void> {
+  private async pretalxSchedules(_req: Request, res: Response): Promise<void> {
     try {
-      const {
-        baseUrl: bodyBase,
-        event: bodyEvent,
-        token: bodyToken
-      } = req.query as Record<string, string>;
-      const baseUrl = bodyBase || process.env.PRETALX_BASE_URL;
-      const event = bodyEvent || process.env.PRETALX_EVENT;
-      const token = bodyToken || process.env.PRETALX_TOKEN;
-      if (!baseUrl || !event || !token) {
+      const cfg = this.getPretalxEnvConfig();
+      if (!cfg) {
         res.status(400).json({
           success: false,
           error:
-            'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
+            'Pretalx is not configured (set PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
         });
         return;
       }
-      const pretalx = new PretalxService(baseUrl, event, token);
+      const pretalx = new PretalxService(cfg.baseUrl, cfg.event, cfg.token);
       const list = await pretalx.fetchSchedulesList();
       res.json({ success: true, data: { schedules: list } });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to list schedules';
-      this.logger.error(`Pretalx schedules error: ${message}`);
-      res.status(500).json({ success: false, error: message });
+      this.logger.error('Pretalx schedules error');
+      res.status(500).json({ success: false, error: 'Failed to list schedules' });
     }
   }
 
   private async pretalxPreview(req: Request, res: Response): Promise<void> {
     try {
-      const {
-        baseUrl: bodyBase,
-        event: bodyEvent,
-        token: bodyToken,
-        version,
-        roomId
-      } = req.query as Record<string, string>;
-      const baseUrl = bodyBase || process.env.PRETALX_BASE_URL;
-      const event = bodyEvent || process.env.PRETALX_EVENT;
-      const token = bodyToken || process.env.PRETALX_TOKEN;
-      if (!baseUrl || !event || !token || !version) {
+      const cfg = this.getPretalxEnvConfig();
+      const version =
+        typeof req.query.version === 'string' ? req.query.version : '';
+      const roomId =
+        typeof req.query.roomId === 'string' ? req.query.roomId : undefined;
+      if (!cfg || !version) {
         res.status(400).json({
           success: false,
-          error: 'baseUrl, event, token and version are required'
+          error: 'Pretalx env config and version are required'
         });
         return;
       }
-      const pretalx = new PretalxService(baseUrl, event, token);
+      const pretalx = new PretalxService(cfg.baseUrl, cfg.event, cfg.token);
       const preview = await pretalx.buildPreview(version, roomId);
       res.json({ success: true, data: { slots: preview } });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to build preview';
-      this.logger.error(`Pretalx preview error: ${message}`);
-      res.status(500).json({ success: false, error: message });
+      this.logger.error('Pretalx preview error');
+      res.status(500).json({ success: false, error: 'Failed to build preview' });
     }
   }
 
-  private createRoom(req: Request, res: Response): void {
+  private async createRoom(req: Request, res: Response): Promise<void> {
     try {
       const { name, slug, timezone, password } = req.body || {};
-      if (!name) {
+      if (!name || typeof name !== 'string') {
         res.status(400).json({ success: false, error: 'name is required' });
         return;
       }
-      const room = this.rooms.createRoom({ name, slug, timezone, password });
-      res.json({ success: true, data: this.rooms.toPublicConfig(room) });
+      const { config, adminToken } = await this.rooms.createRoom({
+        name: name.trim().slice(0, 120),
+        slug: typeof slug === 'string' ? slug.slice(0, 80) : undefined,
+        timezone: typeof timezone === 'string' ? timezone.slice(0, 64) : undefined,
+        password: typeof password === 'string' ? password : undefined
+      });
+      res.json({
+        success: true,
+        data: {
+          ...this.rooms.toPublicConfig(config),
+          // Returned once — client must store it for subsequent admin writes
+          adminToken
+        }
+      });
     } catch (error) {
       this.logger.error('Error creating room', error);
       res.status(500).json({ success: false, error: 'Failed to create room' });
     }
   }
 
-  private updateRoom(req: Request, res: Response): void {
+  private async updateRoom(req: Request, res: Response): Promise<void> {
     try {
-      const room = this.authorizeRoomWrite(req, res);
+      const room = await this.authorizeRoomWrite(req, res);
       if (!room) return;
       const roomId = routeParam(req, 'roomId');
       const {
@@ -186,9 +201,9 @@ export class RoomsRouter {
     }
   }
 
-  private updateStyleConfig(req: Request, res: Response): void {
+  private async updateStyleConfig(req: Request, res: Response): Promise<void> {
     try {
-      const room = this.authorizeRoomWrite(req, res);
+      const room = await this.authorizeRoomWrite(req, res);
       if (!room) return;
       const roomId = routeParam(req, 'roomId');
       const styleConfig = req.body || {};
@@ -216,9 +231,9 @@ export class RoomsRouter {
     }
   }
 
-  private setSchedule(req: Request, res: Response): void {
+  private async setSchedule(req: Request, res: Response): Promise<void> {
     try {
-      const room = this.authorizeRoomWrite(req, res);
+      const room = await this.authorizeRoomWrite(req, res);
       if (!room) return;
       const roomId = routeParam(req, 'roomId');
       const schedule = req.body;
@@ -272,33 +287,26 @@ export class RoomsRouter {
 
   private async importPretalx(req: Request, res: Response): Promise<void> {
     try {
-      const authorized = this.authorizeRoomWrite(req, res);
+      const authorized = await this.authorizeRoomWrite(req, res);
       if (!authorized) return;
       const roomId = routeParam(req, 'roomId');
-      const {
-        baseUrl: bodyBase,
-        event: bodyEvent,
-        token: bodyToken,
-        version
-      } = req.body || {};
-      const baseUrl = bodyBase || process.env.PRETALX_BASE_URL;
-      const event = bodyEvent || process.env.PRETALX_EVENT;
-      const token = bodyToken || process.env.PRETALX_TOKEN;
-      if (!baseUrl || !event || !token) {
+      const { version } = req.body || {};
+      const cfg = this.getPretalxEnvConfig();
+      if (!cfg) {
         res.status(400).json({
           success: false,
           error:
-            'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
+            'Pretalx is not configured (set PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
         });
         return;
       }
-      this.logger.info(`Pretalx import: baseUrl=${baseUrl} event=${event}`);
+      this.logger.info(`Pretalx import: event=${cfg.event}`);
       const room = this.rooms.getRoom(roomId);
       if (!room) {
         res.status(404).json({ success: false, error: 'Room not found' });
         return;
       }
-      const pretalx = new PretalxService(baseUrl, event, token);
+      const pretalx = new PretalxService(cfg.baseUrl, cfg.event, cfg.token);
       // Test API connectivity first
       try {
         const healthCheck = await pretalx.checkEventAccessible();
@@ -364,311 +372,23 @@ export class RoomsRouter {
     }
   }
 
-  private async pretalxHealth(req: Request, res: Response): Promise<void> {
-    try {
-      const {
-        baseUrl: bodyBase,
-        event: bodyEvent,
-        token: bodyToken
-      } = req.query as Record<string, string>;
-      const baseUrl = bodyBase || process.env.PRETALX_BASE_URL;
-      const event = bodyEvent || process.env.PRETALX_EVENT;
-      const token = bodyToken || process.env.PRETALX_TOKEN;
-      if (!baseUrl || !event || !token) {
-        res.status(400).json({
-          success: false,
-          error:
-            'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
-        });
-        return;
-      }
-      const pretalx = new PretalxService(baseUrl, event, token);
-      const info = await pretalx.checkEventAccessible();
-      res.json({ success: true, data: info });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Health check failed';
-      this.logger.error(`Pretalx health error: ${message}`);
-      res.status(500).json({ success: false, error: message });
-    }
-  }
-
-  private async pretalxDiagnose(req: Request, res: Response): Promise<void> {
-    try {
-      const {
-        baseUrl: bodyBase,
-        event: bodyEvent,
-        token: bodyToken,
-        version
-      } = req.query as Record<string, string>;
-      const baseUrl = bodyBase || process.env.PRETALX_BASE_URL;
-      const event = bodyEvent || process.env.PRETALX_EVENT;
-      const token = bodyToken || process.env.PRETALX_TOKEN;
-      if (!baseUrl || !event || !token) {
-        res.status(400).json({
-          success: false,
-          error:
-            'baseUrl, event and token are required (env PRETALX_BASE_URL, PRETALX_EVENT, PRETALX_TOKEN)'
-        });
-        return;
-      }
-      const pretalx = new PretalxService(baseUrl, event, token);
-      const summary: Record<string, unknown> = {};
-      // Event health
-      try {
-        const info = await pretalx.checkEventAccessible();
-        summary['event'] = { ok: true, info };
-      } catch (e) {
-        summary['event'] = {
-          ok: false,
-          error: e instanceof Error ? e.message : String(e)
-        };
-      }
-      // Schedules list
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const schedulesResp = await (pretalx as any).apiGet(
-          `/api/events/${event}/schedules/`
-        );
-        const results = (schedulesResp?.['results'] as unknown[]) || [];
-        summary['schedules'] = {
-          ok: true,
-          count: results.length,
-          versions: results
-            .map((r: unknown) => (r as Record<string, unknown>)?.['version'])
-            .filter(Boolean)
-            .slice(0, 10)
-        };
-      } catch (e) {
-        summary['schedules'] = {
-          ok: false,
-          error: e instanceof Error ? e.message : String(e)
-        };
-      }
-      // Latest schedule expanded (shortcut)
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const latestSchedule = await (pretalx as any).fetchScheduleExpanded(
-          'latest'
-        );
-        const count = Array.isArray(latestSchedule?.slots)
-          ? latestSchedule.slots.length
-          : 0;
-        summary['schedules_latest'] = {
-          ok: true,
-          count,
-          version: latestSchedule?.version
-        };
-      } catch (e) {
-        summary['schedules_latest'] = {
-          ok: false,
-          error: e instanceof Error ? e.message : String(e)
-        };
-      }
-
-      // WIP schedule expanded (shortcut)
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const wipSchedule = await (pretalx as any).fetchScheduleExpanded('wip');
-        const count = Array.isArray(wipSchedule?.slots)
-          ? wipSchedule.slots.length
-          : 0;
-        summary['schedules_wip'] = {
-          ok: true,
-          count,
-          version: wipSchedule?.version
-        };
-      } catch (e) {
-        summary['schedules_wip'] = {
-          ok: false,
-          error: e instanceof Error ? e.message : String(e)
-        };
-      }
-
-      // Latest slots via slots list (latest schedule filter)
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const latestSlots = await (pretalx as any).fetchScheduleLatestSlots();
-        summary['slots_latest'] = {
-          ok: true,
-          count: Array.isArray(latestSlots) ? latestSlots.length : 0
-        };
-      } catch (e) {
-        summary['slots_latest'] = {
-          ok: false,
-          error: e instanceof Error ? e.message : String(e)
-        };
-      }
-      // Optional specific version slots via slots list filter
-      if (version) {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const vSlots = await (pretalx as any).fetchSlotsByVersion(version);
-          summary['slots_version'] = {
-            ok: true,
-            version,
-            count: Array.isArray(vSlots) ? vSlots.length : 0
-          };
-        } catch (e) {
-          summary['slots_version'] = {
-            ok: false,
-            version,
-            error: e instanceof Error ? e.message : String(e)
-          };
-        }
-      }
-      // Plain slots (no filters)
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const slots = await (pretalx as any).fetchExpandedSlots();
-        summary['slots'] = {
-          ok: true,
-          count: Array.isArray(slots) ? slots.length : 0
-        };
-      } catch (e) {
-        summary['slots'] = {
-          ok: false,
-          error: e instanceof Error ? e.message : String(e)
-        };
-      }
-      // Submissions (confirmed)
-      try {
-        const q = encodeURI(
-          '?state=confirmed&expand=speakers,speakers.answers,slot'
-        );
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const submissions = await (pretalx as any).paginate(
-          `/api/events/${event}/submissions/${q}`
-        );
-        const withSlot =
-          (Array.isArray(submissions) ? submissions : []).filter(
-            (s: unknown) => !!(s as Record<string, unknown>)?.['slot']
-          )?.length || 0;
-        summary['submissions'] = {
-          ok: true,
-          count: Array.isArray(submissions) ? submissions.length : 0,
-          withSlot
-        };
-      } catch (e) {
-        summary['submissions'] = {
-          ok: false,
-          error: e instanceof Error ? e.message : String(e)
-        };
-      }
-      // Rooms
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rooms = await (pretalx as any).paginate(
-          `/api/events/${event}/rooms/`
-        );
-        summary['rooms'] = {
-          ok: true,
-          count: Array.isArray(rooms) ? rooms.length : 0
-        };
-      } catch (e) {
-        summary['rooms'] = {
-          ok: false,
-          error: e instanceof Error ? e.message : String(e)
-        };
-      }
-      // Speakers
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const speakers = await (pretalx as any).paginate(
-          `/api/events/${event}/speakers/`
-        );
-        summary['speakers'] = {
-          ok: true,
-          count: Array.isArray(speakers) ? speakers.length : 0
-        };
-      } catch (e) {
-        summary['speakers'] = {
-          ok: false,
-          error: e instanceof Error ? e.message : String(e)
-        };
-      }
-      res.json({ success: true, data: summary });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Diagnosis failed';
-      this.logger.error(`Pretalx diagnose error: ${message}`);
-      res.status(500).json({ success: false, error: message });
-    }
-  }
-
-  private async pretalxCall(req: Request, res: Response): Promise<void> {
-    try {
-      const {
-        baseUrl: bodyBase,
-        event: bodyEvent,
-        token: bodyToken,
-        endpoint,
-        expand
-      } = req.query as Record<string, string>;
-      const baseUrl = bodyBase || process.env.PRETALX_BASE_URL;
-      const event = bodyEvent || process.env.PRETALX_EVENT;
-      const token = bodyToken || process.env.PRETALX_TOKEN;
-      if (!baseUrl || !event || !token || !endpoint) {
-        res.status(400).json({
-          success: false,
-          error: 'baseUrl, event, token and endpoint are required'
-        });
-        return;
-      }
-      const pretalx = new PretalxService(baseUrl, event, token);
-      // Replace {event} placeholder in endpoint if present
-      const apiPath = endpoint.replace('{event}', event);
-      // Add expand parameter if provided
-      let fullPath = apiPath;
-      if (expand) {
-        const separator = apiPath.includes('?') ? '&' : '?';
-        fullPath = `${apiPath}${separator}expand=${encodeURIComponent(expand)}`;
-      }
-      // Use apiGet for single page, paginate for multi-page results
-      // Treat schedules list as paginated, but schedule shortcuts like latest/wip as single-object
-      const schedulesIsObject = /\/schedules\/(latest|wip)\/?(\?|$)/.test(
-        apiPath
-      );
-      const schedulesIsList =
-        /\/schedules\/?(\?|$)/.test(apiPath) && !schedulesIsObject;
-      const isListEndpoint =
-        schedulesIsList ||
-        apiPath.includes('/slots/') ||
-        apiPath.includes('/submissions/') ||
-        apiPath.includes('/rooms/') ||
-        apiPath.includes('/speakers/') ||
-        apiPath.includes('/answers/');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pretalxApi = pretalx as any;
-      const rawData = isListEndpoint
-        ? await pretalxApi.paginate(fullPath)
-        : await pretalxApi.apiGet(fullPath);
-      res.json({ success: true, data: rawData, endpoint: fullPath });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Failed to call API';
-      this.logger.error(`Pretalx call error: ${message}`);
-      res
-        .status(500)
-        .json({ success: false, error: message, endpoint: req.query.endpoint });
-    }
-  }
-
-  private getRoom(req: Request, res: Response): void {
+  private async getRoom(req: Request, res: Response): Promise<void> {
     try {
       const roomId = routeParam(req, 'roomId');
-      const password = this.getProvidedPassword(req);
       const room = this.rooms.getRoom(roomId);
       if (!room) {
         res.status(404).json({ success: false, error: 'Room not found' });
         return;
       }
-      // Admin login: password required when the room has one
-      if (room.config.password) {
-        if (!password || password !== room.config.password) {
-          res.status(401).json({ success: false, error: 'Invalid password' });
-          return;
-        }
+      // Admin login requires password and/or admin token
+      const ok = await this.rooms.verifyRoomCredential(
+        room,
+        this.getProvidedPassword(req),
+        this.getProvidedAdminToken(req)
+      );
+      if (!ok) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
       }
       res.setHeader('Cache-Control', 'no-store');
       res.json({

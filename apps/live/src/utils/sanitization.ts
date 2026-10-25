@@ -17,7 +17,6 @@ export function sanitizeHTML(html: string): string {
       'img',
       'video',
       'div',
-      'iframe',
       'p',
       'span',
       'strong',
@@ -34,8 +33,6 @@ export function sanitizeHTML(html: string): string {
       'src',
       'style',
       'controls',
-      'frameborder',
-      'allowfullscreen',
       'alt',
       'data-pubkey',
       'data-timestamp',
@@ -66,8 +63,16 @@ function sanitizeUrlInternal(
   const trimmed = url.trim();
   if (!trimmed) return null;
 
-  // Handle relative URLs (starting with /)
+  // Reject protocol-relative URLs (//host, /\host) - browsers treat them as absolute
+  if (trimmed.startsWith('//') || trimmed.startsWith('/\\')) {
+    return null;
+  }
+
+  // Handle relative URLs (starting with /). Reject control chars / backslashes
+  // that browsers may normalize into a different host.
   if (trimmed.startsWith('/')) {
+    // eslint-disable-next-line no-control-regex
+    if (/[\\\u0000-\u001f\u007f]/.test(trimmed)) return null;
     return trimmed;
   }
 
@@ -80,7 +85,8 @@ function sanitizeUrlInternal(
       return null;
     }
 
-    return trimmed;
+    // Return the normalized href, not the raw input
+    return parsed.href;
   } catch {
     // If URL parsing fails, try to add https:// if it looks like a domain
     if (/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.[a-zA-Z]{2,}/.test(trimmed)) {
@@ -91,7 +97,7 @@ function sanitizeUrlInternal(
           parsed.protocol === 'https:' &&
           allowedProtocols.includes('https:')
         ) {
-          return withProtocol;
+          return parsed.href;
         }
       } catch {
         // Invalid even with https://
@@ -116,11 +122,27 @@ export function sanitizeImageUrl(
   return sanitizeUrlInternal(url, ['http:', 'https:']);
 }
 
+const HTML_ENTITY_MAP: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+};
+
 /**
  * Escape HTML to prevent XSS (for plain text that should be displayed as text)
+ * Escapes & < > " ' so it is safe in both text and quoted-attribute contexts.
  */
 export function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  return String(text ?? '').replace(/[&<>"']/g, ch => HTML_ENTITY_MAP[ch]);
+}
+
+/**
+ * Escape a value for use inside an HTML attribute (single- or double-quoted).
+ */
+export function escapeAttr(text: string): string {
+  return String(text ?? '').replace(/[&<>"'`]/g, ch =>
+    ch === '`' ? '&#96;' : HTML_ENTITY_MAP[ch]
+  );
 }

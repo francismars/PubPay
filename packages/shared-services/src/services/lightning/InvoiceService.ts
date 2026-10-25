@@ -1,6 +1,6 @@
 // InvoiceService - Handles Lightning invoice operations
 import { LightningInvoice, LightningPayment } from '@pubpay/shared-types';
-import { isValidZapAmount } from '../../utils/validation';
+import { isValidZapAmount } from '@pubpay/shared-utils';
 import * as bolt11 from 'bolt11';
 
 export class InvoiceService {

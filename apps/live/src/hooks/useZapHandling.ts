@@ -25,6 +25,7 @@ import { Kind9735Event, Kind0Event } from '@pubpay/shared-types';
 import { ZapNotification } from '@live/types';
 import {
   sanitizeImageUrl,
+  escapeAttr,
   sanitizeHTML,
   escapeHtml
 } from '../utils/sanitization';
@@ -342,7 +343,7 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
     (zapData: ZapDisplayData) => {
       // Check if this zap is already displayed to prevent duplicates
       const existingZap = document.querySelector(
-        `[data-zap-id="${zapData.id}"]`
+        `[data-zap-id="${CSS.escape(String(zapData.id))}"]`
       );
       if (existingZap) {
         return;
@@ -415,10 +416,10 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
 
       zapDiv.innerHTML = `
         <div class="zap-header">
-            <img class="zap-author-img" src="/live/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
+            <img class="zap-author-img" src="/live/images/gradient_color.gif" data-pubkey="${escapeAttr(zapData.pubkey)}" />
             <div class="zap-info">
-                <div class="zap-author-name" data-pubkey="${zapData.pubkey}">
-                    ${zapData.pubkey.slice(0, 8)}...
+                <div class="zap-author-name" data-pubkey="${escapeAttr(zapData.pubkey)}">
+                    ${escapeHtml(zapData.pubkey.slice(0, 8))}...
                 </div>
                 <div class="zap-time">${timeStr}</div>
             </div>
@@ -483,10 +484,10 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
         // Classic zap layout for left column
         zapOnlyDiv.innerHTML = `
             <div class="zapperProfile">
-                <img class="zapperProfileImg" src="/live/images/gradient_color.gif" data-pubkey="${zapData.pubkey}" />
+                <img class="zapperProfileImg" src="/live/images/gradient_color.gif" data-pubkey="${escapeAttr(zapData.pubkey)}" />
                 <div class="zapperInfo">
-                    <div class="zapperName" data-pubkey="${zapData.pubkey}">
-                        ${zapData.pubkey.slice(0, 8)}...
+                    <div class="zapperName" data-pubkey="${escapeAttr(zapData.pubkey)}">
+                        ${escapeHtml(zapData.pubkey.slice(0, 8))}...
                     </div>
                     <div class="zapperMessage">${zapData.content ? escapeHtml(zapData.content).replace(/\n/g, '<br>') : ''}</div>
                 </div>
@@ -718,7 +719,7 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
               profileData.display_name ||
               profileData.displayName ||
               profileData.name ||
-              `${zapData.pubkey.slice(0, 8)}...`;
+              `${escapeHtml(zapData.pubkey.slice(0, 8))}...`;
             const picture =
               sanitizeImageUrl(profileData.picture) || genericUserIcon;
 

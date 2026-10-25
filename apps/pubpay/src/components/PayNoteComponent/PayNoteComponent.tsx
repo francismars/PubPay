@@ -4,17 +4,22 @@ import { Link, useNavigate } from 'react-router';
 import { PubPayPost } from '../../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../../assets/images';
 import { nip19 } from 'nostr-tools';
-import { formatContent } from '../../utils/contentFormatter';
+import { formatContent, sanitizeHTML } from '../../utils/contentFormatter';
 import { useUIStore } from '@pubpay/shared-services';
-import { sanitizeImageUrl, sanitizeUrl } from '../../utils/profileUtils';
+import { getActiveNWCUri } from '../../utils/nwcStorage';
+import {
+  sanitizeImageUrl,
+  sanitizeUrl,
+  escapeHtml,
+  escapeAttr
+} from '../../utils/profileUtils';
 import {
   INTERVAL,
   TIMEOUT,
   API_PATHS,
   PROTOCOLS,
   SEPARATORS,
-  COLORS,
-  STORAGE_KEYS
+  COLORS
 } from '../../constants';
 import { SendPaymentModal } from '../SendPaymentModal/SendPaymentModal';
 import { useWalletState } from '../../stores/useWalletStore';
@@ -203,11 +208,12 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
           // Validate URL before creating link
           const validatedUrl = sanitizeUrl(match);
           if (!validatedUrl) return match; // Return original if invalid
-          return `<a href="${validatedUrl}" target="_blank" rel="noopener noreferrer">${match}</a>`;
+          return `<a href="${escapeAttr(validatedUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(match)}</a>`;
         })
         .replace(/\n/g, '<br />');
 
-      setFormattedContent(baseline);
+      // Baseline contains raw note text mixed with generated anchors: sanitize it
+      setFormattedContent(sanitizeHTML(baseline));
 
       const upgrade = async () => {
         if (!nostrClient || !nostrReady) return;
@@ -486,10 +492,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         try {
           setIsPaying(true);
           const hasNwc =
-            (typeof localStorage !== 'undefined' &&
-              localStorage.getItem(STORAGE_KEYS.NWC_CONNECTION_STRING)) ||
-            (typeof sessionStorage !== 'undefined' &&
-              sessionStorage.getItem(STORAGE_KEYS.NWC_CONNECTION_STRING));
+            getActiveNWCUri();
           if (hasNwc) {
             useUIStore
               .getState()
@@ -569,10 +572,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       try {
         setIsPaying(true);
         const hasNwc =
-          (typeof localStorage !== 'undefined' &&
-            localStorage.getItem('nwcConnectionString')) ||
-          (typeof sessionStorage !== 'undefined' &&
-            sessionStorage.getItem('nwcConnectionString'));
+          getActiveNWCUri();
 
         if (isAnonymousModal) {
           // Handle anonymous payment
@@ -987,7 +987,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
             }}
             style={{ cursor: 'pointer' }}
             dangerouslySetInnerHTML={{
-              __html: formattedContent || post.event.content
+              __html: formattedContent
             }}
           />
 
@@ -1375,10 +1375,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   try {
                     setIsPaying(true);
                     const hasNwc =
-                      (typeof localStorage !== 'undefined' &&
-                        localStorage.getItem('nwcConnectionString')) ||
-                      (typeof sessionStorage !== 'undefined' &&
-                        sessionStorage.getItem('nwcConnectionString'));
+                      getActiveNWCUri();
                     if (hasNwc) {
                       useUIStore
                         .getState()
