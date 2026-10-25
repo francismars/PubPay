@@ -1,6 +1,6 @@
 // FeedsPage component - handles all feed-related functionality
 import React, { useState, useEffect, useRef } from 'react';
-import { useOutletContext, useLocation } from 'react-router-dom';
+import { useOutletContext, useLocation } from 'react-router';
 import { useAuthStore } from '@pubpay/shared-services';
 import { PayNoteComponent } from '../components/PayNoteComponent/PayNoteComponent';
 import { NoteSkeleton } from '../components/NoteSkeleton/NoteSkeleton';

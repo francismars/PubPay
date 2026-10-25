@@ -2,7 +2,7 @@
 // Handles route params, query params, path parsing, and event listeners
 
 import { useEffect, useState, useMemo } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router';
 import { parseLiveUrl } from '../utils/urlParser';
 
 /**

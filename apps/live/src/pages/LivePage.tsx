@@ -1,6 +1,6 @@
 // Live page component - matches original live.html design exactly
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { useLiveFunctionality } from '@live/hooks/useLiveFunctionality';
 import { useLiveUrl } from '@live/hooks/useLiveUrl';
 import { ZapNotificationOverlay } from '@live/components/ZapNotificationOverlay';

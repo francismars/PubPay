@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router';
 
 // Lazy load all pages to reduce initial bundle size
 // Each page will be loaded on-demand when the route is accessed

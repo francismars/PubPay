@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { nip19 } from 'nostr-tools';
 import { LIGHTNING, COLORS, TIME } from '../../constants';
 import { formatTimestamp } from '../../pages/PaymentsPage';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { genericUserIcon } from '../../assets/images';
 import { sanitizeImageUrl } from '../../utils/profileUtils';
 

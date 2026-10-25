@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { ScheduleTimeline, Slot } from '../components/ScheduleTimeline';
 import { StyleEditor, StyleConfig } from '../components/StyleEditor';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate, useOutletContext } from 'react-router-dom';
+import { Link, useNavigate, useOutletContext } from 'react-router';
 import { pubpayImg } from '../assets/images';
 
 const AboutPage: React.FC = () => {

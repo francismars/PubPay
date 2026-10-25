@@ -1,6 +1,6 @@
 // PayNoteComponent - Renders individual PubPay posts
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router';
 import { PubPayPost } from '../../hooks/useHomeFunctionality';
 import { genericUserIcon } from '../../assets/images';
 import { nip19 } from 'nostr-tools';

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import type { Kind0Event } from '@pubpay/shared-types';
 import { safeJson } from '@pubpay/shared-utils';
 import {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { COLORS } from '../../constants';
 import { LoginMethodSelector } from './LoginMethodSelector';
 import { NSECInputForm } from './NSECInputForm';

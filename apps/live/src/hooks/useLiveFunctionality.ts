@@ -15,7 +15,7 @@
  * @returns Hook state and functions for managing live functionality
  */
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { nip19 } from 'nostr-tools';
 import { useQRCode } from './useQRCode';
 import { useLightningIntegration } from './useLightningIntegration';

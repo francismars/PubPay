@@ -5,7 +5,7 @@ import React, {
   useRef,
   useState
 } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router';
 import { getApiBase } from '../utils/apiBase';
 import { StyleConfig } from '../components/StyleEditor';
 

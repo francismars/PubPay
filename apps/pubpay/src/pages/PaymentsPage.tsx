@@ -5,7 +5,7 @@ import React, {
   useRef,
   useMemo
 } from 'react';
-import { useOutletContext, useNavigate } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router';
 import {
   useUIStore,
   NwcClient,
