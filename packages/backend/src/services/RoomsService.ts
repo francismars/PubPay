@@ -1,5 +1,5 @@
 // RoomsService - In-memory rooms, schedules, and rotation logic (MVP)
-import { Logger } from '../utils/logger';
+import { Logger } from '../utils/logger.js';
 
 export type RotationPolicy = 'round_robin' | 'random' | 'weighted';
 

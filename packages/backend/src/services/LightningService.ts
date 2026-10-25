@@ -1,5 +1,5 @@
 // LightningService - Backend implementation for Lightning payments
-import { Logger } from '../utils/logger';
+import { Logger } from '../utils/logger.js';
 import { LightningConfig } from '@pubpay/shared-types';
 
 export interface LNURLResult {

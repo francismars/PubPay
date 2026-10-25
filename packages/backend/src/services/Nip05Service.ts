@@ -1,8 +1,11 @@
 // NIP-05 Service - Handles name registration and nostr.json generation
-import { Logger } from '../utils/logger';
+import { Logger } from '../utils/logger.js';
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { nip19 } from 'nostr-tools';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export interface Nip05Registration {
   id: string;

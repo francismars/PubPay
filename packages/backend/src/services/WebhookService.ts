@@ -1,7 +1,7 @@
 // WebhookService - Handles Lightning webhook processing and zap creation
-import { Logger } from '../utils/logger';
-import { NostrService } from './NostrService';
-import { SessionService } from './SessionService';
+import { Logger } from '../utils/logger.js';
+import { NostrService } from './NostrService.js';
+import { SessionService } from './SessionService.js';
 import { WebhookData } from '@pubpay/shared-types';
 
 export interface WebhookResult {

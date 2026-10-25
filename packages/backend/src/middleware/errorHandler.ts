@@ -1,6 +1,6 @@
 // ErrorHandler - Centralized error handling middleware
 import { Request, Response, NextFunction } from 'express';
-import { Logger } from '../utils/logger';
+import { Logger } from '../utils/logger.js';
 
 export class ErrorHandler {
   private logger: Logger;

@@ -1,6 +1,6 @@
 // NostrService - Handles Nostr operations including anonymous zap creation
-import { Logger } from '../utils/logger';
-import { SimplePool, finalizeEvent, nip19 } from 'nostr-tools';
+import { Logger } from '../utils/logger.js';
+import { SimplePool, finalizeEvent, nip19, getPublicKey } from 'nostr-tools';
 import * as crypto from 'crypto';
 
 export interface ZapResult {
@@ -757,14 +757,8 @@ export class NostrService {
    * Get public key from private key
    */
   private getPublicKeyFromPrivate(privateKey: Buffer): string {
-    // Use proper secp256k1 key generation from nostr-tools
-    const { getPublicKey } = require('nostr-tools');
-
-    // Convert Buffer to hex string
-    const privateKeyHex = privateKey.toString('hex');
-
-    // Generate public key using nostr-tools
-    const publicKey = getPublicKey(privateKeyHex);
+    // nostr-tools expects a 32-byte Uint8Array secret key
+    const publicKey = getPublicKey(new Uint8Array(privateKey));
 
     this.logger.info('🔑 Generated public key:', {
       privateKeyLength: privateKey.length,

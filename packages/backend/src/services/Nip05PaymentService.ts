@@ -1,5 +1,5 @@
 // NIP-05 Payment Service - Handles LNbits payment integration
-import { Logger } from '../utils/logger';
+import { Logger } from '../utils/logger.js';
 
 export interface PaymentInvoice {
   payment_hash: string;

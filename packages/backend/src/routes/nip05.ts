@@ -1,9 +1,9 @@
 // NIP-05 Routes - Handle name registration and verification
 import { Router, Request, Response } from 'express';
-import { Nip05Service } from '../services/Nip05Service';
-import { Nip05PaymentService } from '../services/Nip05PaymentService';
-import { Logger } from '../utils/logger';
-import { routeParam } from '../utils/requestParams';
+import { Nip05Service } from '../services/Nip05Service.js';
+import { Nip05PaymentService } from '../services/Nip05PaymentService.js';
+import { Logger } from '../utils/logger.js';
+import { routeParam } from '../utils/requestParams.js';
 
 // Store pending invoices: checking_id -> {name, pubkey, suffix}
 interface PendingInvoice {

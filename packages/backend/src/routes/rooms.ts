@@ -1,9 +1,9 @@
 // Rooms Router - Create rooms, set schedules, view state, and SSE events
 import { Router, Request, Response } from 'express';
-import { RoomsService } from '../services/RoomsService';
-import { PretalxService } from '../services/PretalxService';
-import { Logger } from '../utils/logger';
-import { routeParam } from '../utils/requestParams';
+import { RoomsService } from '../services/RoomsService.js';
+import { PretalxService } from '../services/PretalxService.js';
+import { Logger } from '../utils/logger.js';
+import { routeParam } from '../utils/requestParams.js';
 
 export class RoomsRouter {
   private router: Router;

@@ -5,14 +5,18 @@ import morgan from 'morgan';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { Request, Response, NextFunction } from 'express';
-import { LightningRouter } from './routes/lightning';
-import { ErrorHandler } from './middleware/errorHandler';
-import { RoomsRouter } from './routes/rooms';
-import { Nip05Router } from './routes/nip05';
-import { Logger } from './utils/logger';
-import { asOptionalString } from './utils/requestParams';
+import { LightningRouter } from './routes/lightning.js';
+import { ErrorHandler } from './middleware/errorHandler.js';
+import { RoomsRouter } from './routes/rooms.js';
+import { Nip05Router } from './routes/nip05.js';
+import { Logger } from './utils/logger.js';
+import { asOptionalString } from './utils/requestParams.js';
 
 import path from 'path';
+import { fileURLToPath, pathToFileURL } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables from backend folder
 const envPath = path.resolve(__dirname, '../.env');
@@ -180,7 +184,9 @@ export class BackendServer {
 }
 
 // Start server if this file is run directly
-if (require.main === module) {
+const isMain =
+  !!process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+if (isMain) {
   const server = new BackendServer();
   server.start();
 }

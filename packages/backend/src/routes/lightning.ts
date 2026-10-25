@@ -1,9 +1,9 @@
 // Lightning Router - Modern TypeScript implementation
 import { Router, Request, Response } from 'express';
-import { LightningService } from '../services/LightningService';
-import { WebhookService } from '../services/WebhookService';
-import { SessionService } from '../services/SessionService';
-import { Logger } from '../utils/logger';
+import { LightningService } from '../services/LightningService.js';
+import { WebhookService } from '../services/WebhookService.js';
+import { SessionService } from '../services/SessionService.js';
+import { Logger } from '../utils/logger.js';
 // import { ApiResponse } from '@pubpay/shared-types'; // Unused for now
 
 export class LightningRouter {

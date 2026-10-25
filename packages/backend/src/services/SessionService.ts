@@ -1,5 +1,5 @@
 // SessionService - Manages Lightning payment sessions and LNURL mappings
-import { Logger } from '../utils/logger';
+import { Logger } from '../utils/logger.js';
 
 export interface LightningEvent {
   lnurl: string;

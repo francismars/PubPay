@@ -1,4 +1,4 @@
-import { Logger } from '../utils/logger';
+import { Logger } from '../utils/logger.js';
 export type PretalxSpeaker = {
   code: string;
   name: string;
