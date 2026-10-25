@@ -48,7 +48,11 @@ function scureAliases() {
     '@scure/bip32': resolvePkgDir('@scure/bip32'),
     '@scure/bip39': resolvePkgDir('@scure/bip39'),
     '@scure/bip39/wordlists/english': require.resolve(
-      '@scure/bip39/wordlists/english',
+      '@scure/bip39/wordlists/english.js',
+      { paths: searchRoots }
+    ),
+    '@scure/bip39/wordlists/english.js': require.resolve(
+      '@scure/bip39/wordlists/english.js',
       { paths: searchRoots }
     )
   };
