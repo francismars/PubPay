@@ -1,10 +1,28 @@
 const path = require('path');
+const crypto = require('crypto');
+const { execSync } = require('child_process');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 const { scureAliases } = require('./scureAliases');
 
 const isProduction = process.env.NODE_ENV === 'production';
+
+/** Unique per production build so PWA clients always pick up a new service worker. */
+function buildCacheVersion() {
+  let git = 'nogit';
+  try {
+    git = execSync('git rev-parse --short HEAD', {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+  } catch {
+    // offline / non-git checkout
+  }
+  const stamp = Date.now().toString(36);
+  const rand = crypto.randomBytes(3).toString('hex');
+  return `v${git}-${stamp}-${rand}`;
+}
 
 module.exports = {
   mode: isProduction ? 'production' : 'development',
@@ -125,7 +143,7 @@ module.exports = {
           to: 'manifest.json',
           noErrorOnMissing: true
         },
-        // Only copy service worker in production
+        // Only copy service worker in production (inject unique CACHE_VERSION)
         ...(isProduction
           ? [
               {
@@ -134,7 +152,13 @@ module.exports = {
                   '../../apps/pubpay/src/service-worker.js'
                 ),
                 to: 'service-worker.js',
-                noErrorOnMissing: true
+                noErrorOnMissing: true,
+                transform(content) {
+                  const version = buildCacheVersion();
+                  return content
+                    .toString()
+                    .replaceAll('__CACHE_VERSION__', version);
+                }
               }
             ]
           : [])
