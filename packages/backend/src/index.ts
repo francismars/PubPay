@@ -13,10 +13,9 @@ import { Logger } from './utils/logger.js';
 import { asOptionalString } from './utils/requestParams.js';
 
 import path from 'path';
-import { fileURLToPath, pathToFileURL } from 'url';
+import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Load environment variables from backend folder
 const envPath = path.resolve(__dirname, '../.env');
@@ -183,10 +182,7 @@ export class BackendServer {
   }
 }
 
-// Start server if this file is run directly
-const isMain =
-  !!process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
-if (isMain) {
-  const server = new BackendServer();
-  server.start();
-}
+// Always start — this file is the sole entrypoint; an import.meta.url vs
+// argv[1] "is main" guard breaks under PM2 fork mode (argv[1] is PM2's wrapper).
+const server = new BackendServer();
+server.start();
