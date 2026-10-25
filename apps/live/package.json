@@ -21,7 +21,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router": "^7.18.0",
-    "swiper": "11.2.6"
+    "swiper": "14.3.0"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
