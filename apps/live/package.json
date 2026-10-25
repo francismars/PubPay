@@ -14,7 +14,7 @@
     "@pubpay/shared-services": "workspace:*",
     "@pubpay/shared-types": "workspace:*",
     "@pubpay/shared-utils": "workspace:*",
-    "isomorphic-dompurify": "^2.34.0",
+    "isomorphic-dompurify": "^4.6.0",
     "nostr-tools": "^2.25.2",
     "qrious": "^4.0.2",
     "react": "^19.3.1",
