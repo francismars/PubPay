@@ -3,6 +3,7 @@ import { Router, Request, Response } from 'express';
 import { Nip05Service } from '../services/Nip05Service';
 import { Nip05PaymentService } from '../services/Nip05PaymentService';
 import { Logger } from '../utils/logger';
+import { routeParam } from '../utils/requestParams';
 
 // Store pending invoices: checking_id -> {name, pubkey, suffix}
 interface PendingInvoice {
@@ -53,7 +54,7 @@ export class Nip05Router {
     this.router.get(
       '/stream/:checkingId',
       (req: Request, res: Response): void => {
-        const { checkingId } = req.params;
+        const checkingId = routeParam(req, 'checkingId');
         if (!checkingId) {
           res
             .status(400)
@@ -116,7 +117,7 @@ export class Nip05Router {
     // Validate name (before payment)
     this.router.post('/validate', (req: Request, res: Response) => {
       try {
-        const { name } = req.body;
+        const { name } = req.body || {};
 
         if (!name) {
           return res.status(400).json({
@@ -157,7 +158,7 @@ export class Nip05Router {
     // Create payment invoice
     this.router.post('/invoice', async (req: Request, res: Response) => {
       try {
-        const { name, pubkey } = req.body;
+        const { name, pubkey } = req.body || {};
 
         if (!name || !pubkey) {
           return res.status(400).json({
@@ -242,7 +243,7 @@ export class Nip05Router {
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
         try {
-          const { checkingId } = req.params;
+          const checkingId = routeParam(req, 'checkingId');
 
           if (!checkingId) {
             return res.status(400).json({
@@ -306,7 +307,7 @@ export class Nip05Router {
     // Register name (after payment verified)
     this.router.post('/register', async (req: Request, res: Response) => {
       try {
-        const { name, pubkey, paymentProof } = req.body;
+        const { name, pubkey, paymentProof } = req.body || {};
 
         if (!name || !pubkey || !paymentProof) {
           return res.status(400).json({
@@ -495,7 +496,7 @@ export class Nip05Router {
     // Get user's registrations
     this.router.get('/registrations/:pubkey', (req: Request, res: Response) => {
       try {
-        const { pubkey } = req.params;
+        const pubkey = routeParam(req, 'pubkey');
 
         if (!pubkey) {
           return res.status(400).json({
@@ -551,7 +552,7 @@ export class Nip05Router {
     // Get a specific registration
     this.router.get('/registration/:name', (req: Request, res: Response) => {
       try {
-        const { name } = req.params;
+        const name = routeParam(req, 'name');
         const registration = this.nip05Service.getRegistration(name);
 
         if (!registration) {

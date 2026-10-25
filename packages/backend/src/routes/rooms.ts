@@ -3,6 +3,7 @@ import { Router, Request, Response } from 'express';
 import { RoomsService } from '../services/RoomsService';
 import { PretalxService } from '../services/PretalxService';
 import { Logger } from '../utils/logger';
+import { routeParam } from '../utils/requestParams';
 
 export class RoomsRouter {
   private router: Router;
@@ -53,7 +54,7 @@ export class RoomsRouter {
     req: Request,
     res: Response
   ): ReturnType<RoomsService['getRoom']> {
-    const { roomId } = req.params;
+    const roomId = routeParam(req, 'roomId');
     const room = this.rooms.getRoom(roomId);
     if (!room) {
       res.status(404).json({ success: false, error: 'Room not found' });
@@ -147,7 +148,7 @@ export class RoomsRouter {
     try {
       const room = this.authorizeRoomWrite(req, res);
       if (!room) return;
-      const { roomId } = req.params;
+      const roomId = routeParam(req, 'roomId');
       const {
         name,
         slug,
@@ -189,7 +190,7 @@ export class RoomsRouter {
     try {
       const room = this.authorizeRoomWrite(req, res);
       if (!room) return;
-      const { roomId } = req.params;
+      const roomId = routeParam(req, 'roomId');
       const styleConfig = req.body || {};
       const updated = this.rooms.updateStyleConfig(roomId, styleConfig);
       const publicConfig = this.rooms.toPublicConfig(updated);
@@ -219,7 +220,7 @@ export class RoomsRouter {
     try {
       const room = this.authorizeRoomWrite(req, res);
       if (!room) return;
-      const { roomId } = req.params;
+      const roomId = routeParam(req, 'roomId');
       const schedule = req.body;
 
       // Basic structure validation
@@ -273,7 +274,7 @@ export class RoomsRouter {
     try {
       const authorized = this.authorizeRoomWrite(req, res);
       if (!authorized) return;
-      const { roomId } = req.params;
+      const roomId = routeParam(req, 'roomId');
       const {
         baseUrl: bodyBase,
         event: bodyEvent,
@@ -655,7 +656,7 @@ export class RoomsRouter {
 
   private getRoom(req: Request, res: Response): void {
     try {
-      const { roomId } = req.params;
+      const roomId = routeParam(req, 'roomId');
       const password = this.getProvidedPassword(req);
       const room = this.rooms.getRoom(roomId);
       if (!room) {
@@ -686,7 +687,7 @@ export class RoomsRouter {
 
   private getView(req: Request, res: Response): void {
     try {
-      const { roomId } = req.params;
+      const roomId = routeParam(req, 'roomId');
       const { at } = req.query as { at?: string };
       const view = this.rooms.getView(roomId, at);
       res.json({ success: true, data: view });
@@ -701,7 +702,7 @@ export class RoomsRouter {
 
   private getPublicDisplay(req: Request, res: Response): void {
     try {
-      const { roomId } = req.params;
+      const roomId = routeParam(req, 'roomId');
       const room = this.rooms.getRoom(roomId);
       if (!room) {
         res.status(404).json({ success: false, error: 'Room not found' });
@@ -723,7 +724,7 @@ export class RoomsRouter {
 
   private sseEvents(req: Request, res: Response): void {
     try {
-      const { roomId } = req.params;
+      const roomId = routeParam(req, 'roomId');
       const room = this.rooms.getRoom(roomId);
       if (!room) {
         res.status(404).json({ success: false, error: 'Room not found' });

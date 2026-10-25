@@ -46,14 +46,14 @@ export class LightningRouter {
   ): Promise<void> {
     try {
       this.logger.info('⚡ Lightning enable endpoint called:', {
-        frontendSessionId: req.body.frontendSessionId,
-        eventId: req.body.eventId,
+        frontendSessionId: req.body?.frontendSessionId,
+        eventId: req.body?.eventId,
         timestamp: new Date().toISOString(),
         userAgent: req.get('User-Agent'),
         ip: req.ip
       });
 
-      const { frontendSessionId, eventId } = req.body;
+      const { frontendSessionId, eventId } = req.body || {};
 
       // Validate required parameters
       if (!frontendSessionId || !eventId) {
@@ -185,12 +185,12 @@ export class LightningRouter {
   ): Promise<void> {
     try {
       this.logger.info('🔌 Lightning disable endpoint called:', {
-        frontendSessionId: req.body.frontendSessionId,
-        eventId: req.body.eventId,
+        frontendSessionId: req.body?.frontendSessionId,
+        eventId: req.body?.eventId,
         timestamp: new Date().toISOString()
       });
 
-      const { frontendSessionId, eventId } = req.body;
+      const { frontendSessionId, eventId } = req.body || {};
 
       // Validate required parameters
       if (!frontendSessionId || !eventId) {
@@ -243,7 +243,7 @@ export class LightningRouter {
 
   private async processWebhook(req: Request, res: Response): Promise<void> {
     try {
-      const paymentData = req.body;
+      const paymentData = req.body || {};
       this.logger.info('🔔 Webhook received:', {
         lnurlpId: paymentData.lnurlp,
         amount: paymentData.amount,

@@ -10,6 +10,7 @@ import { ErrorHandler } from './middleware/errorHandler';
 import { RoomsRouter } from './routes/rooms';
 import { Nip05Router } from './routes/nip05';
 import { Logger } from './utils/logger';
+import { asOptionalString } from './utils/requestParams';
 
 import path from 'path';
 
@@ -99,7 +100,7 @@ export class BackendServer {
     this.app.get('/.well-known/nostr.json', (req: Request, res: Response) => {
       try {
         // Extract name parameter, treat empty string as undefined (no filter)
-        const nameParam = req.query.name as string | undefined;
+        const nameParam = asOptionalString(req.query.name);
         const name =
           nameParam && nameParam.trim() !== '' ? nameParam.trim() : undefined;
         const json = nip05Service.getNostrJson(name);
