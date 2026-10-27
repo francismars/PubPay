@@ -69,7 +69,48 @@ self.addEventListener('message', event => {
   }
 });
 
-// Fetch event - serve from cache, fallback to network
+const HTTP_OK = 200;
+
+function isAppShellRequest(request, url) {
+  return (
+    request.mode === 'navigate' ||
+    url.pathname === '/' ||
+    url.pathname === '/index.html' ||
+    url.pathname === '/service-worker.js'
+  );
+}
+
+// HTML and the worker script must come from the network when it is up.
+// cache: 'reload' skips the HTTP cache, which otherwise holds index.html
+// for a year and keeps pointing at the old hashed bundles.
+// Fetch by URL: passing a navigate-mode Request plus options throws.
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request.url, {
+      cache: 'reload',
+      credentials: 'same-origin',
+      redirect: 'follow'
+    });
+    if (response && response.status === HTTP_OK && response.type === 'basic') {
+      const responseToCache = response.clone();
+      caches.open(CACHE_NAME).then(cache => {
+        cache.put(request.url, responseToCache);
+      });
+    }
+    return response;
+  } catch {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    if (request.mode === 'navigate') {
+      return caches.match('/index.html');
+    }
+    return Response.error();
+  }
+}
+
+// Fetch event - hashed assets from cache, app shell from the network
 self.addEventListener('fetch', event => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') {
@@ -96,6 +137,11 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  if (isAppShellRequest(event.request, url)) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
       // Return cached version if available
@@ -107,7 +153,6 @@ self.addEventListener('fetch', event => {
       return fetch(event.request)
         .then(response => {
           // Don't cache if not a valid response
-          const HTTP_OK = 200;
           if (
             !response ||
             response.status !== HTTP_OK ||

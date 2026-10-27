@@ -1,4 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { AuthService, clearNwcConnections } from '@pubpay/shared-services';
 import {
   FollowService,
@@ -25,14 +26,18 @@ export const useAuth = ({
   // Keep privateKey in local state for security (not in global store)
   const [privateKey, setPrivateKeyLocal] = useState<string | null>(null);
 
-  // Use Zustand store for auth state (excluding privateKey)
-  const storeAuthState = useAuthStore(state => ({
-    isLoggedIn: state.isLoggedIn,
-    publicKey: state.publicKey,
-    signInMethod: state.signInMethod,
-    userProfile: state.userProfile,
-    displayName: state.displayName
-  }));
+  // Use Zustand store for auth state (excluding privateKey).
+  // Zustand v5 uses Object.is on the selector result. A fresh object each
+  // call is a new snapshot, which re-renders forever (React error #185).
+  const storeAuthState = useAuthStore(
+    useShallow(state => ({
+      isLoggedIn: state.isLoggedIn,
+      publicKey: state.publicKey,
+      signInMethod: state.signInMethod,
+      userProfile: state.userProfile,
+      displayName: state.displayName
+    }))
+  );
 
   // Combine store state with local privateKey for backward compatibility
   const authState: AuthState = {
@@ -136,10 +141,7 @@ export const useAuth = ({
           isLoggedIn: true,
           publicKey,
           signInMethod: method as
-            | 'extension'
-            | 'nsec'
-            | 'externalSigner'
-            | 'nip46',
+            'extension' | 'nsec' | 'externalSigner' | 'nip46',
           userProfile: null,
           displayName: null
         });

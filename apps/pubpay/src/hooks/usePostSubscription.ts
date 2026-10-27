@@ -65,15 +65,15 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
       const eventIds = currentPosts.map(post => post.id);
       const postIds = eventIds.join(',');
 
-      // Calculate newest timestamp from actual posts, not the ref (which might be stale)
+      // Calculate newest timestamp from actual posts, not the ref (which might be stale).
+      // An empty feed must not use Date.now(). That clock moves on every check,
+      // and the old early return never stored lastSubscriptionSinceRef, so the
+      // "> 5 seconds" guard failed and this logged on every store update.
       let newestTimestamp = 0;
       if (currentPosts.length > 0) {
-        // Get the newest post's timestamp from the actual posts array
         newestTimestamp = Math.max(...currentPosts.map(post => post.createdAt));
       } else {
-        // If no posts, use the ref or current time
-        newestTimestamp =
-          newestPostTimestampRef.current || Math.floor(Date.now() / 1000);
+        newestTimestamp = newestPostTimestampRef.current || 0;
       }
 
       // Calculate the 'since' value we would use for the subscription
@@ -100,6 +100,9 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
       lastNostrReadyRef.current = storeState.nostrReady;
       lastIsLoadingRef.current = storeState.isLoading;
       lastNewestTimestampRef.current = newestTimestamp;
+      // Set before early returns. An empty feed used to leave this at 0, so the
+      // next update always looked like a new subscription window.
+      lastSubscriptionSinceRef.current = newSubscriptionSince;
 
       // If in following mode and user follows nobody, don't set up subscription
       if (
@@ -179,9 +182,6 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
       if (feedMode === 'pubpay') {
         filter['#t'] = ['pubpay'];
       }
-
-      // Update the last subscription 'since' value
-      lastSubscriptionSinceRef.current = subscriptionSince;
 
       // If in following mode, only subscribe to posts from followed authors
       if (
