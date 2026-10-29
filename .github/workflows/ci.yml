@@ -43,8 +43,10 @@ jobs:
       - name: Build
         run: pnpm build:prod
 
-      # Only pubpay defines a lint script today, and the tree still has a large
-      # pre-existing eslint backlog. Keep this visible without blocking merges.
-      - name: Lint (non-blocking)
+      - name: Lint
+        run: pnpm lint -- --quiet
+
+      # Unused exports/deps still being cleaned up.
+      - name: Knip (non-blocking)
         continue-on-error: true
-        run: pnpm -r --if-present lint
+        run: pnpm knip
