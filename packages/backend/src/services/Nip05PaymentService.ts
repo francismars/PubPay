@@ -53,7 +53,11 @@ export class Nip05PaymentService {
     try {
       const displayName = fullName || name;
       const domain = process.env['NIP05_DOMAIN'] || 'yourdomain.com';
-      const webhook = buildWebhookUrl('/nip05/webhook');
+      // Core LNbits /api/v1/payments has no webhook_headers — secret must be in URL.
+      // Defense in depth: webhook handler still verifies payment via LNbits API.
+      const webhook = buildWebhookUrl('/nip05/webhook', {
+        includeSecretInQuery: true
+      });
 
       const requestBody = {
         out: false,

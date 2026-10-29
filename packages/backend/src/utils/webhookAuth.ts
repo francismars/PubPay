@@ -2,9 +2,15 @@ import crypto from 'crypto';
 import { Request } from 'express';
 
 /**
- * Shared-secret auth for LNBits webhooks.
- * Secret is appended as ?secret=… when registering webhook URLs with LNBits,
- * and must match WEBHOOK_SECRET on inbound requests.
+ * Shared-secret auth for LNbits webhooks.
+ *
+ * Preferred (LNURLp): pass secret via webhook_headers as X-Webhook-Secret
+ * so the URL stays clean (avoids nginx/access-log leakage of ?secret=).
+ *
+ * Fallback (core /api/v1/payments): LNbits only accepts a webhook URL string,
+ * so the secret is appended as ?secret=… when includeSecretInQuery is true.
+ *
+ * Inbound verify accepts either query or X-Webhook-Secret header.
  */
 export function getWebhookSecret(): string {
   return (process.env['WEBHOOK_SECRET'] || '').trim();
@@ -17,11 +23,27 @@ export function appendWebhookSecret(url: string): string {
   return `${url}${sep}secret=${encodeURIComponent(secret)}`;
 }
 
-export function buildWebhookUrl(path: string): string | undefined {
+/** JSON string for LNURLp `webhook_headers` field. Undefined if no secret. */
+export function buildWebhookHeadersJson(): string | undefined {
+  const secret = getWebhookSecret();
+  if (!secret) return undefined;
+  return JSON.stringify({ 'X-Webhook-Secret': secret });
+}
+
+/**
+ * Build absolute webhook URL under WEBHOOK_URL.
+ * @param options.includeSecretInQuery - only for APIs that cannot set custom
+ *   headers (LNbits core invoice webhooks). Prefer false + webhook_headers.
+ */
+export function buildWebhookUrl(
+  path: string,
+  options: { includeSecretInQuery?: boolean } = {}
+): string | undefined {
   const base = process.env['WEBHOOK_URL']?.trim().replace(/\/+$/, '') || '';
   if (!base) return undefined;
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  return appendWebhookSecret(`${base}${normalizedPath}`);
+  const url = `${base}${normalizedPath}`;
+  return options.includeSecretInQuery ? appendWebhookSecret(url) : url;
 }
 
 function secretsEqual(a: string, b: string): boolean {
@@ -59,7 +81,8 @@ export function verifyWebhookSecret(req: Request): {
   const fromQuery =
     typeof req.query?.['secret'] === 'string' ? req.query['secret'] : '';
   const fromHeader = req.header('x-webhook-secret') || '';
-  const provided = fromQuery || fromHeader;
+  // Prefer header (cleaner logs); fall back to query for legacy links / core invoices
+  const provided = fromHeader || fromQuery;
 
   if (!provided || !secretsEqual(provided, expected)) {
     return { ok: false, error: 'Invalid webhook secret' };

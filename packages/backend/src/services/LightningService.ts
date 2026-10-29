@@ -1,7 +1,10 @@
 // LightningService - Backend implementation for Lightning payments
 import { Logger } from '../utils/logger.js';
 import { LightningConfig } from '@pubpay/shared-types';
-import { buildWebhookUrl } from '../utils/webhookAuth.js';
+import {
+  buildWebhookHeadersJson,
+  buildWebhookUrl
+} from '../utils/webhookAuth.js';
 
 export interface LNURLResult {
   success: boolean;
@@ -92,12 +95,10 @@ export class LightningService {
     }
 
     try {
-      this.logger.info('Creating LNBits LNURL:', {
+      this.logger.info('Creating LNBits LNURL', {
         eventId,
         frontendSessionId,
-        baseUrl: this.lnbitsUrl,
-        hasApiKey: !!this.apiKey,
-        webhookUrl: this.webhookUrl
+        hasApiKey: !!this.apiKey
       });
 
       const result = await this.createLNBitsLNURL(eventId);
@@ -123,10 +124,11 @@ export class LightningService {
   private async createLNBitsLNURL(
     eventId: string
   ): Promise<{ lnurl: string; id: string }> {
-    // WEBHOOK_URL + /lightning/webhook + ?secret=WEBHOOK_SECRET
+    // Clean webhook URL; secret goes in webhook_headers (LNURLp), not ?secret=
     const webhookUrl = buildWebhookUrl('/lightning/webhook');
+    const webhookHeaders = buildWebhookHeadersJson();
 
-    const requestBody = {
+    const requestBody: Record<string, unknown> = {
       description: 'PubPay Live - Real-time Tip Tracker',
       min: 1000, // 1 sat minimum (msats when currency is sat in some LNBits versions)
       max: 100000000, // 1M sats maximum
@@ -135,8 +137,14 @@ export class LightningService {
       success_text: 'You just experienced the future of live payments!',
       currency: 'sat'
     };
+    if (webhookHeaders) {
+      requestBody.webhook_headers = webhookHeaders;
+    }
 
-    this.logger.info('LNBits request body:', requestBody);
+    this.logger.info('LNBits request body:', {
+      ...requestBody,
+      webhook_headers: webhookHeaders ? '[redacted]' : undefined
+    });
 
     const response = await fetch(`${this.lnbitsUrl}/lnurlp/api/v1/links`, {
       method: 'POST',
