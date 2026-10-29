@@ -1,108 +1,103 @@
 # Backend Environment Variables Setup
 
-## Required Environment Variables
+Create a `.env` file in `packages/backend/` with these variables.
 
-Create a `.env` file in `packages/backend/` with these variables:
+Production deploy checklist (nginx, PM2, SSE, headers): see root [DEPLOY.md](../../DEPLOY.md).
 
-### Essential (Required for payments)
+## Required for payments
 
 ```env
-# LNbits API Key - REQUIRED for all Lightning payments
-# Get this from your LNbits dashboard
+# LNbits API Key - REQUIRED for Lightning payments
 LNBITS_API_KEY=your_lnbits_api_key_here
 
-# Webhook URL - REQUIRED for payment notifications
-# LNbits will send payment notifications here
-# This should be the BASE URL (without path) - the backend will append /lightning/webhook
-# For development (using ngrok or similar tunnel):
+# Public base URL LNbits can reach (no path). Backend appends /lightning/webhook or /nip05/webhook.
+# Dev: use ngrok or similar — localhost is unreachable from hosted LNbits.
 # WEBHOOK_URL=https://your-ngrok-url.ngrok.io
-# For production:
-# WEBHOOK_URL=https://yourdomain.com
-# NOTE: localhost won't work because LNbits (on the internet) can't reach it!
-# Use a tunneling service like ngrok for development: https://ngrok.com
+# Prod:
+WEBHOOK_URL=https://yourdomain.com
 
-# Webhook shared secret - REQUIRED in production
-# Appended as ?secret=… on webhook URLs registered with LNbits
-# Generate with: openssl rand -hex 32
+# Shared webhook secret — REQUIRED in production (server refuses to start without it)
+# Generate: openssl rand -hex 32
+#
+# LNURLp links send this as header X-Webhook-Secret (via LNbits webhook_headers).
+# NIP-05 core invoices still append ?secret= (LNbits payments API has no custom headers).
 WEBHOOK_SECRET=replace_with_long_random_secret
-
-# Optional cap on outbound zap amount in sats (default 1000000)
-# MAX_ZAP_SATS=1000000
 ```
 
-### Optional (Have defaults)
+## Required in production
 
 ```env
-# Server Port (default: 3002)
+NODE_ENV=production
+
+# Comma-separated CORS origins. Missing → process exits on start.
+FRONTEND_URL=https://yourdomain.com,https://live.yourdomain.com
+
+# Behind nginx/reverse proxy (also set in ecosystem.config.js). Without it, rate limits collapse to the proxy IP.
+TRUST_PROXY=true
+
+# Real domain for NIP-05 (do not leave the placeholder)
+NIP05_DOMAIN=yourdomain.com
+```
+
+## Optional
+
+```env
 PORT=3002
 
-# Node Environment (default: development)
-NODE_ENV=development
+# Bind address (default: 127.0.0.1 in production, 0.0.0.0 in development)
+# Production should stay on localhost; nginx proxies to it.
+# BIND_HOST=127.0.0.1
 
-# LNbits URL (default: https://legend.lnbits.com)
-# Only change if you're using a custom LNbits instance
+# LNbits instance (default: https://legend.lnbits.com)
 LNBITS_URL=https://legend.lnbits.com
 
-# NIP-05 Domain (default: yourdomain.com)
-# Your domain for NIP-05 verification
-NIP05_DOMAIN=yourdomain.com
+# Cap outbound zap amount in sats (default 1000000)
+# MAX_ZAP_SATS=1000000
 
-# Frontend URL (only needed for production CORS)
-# FRONTEND_URL=https://yourdomain.com
+# Pretalx schedule import (all three required to enable)
+# PRETALX_BASE_URL=https://pretalx.example.com
+# PRETALX_EVENT=your-event-slug
+# PRETALX_TOKEN=your_pretalx_token
 ```
 
-## Complete Example
+## Complete example (development)
 
 ```env
-# Server Configuration
 PORT=3002
 NODE_ENV=development
 
-# LNbits Configuration (REQUIRED)
 LNBITS_URL=https://legend.lnbits.com
 LNBITS_API_KEY=your_lnbits_api_key_here
 
-# Webhook Configuration (REQUIRED)
-WEBHOOK_URL=http://localhost:3002
-# Production: WEBHOOK_URL=https://yourdomain.com
+WEBHOOK_URL=https://your-ngrok-url.ngrok.io
 WEBHOOK_SECRET=replace_with_long_random_secret
 
-# NIP-05 Configuration
-NIP05_DOMAIN=yourdomain.com
-
-# Frontend URL (Production only)
-# FRONTEND_URL=https://yourdomain.com
+NIP05_DOMAIN=localhost
 ```
 
-## What Each Variable Does
+## Variable reference
 
-| Variable         | Required | Default                     | Purpose                                |
-| ---------------- | -------- | --------------------------- | -------------------------------------- |
-| `LNBITS_API_KEY` | ✅ Yes   | -                           | Authenticates with LNbits for payments |
-| `WEBHOOK_URL`    | ✅ Yes   | -                           | Base URL for payment webhooks          |
-| `WEBHOOK_SECRET` | ✅ Prod  | -                           | Shared secret on webhook URLs          |
-| `MAX_ZAP_SATS`   | ❌ No    | `1000000`                   | Cap on outbound zap amount             |
-| `PORT`           | ❌ No    | `3002`                      | Backend server port                    |
-| `NODE_ENV`       | ❌ No    | `development`               | Environment mode                       |
-| `LNBITS_URL`     | ❌ No    | `https://legend.lnbits.com` | LNbits instance URL                    |
-| `NIP05_DOMAIN`   | ❌ No    | `yourdomain.com`            | Domain for NIP-05 verification         |
-| `FRONTEND_URL`   | ❌ No    | -                           | CORS origin (production only)          |
+| Variable           | Required          | Default                     | Purpose                             |
+| ------------------ | ----------------- | --------------------------- | ----------------------------------- |
+| `LNBITS_API_KEY`   | Yes (payments)    | —                           | Authenticate with LNbits            |
+| `WEBHOOK_URL`      | Yes (payments)    | —                           | Public base URL for webhooks        |
+| `WEBHOOK_SECRET`   | **Prod**          | —                           | Auth for inbound webhooks           |
+| `FRONTEND_URL`     | **Prod**          | —                           | CORS allowlist                      |
+| `TRUST_PROXY`      | Prod behind proxy | unset                       | Trust `X-Forwarded-*` (rate limits) |
+| `NIP05_DOMAIN`     | Prod for NIP-05   | `yourdomain.com`            | NIP-05 domain                       |
+| `LNBITS_URL`       | No                | `https://legend.lnbits.com` | LNbits host                         |
+| `PORT`             | No                | `3002`                      | Listen port                         |
+| `NODE_ENV`         | No                | `development`               | Mode                                |
+| `MAX_ZAP_SATS`     | No                | `1000000`                   | Outbound zap cap                    |
+| `PRETALX_BASE_URL` | No                | —                           | Pretalx API base                    |
+| `PRETALX_EVENT`    | No                | —                           | Pretalx event slug                  |
+| `PRETALX_TOKEN`    | No                | —                           | Pretalx API token                   |
 
-## Quick Setup
+## Quick setup
 
-1. Copy the example above
-2. Replace `your_lnbits_api_key_here` with your actual LNbits API key
-3. Update `NIP05_DOMAIN` with your domain
-4. For production, set `WEBHOOK_URL` to your production domain
-5. Save as `packages/backend/.env`
+1. Copy an example above into `packages/backend/.env`
+2. Set `LNBITS_API_KEY` and `WEBHOOK_SECRET`
+3. For production: set `FRONTEND_URL`, `WEBHOOK_URL`, `NIP05_DOMAIN`, `TRUST_PROXY=true`
+4. Start: `pnpm --filter @pubpay/backend dev` (or PM2 — see DEPLOY.md)
 
-## Testing
-
-After setting up, start the server:
-
-```bash
-cd packages/backend
-npm run dev
-```
-
-The server will log which variables are configured. Check the console output for any warnings about missing variables.
+The server logs which payment-related variables are present. In production it **exits** if `FRONTEND_URL` or `WEBHOOK_SECRET` is missing.
