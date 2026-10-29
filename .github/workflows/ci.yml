@@ -33,6 +33,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Workspace packages export types from dist/; build them before tsc.
       - name: Type-check
         run: pnpm type-check
 
