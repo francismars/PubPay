@@ -5,7 +5,12 @@ import morgan from 'morgan';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
-import { Request, Response, NextFunction } from 'express';
+import {
+  Request,
+  Response,
+  NextFunction,
+  RequestHandler
+} from 'express';
 import { LightningRouter } from './routes/lightning.js';
 import { ErrorHandler } from './middleware/errorHandler.js';
 import { RoomsRouter } from './routes/rooms.js';
@@ -112,33 +117,43 @@ export class BackendServer {
     morgan.token('url', req => (req.url || '').split('?')[0] || '');
     this.app.use(morgan('combined'));
 
+    // express-rate-limit v8 still types against Express 4 Request; bridge for Express 5
+    const asHandler = (mw: unknown): RequestHandler =>
+      mw as RequestHandler;
+
     this.app.use(
-      rateLimit({
-        windowMs: 60_000,
-        limit: 120,
-        standardHeaders: true,
-        legacyHeaders: false,
-        message: { success: false, error: 'Too many requests' }
-      })
+      asHandler(
+        rateLimit({
+          windowMs: 60_000,
+          limit: 120,
+          standardHeaders: true,
+          legacyHeaders: false,
+          message: { success: false, error: 'Too many requests' }
+        })
+      )
     );
 
     this.app.use(
       '/lightning',
-      rateLimit({
-        windowMs: 60_000,
-        limit: 30,
-        standardHeaders: true,
-        legacyHeaders: false
-      })
+      asHandler(
+        rateLimit({
+          windowMs: 60_000,
+          limit: 30,
+          standardHeaders: true,
+          legacyHeaders: false
+        })
+      )
     );
     this.app.use(
       '/nip05',
-      rateLimit({
-        windowMs: 60_000,
-        limit: 40,
-        standardHeaders: true,
-        legacyHeaders: false
-      })
+      asHandler(
+        rateLimit({
+          windowMs: 60_000,
+          limit: 40,
+          standardHeaders: true,
+          legacyHeaders: false
+        })
+      )
     );
 
     // 1mb default (down from 10mb). Schedule imports stay well under this.
