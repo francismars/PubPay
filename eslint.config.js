@@ -77,7 +77,7 @@ export default [
 
       // Code style (use Prettier for formatting; disable core indent which is unstable in TSX)
       indent: 'off',
-      quotes: ['error', 'single'],
+      quotes: ['error', 'single', { avoidEscape: true }],
       semi: ['error', 'always'],
       'comma-dangle': ['error', 'never'],
       'no-trailing-spaces': 'error',
