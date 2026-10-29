@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@pubpay/shared-utils": "workspace:*",
-    "nostr-tools": "^2.25.2",
+    "nostr-tools": "^2.25.4",
     "qrious": "^4.0.2",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
