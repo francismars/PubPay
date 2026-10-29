@@ -340,8 +340,8 @@ importers:
         specifier: ^2.4.0
         version: 2.4.0
       hls.js:
-        specifier: 1.5.20
-        version: 1.5.20
+        specifier: ^1.7.4
+        version: 1.7.4
       isomorphic-dompurify:
         specifier: ^4.6.0
         version: 4.6.0(@noble/hashes@2.0.1)
@@ -2537,8 +2537,8 @@ packages:
     resolution: {integrity: sha512-Qgpiaws3Sm30Av8Eah6sjMCZZwjlBu+E68rhpCWBshY1lb09HtLwj5GviX0OyQIn+ulUS0iX0AxN5n3tLZzz1w==}
     engines: {node: '>=18.0.0'}
 
-  hls.js@1.5.20:
-    resolution: {integrity: sha512-uu0VXUK52JhihhnN/MVVo1lvqNNuhoxkonqgO3IpjvQiGpJBdIXMGkofjQb/j9zvV7a1SW8U9g1FslWx/1HOiQ==}
+  hls.js@1.7.4:
+    resolution: {integrity: sha512-3GlxGdPvT2YHvQYOt+yOzT/DEior/qJVNIylHA77kgeoBTdQQqi70GwefNEUmHQeNGyjC8U62+bruqW/Tpm+tg==}
 
   hmac-drbg@1.0.1:
     resolution: {integrity: sha512-Tti3gMqLdZfhOQY1Mzf/AanLiqh1WTiJgEj26ZuYQ9fbkLomzGchCws4FyrSd4VkpBfiNhaE1On+lOz894jvXg==}
@@ -6320,7 +6320,7 @@ snapshots:
 
   helmet@8.3.0: {}
 
-  hls.js@1.5.20: {}
+  hls.js@1.7.4: {}
 
   hmac-drbg@1.0.1:
     dependencies:
