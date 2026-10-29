@@ -115,7 +115,7 @@ export class BackendServer {
     this.app.use(
       rateLimit({
         windowMs: 60_000,
-        max: 120,
+        limit: 120,
         standardHeaders: true,
         legacyHeaders: false,
         message: { success: false, error: 'Too many requests' }
@@ -126,7 +126,7 @@ export class BackendServer {
       '/lightning',
       rateLimit({
         windowMs: 60_000,
-        max: 30,
+        limit: 30,
         standardHeaders: true,
         legacyHeaders: false
       })
@@ -135,7 +135,7 @@ export class BackendServer {
       '/nip05',
       rateLimit({
         windowMs: 60_000,
-        max: 40,
+        limit: 40,
         standardHeaders: true,
         legacyHeaders: false
       })
