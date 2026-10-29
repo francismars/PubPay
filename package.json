@@ -22,7 +22,7 @@
     "build:jukebox": "pnpm --filter @pubpay/jukebox build",
     "build:backend": "pnpm --filter @pubpay/backend build",
     "type-check": "pnpm --filter \"./packages/**\" build && pnpm -r type-check",
-    "lint": "eslint \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\"",
+    "lint": "eslint \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\" --quiet",
     "lint:fix": "eslint \"apps/**/*.{ts,tsx}\" \"packages/**/*.{ts,tsx}\" --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",

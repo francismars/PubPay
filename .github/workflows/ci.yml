@@ -44,7 +44,7 @@ jobs:
         run: pnpm build:prod
 
       - name: Lint
-        run: pnpm lint -- --quiet
+        run: pnpm lint
 
       # Unused exports/deps still being cleaned up.
       - name: Knip (non-blocking)
