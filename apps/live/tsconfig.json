@@ -2,18 +2,18 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "rootDir": "../../",
-    "baseUrl": "../../",
     "noEmit": false,
     "jsx": "react-jsx",
     "paths": {
-      "@pubpay/shared-services": ["packages/shared-services/src"],
-      "@pubpay/shared-types": ["packages/shared-types/src"],
-      "@pubpay/shared-utils": ["packages/shared-utils/src"],
-      "@live/*": ["apps/live/src/*"],
-      "@scure/bip32": ["apps/live/node_modules/@scure/bip32"],
-      "@scure/bip39": ["apps/live/node_modules/@scure/bip39"],
-      "@scure/bip39/*": ["apps/live/node_modules/@scure/bip39/*"]
+      "@pubpay/shared-services": ["../../packages/shared-services/src"],
+      "@pubpay/shared-types": ["../../packages/shared-types/src"],
+      "@pubpay/shared-utils": ["../../packages/shared-utils/src"],
+      "@live/*": ["./src/*"],
+      "@scure/bip32": ["./node_modules/@scure/bip32"],
+      "@scure/bip39": ["./node_modules/@scure/bip39"],
+      "@scure/bip39/*": ["./node_modules/@scure/bip39/*"]
     },
+    "types": ["node"],
     "typeRoots": [
       "../../node_modules/@types",
       "../../packages/shared-types/src"

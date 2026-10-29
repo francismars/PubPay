@@ -15,12 +15,8 @@
     "declaration": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "baseUrl": "./src",
     "module": "ES2020",
-    "paths": {
-      "@pubpay/shared-types": ["../../packages/shared-types/src"],
-      "@pubpay/shared-utils": ["../../packages/shared-utils/src"]
-    }
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

@@ -28,7 +28,7 @@
     "@types/morgan": "^1.9.9",
     "@types/node": "^24.19.2",
     "tsx": "^4.23.15",
-    "typescript": "^5.3.0"
+    "typescript": "npm:@typescript/typescript6@^6.0.2"
   },
   "keywords": [
     "lightning",
