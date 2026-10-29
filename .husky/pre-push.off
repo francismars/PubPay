@@ -1,4 +1,0 @@
-# Run type-check on all packages
-# This catches type errors before pushing to remote
-pnpm type-check
-
