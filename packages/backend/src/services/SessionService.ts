@@ -5,6 +5,8 @@ export interface LightningEvent {
   lnurl: string;
   lastSeen: number;
   active: boolean;
+  /** Client IP that created the link (for abuse caps). */
+  createdByIp?: string;
 }
 
 export interface LightningSession {
@@ -54,7 +56,8 @@ export class SessionService {
     frontendSessionId: string,
     eventId: string,
     lnurl: string,
-    lnurlpId?: string
+    lnurlpId?: string,
+    createdByIp?: string
   ): void {
     let session = this.sessions.get(frontendSessionId);
 
@@ -66,7 +69,8 @@ export class SessionService {
     session.events[eventId] = {
       lnurl,
       lastSeen: Date.now(),
-      active: true
+      active: true,
+      ...(createdByIp ? { createdByIp } : {})
     };
 
     // Use provided LNURL-pay ID or try to extract from LNURL
@@ -77,7 +81,7 @@ export class SessionService {
         eventId
       });
 
-      this.logger.info(
+      this.logger.debug(
         `Created LNURL mapping: ${id} -> ${frontendSessionId}/${eventId}`
       );
     } else {
@@ -85,11 +89,42 @@ export class SessionService {
     }
 
     this.logger.info(`Session updated: ${frontendSessionId}/${eventId}`, {
-      lnurl,
       active: true,
       totalSessions: this.sessions.size,
       totalMappings: this.lnurlpMappings.size
     });
+  }
+
+  /** True if this session owns an event entry (active or not). */
+  ownsEvent(frontendSessionId: string, eventId: string): boolean {
+    const session = this.sessions.get(frontendSessionId);
+    return !!(session && session.events[eventId]);
+  }
+
+  countActiveEventsForSession(frontendSessionId: string): number {
+    const session = this.sessions.get(frontendSessionId);
+    if (!session) return 0;
+    return Object.values(session.events).filter(e => e.active).length;
+  }
+
+  countActiveLinksForIp(ip: string): number {
+    if (!ip) return 0;
+    let n = 0;
+    for (const session of this.sessions.values()) {
+      for (const event of Object.values(session.events)) {
+        if (event.active && event.createdByIp === ip) n++;
+      }
+    }
+    return n;
+  }
+
+  countActiveLinksForEvent(eventId: string): number {
+    let n = 0;
+    for (const session of this.sessions.values()) {
+      const event = session.events[eventId];
+      if (event?.active) n++;
+    }
+    return n;
   }
 
   /**
@@ -103,23 +138,12 @@ export class SessionService {
    * Get LNURL mapping by LNURL-pay ID
    */
   getLNURLMapping(lnurlpId: string): LNURLMapping | undefined {
-    this.logger.info(`🔍 Looking up LNURL-pay ID: "${lnurlpId}"`);
-    this.logger.info(
-      '📋 Available mappings:',
-      Array.from(this.lnurlpMappings.keys())
-    );
-
     const mapping = this.lnurlpMappings.get(lnurlpId);
     if (mapping) {
-      this.logger.info('✅ Found mapping:', mapping);
+      this.logger.debug('LNURL mapping hit', { lnurlpId });
     } else {
-      this.logger.warn(`❌ No mapping found for: "${lnurlpId}"`);
-      this.logger.info(
-        '🔍 All mappings:',
-        Array.from(this.lnurlpMappings.entries())
-      );
+      this.logger.debug('LNURL mapping miss', { lnurlpId });
     }
-
     return mapping;
   }
 
