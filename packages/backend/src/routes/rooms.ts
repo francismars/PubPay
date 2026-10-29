@@ -105,7 +105,9 @@ export class RoomsRouter {
       res.json({ success: true, data: { schedules: list } });
     } catch (error) {
       this.logger.error('Pretalx schedules error');
-      res.status(500).json({ success: false, error: 'Failed to list schedules' });
+      res
+        .status(500)
+        .json({ success: false, error: 'Failed to list schedules' });
     }
   }
 
@@ -128,7 +130,9 @@ export class RoomsRouter {
       res.json({ success: true, data: { slots: preview } });
     } catch (error) {
       this.logger.error('Pretalx preview error');
-      res.status(500).json({ success: false, error: 'Failed to build preview' });
+      res
+        .status(500)
+        .json({ success: false, error: 'Failed to build preview' });
     }
   }
 
@@ -142,7 +146,8 @@ export class RoomsRouter {
       const { config, adminToken } = await this.rooms.createRoom({
         name: name.trim().slice(0, 120),
         slug: typeof slug === 'string' ? slug.slice(0, 80) : undefined,
-        timezone: typeof timezone === 'string' ? timezone.slice(0, 64) : undefined,
+        timezone:
+          typeof timezone === 'string' ? timezone.slice(0, 64) : undefined,
         password: typeof password === 'string' ? password : undefined
       });
       res.json({
@@ -454,6 +459,8 @@ export class RoomsRouter {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
+      // Prevent nginx from buffering the stream (also set proxy_buffering off upstream)
+      res.setHeader('X-Accel-Buffering', 'no');
       res.flushHeaders?.();
 
       const send = (event: string, data: unknown) => {
@@ -498,8 +505,18 @@ export class RoomsRouter {
       };
       const interval = setInterval(tick, intervalSec * 1000);
 
+      // SSE comment heartbeat so proxies/load balancers don't idle-close the connection
+      const heartbeat = setInterval(() => {
+        try {
+          res.write(`: ping ${Date.now()}\n\n`);
+        } catch {
+          // closed
+        }
+      }, 25_000);
+
       req.on('close', () => {
         clearInterval(interval);
+        clearInterval(heartbeat);
         this.clients.get(roomId)?.delete(res);
         res.end();
       });
