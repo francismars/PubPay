@@ -9,7 +9,9 @@
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@pubpay/shared-types": "workspace:*",
@@ -28,7 +30,8 @@
     "@types/morgan": "^1.9.9",
     "@types/node": "^26.6.6",
     "tsx": "^4.23.15",
-    "typescript": "npm:@typescript/typescript6@^6.0.2"
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "vitest": "^5.0.5"
   },
   "keywords": [
     "lightning",
