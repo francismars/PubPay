@@ -1,4 +1,4 @@
 // Export all types
-export * from './common';
-export * from './lightning';
-export * from './nostr';
+export * from './common.js';
+export * from './lightning.js';
+export * from './nostr.js';

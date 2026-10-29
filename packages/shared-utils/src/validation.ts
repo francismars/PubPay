@@ -1,6 +1,6 @@
 // Validation utilities
 
-import { ZAP_AMOUNTS, EVENT_KINDS } from './constants';
+import { ZAP_AMOUNTS, EVENT_KINDS } from './constants.js';
 
 export const isValidPublicKey = (pubkey: string): boolean => {
   return /^[0-9a-f]{64}$/i.test(pubkey);

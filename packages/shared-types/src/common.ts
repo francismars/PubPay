@@ -1,5 +1,5 @@
 // Common types used throughout the application
-import { LightningConfig } from './lightning';
+import { LightningConfig } from './lightning.js';
 
 export interface AppConfig {
   relays: string[];

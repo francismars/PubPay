@@ -58,4 +58,11 @@ function scureAliases() {
   };
 }
 
-module.exports = { scureAliases };
+/** Map NodeNext-style `.js` imports in TS sources to `.ts`/`.tsx` for webpack. */
+const extensionAlias = {
+  '.js': ['.ts', '.tsx', '.js'],
+  '.mjs': ['.mts', '.mjs'],
+  '.cjs': ['.cts', '.cjs']
+};
+
+module.exports = { scureAliases, extensionAlias };

@@ -1,7 +1,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
-const { scureAliases } = require('./scureAliases');
+const { scureAliases, extensionAlias } = require('./scureAliases');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -18,6 +18,7 @@ module.exports = {
   },
   resolve: {
     extensions: ['.tsx', '.ts', '.js', '.jsx'],
+    extensionAlias,
     alias: {
       ...scureAliases(),
       '@pubpay/shared-services': path.resolve(
