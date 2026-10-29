@@ -89,5 +89,8 @@
     ]
   },
   "packageManager": "pnpm@12.15.0",
-  "dependencies": {}
+  "dependencies": {},
+  "engines": {
+    "node": ">=24"
+  }
 }
