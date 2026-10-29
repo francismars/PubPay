@@ -6,7 +6,7 @@ interface Nip46LoginFormProps {
   isVisible: boolean;
   onBack: () => void;
   /** Called with hex pubkey after NIP-46 pairing succeeds */
-  // eslint-disable-next-line no-unused-vars -- callback type parameter name
+
   onComplete: (publicKey: string) => Promise<void>;
 }
 
@@ -34,8 +34,7 @@ export const Nip46LoginForm: React.FC<Nip46LoginFormProps> = ({
     return (
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         ua
-      ) ||
-      window.matchMedia('(pointer: coarse)').matches
+      ) || window.matchMedia('(pointer: coarse)').matches
     );
   };
 
@@ -61,9 +60,10 @@ export const Nip46LoginForm: React.FC<Nip46LoginFormProps> = ({
     const waitToken = waitTokenRef.current + 1;
     waitTokenRef.current = waitToken;
     try {
-      const { uri, clientSecretKey } = Nip46Service.createNostrConnectPairingRequest({
-        includeCallbackRedirects: Boolean(options?.openSignerApp)
-      });
+      const { uri, clientSecretKey } =
+        Nip46Service.createNostrConnectPairingRequest({
+          includeCallbackRedirects: Boolean(options?.openSignerApp)
+        });
       if (options?.showQr) {
         const dataUrl = await QRCode.toDataURL(uri, {
           width: 220,
@@ -97,9 +97,7 @@ export const Nip46LoginForm: React.FC<Nip46LoginFormProps> = ({
       if (waitToken !== waitTokenRef.current) {
         return;
       }
-      setError(
-        e instanceof Error ? e.message : 'Nostr Connect pairing failed'
-      );
+      setError(e instanceof Error ? e.message : 'Nostr Connect pairing failed');
     } finally {
       if (waitToken === waitTokenRef.current) {
         setWaiting(false);

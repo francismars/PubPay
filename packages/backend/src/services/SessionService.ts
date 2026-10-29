@@ -105,17 +105,17 @@ export class SessionService {
   getLNURLMapping(lnurlpId: string): LNURLMapping | undefined {
     this.logger.info(`🔍 Looking up LNURL-pay ID: "${lnurlpId}"`);
     this.logger.info(
-      `📋 Available mappings:`,
+      '📋 Available mappings:',
       Array.from(this.lnurlpMappings.keys())
     );
 
     const mapping = this.lnurlpMappings.get(lnurlpId);
     if (mapping) {
-      this.logger.info(`✅ Found mapping:`, mapping);
+      this.logger.info('✅ Found mapping:', mapping);
     } else {
       this.logger.warn(`❌ No mapping found for: "${lnurlpId}"`);
       this.logger.info(
-        `🔍 All mappings:`,
+        '🔍 All mappings:',
         Array.from(this.lnurlpMappings.entries())
       );
     }

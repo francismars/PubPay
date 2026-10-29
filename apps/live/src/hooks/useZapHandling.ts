@@ -575,7 +575,7 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
    */
   const updateProfile = useCallback(
     (profile: Kind0Event) => {
-      let profileData: any = {};
+      let profileData: any;
       try {
         profileData = JSON.parse(profile.content || '{}');
       } catch (error) {
@@ -710,8 +710,7 @@ export function useZapHandling(options: UseZapHandlingOptions = {}) {
         // when the profile subscription delivers kind 0.
         try {
           const profiles = (window as any).profiles as
-            | Record<string, Kind0Event>
-            | undefined;
+            Record<string, Kind0Event> | undefined;
           const kind0 = profiles?.[zapData.pubkey];
           if (kind0?.content) {
             const profileData = JSON.parse(kind0.content || '{}') as any;

@@ -280,7 +280,6 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
     );
     onChange(cleaned);
     // Only on mount — later edits go through updateStyle/applyPreset
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const presets: Record<string, Partial<StyleConfig>> = {
@@ -518,11 +517,11 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
                 ? 'Bitcoin Conf'
                 : name === 'bitcoinAmsterdam'
                   ? 'Bitcoin Amsterdam'
-                : name === 'lightMode'
-                  ? 'Light Mode'
-                  : name === 'darkMode'
-                    ? 'Dark Mode'
-                    : name.charAt(0).toUpperCase() + name.slice(1)}
+                  : name === 'lightMode'
+                    ? 'Light Mode'
+                    : name === 'darkMode'
+                      ? 'Dark Mode'
+                      : name.charAt(0).toUpperCase() + name.slice(1)}
             </button>
           ))}
         </div>
@@ -846,7 +845,10 @@ export const StyleEditor: React.FC<StyleEditorProps> = ({
             { key: 'sectionLabels' as const, label: 'Show Section Labels' },
             { key: 'qrOnly' as const, label: 'QR Only (Hide Everything Else)' },
             { key: 'contentSlideshow' as const, label: 'Slideshow' },
-            { key: 'contentMediaOnly' as const, label: 'Media Only (Hide Text)' }
+            {
+              key: 'contentMediaOnly' as const,
+              label: 'Media Only (Hide Text)'
+            }
           ].map(({ key, label }) => (
             <div key={key} className="style-option-group toggle-group">
               <label className="toggle-label">

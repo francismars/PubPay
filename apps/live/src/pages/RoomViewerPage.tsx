@@ -654,12 +654,10 @@ export const RoomViewerPage: React.FC = () => {
   };
   const nextSwitchIn = useMemo(
     () => formatCountdown(view?.nextSwitchAt),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [view?.nextSwitchAt, isSimulating, simTime, tick]
   );
   const nextSlotIn = useMemo(
     () => formatCountdown(view?.active?.slotEnd),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [view?.active?.slotEnd, isSimulating, simTime, tick]
   );
   const nextSwitchType: 'rotation' | 'slot' = useMemo(() => {
@@ -982,7 +980,7 @@ export const RoomViewerPage: React.FC = () => {
                     zIndex: 10,
                     padding: '8px',
                     borderRadius: '6px',
-                    border: `1px solid rgba(229, 231, 235, 0.5)`,
+                    border: '1px solid rgba(229, 231, 235, 0.5)',
                     background: 'rgba(255, 255, 255, 0.7)',
                     backdropFilter: 'blur(8px)',
                     cursor: 'pointer',
@@ -1109,7 +1107,7 @@ export const RoomViewerPage: React.FC = () => {
                     padding: 12,
                     background: 'rgba(255, 255, 255, 0.7)',
                     backdropFilter: 'blur(12px)',
-                    border: `1px solid rgba(229, 231, 235, 0.5)`,
+                    border: '1px solid rgba(229, 231, 235, 0.5)',
                     borderRadius: pubPayStyle.borderRadius,
                     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
                     maxWidth: '400px'
@@ -1129,7 +1127,7 @@ export const RoomViewerPage: React.FC = () => {
                     <strong>Current item:</strong>
                     {items.length > 1 && (
                       <span style={{ color: pubPayStyle.textSecondary }}>
-                        {actualIndex % items.length + 1} of {items.length}
+                        {(actualIndex % items.length) + 1} of {items.length}
                       </span>
                     )}
                     <div
@@ -1860,7 +1858,7 @@ export const RoomViewerPage: React.FC = () => {
                   <div
                     style={{
                       background: '#f0f7ff',
-                      border: `1px solid #bfdbfe`,
+                      border: '1px solid #bfdbfe',
                       borderRadius: pubPayStyle.borderRadius,
                       padding: '12px 16px'
                     }}

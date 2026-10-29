@@ -41,7 +41,7 @@ export class NostrService {
     comment: string
   ): Promise<ZapResult> {
     try {
-      this.logger.info(`⚡ Creating zap request:`, {
+      this.logger.info('⚡ Creating zap request:', {
         eventId,
         amount,
         comment,
@@ -53,7 +53,7 @@ export class NostrService {
       const privateKey = crypto.randomBytes(32);
       const publicKey = this.getPublicKeyFromPrivate(privateKey);
       this.logger.info('✅ Anonymous key pair generated:', {
-        publicKey: publicKey.substring(0, 16) + '...'
+        publicKey: `${publicKey.substring(0, 16)}...`
       });
 
       // Decode event ID if it's encoded (note1... or nevent1...)
@@ -66,7 +66,7 @@ export class NostrService {
         original: eventId,
         decoded: rawEventId,
         authorFromNevent: authorFromNevent
-          ? authorFromNevent.substring(0, 16) + '...'
+          ? `${authorFromNevent.substring(0, 16)}...`
           : 'none',
         relaysFromNevent:
           relaysFromNevent.length > 0 ? relaysFromNevent : 'none'
@@ -82,7 +82,7 @@ export class NostrService {
         throw new Error('Could not determine recipient public key');
       }
       this.logger.info('✅ Recipient public key found:', {
-        pubkey: recipientPubkey.substring(0, 16) + '...'
+        pubkey: `${recipientPubkey.substring(0, 16)}...`
       });
 
       // Get recipient's Lightning address from profile
@@ -93,7 +93,7 @@ export class NostrService {
       if (relaysFromNevent.length > 0) {
         this.logger.info('🔍 Trying nevent1 relays first for profile lookup', {
           neventRelays: relaysFromNevent,
-          pubkey: recipientPubkey.substring(0, 16) + '...'
+          pubkey: `${recipientPubkey.substring(0, 16)}...`
         });
         lightningAddress = await this.getLightningAddress(
           recipientPubkey,
@@ -134,8 +134,8 @@ export class NostrService {
         this.logger.error(
           '❌ No Lightning address found in recipient profile',
           {
-            pubkey: recipientPubkey.substring(0, 16) + '...',
-            relaysQueried: relaysQueried
+            pubkey: `${recipientPubkey.substring(0, 16)}...`,
+            relaysQueried
           }
         );
         throw new Error('Recipient has no Lightning address configured');
@@ -167,7 +167,7 @@ export class NostrService {
       const signedEvent = this.signEvent(zapRequest, privateKey);
       this.logger.info('✅ Zap request signed:', {
         eventId: signedEvent.id,
-        signature: signedEvent.sig.substring(0, 16) + '...'
+        signature: `${signedEvent.sig.substring(0, 16)}...`
       });
 
       // Send zap request to LNURL callback (NOT publish to relays)
@@ -178,7 +178,7 @@ export class NostrService {
         amount
       );
 
-      this.logger.info(`✅ Zap request sent successfully:`, {
+      this.logger.info('✅ Zap request sent successfully:', {
         amount,
         eventId: signedEvent.id,
         callbackUrl: lnurlCallback,
@@ -267,7 +267,7 @@ export class NostrService {
             .slice(0, 5);
           this.logger.info('📝 nevent1 decoded to:', {
             id: rawId,
-            author: author ? author.substring(0, 16) + '...' : 'none',
+            author: author ? `${author.substring(0, 16)}...` : 'none',
             relays: relays.length > 0 ? relays : 'none'
           });
           return { eventId: rawId, author, relays };
@@ -326,8 +326,8 @@ export class NostrService {
         ? `${recipientPubkey.substring(0, 16)}...`
         : 'UNDEFINED',
       eventId: eventId ? `${eventId.substring(0, 16)}...` : 'UNDEFINED',
-      amount: amount,
-      comment: comment,
+      amount,
+      comment,
       relays: this.relays ? this.relays.length : 'UNDEFINED'
     });
 
@@ -390,7 +390,7 @@ export class NostrService {
   ): Promise<string | null> {
     const relaysToUse = relays || this.relays;
     this.logger.info('🔍 Fetching profile from relays:', {
-      pubkey: pubkey.substring(0, 16) + '...',
+      pubkey: `${pubkey.substring(0, 16)}...`,
       relays: relaysToUse,
       relayCount: relaysToUse.length
     });
@@ -407,7 +407,7 @@ export class NostrService {
         // Use subscription with oneose to ensure we wait for relay responses
         const logger = this.logger; // Capture logger for use in callbacks
         this.logger.info('🔄 Starting subscription-based profile fetch', {
-          pubkey: pubkey.substring(0, 16) + '...',
+          pubkey: `${pubkey.substring(0, 16)}...`,
           relayCount: relaysToUse.length
         });
         const profilePromise = new Promise<any>((resolve, reject) => {
@@ -416,7 +416,7 @@ export class NostrService {
           const subscriptionStartTime = Date.now();
 
           logger.info('📡 Creating subscription to relays', {
-            pubkey: pubkey.substring(0, 16) + '...',
+            pubkey: `${pubkey.substring(0, 16)}...`,
             relayCount: relaysToUse.length,
             relayList: relaysToUse
           });
@@ -448,8 +448,8 @@ export class NostrService {
                   relayStatus[relayUrl].connected = true;
                 }
                 logger.info('📥 Profile event received', {
-                  pubkey: pubkey.substring(0, 16) + '...',
-                  eventPubkey: event?.pubkey?.substring(0, 16) + '...',
+                  pubkey: `${pubkey.substring(0, 16)}...`,
+                  eventPubkey: `${event?.pubkey?.substring(0, 16)}...`,
                   relay: relayUrl,
                   totalEvents: events.length + 1
                 });
@@ -467,12 +467,12 @@ export class NostrService {
               oneose() {
                 const timeSinceStart = Date.now() - subscriptionStartTime;
                 logger.info('✅ Profile subscription EOSE (end of stream)', {
-                  pubkey: pubkey.substring(0, 16) + '...',
+                  pubkey: `${pubkey.substring(0, 16)}...`,
                   eventsFound: events.length,
                   relaysQueried: relaysToUse.length,
                   timeSinceStart: `${timeSinceStart}ms`,
                   relayList: relaysToUse,
-                  relayStatus: relayStatus
+                  relayStatus
                 });
                 // End of stream - check if we got any events
                 // If EOSE came very quickly (< 100ms), wait longer as relays might still be connecting
@@ -504,10 +504,10 @@ export class NostrService {
               },
               onclose() {
                 logger.info('🔌 Profile subscription closed', {
-                  pubkey: pubkey.substring(0, 16) + '...',
+                  pubkey: `${pubkey.substring(0, 16)}...`,
                   eventsFound: events.length,
                   resolved,
-                  relayStatus: relayStatus
+                  relayStatus
                 });
                 // Only resolve if we haven't already and we have events
                 // Don't resolve with null on close - wait for oneose() instead
@@ -542,7 +542,7 @@ export class NostrService {
         this.logger.warn('⚠️ Profile fetch error:', {
           error: fetchError.message,
           errorStack: fetchError.stack,
-          pubkey: pubkey.substring(0, 16) + '...',
+          pubkey: `${pubkey.substring(0, 16)}...`,
           relays: relaysToUse
         });
       }
@@ -557,7 +557,7 @@ export class NostrService {
 
       if (!profile) {
         this.logger.warn('❌ Profile not found on relays via subscription', {
-          pubkey: pubkey.substring(0, 16) + '...',
+          pubkey: `${pubkey.substring(0, 16)}...`,
           relays: relaysToUse,
           duration: `${Date.now() - startTime}ms`
         });
@@ -565,7 +565,7 @@ export class NostrService {
         // Fallback: Try using pool.get() as a last resort
         // Sometimes pool.get() works when subscription doesn't
         this.logger.info('🔄 Attempting fallback: pool.get()', {
-          pubkey: pubkey.substring(0, 16) + '...'
+          pubkey: `${pubkey.substring(0, 16)}...`
         });
         try {
           const fallbackProfile = await this.pool.get(relaysToUse, {
@@ -574,7 +574,7 @@ export class NostrService {
           });
           if (fallbackProfile) {
             this.logger.info('✅ Profile found via fallback pool.get()', {
-              pubkey: pubkey.substring(0, 16) + '...'
+              pubkey: `${pubkey.substring(0, 16)}...`
             });
             // Update profile variable so it gets processed below
             profile = fallbackProfile as any;
@@ -598,14 +598,14 @@ export class NostrService {
 
       if (!profile.content) {
         this.logger.warn('❌ Profile has no content', {
-          pubkey: pubkey.substring(0, 16) + '...',
+          pubkey: `${pubkey.substring(0, 16)}...`,
           profileId: profile.id
         });
         return null;
       }
 
       this.logger.info('✅ Profile found, parsing content...', {
-        pubkey: pubkey.substring(0, 16) + '...',
+        pubkey: `${pubkey.substring(0, 16)}...`,
         contentLength: profile.content.length
       });
 
@@ -631,7 +631,7 @@ export class NostrService {
         });
       } else {
         this.logger.warn('❌ No Lightning address (lud16/lud06) in profile', {
-          pubkey: pubkey.substring(0, 16) + '...',
+          pubkey: `${pubkey.substring(0, 16)}...`,
           profileKeys: Object.keys(profileData)
         });
       }
@@ -641,7 +641,7 @@ export class NostrService {
       this.logger.error('❌ Error getting Lightning address:', {
         error: error instanceof Error ? error.message : String(error),
         errorStack: error instanceof Error ? error.stack : undefined,
-        pubkey: pubkey.substring(0, 16) + '...',
+        pubkey: `${pubkey.substring(0, 16)}...`,
         relays: relaysToUse
       });
       return null;
@@ -755,8 +755,8 @@ export class NostrService {
     }
 
     this.logger.info('✅ Received Lightning invoice from LNURL callback:', {
-      invoice: responseData.pr.substring(0, 50) + '...',
-      amount: amount
+      invoice: `${responseData.pr.substring(0, 50)}...`,
+      amount
     });
 
     this.logger.info('💳 Paying Lightning invoice using LNBits...');
@@ -798,7 +798,7 @@ export class NostrService {
     };
     this.logger.info('✅ Lightning invoice paid successfully!', {
       paymentId: paymentData.payment_hash,
-      amount: amount,
+      amount,
       status: paymentData.status
     });
 
@@ -808,7 +808,7 @@ export class NostrService {
 
     return {
       invoice: responseData.pr,
-      paymentData: paymentData,
+      paymentData,
       success: true
     };
   }
@@ -822,7 +822,7 @@ export class NostrService {
 
     this.logger.info('🔑 Generated public key:', {
       privateKeyLength: privateKey.length,
-      publicKey: publicKey.substring(0, 16) + '...'
+      publicKey: `${publicKey.substring(0, 16)}...`
     });
 
     return publicKey;

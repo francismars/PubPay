@@ -47,7 +47,6 @@ export const useProfileActivityLoader = (
           while (hasMore) {
             // Check if aborted before each batch
             if (isAborted) {
-              hasMore = false;
               break;
             }
 
@@ -57,7 +56,6 @@ export const useProfileActivityLoader = (
             if (batchCount > 1) {
               await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay between batches
               if (isAborted) {
-                hasMore = false;
                 break;
               }
             }

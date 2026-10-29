@@ -4,10 +4,7 @@ import { Nip05Service } from '../services/Nip05Service.js';
 import { Nip05PaymentService } from '../services/Nip05PaymentService.js';
 import { Logger } from '../utils/logger.js';
 import { routeParam } from '../utils/requestParams.js';
-import {
-  isValidPaymentId,
-  verifyWebhookSecret
-} from '../utils/webhookAuth.js';
+import { isValidPaymentId, verifyWebhookSecret } from '../utils/webhookAuth.js';
 
 // Store pending invoices: checking_id -> {name, pubkey, suffix}
 interface PendingInvoice {
@@ -96,7 +93,7 @@ export class Nip05Router {
         });
 
         // Send initial hello
-        res.write(`event: hello\n`);
+        res.write('event: hello\n');
         res.write(`data: ${JSON.stringify({ success: true, checkingId })}\n\n`);
       }
     );
@@ -362,8 +359,9 @@ export class Nip05Router {
           });
         }
 
-        const confirmed =
-          await this.paymentService.confirmPaidInvoice(String(checkingId));
+        const confirmed = await this.paymentService.confirmPaidInvoice(
+          String(checkingId)
+        );
         if (!confirmed) {
           return res.status(400).json({
             success: false,

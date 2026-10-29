@@ -138,7 +138,7 @@ export const useJukeboxFunctionality = () => {
     }
 
     // Check for note parameter in URL and decode nevent to note if present
-    let urlToParse = location.search;
+    const urlToParse = location.search;
     const params = new URLSearchParams(urlToParse);
     let nevent = params.get('note');
 
@@ -151,8 +151,7 @@ export const useJukeboxFunctionality = () => {
           const note = NostrTools.nip19.noteEncode(decoded.data.id);
           const currentParams = new URLSearchParams(window.location.search);
           currentParams.set('note', note);
-          const newUrl =
-            window.location.pathname + '?' + currentParams.toString();
+          const newUrl = `${window.location.pathname}?${currentParams.toString()}`;
           window.history.replaceState({}, '', newUrl);
           nevent = note;
         }
@@ -299,8 +298,9 @@ export const useJukeboxFunctionality = () => {
     } catch (error) {
       console.error('Error loading note:', error);
       setError(
-        'Error loading note: ' +
-          (error instanceof Error ? error.message : 'Unknown error')
+        `Error loading note: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
       );
       setIsLoading(false);
       currentNoteIdRef.current = null;
@@ -382,7 +382,7 @@ export const useJukeboxFunctionality = () => {
               const picture = profile.picture || '/images/gradient_color.gif';
               profileCacheRef.current.set(authorPubkey, {
                 name: displayName,
-                picture: picture
+                picture
               });
             } catch (error) {
               console.error('Error parsing profile for cache:', error);
@@ -575,9 +575,9 @@ export const useJukeboxFunctionality = () => {
 
       console.log('Processing zap event:', {
         eventPubkey: event.pubkey,
-        zapperPubkey: zapperPubkey,
-        zapData: zapData,
-        amount: amount
+        zapperPubkey,
+        zapData,
+        amount
       });
 
       // Get zapper profile info
@@ -598,7 +598,7 @@ export const useJukeboxFunctionality = () => {
 
           // Use cached profile info and process the zap
           const zapInfo: any = {
-            amount: amount,
+            amount,
             kind9735content: zapData.content || '',
             kind1Name: cachedName,
             picture: cachedPicture,
@@ -629,7 +629,7 @@ export const useJukeboxFunctionality = () => {
           );
           // Process zap with default info
           const zapInfo: any = {
-            amount: amount,
+            amount,
             kind9735content: zapData.content || '',
             kind1Name: 'Unknown',
             picture: '/images/gradient_color.gif',
@@ -684,7 +684,7 @@ export const useJukeboxFunctionality = () => {
 
               // Add zap to the list
               const zapInfo: any = {
-                amount: amount,
+                amount,
                 kind9735content: zapData.content || '',
                 kind1Name: zapperName,
                 picture: zapperPicture,
@@ -739,7 +739,7 @@ export const useJukeboxFunctionality = () => {
             activeSubscriptionsRef.current.delete(zapData.pubkey);
 
             const zapInfo: any = {
-              amount: amount,
+              amount,
               kind9735content: zapData.content || '',
               kind1Name: zapperName,
               picture: zapperPicture,
@@ -771,7 +771,7 @@ export const useJukeboxFunctionality = () => {
       } catch (e) {
         console.error('Error processing profile:', e);
         const zapInfo: any = {
-          amount: amount,
+          amount,
           kind9735content: zapData.content || '',
           kind1Name: zapperName,
           picture: zapperPicture,
@@ -814,7 +814,7 @@ export const useJukeboxFunctionality = () => {
 
     // Look for YouTube URLs (including those with additional parameters)
     const youtubeUrlRegex =
-      /(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([\w\-]+)(?:[&\w=]*)|https?:\/\/youtu\.be\/([\w\-]+)(?:\?[&\w=]*)?)/gi;
+      /(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([\w-]+)(?:[&\w=]*)|https?:\/\/youtu\.be\/([\w-]+)(?:\?[&\w=]*)?)/gi;
     const urlMatch = youtubeUrlRegex.exec(zapContent);
 
     if (urlMatch) {
@@ -822,7 +822,7 @@ export const useJukeboxFunctionality = () => {
       console.log(`extractYouTubeInfo: Found YouTube URL, videoId: ${videoId}`);
       return {
         type: 'youtube',
-        videoId: videoId,
+        videoId,
         searchTerm: null,
         originalContent: zapContent
       };
@@ -837,7 +837,7 @@ export const useJukeboxFunctionality = () => {
       console.log(`extractYouTubeInfo: Found YouTube video ID: ${videoId}`);
       return {
         type: 'youtube',
-        videoId: videoId,
+        videoId,
         searchTerm: null,
         originalContent: zapContent
       };
@@ -869,8 +869,8 @@ export const useJukeboxFunctionality = () => {
         searchUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(cleanContent)}`
       };
     } else {
-      console.log(`extractYouTubeInfo: Content validation failed:`, {
-        cleanContent: cleanContent,
+      console.log('extractYouTubeInfo: Content validation failed:', {
+        cleanContent,
         length: cleanContent ? cleanContent.length : 0,
         startsWithHttp: cleanContent ? cleanContent.startsWith('http') : false,
         isJustWhitespace: cleanContent ? /^\s*$/.test(cleanContent) : true,
@@ -893,7 +893,7 @@ export const useJukeboxFunctionality = () => {
 
     const queueItem = {
       ...zapData,
-      songInfo: songInfo,
+      songInfo,
       timestamp: zapData.timestamp || Date.now(),
       queueId: Date.now() + Math.random() // Unique ID for queue management
     };
@@ -906,7 +906,7 @@ export const useJukeboxFunctionality = () => {
     console.log(
       `Added YouTube song to queue. Queue length: ${songQueueRef.current.length}, isPlaying: ${isPlayingRef.current}, currentlyPlaying: ${currentlyPlayingRef.current ? 'yes' : 'no'}`
     );
-    console.log(`Song info:`, songInfo);
+    console.log('Song info:', songInfo);
 
     // Always try to start playback if we have songs and nothing is currently playing
     if (!currentlyPlayingRef.current) {
@@ -937,7 +937,7 @@ export const useJukeboxFunctionality = () => {
 
     const queueItem = {
       ...zapData,
-      songInfo: songInfo,
+      songInfo,
       timestamp: zapData.timestamp || Date.now(),
       queueId: Date.now() + Math.random() // Unique ID for queue management
     };
@@ -950,8 +950,8 @@ export const useJukeboxFunctionality = () => {
     console.log(
       `Silently added YouTube song to queue. Queue length: ${songQueueRef.current.length}`
     );
-    console.log(`Song info:`, songInfo);
-    console.log(`Full songQueue after adding:`, songQueueRef.current);
+    console.log('Song info:', songInfo);
+    console.log('Full songQueue after adding:', songQueueRef.current);
 
     // Check if this is the first song added and we should start playback
     if (songQueueRef.current.length === 1) {
@@ -1423,7 +1423,7 @@ export const useJukeboxFunctionality = () => {
     // Try cueVideoById first (better autoplay support)
     try {
       youtubePlayerRef.current.cueVideoById({
-        videoId: videoId,
+        videoId,
         startSeconds: 0,
         suggestedQuality: 'medium'
       });
@@ -1524,14 +1524,14 @@ export const useJukeboxFunctionality = () => {
         await addToQueue(zapData); // Use regular addToQueue instead of silent version
         currentTopZapRef.current = topZap;
 
-        console.log(`Top zap processed successfully`);
+        console.log('Top zap processed successfully');
 
         // No need to manually start playback - addToQueue handles this automatically
         console.log('Playback should start automatically via addToQueue');
       } else {
         console.log('No valid YouTube content found in top zap, skipping:', {
           content: topZap.content,
-          youtubeInfo: youtubeInfo
+          youtubeInfo
         });
       }
     } catch (error) {

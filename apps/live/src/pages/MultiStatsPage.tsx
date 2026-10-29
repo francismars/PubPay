@@ -664,12 +664,12 @@ export const MultiStatsPage: React.FC = () => {
     profile: Kind0Event | null,
     pubkey: string
   ): string => {
-    if (!profile) return pubkey.substring(0, 16) + '...';
+    if (!profile) return `${pubkey.substring(0, 16)}...`;
     try {
       const data = JSON.parse(profile.content || '{}');
-      return data.display_name || data.name || pubkey.substring(0, 16) + '...';
+      return data.display_name || data.name || `${pubkey.substring(0, 16)}...`;
     } catch {
-      return pubkey.substring(0, 16) + '...';
+      return `${pubkey.substring(0, 16)}...`;
     }
   };
 

@@ -237,15 +237,10 @@ export class EventManager {
   /**
    * Extract zap amount from bolt11 invoice
    */
-  private extractZapAmount(bolt11: string): number {
-    try {
-      // This would need proper bolt11 parsing
-      // For now, return a default amount
-      return 100; // Default zap amount
-    } catch (error) {
-      console.error('Error extracting zap amount:', error);
-      return 0;
-    }
+  private extractZapAmount(_bolt11: string): number {
+    // This would need proper bolt11 parsing
+    // For now, return a default amount
+    return 100; // Default zap amount
   }
 
   /**

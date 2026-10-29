@@ -8,7 +8,6 @@ import { useZapLoader } from './useZapLoader';
 import { usePostValidator } from './usePostValidator';
 import { usePostFetcher } from './usePostFetcher';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Parameter names in function types are for documentation
 interface UseFeedLoaderOptions {
   // Store actions (direct store actions, not React setters)
   setPosts: (posts: PubPayPost[]) => void;

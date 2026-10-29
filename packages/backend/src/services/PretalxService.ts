@@ -100,8 +100,7 @@ export class PretalxService {
         items.forEach(x => results.push(x));
       }
       const next = (page as Record<string, unknown>)['next'] as
-        | string
-        | undefined;
+        string | undefined;
       if (next) {
         // Only follow next if it stays on the configured host
         if (!next.startsWith(base) && !next.startsWith('/')) {
@@ -356,7 +355,7 @@ export class PretalxService {
     Array<{ startAt: string; endAt: string; items: Array<{ ref: string }> }>
   > {
     // Prefer schedule expanded endpoint when using shortcuts like 'latest' or 'wip'
-    let records: PretalxScheduleSlot[] = [];
+    let records: PretalxScheduleSlot[];
     if (version === 'latest' || version === 'wip') {
       try {
         const schedule = await this.fetchScheduleExpanded(version);
@@ -521,7 +520,7 @@ export class PretalxService {
       code?: string;
     }>
   > {
-    let records: PretalxScheduleSlot[] = [];
+    let records: PretalxScheduleSlot[];
     if (version === 'latest' || version === 'wip') {
       try {
         const schedule = await this.fetchScheduleExpanded(version);

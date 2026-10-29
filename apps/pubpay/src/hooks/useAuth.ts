@@ -85,7 +85,7 @@ export const useAuth = ({
       const { publicKey, encryptedPrivateKey, method } =
         AuthService.getStoredAuthData();
 
-      let privateKey: string | null = null;
+      let privateKey: string | null;
       let requiresPassword = false;
 
       // Decrypt private key if available (AuthService handles in-memory cache internally)

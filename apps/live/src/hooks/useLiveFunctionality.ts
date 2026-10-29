@@ -1068,7 +1068,10 @@ export const useLiveFunctionality = (eventId?: string) => {
             querySelector('.note-content'),
             'Loading profile...'
           );
-          showElementLoadingState(getElementById('zaps'), 'Loading profile activity...');
+          showElementLoadingState(
+            getElementById('zaps'),
+            'Loading profile activity...'
+          );
 
           if (subscribeChatAuthorProfile) {
             subscribeChatAuthorProfile(pubkey);
@@ -1084,9 +1087,12 @@ export const useLiveFunctionality = (eventId?: string) => {
         // Try immediately first (in case DOM is already ready)
         const noteContentImmediate = querySelector('.note-content');
         const zapsListImmediate = getElementById('zaps');
-        
+
         if (noteContentImmediate) {
-          showElementLoadingState(noteContentImmediate, 'Loading note content...');
+          showElementLoadingState(
+            noteContentImmediate,
+            'Loading note content...'
+          );
         }
         if (zapsListImmediate) {
           showElementLoadingState(zapsListImmediate, 'Loading zaps...');
@@ -1184,7 +1190,6 @@ export const useLiveFunctionality = (eventId?: string) => {
   // subscribeKind9735fromKind1 is now provided by useNostrSubscriptions hook
   // subscribeKind9735fromKind1 is now provided by useNostrSubscriptions hook
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   // subscribeKind0fromKinds9735 is now provided by useNostrSubscriptions hook
 
   const createkinds9735JSON = async (
@@ -1341,7 +1346,6 @@ export const useLiveFunctionality = (eventId?: string) => {
       if (zap.timestamp || zap.created_at) {
         const timestamp = zap.timestamp || zap.created_at;
         zapDiv.setAttribute('data-timestamp', timestamp.toString());
-      } else {
       }
 
       if (!zap.picture) zap.picture = '';
@@ -1451,13 +1455,18 @@ export const useLiveFunctionality = (eventId?: string) => {
     }
 
     const pubkey9735 = extractZapPayerPubkey(kind9735);
-    const profiles = (window as any).profiles as Record<string, Kind0Event> | undefined;
+    const profiles = (window as any).profiles as
+      Record<string, Kind0Event> | undefined;
     const profileMap = new Map<string, Kind0Event>();
     if (profiles && pubkey9735 && profiles[pubkey9735]) {
       profileMap.set(pubkey9735, profiles[pubkey9735]);
     }
 
-    const processed = processZap(kind9735, profileMap, NOTE_ZAP_GENERIC_USER_ICON);
+    const processed = processZap(
+      kind9735,
+      profileMap,
+      NOTE_ZAP_GENERIC_USER_ICON
+    );
 
     const kind1from9735 =
       kind9735.tags.find((tag: string[]) => tag[0] === 'e')?.[1] || '';
@@ -1465,11 +1474,13 @@ export const useLiveFunctionality = (eventId?: string) => {
 
     let kind0Profile: Record<string, unknown> | null = null;
     try {
-      if (processed.zapPayerPubkey && profiles?.[processed.zapPayerPubkey]?.content) {
-        kind0Profile = JSON.parse(profiles[processed.zapPayerPubkey].content || '{}') as Record<
-          string,
-          unknown
-        >;
+      if (
+        processed.zapPayerPubkey &&
+        profiles?.[processed.zapPayerPubkey]?.content
+      ) {
+        kind0Profile = JSON.parse(
+          profiles[processed.zapPayerPubkey].content || '{}'
+        ) as Record<string, unknown>;
       }
     } catch {
       kind0Profile = null;
@@ -1523,9 +1534,12 @@ export const useLiveFunctionality = (eventId?: string) => {
   function refreshNoteZapListRowsForPubkey(profile: Kind0Event) {
     if (!profile?.pubkey) return;
 
-    let profileData: Record<string, unknown> = {};
+    let profileData: Record<string, unknown>;
     try {
-      profileData = JSON.parse(profile.content || '{}') as Record<string, unknown>;
+      profileData = JSON.parse(profile.content || '{}') as Record<
+        string,
+        unknown
+      >;
     } catch {
       profileData = {};
     }
@@ -1965,12 +1979,7 @@ export const useLiveFunctionality = (eventId?: string) => {
         error instanceof Error ? error.message : 'Invalid note ID'
       );
     }
-  }, [
-    hideNoteLoaderError,
-    navigate,
-    resetZapList,
-    showNoteLoaderError
-  ]);
+  }, [hideNoteLoaderError, navigate, resetZapList, showNoteLoaderError]);
 
   // Setup note loader event listeners
   const setupNoteLoaderListeners = (retryCount = 0) => {
@@ -1988,8 +1997,6 @@ export const useLiveFunctionality = (eventId?: string) => {
     if (!inputField) {
       // Only retry up to 50 times (5 seconds) and only log warning every 10 retries
       if (retryCount < 50) {
-        if (retryCount % 10 === 0) {
-        }
         setTimeout(() => setupNoteLoaderListeners(retryCount + 1), 100);
         return;
       } else {
@@ -2920,7 +2927,7 @@ export const useLiveFunctionality = (eventId?: string) => {
   const setupToggleTracker = new Set<string>();
 
   // Flag to prevent Lightning calls during preset application
-  let isApplyingPreset = false;
+  const isApplyingPreset = false;
 
   // Fiat conversion is now handled by useFiatConversion hook
 
@@ -3139,7 +3146,9 @@ export const useLiveFunctionality = (eventId?: string) => {
       }
 
       applyQrAttention(
-        params.has('qrAttention') ? params.get('qrAttention') : styles.qrAttention
+        params.has('qrAttention')
+          ? params.get('qrAttention')
+          : styles.qrAttention
       );
 
       if (styles.selectedCurrency) {

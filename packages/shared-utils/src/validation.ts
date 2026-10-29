@@ -69,7 +69,7 @@ export const isValidYouTubeId = (id: string): boolean => {
 };
 
 export const sanitizeString = (str: string): string => {
-  return str.replace(/[<>\"'&]/g, match => {
+  return str.replace(/[<>"'&]/g, match => {
     const escapeMap: Record<string, string> = {
       '<': '&lt;',
       '>': '&gt;',

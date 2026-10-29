@@ -1,10 +1,7 @@
 // AuthService - Handles authentication methods
 import { nip19, getPublicKey } from 'nostr-tools';
 import { Nip46Service } from './Nip46Service';
-import {
-  encryptWithDeviceKey,
-  decryptWithDeviceKey
-} from './DeviceKeyCrypto';
+import { encryptWithDeviceKey, decryptWithDeviceKey } from './DeviceKeyCrypto';
 
 /**
  * PBKDF2 iteration count for password-protected private keys (OWASP 2023
@@ -177,7 +174,9 @@ export class AuthService {
         // If the attempt is stale (e.g. user never left the page), don't prompt
         // for clipboard; clear state and let the UI reset.
         const initiatedAt =
-          typeof signInData.initiatedAt === 'number' ? signInData.initiatedAt : 0;
+          typeof signInData.initiatedAt === 'number'
+            ? signInData.initiatedAt
+            : 0;
         if (
           initiatedAt > 0 &&
           Date.now() - initiatedAt > this.EXTERNAL_SIGNER_MAX_AGE_MS
@@ -611,7 +610,10 @@ export class AuthService {
               localStorage.setItem('privateKey', JSON.stringify(upgraded));
               sessionStorage.removeItem('privateKey');
             } catch (upgradeError) {
-              console.warn('Failed to upgrade key KDF iterations:', upgradeError);
+              console.warn(
+                'Failed to upgrade key KDF iterations:',
+                upgradeError
+              );
             }
           }
         }

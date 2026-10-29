@@ -40,7 +40,7 @@ const getScaleFactor = (rank?: number): number => {
 
 const truncateText = (text: string, maxLength: number = 16): string => {
   if (text.length <= maxLength) return text;
-  return text.substring(0, maxLength) + '...';
+  return `${text.substring(0, maxLength)}...`;
 };
 
 const getNotificationDuration = (rank?: number): number => {
@@ -183,7 +183,7 @@ export const ZapNotificationOverlay: React.FC<ZapNotificationOverlayProps> = ({
           selectedCurrency
         );
         // Extract just the number part (remove the HTML span)
-        const fiatMatch = fiatHtml.match(/^([\d,\.]+)/);
+        const fiatMatch = fiatHtml.match(/^([\d,.]+)/);
         if (fiatMatch) {
           return {
             displayAmount: fiatMatch[1],

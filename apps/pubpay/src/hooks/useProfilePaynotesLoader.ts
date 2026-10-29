@@ -721,7 +721,7 @@ export const useProfilePaynotesLoader = (
           uniqueEventsMap.set(event.id, event);
         }
       });
-      let deduplicatedEvents = Array.from(uniqueEventsMap.values());
+      const deduplicatedEvents = Array.from(uniqueEventsMap.values());
       deduplicatedEvents.sort(
         (a, b) => (b.created_at || 0) - (a.created_at || 0)
       );

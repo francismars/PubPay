@@ -52,7 +52,8 @@ export default [
       '@typescript-eslint': typescript
     },
     rules: {
-      // TypeScript specific rules
+      // Base no-unused-vars false-positives on TS (imports/types); use the TS rule.
+      'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
@@ -71,6 +72,8 @@ export default [
       'no-var': 'error',
       'object-shorthand': 'error',
       'prefer-template': 'error',
+      'no-empty': ['error', { allowEmptyCatch: true }],
+      'preserve-caught-error': 'off',
 
       // Code style (use Prettier for formatting; disable core indent which is unstable in TSX)
       indent: 'off',
@@ -92,6 +95,6 @@ export default [
 
   // Ignore patterns
   {
-    ignores: ['dist/', 'node_modules/', 'archive/', '*.js', 'eslint.config.js']
+    ignores: ['**/dist/**', '**/node_modules/**', 'archive/', '*.js', 'eslint.config.js']
   }
 ];

@@ -812,7 +812,7 @@ export const SendPaymentModal: React.FC<SendPaymentModalProps> = ({
       }
 
       // Extract lud16 from profile
-      let lud16: string | null = null;
+      let lud16: string | null;
       try {
         const profileContent =
           typeof detectedNostrProfile?.content === 'string'

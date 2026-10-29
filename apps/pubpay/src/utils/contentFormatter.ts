@@ -20,10 +20,21 @@ import {
  */
 export function sanitizeHTML(html: string): string {
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['a', 'br', 'div', 'p', 'span', 'strong', 'em', 'u', 'b', 'i'],
+    ALLOWED_TAGS: [
+      'a',
+      'br',
+      'div',
+      'p',
+      'span',
+      'strong',
+      'em',
+      'u',
+      'b',
+      'i'
+    ],
     ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
     ALLOWED_URI_REGEXP:
-      /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+      /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false,
     FORBID_TAGS: ['iframe', 'style', 'script', 'object', 'embed', 'form'],
@@ -145,7 +156,7 @@ export async function formatContent(
     processedRanges.push({
       start: offset,
       end: offset + match.length,
-      replacement: replacement
+      replacement
     });
   }
 
@@ -165,7 +176,7 @@ export async function formatContent(
     processedRanges.push({
       start: offset,
       end: offset + match.length,
-      replacement: replacement
+      replacement
     });
   }
 
@@ -185,7 +196,7 @@ export async function formatContent(
     processedRanges.push({
       start: offset,
       end: offset + match.length,
-      replacement: replacement
+      replacement
     });
   }
 
@@ -205,7 +216,7 @@ export async function formatContent(
     const replacements = await Promise.all(
       hexMatches.map(async match => {
         // Skip if this looks like a URL or other hex string that's not a pubkey
-        if (content.includes(`http`) || content.includes(`0x${match}`)) {
+        if (content.includes('http') || content.includes(`0x${match}`)) {
           return { match, replacement: match };
         }
 
@@ -225,7 +236,7 @@ export async function formatContent(
 
   // Handle image URLs with extensions - VALIDATE BEFORE INSERTING
   content = content.replace(
-    /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(gif|png|jpg|jpeg|webp)/gi,
+    /(https?:\/\/[\w\-.~:/?#[\]@!$&'()*+,;=%]+)\.(gif|png|jpg|jpeg|webp)/gi,
     match => {
       const validatedUrl = sanitizeImageUrl(match);
       if (!validatedUrl) return match; // Return original if invalid
@@ -238,7 +249,7 @@ export async function formatContent(
 
   // Handle video URLs - VALIDATE BEFORE INSERTING
   content = content.replace(
-    /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)\.(mp4|webm|ogg|mov)/gi,
+    /(https?:\/\/[\w\-.~:/?#[\]@!$&'()*+,;=%]+)\.(mp4|webm|ogg|mov)/gi,
     match => {
       const validatedUrl = sanitizeImageUrl(match); // Use same function, validates http/https
       if (!validatedUrl) return match;
@@ -251,12 +262,12 @@ export async function formatContent(
 
   // Handle YouTube URLs - ADD SECURITY ATTRIBUTES
   content = content.replace(
-    /(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([\w\-]+)|https?:\/\/youtu\.be\/([\w\-]+))/gi,
+    /(https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([\w-]+)|https?:\/\/youtu\.be\/([\w-]+))/gi,
     (match, p1, p2) => {
       const videoId = p2 || p1;
 
       // Validate video ID (alphanumeric, hyphens, underscores only)
-      if (!/^[\w\-]+$/.test(videoId)) {
+      if (!/^[\w-]+$/.test(videoId)) {
         return match; // Return original if invalid
       }
 
@@ -268,13 +279,13 @@ export async function formatContent(
 
   // Handle regular URLs (but skip if already processed as images/videos or npubs)
   content = content.replace(
-    /(https?:\/\/[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+|www\.[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]+)/gi,
+    /(https?:\/\/[\w\-.~:/?#[\]@!$&'()*+,;=%]+|www\.[\w\-.~:/?#[\]@!$&'()*+,;=%]+)/gi,
     match => {
       // Skip if already processed as image, video, npub, or Blossom
       if (
         match.startsWith('PPTRUSTED') ||
         content.includes(`src="${match}"`) ||
-        content.includes(`href="/profile/`) ||
+        content.includes('href="/profile/') ||
         match.includes('blossom.')
       ) {
         return match;

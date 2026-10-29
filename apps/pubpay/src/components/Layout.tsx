@@ -45,8 +45,12 @@ export const Layout: React.FC = () => {
   const { showLoggedInForm } = useModalState();
 
   // Use composite hooks for grouped state
-  const { extensionAvailable, externalSignerAvailable, externalSignerLoading, externalSignerAwaitingPaste } =
-    useExtensionAvailability();
+  const {
+    extensionAvailable,
+    externalSignerAvailable,
+    externalSignerLoading,
+    externalSignerAwaitingPaste
+  } = useExtensionAvailability();
 
   const {
     showNip46Group,
@@ -337,11 +341,7 @@ export const Layout: React.FC = () => {
                 setExternalSignerAwaitingPaste(false);
                 useUIStore
                   .getState()
-                  .openToast(
-                    'Could not open signer app.',
-                    'error',
-                    true
-                  );
+                  .openToast('Could not open signer app.', 'error', true);
               }
             }
           } catch {
@@ -442,10 +442,7 @@ export const Layout: React.FC = () => {
       }
     };
     void resumeNip46FromCallback();
-  }, [
-    authState.isLoggedIn,
-    handleCompleteNip46LoginWrapper
-  ]);
+  }, [authState.isLoggedIn, handleCompleteNip46LoginWrapper]);
 
   // Handler functions for FeedsPage
   const handleSharePost = async (post: PubPayPost) => {
@@ -544,7 +541,11 @@ export const Layout: React.FC = () => {
     setExtensionAvailable(true);
     setExternalSignerAvailable(true);
     setExternalSignerLoading(false);
-  }, [setExtensionAvailable, setExternalSignerAvailable, setExternalSignerLoading]);
+  }, [
+    setExtensionAvailable,
+    setExternalSignerAvailable,
+    setExternalSignerLoading
+  ]);
 
   // Initialize dark mode on mount
   useEffect(() => {

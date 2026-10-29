@@ -69,7 +69,7 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
       // An empty feed must not use Date.now(). That clock moves on every check,
       // and the old early return never stored lastSubscriptionSinceRef, so the
       // "> 5 seconds" guard failed and this logged on every store update.
-      let newestTimestamp = 0;
+      let newestTimestamp: number;
       if (currentPosts.length > 0) {
         newestTimestamp = Math.max(...currentPosts.map(post => post.createdAt));
       } else {
@@ -331,7 +331,7 @@ export const usePostSubscription = (options: UsePostSubscriptionOptions) => {
           : storeState.posts;
 
       // Calculate newest timestamp from actual posts
-      let currentTimestamp = 0;
+      let currentTimestamp: number;
       if (currentPosts.length > 0) {
         currentTimestamp = Math.max(
           ...currentPosts.map(post => post.createdAt)

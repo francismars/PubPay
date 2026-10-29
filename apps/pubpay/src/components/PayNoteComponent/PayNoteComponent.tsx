@@ -143,7 +143,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         processedRanges.push({
           start: offset,
           end: offset + match.length,
-          replacement: replacement
+          replacement
         });
       }
 
@@ -166,7 +166,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         processedRanges.push({
           start: offset,
           end: offset + match.length,
-          replacement: replacement
+          replacement
         });
       }
 
@@ -189,7 +189,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
         processedRanges.push({
           start: offset,
           end: offset + match.length,
-          replacement: replacement
+          replacement
         });
       }
 
@@ -491,8 +491,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
       if (amount > 0) {
         try {
           setIsPaying(true);
-          const hasNwc =
-            getActiveNWCUri();
+          const hasNwc = getActiveNWCUri();
           if (hasNwc) {
             useUIStore
               .getState()
@@ -571,8 +570,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
 
       try {
         setIsPaying(true);
-        const hasNwc =
-          getActiveNWCUri();
+        const hasNwc = getActiveNWCUri();
 
         if (isAnonymousModal) {
           // Handle anonymous payment
@@ -1374,8 +1372,7 @@ export const PayNoteComponent: React.FC<PayNoteComponentProps> = React.memo(
                   }
                   try {
                     setIsPaying(true);
-                    const hasNwc =
-                      getActiveNWCUri();
+                    const hasNwc = getActiveNWCUri();
                     if (hasNwc) {
                       useUIStore
                         .getState()

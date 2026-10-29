@@ -294,7 +294,7 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
       ) as HTMLImageElement;
 
       if (partnerLogoSelect && partnerLogoImg) {
-        let currentPartnerLogo = '';
+        let currentPartnerLogo: string;
         if (partnerLogoSelect.value === 'custom' && partnerLogoUrl) {
           currentPartnerLogo = partnerLogoUrl.value;
         } else {
@@ -838,7 +838,9 @@ export function useStyleManagement(options: UseStyleManagementOptions = {}) {
         ) as HTMLSelectElement;
         if (qrAttentionSelect) {
           qrAttentionSelect.value = presetData.qrAttention || '';
-          qrAttentionSelect.dispatchEvent(new Event('change', { bubbles: true }));
+          qrAttentionSelect.dispatchEvent(
+            new Event('change', { bubbles: true })
+          );
         }
 
         // Apply all styles

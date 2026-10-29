@@ -29,7 +29,7 @@ export const GenericQR: React.FC<GenericQRProps> = ({
 
     // Render QR using qrcode npm package
     QRCode.toCanvas(canvas, data, {
-      width: width,
+      width,
       margin: 2
     }).catch((error: Error) => {
       console.error('Error generating QR code:', error);

@@ -66,28 +66,24 @@ export const ProfileHeaderSkeleton: React.FC<ProfileHeaderSkeletonProps> = ({
 
           {/* Profile Details */}
           <div className="profileDetails">
-            {(isOwnProfile || true) && (
-              <div className="profileDetailItem">
-                <label>Lightning Address</label>
-                <div className="profileDetailValue">
-                  <div
-                    className="skeleton skeleton-text"
-                    style={{ width: '180px', height: '20px' }}
-                  ></div>
-                </div>
+            <div className="profileDetailItem">
+              <label>Lightning Address</label>
+              <div className="profileDetailValue">
+                <div
+                  className="skeleton skeleton-text"
+                  style={{ width: '180px', height: '20px' }}
+                ></div>
               </div>
-            )}
-            {(isOwnProfile || true) && (
-              <div className="profileDetailItem">
-                <label>Identifier (nip-05)</label>
-                <div className="profileDetailValue">
-                  <div
-                    className="skeleton skeleton-text"
-                    style={{ width: '150px', height: '20px' }}
-                  ></div>
-                </div>
+            </div>
+            <div className="profileDetailItem">
+              <label>Identifier (nip-05)</label>
+              <div className="profileDetailValue">
+                <div
+                  className="skeleton skeleton-text"
+                  style={{ width: '150px', height: '20px' }}
+                ></div>
               </div>
-            )}
+            </div>
             {targetPubkey && (
               <div className="profileDetailItem">
                 <label>User ID (npub)</label>

@@ -127,7 +127,7 @@ const RegisterPage: React.FC = () => {
         setGeneratedKeys(result.keyPair);
         setShowKeys(true);
       } else {
-        alert('Failed to generate keys: ' + (result.error || 'Unknown error'));
+        alert(`Failed to generate keys: ${result.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Key generation failed:', error);

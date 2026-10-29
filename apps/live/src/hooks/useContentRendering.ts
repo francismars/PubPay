@@ -276,7 +276,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
         processedRanges.push({
           start: offset,
           end: offset + match.length,
-          replacement: replacement
+          replacement
         });
       }
 
@@ -314,7 +314,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
         processedRanges.push({
           start: offset,
           end: offset + match.length,
-          replacement: replacement
+          replacement
         });
       }
 
@@ -562,7 +562,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
             )
           )
         ];
-        let noteId = event.id;
+        let noteId: string;
         try {
           noteId = nip19.noteEncode(event.id);
         } catch {
@@ -748,7 +748,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
    * Updates profile information in chat messages
    */
   const updateProfile = useCallback((profile: Kind0Event) => {
-    let profileData: Record<string, unknown> = {};
+    let profileData: Record<string, unknown>;
     try {
       profileData = JSON.parse(profile.content || '{}') as Record<
         string,
@@ -791,7 +791,7 @@ export const useContentRendering = (options: UseContentRenderingOptions) => {
    */
   const updateLiveEventHostProfile = useCallback(
     (profile: Kind0Event) => {
-      let profileData: Record<string, unknown> = {};
+      let profileData: Record<string, unknown>;
       try {
         profileData = JSON.parse(profile.content || '{}') as Record<
           string,

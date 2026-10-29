@@ -574,7 +574,7 @@ const ProfilePage: React.FC = () => {
                 // Merge with new NIP-05
                 const profileDataForNostr: Record<string, any> = {
                   ...existingProfile,
-                  nip05: nip05
+                  nip05
                 };
 
                 // Remove empty strings
