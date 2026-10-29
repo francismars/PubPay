@@ -1,7 +1,6 @@
 // InvoiceService - Handles Lightning invoice operations
 import { LightningInvoice, LightningPayment } from '@pubpay/shared-types';
-import { isValidZapAmount } from '@pubpay/shared-utils';
-import * as bolt11 from 'bolt11';
+import { decodeBolt11, isValidZapAmount } from '@pubpay/shared-utils';
 
 export class InvoiceService {
   private invoices: Map<string, LightningInvoice> = new Map();
@@ -289,14 +288,10 @@ export class InvoiceService {
     }
 
     try {
-      const decoded = bolt11.decode(trimmedInvoice);
+      const decoded = decodeBolt11(trimmedInvoice);
 
-      // Check if invoice is expired
-      const timestamp = decoded.timestamp || Math.floor(Date.now() / 1000);
-      const expiry =
-        decoded.tags?.find(
-          (tag: { tagName: string; data?: number }) => tag.tagName === 'expiry'
-        )?.data || 3600;
+      const timestamp = decoded.timestamp;
+      const expiry = decoded.expirySeconds;
       const expiryTime = timestamp + expiry;
       const currentTime = Math.floor(Date.now() / 1000);
 
@@ -304,25 +299,16 @@ export class InvoiceService {
         return { success: false, error: 'Invoice has expired' };
       }
 
-      // Check network (mainnet vs testnet)
-      const network = decoded.network;
-      if (network && network !== 'bitcoin') {
-        // Log but allow it (testnet support)
-        console.log('Invoice network:', network);
+      if (decoded.networkBech32 && decoded.networkBech32 !== 'bc') {
+        // Log but allow (testnet / regtest support)
+        console.log('Invoice network:', decoded.networkBech32);
       }
-
-      const amount = decoded.satoshis || 0;
-      const description =
-        decoded.tags?.find(
-          (tag: { tagName: string; data?: string }) =>
-            tag.tagName === 'description'
-        )?.data || '';
 
       return {
         success: true,
         data: {
-          amount,
-          description,
+          amount: decoded.satoshis || 0,
+          description: decoded.description,
           expiry,
           timestamp
         }
@@ -359,15 +345,9 @@ export class InvoiceService {
    */
   static isBolt11Expired(invoice: string): boolean {
     try {
-      const decoded = bolt11.decode(invoice);
-      const timestamp = decoded.timestamp || Math.floor(Date.now() / 1000);
-      const expiry =
-        decoded.tags?.find(
-          (tag: { tagName: string; data?: number }) => tag.tagName === 'expiry'
-        )?.data || 3600;
-      const expiryTime = timestamp + expiry;
-      const currentTime = Math.floor(Date.now() / 1000);
-      return currentTime > expiryTime;
+      const decoded = decodeBolt11(invoice);
+      const expiryTime = decoded.timestamp + decoded.expirySeconds;
+      return Math.floor(Date.now() / 1000) > expiryTime;
     } catch {
       return true; // If we can't parse it, consider it expired/invalid
     }

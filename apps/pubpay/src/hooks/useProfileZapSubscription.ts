@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { ensureProfiles, getQueryClient } from '@pubpay/shared-services';
 import { nip19 } from 'nostr-tools';
 import { parseZapDescription, safeJson } from '@pubpay/shared-utils';
-import bolt11 from 'bolt11';
+import { bolt11AmountSats } from '@pubpay/shared-utils';
 import { genericUserIcon } from '../assets/images';
 import { PubPayPost } from './useHomeFunctionality';
 import { useProfileActions, useProfileStore } from '../stores/useProfileStore';
@@ -256,13 +256,8 @@ export const useProfileZapSubscription = (
           // Process the zap
           const bolt11Tag = zapEvent.tags.find((t: any[]) => t[0] === 'bolt11');
           let zapAmount = 0;
-          if (bolt11Tag) {
-            try {
-              const decoded = bolt11.decode(bolt11Tag[1] || '');
-              zapAmount = decoded.satoshis || 0;
-            } catch {
-              zapAmount = 0;
-            }
+          if (bolt11Tag?.[1]) {
+            zapAmount = bolt11AmountSats(bolt11Tag[1]);
           }
 
           const descriptionTag = zapEvent.tags.find(

@@ -6,7 +6,7 @@ import {
 } from '@pubpay/shared-services';
 import { parseZapDescription, safeJson } from '@pubpay/shared-utils';
 import { nip19 } from 'nostr-tools';
-import * as bolt11 from 'bolt11';
+import { bolt11AmountSats } from '@pubpay/shared-utils';
 import type { PubPayPost, FeedType } from '../types/postTypes';
 import { isZapWithinLimits } from '../utils/zapProcessing';
 import { genericUserIcon } from '../assets/images';
@@ -114,13 +114,8 @@ export const useZapLoader = (options: UseZapLoaderOptions) => {
           const processedZaps: ProcessedZap[] = postZaps.map(zap => {
             const bolt11Tag = zap.tags.find(tag => tag[0] === 'bolt11');
             let zapAmount = 0;
-            if (bolt11Tag) {
-              try {
-                const decoded = bolt11.decode(bolt11Tag[1] || '');
-                zapAmount = decoded.satoshis || 0;
-              } catch {
-                zapAmount = 0;
-              }
+            if (bolt11Tag?.[1]) {
+              zapAmount = bolt11AmountSats(bolt11Tag[1]);
             }
 
             const descriptionTag = zap.tags.find(

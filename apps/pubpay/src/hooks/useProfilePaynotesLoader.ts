@@ -10,8 +10,11 @@ import {
 } from '@pubpay/shared-services';
 import { LIGHTNING } from '../constants';
 import { nip19 } from 'nostr-tools';
-import { parseZapDescription, safeJson } from '@pubpay/shared-utils';
-import bolt11 from 'bolt11';
+import {
+  bolt11AmountSats,
+  parseZapDescription,
+  safeJson
+} from '@pubpay/shared-utils';
 import { genericUserIcon } from '../assets/images';
 import { PubPayPost } from './useHomeFunctionality';
 import {
@@ -518,13 +521,8 @@ export const useProfilePaynotesLoader = (
                     (tag: any[]) => tag[0] === 'bolt11'
                   );
                   let zapAmount = 0;
-                  if (bolt11Tag) {
-                    try {
-                      const decoded = bolt11.decode(bolt11Tag[1] || '');
-                      zapAmount = decoded.satoshis || 0;
-                    } catch {
-                      zapAmount = 0;
-                    }
+                  if (bolt11Tag?.[1]) {
+                    zapAmount = bolt11AmountSats(bolt11Tag[1]);
                   }
 
                   const descriptionTag = zap.tags.find(
@@ -905,13 +903,8 @@ export const useProfilePaynotesLoader = (
                   (tag: any[]) => tag[0] === 'bolt11'
                 );
                 let zapAmount = 0;
-                if (bolt11Tag) {
-                  try {
-                    const decoded = bolt11.decode(bolt11Tag[1] || '');
-                    zapAmount = decoded.satoshis || 0;
-                  } catch {
-                    zapAmount = 0;
-                  }
+                if (bolt11Tag?.[1]) {
+                  zapAmount = bolt11AmountSats(bolt11Tag[1]);
                 }
 
                 const descriptionTag = zap.tags.find(

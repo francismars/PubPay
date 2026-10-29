@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@pubpay/shared-types": "workspace:*",
-    "bolt11": "1.4.2",
+    "@pubpay/shared-utils": "workspace:*",
     "cors": "^2.8.6",
     "dotenv": "^18.0.9",
     "express": "^5.3.0",

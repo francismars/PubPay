@@ -2,7 +2,7 @@
 import { Logger } from '../utils/logger.js';
 import { SimplePool, finalizeEvent, nip19, getPublicKey } from 'nostr-tools';
 import * as crypto from 'crypto';
-import bolt11 from 'bolt11';
+import { decodeBolt11 } from '@pubpay/shared-utils';
 
 export interface ZapResult {
   success: boolean;
@@ -740,13 +740,8 @@ export class NostrService {
 
     // Verify BOLT11 amount matches requested sats before paying
     try {
-      const decoded = bolt11.decode(responseData.pr);
-      const invoiceSats =
-        decoded.satoshis != null
-          ? decoded.satoshis
-          : decoded.millisatoshis != null
-            ? Math.round(Number(decoded.millisatoshis) / 1000)
-            : null;
+      const decoded = decodeBolt11(responseData.pr);
+      const invoiceSats = decoded.satoshis;
       if (invoiceSats == null || invoiceSats !== amount) {
         throw new Error(
           `Invoice amount mismatch: expected ${amount} sats, got ${invoiceSats}`

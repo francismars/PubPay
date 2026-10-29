@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as NostrTools from 'nostr-tools';
 const QRious = require('qrious') as any;
-const Bolt11 = require('bolt11') as any;
+import { bolt11AmountSats } from '@pubpay/shared-utils';
 
 // Import YouTube API types
 declare global {
@@ -567,8 +567,7 @@ export const useJukeboxFunctionality = () => {
       const bolt11 = event.tags.find((tag: any) => tag[0] === 'bolt11');
       if (!bolt11) return;
 
-      const decodedBolt11 = Bolt11.decode(bolt11[1]);
-      const amount = decodedBolt11.satoshis;
+      const amount = bolt11AmountSats(bolt11[1]);
 
       // The zapper's profile info comes from the kind 9734 event inside the description
       // The kind 9735 event's pubkey is the recipient, not the zapper

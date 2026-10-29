@@ -9,7 +9,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "bolt11": "^1.4.2",
+    "@pubpay/shared-utils": "workspace:*",
     "nostr-tools": "^2.25.2",
     "qrious": "^4.0.2",
     "react": "^19.3.1",

@@ -1,8 +1,6 @@
 import { Kind9735Event, Kind0Event, Kind1Event } from '@pubpay/shared-types';
-import { parseZapDescription } from '@pubpay/shared-utils';
+import { bolt11AmountSats, parseZapDescription } from '@pubpay/shared-utils';
 import { nip19 } from 'nostr-tools';
-// @ts-ignore - bolt11 types are declared in bolt11.d.ts
-import * as bolt11 from 'bolt11';
 
 /**
  * Extract zap amount from bolt11 tag
@@ -10,13 +8,7 @@ import * as bolt11 from 'bolt11';
 export function extractZapAmount(zap: Kind9735Event): number {
   const bolt11Tag = zap.tags.find(tag => tag[0] === 'bolt11');
   if (!bolt11Tag || !bolt11Tag[1]) return 0;
-
-  try {
-    const decoded = bolt11.decode(bolt11Tag[1]);
-    return decoded.satoshis || 0;
-  } catch {
-    return 0;
-  }
+  return bolt11AmountSats(bolt11Tag[1]);
 }
 
 /**

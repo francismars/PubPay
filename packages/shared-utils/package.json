@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "light-bolt11-decoder": "^3.2.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
