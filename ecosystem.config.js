@@ -8,7 +8,11 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        PORT: 3002
+        PORT: 3002,
+        // Required behind nginx so express-rate-limit sees real client IPs.
+        // Other secrets (FRONTEND_URL, WEBHOOK_SECRET, LNBITS_*) come from
+        // packages/backend/.env via dotenv in the process.
+        TRUST_PROXY: 'true'
       },
       error_file: './logs/backend-error.log',
       out_file: './logs/backend-out.log',

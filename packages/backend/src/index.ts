@@ -5,12 +5,7 @@ import morgan from 'morgan';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
-import {
-  Request,
-  Response,
-  NextFunction,
-  RequestHandler
-} from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { LightningRouter } from './routes/lightning.js';
 import { ErrorHandler } from './middleware/errorHandler.js';
 import { RoomsRouter } from './routes/rooms.js';
@@ -50,7 +45,10 @@ function resolveCorsOrigin():
     // Fail closed: never reflect arbitrary Origin when misconfigured
     return false;
   }
-  return raw.split(',').map(s => s.trim()).filter(Boolean);
+  return raw
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
 }
 
 export class BackendServer {
@@ -63,30 +61,42 @@ export class BackendServer {
     this.port = parseInt(process.env['PORT'] || '3002', 10);
     this.logger = new Logger('BackendServer');
 
-    if (
-      process.env['NODE_ENV'] === 'production' &&
-      !process.env['FRONTEND_URL']?.trim()
-    ) {
-      this.logger.error(
-        'FRONTEND_URL is required in production (CORS fail-closed)'
-      );
-    }
-    if (
-      process.env['NODE_ENV'] === 'production' &&
-      !getWebhookSecret()
-    ) {
-      this.logger.error(
-        'WEBHOOK_SECRET is required in production — webhooks will be rejected'
-      );
-    }
-
+    this.assertProductionConfig();
     this.initializeMiddleware();
     this.initializeRoutes();
     this.initializeErrorHandling();
   }
 
+  /** Exit before binding a half-broken production process. */
+  private assertProductionConfig(): void {
+    if (process.env['NODE_ENV'] !== 'production') return;
+
+    const missing: string[] = [];
+    if (!process.env['FRONTEND_URL']?.trim()) missing.push('FRONTEND_URL');
+    if (!getWebhookSecret()) missing.push('WEBHOOK_SECRET');
+
+    if (missing.length > 0) {
+      this.logger.error(
+        `Missing required production env: ${missing.join(', ')}. Refusing to start.`
+      );
+      process.exit(1);
+    }
+
+    if (
+      process.env['TRUST_PROXY'] !== '1' &&
+      process.env['TRUST_PROXY'] !== 'true'
+    ) {
+      this.logger.warn(
+        'TRUST_PROXY is unset — behind nginx/reverse proxy, set TRUST_PROXY=true so rate limits use real client IPs'
+      );
+    }
+  }
+
   private initializeMiddleware(): void {
-    if (process.env['TRUST_PROXY'] === '1' || process.env['TRUST_PROXY'] === 'true') {
+    if (
+      process.env['TRUST_PROXY'] === '1' ||
+      process.env['TRUST_PROXY'] === 'true'
+    ) {
       this.app.set('trust proxy', 1);
     }
 
@@ -118,8 +128,7 @@ export class BackendServer {
     this.app.use(morgan('combined'));
 
     // express-rate-limit v8 still types against Express 4 Request; bridge for Express 5
-    const asHandler = (mw: unknown): RequestHandler =>
-      mw as RequestHandler;
+    const asHandler = (mw: unknown): RequestHandler => mw as RequestHandler;
 
     this.app.use(
       asHandler(
@@ -225,14 +234,17 @@ export class BackendServer {
   }
 
   public start(): void {
-    this.app.listen(this.port, () => {
-      this.logger.info(`🚀 Backend server started on port ${this.port}`);
-      this.logger.info(
-        `📊 Environment: ${process.env['NODE_ENV'] || 'development'}`
-      );
-      this.logger.info(`🔗 Health check: http://localhost:${this.port}/health`);
+    // Production: localhost only (nginx is the public entry). Override with BIND_HOST.
+    const host =
+      process.env['BIND_HOST']?.trim() ||
+      (process.env['NODE_ENV'] === 'production' ? '127.0.0.1' : '0.0.0.0');
 
-      // Log configuration status
+    this.app.listen(this.port, host, () => {
+      this.logger.info(`Backend listening on ${host}:${this.port}`);
+      this.logger.info(
+        `Environment: ${process.env['NODE_ENV'] || 'development'}`
+      );
+      this.logger.info(`Health check: http://127.0.0.1:${this.port}/health`);
       this.logConfiguration();
     });
   }
