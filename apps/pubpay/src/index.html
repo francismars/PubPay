@@ -10,7 +10,7 @@
         font-src 'self' https://fonts.gstatic.com data:;
         img-src 'self' https: data: blob:;
         media-src 'self' https: blob:;
-        connect-src 'self' https: wss: http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*;
+        connect-src <%= cspConnectSrc %>;
         frame-src 'self' https://www.youtube.com https://youtube.com;
         worker-src 'self' blob:;
         manifest-src 'self';

@@ -1,6 +1,7 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { scureAliases, extensionAlias } = require('./scureAliases');
+const { cspConnectSrc } = require('./cspConnectSrc');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -72,6 +73,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: '../../apps/jukebox/src/index.html',
+      templateParameters: { cspConnectSrc },
       filename: 'index.html',
       minify: isProduction
         ? {
@@ -88,12 +90,17 @@ module.exports = {
           }
         : false
     }),
-        new (require('webpack').DefinePlugin)({
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    new (require('webpack').DefinePlugin)({
+      'process.env.NODE_ENV': JSON.stringify(
+        process.env.NODE_ENV || 'development'
+      ),
       ...Object.fromEntries(
         Object.entries(process.env)
           .filter(([key]) => key.startsWith('REACT_APP_'))
-          .map(([key, value]) => [`process.env.${key}`, JSON.stringify(value ?? '')])
+          .map(([key, value]) => [
+            `process.env.${key}`,
+            JSON.stringify(value ?? '')
+          ])
       )
     }),
     new (require('webpack').ProvidePlugin)({

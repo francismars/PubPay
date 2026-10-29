@@ -5,6 +5,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const webpack = require('webpack');
 const { scureAliases, extensionAlias } = require('./scureAliases');
+const { cspConnectSrc } = require('./cspConnectSrc');
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -72,7 +73,10 @@ module.exports = {
           loader: 'ts-loader',
           options: {
             // Ensure TypeScript uses the app tsconfig (paths -> workspace packages)
-            configFile: path.resolve(__dirname, '../../apps/pubpay/tsconfig.json')
+            configFile: path.resolve(
+              __dirname,
+              '../../apps/pubpay/tsconfig.json'
+            )
           }
         },
         exclude: /node_modules/
@@ -99,6 +103,7 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: './src/index.html',
       filename: 'index.html',
+      templateParameters: { cspConnectSrc },
       minify: isProduction
         ? {
             removeComments: true,
@@ -114,12 +119,17 @@ module.exports = {
           }
         : false
     }),
-        new webpack.DefinePlugin({
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify(
+        process.env.NODE_ENV || 'development'
+      ),
       ...Object.fromEntries(
         Object.entries(process.env)
           .filter(([key]) => key.startsWith('REACT_APP_'))
-          .map(([key, value]) => [`process.env.${key}`, JSON.stringify(value ?? '')])
+          .map(([key, value]) => [
+            `process.env.${key}`,
+            JSON.stringify(value ?? '')
+          ])
       )
     }),
     new webpack.ProvidePlugin({
